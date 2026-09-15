@@ -6090,15 +6090,11 @@ describe("Data", () => {
             },
         );
 
-        it.fails(
-            "dataSelect selects keys off a Map like the record it mirrors",
-            () => {
-                // Task C8 (pluck family) converts this to dispatch().
-                expect(Data.dataSelect(objectsMap, ["id"])).toEqual(
-                    Data.dataSelect(objectsRecord, ["id"]),
-                );
-            },
-        );
+        it("dataSelect selects keys off a Map like the record it mirrors", () => {
+            expect(Data.dataSelect(objectsMap, ["id"])).toEqual(
+                Data.dataSelect(objectsRecord, ["id"]),
+            );
+        });
 
         it.fails(
             "dataMapWithKeys maps a Map like the record it mirrors",
@@ -6460,15 +6456,11 @@ describe("Data", () => {
             ).toEqual(Data.dataDiffKeysUsing(asRecord, { B: 99 }, strcasecmp));
         });
 
-        it.fails(
-            "dataPluck plucks off a Map like the record it mirrors",
-            () => {
-                // Task C8 (pluck family) converts this to dispatch().
-                expect(Data.dataPluck(objectsMap, "name")).toEqual(
-                    Data.dataPluck(objectsRecord, "name"),
-                );
-            },
-        );
+        it("dataPluck plucks off a Map like the record it mirrors", () => {
+            expect(Data.dataPluck(objectsMap, "name")).toEqual(
+                Data.dataPluck(objectsRecord, "name"),
+            );
+        });
 
         it("dataPop pops off a Map like the record it mirrors", () => {
             const mapCopy = new Map(asMap);

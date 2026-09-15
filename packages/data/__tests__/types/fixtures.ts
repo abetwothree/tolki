@@ -91,6 +91,50 @@ export const rowsById: Record<"r1" | "r2", Row> = {
 /** The canonical union at the shape keyBy needs: rows rather than scalars. */
 export const unionRows: DataItems<Row, "r1" | "r2"> = rowList;
 
+/** The nested row type shared by pluck's dotted-path fixtures. */
+export interface NestedRow {
+    user: Row;
+}
+
+/** A list of nested rows, for pluck's dotted paths. */
+export const nestedRowList: NestedRow[] = [
+    { user: { id: 1, name: "Ada" } },
+    { user: { id: 2, name: "Grace" } },
+];
+
+/** The record of the same nested rows. */
+export const nestedRowsById: Record<"r1" | "r2", NestedRow> = {
+    r1: { user: { id: 1, name: "Ada" } },
+    r2: { user: { id: 2, name: "Grace" } },
+};
+
+/** The wildcard row type: a row holding a list, so `a.*.b` has something to walk. */
+export interface WildcardRow {
+    users: { first: string }[];
+}
+
+/** A list of wildcard rows, for pluck's `*` segment. */
+export const wildcardRowList: WildcardRow[] = [
+    { users: [{ first: "taylor" }, { first: "dayle" }] },
+];
+
+/** The record of the same wildcard rows. */
+export const wildcardRowsById: Record<"r1", WildcardRow> = {
+    r1: { users: [{ first: "taylor" }, { first: "dayle" }] },
+};
+
+/** A Map of rows, which only `dispatch`'s Map row accepts. */
+export const rowMap = new Map<string, Row>([
+    ["r1", { id: 1, name: "Ada" }],
+    ["r2", { id: 2, name: "Grace" }],
+]);
+
+/** The record `rowMap` mirrors: the shape `toKeyedData` builds from it at runtime. */
+export const rowMapAsRecord: Record<string, Row> = {
+    r1: { id: 1, name: "Ada" },
+    r2: { id: 2, name: "Grace" },
+};
+
 /** A list of pairs: the tuple shape `mapSpread`'s typed arr rows are written for. */
 export const pairList: [number, string][] = [
     [1, "Ada"],

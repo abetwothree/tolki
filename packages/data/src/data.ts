@@ -1123,16 +1123,7 @@ export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
-export function dataSelect<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKey[] | PathKeys,
-) {
-    if (isObject(data)) {
-        return objSelect(data, keys);
-    }
-
-    return arrSelect(arrWrap(data), keys);
-}
+export const dataSelect = dispatch(arrSelect, objSelect);
 
 /**
  * Map data with keys using a callback.
@@ -2328,32 +2319,7 @@ export function dataDiffKeysUsing<
  * Data.pluck([{name: 'John'}, {name: 'Jane'}], 'name'); -> ['John', 'Jane']
  * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
  */
-export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    value: string | ((item: TValue, key: TKey) => TValue),
-    key:
-        | PropertyKey
-        | ((item: TValue, key: TKey) => string | number)
-        | null = null,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objPluck(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            value as string | ((item: unknown) => unknown),
-            key as string | ((item: unknown) => string | number) | null,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrPluck(
-        arrWrap(data) as Record<TKey, TValue>[],
-        value as string | ((item: Record<TKey, TValue>) => TValue),
-        key as
-            | string
-            | ((item: Record<TKey, TValue>) => string | number)
-            | null,
-    ) as DataItems<TValue, TKey>;
-}
+export const dataPluck = dispatch(arrPluck, objPluck);
 
 /**
  * Get and remove the last N items from the data, mutating it in place.
