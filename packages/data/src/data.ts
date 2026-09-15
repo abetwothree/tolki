@@ -755,23 +755,14 @@ export function dataExceptValues<
  *
  * @param data - The data to check
  * @param key - The key to check for
- * @returns True if key exists
+ * @returns True if key exists, matching the delegate's own result
  *
  * @example
  *
  * dataExists([1, 2, 3], 1); -> true
  * dataExists({a: 1, b: 2}, 'c'); -> false
  */
-export function dataExists<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-): boolean {
-    if (isObject(data)) {
-        return objExists(data, key);
-    }
-
-    return arrExists(arrWrap(data), key);
-}
+export const dataExists = dispatch(arrExists, objExists);
 
 /**
  * Take a limited number of items from data.

@@ -3,8 +3,16 @@
  * this file matches neither Vitest include pattern, so it is never collected as a test.
  */
 
+import type { DataItems } from "@tolki/types";
+
 /** A list backing: the arr delegate's shape. */
 export const numberList = [1, 2, 3];
+
+/**
+ * The package's own canonical input type. A union matches none of arr's array-shaped rows,
+ * so it reaches obj's widest row; concrete fixtures never show that.
+ */
+export const unionItems: DataItems<number, string> = [1, 2, 3];
 
 /** A read-only list backing: `TValue[]` rejects it, `ArrayItems<TValue>` accepts it. */
 export const readonlyNumberList: readonly number[] = [1, 2, 3];

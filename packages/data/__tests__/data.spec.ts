@@ -5893,15 +5893,11 @@ describe("Data", () => {
             },
         );
 
-        it.fails(
-            "dataExists checks a key on a Map like the record it mirrors",
-            () => {
-                // Task C3 (guards family) converts this to dispatch().
-                expect(Data.dataExists(asMap, "a")).toBe(
-                    Data.dataExists(asRecord, "a"),
-                );
-            },
-        );
+        it("dataExists checks a key on a Map like the record it mirrors", () => {
+            expect(Data.dataExists(asMap, "a")).toBe(
+                Data.dataExists(asRecord, "a"),
+            );
+        });
 
         it.fails("dataTake takes from a Map like the record it mirrors", () => {
             // Task C11 (slicing family) converts this to dispatch().
