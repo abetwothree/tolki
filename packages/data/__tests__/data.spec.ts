@@ -2263,10 +2263,7 @@ describe("Data", () => {
                 Data.dataSearch(["a", "b", "c"], (_value, key) => key === 2),
             ).toBe(2);
             expect(
-                Data.dataSearch(
-                    { x: 1, y: 2 },
-                    (_value, key) => key === "y",
-                ),
+                Data.dataSearch({ x: 1, y: 2 }, (_value, key) => key === "y"),
             ).toBe("y");
         });
     });
@@ -2711,7 +2708,10 @@ describe("Data", () => {
             // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback"
             // JS-only message: Laravel throws MultipleItemsFoundException("2 items were found.").
             expect(() =>
-                Data.dataSole(["baz", "foo", "baz"], (value) => value === "baz"),
+                Data.dataSole(
+                    ["baz", "foo", "baz"],
+                    (value) => value === "baz",
+                ),
             ).toThrow("Multiple items found (2 items)");
             expect(() =>
                 Data.dataSole(
@@ -2727,6 +2727,7 @@ describe("Data", () => {
 
     describe("dataSort", () => {
         it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "sort-scalar-keys"
             const obj = { c: 3, a: 1, b: 2 };
             const result = Data.dataSort(obj);
             expect(result).toEqual({ a: 1, b: 2, c: 3 });
@@ -2748,18 +2749,21 @@ describe("Data", () => {
             });
             expect(Object.keys(natural)).toEqual(["b", "a"]);
 
+            // docs/php-parity/task-24-data-release-readiness.json, "sort-rows-closure-keys"
             const byClosure = Data.dataSort(
                 { a: { name: "Desk" }, b: { name: "Chair" } },
                 (value) => value.name,
             );
             expect(Object.keys(byClosure)).toEqual(["b", "a"]);
 
+            // docs/php-parity/task-24-data-release-readiness.json, "sort-rows-dot-key-keys"
             const byDotKey = Data.dataSort(
                 { a: { meta: { k: 2 } }, b: { meta: { k: 1 } } },
                 "meta.k",
             );
             expect(Object.keys(byDotKey)).toEqual(["b", "a"]);
 
+            // docs/php-parity/task-24-data-release-readiness.json, "sort-rows-list-closure"
             expect(
                 Data.dataSort(
                     [{ name: "Desk" }, { name: "Chair" }],
@@ -2779,13 +2783,15 @@ describe("Data", () => {
             };
             expect(
                 Object.keys(
-                    Data.dataSort(rows, [
-                        "name",
-                        "age",
-                        "meta.key",
-                    ] as never),
+                    Data.dataSort(rows, ["name", "age", "meta.key"] as never),
                 ),
             ).toEqual(["c", "d", "a", "b"]);
+
+            // docs/php-parity/task-24-data-release-readiness.json, "sortByMany-keys-list"
+            const rowsList = [rows.a, rows.b, rows.c, rows.d];
+            expect(
+                Data.dataSort(rowsList, ["name", "age", "meta.key"] as never),
+            ).toEqual([rows.c, rows.d, rows.a, rows.b]);
         });
 
         it("honours a per-key direction descriptor", () => {
@@ -2805,6 +2811,16 @@ describe("Data", () => {
                     ] as never),
                 ),
             ).toEqual(["c", "b", "d", "a"]);
+
+            // docs/php-parity/task-24-data-release-readiness.json, "sortByMany-order-list"
+            const rowsList = [rows.a, rows.b, rows.c, rows.d];
+            expect(
+                Data.dataSort(rowsList, [
+                    "name",
+                    ["age", false],
+                    ["meta.key", true],
+                ] as never),
+            ).toEqual([rows.c, rows.b, rows.d, rows.a]);
         });
     });
 
@@ -2828,8 +2844,12 @@ describe("Data", () => {
                 b: { name: "Desk" },
             });
             expect(Object.keys(result)).toEqual(["b", "a"]);
-            expect(result).toEqual({ b: { name: "Desk" }, a: { name: "Chair" } });
+            expect(result).toEqual({
+                b: { name: "Desk" },
+                a: { name: "Chair" },
+            });
 
+            // docs/php-parity/task-24-data-release-readiness.json, "sortDesc-rows-list-dot-key"
             expect(
                 Data.dataSortDesc(
                     [{ meta: { k: 1 } }, { meta: { k: 2 } }],
@@ -2839,7 +2859,7 @@ describe("Data", () => {
         });
 
         it("pins the descending key order on the object backing", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "sortDesc-rows-natural-keys"
+            // docs/php-parity/task-24-data-release-readiness.json, "sortDesc-scalar-keys"
             expect(
                 Object.keys(Data.dataSortDesc({ c: 3, a: 1, b: 2 })),
             ).toEqual(["c", "b", "a"]);
@@ -2929,16 +2949,19 @@ describe("Data", () => {
 
             it("orders nested numbers descending, numerically", () => {
                 // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursiveDesc-numbers"
-                expect(
-                    Data.dataSortRecursiveDesc({ a: [1, 9, 10] }),
-                ).toEqual({ a: [10, 9, 1] });
+                expect(Data.dataSortRecursiveDesc({ a: [1, 9, 10] })).toEqual({
+                    a: [10, 9, 1],
+                });
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "sortRecursiveDesc-numbers-list"
                 expect(Data.dataSortRecursiveDesc([[1, 9, 10]])).toEqual([
                     [10, 9, 1],
                 ]);
             });
 
             it("descends every level of the ArrTest fixture", () => {
-                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursiveDesc-literal"
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "sortRecursiveDesc-three-groups"
                 const result = Data.dataSortRecursiveDesc({
                     empty: {},
                     nested: {
@@ -2954,8 +2977,16 @@ describe("Data", () => {
                     "mixed",
                     "empty",
                 ]);
+                // toEqual alone doesn't pin level1's own key order (values vs level2).
+                expect(Object.keys(result["nested"].level1)).toEqual([
+                    "values",
+                    "level2",
+                ]);
                 expect(result["nested"]).toEqual({
-                    level1: { values: [6, 5, 4], level2: { level3: [3, 2, 1] } },
+                    level1: {
+                        values: [6, 5, 4],
+                        level2: { level3: [3, 2, 1] },
+                    },
                 });
                 // JS-only: PHP orders `mixed` as {"c":3,"a":1,"2":"b","1":"d"}; a JS object
                 // hoists integer-like keys ahead of string keys regardless of insertion order,
@@ -3132,20 +3163,20 @@ describe("Data", () => {
                     (value) => value === "200" || value === "400",
                 ),
             ).toEqual({ 1: "200", 3: "400" });
-            expect(
-                Data.dataWhere([1, 2, 3, 4], (value) => value > 2),
-            ).toEqual([3, 4]);
+            expect(Data.dataWhere([1, 2, 3, 4], (value) => value > 2)).toEqual([
+                3, 4,
+            ]);
         });
 
         it("passes the key to the callback", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "whereKey-numeric", "callback-key where"
+            // docs/php-parity/task-23-obj-release-readiness.json, "whereKey-numeric"
             expect(
                 Data.dataWhere(
                     { 10: 1, foo: 3, 20: 2 },
                     (_value, key) => typeof key === "number",
                 ),
             ).toEqual({ 10: 1, 20: 2 });
+            // docs/php-parity/task-24-data-release-readiness.json, "where-list-key-predicate"
             expect(
                 Data.dataWhere<string, number>(
                     ["a", "b", "c"],
@@ -3326,20 +3357,16 @@ describe("Data", () => {
         });
 
         it("passes the key to the callback", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key reject"
+            // docs/php-parity/task-24-data-release-readiness.json, "reject-key-predicate"
             expect(
-                Data.dataReject(
-                    { a: 1, b: 2 },
-                    (_value, key) => key === "a",
-                ),
+                Data.dataReject({ a: 1, b: 2 }, (_value, key) => key === "a"),
             ).toEqual({ b: 2 });
         });
 
         it("requires a callback rather than dropping truthy values", () => {
-            // JS-only: Laravel's Collection::reject() with no argument removes truthy
-            // values (docs/php-parity/task-24-data-release-readiness.json,
-            // "reject-no-callback"). The port has no no-argument overload; calling it
-            // without one is a TypeError, which this pins so the divergence is visible.
+            // JS-only: Laravel's reject() with no callback drops truthy values
+            // (docs/php-parity/task-24-data-release-readiness.json, "reject-no-callback").
+            // The port requires a callback; calling without one throws TypeError instead.
             // @ts-expect-error - dataReject requires a callback
             expect(() => Data.dataReject([1, null, 2, false, 3])).toThrow(
                 TypeError,
@@ -3368,7 +3395,6 @@ describe("Data", () => {
         });
 
         it("reverses string keys with their values", () => {
-            // docs/php-parity/task-11-final-fixes.json, "reverse on string keys"
             // docs/php-parity/task-23-obj-release-readiness.json, "C5 reverse assoc"
             expect(
                 Object.keys(
@@ -3378,11 +3404,9 @@ describe("Data", () => {
         });
 
         it("renumbers an integer-keyed backing instead of carrying the keys along", () => {
-            // JS-only: PHP's collect([10,20,30,40])->reverse() keeps each value on its
-            // ORIGINAL key ({"3":40,"2":30,"1":20,"0":10} — docs/php-parity/
+            // JS-only: PHP keeps each value on its original key (docs/php-parity/
             // task-11-final-fixes.json, "reverse preserves keys and reverses entry order").
-            // JS cannot express a descending integer-key order in an object or an array,
-            // so the port reverses the values and renumbers. No JS analogue exists.
+            // JS can't express a descending int-key order, so this reverses and renumbers.
             expect(Data.dataReverse({ 0: "zaeed", 1: "alan" })).toEqual({
                 0: "alan",
                 1: "zaeed",
@@ -3442,8 +3466,7 @@ describe("Data", () => {
         });
 
         it("preserves the original keys in both halves, through the object backing", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "partition-preserves-keys", "partition-assoc-preserves-keys"
+            // docs/php-parity/task-24-data-release-readiness.json, "partition-preserves-keys"
             // JS-only: the list backing renumbers both halves.
             const [passing, failing] = Data.dataPartition(
                 { 0: "John", 1: "Jane", 2: "Greg" },
@@ -3460,7 +3483,7 @@ describe("Data", () => {
         });
 
         it("passes the key to the callback", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "callback-key partition"
+            // docs/php-parity/task-24-data-release-readiness.json, "partition-key-predicate"
             const [passing, failing] = Data.dataPartition(
                 { 1: "a", x: "b" },
                 (_value, key) => typeof key === "number",
@@ -3495,20 +3518,34 @@ describe("Data", () => {
                     f: [],
                 }),
             ).toEqual({ b: 0, c: false, d: "", f: [] });
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "whereNotNull-list-preserves-keys"
+            expect(
+                Data.dataWhereNotNull([null, 0, false, "", null, []]),
+            ).toEqual([0, false, "", []]);
         });
 
         it("returns an empty result when every value is null", () => {
             // docs/php-parity/task-24-data-release-readiness.json, "whereNotNull-all-null"
-            expect(Data.dataWhereNotNull({ a: null, b: null })).toEqual({});
+            expect(Data.dataWhereNotNull({ a: null })).toEqual({});
             expect(Data.dataWhereNotNull([null, null])).toEqual([]);
         });
 
-        it("drops undefined alongside null", () => {
-            // JS-only: PHP has a single null. The port treats `undefined` as the same
-            // absence, so it is dropped too; there is no probe for this distinction.
-            expect(
-                Data.dataWhereNotNull({ a: 1, b: undefined, c: null }),
-            ).toEqual({ a: 1 });
+        it("keeps undefined, dropping only null", () => {
+            // JS-only: PHP has a single null. The port's null check only matches `null`,
+            // not `undefined`, so an `undefined` value survives; no probe applies. `toEqual`
+            // on an object ignores undefined-valued properties, so pin with Object.keys too.
+            const result = Data.dataWhereNotNull({
+                a: 1,
+                b: undefined,
+                c: null,
+            }) as Record<string, unknown>;
+            expect(Object.keys(result)).toEqual(["a", "b"]);
+            expect(result["b"]).toBeUndefined();
+            expect(Data.dataWhereNotNull([1, undefined, null])).toEqual([
+                1,
+                undefined,
+            ]);
         });
     });
 
@@ -3631,7 +3668,10 @@ describe("Data", () => {
                 ),
             ).toEqual({ first: "first-taylor", last: "last-" });
             expect(
-                Data.dataMap(["a", "b"], (value, key) => `${String(key)}-${value}`),
+                Data.dataMap(
+                    ["a", "b"],
+                    (value, key) => `${String(key)}-${value}`,
+                ),
             ).toEqual(["0-a", "1-b"]);
         });
 
@@ -3643,6 +3683,14 @@ describe("Data", () => {
                 b: 4,
             });
             expect(source).toEqual({ a: 1, b: 2 });
+
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "map-source-unchanged-list"
+            const listSource = [1, 2];
+            expect(Data.dataMap(listSource, (value) => value * 2)).toEqual([
+                2, 4,
+            ]);
+            expect(listSource).toEqual([1, 2]);
         });
 
         it("maps an empty backing to an empty result of the same shape", () => {
