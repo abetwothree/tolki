@@ -2444,9 +2444,9 @@ export function prepend<TValue>(
     value: TValue,
     key?: number,
 ): TValue[];
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function prepend<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     value: TValue,
     key?: number,
 ): TValue[];
@@ -2492,9 +2492,9 @@ export function pull<TValue, TDefault>(
     key: PathKey,
     defaultValue: TDefault | (() => TDefault),
 ): { value: TValue | TDefault; data: TValue[] };
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function pull<TValue, TDefault = null>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): { value: TValue | TDefault | null; data: TValue[] };
@@ -2836,7 +2836,7 @@ export function set<TValue>(
 ): TValue[];
 // Overload: generic fallback, for a key that may be null or undefined
 export function set<TValue, TSetValue>(
-    array: unknown,
+    array: readonly unknown[] | null | undefined,
     key: PathKey,
     value: TSetValue,
 ): TValue[] | NoInfer<TSetValue>;
@@ -2865,9 +2865,9 @@ export function push<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[];
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function push<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     ...values: TValue[]
 ): TValue[];

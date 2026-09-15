@@ -90,12 +90,14 @@ describe("arr mutations type tests", () => {
             expectTypeOf(Arr.set([1, 2], maybeKey, "x")).toEqualTypeOf<
                 (number | string)[] | string
             >();
-            expectTypeOf(Arr.set(unknownArray, maybeKey, 5)).toEqualTypeOf<
-                unknown[] | number
-            >();
-            expectTypeOf(Arr.set(unknownArray, "a", 5)).toEqualTypeOf<
-                unknown[]
-            >();
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.set(unknownArray, maybeKey, 5);
+            expectTypeOf(
+                Arr.set(unknownArray as unknown[], maybeKey, 5),
+            ).toEqualTypeOf<unknown[] | number>();
+            expectTypeOf(
+                Arr.set(unknownArray as unknown[], "a", 5),
+            ).toEqualTypeOf<unknown[]>();
         });
     });
 

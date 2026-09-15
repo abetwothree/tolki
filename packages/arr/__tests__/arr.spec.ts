@@ -2014,7 +2014,7 @@ describe("Arr", () => {
             // Try to create structure that would cause type conflicts
             try {
                 // This attempts to push to a path where intermediate value conflicts
-                const data: unknown = [];
+                const data: unknown[] = [];
                 Arr.push(data, "0.prop", "value"); // Should work, creates nested structure
                 expect(isArray(data)).toBe(true);
             } catch (error) {
@@ -2106,7 +2106,7 @@ describe("Arr", () => {
 
         it("pull with non-accessible data", () => {
             // Should handle non-arrays gracefully
-            const result = Arr.pull("not-array", 0);
+            const result = Arr.pull("not-array" as unknown as unknown[], 0);
             expect(result.value).toBe(null);
             expect(result.data).toEqual([]);
         });
@@ -3407,7 +3407,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.prepend(null, "first")).toEqual(["first"]);
-            expect(Arr.prepend("abc", "first")).toEqual(["first"]);
+            expect(Arr.prepend("abc" as unknown as unknown[], "first")).toEqual(
+                ["first"],
+            );
         });
 
         it("treats an array value as a single opaque element", () => {
