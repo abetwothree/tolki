@@ -1805,9 +1805,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ) as unknown as Collection<TKey, number>;
         }
 
-        return this.newInstance(
-            dataKeys(this.items) as TKey[],
-        ) as unknown as Collection<TKey, number>;
+        return this.newInstance(dataKeys(this.items)) as unknown as Collection<
+            TKey,
+            number
+        >;
     }
 
     /**
@@ -3735,7 +3736,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return this.newInstance(dataValues(this.items) as DataItems<TValue>);
+        return this.newInstance(dataValues(this.items));
     }
 
     /**
