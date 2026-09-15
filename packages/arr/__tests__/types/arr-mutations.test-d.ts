@@ -235,11 +235,18 @@ describe("arr mutations type tests", () => {
             Arr.pop(readonlyNumbers);
         });
 
-        it("rejects unknown-typed data — the fallback overload only serves TValue[] | Record<PropertyKey, unknown> | null | undefined, not a blanket `unknown`, so mutation safety isn't silently bypassed", () => {
+        it("rejects unknown-typed data — the fallback overload only serves TValue[] | null | undefined, not a blanket `unknown`, so mutation safety isn't silently bypassed", () => {
             // @ts-expect-error -- a value whose static type is `unknown`
             // provides no proof it's actually a mutable array; narrow it
             // before calling a mutating function
             Arr.pop(unknownArray);
+        });
+
+        it("rejects a plain record — keyed data belongs to Obj.pop", () => {
+            // @ts-expect-error - keyed data belongs to Obj.pop
+            Arr.pop({ a: 1, b: 2 });
+            // @ts-expect-error - keyed data belongs to Obj.pop
+            Arr.pop({ a: 1, b: 2 }, 2);
         });
     });
 
@@ -265,6 +272,13 @@ describe("arr mutations type tests", () => {
         it("rejects a readonly array — shift mutates, so the source must be a known-mutable array", () => {
             // @ts-expect-error -- readonly arrays cannot be mutated by shift
             Arr.shift(readonlyStrings);
+        });
+
+        it("rejects a plain record — keyed data belongs to Obj.shift", () => {
+            // @ts-expect-error - keyed data belongs to Obj.shift
+            Arr.shift({ a: 1, b: 2 });
+            // @ts-expect-error - keyed data belongs to Obj.shift
+            Arr.shift({ a: 1, b: 2 }, 2);
         });
     });
 

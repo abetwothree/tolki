@@ -1355,9 +1355,7 @@ export function from(
     items: number | string | boolean | symbol | null | undefined,
 ): never;
 export function from<TValue>(items: Iterable<TValue>): TValue[];
-export function from(
-    items: readonly unknown[] | Iterable<unknown> | null | undefined,
-): unknown[];
+export function from(items: readonly unknown[] | Iterable<unknown>): unknown[];
 export function from(items: unknown): unknown {
     return fromItems(items);
 }

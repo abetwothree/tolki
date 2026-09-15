@@ -3557,6 +3557,18 @@ describe("arr type tests", () => {
                 expectTypeOf(Arr.union).returns.toExtend<unknown[]>();
             });
         });
+
+        describe("a keyed operand is left to Obj.union", () => {
+            it("rejects a record as the first operand", () => {
+                // @ts-expect-error - keyed data belongs to Obj.union
+                Arr.union({ a: 1 }, { b: 2 });
+            });
+
+            it("rejects a record as a later operand", () => {
+                // @ts-expect-error - a keyed operand belongs to Obj.union
+                Arr.union([1, 2], { 2: "z" });
+            });
+        });
     });
 
     describe("unshift", () => {
