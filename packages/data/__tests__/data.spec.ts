@@ -249,6 +249,22 @@ describe("Data", () => {
                 { 2: 3, 3: 4 },
             ]);
         });
+
+        it("returns nothing for a zero or negative size", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "collection-chunk-zero", "collection-chunk-negative", "arr-chunk-zero-and-negative"
+            expect(Data.dataChunk([1, 2, 3], 0)).toEqual([]);
+            expect(Data.dataChunk([1, 2, 3], -1)).toEqual([]);
+            expect(Data.dataChunk({ a: 1, b: 2 }, 0)).toEqual({});
+            expect(Data.dataChunk({ a: 1, b: 2 }, -1)).toEqual({});
+        });
+
+        it("leaves the remainder in a short final chunk", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-chunk-last-chunk-keys"
+            expect(
+                Data.dataChunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3)[3],
+            ).toEqual([10]);
+        });
     });
 
     describe("dataChunkWhile", () => {
@@ -644,6 +660,28 @@ describe("Data", () => {
                 [1, 2, 3],
             ]);
         });
+
+        it("divides an empty backing into two empty lists", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "divide-empty"
+            expect(Data.dataDivide({})).toEqual([[], []]);
+            expect(Data.dataDivide([])).toEqual([[], []]);
+        });
+
+        it("types a numeric key as a number and keeps array values whole", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "divide-int-key-types"
+            // docs/php-parity/task-24-data-release-readiness.json, "divide-array-values"
+            expect(Data.dataDivide({ a: [1, 2], b: "x" })).toEqual([
+                ["a", "b"],
+                [[1, 2], "x"],
+            ]);
+            // JS-only: PHP's ['' => 'Null', 1 => 'one'] divides to [["",1],["Null","one"]];
+            // a JS object hoists integer-like keys ahead of string keys, so the pair order
+            // is [[1,""],["one","Null"]] for the same input. The key *types* still match.
+            expect(Data.dataDivide({ "": "Null", 1: "one" })).toEqual([
+                [1, ""],
+                ["one", "Null"],
+            ]);
+        });
     });
 
     describe("dataDot", () => {
@@ -958,6 +996,50 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataTake([1, 2, 3, 4, 5], 3);
             expect(result).toEqual([1, 2, 3]);
+        });
+
+        it("takes the tail for a negative limit", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "take-negative", "take-assoc-negative"
+            expect(Data.dataTake([1, 2, 3, 4, 5, 6], -3)).toEqual([4, 5, 6]);
+            expect(Data.dataTake({ a: 1, b: 2, c: 3, d: 4 }, -2)).toEqual({
+                c: 3,
+                d: 4,
+            });
+        });
+
+        it("returns nothing for a zero limit", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "take-zero", "collection-take-zero"
+            expect(Data.dataTake([1, 2, 3, 4, 5, 6], 0)).toEqual([]);
+            expect(Data.dataTake({ a: 1, b: 2, c: 3, d: 4 }, 0)).toEqual({});
+        });
+
+        it("returns everything when the limit exceeds the size, in either sign", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "take-over-size", "take-negative-over-size"
+            expect(Data.dataTake([1, 2, 3, 4, 5, 6], 10)).toEqual([
+                1, 2, 3, 4, 5, 6,
+            ]);
+            expect(Data.dataTake([1, 2, 3, 4, 5, 6], -10)).toEqual([
+                1, 2, 3, 4, 5, 6,
+            ]);
+            expect(Data.dataTake({ a: 1, b: 2 }, 10)).toEqual({ a: 1, b: 2 });
+            expect(Data.dataTake({ a: 1, b: 2 }, -10)).toEqual({ a: 1, b: 2 });
+        });
+
+        it("keeps the original keys when taking the tail of an object backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "collection-take-negative-keeps-keys"
+            // PHP: collect(['taylor','dayle','shawn'])->take(-2) -> [1=>'dayle', 2=>'shawn'].
+            // JS-only: a list backing cannot hold sparse integer keys, so the array case
+            // renumbers; the object backing is where the PHP key shape is observable.
+            const result = Data.dataTake(
+                { 0: "taylor", 1: "dayle", 2: "shawn" },
+                -2,
+            );
+            expect(result).toEqual({ 1: "dayle", 2: "shawn" });
+            expect(Object.keys(result)).toEqual(["1", "2"]);
         });
     });
 
@@ -1553,6 +1635,25 @@ describe("Data", () => {
 
             expect(Data.dataJoin([1, 2, 3], ", ")).toBe("1, 2, 3");
         });
+
+        it("joins two, one and zero elements", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "join-assoc-two"
+            // docs/php-parity/task-24-data-release-readiness.json, "join-single", "join-empty"
+            expect(Data.dataJoin({ a: "a", b: "b" }, ", ", " and ")).toBe(
+                "a and b",
+            );
+            expect(Data.dataJoin({ a: "a" }, ", ", " and ")).toBe("a");
+            expect(Data.dataJoin({}, ", ", " and ")).toBe("");
+            expect(Data.dataJoin(["a"], ", ", " and ")).toBe("a");
+            expect(Data.dataJoin([], ", ", " and ")).toBe("");
+        });
+
+        it("ignores the final glue when it is empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "join-three-no-final-glue", "join-assoc-numbers"
+            expect(Data.dataJoin(["a", "b", "c"], ", ")).toBe("a, b, c");
+            expect(Data.dataJoin({ a: 1, b: 2, c: 3 }, ", ")).toBe("1, 2, 3");
+        });
     });
 
     describe("dataKeyBy", () => {
@@ -1648,6 +1749,34 @@ describe("Data", () => {
                 item_0: "a",
                 item_1: "b",
                 item_2: "c",
+            });
+        });
+
+        it("keeps a prefix that ends in a dot and leaves nested values untouched", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prependKeysWith-literal"
+            expect(
+                Data.dataPrependKeysWith(
+                    {
+                        id: "123",
+                        data: "456",
+                        list: [1, 2, 3],
+                        meta: { key: 1 },
+                    },
+                    "test.",
+                ),
+            ).toEqual({
+                "test.id": "123",
+                "test.data": "456",
+                "test.list": [1, 2, 3],
+                "test.meta": { key: 1 },
+            });
+        });
+
+        it("prefixes a list's indices, returning a keyed result", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "prependKeysWith-list"
+            expect(Data.dataPrependKeysWith(["a", "b"], "p.")).toEqual({
+                "p.0": "a",
+                "p.1": "b",
             });
         });
     });
