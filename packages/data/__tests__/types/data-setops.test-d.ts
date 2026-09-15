@@ -204,12 +204,14 @@ describe("data setops type tests", () => {
             ).toEqualTypeOf(Arr.crossJoin(numberList, stringList, booleanList));
         });
 
-        it("widens an inline literal operand, which the delegate pin cannot hold", () => {
-            // Recorded: inference through the intersection widens `["a"]` to `string[]`
-            // where the direct `Arr.crossJoin` call keeps `"a"`. Typed fixtures pin exactly.
+        it("matches arr.crossJoin for three one-item operands", () => {
+            // Hoisted, so both calls see `string[]`/`boolean[]`: inference through the
+            // intersection widens an INLINE literal operand where the delegate keeps it.
+            const letters = ["a"];
+            const switches = [true];
             expectTypeOf(
-                Data.dataCrossJoin(numberList, ["a"], [true]),
-            ).toEqualTypeOf<[number, string, boolean][]>();
+                Data.dataCrossJoin(numberList, letters, switches),
+            ).toEqualTypeOf(Arr.crossJoin(numberList, letters, switches));
         });
     });
 

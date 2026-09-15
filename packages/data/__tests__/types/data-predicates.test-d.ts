@@ -17,9 +17,6 @@ import {
     unionItems,
 } from "./fixtures";
 
-/** obj's widest rows declare `(value: unknown, key: string | number)` callbacks. */
-const widenedAboveZero = (value: unknown): boolean => Number(value) > 0;
-
 describe("data predicates type tests", () => {
     // Six of the seven answer `boolean` on both backings, so a return pin cannot discriminate
     // (lesson 9). For those the gate is the PARAMETER side: `opaque` is the one input
@@ -335,13 +332,21 @@ describe("data predicates type tests", () => {
             expectTypeOf(
                 Data.dataContains(numberMap, 2),
             ).toEqualTypeOf<boolean>();
-            // Widened callbacks: a Map reaches obj's widest row, whose callback takes `unknown`.
-            expectTypeOf(
-                Data.dataEvery(numberMap, widenedAboveZero),
-            ).toEqualTypeOf<boolean>();
-            expectTypeOf(
-                Data.dataSome(numberMap, widenedAboveZero),
-            ).toEqualTypeOf<boolean>();
+        });
+
+        it("hands a Map callback obj's widest parameters, not arr's", () => {
+            // The only signal a Map route leaves: both delegates answer `boolean`, so a
+            // return pin cannot move. arr's row would give `(number, number)` here.
+            Data.dataEvery(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return Number(value) > 0;
+            });
+            Data.dataSome(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return Number(value) > 0;
+            });
         });
 
         it("types a Map on dataSole from obj's widest row", () => {

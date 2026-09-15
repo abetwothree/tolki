@@ -132,36 +132,36 @@ describe("data slicing type tests", () => {
 
         // Migrated from `data.test-d.ts`'s "dataChunkWhile / dataChunkBy overloads" block.
         it("routes a record to the keyed overload", () => {
-            const keepSame = (
-                value: number,
-                key: "a",
-                chunk: Partial<{ a: number }>,
-            ): boolean => {
-                expectTypeOf(value).toEqualTypeOf<number>();
-                expectTypeOf(key).toEqualTypeOf<"a">();
-                expectTypeOf(chunk).toEqualTypeOf<Partial<{ a: number }>>();
+            // The callback is inline and unannotated on purpose: an annotation would
+            // supply the very types these rows assert, making all three tautologies.
+            const chunked = Data.dataChunkWhile(
+                { a: 1 },
+                (value, key, chunk) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<"a">();
+                    expectTypeOf(chunk).toEqualTypeOf<Partial<{ a: number }>>();
 
-                return true;
-            };
-            expectTypeOf(Data.dataChunkWhile({ a: 1 }, keepSame)).toEqualTypeOf(
-                Obj.chunkWhile({ a: 1 }, keepSame),
+                    return true;
+                },
+            );
+            expectTypeOf(chunked).toEqualTypeOf(
+                Obj.chunkWhile({ a: 1 }, () => true),
             );
         });
 
         it("routes an array to the positional overload", () => {
-            const keepSame = (
-                value: number,
-                index: number,
-                chunk: number[],
-            ): boolean => {
-                expectTypeOf(value).toEqualTypeOf<number>();
-                expectTypeOf(index).toEqualTypeOf<number>();
-                expectTypeOf(chunk).toEqualTypeOf<number[]>();
+            const chunked = Data.dataChunkWhile(
+                [1, 2],
+                (value, index, chunk) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(index).toEqualTypeOf<number>();
+                    expectTypeOf(chunk).toEqualTypeOf<number[]>();
 
-                return true;
-            };
-            expectTypeOf(Data.dataChunkWhile([1, 2], keepSame)).toEqualTypeOf(
-                Arr.chunkWhile([1, 2], keepSame),
+                    return true;
+                },
+            );
+            expectTypeOf(chunked).toEqualTypeOf(
+                Arr.chunkWhile([1, 2], () => true),
             );
         });
     });
