@@ -2922,11 +2922,11 @@ export function slice<TValue>(
     offset: number,
     length?: number | null,
 ): TValue[];
-// Overload: unknown fallback — genuinely `unknown`, not `ArrayItems<TValue>
+// Overload: untyped array or nullish fallback — genuinely `unknown`, not `ArrayItems<TValue>
 // | unknown` (which collapses to the same thing but implies TValue narrows
 // when it never does).
 export function slice<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     offset: number,
     length?: number | null,
 ): TValue[];
@@ -3673,7 +3673,7 @@ export function replace<TValue, TReplace = TValue>(
 ): (TValue | TReplace | undefined)[];
 // Overload: generic fallback
 export function replace<TValue, TReplace = TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[];
 export function replace<TValue, TReplace = TValue>(
@@ -3734,7 +3734,7 @@ export function replaceRecursive<TValue, TReplace = TValue>(
 ): (TValue | TReplace | undefined)[];
 // Overload: generic fallback
 export function replaceRecursive<TValue, TReplace = TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     replacerData: ArrayItems<TReplace> | Record<number, TReplace> | unknown,
 ): (TValue | TReplace | undefined)[];
 export function replaceRecursive<TValue, TReplace = TValue>(

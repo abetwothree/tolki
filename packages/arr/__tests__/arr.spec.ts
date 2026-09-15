@@ -4461,7 +4461,6 @@ describe("Arr", () => {
             expect(Arr.slice(data, -5, 3)).toEqual([4, 5, 6]);
             expect(Arr.slice(data, -6, -2)).toEqual([3, 4, 5, 6]);
 
-            expect(Arr.slice({}, -6, -2)).toEqual([]);
             expect(Arr.slice(null, -6, -2)).toEqual([]);
             expect(Arr.slice(undefined, -6, -2)).toEqual([]);
         });
