@@ -1,0 +1,255 @@
+<?php
+
+/**
+ * Ground truth for docs/superpowers/plans/<date>-tolki-data-release-readiness.md (Part A).
+ *
+ * Only behaviours NOT already captured elsewhere in docs/php-parity/ appear here; everything
+ * reused is listed in the plan's reuse table and cited from its existing file.
+ * Run: pnpm php:parity
+ */
+
+declare(strict_types=1);
+
+require __DIR__ . '/bootstrap.php';
+
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+
+// ==== typed accessors: the InvalidArgumentException wording (Arr::string / Arr::array are
+// ==== already captured as "string-int-value" / "array-int-value" in task-23).
+probe('boolean-string-value', "Arr::boolean(['string' => 'foo bar'], 'string')", fn () => Arr::boolean(['string' => 'foo bar'], 'string'));
+probe('float-string-value', "Arr::float(['string' => 'foo bar'], 'string')", fn () => Arr::float(['string' => 'foo bar'], 'string'));
+probe('integer-string-value', "Arr::integer(['string' => 'foo bar'], 'string')", fn () => Arr::integer(['string' => 'foo bar'], 'string'));
+probe('integer-float-value', "Arr::integer(['a' => 1.5], 'a')", fn () => Arr::integer(['a' => 1.5], 'a'));
+probe('boolean-list-int-key', "Arr::boolean(['foo bar'], 0)", fn () => Arr::boolean(['foo bar'], 0));
+probe('float-list-int-key', "Arr::float(['foo bar'], 0)", fn () => Arr::float(['foo bar'], 0));
+probe('integer-list-int-key', "Arr::integer(['foo bar'], 0)", fn () => Arr::integer(['foo bar'], 0));
+probe('string-list-int-key', "Arr::string([1234], 0)", fn () => Arr::string([1234], 0));
+probe('boolean-missing-key-default', "Arr::boolean([], 'missing', true) and Arr::boolean([], 'missing', false)", fn () => [
+    'true' => Arr::boolean([], 'missing', true),
+    'false' => Arr::boolean([], 'missing', false),
+]);
+
+// ==== take (ArrTest::testTake) — no `take` row exists anywhere in docs/php-parity/.
+$take = [1, 2, 3, 4, 5, 6];
+probe('take-positive', "Arr::take([1..6], 3)", fn () => Arr::take($take, 3));
+probe('take-negative', "Arr::take([1..6], -3)", fn () => Arr::take($take, -3));
+probe('take-zero', "Arr::take([1..6], 0)", fn () => Arr::take($take, 0));
+probe('take-over-size', "Arr::take([1..6], 10)", fn () => Arr::take($take, 10));
+probe('take-negative-over-size', "Arr::take([1..6], -10)", fn () => Arr::take($take, -10));
+probe('take-empty', "Arr::take([], 3) and Arr::take([], -3)", fn () => ['positive' => Arr::take([], 3), 'negative' => Arr::take([], -3)]);
+probe('take-assoc-positive', "Arr::take(['a'=>1,'b'=>2,'c'=>3,'d'=>4], 2)", fn () => Arr::take(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4], 2));
+probe('take-assoc-negative', "Arr::take(['a'=>1,'b'=>2,'c'=>3,'d'=>4], -2)", fn () => Arr::take(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4], -2));
+
+// CollectionTest::testTakeLast — a negative take keeps the ORIGINAL keys.
+probe('collection-take-negative-keeps-keys', "(new Collection(['taylor','dayle','shawn']))->take(-2)", fn () => (new Collection(['taylor', 'dayle', 'shawn']))->take(-2)->all());
+probe('collection-take-positive-keeps-keys', "(new Collection(['taylor','dayle','shawn']))->take(2)", fn () => (new Collection(['taylor', 'dayle', 'shawn']))->take(2)->all());
+probe('collection-take-zero', "(new Collection(['taylor','dayle','shawn']))->take(0)", fn () => (new Collection(['taylor', 'dayle', 'shawn']))->take(0)->all());
+
+// ==== search (CollectionTest::testSearchInStrictMode / testSearchReturnsFalseWhenItemIsNotFound)
+probe('search-strict-falsy', "search over [false,0,1,[],''] in strict mode", function () {
+    $c = new Collection([false, 0, 1, [], '']);
+
+    return [
+        "'false'" => $c->search('false', true),
+        "'1'" => $c->search('1', true),
+        'false' => $c->search(false, true),
+        '0' => $c->search(0, true),
+        '1' => $c->search(1, true),
+        '[]' => $c->search([], true),
+        "''" => $c->search('', true),
+    ];
+});
+probe('search-loose-falsy', "search over [false,0,1,[],''] loosely", function () {
+    $c = new Collection([false, 0, 1, [], '']);
+
+    return ['0' => $c->search(0), "''" => $c->search(''), "'1'" => $c->search('1')];
+});
+probe('search-string-key-hit', "(new Collection(['foo'=>'bar','baz'=>'qux']))->search('qux')", fn () => (new Collection(['foo' => 'bar', 'baz' => 'qux']))->search('qux'));
+probe('search-not-found', "search for a missing value, list and assoc", fn () => [
+    'list' => (new Collection([1, 2, 3]))->search(9),
+    'assoc' => (new Collection(['a' => 1]))->search(9),
+]);
+probe('search-callback', "(new Collection([1,2,3]))->search(fn(\$v) => \$v > 2)", fn () => (new Collection([1, 2, 3]))->search(fn ($v) => $v > 2));
+probe('search-callback-not-found', "(new Collection([1,2,3]))->search(fn(\$v) => \$v > 9)", fn () => (new Collection([1, 2, 3]))->search(fn ($v) => $v > 9));
+probe('search-callback-key-arg', "(new Collection(['a','b','c']))->search(fn(\$v,\$k) => \$k === 2)", fn () => (new Collection(['a', 'b', 'c']))->search(fn ($v, $k) => $k === 2));
+probe('search-assoc-callback-key-arg', "(new Collection(['x'=>1,'y'=>2]))->search(fn(\$v,\$k) => \$k === 'y')", fn () => (new Collection(['x' => 1, 'y' => 2]))->search(fn ($v, $k) => $k === 'y'));
+
+// ==== before / after in strict mode over the same falsy fixture
+probe('before-strict-falsy', "before(1, true) and before(false, true) over [false,0,1,[],'']", fn () => [
+    'one' => (new Collection([false, 0, 1, [], '']))->before(1, true),
+    'first' => (new Collection([false, 0, 1, [], '']))->before(false, true),
+]);
+probe('after-strict-falsy', "after(0, true) and after('', true) over [false,0,1,[],'']", fn () => [
+    'zero' => (new Collection([false, 0, 1, [], '']))->after(0, true),
+    'last' => (new Collection([false, 0, 1, [], '']))->after('', true),
+]);
+
+// ==== hasAll (ArrTest::testHasAllMethod) — no `hasAll` row exists anywhere in docs/php-parity/.
+$hasAll = ['name' => 'Taylor', 'age' => '', 'city' => null];
+probe('hasAll-empty-and-null-values-count-as-present', "Arr::hasAll(['name'=>'Taylor','age'=>'','city'=>null], …)", fn () => [
+    "'name'" => Arr::hasAll($hasAll, 'name'),
+    "'age'" => Arr::hasAll($hasAll, 'age'),
+    "'city'" => Arr::hasAll($hasAll, 'city'),
+    "['age','car']" => Arr::hasAll($hasAll, ['age', 'car']),
+    "['city','some']" => Arr::hasAll($hasAll, ['city', 'some']),
+    "['name','age','city']" => Arr::hasAll($hasAll, ['name', 'age', 'city']),
+    "['name','age','city','country']" => Arr::hasAll($hasAll, ['name', 'age', 'city', 'country']),
+]);
+probe('hasAll-dot-paths', "Arr::hasAll(['user'=>['name'=>'Taylor']], 'user.name' | 'user.age')", fn () => [
+    'hit' => Arr::hasAll(['user' => ['name' => 'Taylor']], 'user.name'),
+    'miss' => Arr::hasAll(['user' => ['name' => 'Taylor']], 'user.age'),
+]);
+probe('hasAll-all-missing', "Arr::hasAll(\$hasAll, 'foo') and Arr::hasAll(\$hasAll, ['foo','bar','baz','bar'])", fn () => [
+    'scalar' => Arr::hasAll($hasAll, 'foo'),
+    'list' => Arr::hasAll($hasAll, ['foo', 'bar', 'baz', 'bar']),
+]);
+probe('hasAll-empty-key-list', "Arr::hasAll(['a' => 1], [])", fn () => Arr::hasAll(['a' => 1], []));
+probe('hasAll-through-list', "Arr::hasAll([['name' => 'John']], '0.name')", fn () => Arr::hasAll([['name' => 'John']], '0.name'));
+
+// ==== hasAny (ArrTest::testHasAnyMethod) — "hasAny-stray-arg-hit" exists; these do not.
+probe('hasAny-variadic', "Arr::hasAny(['name'=>'Taylor','age'=>''], 'surname', 'name')", fn () => Arr::hasAny(['name' => 'Taylor', 'age' => ''], 'surname', 'name'));
+probe('hasAny-dot-over-null-and-empty', "Arr::hasAny over null/'' values and dot paths", fn () => [
+    'null value' => Arr::hasAny(['name' => null, 'email' => ''], ['name']),
+    'dot over null' => Arr::hasAny(['user' => ['name' => null]], ['user.name']),
+    'all missing' => Arr::hasAny(['a' => 1], ['x', 'y']),
+]);
+probe('hasAny-null-keys', "Arr::hasAny(['a' => 1], null)", fn () => Arr::hasAny(['a' => 1], null));
+
+// ==== chunk (CollectionTest::testChunkWhenGivenZeroAsSize / testChunkWhenGivenLessThanZero)
+$ten = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+probe('collection-chunk-zero', "(new Collection([1..10]))->chunk(0)", fn () => (new Collection($ten))->chunk(0)->toArray());
+probe('collection-chunk-negative', "(new Collection([1..10]))->chunk(-1)", fn () => (new Collection($ten))->chunk(-1)->toArray());
+probe('collection-chunk-last-chunk-keys', "(new Collection([1..10]))->chunk(3)->get(3)", fn () => (new Collection($ten))->chunk(3)->get(3)->all());
+probe('collection-chunk-assoc-preserves-keys', "(new Collection(['a'=>1,'b'=>2,'c'=>3]))->chunk(2)", fn () => (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->chunk(2)->toArray());
+probe('arr-chunk-zero-and-negative', "array_chunk guard via Collection::chunk on an assoc backing", fn () => [
+    'zero' => (new Collection(['a' => 1, 'b' => 2]))->chunk(0)->toArray(),
+    'negative' => (new Collection(['a' => 1, 'b' => 2]))->chunk(-1)->toArray(),
+]);
+
+// ==== join (ArrTest::testJoin) — only the two-element form is captured today.
+probe('join-single', "Arr::join(['a'], ', ', ' and ')", fn () => Arr::join(['a'], ', ', ' and '));
+probe('join-empty', "Arr::join([], ', ', ' and ')", fn () => Arr::join([], ', ', ' and '));
+probe('join-three-no-final-glue', "Arr::join(['a','b','c'], ', ')", fn () => Arr::join(['a', 'b', 'c'], ', '));
+probe('join-assoc-numbers', "Arr::join(['a'=>1,'b'=>2,'c'=>3], ', ')", fn () => Arr::join(['a' => 1, 'b' => 2, 'c' => 3], ', '));
+
+// ==== divide (ArrTest::testDivide) — only the null-key/int-key row is captured today.
+probe('divide-empty', "Arr::divide([])", fn () => Arr::divide([]));
+probe('divide-array-values', "Arr::divide(['a' => [1, 2], 'b' => 'x'])", fn () => Arr::divide(['a' => [1, 2], 'b' => 'x']));
+probe('divide-list', "Arr::divide(['Null', 'one'])", fn () => Arr::divide(['Null', 'one']));
+
+// ==== crossJoin: the empty-dimension collapse in positional (list) form
+probe('crossJoin-list-empty-dimension', "Arr::crossJoin([1, 2], [])", fn () => Arr::crossJoin([1, 2], []));
+
+// ==== random (ArrTest::testRandom / testRandomOnEmptyArray) — DETERMINISTIC INVARIANTS ONLY.
+$rand = [1, 2, 3, 4];
+probe('random-zero-count', "Arr::random([1,2,3,4], 0)", fn () => Arr::random($rand, 0));
+probe('random-empty-zero-count', "Arr::random([], 0) — does NOT throw", fn () => Arr::random([], 0));
+probe('random-numeric-string-counts', "Arr::random([1,2,3,4], '0'|'1'|'2'): count and key shape only", fn () => [
+    "'0'" => ['count' => count(Arr::random($rand, '0')), 'keys' => array_keys(Arr::random($rand, '0'))],
+    "'1'" => ['count' => count(Arr::random($rand, '1')), 'keys' => array_keys(Arr::random($rand, '1'))],
+    "'2'" => ['count' => count(Arr::random($rand, '2')), 'keys' => array_keys(Arr::random($rand, '2'))],
+]);
+probe('random-preserve-keys-invariant', "Arr::random([1,2,3,4], 2, true): keys are a subset of the source keys", function () use ($rand) {
+    $drawn = Arr::random($rand, 2, true);
+
+    return [
+        'count' => count($drawn),
+        'keys are original' => array_values(array_diff(array_keys($drawn), array_keys($rand))) === [],
+        'values are original' => array_values(array_diff($drawn, $rand)) === [],
+    ];
+});
+probe('random-single-no-count-type', "gettype(Arr::random([1,2,3,4]))", fn () => gettype(Arr::random($rand)));
+
+// ==== shuffle (ArrTest::testShuffleKeepsSameValues) — DETERMINISTIC: sort before comparing.
+probe('shuffle-keeps-same-values', "sort(Arr::shuffle(range(0, 25)))", function () {
+    $s = Arr::shuffle(range(0, 25));
+    sort($s);
+
+    return ['sorted' => $s, 'keys' => array_keys($s)];
+});
+
+// ==== sole: the empty-input throw with no callback (the callback forms live in task-23).
+probe('sole-empty-no-callback', "Arr::sole([])", fn () => Arr::sole([]));
+probe('sole-multi-no-callback', "Arr::sole(['a' => 1, 'b' => 2])", fn () => Arr::sole(['a' => 1, 'b' => 2]));
+probe('sole-single-no-callback', "Arr::sole(['only' => 42])", fn () => Arr::sole(['only' => 42]));
+
+// ==== set: creating a dot path under a key that does not exist yet (ArrTest::testSet)
+probe('set-creates-missing-path', "set(['products'=>['desk'=>['price'=>100]]], 'table.price', 500)", function () {
+    $a = ['products' => ['desk' => ['price' => 100]]];
+    Arr::set($a, 'table', 500);
+    $flat = $a;
+    Arr::set($a, 'table.price', 500);
+
+    return ['flat write' => $flat, 'then dotted write' => $a];
+});
+
+// ==== partition: key preservation (ArrTest::testPartition, CollectionTest::testPartitionPreservesKeys)
+probe('partition-preserves-keys', "Arr::partition(['John','Jane','Greg'], fn(\$v) => \$v !== 'Greg')", fn () => Arr::partition(['John', 'Jane', 'Greg'], fn ($v) => $v !== 'Greg'));
+probe('partition-empty', "Arr::partition([], fn () => true)", fn () => Arr::partition([], fn () => true));
+probe('partition-assoc-preserves-keys', "Arr::partition(['a'=>1,'b'=>2,'c'=>3], fn(\$v) => \$v > 1)", fn () => Arr::partition(['a' => 1, 'b' => 2, 'c' => 3], fn ($v) => $v > 1));
+
+// ==== where / reject / whereNotNull: key preservation and the no-callback reject form
+probe('where-preserves-int-keys', "Arr::where(['100','200','300','400'], fn(\$v) => \$v === '200' || \$v === '400')", fn () => Arr::where(['100', '200', '300', '400'], fn ($v) => $v === '200' || $v === '400'));
+probe('reject-preserves-int-keys', "Arr::reject([1,2,3,4,5], fn(\$v) => \$v % 2 === 0)", fn () => Arr::reject([1, 2, 3, 4, 5], fn ($v) => $v % 2 === 0));
+probe('reject-no-callback', "(new Collection([1, null, 2, false, 3, '']))->reject()", fn () => (new Collection([1, null, 2, false, 3, '']))->reject()->all());
+probe('whereNotNull-all-null', "Arr::whereNotNull([null, null]) and Arr::whereNotNull(['a'=>null])", fn () => [
+    'list' => Arr::whereNotNull([null, null]),
+    'assoc' => Arr::whereNotNull(['a' => null]),
+]);
+probe('whereNotNull-list-preserves-keys', "Arr::whereNotNull([null, 0, false, '', null, []])", fn () => Arr::whereNotNull([null, 0, false, '', null, []]));
+
+// ==== except(null) is a no-op on a Collection (CollectionTest::testExcept)
+probe('collection-except-null', "(new Collection(['a'=>1,'b'=>2]))->except(null)", fn () => (new Collection(['a' => 1, 'b' => 2]))->except(null)->all());
+probe('collection-except-self', "\$c->except(\$c)", function () {
+    $c = new Collection(['a' => 1, 'b' => 2]);
+
+    return $c->except($c)->all();
+});
+
+// ==== select on an existing bare key (select-missing / select-null already exist)
+probe('select-bare-existing-key', "Arr::select(['a'=>['name'=>'Taylor','age'=>1],'b'=>['name'=>'Abigail','age'=>2]], 'name')", fn () => Arr::select(['a' => ['name' => 'Taylor', 'age' => 1], 'b' => ['name' => 'Abigail', 'age' => 2]], 'name'));
+
+// ==== prependKeysWith over a list (the 'test.' assoc literal already exists)
+probe('prependKeysWith-list', "Arr::prependKeysWith(['a', 'b', 'c'], 'item_')", fn () => Arr::prependKeysWith(['a', 'b', 'c'], 'item_'));
+
+// ==== count on empty (CollectionTest::testCountable)
+probe('count-empty', "count([]) via Collection", fn () => ['empty' => (new Collection([]))->count(), 'nested' => (new Collection([[1, 2], [3]]))->count()]);
+
+// ==== map: empty input and source immutability (ArrTest::testMapWithEmptyArray / testMap)
+probe('map-empty', "Arr::map([], fn(\$v) => \$v)", fn () => Arr::map([], fn ($v) => $v));
+probe('map-source-unchanged', "Arr::map does not mutate its source", function () {
+    $src = ['a' => 1, 'b' => 2];
+    $mapped = Arr::map($src, fn ($v) => $v * 2);
+
+    return ['source' => $src, 'mapped' => $mapped];
+});
+probe('map-list-index-key', "Arr::map(['a','b'], fn(\$v,\$k) => \"\$k-\$v\")", fn () => Arr::map(['a', 'b'], fn ($v, $k) => "{$k}-{$v}"));
+
+// ==== values on empty
+probe('values-empty', "(new Collection([]))->values()", fn () => (new Collection([]))->values()->all());
+
+// ==== contains: the loose block and the 2-arg / 3-arg key-value-operator forms
+// (CollectionTest::testContains, testContainsWithOperator). Recorded for the record — @tolki/data
+// exposes only the (data, value, strict) signature today; the plan decides whether to widen it.
+probe('contains-loose-list', "contains over [null] and [0]", function () {
+    $r = [];
+    $c = new Collection([null]);
+    $r['[null]'] = ['false' => $c->contains(false), 'null' => $c->contains(null), '[]' => $c->contains([]), '0' => $c->contains(0), "''" => $c->contains('')];
+    $c = new Collection([0]);
+    $r['[0]'] = ["'0'" => $c->contains('0'), 'false' => $c->contains(false), 'null' => $c->contains(null)];
+
+    return $r;
+});
+probe('contains-two-args-key-value', "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 1)", fn () => (new Collection([['v' => 1], ['v' => 3], ['v' => 5]]))->contains('v', 1));
+probe('contains-three-args-operator', "(new Collection([['v'=>1],['v'=>3],['v'=>'4'],['v'=>5]]))->contains('v', <op>, 4)", function () {
+    $c = new Collection([['v' => 1], ['v' => 3], ['v' => '4'], ['v' => 5]]);
+
+    return ["'='" => $c->contains('v', '=', 4), "'=='" => $c->contains('v', '==', 4), "'==='" => $c->contains('v', '===', 4), "'>'" => $c->contains('v', '>', 4)];
+});
+probe('containsStrict-numeric-string', "(new Collection([1, 3, 5, '02']))->containsStrict('02') and ->containsStrict(2)", fn () => [
+    "'02'" => (new Collection([1, 3, 5, '02']))->containsStrict('02'),
+    '2' => (new Collection([1, 3, 5, '02']))->containsStrict(2),
+]);
+
+emit();
