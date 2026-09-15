@@ -102,9 +102,9 @@ describe("data keying type tests", () => {
     });
 
     describe("the DataItems union, the package's own canonical input", () => {
-        // Neither delegate really serves a union: arr answers from its typed row while
-        // obj's rejects-first row answers `Record<string, never>`, so arr wins the
-        // intersection even for the record half the runtime hands to obj.
+        // Neither delegate really serves a union: every arr row is array-shaped and rejects
+        // it, and obj's `<T extends object>` rows compute their per-key types from
+        // `keyof (A | B)` = `keyof A & keyof B`, which collapses to `never` for this union.
 
         it("answers dataFlip from obj, and still covers the list half", () => {
             const declared = Data.dataFlip(unionItems);
@@ -129,12 +129,12 @@ describe("data keying type tests", () => {
             >();
         });
 
-        it("answers dataKeyBy from obj's rejects-first row, covering neither backing", () => {
-            // The union's list arm matches obj's `NonObjectItems` row, so the answer is
-            // `Record<string, never>` — narrower than either backing really returns.
+        it("answers dataKeyBy off an empty key set, covering neither backing", () => {
+            // obj's `<T extends object>` row reads the union's collapsed `keyof`, which is
+            // `never`, so the answer is `Record<string, never>` — narrower than either backing.
             const declared = Data.dataKeyBy(unionRows, "id");
             expectTypeOf(declared).toEqualTypeOf(Obj.keyBy(unionRows, "id"));
-            // Standing control: delete this row once obj stops rejecting a union outright.
+            // Standing control: delete this row once a union stops collapsing obj's `keyof`.
             expectTypeOf(Arr.keyBy(rowList, "id")).not.toExtend<
                 typeof declared
             >();

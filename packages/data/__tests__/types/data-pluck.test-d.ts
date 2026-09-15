@@ -156,12 +156,12 @@ describe("data pluck type tests", () => {
     });
 
     describe("the DataItems union, the package's own canonical input", () => {
-        it("answers dataPluck from obj's rejects-first row, covering neither backing", () => {
-            // The union's `Row[]` arm matches obj's `NonObjectItems` row, so the answer is
-            // `never[]` — narrower than either backing really returns.
+        it("answers dataPluck off an empty key set, covering neither backing", () => {
+            // obj's `<T extends object>` row reads the union's collapsed `keyof`, which is
+            // `never`, so the answer is `never[]` — narrower than either backing returns.
             const declared = Data.dataPluck(unionRows, "name");
             expectTypeOf(declared).toEqualTypeOf(Obj.pluck(unionRows, "name"));
-            // Standing control: fails the day obj stops rejecting a union outright.
+            // Standing control: fails the day a union stops collapsing obj's `keyof`.
             expectTypeOf(Arr.pluck(rowList, "name")).not.toExtend<
                 typeof declared
             >();

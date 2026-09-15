@@ -1553,8 +1553,8 @@ describe("Data", () => {
                     yield 4;
                 })();
 
-            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
-            // generator into one element, which only these rows catch.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set
+            // or generator on UNREAD, so an infinite generator still answers.
             expect(Data.dataEvery(items(), (value) => value % 2 === 0)).toBe(
                 true,
             );
@@ -1607,8 +1607,8 @@ describe("Data", () => {
                     yield 2;
                 })();
 
-            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
-            // generator into one element, which only these rows catch.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set
+            // or generator on UNREAD, so an infinite generator still answers.
             expect(Data.dataSome(items(), (value) => value % 2 === 0)).toBe(
                 true,
             );
@@ -3855,8 +3855,8 @@ describe("Data", () => {
                     yield 300;
                 })();
 
-            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
-            // generator into one element, which only these rows catch.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set
+            // or generator on UNREAD, so an infinite generator still answers.
             expect(Data.dataFirst(items())).toBe(100);
             expect(Data.dataFirst(items(), (value) => value > 150)).toBe(200);
             expect(Data.dataFirst(new Set([100, 200]))).toBe(100);
@@ -3935,8 +3935,8 @@ describe("Data", () => {
                     yield 300;
                 })();
 
-            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
-            // generator into one element, which only these rows catch.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set
+            // or generator on UNREAD, so an infinite generator still answers.
             expect(Data.dataLast(items())).toBe(300);
             expect(Data.dataLast(items(), (value) => value < 300)).toBe(200);
             expect(Data.dataLast(new Set([100, 200]))).toBe(200);
@@ -6098,7 +6098,8 @@ describe("Data", () => {
         });
 
         it.fails("dataUnion unions a Map like the record it mirrors", () => {
-            // Task C10 (set-operations family) converts this to dispatch().
+            // dataUnion stays hand-written: arr.union cannot hold PHP's keyed answer for a
+            // list backing, so no dispatch pair serves it. Task D7 owns its Map backing.
             expect(
                 Data.dataUnion(asMap as unknown as Record<string, number>, {
                     d: 4,
