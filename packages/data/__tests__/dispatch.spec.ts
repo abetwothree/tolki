@@ -6,6 +6,7 @@ import {
     dispatch,
     isKeyedData,
     toKeyedData,
+    toPositionalBacking,
     toPositionalData,
 } from "../src/dispatch";
 
@@ -58,7 +59,11 @@ describe("dispatch with a positional normalizer", () => {
     it("differs from the default normalizer on a Set", () => {
         const set = new Set([7, 8]);
 
-        expect(dFirstDefault(set)).toBe(set);
+        // The default materializes a Set; the streaming form hands the Set itself on, so
+        // an infinite generator is never read past the item first/last needs.
+        expect(toPositionalData(set)).toBe(set);
+        expect(toPositionalBacking(set)).toEqual([7, 8]);
+        expect(dFirstDefault(set)).toBe(7);
     });
 
     it("differs from the default normalizer on missing data", () => {
@@ -75,6 +80,32 @@ describe("isKeyedData", () => {
         ["a scalar", 5, false],
     ])("classifies %s", (_label, value, expected) => {
         expect(isKeyedData(value)).toBe(expected);
+    });
+});
+
+describe("toPositionalBacking", () => {
+    it("materializes a generator into its elements", () => {
+        const generated = (function* () {
+            yield 1;
+            yield 2;
+        })();
+
+        expect(toPositionalBacking(generated)).toEqual([1, 2]);
+    });
+
+    it("hands an array back by reference, so mutators write through it", () => {
+        const list = [1, 2];
+
+        expect(toPositionalBacking(list)).toBe(list);
+    });
+
+    it.each([
+        ["a string", "abc", ["abc"]],
+        ["a Map", new Map([["a", 1]]), [new Map([["a", 1]])]],
+        ["a scalar", 5, [5]],
+        ["null", null, []],
+    ])("wraps %s instead of materializing it", (_label, value, expected) => {
+        expect(toPositionalBacking(value)).toEqual(expected);
     });
 });
 

@@ -1224,6 +1224,63 @@
             ]
         },
         {
+            "label": "take-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->take(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "random-traversable-backing-count",
+            "php": "count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all())",
+            "value": 2
+        },
+        {
+            "label": "flatten-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->flatten()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "has-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(0)",
+            "value": true
+        },
+        {
+            "label": "values-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->values()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "take-string-backing",
+            "php": "(new Collection('abc'))->take(2)",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "flatten-string-backing",
+            "php": "(new Collection('abc'))->flatten()",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "values-string-backing",
+            "php": "(new Collection('abc'))->values()",
+            "value": [
+                "abc"
+            ]
+        },
+        {
             "label": "integer-list-missing-index-with-default",
             "php": "Arr::integer([], 0, 5)",
             "value": 5

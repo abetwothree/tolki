@@ -5767,6 +5767,132 @@ describe("Data", () => {
         });
     });
 
+    describe("Set backing agreement sweep", () => {
+        // A Set is JS's Traversable backing, and Laravel materializes one before it works
+        // on it, so every family must see its elements rather than the Set itself. The
+        // rows without their own citation compare against the list the Set materializes to.
+        const asSet = () => new Set([1, 2, 3]);
+        const asList = () => [1, 2, 3];
+
+        it("takes from a Set the way Laravel takes from a Traversable", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "take-traversable-backing"
+            expect(Data.dataTake(asSet(), 2)).toEqual([1, 2]);
+        });
+
+        it("flattens a Set the way Laravel flattens a Traversable", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "flatten-traversable-backing"
+            expect(Data.dataFlatten(asSet())).toEqual([1, 2, 3]);
+        });
+
+        it("reads a Set's values the way Laravel reads a Traversable's", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "values-traversable-backing"
+            expect(Data.dataValues(asSet())).toEqual([1, 2, 3]);
+        });
+
+        it("answers has() off a Set's own indices", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "has-traversable-backing"
+            expect(Data.dataHas(asSet(), [0])).toBe(true);
+            expect(Data.dataHas(asSet(), [2])).toBe(true);
+            expect(Data.dataHas(asSet(), [3])).toBe(false);
+        });
+
+        it("draws from a Set instead of reporting one available item", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "random-traversable-backing-count"
+            expect(Data.dataRandom(asSet(), 2)).toHaveLength(2);
+        });
+
+        it("slices a Set like the list it materializes to", () => {
+            expect(Data.dataSlice(asSet(), 1)).toEqual(
+                Data.dataSlice(asList(), 1),
+            );
+            expect(Data.dataChunk(asSet(), 2)).toEqual(
+                Data.dataChunk(asList(), 2),
+            );
+        });
+
+        it("maps a Set like the list it materializes to", () => {
+            // A Set is an object, so it reaches obj's widest row, whose callback takes
+            // `unknown` — the same widening a Map backing gets.
+            const double = (value: unknown) => Number(value) * 2;
+            expect(Data.dataMap(asSet(), double)).toEqual(
+                Data.dataMap(asList(), double),
+            );
+        });
+
+        it("filters a Set like the list it materializes to", () => {
+            const aboveOne = (value: unknown) => Number(value) > 1;
+            expect(Data.dataFilter(asSet(), aboveOne)).toEqual(
+                Data.dataFilter(asList(), aboveOne),
+            );
+            expect(Data.dataContains(asSet(), 2)).toBe(
+                Data.dataContains(asList(), 2),
+            );
+        });
+
+        it("keys a Set like the list it materializes to", () => {
+            expect(Data.dataKeys(asSet())).toEqual(Data.dataKeys(asList()));
+            expect(Data.dataFlip(asSet())).toEqual(Data.dataFlip(asList()));
+        });
+
+        it("runs setops on a Set like the list it materializes to", () => {
+            expect(Data.dataDiff(asSet(), [2])).toEqual(
+                Data.dataDiff(asList(), [2]),
+            );
+            expect(Data.dataIntersect(asSet(), [2])).toEqual(
+                Data.dataIntersect(asList(), [2]),
+            );
+        });
+
+        it("outputs a Set like the list it materializes to", () => {
+            expect(Data.dataJoin(asSet(), "-")).toBe(
+                Data.dataJoin(asList(), "-"),
+            );
+            expect(Data.dataQuery(asSet())).toBe(Data.dataQuery(asList()));
+        });
+
+        it("mutates a Set's materialized copy like the list it stands for", () => {
+            expect(Data.dataPop(asSet())).toBe(Data.dataPop(asList()));
+            expect(Data.dataShift(asSet())).toBe(Data.dataShift(asList()));
+        });
+
+        it("reads a Set through the typed accessors like the list it stands for", () => {
+            expect(Data.dataInteger(asSet(), 0, 0)).toBe(
+                Data.dataInteger(asList(), 0, 0),
+            );
+            expect(Data.dataExists(asSet(), 2)).toBe(
+                Data.dataExists(asList(), 2),
+            );
+        });
+
+        it("walks a generator like the list it materializes to", () => {
+            const generated = function* (): Generator<number> {
+                yield 1;
+                yield 2;
+                yield 3;
+            };
+            expect(Data.dataTake(generated(), 2)).toEqual([1, 2]);
+            expect(Data.dataValues(generated())).toEqual([1, 2, 3]);
+        });
+
+        it("still wraps a string backing as one item", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "take-string-backing", "flatten-string-backing", "values-string-backing"
+            expect(Data.dataTake("abc", 2)).toEqual(["abc"]);
+            expect(Data.dataFlatten("abc")).toEqual(["abc"]);
+            expect(Data.dataValues("abc")).toEqual(["abc"]);
+        });
+
+        it("keeps writing through an array backing instead of a copy", () => {
+            // The materialized branch must not catch an array: pop/shift/splice/unshift
+            // mutate the caller's own array, which a spread copy would silently break.
+            const list = [1, 2, 3];
+            Data.dataPop(list);
+            expect(list).toEqual([1, 2]);
+            Data.dataUnshift(list, 0);
+            expect(list).toEqual([0, 1, 2]);
+        });
+    });
+
     describe("Map backing agreement sweep", () => {
         // JS-only: PHP has no Map; these pin that a Map behaves as the keyed backing it
         // stands in for, rather than as empty data.

@@ -1,6 +1,12 @@
 import { wrap as arrWrap } from "@tolki/arr";
 import { from as objFrom } from "@tolki/obj";
-import { isIterable, isMap, isObject, isUndefined } from "@tolki/utils";
+import {
+    isArray,
+    isIterable,
+    isMap,
+    isObject,
+    isUndefined,
+} from "@tolki/utils";
 
 type AnyFn = (...args: never[]) => unknown;
 
@@ -73,6 +79,23 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
 }
 
 /**
+ * Normalize a positional backing into what the array helpers walk.
+ *
+ * @param data - The data to normalize.
+ * @returns The elements of a materializable iterable, otherwise the data wrapped in a list.
+ */
+export function toPositionalBacking(data: unknown): unknown {
+    // Laravel materializes a Traversable backing, so a Set or generator must arrive as its
+    // elements rather than as one item. An array is already positional and is ALIASED, since
+    // the mutating helpers write through it; a string is not iterable here, so it stays wrapped.
+    if (isIterable(data) && !isArray(data) && !isMap(data)) {
+        return [...data];
+    }
+
+    return arrWrap(data);
+}
+
+/**
  * Build a function that forwards to an array helper or an object helper, keeping both signatures.
  *
  * @param arrFn - The `@tolki/arr` helper, used for a list backing. It must be the first operand:
@@ -84,9 +107,9 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
 export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
     arrFn: TArrFn,
     objFn: TObjFn,
-    // An iterable-aware helper must pass a Set or generator through; `arrWrap` would
-    // hand it on as a one-element list, so those helpers override this with toPositionalData.
-    toPositional: (data: unknown) => unknown = arrWrap,
+    // A streaming helper must pass a Set or generator through UNREAD, so that an infinite
+    // generator still works; those helpers override this with toPositionalData.
+    toPositional: (data: unknown) => unknown = toPositionalBacking,
 ): KeyedMapRow<TObjFn> & TArrFn & TObjFn {
     const forward = (data: unknown, ...rest: readonly unknown[]): unknown => {
         const keyed = isKeyedData(data);

@@ -428,6 +428,19 @@ probe('intersectByKeys-scalar-backing', "(new Collection(5))->intersectByKeys([1
 // intersectAssoc, a different call, so it cannot be cited for this one.
 probe('intersectAssocUsing-scalar-backing', "(new Collection(5))->intersectAssocUsing([5], fn (\$a, \$b) => strcasecmp((string) \$a, (string) \$b))", fn () => (new Collection(5))->intersectAssocUsing([5], fn ($a, $b) => strcasecmp((string) $a, (string) $b))->all());
 
+// ==== P-39: what a Traversable backing answers, against what a string backing answers.
+// Collection materialises a Traversable through iterator_to_array, so take(2) sees its
+// elements; a string is not Traversable, so (array) wraps it as one item.
+
+probe('take-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->take(2)", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->take(2)->all());
+probe('random-traversable-backing-count', "count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all())", fn () => count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all()));
+probe('flatten-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->flatten()", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->flatten()->all());
+probe('has-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->has(0)", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->has(0));
+probe('values-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->values()", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->values()->all());
+probe('take-string-backing', "(new Collection('abc'))->take(2)", fn () => (new Collection('abc'))->take(2)->all());
+probe('flatten-string-backing', "(new Collection('abc'))->flatten()", fn () => (new Collection('abc'))->flatten()->all());
+probe('values-string-backing', "(new Collection('abc'))->values()", fn () => (new Collection('abc'))->values()->all());
+
 // ==== Carried in: data.spec.ts asserted dataInteger([], 0, 5) === 5 with no citation.
 // Arr::integer defaults to null and throws on a missing key, but an explicit default is returned.
 probe('integer-list-missing-index-with-default', "Arr::integer([], 0, 5)", fn () => Arr::integer([], 0, 5));
