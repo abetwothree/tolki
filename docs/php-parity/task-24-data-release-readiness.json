@@ -1005,6 +1005,49 @@
                     4
                 ]
             }
+        },
+        {
+            "label": "prependKeysWith-two-item-list",
+            "php": "Arr::prependKeysWith(['a', 'b'], 'p.')",
+            "value": {
+                "p.0": "a",
+                "p.1": "b"
+            }
+        },
+        {
+            "label": "except-string-key",
+            "php": "Arr::except([1 => 'hAz', 2 => 'x'], '2')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "take-assoc-over-size",
+            "php": "Arr::take(['a'=>1,'b'=>2], 10)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "take-assoc-negative-over-size",
+            "php": "Arr::take(['a'=>1,'b'=>2], -10)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "select-bare-key-list",
+            "php": "array_values(Arr::select([['a'=>1,'b'=>2],['a'=>3,'b'=>4]], 'a'))",
+            "value": [
+                {
+                    "a": 1
+                },
+                {
+                    "a": 3
+                }
+            ]
         }
     ]
 }

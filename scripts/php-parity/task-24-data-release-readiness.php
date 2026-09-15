@@ -348,4 +348,22 @@ probe('map-source-unchanged-list', "Arr::map does not mutate its list source", f
     return ['source' => $src, 'mapped' => $mapped];
 });
 
+// fix-round-2 (A10 sweep of A1-A6 citations): "prependKeysWith-list" recorded a 3-item
+// ['a','b','c']/'item_' call; "prefixes a list's indices" actually calls with 2 items and
+// a 'p.' prefix. This is the real call.
+probe('prependKeysWith-two-item-list', "Arr::prependKeysWith(['a', 'b'], 'p.')", fn () => Arr::prependKeysWith(['a', 'b'], 'p.'));
+
+// fix-round-2: dataExcept's "removes a numeric key given as a number or as its string form"
+// makes a second call with the key as a string; "except-int-key" only covers the int form.
+probe('except-string-key', "Arr::except([1 => 'hAz', 2 => 'x'], '2')", fn () => Arr::except([1 => 'hAz', 2 => 'x'], '2'));
+
+// fix-round-2: dataTake's "returns everything when the limit exceeds the size" also makes
+// two assoc-backed calls; "take-over-size" / "take-negative-over-size" are list-only.
+probe('take-assoc-over-size', "Arr::take(['a'=>1,'b'=>2], 10)", fn () => Arr::take(['a' => 1, 'b' => 2], 10));
+probe('take-assoc-negative-over-size', "Arr::take(['a'=>1,'b'=>2], -10)", fn () => Arr::take(['a' => 1, 'b' => 2], -10));
+
+// fix-round-2: dataSelect's "accepts a bare string key" also makes a list-backed call;
+// "select-bare-existing-key" only covers the assoc-of-assoc backing.
+probe('select-bare-key-list', "array_values(Arr::select([['a'=>1,'b'=>2],['a'=>3,'b'=>4]], 'a'))", fn () => array_values(Arr::select([['a' => 1, 'b' => 2], ['a' => 3, 'b' => 4]], 'a')));
+
 emit();
