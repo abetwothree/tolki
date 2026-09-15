@@ -5458,7 +5458,7 @@ describe("Arr", () => {
                 a: { c: 1, d: 2 },
                 b: [1, 2, 3],
             };
-            expect(Arr.sortRecursive(basic)).toEqual(basicExpected);
+            expect(Arr.sortRecursive(keyed(basic))).toEqual(basicExpected);
 
             // Complex nested structure from PHP tests
             const complex = {
@@ -5503,11 +5503,11 @@ describe("Arr", () => {
                 ],
             };
 
-            expect(Arr.sortRecursive(complex)).toEqual(complexExpected);
+            expect(Arr.sortRecursive(keyed(complex))).toEqual(complexExpected);
 
             // Empty cases
             expect(Arr.sortRecursive([])).toEqual([]);
-            expect(Arr.sortRecursive({})).toEqual({});
+            expect(Arr.sortRecursive(keyed({}))).toEqual({});
             expect(Arr.sortRecursive(null)).toEqual(null);
             expect(Arr.sortRecursive(undefined)).toEqual(undefined);
 
@@ -5515,7 +5515,7 @@ describe("Arr", () => {
             expect(Arr.sortRecursive([3, 1, 2])).toEqual([1, 2, 3]);
 
             // Simple object
-            expect(Arr.sortRecursive({ c: 3, a: 1, b: 2 })).toEqual({
+            expect(Arr.sortRecursive(keyed({ c: 3, a: 1, b: 2 }))).toEqual({
                 a: 1,
                 b: 2,
                 c: 3,
@@ -5523,7 +5523,9 @@ describe("Arr", () => {
 
             // Test descending parameter
             expect(Arr.sortRecursive([3, 1, 2], true)).toEqual([3, 2, 1]);
-            expect(Arr.sortRecursive({ c: 3, a: 1, b: 2 }, true)).toEqual({
+            expect(
+                Arr.sortRecursive(keyed({ c: 3, a: 1, b: 2 }), true),
+            ).toEqual({
                 c: 3,
                 b: 2,
                 a: 1,
@@ -5535,7 +5537,7 @@ describe("Arr", () => {
             ).toEqual([3, 2, 1]);
             expect(
                 Arr.sortRecursive(
-                    { c: 3, a: 1, b: 2 },
+                    keyed({ c: 3, a: 1, b: 2 }),
                     SortDirection.Descending,
                 ),
             ).toEqual({
@@ -5547,10 +5549,16 @@ describe("Arr", () => {
 
         it("should return primitive values unchanged", () => {
             // Tests else branch returning data unchanged
-            expect(Arr.sortRecursive(42)).toEqual(42);
-            expect(Arr.sortRecursive("string")).toEqual("string");
-            expect(Arr.sortRecursive(true)).toEqual(true);
-            expect(Arr.sortRecursive(false)).toEqual(false);
+            expect(Arr.sortRecursive(42 as unknown as unknown[])).toEqual(42);
+            expect(Arr.sortRecursive("string" as unknown as unknown[])).toEqual(
+                "string",
+            );
+            expect(Arr.sortRecursive(true as unknown as unknown[])).toEqual(
+                true,
+            );
+            expect(Arr.sortRecursive(false as unknown as unknown[])).toEqual(
+                false,
+            );
         });
 
         it("does not reparent the result via a __proto__ entry (object input)", () => {
@@ -5578,7 +5586,7 @@ describe("Arr", () => {
             // "sortRecursive-list-object-leaf", "sortRecursive-object-leaf"
             const date = new Date(0);
             const point = new Point();
-            const map = Arr.sortRecursive({ d: date, a: 1 });
+            const map = Arr.sortRecursive(keyed({ d: date, a: 1 }));
 
             expect(Arr.sortRecursive([[date]])[0]?.[0]).toBe(date);
             expect(Arr.sortRecursive([point])[0]).toBe(point);
@@ -5599,7 +5607,7 @@ describe("Arr", () => {
                 b: { d: 2, c: 1 },
                 a: [3, 2, 1],
             };
-            expect(Arr.sortRecursiveDesc(basic)).toEqual(basicExpected);
+            expect(Arr.sortRecursiveDesc(keyed(basic))).toEqual(basicExpected);
 
             // Complex nested structure from PHP tests
             const complex = {
@@ -5652,11 +5660,13 @@ describe("Arr", () => {
                 empty: [],
             };
 
-            expect(Arr.sortRecursiveDesc(complex)).toEqual(complexExpected);
+            expect(Arr.sortRecursiveDesc(keyed(complex))).toEqual(
+                complexExpected,
+            );
 
             // Empty cases
             expect(Arr.sortRecursiveDesc([])).toEqual([]);
-            expect(Arr.sortRecursiveDesc({})).toEqual({});
+            expect(Arr.sortRecursiveDesc(keyed({}))).toEqual({});
             expect(Arr.sortRecursiveDesc(null)).toEqual(null);
             expect(Arr.sortRecursiveDesc(undefined)).toEqual(undefined);
 
@@ -5664,7 +5674,7 @@ describe("Arr", () => {
             expect(Arr.sortRecursiveDesc([1, 2, 3])).toEqual([3, 2, 1]);
 
             // Simple object
-            expect(Arr.sortRecursiveDesc({ a: 1, b: 2, c: 3 })).toEqual({
+            expect(Arr.sortRecursiveDesc(keyed({ a: 1, b: 2, c: 3 }))).toEqual({
                 c: 3,
                 b: 2,
                 a: 1,

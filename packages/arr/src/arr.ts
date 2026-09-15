@@ -3080,9 +3080,9 @@ export function sort<TValue>(
 ): TValue[];
 // Overload: array type without callback (natural sorting)
 export function sort<TValue>(data: ArrayItems<TValue>): TValue[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function sort<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback?:
         | ((value: TValue, key: number) => unknown)
         | string
@@ -3179,9 +3179,9 @@ export function sortDesc<TValue>(
 ): TValue[];
 // Overload: array type without callback (natural sorting)
 export function sortDesc<TValue>(data: ArrayItems<TValue>): TValue[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function sortDesc<TValue>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback?:
         | ((value: TValue, key: number) => unknown)
         | string
@@ -3267,23 +3267,42 @@ export function sortRecursive<TValue>(
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[];
 export function sortRecursive<TValue>(
-    data: ArrayItems<TValue> | Record<string, unknown> | unknown,
+    data: readonly unknown[] | null | undefined,
     descending?: CaseValue<typeof SortDirection> | boolean,
 ): TValue[] | Record<string, unknown>;
 export function sortRecursive<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
     descending: CaseValue<typeof SortDirection> | boolean = false,
 ): TValue[] | Record<string, unknown> {
+    return sortRecursiveValue(data, descending) as
+        | TValue[]
+        | Record<string, unknown>;
+}
+
+/**
+ * Recursively sort a value by keys and values.
+ *
+ * The public rows are array-shaped so `data`'s dispatch can hand keyed data to
+ * obj, but the recursion itself still walks nested objects.
+ *
+ * @param data - The value to sort recursively.
+ * @param descending - Whether to sort in descending order.
+ * @returns A new recursively sorted value.
+ */
+function sortRecursiveValue(
+    data: unknown,
+    descending: CaseValue<typeof SortDirection> | boolean,
+): unknown[] | Record<string, unknown> {
     const isDesc =
         descending === true || descending === SortDirection.Descending;
     if (!accessible(data) && !isObject(data)) {
-        return data as unknown as TValue[];
+        return data as unknown[];
     }
 
-    let result: TValue[] | Record<string, unknown>;
+    let result: unknown[] | Record<string, unknown>;
 
     if (isArray(data)) {
-        result = data.slice() as TValue[];
+        result = data.slice();
     } else {
         result = { ...data } as Record<string, unknown>;
     }
@@ -3294,7 +3313,7 @@ export function sortRecursive<TValue>(
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
             if (isArray(item) || isPlainObject(item)) {
-                result[i] = sortRecursive(item, isDesc) as TValue;
+                result[i] = sortRecursiveValue(item, isDesc);
             }
         }
 
@@ -3310,7 +3329,7 @@ export function sortRecursive<TValue>(
         // Recursively sort nested values first
         for (const [key, value] of entries) {
             if (isArray(value) || isPlainObject(value)) {
-                defineKey(result, key, sortRecursive(value, isDesc));
+                defineKey(result, key, sortRecursiveValue(value, isDesc));
             }
         }
 
@@ -3344,12 +3363,14 @@ export function sortRecursive<TValue>(
  */
 export function sortRecursiveDesc<TValue>(data: ArrayItems<TValue>): TValue[];
 export function sortRecursiveDesc<TValue>(
-    data: ArrayItems<TValue> | Record<string, unknown> | unknown,
+    data: readonly unknown[] | null | undefined,
 ): TValue[] | Record<string, unknown>;
 export function sortRecursiveDesc<TValue>(
     data: ArrayItems<TValue> | Record<string, unknown> | unknown,
 ): TValue[] | Record<string, unknown> {
-    return sortRecursive(data, SortDirection.Descending);
+    return sortRecursiveValue(data, SortDirection.Descending) as
+        | TValue[]
+        | Record<string, unknown>;
 }
 
 /**
