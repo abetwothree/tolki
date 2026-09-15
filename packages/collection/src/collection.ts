@@ -991,12 +991,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
     first<TFirstDefault>(
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
-    ) {
-        return dataFirst<TValue, TKey, TFirstDefault>(
+    ): TValue | TFirstDefault | null {
+        return dataFirst(
             this.items,
-            callback,
+            // `this.items` is a union, so the call lands on obj's widest row, whose
+            // callback takes `unknown` and rejects a typed one (contravariance).
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
             defaultValue,
-        );
+        ) as TValue | TFirstDefault | null;
     }
 
     /**
@@ -1840,7 +1844,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback?: ((value: TValue, key: TKey) => boolean) | null,
         defaultValue?: D | (() => D),
     ): TValue | D | null {
-        const result = dataLast(this.items, callback, defaultValue);
+        const result = dataLast(
+            this.items,
+            // Same as `first`: obj's widest row takes an `unknown`-valued callback.
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
+            defaultValue,
+        ) as TValue | D | null | undefined;
+
         return result === undefined ? null : result;
     }
 
