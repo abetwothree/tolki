@@ -657,9 +657,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null
             | undefined,
     ) {
-        return this.newInstance(
-            dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
-        );
+        return this.newInstance(dataDiff(this.items, this.getRawItems(items)));
     }
 
     /**
@@ -726,7 +724,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
     ) {
         return this.newInstance(
-            dataDiffAssoc<TValue, TKey>(this.items, this.getRawItems(items)),
+            dataDiffAssoc(this.items, this.getRawItems(items)),
         );
     }
 
@@ -1615,10 +1613,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataIntersect<TValue, TKey>(
+            dataIntersect(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes `unknown` and rejects a typed callback (contravariance).
+                callback as (a: unknown, b: unknown) => boolean,
             ),
         );
     }
@@ -1643,7 +1643,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataIntersectAssoc<TValue, TKey>(
+            dataIntersectAssoc(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
@@ -1698,7 +1698,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(isArray(this.items) ? [] : {});
         }
         return this.newInstance(
-            dataIntersectByKeys<TValue, TKey>(
+            dataIntersectByKeys(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
