@@ -403,4 +403,20 @@ probe('exceptValues-list-keeps-gap', "Arr::exceptValues(['foo','bar','baz','qux'
 // already captured ("onlyValues-empty-data" / "-empty-values-assoc" / "-strict-numstr-assoc" / "-loose-numstr-assoc" in task-23).
 probe('onlyValues-list-keeps-gap', "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])", fn () => Arr::onlyValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']));
 
+// ==== C6: whether dataReplace/dataReplaceRecursive may route a list backing through
+// arr.replace/arr.replaceRecursive. Those two return a JS list, so they drop a string key
+// and fill a gap with undefined. array_replace keeps both, so obj has to serve both backings.
+// task-05-replace.json and task-23 only cover same-shape and int-keyed replacers.
+
+probe('replace-list-string-key-replacer', "(new Collection(['a','b','c']))->replace(['k' => 'x'])", fn () => (new Collection(['a', 'b', 'c']))->replace(['k' => 'x'])->all());
+probe('replace-list-sparse-replacer', "(new Collection(['a']))->replace([3 => 'd'])", fn () => (new Collection(['a']))->replace([3 => 'd'])->all());
+probe('replace-list-mixed-key-replacer', "(new Collection(['a','b']))->replace([1 => 'z', 'k' => 'x'])", fn () => (new Collection(['a', 'b']))->replace([1 => 'z', 'k' => 'x'])->all());
+probe('replaceRecursive-list-string-key-replacer', "(new Collection(['a','b','c']))->replaceRecursive(['k' => 'x'])", fn () => (new Collection(['a', 'b', 'c']))->replaceRecursive(['k' => 'x'])->all());
+probe('replaceRecursive-list-sparse-replacer', "(new Collection(['a']))->replaceRecursive([3 => 'd'])", fn () => (new Collection(['a']))->replaceRecursive([3 => 'd'])->all());
+probe('replaceRecursive-list-mixed-key-replacer', "(new Collection(['a','b']))->replaceRecursive([1 => 'z', 'k' => 'x'])", fn () => (new Collection(['a', 'b']))->replaceRecursive([1 => 'z', 'k' => 'x'])->all());
+
+// ==== Carried in: data.spec.ts asserted dataInteger([], 0, 5) === 5 with no citation.
+// Arr::integer defaults to null and throws on a missing key, but an explicit default is returned.
+probe('integer-list-missing-index-with-default', "Arr::integer([], 0, 5)", fn () => Arr::integer([], 0, 5));
+
 emit();

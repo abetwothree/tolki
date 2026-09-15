@@ -1133,6 +1133,65 @@
                 "0": "foo",
                 "2": "baz"
             }
+        },
+        {
+            "label": "replace-list-string-key-replacer",
+            "php": "(new Collection(['a','b','c']))->replace(['k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "2": "c",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replace-list-sparse-replacer",
+            "php": "(new Collection(['a']))->replace([3 => 'd'])",
+            "value": {
+                "0": "a",
+                "3": "d"
+            }
+        },
+        {
+            "label": "replace-list-mixed-key-replacer",
+            "php": "(new Collection(['a','b']))->replace([1 => 'z', 'k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "z",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-string-key-replacer",
+            "php": "(new Collection(['a','b','c']))->replaceRecursive(['k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "2": "c",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-sparse-replacer",
+            "php": "(new Collection(['a']))->replaceRecursive([3 => 'd'])",
+            "value": {
+                "0": "a",
+                "3": "d"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-mixed-key-replacer",
+            "php": "(new Collection(['a','b']))->replaceRecursive([1 => 'z', 'k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "z",
+                "k": "x"
+            }
+        },
+        {
+            "label": "integer-list-missing-index-with-default",
+            "php": "Arr::integer([], 0, 5)",
+            "value": 5
         }
     ]
 }
