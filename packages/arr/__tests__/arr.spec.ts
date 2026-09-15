@@ -3488,7 +3488,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.map(null, (value) => value)).toEqual([]);
-            expect(Arr.map("abc", (value) => value)).toEqual([]);
+            expect(
+                Arr.map("abc" as unknown as unknown[], (value) => value),
+            ).toEqual([]);
 
             // Complex transformation
             const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
@@ -4051,7 +4053,9 @@ describe("Arr", () => {
                 Arr.mapWithKeys(null, (value) => ({ [String(value)]: value })),
             ).toEqual({});
             expect(
-                Arr.mapWithKeys("abc", (value) => ({ [String(value)]: value })),
+                Arr.mapWithKeys("abc" as unknown as unknown[], (value) => ({
+                    [String(value)]: value,
+                })),
             ).toEqual({});
         });
 
@@ -4200,7 +4204,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.mapSpread(null, (a) => a)).toEqual([]);
-            expect(Arr.mapSpread("not array", (a) => a)).toEqual([]);
+            expect(
+                Arr.mapSpread("not array" as unknown as unknown[], (a) => a),
+            ).toEqual([]);
         });
     });
 

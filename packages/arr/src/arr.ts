@@ -2255,9 +2255,9 @@ export function map<TValue, TMapReturn>(
     data: ArrayItems<TValue>,
     callback: (value: TValue, index: number) => TMapReturn,
 ): TMapReturn[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function map<TValue, TMapReturn>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (value: TValue, index: number) => TMapReturn,
 ): TMapReturn[];
 // Implementation
@@ -2301,14 +2301,14 @@ export function mapWithKeys<
         index: TKey,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function mapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends number = number,
     TMapWithKeysKey extends string = string,
 >(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (
         value: TValue,
         index: TKey,
@@ -2396,7 +2396,7 @@ export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
     ) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<TMapReturn>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     callback: (...args: unknown[]) => TMapReturn,
 ): TMapReturn[];
 // `any[]` here (only in the implementation signature) is TypeScript's standard escape
