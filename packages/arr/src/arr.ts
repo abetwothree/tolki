@@ -1996,7 +1996,7 @@ export function select<
     const TKey extends keyof TValue & string,
 >(data: ArrayItems<TValue>, keys: TKey): Pick<TValue, TKey>[];
 // Overload: non-literal keys or untyped data → opaque records
-export function select<TValue extends Record<string, unknown>>(
+export function select(
     data: readonly unknown[] | null | undefined,
     keys: PathKeys,
 ): Record<string, unknown>[];
