@@ -2088,9 +2088,9 @@ export function pluck<TValue extends Record<string, unknown>>(
     value: string | readonly string[] | ((item: TValue) => unknown),
     key?: null | undefined,
 ): unknown[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function pluck<TValue extends Record<string, unknown>>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     value:
         | string
         | readonly string[]

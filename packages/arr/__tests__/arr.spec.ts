@@ -3565,7 +3565,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.pluck(null, "name")).toEqual([]);
-            expect(Arr.pluck("abc", "name")).toEqual([]);
+            expect(Arr.pluck("abc" as unknown as unknown[], "name")).toEqual(
+                [],
+            );
         });
 
         it("keeps the whole item when the value path is null", () => {
