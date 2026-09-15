@@ -962,7 +962,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
     filter(callback: ((value: TValue, key: TKey) => boolean) | null = null) {
-        return this.newInstance(dataFilter(this.items, callback));
+        if (isNull(callback)) {
+            return this.newInstance(dataFilter(this.items));
+        }
+
+        // `Items` is a union, so the delegates hand the callback their own widest
+        // value type; the collection's own generics are the narrower truth here.
+        return this.newInstance(
+            dataFilter(this.items, (value, key) =>
+                callback(value as TValue, key as TKey),
+            ),
+        );
     }
 
     /**
@@ -1875,7 +1885,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
     map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
-        return this.newInstance(dataMap(this.items, callback));
+        return this.newInstance(
+            dataMap(this.items, (value, key) =>
+                callback(value as TValue, key as TKey),
+            ),
+        );
     }
 
     /**
@@ -3683,7 +3697,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return this.newInstance(
                 dataFilter(this.items, (value, key) => {
-                    const result = callback(value, key as TKey);
+                    const result = callback(value as TValue, key as TKey);
 
                     // Check if we've seen this result using strict comparison
                     for (const seenValue of seen) {
@@ -3702,7 +3716,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return this.newInstance(
                 dataFilter(this.items, (value, key) => {
-                    const result = callback(value, key as TKey);
+                    const result = callback(value as TValue, key as TKey);
 
                     // Check if we've seen this result using loose comparison
                     for (const seenValue of seen) {
