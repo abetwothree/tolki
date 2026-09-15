@@ -2,9 +2,9 @@ import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-/** Mirrors `data`'s dispatch so `arr`'s row shape is pinned where it is decided. */
-type AnyFn = (...args: never[]) => unknown;
-declare function dispatch<A extends AnyFn, O extends AnyFn>(a: A, o: O): A & O;
+// `data` is the consumer whose dispatch decides these rows, so the sweep pins the real
+// helper rather than a local mirror of it.
+import { dispatch } from "../../../data/src/dispatch";
 
 const rec = { a: 1, b: 2, c: 3 };
 const recB = { d: 4 };
