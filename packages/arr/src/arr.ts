@@ -1815,9 +1815,9 @@ export function keyBy<TValue extends Record<string, unknown>>(
         | ((item: TValue, key: number) => string | number | null | undefined)
         | string,
 ): Record<string, TValue>;
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function keyBy<TValue extends Record<string, unknown>>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     keyBy:
         | string
         | ((item: TValue, key: number) => string | number | null | undefined),
@@ -1868,9 +1868,9 @@ export function prependKeysWith<TValue>(
     data: ArrayItems<TValue>,
     prependWith: string,
 ): Record<string, TValue>;
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function prependKeysWith(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     prependWith: string,
 ): Record<string, unknown>;
 // Implementation
@@ -1979,7 +1979,7 @@ export function select<
 >(data: ArrayItems<TValue>, keys: TKey): Pick<TValue, TKey>[];
 // Overload: non-literal keys or untyped data → opaque records
 export function select<TValue extends Record<string, unknown>>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     keys: PathKeys,
 ): Record<string, unknown>[];
 // Implementation

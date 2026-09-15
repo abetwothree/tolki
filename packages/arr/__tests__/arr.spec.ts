@@ -3083,7 +3083,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.select(null, "a")).toEqual([]);
-            expect(Arr.select("abc", "a")).toEqual([]);
+            expect(Arr.select("abc" as unknown as unknown[], "a")).toEqual([]);
 
             // Mixed object types
             const mixed = [
@@ -3454,7 +3454,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.prependKeysWith(null, "prefix_")).toEqual({});
-            expect(Arr.prependKeysWith("abc", "prefix_")).toEqual({});
+            expect(
+                Arr.prependKeysWith("abc" as unknown as unknown[], "prefix_"),
+            ).toEqual({});
         });
     });
 
@@ -3906,7 +3908,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.keyBy(null, "id")).toEqual({});
-            expect(Arr.keyBy("abc", "id")).toEqual({});
+            expect(Arr.keyBy("abc" as unknown as unknown[], "id")).toEqual({});
 
             // Missing key is keyed under an empty string key,
             // mirroring PHP's (string) null cast
