@@ -78,6 +78,21 @@ class DimBox {
 }
 declare const dimBox: DimBox;
 
+const numberMap = new Map([
+    ["a", 1],
+    ["b", 2],
+    ["c", 3],
+]);
+const listMap = new Map([
+    ["a", [1]],
+    ["b", [2]],
+]);
+const recordMap = new Map([
+    ["a", { id: "x" }],
+    ["b", { id: "y" }],
+]);
+const dimMap = new Map([["a", [1]]]);
+
 describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for add", () => {
         expectTypeOf(dispatch(Arr.add, Obj.add)(rec, key, nine)).toEqualTypeOf(
@@ -97,6 +112,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for add", () => {
+        expectTypeOf(
+            dispatch(Arr.add, Obj.add)(numberMap, key, nine),
+        ).toEqualTypeOf(Obj.add(numberMap, key, nine));
+    });
+
     it("keeps a list on arr for add", () => {
         expectTypeOf(dispatch(Arr.add, Obj.add)(list, idx, nine)).toEqualTypeOf(
             Arr.add(list, idx, nine),
@@ -108,6 +129,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.add(rec, key, nine);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.add(rec, idx, nine);
+    });
+
+    it("rejects a Map on arr for add", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.add(numberMap, key, nine);
     });
 
     it("routes a record to obj for boolean", () => {
@@ -128,6 +154,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.boolean(box, key));
     });
 
+    it("routes a Map to obj for boolean", () => {
+        expectTypeOf(
+            dispatch(Arr.boolean, Obj.boolean)(numberMap, key),
+        ).toEqualTypeOf(Obj.boolean(numberMap, key));
+    });
+
     it("keeps a list on arr for boolean", () => {
         expectTypeOf(
             dispatch(Arr.boolean, Obj.boolean)(list, idx),
@@ -139,6 +171,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.boolean(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.boolean(rec, idx);
+    });
+
+    it("rejects a Map on arr for boolean", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.boolean(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for boolean", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.boolean(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.boolean(box, key);
     });
 
     it("routes a record to obj for chunk", () => {
@@ -159,6 +203,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for chunk", () => {
+        expectTypeOf(
+            dispatch(Arr.chunk, Obj.chunk)(numberMap, size),
+        ).toEqualTypeOf(Obj.chunk(numberMap, size));
+    });
+
     it("keeps a list on arr for chunk", () => {
         expectTypeOf(dispatch(Arr.chunk, Obj.chunk)(list, size)).toEqualTypeOf(
             Arr.chunk(list, size),
@@ -168,6 +218,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for chunk", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.chunk(rec, size);
+    });
+
+    it("rejects a Map on arr for chunk", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.chunk(numberMap, size);
     });
 
     it("routes a record to obj for chunkBy", () => {
@@ -188,6 +243,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.chunkBy(box, key));
     });
 
+    it("routes a Map to obj for chunkBy", () => {
+        expectTypeOf(
+            dispatch(Arr.chunkBy, Obj.chunkBy)(numberMap, key),
+        ).toEqualTypeOf(Obj.chunkBy(numberMap, key));
+    });
+
     it("keeps a list on arr for chunkBy", () => {
         expectTypeOf(
             dispatch(Arr.chunkBy, Obj.chunkBy)(list, key),
@@ -197,6 +258,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for chunkBy", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.chunkBy(rec, key);
+    });
+
+    it("rejects a Map on arr for chunkBy", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.chunkBy(numberMap, key);
     });
 
     it("routes a record to obj for chunkWhile", () => {
@@ -217,6 +283,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.chunkWhile(box, truthy));
     });
 
+    it("routes a Map to obj for chunkWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.chunkWhile, Obj.chunkWhile)(numberMap, truthy),
+        ).toEqualTypeOf(Obj.chunkWhile(numberMap, truthy));
+    });
+
     it("keeps a list on arr for chunkWhile", () => {
         expectTypeOf(
             dispatch(Arr.chunkWhile, Obj.chunkWhile)(list, truthy),
@@ -226,6 +298,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for chunkWhile", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.chunkWhile(rec, truthy);
+    });
+
+    it("rejects a Map on arr for chunkWhile", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.chunkWhile(numberMap, truthy);
     });
 
     it("routes a record to obj for collapse", () => {
@@ -246,6 +323,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.collapse(nestedBox));
     });
 
+    it("routes a Map to obj for collapse", () => {
+        expectTypeOf(
+            dispatch(Arr.collapse, Obj.collapse)(listMap),
+        ).toEqualTypeOf(Obj.collapse(listMap));
+    });
+
     it("keeps a list on arr for collapse", () => {
         expectTypeOf(
             dispatch(Arr.collapse, Obj.collapse)(nestedList),
@@ -255,6 +338,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for collapse", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.collapse(nestedRec);
+    });
+
+    it("rejects a Map on arr for collapse", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.collapse(listMap);
     });
 
     it("routes a record to obj for combine", () => {
@@ -275,6 +363,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.combine(box, rec));
     });
 
+    it("routes a Map to obj for combine", () => {
+        expectTypeOf(
+            dispatch(Arr.combine, Obj.combine)(numberMap, rec),
+        ).toEqualTypeOf(Obj.combine(numberMap, rec));
+    });
+
     it("keeps a list on arr for combine", () => {
         expectTypeOf(
             dispatch(Arr.combine, Obj.combine)(list, list),
@@ -286,6 +380,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.combine(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.combine(rec, list);
+    });
+
+    it("rejects a Map on arr for combine", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.combine(numberMap, rec);
     });
 
     it("routes a record to obj for contains", () => {
@@ -306,6 +405,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.contains(box, one));
     });
 
+    it("routes a Map to obj for contains", () => {
+        expectTypeOf(
+            dispatch(Arr.contains, Obj.contains)(numberMap, one),
+        ).toEqualTypeOf(Obj.contains(numberMap, one));
+    });
+
     it("keeps a list on arr for contains", () => {
         expectTypeOf(
             dispatch(Arr.contains, Obj.contains)(list, one),
@@ -315,6 +420,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for contains", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.contains(rec, one);
+    });
+
+    it("rejects a Map on arr for contains", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.contains(numberMap, one);
+    });
+
+    it("rejects an interface and a class on arr for contains", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.contains(settings, one);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.contains(box, one);
     });
 
     it("routes a record to obj for crossJoin", () => {
@@ -335,6 +452,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.crossJoin(dimBox, dimRecB));
     });
 
+    it("routes a Map to obj for crossJoin", () => {
+        expectTypeOf(
+            dispatch(Arr.crossJoin, Obj.crossJoin)(dimMap, dimRecB),
+        ).toEqualTypeOf(Obj.crossJoin(dimMap, dimRecB));
+    });
+
     it("keeps a list on arr for crossJoin", () => {
         expectTypeOf(
             dispatch(Arr.crossJoin, Obj.crossJoin)(dimListA, dimListB),
@@ -346,6 +469,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.crossJoin(dimRecA, dimRecB);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.crossJoin(dimRecA, dimListB);
+    });
+
+    it("rejects a Map on arr for crossJoin", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.crossJoin(dimMap, dimRecB);
     });
 
     it("routes a record to obj for diff", () => {
@@ -366,6 +494,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for diff", () => {
+        expectTypeOf(
+            dispatch(Arr.diff, Obj.diff)(numberMap, rec),
+        ).toEqualTypeOf(Obj.diff(numberMap, rec));
+    });
+
     it("keeps a list on arr for diff", () => {
         expectTypeOf(dispatch(Arr.diff, Obj.diff)(list, list)).toEqualTypeOf(
             Arr.diff(list, list),
@@ -377,6 +511,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.diff(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.diff(rec, list);
+    });
+
+    it("rejects a Map on arr for diff", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.diff(numberMap, rec);
     });
 
     it("routes a record to obj for diffAssoc", () => {
@@ -397,6 +536,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.diffAssoc(box, rec));
     });
 
+    it("routes a Map to obj for diffAssoc", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssoc, Obj.diffAssoc)(numberMap, rec),
+        ).toEqualTypeOf(Obj.diffAssoc(numberMap, rec));
+    });
+
     it("keeps a list on arr for diffAssoc", () => {
         expectTypeOf(
             dispatch(Arr.diffAssoc, Obj.diffAssoc)(list, list),
@@ -408,6 +553,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.diffAssoc(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.diffAssoc(rec, list);
+    });
+
+    it("rejects a Map on arr for diffAssoc", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.diffAssoc(numberMap, rec);
     });
 
     it("routes a record to obj for divide", () => {
@@ -428,6 +578,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for divide", () => {
+        expectTypeOf(dispatch(Arr.divide, Obj.divide)(numberMap)).toEqualTypeOf(
+            Obj.divide(numberMap),
+        );
+    });
+
     it("keeps a list on arr for divide", () => {
         expectTypeOf(dispatch(Arr.divide, Obj.divide)(list)).toEqualTypeOf(
             Arr.divide(list),
@@ -437,6 +593,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for divide", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.divide(rec);
+    });
+
+    it("rejects a Map on arr for divide", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.divide(numberMap);
     });
 
     it("routes a record to obj for dot", () => {
@@ -457,6 +618,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for dot", () => {
+        expectTypeOf(dispatch(Arr.dot, Obj.dot)(numberMap)).toEqualTypeOf(
+            Obj.dot(numberMap),
+        );
+    });
+
     it("keeps a list on arr for dot", () => {
         expectTypeOf(dispatch(Arr.dot, Obj.dot)(list)).toEqualTypeOf(
             Arr.dot(list),
@@ -466,6 +633,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for dot", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.dot(rec);
+    });
+
+    it("rejects a Map on arr for dot", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.dot(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for dot", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.dot(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.dot(box);
     });
 
     it("routes a record to obj for every", () => {
@@ -486,6 +665,13 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("keeps a Map on arr for every", () => {
+        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
+        expectTypeOf(
+            dispatch(Arr.every, Obj.every)(numberMap, truthy),
+        ).toEqualTypeOf(Arr.every(numberMap, truthy));
+    });
+
     it("keeps a list on arr for every", () => {
         expectTypeOf(
             dispatch(Arr.every, Obj.every)(list, truthy),
@@ -495,6 +681,13 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for every", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.every(rec, truthy);
+    });
+
+    it("rejects an interface and a class on arr for every", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.every(settings, truthy);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.every(box, truthy);
     });
 
     it("routes a record to obj for except", () => {
@@ -515,6 +708,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for except", () => {
+        expectTypeOf(
+            dispatch(Arr.except, Obj.except)(numberMap, key),
+        ).toEqualTypeOf(Obj.except(numberMap, key));
+    });
+
     it("keeps a list on arr for except", () => {
         expectTypeOf(dispatch(Arr.except, Obj.except)(list, idx)).toEqualTypeOf(
             Arr.except(list, idx),
@@ -526,6 +725,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.except(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.except(rec, idx);
+    });
+
+    it("rejects a Map on arr for except", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.except(numberMap, key);
     });
 
     it("routes a record to obj for exceptValues", () => {
@@ -546,6 +750,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.exceptValues(box, one));
     });
 
+    it("routes a Map to obj for exceptValues", () => {
+        expectTypeOf(
+            dispatch(Arr.exceptValues, Obj.exceptValues)(numberMap, one),
+        ).toEqualTypeOf(Obj.exceptValues(numberMap, one));
+    });
+
     it("keeps a list on arr for exceptValues", () => {
         expectTypeOf(
             dispatch(Arr.exceptValues, Obj.exceptValues)(list, one),
@@ -555,6 +765,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for exceptValues", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.exceptValues(rec, one);
+    });
+
+    it("rejects a Map on arr for exceptValues", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.exceptValues(numberMap, one);
     });
 
     it("routes a record to obj for exists", () => {
@@ -575,6 +790,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for exists", () => {
+        expectTypeOf(
+            dispatch(Arr.exists, Obj.exists)(numberMap, key),
+        ).toEqualTypeOf(Obj.exists(numberMap, key));
+    });
+
     it("keeps a list on arr for exists", () => {
         expectTypeOf(dispatch(Arr.exists, Obj.exists)(list, idx)).toEqualTypeOf(
             Arr.exists(list, idx),
@@ -586,6 +807,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.exists(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.exists(rec, idx);
+    });
+
+    it("rejects a Map on arr for exists", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.exists(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for exists", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.exists(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.exists(box, key);
     });
 
     it("routes a record to obj for filter", () => {
@@ -606,6 +839,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.filter(box, truthy));
     });
 
+    it("routes a Map to obj for filter", () => {
+        expectTypeOf(
+            dispatch(Arr.filter, Obj.filter)(numberMap, truthy),
+        ).toEqualTypeOf(Obj.filter(numberMap, truthy));
+    });
+
     it("keeps a list on arr for filter", () => {
         expectTypeOf(
             dispatch(Arr.filter, Obj.filter)(list, truthy),
@@ -615,6 +854,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for filter", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.filter(rec, truthy);
+    });
+
+    it("rejects a Map on arr for filter", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.filter(numberMap, truthy);
     });
 
     it("routes a record to obj for first", () => {
@@ -635,6 +879,13 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("keeps a Map on arr for first", () => {
+        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
+        expectTypeOf(dispatch(Arr.first, Obj.first)(numberMap)).toEqualTypeOf(
+            Arr.first(numberMap),
+        );
+    });
+
     it("keeps a list on arr for first", () => {
         expectTypeOf(dispatch(Arr.first, Obj.first)(list)).toEqualTypeOf(
             Arr.first(list),
@@ -644,6 +895,13 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for first", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.first(rec);
+    });
+
+    it("rejects an interface and a class on arr for first", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.first(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.first(box);
     });
 
     it("routes a record to obj for flatten", () => {
@@ -664,6 +922,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for flatten", () => {
+        expectTypeOf(
+            dispatch(Arr.flatten, Obj.flatten)(numberMap),
+        ).toEqualTypeOf(Obj.flatten(numberMap));
+    });
+
     it("keeps a list on arr for flatten", () => {
         expectTypeOf(dispatch(Arr.flatten, Obj.flatten)(list)).toEqualTypeOf(
             Arr.flatten(list),
@@ -673,6 +937,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for flatten", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.flatten(rec);
+    });
+
+    it("rejects a Map on arr for flatten", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.flatten(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for flatten", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.flatten(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.flatten(box);
     });
 
     it("routes a record to obj for flip", () => {
@@ -693,6 +969,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for flip", () => {
+        expectTypeOf(dispatch(Arr.flip, Obj.flip)(numberMap)).toEqualTypeOf(
+            Obj.flip(numberMap),
+        );
+    });
+
     it("keeps a list on arr for flip", () => {
         expectTypeOf(dispatch(Arr.flip, Obj.flip)(list)).toEqualTypeOf(
             Arr.flip(list),
@@ -702,6 +984,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for flip", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.flip(rec);
+    });
+
+    it("rejects a Map on arr for flip", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.flip(numberMap);
     });
 
     it("routes a record to obj for float", () => {
@@ -722,6 +1009,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for float", () => {
+        expectTypeOf(
+            dispatch(Arr.float, Obj.float)(numberMap, key),
+        ).toEqualTypeOf(Obj.float(numberMap, key));
+    });
+
     it("keeps a list on arr for float", () => {
         expectTypeOf(dispatch(Arr.float, Obj.float)(list, idx)).toEqualTypeOf(
             Arr.float(list, idx),
@@ -733,6 +1026,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.float(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.float(rec, idx);
+    });
+
+    it("rejects a Map on arr for float", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.float(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for float", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.float(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.float(box, key);
     });
 
     it("routes a record to obj for forget", () => {
@@ -753,6 +1058,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for forget", () => {
+        expectTypeOf(
+            dispatch(Arr.forget, Obj.forget)(numberMap, key),
+        ).toEqualTypeOf(Obj.forget(numberMap, key));
+    });
+
     it("keeps a list on arr for forget", () => {
         expectTypeOf(dispatch(Arr.forget, Obj.forget)(list, idx)).toEqualTypeOf(
             Arr.forget(list, idx),
@@ -764,6 +1075,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.forget(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.forget(rec, idx);
+    });
+
+    it("rejects a Map on arr for forget", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.forget(numberMap, key);
     });
 
     it("routes a record to obj for from", () => {
@@ -781,6 +1097,13 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a class instance to obj for from", () => {
         expectTypeOf(dispatch(Arr.from, Obj.from)(box)).toEqualTypeOf(
             Obj.from(box),
+        );
+    });
+
+    it("keeps a Map on arr for from", () => {
+        // arr carries an explicit Map overload, so arr wins the intersection; the runtime still routes to obj.
+        expectTypeOf(dispatch(Arr.from, Obj.from)(numberMap)).toEqualTypeOf(
+            Arr.from(numberMap),
         );
     });
 
@@ -813,6 +1136,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for get", () => {
+        expectTypeOf(dispatch(Arr.get, Obj.get)(numberMap, key)).toEqualTypeOf(
+            Obj.get(numberMap, key),
+        );
+    });
+
     it("keeps a list on arr for get", () => {
         expectTypeOf(dispatch(Arr.get, Obj.get)(list, idx)).toEqualTypeOf(
             Arr.get(list, idx),
@@ -824,6 +1153,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.get(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.get(rec, idx);
+    });
+
+    it("rejects a Map on arr for get", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.get(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for get", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.get(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.get(box, key);
     });
 
     it("routes a record to obj for has", () => {
@@ -844,6 +1185,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for has", () => {
+        expectTypeOf(dispatch(Arr.has, Obj.has)(numberMap, key)).toEqualTypeOf(
+            Obj.has(numberMap, key),
+        );
+    });
+
     it("keeps a list on arr for has", () => {
         expectTypeOf(dispatch(Arr.has, Obj.has)(list, idx)).toEqualTypeOf(
             Arr.has(list, idx),
@@ -855,6 +1202,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.has(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.has(rec, idx);
+    });
+
+    it("rejects a Map on arr for has", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.has(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for has", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.has(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.has(box, key);
     });
 
     it("routes a record to obj for hasAll", () => {
@@ -875,6 +1234,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for hasAll", () => {
+        expectTypeOf(
+            dispatch(Arr.hasAll, Obj.hasAll)(numberMap, key),
+        ).toEqualTypeOf(Obj.hasAll(numberMap, key));
+    });
+
     it("keeps a list on arr for hasAll", () => {
         expectTypeOf(dispatch(Arr.hasAll, Obj.hasAll)(list, idx)).toEqualTypeOf(
             Arr.hasAll(list, idx),
@@ -886,6 +1251,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.hasAll(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.hasAll(rec, idx);
+    });
+
+    it("rejects a Map on arr for hasAll", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.hasAll(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for hasAll", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.hasAll(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.hasAll(box, key);
     });
 
     it("routes a record to obj for hasAny", () => {
@@ -906,6 +1283,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for hasAny", () => {
+        expectTypeOf(
+            dispatch(Arr.hasAny, Obj.hasAny)(numberMap, key),
+        ).toEqualTypeOf(Obj.hasAny(numberMap, key));
+    });
+
     it("keeps a list on arr for hasAny", () => {
         expectTypeOf(dispatch(Arr.hasAny, Obj.hasAny)(list, idx)).toEqualTypeOf(
             Arr.hasAny(list, idx),
@@ -917,6 +1300,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.hasAny(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.hasAny(rec, idx);
+    });
+
+    it("rejects a Map on arr for hasAny", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.hasAny(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for hasAny", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.hasAny(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.hasAny(box, key);
     });
 
     it("routes a record to obj for integer", () => {
@@ -937,6 +1332,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.integer(box, key));
     });
 
+    it("routes a Map to obj for integer", () => {
+        expectTypeOf(
+            dispatch(Arr.integer, Obj.integer)(numberMap, key),
+        ).toEqualTypeOf(Obj.integer(numberMap, key));
+    });
+
     it("keeps a list on arr for integer", () => {
         expectTypeOf(
             dispatch(Arr.integer, Obj.integer)(list, idx),
@@ -948,6 +1349,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.integer(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.integer(rec, idx);
+    });
+
+    it("rejects a Map on arr for integer", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.integer(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for integer", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.integer(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.integer(box, key);
     });
 
     it("routes a record to obj for intersect", () => {
@@ -968,6 +1381,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersect(box, rec));
     });
 
+    it("routes a Map to obj for intersect", () => {
+        expectTypeOf(
+            dispatch(Arr.intersect, Obj.intersect)(numberMap, rec),
+        ).toEqualTypeOf(Obj.intersect(numberMap, rec));
+    });
+
     it("keeps a list on arr for intersect", () => {
         expectTypeOf(
             dispatch(Arr.intersect, Obj.intersect)(list, list),
@@ -979,6 +1398,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.intersect(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.intersect(rec, list);
+    });
+
+    it("rejects a Map on arr for intersect", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.intersect(numberMap, rec);
     });
 
     it("routes a record to obj for intersectAssoc", () => {
@@ -999,6 +1423,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersectAssoc(box, rec));
     });
 
+    it("routes a Map to obj for intersectAssoc", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectAssoc, Obj.intersectAssoc)(numberMap, rec),
+        ).toEqualTypeOf(Obj.intersectAssoc(numberMap, rec));
+    });
+
     it("keeps a list on arr for intersectAssoc", () => {
         expectTypeOf(
             dispatch(Arr.intersectAssoc, Obj.intersectAssoc)(list, list),
@@ -1010,6 +1440,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.intersectAssoc(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.intersectAssoc(rec, list);
+    });
+
+    it("rejects a Map on arr for intersectAssoc", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.intersectAssoc(numberMap, rec);
     });
 
     it("routes a record to obj for intersectAssocUsing", () => {
@@ -1042,6 +1477,16 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersectAssocUsing(box, rec, truthy));
     });
 
+    it("routes a Map to obj for intersectAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectAssocUsing, Obj.intersectAssocUsing)(
+                numberMap,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf(Obj.intersectAssocUsing(numberMap, rec, truthy));
+    });
+
     it("keeps a list on arr for intersectAssocUsing", () => {
         expectTypeOf(
             dispatch(Arr.intersectAssocUsing, Obj.intersectAssocUsing)(
@@ -1057,6 +1502,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.intersectAssocUsing(rec, rec, truthy);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.intersectAssocUsing(rec, list, truthy);
+    });
+
+    it("rejects a Map on arr for intersectAssocUsing", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.intersectAssocUsing(numberMap, rec, truthy);
     });
 
     it("routes a record to obj for intersectByKeys", () => {
@@ -1077,6 +1527,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersectByKeys(box, rec));
     });
 
+    it("routes a Map to obj for intersectByKeys", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(numberMap, rec),
+        ).toEqualTypeOf(Obj.intersectByKeys(numberMap, rec));
+    });
+
     it("keeps a list on arr for intersectByKeys", () => {
         expectTypeOf(
             dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(list, list),
@@ -1088,6 +1544,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.intersectByKeys(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.intersectByKeys(rec, list);
+    });
+
+    it("rejects a Map on arr for intersectByKeys", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.intersectByKeys(numberMap, rec);
     });
 
     it("routes a record to obj for join", () => {
@@ -1108,6 +1569,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for join", () => {
+        expectTypeOf(
+            dispatch(Arr.join, Obj.join)(numberMap, glue),
+        ).toEqualTypeOf(Obj.join(numberMap, glue));
+    });
+
     it("keeps a list on arr for join", () => {
         expectTypeOf(dispatch(Arr.join, Obj.join)(list, glue)).toEqualTypeOf(
             Arr.join(list, glue),
@@ -1117,6 +1584,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for join", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.join(rec, glue);
+    });
+
+    it("rejects a Map on arr for join", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.join(numberMap, glue);
+    });
+
+    it("rejects an interface and a class on arr for join", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.join(settings, glue);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.join(box, glue);
     });
 
     it("routes a record to obj for keyBy", () => {
@@ -1137,6 +1616,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.keyBy(recordsBox, idKey));
     });
 
+    it("routes a Map to obj for keyBy", () => {
+        expectTypeOf(
+            dispatch(Arr.keyBy, Obj.keyBy)(recordMap, idKey),
+        ).toEqualTypeOf(Obj.keyBy(recordMap, idKey));
+    });
+
     it("keeps a list on arr for keyBy", () => {
         expectTypeOf(
             dispatch(Arr.keyBy, Obj.keyBy)(listOfRecords, idKey),
@@ -1146,6 +1631,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for keyBy", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.keyBy(recOfRecords, idKey);
+    });
+
+    it("rejects a Map on arr for keyBy", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.keyBy(recordMap, idKey);
     });
 
     it("routes a record to obj for keys", () => {
@@ -1166,6 +1656,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for keys", () => {
+        expectTypeOf(dispatch(Arr.keys, Obj.keys)(numberMap)).toEqualTypeOf(
+            Obj.keys(numberMap),
+        );
+    });
+
     it("keeps a list on arr for keys", () => {
         expectTypeOf(dispatch(Arr.keys, Obj.keys)(list)).toEqualTypeOf(
             Arr.keys(list),
@@ -1175,6 +1671,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for keys", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.keys(rec);
+    });
+
+    it("rejects a Map on arr for keys", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.keys(numberMap);
     });
 
     it("routes a record to obj for last", () => {
@@ -1195,6 +1696,13 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("keeps a Map on arr for last", () => {
+        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
+        expectTypeOf(dispatch(Arr.last, Obj.last)(numberMap)).toEqualTypeOf(
+            Arr.last(numberMap),
+        );
+    });
+
     it("keeps a list on arr for last", () => {
         expectTypeOf(dispatch(Arr.last, Obj.last)(list)).toEqualTypeOf(
             Arr.last(list),
@@ -1204,6 +1712,13 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for last", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.last(rec);
+    });
+
+    it("rejects an interface and a class on arr for last", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.last(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.last(box);
     });
 
     it("routes a record to obj for map", () => {
@@ -1224,6 +1739,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for map", () => {
+        expectTypeOf(
+            dispatch(Arr.map, Obj.map)(numberMap, toOne),
+        ).toEqualTypeOf(Obj.map(numberMap, toOne));
+    });
+
     it("keeps a list on arr for map", () => {
         expectTypeOf(dispatch(Arr.map, Obj.map)(list, toOne)).toEqualTypeOf(
             Arr.map(list, toOne),
@@ -1233,6 +1754,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for map", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.map(rec, toOne);
+    });
+
+    it("rejects a Map on arr for map", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.map(numberMap, toOne);
     });
 
     it("routes a record to obj for mapSpread", () => {
@@ -1253,6 +1779,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.mapSpread(nestedBox, toOne));
     });
 
+    it("routes a Map to obj for mapSpread", () => {
+        expectTypeOf(
+            dispatch(Arr.mapSpread, Obj.mapSpread)(listMap, toOne),
+        ).toEqualTypeOf(Obj.mapSpread(listMap, toOne));
+    });
+
     it("keeps a list on arr for mapSpread", () => {
         expectTypeOf(
             dispatch(Arr.mapSpread, Obj.mapSpread)(listOfLists, toOne),
@@ -1262,6 +1794,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for mapSpread", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.mapSpread(recOfLists, toOne);
+    });
+
+    it("rejects a Map on arr for mapSpread", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.mapSpread(listMap, toOne);
     });
 
     it("routes a record to obj for mapWithKeys", () => {
@@ -1282,6 +1819,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.mapWithKeys(box, toRecord));
     });
 
+    it("routes a Map to obj for mapWithKeys", () => {
+        expectTypeOf(
+            dispatch(Arr.mapWithKeys, Obj.mapWithKeys)(numberMap, toRecord),
+        ).toEqualTypeOf(Obj.mapWithKeys(numberMap, toRecord));
+    });
+
     it("keeps a list on arr for mapWithKeys", () => {
         expectTypeOf(
             dispatch(Arr.mapWithKeys, Obj.mapWithKeys)(list, toRecord),
@@ -1291,6 +1834,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for mapWithKeys", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.mapWithKeys(rec, toRecord);
+    });
+
+    it("rejects a Map on arr for mapWithKeys", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.mapWithKeys(numberMap, toRecord);
+    });
+
+    it("rejects an interface and a class on arr for mapWithKeys", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.mapWithKeys(settings, toRecord);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.mapWithKeys(box, toRecord);
     });
 
     it("routes a record to obj for only", () => {
@@ -1311,6 +1866,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for only", () => {
+        expectTypeOf(
+            dispatch(Arr.only, Obj.only)(numberMap, key),
+        ).toEqualTypeOf(Obj.only(numberMap, key));
+    });
+
     it("keeps a list on arr for only", () => {
         expectTypeOf(dispatch(Arr.only, Obj.only)(list, idx)).toEqualTypeOf(
             Arr.only(list, idx),
@@ -1322,6 +1883,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.only(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.only(rec, idx);
+    });
+
+    it("rejects a Map on arr for only", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.only(numberMap, key);
     });
 
     it("routes a record to obj for onlyValues", () => {
@@ -1342,6 +1908,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.onlyValues(box, one));
     });
 
+    it("routes a Map to obj for onlyValues", () => {
+        expectTypeOf(
+            dispatch(Arr.onlyValues, Obj.onlyValues)(numberMap, one),
+        ).toEqualTypeOf(Obj.onlyValues(numberMap, one));
+    });
+
     it("keeps a list on arr for onlyValues", () => {
         expectTypeOf(
             dispatch(Arr.onlyValues, Obj.onlyValues)(list, one),
@@ -1351,6 +1923,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for onlyValues", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.onlyValues(rec, one);
+    });
+
+    it("rejects a Map on arr for onlyValues", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.onlyValues(numberMap, one);
     });
 
     it("routes a record to obj for pad", () => {
@@ -1371,6 +1948,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for pad", () => {
+        expectTypeOf(
+            dispatch(Arr.pad, Obj.pad)(numberMap, size, zero),
+        ).toEqualTypeOf(Obj.pad(numberMap, size, zero));
+    });
+
     it("keeps a list on arr for pad", () => {
         expectTypeOf(
             dispatch(Arr.pad, Obj.pad)(list, size, zero),
@@ -1380,6 +1963,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for pad", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.pad(rec, size, zero);
+    });
+
+    it("rejects a Map on arr for pad", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.pad(numberMap, size, zero);
     });
 
     it("routes a record to obj for partition", () => {
@@ -1400,6 +1988,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.partition(box, truthy));
     });
 
+    it("routes a Map to obj for partition", () => {
+        expectTypeOf(
+            dispatch(Arr.partition, Obj.partition)(numberMap, truthy),
+        ).toEqualTypeOf(Obj.partition(numberMap, truthy));
+    });
+
     it("keeps a list on arr for partition", () => {
         expectTypeOf(
             dispatch(Arr.partition, Obj.partition)(list, truthy),
@@ -1409,6 +2003,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for partition", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.partition(rec, truthy);
+    });
+
+    it("rejects a Map on arr for partition", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.partition(numberMap, truthy);
     });
 
     it("routes a record to obj for pluck", () => {
@@ -1429,6 +2028,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.pluck(recordsBox, idKey));
     });
 
+    it("routes a Map to obj for pluck", () => {
+        expectTypeOf(
+            dispatch(Arr.pluck, Obj.pluck)(recordMap, idKey),
+        ).toEqualTypeOf(Obj.pluck(recordMap, idKey));
+    });
+
     it("keeps a list on arr for pluck", () => {
         expectTypeOf(
             dispatch(Arr.pluck, Obj.pluck)(listOfRecords, idKey),
@@ -1438,6 +2043,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for pluck", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.pluck(recOfRecords, idKey);
+    });
+
+    it("rejects a Map on arr for pluck", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.pluck(recordMap, idKey);
+    });
+
+    it("rejects an interface and a class on arr for pluck", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.pluck(recordsSettings, idKey);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.pluck(recordsBox, idKey);
     });
 
     it("routes a record to obj for pop", () => {
@@ -1458,6 +2075,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for pop", () => {
+        expectTypeOf(dispatch(Arr.pop, Obj.pop)(numberMap)).toEqualTypeOf(
+            Obj.pop(numberMap),
+        );
+    });
+
     it("keeps a list on arr for pop", () => {
         expectTypeOf(dispatch(Arr.pop, Obj.pop)(list)).toEqualTypeOf(
             Arr.pop(list),
@@ -1467,6 +2090,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for pop", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.pop(rec);
+    });
+
+    it("rejects a Map on arr for pop", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.pop(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for pop", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.pop(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.pop(box);
     });
 
     it("routes a record to obj for prepend", () => {
@@ -1487,6 +2122,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.prepend(box, one));
     });
 
+    it("routes a Map to obj for prepend", () => {
+        expectTypeOf(
+            dispatch(Arr.prepend, Obj.prepend)(numberMap, one),
+        ).toEqualTypeOf(Obj.prepend(numberMap, one));
+    });
+
     it("keeps a list on arr for prepend", () => {
         expectTypeOf(
             dispatch(Arr.prepend, Obj.prepend)(list, one),
@@ -1496,6 +2137,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for prepend", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.prepend(rec, one);
+    });
+
+    it("rejects a Map on arr for prepend", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.prepend(numberMap, one);
     });
 
     it("routes a record to obj for prependKeysWith", () => {
@@ -1519,6 +2165,15 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.prependKeysWith(box, prefix));
     });
 
+    it("routes a Map to obj for prependKeysWith", () => {
+        expectTypeOf(
+            dispatch(Arr.prependKeysWith, Obj.prependKeysWith)(
+                numberMap,
+                prefix,
+            ),
+        ).toEqualTypeOf(Obj.prependKeysWith(numberMap, prefix));
+    });
+
     it("keeps a list on arr for prependKeysWith", () => {
         expectTypeOf(
             dispatch(Arr.prependKeysWith, Obj.prependKeysWith)(list, prefix),
@@ -1528,6 +2183,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for prependKeysWith", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.prependKeysWith(rec, prefix);
+    });
+
+    it("rejects a Map on arr for prependKeysWith", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.prependKeysWith(numberMap, prefix);
     });
 
     it("routes a record to obj for pull", () => {
@@ -1548,6 +2208,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for pull", () => {
+        expectTypeOf(
+            dispatch(Arr.pull, Obj.pull)(numberMap, key),
+        ).toEqualTypeOf(Obj.pull(numberMap, key));
+    });
+
     it("keeps a list on arr for pull", () => {
         expectTypeOf(dispatch(Arr.pull, Obj.pull)(list, idx)).toEqualTypeOf(
             Arr.pull(list, idx),
@@ -1559,6 +2225,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.pull(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.pull(rec, idx);
+    });
+
+    it("rejects a Map on arr for pull", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.pull(numberMap, key);
     });
 
     it("routes a record to obj for push", () => {
@@ -1579,6 +2250,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.push(box, key, nine));
     });
 
+    it("routes a Map to obj for push", () => {
+        expectTypeOf(
+            dispatch(Arr.push, Obj.push)(numberMap, key, nine),
+        ).toEqualTypeOf(Obj.push(numberMap, key, nine));
+    });
+
     it("keeps a list on arr for push", () => {
         expectTypeOf(
             dispatch(Arr.push, Obj.push)(list, idx, nine),
@@ -1590,6 +2267,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.push(rec, key, nine);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.push(rec, idx, nine);
+    });
+
+    it("rejects a Map on arr for push", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.push(numberMap, key, nine);
     });
 
     it("routes a record to obj for query", () => {
@@ -1610,6 +2292,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for query", () => {
+        expectTypeOf(dispatch(Arr.query, Obj.query)(numberMap)).toEqualTypeOf(
+            Obj.query(numberMap),
+        );
+    });
+
     it("keeps a list on arr for query", () => {
         expectTypeOf(dispatch(Arr.query, Obj.query)(list)).toEqualTypeOf(
             Arr.query(list),
@@ -1619,6 +2307,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for query", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.query(rec);
+    });
+
+    it("rejects a Map on arr for query", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.query(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for query", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.query(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.query(box);
     });
 
     it("routes a record to obj for random", () => {
@@ -1639,6 +2339,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for random", () => {
+        expectTypeOf(dispatch(Arr.random, Obj.random)(numberMap)).toEqualTypeOf(
+            Obj.random(numberMap),
+        );
+    });
+
     it("keeps a list on arr for random", () => {
         expectTypeOf(dispatch(Arr.random, Obj.random)(list)).toEqualTypeOf(
             Arr.random(list),
@@ -1648,6 +2354,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for random", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.random(rec);
+    });
+
+    it("rejects a Map on arr for random", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.random(numberMap);
     });
 
     it("routes a record to obj for reject", () => {
@@ -1668,6 +2379,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.reject(box, truthy));
     });
 
+    it("routes a Map to obj for reject", () => {
+        expectTypeOf(
+            dispatch(Arr.reject, Obj.reject)(numberMap, truthy),
+        ).toEqualTypeOf(Obj.reject(numberMap, truthy));
+    });
+
     it("keeps a list on arr for reject", () => {
         expectTypeOf(
             dispatch(Arr.reject, Obj.reject)(list, truthy),
@@ -1677,6 +2394,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for reject", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.reject(rec, truthy);
+    });
+
+    it("rejects a Map on arr for reject", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.reject(numberMap, truthy);
     });
 
     it("routes a record to obj for reverse", () => {
@@ -1697,6 +2419,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for reverse", () => {
+        expectTypeOf(
+            dispatch(Arr.reverse, Obj.reverse)(numberMap),
+        ).toEqualTypeOf(Obj.reverse(numberMap));
+    });
+
     it("keeps a list on arr for reverse", () => {
         expectTypeOf(dispatch(Arr.reverse, Obj.reverse)(list)).toEqualTypeOf(
             Arr.reverse(list),
@@ -1706,6 +2434,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for reverse", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.reverse(rec);
+    });
+
+    it("rejects a Map on arr for reverse", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.reverse(numberMap);
     });
 
     it("routes a record to obj for select", () => {
@@ -1726,6 +2459,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.select(recordsBox, idKeys));
     });
 
+    it("routes a Map to obj for select", () => {
+        expectTypeOf(
+            dispatch(Arr.select, Obj.select)(recordMap, idKeys),
+        ).toEqualTypeOf(Obj.select(recordMap, idKeys));
+    });
+
     it("keeps a list on arr for select", () => {
         expectTypeOf(
             dispatch(Arr.select, Obj.select)(listOfRecords, idKeys),
@@ -1735,6 +2474,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for select", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.select(recOfRecords, idKeys);
+    });
+
+    it("rejects a Map on arr for select", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.select(recordMap, idKeys);
     });
 
     it("routes a record to obj for set", () => {
@@ -1755,6 +2499,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for set", () => {
+        expectTypeOf(
+            dispatch(Arr.set, Obj.set)(numberMap, key, nine),
+        ).toEqualTypeOf(Obj.set(numberMap, key, nine));
+    });
+
     it("keeps a list on arr for set", () => {
         expectTypeOf(dispatch(Arr.set, Obj.set)(list, idx, nine)).toEqualTypeOf(
             Arr.set(list, idx, nine),
@@ -1766,6 +2516,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.set(rec, key, nine);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.set(rec, idx, nine);
+    });
+
+    it("rejects a Map on arr for set", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.set(numberMap, key, nine);
     });
 
     it("routes a record to obj for shift", () => {
@@ -1786,6 +2541,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for shift", () => {
+        expectTypeOf(dispatch(Arr.shift, Obj.shift)(numberMap)).toEqualTypeOf(
+            Obj.shift(numberMap),
+        );
+    });
+
     it("keeps a list on arr for shift", () => {
         expectTypeOf(dispatch(Arr.shift, Obj.shift)(list)).toEqualTypeOf(
             Arr.shift(list),
@@ -1795,6 +2556,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for shift", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.shift(rec);
+    });
+
+    it("rejects a Map on arr for shift", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.shift(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for shift", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.shift(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.shift(box);
     });
 
     it("routes a record to obj for shuffle", () => {
@@ -1815,6 +2588,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for shuffle", () => {
+        expectTypeOf(
+            dispatch(Arr.shuffle, Obj.shuffle)(numberMap),
+        ).toEqualTypeOf(Obj.shuffle(numberMap));
+    });
+
     it("keeps a list on arr for shuffle", () => {
         expectTypeOf(dispatch(Arr.shuffle, Obj.shuffle)(list)).toEqualTypeOf(
             Arr.shuffle(list),
@@ -1824,6 +2603,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for shuffle", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.shuffle(rec);
+    });
+
+    it("rejects a Map on arr for shuffle", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.shuffle(numberMap);
     });
 
     it("routes a record to obj for slice", () => {
@@ -1844,6 +2628,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for slice", () => {
+        expectTypeOf(
+            dispatch(Arr.slice, Obj.slice)(numberMap, one),
+        ).toEqualTypeOf(Obj.slice(numberMap, one));
+    });
+
     it("keeps a list on arr for slice", () => {
         expectTypeOf(dispatch(Arr.slice, Obj.slice)(list, one)).toEqualTypeOf(
             Arr.slice(list, one),
@@ -1853,6 +2643,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for slice", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.slice(rec, one);
+    });
+
+    it("rejects a Map on arr for slice", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.slice(numberMap, one);
     });
 
     it("routes a record to obj for sole", () => {
@@ -1873,6 +2668,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for sole", () => {
+        expectTypeOf(dispatch(Arr.sole, Obj.sole)(numberMap)).toEqualTypeOf(
+            Obj.sole(numberMap),
+        );
+    });
+
     it("keeps a list on arr for sole", () => {
         expectTypeOf(dispatch(Arr.sole, Obj.sole)(list)).toEqualTypeOf(
             Arr.sole(list),
@@ -1882,6 +2683,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for sole", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.sole(rec);
+    });
+
+    it("rejects a Map on arr for sole", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.sole(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for sole", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.sole(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.sole(box);
     });
 
     it("routes a record to obj for some", () => {
@@ -1902,6 +2715,13 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("keeps a Map on arr for some", () => {
+        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
+        expectTypeOf(
+            dispatch(Arr.some, Obj.some)(numberMap, truthy),
+        ).toEqualTypeOf(Arr.some(numberMap, truthy));
+    });
+
     it("keeps a list on arr for some", () => {
         expectTypeOf(dispatch(Arr.some, Obj.some)(list, truthy)).toEqualTypeOf(
             Arr.some(list, truthy),
@@ -1911,6 +2731,13 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for some", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.some(rec, truthy);
+    });
+
+    it("rejects an interface and a class on arr for some", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.some(settings, truthy);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.some(box, truthy);
     });
 
     it("routes a record to obj for sort", () => {
@@ -1931,6 +2758,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for sort", () => {
+        expectTypeOf(dispatch(Arr.sort, Obj.sort)(numberMap)).toEqualTypeOf(
+            Obj.sort(numberMap),
+        );
+    });
+
     it("keeps a list on arr for sort", () => {
         expectTypeOf(dispatch(Arr.sort, Obj.sort)(list)).toEqualTypeOf(
             Arr.sort(list),
@@ -1940,6 +2773,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for sort", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.sort(rec);
+    });
+
+    it("rejects a Map on arr for sort", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.sort(numberMap);
     });
 
     it("routes a record to obj for sortDesc", () => {
@@ -1960,6 +2798,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for sortDesc", () => {
+        expectTypeOf(
+            dispatch(Arr.sortDesc, Obj.sortDesc)(numberMap),
+        ).toEqualTypeOf(Obj.sortDesc(numberMap));
+    });
+
     it("keeps a list on arr for sortDesc", () => {
         expectTypeOf(dispatch(Arr.sortDesc, Obj.sortDesc)(list)).toEqualTypeOf(
             Arr.sortDesc(list),
@@ -1969,6 +2813,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for sortDesc", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.sortDesc(rec);
+    });
+
+    it("rejects a Map on arr for sortDesc", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.sortDesc(numberMap);
     });
 
     it("routes a record to obj for sortRecursive", () => {
@@ -1989,6 +2838,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.sortRecursive(box));
     });
 
+    it("routes a Map to obj for sortRecursive", () => {
+        expectTypeOf(
+            dispatch(Arr.sortRecursive, Obj.sortRecursive)(numberMap),
+        ).toEqualTypeOf(Obj.sortRecursive(numberMap));
+    });
+
     it("keeps a list on arr for sortRecursive", () => {
         expectTypeOf(
             dispatch(Arr.sortRecursive, Obj.sortRecursive)(list),
@@ -1998,6 +2853,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for sortRecursive", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.sortRecursive(rec);
+    });
+
+    it("rejects a Map on arr for sortRecursive", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.sortRecursive(numberMap);
     });
 
     it("routes a record to obj for sortRecursiveDesc", () => {
@@ -2018,6 +2878,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.sortRecursiveDesc(box));
     });
 
+    it("routes a Map to obj for sortRecursiveDesc", () => {
+        expectTypeOf(
+            dispatch(Arr.sortRecursiveDesc, Obj.sortRecursiveDesc)(numberMap),
+        ).toEqualTypeOf(Obj.sortRecursiveDesc(numberMap));
+    });
+
     it("keeps a list on arr for sortRecursiveDesc", () => {
         expectTypeOf(
             dispatch(Arr.sortRecursiveDesc, Obj.sortRecursiveDesc)(list),
@@ -2027,6 +2893,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for sortRecursiveDesc", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.sortRecursiveDesc(rec);
+    });
+
+    it("rejects a Map on arr for sortRecursiveDesc", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.sortRecursiveDesc(numberMap);
     });
 
     it("routes a record to obj for splice", () => {
@@ -2047,6 +2918,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for splice", () => {
+        expectTypeOf(
+            dispatch(Arr.splice, Obj.splice)(numberMap, one),
+        ).toEqualTypeOf(Obj.splice(numberMap, one));
+    });
+
     it("keeps a list on arr for splice", () => {
         expectTypeOf(dispatch(Arr.splice, Obj.splice)(list, one)).toEqualTypeOf(
             Arr.splice(list, one),
@@ -2056,6 +2933,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for splice", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.splice(rec, one);
+    });
+
+    it("rejects a Map on arr for splice", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.splice(numberMap, one);
     });
 
     it("routes a record to obj for string", () => {
@@ -2076,6 +2958,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for string", () => {
+        expectTypeOf(
+            dispatch(Arr.string, Obj.string)(numberMap, key),
+        ).toEqualTypeOf(Obj.string(numberMap, key));
+    });
+
     it("keeps a list on arr for string", () => {
         expectTypeOf(dispatch(Arr.string, Obj.string)(list, idx)).toEqualTypeOf(
             Arr.string(list, idx),
@@ -2087,6 +2975,18 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.string(rec, key);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.string(rec, idx);
+    });
+
+    it("rejects a Map on arr for string", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.string(numberMap, key);
+    });
+
+    it("rejects an interface and a class on arr for string", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.string(settings, key);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.string(box, key);
     });
 
     it("routes a record to obj for take", () => {
@@ -2107,6 +3007,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for take", () => {
+        expectTypeOf(
+            dispatch(Arr.take, Obj.take)(numberMap, size),
+        ).toEqualTypeOf(Obj.take(numberMap, size));
+    });
+
     it("keeps a list on arr for take", () => {
         expectTypeOf(dispatch(Arr.take, Obj.take)(list, size)).toEqualTypeOf(
             Arr.take(list, size),
@@ -2116,6 +3022,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for take", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.take(rec, size);
+    });
+
+    it("rejects a Map on arr for take", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.take(numberMap, size);
     });
 
     it("routes a record to obj for toCssClasses", () => {
@@ -2136,6 +3047,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.toCssClasses(box));
     });
 
+    it("routes a Map to obj for toCssClasses", () => {
+        expectTypeOf(
+            dispatch(Arr.toCssClasses, Obj.toCssClasses)(numberMap),
+        ).toEqualTypeOf(Obj.toCssClasses(numberMap));
+    });
+
     it("keeps a list on arr for toCssClasses", () => {
         expectTypeOf(
             dispatch(Arr.toCssClasses, Obj.toCssClasses)(list),
@@ -2145,6 +3062,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for toCssClasses", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.toCssClasses(rec);
+    });
+
+    it("rejects a Map on arr for toCssClasses", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.toCssClasses(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for toCssClasses", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.toCssClasses(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.toCssClasses(box);
     });
 
     it("routes a record to obj for toCssStyles", () => {
@@ -2165,6 +3094,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.toCssStyles(box));
     });
 
+    it("routes a Map to obj for toCssStyles", () => {
+        expectTypeOf(
+            dispatch(Arr.toCssStyles, Obj.toCssStyles)(numberMap),
+        ).toEqualTypeOf(Obj.toCssStyles(numberMap));
+    });
+
     it("keeps a list on arr for toCssStyles", () => {
         expectTypeOf(
             dispatch(Arr.toCssStyles, Obj.toCssStyles)(list),
@@ -2174,6 +3109,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for toCssStyles", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.toCssStyles(rec);
+    });
+
+    it("rejects a Map on arr for toCssStyles", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.toCssStyles(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for toCssStyles", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.toCssStyles(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.toCssStyles(box);
     });
 
     it("routes a record to obj for union", () => {
@@ -2194,6 +3141,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for union", () => {
+        expectTypeOf(
+            dispatch(Arr.union, Obj.union)(numberMap, rec),
+        ).toEqualTypeOf(Obj.union(numberMap, rec));
+    });
+
     it("keeps a list on arr for union", () => {
         expectTypeOf(dispatch(Arr.union, Obj.union)(list, list)).toEqualTypeOf(
             Arr.union(list, list),
@@ -2205,6 +3158,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.union(rec, rec);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.union(rec, list);
+    });
+
+    it("rejects a Map on arr for union", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.union(numberMap, rec);
     });
 
     it("routes a record to obj for unshift", () => {
@@ -2225,6 +3183,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.unshift(box, recB));
     });
 
+    it("routes a Map to obj for unshift", () => {
+        expectTypeOf(
+            dispatch(Arr.unshift, Obj.unshift)(numberMap, recB),
+        ).toEqualTypeOf(Obj.unshift(numberMap, recB));
+    });
+
     it("keeps a list on arr for unshift", () => {
         expectTypeOf(
             dispatch(Arr.unshift, Obj.unshift)(list, nine),
@@ -2236,6 +3200,11 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.unshift(rec, recB);
         // @ts-expect-error - arr-valid tail: only the record can be the error
         Arr.unshift(rec, nine);
+    });
+
+    it("rejects a Map on arr for unshift", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.unshift(numberMap, recB);
     });
 
     it("routes a record to obj for values", () => {
@@ -2256,6 +3225,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for values", () => {
+        expectTypeOf(dispatch(Arr.values, Obj.values)(numberMap)).toEqualTypeOf(
+            Obj.values(numberMap),
+        );
+    });
+
     it("keeps a list on arr for values", () => {
         expectTypeOf(dispatch(Arr.values, Obj.values)(list)).toEqualTypeOf(
             Arr.values(list),
@@ -2265,6 +3240,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for values", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.values(rec);
+    });
+
+    it("rejects a Map on arr for values", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.values(numberMap);
+    });
+
+    it("rejects an interface and a class on arr for values", () => {
+        // @ts-expect-error - arr must be ineligible for the interface-typed shape too
+        Arr.values(settings);
+        // @ts-expect-error - arr must be ineligible for the class instance too
+        Arr.values(box);
     });
 
     it("routes a record to obj for where", () => {
@@ -2285,6 +3272,12 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes a Map to obj for where", () => {
+        expectTypeOf(
+            dispatch(Arr.where, Obj.where)(numberMap, truthy),
+        ).toEqualTypeOf(Obj.where(numberMap, truthy));
+    });
+
     it("keeps a list on arr for where", () => {
         expectTypeOf(
             dispatch(Arr.where, Obj.where)(list, truthy),
@@ -2294,6 +3287,11 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for where", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.where(rec, truthy);
+    });
+
+    it("rejects a Map on arr for where", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.where(numberMap, truthy);
     });
 
     it("routes a record to obj for whereNotNull", () => {
@@ -2314,6 +3312,12 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.whereNotNull(box));
     });
 
+    it("routes a Map to obj for whereNotNull", () => {
+        expectTypeOf(
+            dispatch(Arr.whereNotNull, Obj.whereNotNull)(numberMap),
+        ).toEqualTypeOf(Obj.whereNotNull(numberMap));
+    });
+
     it("keeps a list on arr for whereNotNull", () => {
         expectTypeOf(
             dispatch(Arr.whereNotNull, Obj.whereNotNull)(list),
@@ -2323,5 +3327,10 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a record on arr for whereNotNull", () => {
         // @ts-expect-error - arr must be ineligible for the dispatched call
         Arr.whereNotNull(rec);
+    });
+
+    it("rejects a Map on arr for whereNotNull", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.whereNotNull(numberMap);
     });
 });
