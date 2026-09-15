@@ -208,7 +208,7 @@ describe("Data", () => {
             const result = Data.dataChunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3);
             expect(result).toEqual([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]);
 
-            assertType<number[][] | [number, number][][]>(result);
+            assertType<number[][] | Record<number, number>[]>(result);
 
             const result2 = Data.dataChunk(
                 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -217,7 +217,15 @@ describe("Data", () => {
             );
             expect(result2).toEqual([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]);
 
-            assertType<number[][] | [number, number][][]>(result2);
+            assertType<number[][] | Record<number, number>[]>(result2);
+        });
+
+        it("honours preserveKeys on an array backing", () => {
+            // CollectionTest::testChunk — a preserved-key chunk keeps the source offsets.
+            expect(Data.dataChunk([1, 2, 3, 4], 2, true)).toEqual([
+                { 0: 1, 1: 2 },
+                { 2: 3, 3: 4 },
+            ]);
         });
     });
 
@@ -1803,6 +1811,33 @@ describe("Data", () => {
             const result4 = Data.dataSearch(arr, (value) => value == 4);
             expect(result4).toBe(3);
         });
+
+        it("returns false when a callback never matches, instead of comparing against the callback", () => {
+            // JS-only: Arr has no `search`; the defect is that a falsy callback result fell
+            // through to `item == value`, comparing each item against the function object.
+            expect(Data.dataSearch([1, 2, 3], () => false)).toBe(false);
+            expect(Data.dataSearch({ a: 1, b: 2 }, () => false)).toBe(false);
+        });
+
+        it("keeps searching after a callback rejects an earlier item", () => {
+            // JS-only: pins that the loop continues rather than short-circuiting on the first false.
+            expect(Data.dataSearch([1, 2, 3], (item) => item === 3)).toBe(2);
+            expect(Data.dataSearch({ a: 1, b: 2 }, (item) => item === 2)).toBe(
+                "b",
+            );
+        });
+
+        it("does not fall through to comparing a rejected item against the callback itself", () => {
+            // JS-only: a reverted fix returns the callback's own key here, since `item == value`
+            // matches by reference once `item` is the callback, instead of continuing the loop.
+            const neverMatches = () => false;
+            expect(Data.dataSearch([1, neverMatches, 3], neverMatches)).toBe(
+                false,
+            );
+            expect(
+                Data.dataSearch({ a: 1, b: neverMatches, c: 3 }, neverMatches),
+            ).toBe(false);
+        });
     });
 
     describe("dataBefore", () => {
@@ -2193,6 +2228,8 @@ describe("Data", () => {
             const obj = { c: 3, a: 1, b: 2 };
             const result = Data.dataSort(obj);
             expect(result).toEqual({ a: 1, b: 2, c: 3 });
+            // toEqual ignores key order, so pin the order Arr::sort guarantees.
+            expect(Object.keys(result)).toEqual(["a", "b", "c"]);
         });
         it("is array", () => {
             const arr = [3, 1, 2];

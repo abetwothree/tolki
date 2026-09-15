@@ -422,7 +422,7 @@ export function dataChunk<TValue>(
         }
     }
 
-    return arrChunk(arrWrap(data), size);
+    return arrChunk(arrWrap(data), size, preserveKeys);
 }
 
 /**
@@ -1562,6 +1562,8 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
             if (value(item as TValue, actualKey)) {
                 return actualKey;
             }
+
+            continue;
         }
 
         if (strict) {
