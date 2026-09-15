@@ -1,5 +1,6 @@
 import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
+import type { PathKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 // `data` is the consumer whose dispatch decides these rows, so the sweep pins the real
@@ -92,6 +93,15 @@ const recordMap = new Map([
     ["b", { id: "y" }],
 ]);
 const dimMap = new Map([["a", [1]]]);
+// Task C2b gave `dispatch` a Map row: `toKeyedData` swaps a Map for the record obj walks,
+// and nothing in the type said so. A conditional over an overloaded delegate resolves only its
+// last signature, so that row answers with obj's widest overload — what these fixtures reach.
+declare const opaque: unknown;
+declare const opaqueKey: PathKey;
+declare const opaqueFn: () => unknown;
+declare const opaqueRecFn: () => Record<PropertyKey, unknown>;
+declare const opaqueTuple: unknown[];
+declare const opaqueObjects: object[];
 
 describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for add", () => {
@@ -113,9 +123,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for add", () => {
+        const widest = Obj.add(opaque, key, nine);
         expectTypeOf(
             dispatch(Arr.add, Obj.add)(numberMap, key, nine),
-        ).toEqualTypeOf(Obj.add(numberMap, key, nine));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for add", () => {
@@ -155,9 +166,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for boolean", () => {
+        const widest = Obj.boolean(opaque, key);
         expectTypeOf(
             dispatch(Arr.boolean, Obj.boolean)(numberMap, key),
-        ).toEqualTypeOf(Obj.boolean(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for boolean", () => {
@@ -204,9 +216,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for chunk", () => {
+        const widest = Obj.chunk(opaque, size);
         expectTypeOf(
             dispatch(Arr.chunk, Obj.chunk)(numberMap, size),
-        ).toEqualTypeOf(Obj.chunk(numberMap, size));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for chunk", () => {
@@ -244,9 +257,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for chunkBy", () => {
+        const widest = Obj.chunkBy(opaque, key);
         expectTypeOf(
             dispatch(Arr.chunkBy, Obj.chunkBy)(numberMap, key),
-        ).toEqualTypeOf(Obj.chunkBy(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for chunkBy", () => {
@@ -284,9 +298,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for chunkWhile", () => {
+        const widest = Obj.chunkWhile(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.chunkWhile, Obj.chunkWhile)(numberMap, truthy),
-        ).toEqualTypeOf(Obj.chunkWhile(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for chunkWhile", () => {
@@ -324,9 +339,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for collapse", () => {
+        const widest = Obj.collapse(opaque);
         expectTypeOf(
             dispatch(Arr.collapse, Obj.collapse)(listMap),
-        ).toEqualTypeOf(Obj.collapse(listMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for collapse", () => {
@@ -364,9 +380,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for combine", () => {
+        const widest = Obj.combine(opaque, rec);
         expectTypeOf(
             dispatch(Arr.combine, Obj.combine)(numberMap, rec),
-        ).toEqualTypeOf(Obj.combine(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for combine", () => {
@@ -406,9 +423,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for contains", () => {
+        const widest = Obj.contains(opaque, one);
         expectTypeOf(
             dispatch(Arr.contains, Obj.contains)(numberMap, one),
-        ).toEqualTypeOf(Obj.contains(numberMap, one));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for contains", () => {
@@ -453,9 +471,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for crossJoin", () => {
+        const widest = Obj.crossJoin(...opaqueObjects);
         expectTypeOf(
             dispatch(Arr.crossJoin, Obj.crossJoin)(dimMap, dimRecB),
-        ).toEqualTypeOf(Obj.crossJoin(dimMap, dimRecB));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for crossJoin", () => {
@@ -495,9 +514,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for diff", () => {
+        const widest = Obj.diff(opaque, rec);
         expectTypeOf(
             dispatch(Arr.diff, Obj.diff)(numberMap, rec),
-        ).toEqualTypeOf(Obj.diff(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for diff", () => {
@@ -537,9 +557,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for diffAssoc", () => {
+        const widest = Obj.diffAssoc(opaque, rec);
         expectTypeOf(
             dispatch(Arr.diffAssoc, Obj.diffAssoc)(numberMap, rec),
-        ).toEqualTypeOf(Obj.diffAssoc(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for diffAssoc", () => {
@@ -579,9 +600,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for divide", () => {
-        expectTypeOf(dispatch(Arr.divide, Obj.divide)(numberMap)).toEqualTypeOf(
-            Obj.divide(numberMap),
-        );
+        const widest = Obj.divide(opaque);
+        expectTypeOf(dispatch(Arr.divide, Obj.divide)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for divide", () => {
@@ -619,9 +641,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for dot", () => {
-        expectTypeOf(dispatch(Arr.dot, Obj.dot)(numberMap)).toEqualTypeOf(
-            Obj.dot(numberMap),
-        );
+        const widest = Obj.dot(opaque);
+        expectTypeOf(dispatch(Arr.dot, Obj.dot)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for dot", () => {
@@ -665,11 +688,11 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
-    it("keeps a Map on arr for every", () => {
-        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
+    it("routes a Map to obj for every", () => {
+        const widest = Obj.every(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.every, Obj.every)(numberMap, truthy),
-        ).toEqualTypeOf(Arr.every(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for every", () => {
@@ -709,9 +732,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for except", () => {
+        const widest = Obj.except(opaque, key);
         expectTypeOf(
             dispatch(Arr.except, Obj.except)(numberMap, key),
-        ).toEqualTypeOf(Obj.except(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for except", () => {
@@ -751,9 +775,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for exceptValues", () => {
+        const widest = Obj.exceptValues(opaque, one);
         expectTypeOf(
             dispatch(Arr.exceptValues, Obj.exceptValues)(numberMap, one),
-        ).toEqualTypeOf(Obj.exceptValues(numberMap, one));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for exceptValues", () => {
@@ -791,9 +816,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for exists", () => {
+        const widest = Obj.exists(opaque, key);
         expectTypeOf(
             dispatch(Arr.exists, Obj.exists)(numberMap, key),
-        ).toEqualTypeOf(Obj.exists(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for exists", () => {
@@ -840,9 +866,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for filter", () => {
+        const widest = Obj.filter(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.filter, Obj.filter)(numberMap, truthy),
-        ).toEqualTypeOf(Obj.filter(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for filter", () => {
@@ -879,11 +906,11 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
-    it("keeps a Map on arr for first", () => {
-        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
-        expectTypeOf(dispatch(Arr.first, Obj.first)(numberMap)).toEqualTypeOf(
-            Arr.first(numberMap),
-        );
+    it("routes a Map to obj for first", () => {
+        const widest = Obj.first(opaque);
+        expectTypeOf(dispatch(Arr.first, Obj.first)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for first", () => {
@@ -923,9 +950,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for flatten", () => {
+        const widest = Obj.flatten(opaque);
         expectTypeOf(
             dispatch(Arr.flatten, Obj.flatten)(numberMap),
-        ).toEqualTypeOf(Obj.flatten(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for flatten", () => {
@@ -970,9 +998,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for flip", () => {
-        expectTypeOf(dispatch(Arr.flip, Obj.flip)(numberMap)).toEqualTypeOf(
-            Obj.flip(numberMap),
-        );
+        const widest = Obj.flip(opaque);
+        expectTypeOf(dispatch(Arr.flip, Obj.flip)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for flip", () => {
@@ -1010,9 +1039,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for float", () => {
+        const widest = Obj.float(opaque, key);
         expectTypeOf(
             dispatch(Arr.float, Obj.float)(numberMap, key),
-        ).toEqualTypeOf(Obj.float(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for float", () => {
@@ -1059,9 +1089,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for forget", () => {
+        const widest = Obj.forget(opaque, key);
         expectTypeOf(
             dispatch(Arr.forget, Obj.forget)(numberMap, key),
-        ).toEqualTypeOf(Obj.forget(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for forget", () => {
@@ -1100,11 +1131,11 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
-    it("keeps a Map on arr for from", () => {
-        // arr carries an explicit Map overload, so arr wins the intersection; the runtime still routes to obj.
-        expectTypeOf(dispatch(Arr.from, Obj.from)(numberMap)).toEqualTypeOf(
-            Arr.from(numberMap),
-        );
+    it("routes a Map to obj for from", () => {
+        const widest = Obj.from(opaque);
+        expectTypeOf(dispatch(Arr.from, Obj.from)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for from", () => {
@@ -1137,9 +1168,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for get", () => {
-        expectTypeOf(dispatch(Arr.get, Obj.get)(numberMap, key)).toEqualTypeOf(
-            Obj.get(numberMap, key),
-        );
+        const widest = Obj.get(opaque, key);
+        expectTypeOf(dispatch(Arr.get, Obj.get)(numberMap, key)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for get", () => {
@@ -1186,9 +1218,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for has", () => {
-        expectTypeOf(dispatch(Arr.has, Obj.has)(numberMap, key)).toEqualTypeOf(
-            Obj.has(numberMap, key),
-        );
+        const widest = Obj.has(opaque, key);
+        expectTypeOf(dispatch(Arr.has, Obj.has)(numberMap, key)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for has", () => {
@@ -1235,9 +1268,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for hasAll", () => {
+        const widest = Obj.hasAll(opaque, key);
         expectTypeOf(
             dispatch(Arr.hasAll, Obj.hasAll)(numberMap, key),
-        ).toEqualTypeOf(Obj.hasAll(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for hasAll", () => {
@@ -1284,9 +1318,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for hasAny", () => {
+        const widest = Obj.hasAny(opaque, key);
         expectTypeOf(
             dispatch(Arr.hasAny, Obj.hasAny)(numberMap, key),
-        ).toEqualTypeOf(Obj.hasAny(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for hasAny", () => {
@@ -1333,9 +1368,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for integer", () => {
+        const widest = Obj.integer(opaque, key);
         expectTypeOf(
             dispatch(Arr.integer, Obj.integer)(numberMap, key),
-        ).toEqualTypeOf(Obj.integer(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for integer", () => {
@@ -1382,9 +1418,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for intersect", () => {
+        const widest = Obj.intersect(opaque, rec);
         expectTypeOf(
             dispatch(Arr.intersect, Obj.intersect)(numberMap, rec),
-        ).toEqualTypeOf(Obj.intersect(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for intersect", () => {
@@ -1424,9 +1461,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for intersectAssoc", () => {
+        const widest = Obj.intersectAssoc(opaque, rec);
         expectTypeOf(
             dispatch(Arr.intersectAssoc, Obj.intersectAssoc)(numberMap, rec),
-        ).toEqualTypeOf(Obj.intersectAssoc(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for intersectAssoc", () => {
@@ -1478,13 +1516,14 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for intersectAssocUsing", () => {
+        const widest = Obj.intersectAssocUsing(opaque, rec, truthy);
         expectTypeOf(
             dispatch(Arr.intersectAssocUsing, Obj.intersectAssocUsing)(
                 numberMap,
                 rec,
                 truthy,
             ),
-        ).toEqualTypeOf(Obj.intersectAssocUsing(numberMap, rec, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for intersectAssocUsing", () => {
@@ -1528,9 +1567,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for intersectByKeys", () => {
+        const widest = Obj.intersectByKeys(opaque, rec);
         expectTypeOf(
             dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(numberMap, rec),
-        ).toEqualTypeOf(Obj.intersectByKeys(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for intersectByKeys", () => {
@@ -1570,9 +1610,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for join", () => {
+        const widest = Obj.join(opaque, glue);
         expectTypeOf(
             dispatch(Arr.join, Obj.join)(numberMap, glue),
-        ).toEqualTypeOf(Obj.join(numberMap, glue));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for join", () => {
@@ -1617,9 +1658,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for keyBy", () => {
+        const widest = Obj.keyBy(opaque, idKey);
         expectTypeOf(
             dispatch(Arr.keyBy, Obj.keyBy)(recordMap, idKey),
-        ).toEqualTypeOf(Obj.keyBy(recordMap, idKey));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for keyBy", () => {
@@ -1657,9 +1699,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for keys", () => {
-        expectTypeOf(dispatch(Arr.keys, Obj.keys)(numberMap)).toEqualTypeOf(
-            Obj.keys(numberMap),
-        );
+        const widest = Obj.keys(opaque);
+        expectTypeOf(dispatch(Arr.keys, Obj.keys)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for keys", () => {
@@ -1696,11 +1739,11 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
-    it("keeps a Map on arr for last", () => {
-        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
-        expectTypeOf(dispatch(Arr.last, Obj.last)(numberMap)).toEqualTypeOf(
-            Arr.last(numberMap),
-        );
+    it("routes a Map to obj for last", () => {
+        const widest = Obj.last(opaque);
+        expectTypeOf(dispatch(Arr.last, Obj.last)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for last", () => {
@@ -1740,9 +1783,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for map", () => {
+        const widest = Obj.map(opaque, opaqueFn);
         expectTypeOf(
             dispatch(Arr.map, Obj.map)(numberMap, toOne),
-        ).toEqualTypeOf(Obj.map(numberMap, toOne));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for map", () => {
@@ -1780,9 +1824,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for mapSpread", () => {
+        const widest = Obj.mapSpread(opaque, opaqueFn);
         expectTypeOf(
             dispatch(Arr.mapSpread, Obj.mapSpread)(listMap, toOne),
-        ).toEqualTypeOf(Obj.mapSpread(listMap, toOne));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for mapSpread", () => {
@@ -1820,9 +1865,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for mapWithKeys", () => {
+        const widest = Obj.mapWithKeys(opaque, opaqueRecFn);
         expectTypeOf(
             dispatch(Arr.mapWithKeys, Obj.mapWithKeys)(numberMap, toRecord),
-        ).toEqualTypeOf(Obj.mapWithKeys(numberMap, toRecord));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for mapWithKeys", () => {
@@ -1867,9 +1913,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for only", () => {
+        const widest = Obj.only(opaque, key);
         expectTypeOf(
             dispatch(Arr.only, Obj.only)(numberMap, key),
-        ).toEqualTypeOf(Obj.only(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for only", () => {
@@ -1909,9 +1956,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for onlyValues", () => {
+        const widest = Obj.onlyValues(opaque, one);
         expectTypeOf(
             dispatch(Arr.onlyValues, Obj.onlyValues)(numberMap, one),
-        ).toEqualTypeOf(Obj.onlyValues(numberMap, one));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for onlyValues", () => {
@@ -1949,9 +1997,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for pad", () => {
+        const widest = Obj.pad(opaque, size, zero);
         expectTypeOf(
             dispatch(Arr.pad, Obj.pad)(numberMap, size, zero),
-        ).toEqualTypeOf(Obj.pad(numberMap, size, zero));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for pad", () => {
@@ -1989,9 +2038,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for partition", () => {
+        const widest = Obj.partition(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.partition, Obj.partition)(numberMap, truthy),
-        ).toEqualTypeOf(Obj.partition(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for partition", () => {
@@ -2029,9 +2079,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for pluck", () => {
+        const widest = Obj.pluck(opaque, idKey);
         expectTypeOf(
             dispatch(Arr.pluck, Obj.pluck)(recordMap, idKey),
-        ).toEqualTypeOf(Obj.pluck(recordMap, idKey));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for pluck", () => {
@@ -2076,9 +2127,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for pop", () => {
-        expectTypeOf(dispatch(Arr.pop, Obj.pop)(numberMap)).toEqualTypeOf(
-            Obj.pop(numberMap),
-        );
+        const widest = Obj.pop(opaque);
+        expectTypeOf(dispatch(Arr.pop, Obj.pop)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for pop", () => {
@@ -2123,9 +2175,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for prepend", () => {
+        const widest = Obj.prepend(opaque, one);
         expectTypeOf(
             dispatch(Arr.prepend, Obj.prepend)(numberMap, one),
-        ).toEqualTypeOf(Obj.prepend(numberMap, one));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for prepend", () => {
@@ -2166,12 +2219,13 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for prependKeysWith", () => {
+        const widest = Obj.prependKeysWith(opaque, prefix);
         expectTypeOf(
             dispatch(Arr.prependKeysWith, Obj.prependKeysWith)(
                 numberMap,
                 prefix,
             ),
-        ).toEqualTypeOf(Obj.prependKeysWith(numberMap, prefix));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for prependKeysWith", () => {
@@ -2209,9 +2263,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for pull", () => {
+        const widest = Obj.pull(opaque, key);
         expectTypeOf(
             dispatch(Arr.pull, Obj.pull)(numberMap, key),
-        ).toEqualTypeOf(Obj.pull(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for pull", () => {
@@ -2251,9 +2306,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for push", () => {
+        const widest = Obj.push(opaque, key, nine);
         expectTypeOf(
             dispatch(Arr.push, Obj.push)(numberMap, key, nine),
-        ).toEqualTypeOf(Obj.push(numberMap, key, nine));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for push", () => {
@@ -2293,9 +2349,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for query", () => {
-        expectTypeOf(dispatch(Arr.query, Obj.query)(numberMap)).toEqualTypeOf(
-            Obj.query(numberMap),
-        );
+        const widest = Obj.query(opaque);
+        expectTypeOf(dispatch(Arr.query, Obj.query)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for query", () => {
@@ -2340,9 +2397,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for random", () => {
-        expectTypeOf(dispatch(Arr.random, Obj.random)(numberMap)).toEqualTypeOf(
-            Obj.random(numberMap),
-        );
+        const widest = Obj.random(opaque);
+        expectTypeOf(dispatch(Arr.random, Obj.random)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for random", () => {
@@ -2380,9 +2438,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for reject", () => {
+        const widest = Obj.reject(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.reject, Obj.reject)(numberMap, truthy),
-        ).toEqualTypeOf(Obj.reject(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for reject", () => {
@@ -2420,9 +2479,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for reverse", () => {
+        const widest = Obj.reverse(opaque);
         expectTypeOf(
             dispatch(Arr.reverse, Obj.reverse)(numberMap),
-        ).toEqualTypeOf(Obj.reverse(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for reverse", () => {
@@ -2460,9 +2520,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for select", () => {
+        const widest = Obj.select(opaque, idKeys);
         expectTypeOf(
             dispatch(Arr.select, Obj.select)(recordMap, idKeys),
-        ).toEqualTypeOf(Obj.select(recordMap, idKeys));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for select", () => {
@@ -2500,9 +2561,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for set", () => {
+        const widest = Obj.set(opaque, opaqueKey, opaque);
         expectTypeOf(
             dispatch(Arr.set, Obj.set)(numberMap, key, nine),
-        ).toEqualTypeOf(Obj.set(numberMap, key, nine));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for set", () => {
@@ -2542,9 +2604,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for shift", () => {
-        expectTypeOf(dispatch(Arr.shift, Obj.shift)(numberMap)).toEqualTypeOf(
-            Obj.shift(numberMap),
-        );
+        const widest = Obj.shift(opaque);
+        expectTypeOf(dispatch(Arr.shift, Obj.shift)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for shift", () => {
@@ -2589,9 +2652,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for shuffle", () => {
+        const widest = Obj.shuffle(opaque);
         expectTypeOf(
             dispatch(Arr.shuffle, Obj.shuffle)(numberMap),
-        ).toEqualTypeOf(Obj.shuffle(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for shuffle", () => {
@@ -2629,9 +2693,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for slice", () => {
+        const widest = Obj.slice(opaque, one);
         expectTypeOf(
             dispatch(Arr.slice, Obj.slice)(numberMap, one),
-        ).toEqualTypeOf(Obj.slice(numberMap, one));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for slice", () => {
@@ -2669,9 +2734,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for sole", () => {
-        expectTypeOf(dispatch(Arr.sole, Obj.sole)(numberMap)).toEqualTypeOf(
-            Obj.sole(numberMap),
-        );
+        const widest = Obj.sole(opaque);
+        expectTypeOf(dispatch(Arr.sole, Obj.sole)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for sole", () => {
@@ -2715,11 +2781,11 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
-    it("keeps a Map on arr for some", () => {
-        // arr's Iterable overload admits a Map, so arr wins the intersection; the runtime still routes to obj.
+    it("routes a Map to obj for some", () => {
+        const widest = Obj.some(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.some, Obj.some)(numberMap, truthy),
-        ).toEqualTypeOf(Arr.some(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for some", () => {
@@ -2759,9 +2825,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for sort", () => {
-        expectTypeOf(dispatch(Arr.sort, Obj.sort)(numberMap)).toEqualTypeOf(
-            Obj.sort(numberMap),
-        );
+        const widest = Obj.sort(opaque);
+        expectTypeOf(dispatch(Arr.sort, Obj.sort)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for sort", () => {
@@ -2799,9 +2866,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for sortDesc", () => {
+        const widest = Obj.sortDesc(opaque);
         expectTypeOf(
             dispatch(Arr.sortDesc, Obj.sortDesc)(numberMap),
-        ).toEqualTypeOf(Obj.sortDesc(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for sortDesc", () => {
@@ -2839,9 +2907,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for sortRecursive", () => {
+        const widest = Obj.sortRecursive(opaque);
         expectTypeOf(
             dispatch(Arr.sortRecursive, Obj.sortRecursive)(numberMap),
-        ).toEqualTypeOf(Obj.sortRecursive(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for sortRecursive", () => {
@@ -2879,9 +2948,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for sortRecursiveDesc", () => {
+        const widest = Obj.sortRecursiveDesc(opaque);
         expectTypeOf(
             dispatch(Arr.sortRecursiveDesc, Obj.sortRecursiveDesc)(numberMap),
-        ).toEqualTypeOf(Obj.sortRecursiveDesc(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for sortRecursiveDesc", () => {
@@ -2919,9 +2989,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for splice", () => {
+        const widest = Obj.splice(opaque, one);
         expectTypeOf(
             dispatch(Arr.splice, Obj.splice)(numberMap, one),
-        ).toEqualTypeOf(Obj.splice(numberMap, one));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for splice", () => {
@@ -2959,9 +3030,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for string", () => {
+        const widest = Obj.string(opaque, key);
         expectTypeOf(
             dispatch(Arr.string, Obj.string)(numberMap, key),
-        ).toEqualTypeOf(Obj.string(numberMap, key));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for string", () => {
@@ -3008,9 +3080,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for take", () => {
+        const widest = Obj.take(opaque, size);
         expectTypeOf(
             dispatch(Arr.take, Obj.take)(numberMap, size),
-        ).toEqualTypeOf(Obj.take(numberMap, size));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for take", () => {
@@ -3048,9 +3121,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for toCssClasses", () => {
+        const widest = Obj.toCssClasses(opaque);
         expectTypeOf(
             dispatch(Arr.toCssClasses, Obj.toCssClasses)(numberMap),
-        ).toEqualTypeOf(Obj.toCssClasses(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for toCssClasses", () => {
@@ -3095,9 +3169,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for toCssStyles", () => {
+        const widest = Obj.toCssStyles(opaque);
         expectTypeOf(
             dispatch(Arr.toCssStyles, Obj.toCssStyles)(numberMap),
-        ).toEqualTypeOf(Obj.toCssStyles(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for toCssStyles", () => {
@@ -3142,9 +3217,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for union", () => {
+        const widest = Obj.union(...opaqueTuple);
         expectTypeOf(
             dispatch(Arr.union, Obj.union)(numberMap, rec),
-        ).toEqualTypeOf(Obj.union(numberMap, rec));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for union", () => {
@@ -3184,9 +3260,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for unshift", () => {
+        const widest = Obj.unshift(opaque, recB);
         expectTypeOf(
             dispatch(Arr.unshift, Obj.unshift)(numberMap, recB),
-        ).toEqualTypeOf(Obj.unshift(numberMap, recB));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for unshift", () => {
@@ -3226,9 +3303,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for values", () => {
-        expectTypeOf(dispatch(Arr.values, Obj.values)(numberMap)).toEqualTypeOf(
-            Obj.values(numberMap),
-        );
+        const widest = Obj.values(opaque);
+        expectTypeOf(dispatch(Arr.values, Obj.values)(numberMap)).toEqualTypeOf<
+            typeof widest
+        >();
     });
 
     it("keeps a list on arr for values", () => {
@@ -3273,9 +3351,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for where", () => {
+        const widest = Obj.where(opaque, truthy);
         expectTypeOf(
             dispatch(Arr.where, Obj.where)(numberMap, truthy),
-        ).toEqualTypeOf(Obj.where(numberMap, truthy));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for where", () => {
@@ -3313,9 +3392,10 @@ describe("arr rows leave keyed data to obj", () => {
     });
 
     it("routes a Map to obj for whereNotNull", () => {
+        const widest = Obj.whereNotNull(opaque);
         expectTypeOf(
             dispatch(Arr.whereNotNull, Obj.whereNotNull)(numberMap),
-        ).toEqualTypeOf(Obj.whereNotNull(numberMap));
+        ).toEqualTypeOf<typeof widest>();
     });
 
     it("keeps a list on arr for whereNotNull", () => {
