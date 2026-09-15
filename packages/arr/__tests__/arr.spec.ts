@@ -1868,7 +1868,9 @@ describe("Arr", () => {
 
         it("treats a non-array subject and a null key the same as the general set behaviour", () => {
             // Test setImmutable with non-accessible data
-            expect(Arr.set("not-array", 0, "value")).toEqual([]);
+            expect(
+                Arr.set("not-array" as unknown as unknown[], 0, "value"),
+            ).toEqual([]);
 
             // Test setImmutable with null key (replacement)
             expect(Arr.set([1, 2, 3], null, "replaced")).toEqual("replaced");
@@ -6048,9 +6050,13 @@ describe("Arr", () => {
             const cb = (a: number, b: number) => a === b;
             expect(Arr.intersectAssocUsing(null, [1, 2], cb)).toEqual([]);
             expect(Arr.intersectAssocUsing([1, 2], null, cb)).toEqual([]);
-            expect(Arr.intersectAssocUsing("not array", [1, 2], cb)).toEqual(
-                [],
-            );
+            expect(
+                Arr.intersectAssocUsing(
+                    "not array" as unknown as unknown[],
+                    [1, 2],
+                    cb,
+                ),
+            ).toEqual([]);
             expect(Arr.intersectAssocUsing([1, 2], "not array", cb)).toEqual(
                 [],
             );

@@ -2812,7 +2812,7 @@ export function shift<TValue>(
  */
 // Overload: null/undefined key → returns the value (replaces entire array)
 export function set<TSetValue>(
-    array: unknown,
+    array: readonly unknown[] | null | undefined,
     key: null | undefined,
     value: TSetValue,
 ): TSetValue;
@@ -2848,7 +2848,7 @@ export function set<TValue, TSetValue>(
 ): (TValue | TSetValue)[] | NoInfer<TSetValue>;
 // Overload: generic fallback
 export function set<TValue>(
-    array: unknown,
+    array: readonly unknown[] | null | undefined,
     key: string | number,
     value: unknown,
 ): TValue[];
@@ -4360,7 +4360,7 @@ export function intersectAssocUsing<TValue>(
 ): TValue[];
 // Overload: a list, nullish or scalar operand only has integer keys
 export function intersectAssocUsing<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     other: ArrayItems<unknown> | string | number | boolean | null | undefined,
     callback: (keyA: number, keyB: number) => boolean,
 ): TValue[];
