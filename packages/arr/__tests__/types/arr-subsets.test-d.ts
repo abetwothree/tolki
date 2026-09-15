@@ -45,10 +45,12 @@ describe("arr subsets type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.only(unknownArray, [0])).toEqualTypeOf<
-                unknown[]
-            >();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.only(unknownArray, [0]);
+            expectTypeOf(
+                Arr.only(unknownArray as unknown[], [0]),
+            ).toEqualTypeOf<unknown[]>();
         });
 
         it("resolves to never[] for an empty array", () => {
@@ -112,8 +114,12 @@ describe("arr subsets type tests", () => {
             expectTypeOf(Arr.keys([])).toEqualTypeOf<number[]>();
         });
 
-        it("returns number[] for unknown data", () => {
-            expectTypeOf(Arr.keys(unknownArray)).toEqualTypeOf<number[]>();
+        it("rejects unknown data and returns number[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.keys(unknownArray);
+            expectTypeOf(Arr.keys(unknownArray as unknown[])).toEqualTypeOf<
+                number[]
+            >();
         });
     });
 
@@ -136,8 +142,12 @@ describe("arr subsets type tests", () => {
             expectTypeOf(Arr.values(readonlyStrings)).toEqualTypeOf<string[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.values(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.values(unknownArray);
+            expectTypeOf(Arr.values(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -202,8 +212,12 @@ describe("arr subsets type tests", () => {
             ).toEqualTypeOf<number[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.flatten(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.flatten(unknownArray);
+            expectTypeOf(Arr.flatten(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -228,8 +242,12 @@ describe("arr subsets type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.reverse(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.reverse(unknownArray);
+            expectTypeOf(Arr.reverse(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -254,8 +272,12 @@ describe("arr subsets type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.shuffle(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.shuffle(unknownArray);
+            expectTypeOf(Arr.shuffle(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 

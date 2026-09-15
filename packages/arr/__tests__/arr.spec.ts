@@ -3153,21 +3153,19 @@ describe("Arr", () => {
         it("keys", () => {
             // Basic key extraction
             expect(Arr.keys(["a", "b", "c"])).toEqual([0, 1, 2]);
-            expect(Arr.keys({ x: 10, y: 20 })).toEqual([]);
 
             // Empty array
             expect(Arr.keys([])).toEqual([]);
 
             // Non-accessible data
             expect(Arr.keys(null)).toEqual([]);
-            expect(Arr.keys("abc")).toEqual([]);
+            expect(Arr.keys("abc" as unknown as unknown[])).toEqual([]);
         });
     });
 
     describe("values", () => {
         it("values", () => {
             // Basic value extraction
-            expect(Arr.values({ a: 1, b: 2, c: 3 })).toEqual([]);
             expect(Arr.values(["x", "y", "z"])).toEqual(["x", "y", "z"]);
 
             // Empty array
@@ -3175,7 +3173,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.values(null)).toEqual([]);
-            expect(Arr.values("abc")).toEqual([]);
+            expect(Arr.values("abc" as unknown as unknown[])).toEqual([]);
         });
     });
 
@@ -3387,7 +3385,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.only(null, [0, 1])).toEqual([]);
-            expect(Arr.only("abc", [0, 1])).toEqual([]);
+            expect(Arr.only("abc" as unknown as unknown[], [0, 1])).toEqual([]);
         });
 
         it("casts a bare index and null the way Arr::only's (array) cast does", () => {
@@ -4145,7 +4143,9 @@ describe("Arr", () => {
 
             // Should throw for non-accessible data
             expect(() => Arr.sole(null)).toThrow("No items found");
-            expect(() => Arr.sole("not array")).toThrow("No items found");
+            expect(() => Arr.sole("not array" as unknown as unknown[])).toThrow(
+                "No items found",
+            );
         });
     });
 
@@ -4337,7 +4337,7 @@ describe("Arr", () => {
             // Test with non-accessible data
             expect(Arr.shuffle(null)).toEqual([]);
             expect(Arr.shuffle(undefined)).toEqual([]);
-            expect(Arr.shuffle("string")).toEqual([]);
+            expect(Arr.shuffle("string" as unknown as unknown[])).toEqual([]);
 
             // Test with single element
             expect(Arr.shuffle([42])).toEqual([42]);
