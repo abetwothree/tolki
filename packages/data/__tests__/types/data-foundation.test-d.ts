@@ -8,6 +8,7 @@ import {
     box,
     numberList,
     numberMap,
+    numberMapAsRecord,
     readonlyNumberList,
     settings,
 } from "./fixtures";
@@ -84,6 +85,51 @@ describe("data foundation type tests", () => {
             // JS-only: no Arr::/Collection:: counterpart, so there is no delegate to pin against.
             expectTypeOf(Data.dataCount(numberList)).toEqualTypeOf<number>();
             expectTypeOf(Data.dataCount(abc)).toEqualTypeOf<number>();
+        });
+    });
+
+    describe("Map backing agreement sweep, at the type level", () => {
+        // JS-only: PHP has no Map. `toKeyedData` turns one into the record it mirrors
+        // before obj sees it, but no row in `dispatch`'s type says so. Task C2b owns
+        // the fix; every standing control below fails the moment it lands.
+
+        it("types a Map on dataKeys as obj's own rejects-first answer", () => {
+            // The declared type is `[]` while the runtime returns the record's keys:
+            // unsound until Task C2b lands. `not` is the control, not a downgrade.
+            expectTypeOf(Data.dataKeys(numberMap)).toEqualTypeOf(
+                Obj.keys(numberMap),
+            );
+            expectTypeOf(Data.dataKeys(numberMap)).not.toEqualTypeOf(
+                Data.dataKeys(numberMapAsRecord),
+            );
+        });
+
+        it("types a Map on dataValues as obj's own rejects-first answer", () => {
+            // Same defect as dataKeys: `[]` declared, the record's values returned.
+            expectTypeOf(Data.dataValues(numberMap)).toEqualTypeOf(
+                Obj.values(numberMap),
+            );
+            expectTypeOf(Data.dataValues(numberMap)).not.toEqualTypeOf(
+                Data.dataValues(numberMapAsRecord),
+            );
+        });
+
+        it("types a Map on dataDivide as obj's own rejects-first answer", () => {
+            // Sound but imprecise: the values half is `unknown[]` rather than the
+            // record's `number[]`, because obj never sees the normalisation either.
+            expectTypeOf(Data.dataDivide(numberMap)).toEqualTypeOf(
+                Obj.divide(numberMap),
+            );
+            expectTypeOf(Data.dataDivide(numberMap)).not.toEqualTypeOf(
+                Data.dataDivide(numberMapAsRecord),
+            );
+        });
+
+        it("dataCount types a Map like the record it mirrors", () => {
+            // JS-only: no Arr::/Collection:: counterpart, so there is no delegate to pin against.
+            expectTypeOf(Data.dataCount(numberMap)).toEqualTypeOf(
+                Data.dataCount(numberMapAsRecord),
+            );
         });
     });
 

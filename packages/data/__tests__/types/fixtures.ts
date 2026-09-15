@@ -38,6 +38,9 @@ export const numberMap = new Map([
     ["b", 2],
 ]);
 
+/** The record `numberMap` mirrors: the shape `toKeyedData` builds from it at runtime. */
+export const numberMapAsRecord: Record<string, number> = { a: 1, b: 2 };
+
 /** A nested list, for collapse and flatten. */
 export const nestedList = [[1, 2], [3]];
 
