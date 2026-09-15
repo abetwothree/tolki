@@ -2183,6 +2183,59 @@ describe("Data", () => {
                 Data.dataSearch({ a: 1, b: neverMatches, c: 3 }, neverMatches),
             ).toBe(false);
         });
+
+        it("distinguishes falsy values in strict mode", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "search-strict-falsy"
+            const falsy = [false, 0, 1, [], ""];
+            expect(Data.dataSearch(falsy, "false", true)).toBe(false);
+            expect(Data.dataSearch(falsy, "1", true)).toBe(false);
+            expect(Data.dataSearch(falsy, false, true)).toBe(0);
+            expect(Data.dataSearch(falsy, 0, true)).toBe(1);
+            expect(Data.dataSearch(falsy, 1, true)).toBe(2);
+            expect(Data.dataSearch(falsy, "", true)).toBe(4);
+            // JS-only: PHP's `[] === []` is true by value, so Laravel finds the empty
+            // array at index 3. JS compares arrays by reference, so a fresh `[]` never
+            // matches; this case has no JS analogue.
+            expect(Data.dataSearch(falsy, [], true)).toBe(false);
+        });
+
+        it("collapses falsy values in loose mode", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "search-loose-falsy"
+            const falsy = [false, 0, 1, [], ""];
+            expect(Data.dataSearch(falsy, 0)).toBe(0);
+            expect(Data.dataSearch(falsy, "")).toBe(0);
+        });
+
+        it("returns the string key of a hit on the object backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "search-string-key-hit"
+            expect(Data.dataSearch({ foo: "bar", baz: "qux" }, "qux")).toBe(
+                "baz",
+            );
+        });
+
+        it("returns false when nothing matches, by value or by callback", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "search-not-found", "search-callback-not-found"
+            expect(Data.dataSearch([1, 2, 3], 9)).toBe(false);
+            expect(Data.dataSearch({ a: 1 }, 9)).toBe(false);
+            expect(Data.dataSearch([1, 2, 3], (value) => value > 9)).toBe(
+                false,
+            );
+        });
+
+        it("passes the key to the callback", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "search-callback-key-arg", "search-assoc-callback-key-arg"
+            expect(
+                Data.dataSearch(["a", "b", "c"], (_value, key) => key === 2),
+            ).toBe(2);
+            expect(
+                Data.dataSearch(
+                    { x: 1, y: 2 },
+                    (_value, key) => key === "y",
+                ),
+            ).toBe("y");
+        });
     });
 
     describe("dataBefore", () => {
@@ -2228,6 +2281,14 @@ describe("Data", () => {
             const result5 = Data.dataBefore(arr, 1, true);
             expect(result5).toBeNull();
         });
+
+        it("finds the item before a falsy value in strict mode", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "before-strict-falsy"
+            const falsy = [false, 0, 1, [], ""];
+            expect(Data.dataBefore(falsy, 1, true)).toBe(0);
+            // The first element has nothing before it.
+            expect(Data.dataBefore(falsy, false, true)).toBeNull();
+        });
     });
 
     describe("dataAfter", () => {
@@ -2272,6 +2333,14 @@ describe("Data", () => {
             // When searching for the last element, there is no "after"
             const result5 = Data.dataAfter(arr, 5, true);
             expect(result5).toBeNull();
+        });
+
+        it("finds the item after a falsy value in strict mode", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "after-strict-falsy"
+            const falsy = [false, 0, 1, [], ""];
+            expect(Data.dataAfter(falsy, 0, true)).toBe(1);
+            // The last element has nothing after it.
+            expect(Data.dataAfter(falsy, "", true)).toBeNull();
         });
     });
 
@@ -2505,6 +2574,20 @@ describe("Data", () => {
             expect(result).toHaveLength(4);
             expect(result).toEqual(expect.arrayContaining([1, 2, 3, 4]));
         });
+
+        it("returns an empty result for an empty backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "shuffle-empty"
+            expect(Data.dataShuffle([])).toEqual([]);
+            expect(Data.dataShuffle({})).toEqual({});
+        });
+
+        it("keeps exactly the same values, through the list backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "shuffle-keeps-same-values"
+            const source = [...Array(26).keys()];
+            const shuffled = Data.dataShuffle(source) as number[];
+            expect([...shuffled].sort((a, b) => a - b)).toEqual(source);
+            expect(Object.keys(shuffled)).toEqual(source.map(String));
+        });
     });
 
     describe("dataSlice", () => {
@@ -2565,6 +2648,47 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataSole([42]);
             expect(result).toBe(42);
+        });
+
+        it("finds the one item a callback matches", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sole-rows-callback"
+            expect(
+                Data.dataSole(
+                    { a: { name: "foo" }, b: { name: "bar" } },
+                    (value) => value.name === "foo",
+                ),
+            ).toEqual({ name: "foo" });
+        });
+
+        it("throws when nothing matches, on either backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sole-none"
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback"
+            // JS-only message: Laravel throws ItemNotFoundException with an empty message;
+            // the port throws a plain Error carrying a readable one.
+            expect(() =>
+                Data.dataSole({ a: "foo" }, (value) => value === "baz"),
+            ).toThrow("No items found");
+            expect(() => Data.dataSole([])).toThrow("No items found");
+            expect(() => Data.dataSole({})).toThrow("No items found");
+        });
+
+        it("throws when more than one item matches, reporting the count", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sole-multi-list", "sole-assoc-multi-callback"
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback"
+            // JS-only message: Laravel throws MultipleItemsFoundException("2 items were found.").
+            expect(() =>
+                Data.dataSole(["baz", "foo", "baz"], (value) => value === "baz"),
+            ).toThrow("Multiple items found (2 items)");
+            expect(() =>
+                Data.dataSole(
+                    { a: "baz", b: "foo", c: "baz" },
+                    (value) => value === "baz",
+                ),
+            ).toThrow("Multiple items found (2 items)");
+            expect(() => Data.dataSole({ a: 1, b: 2 })).toThrow(
+                "Multiple items found (2 items)",
+            );
         });
     });
 
