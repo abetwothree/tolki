@@ -4568,6 +4568,21 @@ describe("Data", () => {
             ).toEqual([]);
         });
 
+        it("wraps a scalar backing as a one item list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "intersectAssocUsing-scalar-backing"
+            const sameKey = (a: unknown, b: unknown) => a === b;
+            expect(
+                Data.dataIntersectAssocUsing(
+                    5 as unknown as number[],
+                    [5],
+                    sameKey,
+                ),
+            ).toEqual([5]);
+            expect(
+                Data.dataIntersectAssocUsing({ 0: 5 }, [5], sameKey),
+            ).toEqual({ 0: 5 });
+        });
+
         it("unwraps a Collection-like operand", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
             const result = Data.dataIntersectAssocUsing(
@@ -6479,25 +6494,13 @@ describe("Data", () => {
             ).toEqual(Data.dataIntersectAssoc(asRecord, { a: 1, b: 99, c: 3 }));
         });
 
-        it.fails(
-            "dataIntersectAssocUsing intersects a Map like the record it mirrors",
-            () => {
-                // Task C10 (set-operations family) converts this to dispatch().
-                expect(
-                    Data.dataIntersectAssocUsing(
-                        asMap as unknown as Record<string, number>,
-                        { A: 1 },
-                        strcasecmp,
-                    ),
-                ).toEqual(
-                    Data.dataIntersectAssocUsing(
-                        asRecord,
-                        { A: 1 },
-                        strcasecmp,
-                    ),
-                );
-            },
-        );
+        it("dataIntersectAssocUsing intersects a Map like the record it mirrors", () => {
+            expect(
+                Data.dataIntersectAssocUsing(asMap, { A: 1 }, strcasecmp),
+            ).toEqual(
+                Data.dataIntersectAssocUsing(asRecord, { A: 1 }, strcasecmp),
+            );
+        });
 
         it("dataIntersectByKeys intersects a Map like the record it mirrors", () => {
             expect(Data.dataIntersectByKeys(asMap, { a: 1 })).toEqual(

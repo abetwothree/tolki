@@ -1676,10 +1676,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataIntersectAssocUsing<TValue, TKey>(
+            dataIntersectAssocUsing(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes a bare key and rejects a typed callback (contravariance).
+                callback as (
+                    keyA: string | number,
+                    keyB: string | number,
+                ) => boolean,
             ),
         );
     }

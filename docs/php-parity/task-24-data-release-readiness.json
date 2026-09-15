@@ -1210,6 +1210,13 @@
             ]
         },
         {
+            "label": "intersectAssocUsing-scalar-backing",
+            "php": "(new Collection(5))->intersectAssocUsing([5], fn ($a, $b) => strcasecmp((string) $a, (string) $b))",
+            "value": [
+                5
+            ]
+        },
+        {
             "label": "integer-list-missing-index-with-default",
             "php": "Arr::integer([], 0, 5)",
             "value": 5

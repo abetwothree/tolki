@@ -115,6 +115,29 @@ describe("data setops type tests", () => {
         });
     });
 
+    describe("dataIntersectAssocUsing", () => {
+        const sameIndex = (keyA: number, keyB: number): boolean =>
+            keyA === keyB;
+        const sameKey = (keyA: PropertyKey, keyB: PropertyKey): boolean =>
+            String(keyA) === String(keyB);
+
+        it("matches arr.intersectAssocUsing for a list", () => {
+            expectTypeOf(
+                Data.dataIntersectAssocUsing(numberList, [1, 9, 3], sameIndex),
+            ).toEqualTypeOf(
+                Arr.intersectAssocUsing(numberList, [1, 9, 3], sameIndex),
+            );
+        });
+
+        it("matches obj.intersectAssocUsing for a record", () => {
+            expectTypeOf(
+                Data.dataIntersectAssocUsing(abc, { a: 1, b: 9 }, sameKey),
+            ).toEqualTypeOf(
+                Obj.intersectAssocUsing(abc, { a: 1, b: 9 }, sameKey),
+            );
+        });
+    });
+
     describe("dataIntersectByKeys", () => {
         it("matches arr.intersectByKeys for a list", () => {
             expectTypeOf(

@@ -1957,28 +1957,10 @@ export const dataIntersectAssoc = dispatch(
  * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataIntersectAssocUsing({a: 'green', b: 'brown'}, {A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> {b: 'brown'}
  */
-export function dataIntersectAssocUsing<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey> | null | undefined,
-    callback: (keyA: TKey, keyB: TKey) => boolean,
-) {
-    if (isObject(data)) {
-        return objIntersectAssocUsing(
-            data as Record<string, TValue>,
-            other as Record<string, TValue> | null | undefined,
-            callback as (keyA: PropertyKey, keyB: PropertyKey) => boolean,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrIntersectAssocUsing(
-        data,
-        other,
-        callback as (keyA: number, keyB: number | string) => boolean,
-    ) as DataItems<TValue>;
-}
+export const dataIntersectAssocUsing = dispatch(
+    arrIntersectAssocUsing,
+    objIntersectAssocUsing,
+);
 
 /**
  * Intersect the data with the given items by key.
