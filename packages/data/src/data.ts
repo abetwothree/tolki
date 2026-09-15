@@ -165,7 +165,6 @@ import type {
     AddToArray,
     AddToObject,
     DataItems,
-    DataIterableItems,
     PathKey,
     PathKeys,
 } from "@tolki/types";
@@ -293,33 +292,7 @@ export const dataBoolean = dispatch(arrBoolean, objBoolean);
  * @param preserveKeys - Whether to preserve the original keys, defaults to true
  * @returns Chunked data
  */
-export function dataChunk<TValue extends Record<PropertyKey, unknown>>(
-    data: TValue,
-    size: number,
-    preserveKeys?: boolean,
-): ReturnType<typeof objChunk<TValue>>;
-export function dataChunk<TValue>(
-    data: TValue[],
-    size: number,
-    preserveKeys?: boolean,
-): ReturnType<typeof arrChunk<TValue>>;
-export function dataChunk<TValue>(
-    data: DataItems<TValue, PropertyKey>,
-    size: number,
-    preserveKeys?: boolean,
-) {
-    if (isObject(data)) {
-        if (preserveKeys === true) {
-            return objChunk(data, size, true);
-        } else if (preserveKeys === false) {
-            return objChunk(data, size, false);
-        } else {
-            return objChunk(data, size);
-        }
-    }
-
-    return arrChunk(arrWrap(data), size, preserveKeys);
-}
+export const dataChunk = dispatch(arrChunk, objChunk);
 
 /**
  * Chunk the data into chunks with a callback.
@@ -334,41 +307,7 @@ export function dataChunk<TValue>(
  * dataChunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
  * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  */
-export function dataChunkWhile<TValue>(
-    data: TValue[],
-    callback: (value: TValue, index: number, chunk: TValue[]) => boolean,
-): TValue[][];
-export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    callback: (
-        value: TValue,
-        key: TKey,
-        chunk: Record<TKey, TValue>,
-    ) => boolean,
-): Record<number, Record<TKey, TValue>>;
-export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback:
-        | ((value: TValue, key: TKey, chunk: Record<TKey, TValue>) => boolean)
-        | ((value: TValue, index: number, chunk: TValue[]) => boolean),
-): Record<number, Record<TKey, TValue>> | TValue[][] {
-    if (isObject(data)) {
-        return objChunkWhile(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (
-                value: TValue,
-                key: string | number,
-                chunk: Partial<Record<TKey, TValue>>,
-            ) => boolean,
-        ) as Record<number, Record<TKey, TValue>>;
-    }
-
-    return arrChunkWhile(
-        arrWrap(data) as TValue[],
-        callback as (value: TValue, index: number, chunk: TValue[]) => boolean,
-    );
-}
+export const dataChunkWhile = dispatch(arrChunkWhile, objChunkWhile);
 
 /**
  * Chunk the data into chunks by comparing adjacent values using the given key or callback.
@@ -382,34 +321,7 @@ export function dataChunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataChunkBy([1, 1, 2], (value) => value); -> [[1, 1], [2]]
  * dataChunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
  */
-export function dataChunkBy<TValue>(
-    data: TValue[],
-    key: PathKey | ((value: TValue, index: number) => unknown),
-): TValue[][];
-export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    key: PathKey | ((value: TValue, key: TKey) => unknown),
-): Record<number, Record<TKey, TValue>>;
-export function dataChunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    key:
-        | PathKey
-        | ((value: TValue, key: TKey) => unknown)
-        | ((value: TValue, index: number) => unknown),
-): Record<number, Record<TKey, TValue>> | TValue[][] {
-    if (isObject(data)) {
-        return objChunkBy(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            key as PathKey | ((value: TValue, key: string | number) => unknown),
-        ) as Record<number, Record<TKey, TValue>>;
-    }
-
-    return arrChunkBy(
-        arrWrap(data) as TValue[],
-        key as PathKey | ((value: TValue, index: number) => unknown),
-    );
-}
+export const dataChunkBy = dispatch(arrChunkBy, objChunkBy);
 
 /**
  * Collapse nested data into a single level.
@@ -666,19 +578,7 @@ export const dataExists = dispatch(arrExists, objExists);
  * dataTake([1, 2, 3, 4, 5], 3); -> [1, 2, 3]
  * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); -> {a: 1, b: 2}
  */
-export function dataTake<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    limit: number,
-): DataItems<TValue, TKey> | DataItems<TValue> {
-    if (isObject(data)) {
-        return objTake(data as Record<TKey, TValue>, limit) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrTake(arrWrap(data), limit) as DataItems<TValue>;
-}
+export const dataTake = dispatch(arrTake, objTake);
 
 /**
  * Flatten nested data to a specified depth.
@@ -692,16 +592,7 @@ export function dataTake<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataFlatten([[1, 2], [3, [4, 5]]], 1); -> [1, 2, 3, [4, 5]]
  * dataFlatten({a: {b: {c: 1}}}, 1); -> {'a.b': {c: 1}}
  */
-export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    depth: number = Infinity,
-) {
-    if (isObject(data)) {
-        return objFlatten(data, depth);
-    }
-
-    return arrFlatten(arrWrap(data), depth);
-}
+export const dataFlatten = dispatch(arrFlatten, objFlatten);
 
 /**
  * Flip the keys and values of an object or array.
@@ -1195,17 +1086,7 @@ export const dataQuery = dispatch(arrQuery, objQuery);
  * dataRandom([1, 2, 3, 4], 2); -> [2, 4] (random selection)
  * dataRandom({a: 1, b: 2, c: 3}, 1); -> {b: 2} (random selection)
  */
-export function dataRandom<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    number?: number | null,
-    preserveKeys = false,
-) {
-    if (isObject(data)) {
-        return objRandom(data, number, preserveKeys);
-    }
-
-    return arrRandom(arrWrap(data), number, preserveKeys);
-}
+export const dataRandom = dispatch(arrRandom, objRandom);
 
 /**
  * Search for a value in data and return its key.
@@ -1421,18 +1302,7 @@ export const dataUnshift = dispatch(arrUnshift, objUnshift);
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
  * dataShuffle({a: 1, b: 2, c: 3}); -> {0: 3, 1: 1, 2: 2} (random order, reindexed 0..n-1)
  */
-export function dataShuffle<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objShuffle(data as Record<string, TValue>) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrShuffle(arrWrap(data)) as DataItems<TValue, TKey>;
-}
+export const dataShuffle = dispatch(arrShuffle, objShuffle);
 
 /**
  * Slice the underlying data items
@@ -1442,17 +1312,7 @@ export function dataShuffle<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param length - The number of items to include
  * @returns Sliced data
  */
-export function dataSlice<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    offset: number,
-    length: number | null = null,
-) {
-    if (isObject(data)) {
-        return objSlice(data, offset, length);
-    }
-
-    return arrSlice(arrWrap(data), offset, length);
-}
+export const dataSlice = dispatch(arrSlice, objSlice);
 
 /**
  * Get the sole item that passes a test.
@@ -1743,18 +1603,7 @@ export const dataReject = dispatch(arrReject, objReject);
  * @param data - The data to reverse
  * @returns Reversed data
  */
-export function dataReverse<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objReverse(data as Record<string, TValue>) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrReverse(arrWrap(data)) as DataItems<TValue>;
-}
+export const dataReverse = dispatch(arrReverse, objReverse);
 
 /**
  * Pad data to the specified length with a value.
@@ -1861,59 +1710,9 @@ export const dataMap = dispatch(arrMap, objMap);
  * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  * dataFirst(new Map([['a', 1], ['b', 2]])); -> 1
  */
-// Overload: Map, keyed by its own keys
-export function dataFirst<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TFirstDefault = null,
->(
-    data: Map<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TFirstDefault | (() => TFirstDefault),
-): TValue | TFirstDefault | null;
-// Overload: array or any other iterable, keyed by position
-export function dataFirst<TValue, TFirstDefault = null>(
-    data: TValue[] | Iterable<TValue>,
-    callback?: ((value: TValue, key: number) => boolean) | null,
-    defaultValue?: TFirstDefault | (() => TFirstDefault),
-): TValue | TFirstDefault | null;
-// Overload: object and general fallback
-export function dataFirst<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TFirstDefault = null,
->(
-    data: DataIterableItems<TValue, TKey>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TFirstDefault | (() => TFirstDefault),
-): TValue | TFirstDefault | null;
-// Implementation
-export function dataFirst<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TFirstDefault = null,
->(
-    data: DataIterableItems<TValue, TKey>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TFirstDefault | (() => TFirstDefault),
-): TValue | TFirstDefault | null {
-    if (isKeyedData(data)) {
-        return objFirst(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as
-                | ((value: TValue, key: string | number) => boolean)
-                | null,
-            defaultValue,
-        ) as TValue | TFirstDefault | null;
-    }
-
-    return arrFirst(
-        toPositionalData<TValue>(data),
-        callback as ((value: TValue, index: number) => boolean) | null,
-        defaultValue,
-    );
-}
+// A Set or generator must reach `arrFirst` whole, so this normalises with
+// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
 
 /**
  * Get the last value from data that passes a test.
@@ -1929,59 +1728,9 @@ export function dataFirst<
  * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
  * Data.last(new Map([['a', 1], ['b', 2]])); -> 2
  */
-// Overload: Map, keyed by its own keys
-export function dataLast<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TDefault = null,
->(
-    data: Map<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TDefault | (() => TDefault),
-): TValue | TDefault | null;
-// Overload: array or any other iterable, keyed by position
-export function dataLast<TValue, TDefault = null>(
-    data: TValue[] | Iterable<TValue>,
-    callback?: ((value: TValue, key: number) => boolean) | null,
-    defaultValue?: TDefault | (() => TDefault),
-): TValue | TDefault | null;
-// Overload: object and general fallback
-export function dataLast<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TDefault = null,
->(
-    data: DataIterableItems<TValue, TKey>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TDefault | (() => TDefault),
-): TValue | TDefault | null;
-// Implementation
-export function dataLast<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TDefault = null,
->(
-    data: DataIterableItems<TValue, TKey>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-    defaultValue?: TDefault | (() => TDefault),
-): TValue | TDefault | null {
-    if (isKeyedData(data)) {
-        return objLast(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as
-                | ((value: TValue, key: string | number) => boolean)
-                | null,
-            defaultValue,
-        ) as TValue | TDefault | null;
-    }
-
-    return arrLast(
-        toPositionalData<TValue>(data),
-        callback as ((value: TValue, index: number) => boolean) | null,
-        defaultValue,
-    );
-}
+// A Set or generator must reach `arrLast` whole, so this normalises with
+// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+export const dataLast = dispatch(arrLast, objLast, toPositionalData);
 
 /**
  * Determine if data contains a value.

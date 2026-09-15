@@ -297,8 +297,12 @@ describe("Data", () => {
                         Object.values(chunk).at(-1) === value,
                 ),
             );
+            // A chunk holds a subset of the keys, which is what objChunkWhile now declares.
             assertType<
-                Record<number, Record<"a" | "b" | "c" | "d" | "e", number>>
+                Record<
+                    number,
+                    Partial<Record<"a" | "b" | "c" | "d" | "e", number>>
+                >
             >(result);
         });
 
@@ -1549,6 +1553,8 @@ describe("Data", () => {
                     yield 4;
                 })();
 
+            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
+            // generator into one element, which only these rows catch.
             expect(Data.dataEvery(items(), (value) => value % 2 === 0)).toBe(
                 true,
             );
@@ -1601,6 +1607,8 @@ describe("Data", () => {
                     yield 2;
                 })();
 
+            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
+            // generator into one element, which only these rows catch.
             expect(Data.dataSome(items(), (value) => value % 2 === 0)).toBe(
                 true,
             );
@@ -3828,8 +3836,13 @@ describe("Data", () => {
             expect(
                 Data.dataFirst(items, (_value, key) => key === "second"),
             ).toBe(200);
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
             expect(
-                Data.dataFirst(items, (value) => value > 500, "default"),
+                Data.dataFirst(
+                    items,
+                    (value) => Number(value) > 500,
+                    "default",
+                ),
             ).toBe("default");
             expect(Data.dataFirst(new Map(), null, "default")).toBe("default");
         });
@@ -3842,6 +3855,8 @@ describe("Data", () => {
                     yield 300;
                 })();
 
+            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
+            // generator into one element, which only these rows catch.
             expect(Data.dataFirst(items())).toBe(100);
             expect(Data.dataFirst(items(), (value) => value > 150)).toBe(200);
             expect(Data.dataFirst(new Set([100, 200]))).toBe(100);
@@ -3920,6 +3935,8 @@ describe("Data", () => {
                     yield 300;
                 })();
 
+            // Guards Ruling P-23: a two argument dispatch() would arrWrap the Set or
+            // generator into one element, which only these rows catch.
             expect(Data.dataLast(items())).toBe(300);
             expect(Data.dataLast(items(), (value) => value < 300)).toBe(200);
             expect(Data.dataLast(new Set([100, 200]))).toBe(200);
@@ -5848,33 +5865,28 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataChunk chunks a Map like the record it mirrors", () => {
-            // Task C11 (slicing family) converts this to dispatch().
+        it("dataChunk chunks a Map like the record it mirrors", () => {
             expect(
                 Data.dataChunk(asMap as unknown as Record<string, number>, 2),
             ).toEqual(Data.dataChunk(asRecord, 2));
         });
 
-        it.fails(
-            "dataChunkWhile chunks a Map like the record it mirrors",
-            () => {
-                // Task C11 (slicing family) converts this to dispatch().
-                const callback = (
-                    value: number,
-                    _key: string,
-                    chunk: Record<string, number>,
-                ): boolean => Object.values(chunk).at(-1) === value;
-                expect(
-                    Data.dataChunkWhile(
-                        repeatMap as unknown as Record<string, number>,
-                        callback,
-                    ),
-                ).toEqual(Data.dataChunkWhile(repeatRecord, callback));
-            },
-        );
+        it("dataChunkWhile chunks a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
+            const callback = (
+                value: unknown,
+                _key: PropertyKey,
+                chunk: Record<string, unknown>,
+            ): boolean => Object.values(chunk).at(-1) === value;
+            expect(
+                Data.dataChunkWhile(
+                    repeatMap as unknown as Record<string, number>,
+                    callback,
+                ),
+            ).toEqual(Data.dataChunkWhile(repeatRecord, callback));
+        });
 
-        it.fails("dataChunkBy chunks a Map like the record it mirrors", () => {
-            // Task C11 (slicing family) converts this to dispatch().
+        it("dataChunkBy chunks a Map like the record it mirrors", () => {
             const key = (value: number): number => value;
             expect(
                 Data.dataChunkBy(
@@ -5971,20 +5983,15 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataTake takes from a Map like the record it mirrors", () => {
-            // Task C11 (slicing family) converts this to dispatch().
+        it("dataTake takes from a Map like the record it mirrors", () => {
             expect(Data.dataTake(asMap, 2)).toEqual(Data.dataTake(asRecord, 2));
         });
 
-        it.fails(
-            "dataFlatten flattens a Map like the record it mirrors",
-            () => {
-                // Task C11 (slicing family) converts this to dispatch().
-                expect(Data.dataFlatten(listValuedMap)).toEqual(
-                    Data.dataFlatten(listValuedRecord),
-                );
-            },
-        );
+        it("dataFlatten flattens a Map like the record it mirrors", () => {
+            expect(Data.dataFlatten(listValuedMap)).toEqual(
+                Data.dataFlatten(listValuedRecord),
+            );
+        });
 
         it("dataFlip flips a Map like the record it mirrors", () => {
             expect(Data.dataFlip(asMap)).toEqual(Data.dataFlip(asRecord));
@@ -6159,20 +6166,16 @@ describe("Data", () => {
             expect(Data.dataQuery(asMap)).toBe(Data.dataQuery(asRecord));
         });
 
-        it.fails(
-            "dataRandom reads a Map's elements like the record it mirrors",
-            () => {
-                // Task C11 (slicing family) converts this to dispatch(). number ===
-                // the full length so the randomness is only in the order.
-                const fromMap = Object.values(
-                    Data.dataRandom(asMap, 3) as Record<string, number>,
-                ).sort();
-                const fromRecord = Object.values(
-                    Data.dataRandom(asRecord, 3) as Record<string, number>,
-                ).sort();
-                expect(fromMap).toEqual(fromRecord);
-            },
-        );
+        it("dataRandom reads a Map's elements like the record it mirrors", () => {
+            // number === the full length so the randomness is only in the order.
+            const fromMap = Object.values(
+                Data.dataRandom(asMap, 3) as Record<string, number>,
+            ).sort();
+            const fromRecord = Object.values(
+                Data.dataRandom(asRecord, 3) as Record<string, number>,
+            ).sort();
+            expect(fromMap).toEqual(fromRecord);
+        });
 
         it("dataSearch finds a value in a Map like the record it mirrors", () => {
             expect(Data.dataSearch(asMap, 2)).toBe(
@@ -6224,20 +6227,13 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataShuffle shuffles a Map like the record it mirrors",
-            () => {
-                // Task C11 (slicing family) converts this to dispatch().
-                const fromMap = Object.values(Data.dataShuffle(asMap)).sort();
-                const fromRecord = Object.values(
-                    Data.dataShuffle(asRecord),
-                ).sort();
-                expect(fromMap).toEqual(fromRecord);
-            },
-        );
+        it("dataShuffle shuffles a Map like the record it mirrors", () => {
+            const fromMap = Object.values(Data.dataShuffle(asMap)).sort();
+            const fromRecord = Object.values(Data.dataShuffle(asRecord)).sort();
+            expect(fromMap).toEqual(fromRecord);
+        });
 
-        it.fails("dataSlice slices a Map like the record it mirrors", () => {
-            // Task C11 (slicing family) converts this to dispatch().
+        it("dataSlice slices a Map like the record it mirrors", () => {
             expect(Data.dataSlice(asMap, 1)).toEqual(
                 Data.dataSlice(asRecord, 1),
             );
@@ -6353,15 +6349,9 @@ describe("Data", () => {
             ).toEqual(Data.dataReject(asRecord, (value) => value > 1));
         });
 
-        it.fails(
-            "dataReverse reverses a Map like the record it mirrors",
-            () => {
-                // Task C11 (slicing family) converts this to dispatch().
-                expect(Data.dataReverse(asMap)).toEqual(
-                    Data.dataReverse(asRecord),
-                );
-            },
-        );
+        it("dataReverse reverses a Map like the record it mirrors", () => {
+            expect(Data.dataReverse(asMap)).toEqual(Data.dataReverse(asRecord));
+        });
 
         it("dataPad pads a Map like the record it mirrors", () => {
             expect(Data.dataPad(asMap, 5, 0)).toEqual(
