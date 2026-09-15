@@ -301,6 +301,8 @@ export const dataChunk = dispatch(arrChunk, objChunk);
  * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
  * @returns Chunked data
  *
+ * @remarks A Map backing widens the callback's value parameter to `unknown`.
+ *
  * @example
  *
  * dataChunkWhile([1, 1, 2], (value, index, chunk) => chunk.at(-1) === value); -> [[1, 1], [2]]
@@ -746,6 +748,8 @@ export const dataHasAny = dispatch(arrHasAny, objHasAny);
  * @param callback - The test function
  * @returns True if every item passes
  *
+ * @remarks A Map backing widens the callback's value parameter to `unknown`.
+ *
  * @example
  *
  * dataEvery([2, 4, 6], (value) => value % 2 === 0); -> true
@@ -753,8 +757,8 @@ export const dataHasAny = dispatch(arrHasAny, objHasAny);
  * dataEvery(new Map([['a', 2]]), (value) => value % 2 === 0); -> true
  * dataEvery(new Set([2, 4]), (value) => value % 2 === 0); -> true
  */
-// A Set or generator must reach `arrEvery` whole, so this normalises with
-// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+// A Set or generator must reach `arrEvery` UNREAD, so an infinite generator still answers;
+// this normalises with `toPositionalData` rather than the materialising default.
 export const dataEvery = dispatch(arrEvery, objEvery, toPositionalData);
 
 /**
@@ -764,6 +768,8 @@ export const dataEvery = dispatch(arrEvery, objEvery, toPositionalData);
  * @param callback - The test function
  * @returns True if some items pass
  *
+ * @remarks A Map backing widens the callback's value parameter to `unknown`.
+ *
  * @example
  *
  * dataSome([1, 2, 3], (value) => value > 2); -> true
@@ -771,8 +777,8 @@ export const dataEvery = dispatch(arrEvery, objEvery, toPositionalData);
  * dataSome(new Map([['a', 1], ['b', 3]]), (value) => value > 2); -> true
  * dataSome(new Set([1, 3]), (value) => value > 2); -> true
  */
-// A Set or generator must reach `arrSome` whole, so this normalises with
-// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+// A Set or generator must reach `arrSome` UNREAD, so an infinite generator still answers;
+// this normalises with `toPositionalData` rather than the materialising default.
 export const dataSome = dispatch(arrSome, objSome, toPositionalData);
 
 /**
@@ -1704,14 +1710,16 @@ export const dataMap = dispatch(arrMap, objMap);
  * @param defaultValue - The default value to return if no match found
  * @returns The first matching value or default value
  *
+ * @remarks A Map backing widens the callback's value parameter to `unknown`.
+ *
  * @example
  *
  * dataFirst([1, 2, 3, 4], (value) => value > 2); -> 3
  * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  * dataFirst(new Map([['a', 1], ['b', 2]])); -> 1
  */
-// A Set or generator must reach `arrFirst` whole, so this normalises with
-// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+// A Set or generator must reach `arrFirst` UNREAD, so an infinite generator still answers;
+// this normalises with `toPositionalData` rather than the materialising default.
 export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
 
 /**
@@ -1722,14 +1730,16 @@ export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
  * @param defaultValue - The default value to return if no match found
  * @returns The last matching value or default value
  *
+ * @remarks A Map backing widens the callback's value parameter to `unknown`.
+ *
  * @example
  *
  * Data.last([1, 2, 3, 4], (value) => value < 4); -> 3
  * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
  * Data.last(new Map([['a', 1], ['b', 2]])); -> 2
  */
-// A Set or generator must reach `arrLast` whole, so this normalises with
-// `toPositionalData` rather than `dispatch`'s `arrWrap` default.
+// A Set or generator must reach `arrLast` UNREAD, so an infinite generator still answers;
+// this normalises with `toPositionalData` rather than the materialising default.
 export const dataLast = dispatch(arrLast, objLast, toPositionalData);
 
 /**

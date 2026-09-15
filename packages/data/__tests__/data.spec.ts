@@ -6195,24 +6195,26 @@ describe("Data", () => {
         });
 
         it("dataEvery tests a Map like the record it mirrors", () => {
-            // objEvery/objSome already walk a Map through entriesOf, so this
-            // agrees today rather than staying red.
-            const mapAsRecord = asMap as unknown as Record<string, number>;
-            expect(Data.dataEvery(mapAsRecord, (value) => value > 0)).toBe(
-                Data.dataEvery(asRecord, (value) => value > 0),
+            // The Map goes in as itself: its row widens the callback's value to `unknown`,
+            // so the shared callback is written for that and the record accepts it too.
+            const aboveZero = (value: unknown) => Number(value) > 0;
+            const above100 = (value: unknown) => Number(value) > 100;
+            expect(Data.dataEvery(asMap, aboveZero)).toBe(
+                Data.dataEvery(asRecord, aboveZero),
             );
-            expect(Data.dataEvery(mapAsRecord, (value) => value > 100)).toBe(
-                Data.dataEvery(asRecord, (value) => value > 100),
+            expect(Data.dataEvery(asMap, above100)).toBe(
+                Data.dataEvery(asRecord, above100),
             );
         });
 
         it("dataSome tests a Map like the record it mirrors", () => {
-            const mapAsRecord = asMap as unknown as Record<string, number>;
-            expect(Data.dataSome(mapAsRecord, (value) => value > 2)).toBe(
-                Data.dataSome(asRecord, (value) => value > 2),
+            const aboveTwo = (value: unknown) => Number(value) > 2;
+            const above100 = (value: unknown) => Number(value) > 100;
+            expect(Data.dataSome(asMap, aboveTwo)).toBe(
+                Data.dataSome(asRecord, aboveTwo),
             );
-            expect(Data.dataSome(mapAsRecord, (value) => value > 100)).toBe(
-                Data.dataSome(asRecord, (value) => value > 100),
+            expect(Data.dataSome(asMap, above100)).toBe(
+                Data.dataSome(asRecord, above100),
             );
         });
 
