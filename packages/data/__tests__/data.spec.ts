@@ -571,8 +571,10 @@ describe("Data", () => {
         });
 
         it("counts only the top level, never descending into nested containers", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "count-empty"
-            expect(Data.dataCount({ a: { b: 1 }, c: 2 })).toBe(2);
+            // docs/php-parity/task-24-data-release-readiness.json, "count-nested-top-level-only"
+            // The object nests two leaves under "a" so a recursive-leaf-count bug (which
+            // would see 3: b, c, d) is distinguishable from the correct top-level count (2).
+            expect(Data.dataCount({ a: { b: 1, c: 2 }, d: 3 })).toBe(2);
             expect(Data.dataCount([[1, 2], [3]])).toBe(2);
         });
     });
@@ -905,7 +907,7 @@ describe("Data", () => {
         });
 
         it("removes a dot-notation path, through the object backing", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "except-mixed-list"
+            // docs/php-parity/task-24-data-release-readiness.json, "except-single-dot-path"
             expect(
                 Data.dataExcept(
                     {
@@ -1206,6 +1208,9 @@ describe("Data", () => {
         it("throws when the value is not a number, naming the backing in the message", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "float-string-value", "float-list-int-key"
+            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
+            // object backing reports "Object value for key [...]" because @tolki/obj
+            // is the object-shaped port of the same helper.
             expect(() =>
                 Data.dataFloat({ string: "foo bar" }, "string"),
             ).toThrow(
@@ -1217,8 +1222,10 @@ describe("Data", () => {
         });
 
         it("falls back to the default for a missing key", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "boolean-missing-key-default"
+            // docs/php-parity/task-24-data-release-readiness.json, "float-missing-key-default"
             expect(Data.dataFloat({}, "missing", 1.5)).toBe(1.5);
+            // JS-only: PHP's Arr::float default is null, which fails its own is_float
+            // check and throws; @tolki/data defaults to 0 so a missing key never throws.
             expect(Data.dataFloat([], 0)).toBe(0);
         });
     });
@@ -1429,8 +1436,10 @@ describe("Data", () => {
         });
 
         it("is false for an empty key list", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "hasAll-empty-key-list"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "hasAll-empty-key-list", "hasAll-empty-key-list-list"
             expect(Data.dataHasAll({ a: 1 }, [])).toBe(false);
+            expect(Data.dataHasAll([1, 2, 3], [])).toBe(false);
         });
     });
 
@@ -1447,7 +1456,7 @@ describe("Data", () => {
 
         it("is true as soon as one key exists, even when its value is null or empty", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "hasAny-variadic", "hasAny-dot-over-null-and-empty"
+            // "hasAny-dot-over-null-and-empty", "hasAny-true-hits"
             expect(Data.dataHasAny({ name: null, email: "" }, ["name"])).toBe(
                 true,
             );
@@ -1460,8 +1469,15 @@ describe("Data", () => {
             expect(Data.dataHasAny({ a: 1 }, ["x", "y"])).toBe(false);
         });
 
+        it("is true as soon as one key exists, even when its value is null, through the list backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "hasAny-list-null-and-empty"
+            expect(Data.dataHasAny([null, "x"], [0])).toBe(true);
+            expect(Data.dataHasAny(["Taylor", "Otwell"], [5, 0])).toBe(true);
+            expect(Data.dataHasAny([1], [5, 9])).toBe(false);
+        });
+
         it("accepts a bare scalar key", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "hasAny-variadic"
+            // docs/php-parity/task-24-data-release-readiness.json, "hasAny-true-hits"
             expect(Data.dataHasAny({ name: "Taylor" }, "name")).toBe(true);
             expect(Data.dataHasAny([1, 2, 3], [5, 1])).toBe(true);
         });
@@ -1597,6 +1613,9 @@ describe("Data", () => {
         it("throws when the value is not an integer, naming the backing in the message", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "integer-string-value", "integer-list-int-key"
+            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
+            // object backing reports "Object value for key [...]" because @tolki/obj
+            // is the object-shaped port of the same helper.
             expect(() =>
                 Data.dataInteger({ string: "foo bar" }, "string"),
             ).toThrow(
@@ -1608,9 +1627,13 @@ describe("Data", () => {
         });
 
         it("rejects a non-whole number, reporting PHP's type name for it", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "integer-float-value"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "integer-float-value", "integer-float-value-list"
             expect(() => Data.dataInteger({ a: 1.5 }, "a")).toThrow(
                 "Object value for key [a] must be an integer, double found.",
+            );
+            expect(() => Data.dataInteger([1.5], 0)).toThrow(
+                "Array value for key [0] must be an integer, double found.",
             );
         });
     });
@@ -1866,6 +1889,7 @@ describe("Data", () => {
 
         it("returns an empty row per item for a missing key or a null key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "select-missing", "select-null"
+            // docs/php-parity/task-24-data-release-readiness.json, "select-missing-and-null-list"
             expect(
                 Data.dataSelect(
                     {
@@ -1878,6 +1902,15 @@ describe("Data", () => {
             expect(
                 Data.dataSelect({ a: { name: "T" }, b: { name: "A" } }, null),
             ).toEqual({ a: {}, b: {} });
+            expect(
+                Data.dataSelect(
+                    [{ name: "T" }, { name: "A" }],
+                    "nonExistingKey",
+                ),
+            ).toEqual([{}, {}]);
+            expect(
+                Data.dataSelect([{ name: "T" }, { name: "A" }], null),
+            ).toEqual([{}, {}]);
         });
     });
 
@@ -3001,6 +3034,9 @@ describe("Data", () => {
         it("throws when the value is not a string, naming the backing in the message", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value"
             // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
+            // object backing reports "Object value for key [...]" because @tolki/obj
+            // is the object-shaped port of the same helper.
             expect(() => Data.dataString({ integer: 1234 }, "integer")).toThrow(
                 "Object value for key [integer] must be a string, integer found.",
             );
