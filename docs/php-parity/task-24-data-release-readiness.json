@@ -72,6 +72,54 @@
             "message": "Array value for key [0] must be an integer, double found."
         },
         {
+            "label": "boolean-missing-key-no-default",
+            "php": "Arr::boolean([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a boolean, NULL found."
+        },
+        {
+            "label": "boolean-list-missing-index-no-default",
+            "php": "Arr::boolean([true, false], 5)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [5] must be a boolean, NULL found."
+        },
+        {
+            "label": "float-missing-key-no-default",
+            "php": "Arr::float([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a float, NULL found."
+        },
+        {
+            "label": "float-list-missing-index-no-default",
+            "php": "Arr::float([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a float, NULL found."
+        },
+        {
+            "label": "integer-missing-key-no-default",
+            "php": "Arr::integer([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be an integer, NULL found."
+        },
+        {
+            "label": "integer-list-missing-index-no-default",
+            "php": "Arr::integer([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, NULL found."
+        },
+        {
+            "label": "string-missing-key-no-default",
+            "php": "Arr::string([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a string, NULL found."
+        },
+        {
+            "label": "string-list-missing-index-no-default",
+            "php": "Arr::string([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a string, NULL found."
+        },
+        {
             "label": "take-positive",
             "php": "Arr::take([1..6], 3)",
             "value": [

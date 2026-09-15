@@ -36,6 +36,17 @@ probe('float-missing-key-default', "Arr::float([], 'missing', 1.5)", fn () => Ar
 // not just the assoc-key row above.
 probe('integer-float-value-list', "Arr::integer([1.5], 0)", fn () => Arr::integer([1.5], 0));
 
+// ==== P-31: a missing key with NO default. Laravel defaults the third argument to null,
+// ==== Arr::get hands the null straight back, and the is_* check then rejects it.
+probe('boolean-missing-key-no-default', "Arr::boolean([], 'missing')", fn () => Arr::boolean([], 'missing'));
+probe('boolean-list-missing-index-no-default', "Arr::boolean([true, false], 5)", fn () => Arr::boolean([true, false], 5));
+probe('float-missing-key-no-default', "Arr::float([], 'missing')", fn () => Arr::float([], 'missing'));
+probe('float-list-missing-index-no-default', "Arr::float([], 0)", fn () => Arr::float([], 0));
+probe('integer-missing-key-no-default', "Arr::integer([], 'missing')", fn () => Arr::integer([], 'missing'));
+probe('integer-list-missing-index-no-default', "Arr::integer([], 0)", fn () => Arr::integer([], 0));
+probe('string-missing-key-no-default', "Arr::string([], 'missing')", fn () => Arr::string([], 'missing'));
+probe('string-list-missing-index-no-default', "Arr::string([], 0)", fn () => Arr::string([], 0));
+
 // ==== take (ArrTest::testTake) — no `take` row exists anywhere in docs/php-parity/.
 $take = [1, 2, 3, 4, 5, 6];
 probe('take-positive', "Arr::take([1..6], 3)", fn () => Arr::take($take, 3));
