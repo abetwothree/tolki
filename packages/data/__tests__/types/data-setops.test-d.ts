@@ -68,6 +68,30 @@ describe("data setops type tests", () => {
         });
     });
 
+    describe("the two hand-written exceptions, pinned against obj only", () => {
+        // Both serve BOTH backings from obj, so obj's call is the only delegate to pin against.
+        // Their hand-written `DataItems` return cannot hold obj's `Partial<T>`, so the pin is the
+        // negative one: it fails the day Task D6 adds arr.diffKeys/diffUsing and converts them.
+        const sameKey = (keyA: PropertyKey, keyB: PropertyKey): boolean =>
+            String(keyA) === String(keyB);
+
+        it("does not yet forward obj.diffAssocUsing's own return type", () => {
+            expectTypeOf(
+                Data.dataDiffAssocUsing(abc, { a: 1, b: 9 }, sameKey),
+            ).not.toEqualTypeOf(
+                Obj.diffAssocUsing(abc, { a: 1, b: 9 }, sameKey),
+            );
+        });
+
+        it("does not yet forward obj.diffKeysUsing's own return type", () => {
+            expectTypeOf(
+                Data.dataDiffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
+            ).not.toEqualTypeOf(
+                Obj.diffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
+            );
+        });
+    });
+
     describe("dataIntersect", () => {
         it("matches arr.intersect for a list", () => {
             expectTypeOf(Data.dataIntersect(numberList, [1, 2])).toEqualTypeOf(
