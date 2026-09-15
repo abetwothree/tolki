@@ -61,6 +61,17 @@
             }
         },
         {
+            "label": "float-missing-key-default",
+            "php": "Arr::float([], 'missing', 1.5)",
+            "value": 1.5
+        },
+        {
+            "label": "integer-float-value-list",
+            "php": "Arr::integer([1.5], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, double found."
+        },
+        {
             "label": "take-positive",
             "php": "Arr::take([1..6], 3)",
             "value": [
@@ -263,6 +274,11 @@
             "value": true
         },
         {
+            "label": "hasAll-empty-key-list-list",
+            "php": "Arr::hasAll([1, 2, 3], [])",
+            "value": false
+        },
+        {
             "label": "hasAny-variadic",
             "php": "Arr::hasAny(['name'=>'Taylor','age'=>''], 'surname', 'name')",
             "value": false
@@ -280,6 +296,24 @@
             "label": "hasAny-null-keys",
             "php": "Arr::hasAny(['a' => 1], null)",
             "value": false
+        },
+        {
+            "label": "hasAny-true-hits",
+            "php": "Arr::hasAny \u2014 array-form and bare-key calls that actually return true",
+            "value": {
+                "array form assoc": true,
+                "bare key assoc": true,
+                "array form list": true
+            }
+        },
+        {
+            "label": "hasAny-list-null-and-empty",
+            "php": "Arr::hasAny over a list with a null value and a partial key set",
+            "value": {
+                "null value": true,
+                "stray plus real": true,
+                "all missing": false
+            }
         },
         {
             "label": "collection-chunk-zero",
@@ -612,6 +646,16 @@
             }
         },
         {
+            "label": "except-single-dot-path",
+            "php": "Arr::except(['name'=>'taylor','framework'=>['language'=>'PHP','name'=>'Laravel']], 'framework.language')",
+            "value": {
+                "name": "taylor",
+                "framework": {
+                    "name": "Laravel"
+                }
+            }
+        },
+        {
             "label": "collection-except-null",
             "php": "(new Collection(['a'=>1,'b'=>2]))->except(null)",
             "value": {
@@ -640,6 +684,20 @@
             }
         },
         {
+            "label": "select-missing-and-null-list",
+            "php": "Arr::select over a list backing \u2014 missing key and null key",
+            "value": {
+                "missing": [
+                    [],
+                    []
+                ],
+                "null": [
+                    [],
+                    []
+                ]
+            }
+        },
+        {
             "label": "prependKeysWith-list",
             "php": "Arr::prependKeysWith(['a', 'b', 'c'], 'item_')",
             "value": {
@@ -654,6 +712,14 @@
             "value": {
                 "empty": 0,
                 "nested": 2
+            }
+        },
+        {
+            "label": "count-nested-top-level-only",
+            "php": "Collection count only counts top-level items, never descends",
+            "value": {
+                "assoc": 2,
+                "list": 2
             }
         },
         {

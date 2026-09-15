@@ -29,6 +29,12 @@ probe('boolean-missing-key-default', "Arr::boolean([], 'missing', true) and Arr:
     'true' => Arr::boolean([], 'missing', true),
     'false' => Arr::boolean([], 'missing', false),
 ]);
+// fix-round-1: dataFloat's "falls back to the default for a missing key" cited the
+// boolean probe above by mistake. Arr::float has its own explicit-default form.
+probe('float-missing-key-default', "Arr::float([], 'missing', 1.5)", fn () => Arr::float([], 'missing', 1.5));
+// fix-round-1: dataInteger's "rejects a non-whole number" needed an array-backing pin,
+// not just the assoc-key row above.
+probe('integer-float-value-list', "Arr::integer([1.5], 0)", fn () => Arr::integer([1.5], 0));
 
 // ==== take (ArrTest::testTake) — no `take` row exists anywhere in docs/php-parity/.
 $take = [1, 2, 3, 4, 5, 6];
@@ -106,6 +112,8 @@ probe('hasAll-all-missing', "Arr::hasAll(\$hasAll, 'foo') and Arr::hasAll(\$hasA
 ]);
 probe('hasAll-empty-key-list', "Arr::hasAll(['a' => 1], [])", fn () => Arr::hasAll(['a' => 1], []));
 probe('hasAll-through-list', "Arr::hasAll([['name' => 'John']], '0.name')", fn () => Arr::hasAll([['name' => 'John']], '0.name'));
+// fix-round-1: "is false for an empty key list" only had an assoc-backing pin.
+probe('hasAll-empty-key-list-list', "Arr::hasAll([1, 2, 3], [])", fn () => Arr::hasAll([1, 2, 3], []));
 
 // ==== hasAny (ArrTest::testHasAnyMethod) — "hasAny-stray-arg-hit" exists; these do not.
 probe('hasAny-variadic', "Arr::hasAny(['name'=>'Taylor','age'=>''], 'surname', 'name')", fn () => Arr::hasAny(['name' => 'Taylor', 'age' => ''], 'surname', 'name'));
@@ -115,6 +123,19 @@ probe('hasAny-dot-over-null-and-empty', "Arr::hasAny over null/'' values and dot
     'all missing' => Arr::hasAny(['a' => 1], ['x', 'y']),
 ]);
 probe('hasAny-null-keys', "Arr::hasAny(['a' => 1], null)", fn () => Arr::hasAny(['a' => 1], null));
+// fix-round-1: "hasAny-variadic" is a FALSE case (PHP drops the loose 2nd/3rd args) and was
+// wrongly cited for TRUE-returning array-form and bare-key calls. These are the real thing.
+probe('hasAny-true-hits', "Arr::hasAny — array-form and bare-key calls that actually return true", fn () => [
+    'array form assoc' => Arr::hasAny(['name' => 'Taylor'], ['surname', 'name']),
+    'bare key assoc' => Arr::hasAny(['name' => 'Taylor'], 'name'),
+    'array form list' => Arr::hasAny([1, 2, 3], [5, 1]),
+]);
+// fix-round-1: the null/empty-value-still-counts-as-present behaviour needed a list-backing pin.
+probe('hasAny-list-null-and-empty', "Arr::hasAny over a list with a null value and a partial key set", fn () => [
+    'null value' => Arr::hasAny([null, 'x'], [0]),
+    'stray plus real' => Arr::hasAny(['Taylor', 'Otwell'], [5, 0]),
+    'all missing' => Arr::hasAny([1], [5, 9]),
+]);
 
 // ==== chunk (CollectionTest::testChunkWhenGivenZeroAsSize / testChunkWhenGivenLessThanZero)
 $ten = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -200,6 +221,9 @@ probe('whereNotNull-all-null', "Arr::whereNotNull([null, null]) and Arr::whereNo
 probe('whereNotNull-list-preserves-keys', "Arr::whereNotNull([null, 0, false, '', null, []])", fn () => Arr::whereNotNull([null, 0, false, '', null, []]));
 
 // ==== except(null) is a no-op on a Collection (CollectionTest::testExcept)
+// fix-round-1: "removes a dot-notation path" wrongly cited task-23's "except-mixed-list",
+// a 2-key call with a different fixture. This is the actual single dot-path call.
+probe('except-single-dot-path', "Arr::except(['name'=>'taylor','framework'=>['language'=>'PHP','name'=>'Laravel']], 'framework.language')", fn () => Arr::except(['name' => 'taylor', 'framework' => ['language' => 'PHP', 'name' => 'Laravel']], 'framework.language'));
 probe('collection-except-null', "(new Collection(['a'=>1,'b'=>2]))->except(null)", fn () => (new Collection(['a' => 1, 'b' => 2]))->except(null)->all());
 probe('collection-except-self', "\$c->except(\$c)", function () {
     $c = new Collection(['a' => 1, 'b' => 2]);
@@ -209,12 +233,24 @@ probe('collection-except-self', "\$c->except(\$c)", function () {
 
 // ==== select on an existing bare key (select-missing / select-null already exist)
 probe('select-bare-existing-key', "Arr::select(['a'=>['name'=>'Taylor','age'=>1],'b'=>['name'=>'Abigail','age'=>2]], 'name')", fn () => Arr::select(['a' => ['name' => 'Taylor', 'age' => 1], 'b' => ['name' => 'Abigail', 'age' => 2]], 'name'));
+// fix-round-1: select-missing / select-null (task-23) only cover the assoc-of-assoc
+// backing; "returns an empty row per item" needed a list-of-assoc pin too.
+probe('select-missing-and-null-list', "Arr::select over a list backing — missing key and null key", fn () => [
+    'missing' => Arr::select([['name' => 'T'], ['name' => 'A']], 'nonExistingKey'),
+    'null' => Arr::select([['name' => 'T'], ['name' => 'A']], null),
+]);
 
 // ==== prependKeysWith over a list (the 'test.' assoc literal already exists)
 probe('prependKeysWith-list', "Arr::prependKeysWith(['a', 'b', 'c'], 'item_')", fn () => Arr::prependKeysWith(['a', 'b', 'c'], 'item_'));
 
 // ==== count on empty (CollectionTest::testCountable)
 probe('count-empty', "count([]) via Collection", fn () => ['empty' => (new Collection([]))->count(), 'nested' => (new Collection([[1, 2], [3]]))->count()]);
+// fix-round-1: "count-empty" is an emptiness check; "counts only the top level" needs its
+// own pin, on a fixture where a recursive-leaf-count bug would produce a different number.
+probe('count-nested-top-level-only', "Collection count only counts top-level items, never descends", fn () => [
+    'assoc' => (new Collection(['a' => ['b' => 1, 'c' => 2], 'd' => 3]))->count(),
+    'list' => (new Collection([[1, 2], [3]]))->count(),
+]);
 
 // ==== map: empty input and source immutability (ArrTest::testMapWithEmptyArray / testMap)
 probe('map-empty', "Arr::map([], fn(\$v) => \$v)", fn () => Arr::map([], fn ($v) => $v));
