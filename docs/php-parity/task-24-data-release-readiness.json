@@ -1189,6 +1189,13 @@
             }
         },
         {
+            "label": "intersect-scalar-backing",
+            "php": "(new Collection(5))->intersect([5])",
+            "value": [
+                5
+            ]
+        },
+        {
             "label": "diffAssoc-scalar-backing",
             "php": "(new Collection(5))->diffAssoc([1, 99, 3])",
             "value": [

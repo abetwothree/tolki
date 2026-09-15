@@ -4169,6 +4169,14 @@ describe("Data", () => {
             expect(Data.dataIntersect([1, 2], null)).toEqual([]);
             expect(Data.dataIntersect({ a: 1 }, undefined)).toEqual({});
         });
+
+        it("wraps a scalar backing as a one item list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "intersect-scalar-backing"
+            expect(Data.dataIntersect(5 as unknown as number[], [5])).toEqual([
+                5,
+            ]);
+            expect(Data.dataIntersect({ 0: 5 }, [5])).toEqual({ 0: 5 });
+        });
     });
 
     describe("dataIntersectByKeys", () => {

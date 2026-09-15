@@ -419,6 +419,7 @@ probe('replaceRecursive-list-mixed-key-replacer', "(new Collection(['a','b']))->
 // dataIntersectByKeys handed a scalar straight to arr instead of wrapping it, so they answered
 // empty. Collection wraps a scalar as a one-item list, which is what dispatch's arrWrap does.
 
+probe('intersect-scalar-backing', "(new Collection(5))->intersect([5])", fn () => (new Collection(5))->intersect([5])->all());
 probe('diffAssoc-scalar-backing', "(new Collection(5))->diffAssoc([1, 99, 3])", fn () => (new Collection(5))->diffAssoc([1, 99, 3])->all());
 probe('intersectAssoc-scalar-backing', "(new Collection(5))->intersectAssoc([5])", fn () => (new Collection(5))->intersectAssoc([5])->all());
 probe('intersectByKeys-scalar-backing', "(new Collection(5))->intersectByKeys([1])", fn () => (new Collection(5))->intersectByKeys([1])->all());
