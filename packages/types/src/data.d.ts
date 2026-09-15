@@ -1,3 +1,8 @@
+/**
+ * Data that is either a list or a keyed record. Use it for an implementation signature only:
+ * as a return type it is a union, so it can only ever be a lower bound and erases the
+ * per-shape type the `@tolki/arr` and `@tolki/obj` helpers compute.
+ */
 export type DataItems<TValue, TKey extends PropertyKey = PropertyKey> =
     | TValue[]
     | Record<TKey, TValue>;

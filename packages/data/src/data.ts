@@ -176,12 +176,13 @@ import {
     isArray,
     isFunction,
     isIterable,
-    isMap,
     isNull,
     isObject,
     isUndefined,
     phpArrayKey,
 } from "@tolki/utils";
+
+import { isKeyedData, toKeyedData } from "./dispatch";
 
 /**
  * A note on most of the `as` casts below: each function here dispatches a loose
@@ -190,24 +191,6 @@ import {
  * Widening happens at this dispatch boundary, not by loosening `obj`/`arr`'s own
  * return types. Some casts carry their own comment for a more specific reason.
  */
-
-/**
- * Determine whether the given data carries its own keys.
- *
- * Plain objects and Maps are the JavaScript equivalents of a PHP associative
- * array and are handled by the object helpers. Arrays, generators, Sets and
- * scalars are positional and are handled by the array helpers.
- *
- * @param data - The data to inspect.
- * @returns True when the data should be handled as keyed data.
- */
-function isKeyedData(data: unknown): boolean {
-    if (isMap(data)) {
-        return true;
-    }
-
-    return isObject(data) && !isIterable(data);
-}
 
 /**
  * Hand back a result built from a list backing as a list while its keys are `0..n-1`, as PHP's
@@ -245,20 +228,6 @@ function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
     // isIterable/isUndefined check, not a static narrowing), so `arrWrap`
     // has nothing to infer `TValue` from without this hint.
     return arrWrap(data as TValue);
-}
-
-/**
- * Normalize keyed data into the plain object the object helpers walk.
- *
- * @param data - The keyed data to normalize.
- * @returns The data itself when it is already a plain object, otherwise a record built from it.
- */
-function toKeyedData<TKey extends PropertyKey, TValue>(
-    data: unknown,
-): Record<TKey, TValue> {
-    // Only `obj.from` accepts a Map; every other obj helper walks with Object.entries,
-    // which yields nothing for one, so a Map must become a record before it is delegated.
-    return (isMap(data) ? objFrom(data) : data) as Record<TKey, TValue>;
 }
 
 /**
