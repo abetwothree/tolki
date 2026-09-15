@@ -175,14 +175,13 @@ import {
     entriesKeyValue,
     isArray,
     isFunction,
-    isIterable,
     isNull,
     isObject,
     isUndefined,
     phpArrayKey,
 } from "@tolki/utils";
 
-import { isKeyedData, toKeyedData } from "./dispatch";
+import { isKeyedData, toKeyedData, toPositionalData } from "./dispatch";
 
 /**
  * A note on most of the `as` casts below: each function here dispatches a loose
@@ -205,29 +204,6 @@ function listWhenIndexed<TValue>(
     return Object.keys(items).every((key, index) => key === String(index))
         ? Object.values(items)
         : items;
-}
-
-/**
- * Normalize data into something the array helpers can iterate over.
- *
- * @param data - The data to normalize.
- * @returns The data itself when it is already iterable, otherwise it wrapped in an array.
- */
-function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
-    if (isIterable<TValue>(data)) {
-        return data;
-    }
-
-    // Missing data holds nothing to walk, so it is treated like null rather
-    // than becoming a single undefined item
-    if (isUndefined(data)) {
-        return [];
-    }
-
-    // Widen: `data` is `unknown` here on purpose (it comes from a runtime
-    // isIterable/isUndefined check, not a static narrowing), so `arrWrap`
-    // has nothing to infer `TValue` from without this hint.
-    return arrWrap(data as TValue);
 }
 
 /**

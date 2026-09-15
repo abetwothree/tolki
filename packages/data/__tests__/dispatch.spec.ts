@@ -1,8 +1,13 @@
-import { collapse as arrCollapse } from "@tolki/arr";
-import { collapse as objCollapse } from "@tolki/obj";
+import { collapse as arrCollapse, first as arrFirst } from "@tolki/arr";
+import { collapse as objCollapse, first as objFirst } from "@tolki/obj";
 import { describe, expect, it } from "vitest";
 
-import { dispatch, isKeyedData, toKeyedData } from "../src/dispatch";
+import {
+    dispatch,
+    isKeyedData,
+    toKeyedData,
+    toPositionalData,
+} from "../src/dispatch";
 
 describe("dispatch", () => {
     const dCollapse = dispatch(arrCollapse, objCollapse);
@@ -26,6 +31,36 @@ describe("dispatch", () => {
     it("wraps a scalar into a list", () => {
         expect(dCollapse(5 as unknown as number[][])).toEqual(
             arrCollapse([5] as unknown as number[][]),
+        );
+    });
+});
+
+describe("dispatch with a positional normalizer", () => {
+    const dFirst = dispatch(arrFirst, objFirst, toPositionalData);
+
+    it("walks a Set's elements instead of wrapping the Set", () => {
+        expect(dFirst(new Set([7, 8]) as unknown as number[])).toBe(7);
+    });
+
+    it("treats missing data as nothing to walk", () => {
+        expect(dFirst(undefined as unknown as number[])).toBeNull();
+    });
+
+    it("still sends a record to the object helper", () => {
+        const rec = { a: 7, b: 8 };
+
+        expect(dFirst(rec)).toEqual(objFirst(rec));
+    });
+
+    it("wraps a scalar the default normalizer would also wrap", () => {
+        expect(dFirst(7 as unknown as number[])).toBe(7);
+    });
+
+    it("differs from the default normalizer on a Set", () => {
+        const set = new Set([7, 8]);
+
+        expect(dispatch(arrFirst, objFirst)(set as unknown as number[])).toBe(
+            set,
         );
     });
 });
