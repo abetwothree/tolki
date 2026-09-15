@@ -156,6 +156,28 @@ describe("Data", () => {
             expect(Data.dataBoolean([true, false], 0)).toBe(true);
             expect(Data.dataBoolean([true, false], 5)).toBe(false);
         });
+
+        it("throws when the value is not a boolean, naming the backing in the message", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "boolean-string-value", "boolean-list-int-key"
+            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
+            // object backing reports "Object value for key [...]" because @tolki/obj
+            // is the object-shaped port of the same helper.
+            expect(() =>
+                Data.dataBoolean({ string: "foo bar" }, "string"),
+            ).toThrow(
+                "Object value for key [string] must be a boolean, string found.",
+            );
+            expect(() => Data.dataBoolean(["foo bar"], 0)).toThrow(
+                "Array value for key [0] must be a boolean, string found.",
+            );
+        });
+
+        it("returns the default for a missing key instead of throwing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-missing-key-default"
+            expect(Data.dataBoolean({}, "missing", true)).toBe(true);
+            expect(Data.dataBoolean([], 0, false)).toBe(false);
+        });
     });
 
     describe("dataChunk", () => {
@@ -524,6 +546,18 @@ describe("Data", () => {
         it("is array", () => {
             const arr = [1, 2, 3, 4, 5];
             expect(Data.dataCount(arr)).toBe(5);
+        });
+
+        it("counts an empty backing as zero", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "count-empty"
+            expect(Data.dataCount({})).toBe(0);
+            expect(Data.dataCount([])).toBe(0);
+        });
+
+        it("counts only the top level, never descending into nested containers", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "count-empty"
+            expect(Data.dataCount({ a: { b: 1 }, c: 2 })).toBe(2);
+            expect(Data.dataCount([[1, 2], [3]])).toBe(2);
         });
     });
 
@@ -1052,6 +1086,25 @@ describe("Data", () => {
             const result = Data.dataFloat([1.5, 2.3], 1);
             expect(result).toBe(2.3);
         });
+
+        it("throws when the value is not a number, naming the backing in the message", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "float-string-value", "float-list-int-key"
+            expect(() =>
+                Data.dataFloat({ string: "foo bar" }, "string"),
+            ).toThrow(
+                "Object value for key [string] must be a float, string found.",
+            );
+            expect(() => Data.dataFloat(["foo bar"], 0)).toThrow(
+                "Array value for key [0] must be a float, string found.",
+            );
+        });
+
+        it("falls back to the default for a missing key", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-missing-key-default"
+            expect(Data.dataFloat({}, "missing", 1.5)).toBe(1.5);
+            expect(Data.dataFloat([], 0)).toBe(0);
+        });
     });
 
     describe("dataForget", () => {
@@ -1371,6 +1424,26 @@ describe("Data", () => {
             // Test with default value (0) - not explicitly passed
             expect(Data.dataInteger([10, 20, 30], 1)).toBe(20);
             expect(Data.dataInteger([], 0)).toBe(0);
+        });
+
+        it("throws when the value is not an integer, naming the backing in the message", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "integer-string-value", "integer-list-int-key"
+            expect(() =>
+                Data.dataInteger({ string: "foo bar" }, "string"),
+            ).toThrow(
+                "Object value for key [string] must be an integer, string found.",
+            );
+            expect(() => Data.dataInteger(["foo bar"], 0)).toThrow(
+                "Array value for key [0] must be an integer, string found.",
+            );
+        });
+
+        it("rejects a non-whole number, reporting PHP's type name for it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-float-value"
+            expect(() => Data.dataInteger({ a: 1.5 }, "a")).toThrow(
+                "Object value for key [a] must be an integer, double found.",
+            );
         });
     });
 
@@ -2393,6 +2466,17 @@ describe("Data", () => {
             // Test with default value ("") - not explicitly passed
             expect(Data.dataString(["foo", "bar"], 1)).toBe("bar");
             expect(Data.dataString([], 0)).toBe("");
+        });
+
+        it("throws when the value is not a string, naming the backing in the message", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value"
+            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            expect(() => Data.dataString({ integer: 1234 }, "integer")).toThrow(
+                "Object value for key [integer] must be a string, integer found.",
+            );
+            expect(() => Data.dataString([1234], 0)).toThrow(
+                "Array value for key [0] must be a string, integer found.",
+            );
         });
     });
 
