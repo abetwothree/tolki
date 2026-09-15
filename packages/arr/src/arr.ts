@@ -879,7 +879,7 @@ export function first<TValue, TFirstDefault = null>(
 // Overload: array type without callback
 export function first<TValue, TFirstDefault = null>(
     data: TValue[],
-    callback?: null,
+    callback?: null | undefined,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: iterable with callback for proper type inference
@@ -891,7 +891,7 @@ export function first<TValue, TFirstDefault = null>(
 // Overload: iterable without callback
 export function first<TValue, TFirstDefault = null>(
     data: Iterable<TValue>,
-    callback?: null,
+    callback?: null | undefined,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: iterable whose callback is only known as "a callback or null" —
@@ -1003,7 +1003,7 @@ export function last<TValue, TFirstDefault = null>(
 // Overload: array type without callback
 export function last<TValue, TFirstDefault = null>(
     data: TValue[],
-    callback?: null,
+    callback?: null | undefined,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: iterable with callback for proper type inference
@@ -1015,7 +1015,7 @@ export function last<TValue, TFirstDefault = null>(
 // Overload: iterable without callback
 export function last<TValue, TFirstDefault = null>(
     data: Iterable<TValue>,
-    callback?: null,
+    callback?: null | undefined,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: iterable whose callback is only known as "a callback or null" —
