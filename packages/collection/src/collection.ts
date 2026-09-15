@@ -1555,7 +1555,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 isArray(first) ||
                 (isObject(first) && first.constructor === Object)
             ) {
-                const items = this.pluck(value).all();
+                // isFunction's guard can't subtract a typed callback from the union
+                // (its constraint takes unknown[]), so re-narrow what the branch above left.
+                const items = this.pluck(value as PropertyKey).all();
 
                 return joinItems(items, glue);
             }
@@ -1855,20 +1857,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
     pluck<TPluckValue = TValue>(
-        value:
-            | string
-            | PropertyKey
-            | ((item: TValue, key: TKey) => TPluckValue),
-        key:
-            | PropertyKey
-            | ((item: TValue, key: TKey) => string | number)
-            | null = null,
+        value: string | PropertyKey | ((item: TValue) => TPluckValue),
+        key: PropertyKey | ((item: TValue) => string | number) | null = null,
     ): Collection<TPluckValue, TKey> {
         return this.newInstance(
             dataPluck(
                 this.items,
-                value as string | ((item: TValue, key: TKey) => TValue),
-                key,
+                value as string | ((item: unknown) => unknown),
+                key as string | ((item: unknown) => string | number) | null,
             ) as DataItems<TPluckValue, TKey>,
         ) as unknown as Collection<TPluckValue, TKey>;
     }
@@ -2332,9 +2328,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
-        return this.newInstance(
-            dataSelect<TValue, TKey>(this.items, keysParam),
-        );
+        return this.newInstance(dataSelect(this.items, keysParam));
     }
 
     /**
