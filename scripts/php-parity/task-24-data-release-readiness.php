@@ -288,4 +288,64 @@ probe('containsStrict-numeric-string', "(new Collection([1, 3, 5, '02']))->conta
     '2' => (new Collection([1, 3, 5, '02']))->containsStrict(2),
 ]);
 
+// ==== fix-round-1 (batch A7-A9 citation sweep): dataSort/dataSortDesc's plain-scalar object
+// test cited "sort(Desc)-rows-natural-keys", whose actual fixture is Desk/Chair rows, not
+// {c:3,a:1,b:2}. Dedicated probes for the exact scalar-object call, ascending and descending.
+probe('sort-scalar-keys', "array_keys(Arr::sort(['c'=>3,'a'=>1,'b'=>2]))", fn () => array_keys(Arr::sort(['c' => 3, 'a' => 1, 'b' => 2])));
+probe('sortDesc-scalar-keys', "array_keys(Arr::sortDesc(['c'=>3,'a'=>1,'b'=>2]))", fn () => array_keys(Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2])));
+
+// fix-round-1: "sorts rows with a closure selector and a dot-notation key" only cited the
+// no-selector natural-sort probes; the closure/dot-key/list calls it also makes need their own.
+probe('sort-rows-closure-keys', "array_keys(Arr::sort(['a'=>['name'=>'Desk'],'b'=>['name'=>'Chair']], fn(\$v)=>\$v['name']))", fn () => array_keys(Arr::sort(['a' => ['name' => 'Desk'], 'b' => ['name' => 'Chair']], fn ($v) => $v['name'])));
+probe('sort-rows-dot-key-keys', "array_keys(Arr::sort(['a'=>['meta'=>['k'=>2]],'b'=>['meta'=>['k'=>1]]], 'meta.k'))", fn () => array_keys(Arr::sort(['a' => ['meta' => ['k' => 2]], 'b' => ['meta' => ['k' => 1]]], 'meta.k')));
+probe('sort-rows-list-closure', "array_values(Arr::sort([['name'=>'Desk'],['name'=>'Chair']], fn(\$v)=>\$v['name']))", fn () => array_values(Arr::sort([['name' => 'Desk'], ['name' => 'Chair']], fn ($v) => $v['name'])));
+
+// fix-round-1: "sorts rows descending with a closure selector and a dot-notation key" also
+// makes a list-backed dot-key call the natural-sort probes above don't cover.
+probe('sortDesc-rows-list-dot-key', "array_values(Arr::sortDesc([['meta'=>['k'=>1]],['meta'=>['k'=>2]]], 'meta.k'))", fn () => array_values(Arr::sortDesc([['meta' => ['k' => 1]], ['meta' => ['k' => 2]]], 'meta.k')));
+
+// fix-round-1: "orders nested numbers descending, numerically" also asserts a list-backed
+// call; "sortRecursiveDesc-numbers" only covers the object-backed one.
+probe('sortRecursiveDesc-numbers-list', "Arr::sortRecursiveDesc([[1,9,10]])", fn () => Arr::sortRecursiveDesc([[1, 9, 10]]));
+
+// fix-round-1: "descends every level of the ArrTest fixture" uses a 3-key subset of the
+// canonical $srd literal (no numbered_index); cite the exact subset instead of the 4-key one.
+probe('sortRecursiveDesc-three-groups', "Arr::sortRecursiveDesc(['empty'=>[],'nested'=>['level1'=>['level2'=>['level3'=>[2,3,1]],'values'=>[4,5,6]]],'mixed'=>['a'=>1,2=>'b','c'=>3,1=>'d']])", fn () => Arr::sortRecursiveDesc([
+    'empty' => [],
+    'nested' => ['level1' => ['level2' => ['level3' => [2, 3, 1]], 'values' => [4, 5, 6]]],
+    'mixed' => ['a' => 1, 2 => 'b', 'c' => 3, 1 => 'd'],
+]));
+
+// fix-round-1: dataWhere's "passes the key to the callback" list-backed assertion
+// (['a','b','c'], key>0) wasn't the call "callback-key where" actually makes (that probe
+// only records key TYPES on a different fixture). This is the real call.
+probe('where-list-key-predicate', "array_values(Arr::where(['a','b','c'], fn(\$v,\$k)=>\$k>0))", fn () => array_values(Arr::where(['a', 'b', 'c'], fn ($v, $k) => $k > 0)));
+
+// fix-round-1: dataReject's "passes the key to the callback" cited "callback-key reject", a
+// key-TYPE probe on a different fixture; this is the actual ['a'=>1,'b'=>2] call it makes.
+probe('reject-key-predicate', "Arr::reject(['a'=>1,'b'=>2], fn(\$v,\$k)=>\$k==='a')", fn () => Arr::reject(['a' => 1, 'b' => 2], fn ($v, $k) => $k === 'a'));
+
+// fix-round-1: dataPartition's "passes the key to the callback" cited "callback-key
+// partition", whose callback always returns true and only records key types. This is real.
+probe('partition-key-predicate', "Arr::partition([1=>'a','x'=>'b'], fn(\$v,\$k)=>is_numeric(\$k))", fn () => Arr::partition([1 => 'a', 'x' => 'b'], fn ($v, $k) => is_numeric($k)));
+
+// fix-round-1 (Important 2 — missing array-backed siblings): dataSort's sortByMany and
+// per-key-direction tests were object-only; add the equivalent list-backed calls.
+$sbmList = [
+    ['name' => 'John', 'age' => 8, 'meta' => ['key' => 3]],
+    ['name' => 'John', 'age' => 10, 'meta' => ['key' => 5]],
+    ['name' => 'Dave', 'age' => 10, 'meta' => ['key' => 3]],
+    ['name' => 'John', 'age' => 8, 'meta' => ['key' => 2]],
+];
+probe('sortByMany-keys-list', "array_values(Arr::sort(\$sbmList, ['name','age','meta.key']))", fn () => array_values(Arr::sort($sbmList, ['name', 'age', 'meta.key'])));
+probe('sortByMany-order-list', "array_values(Arr::sort(\$sbmList, ['name',['age',false],['meta.key',true]]))", fn () => array_values(Arr::sort($sbmList, ['name', ['age', false], ['meta.key', true]])));
+
+// fix-round-1 (Important 2): dataMap's "leaves the source untouched" was object-only.
+probe('map-source-unchanged-list', "Arr::map does not mutate its list source", function () {
+    $src = [1, 2];
+    $mapped = Arr::map($src, fn ($v) => $v * 2);
+
+    return ['source' => $src, 'mapped' => $mapped];
+});
+
 emit();

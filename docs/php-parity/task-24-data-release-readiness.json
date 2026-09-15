@@ -794,6 +794,217 @@
                 "'02'": true,
                 "2": false
             }
+        },
+        {
+            "label": "sort-scalar-keys",
+            "php": "array_keys(Arr::sort(['c'=>3,'a'=>1,'b'=>2]))",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sortDesc-scalar-keys",
+            "php": "array_keys(Arr::sortDesc(['c'=>3,'a'=>1,'b'=>2]))",
+            "value": [
+                "c",
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-closure-keys",
+            "php": "array_keys(Arr::sort(['a'=>['name'=>'Desk'],'b'=>['name'=>'Chair']], fn($v)=>$v['name']))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-dot-key-keys",
+            "php": "array_keys(Arr::sort(['a'=>['meta'=>['k'=>2]],'b'=>['meta'=>['k'=>1]]], 'meta.k'))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-list-closure",
+            "php": "array_values(Arr::sort([['name'=>'Desk'],['name'=>'Chair']], fn($v)=>$v['name']))",
+            "value": [
+                {
+                    "name": "Chair"
+                },
+                {
+                    "name": "Desk"
+                }
+            ]
+        },
+        {
+            "label": "sortDesc-rows-list-dot-key",
+            "php": "array_values(Arr::sortDesc([['meta'=>['k'=>1]],['meta'=>['k'=>2]]], 'meta.k'))",
+            "value": [
+                {
+                    "meta": {
+                        "k": 2
+                    }
+                },
+                {
+                    "meta": {
+                        "k": 1
+                    }
+                }
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-numbers-list",
+            "php": "Arr::sortRecursiveDesc([[1,9,10]])",
+            "value": [
+                [
+                    10,
+                    9,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-three-groups",
+            "php": "Arr::sortRecursiveDesc(['empty'=>[],'nested'=>['level1'=>['level2'=>['level3'=>[2,3,1]],'values'=>[4,5,6]]],'mixed'=>['a'=>1,2=>'b','c'=>3,1=>'d']])",
+            "value": {
+                "nested": {
+                    "level1": {
+                        "values": [
+                            6,
+                            5,
+                            4
+                        ],
+                        "level2": {
+                            "level3": [
+                                3,
+                                2,
+                                1
+                            ]
+                        }
+                    }
+                },
+                "mixed": {
+                    "c": 3,
+                    "a": 1,
+                    "2": "b",
+                    "1": "d"
+                },
+                "empty": []
+            }
+        },
+        {
+            "label": "where-list-key-predicate",
+            "php": "array_values(Arr::where(['a','b','c'], fn($v,$k)=>$k>0))",
+            "value": [
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "reject-key-predicate",
+            "php": "Arr::reject(['a'=>1,'b'=>2], fn($v,$k)=>$k==='a')",
+            "value": {
+                "b": 2
+            }
+        },
+        {
+            "label": "partition-key-predicate",
+            "php": "Arr::partition([1=>'a','x'=>'b'], fn($v,$k)=>is_numeric($k))",
+            "value": [
+                {
+                    "1": "a"
+                },
+                {
+                    "x": "b"
+                }
+            ]
+        },
+        {
+            "label": "sortByMany-keys-list",
+            "php": "array_values(Arr::sort($sbmList, ['name','age','meta.key']))",
+            "value": [
+                {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "sortByMany-order-list",
+            "php": "array_values(Arr::sort($sbmList, ['name',['age',false],['meta.key',true]]))",
+            "value": [
+                {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            ]
+        },
+        {
+            "label": "map-source-unchanged-list",
+            "php": "Arr::map does not mutate its list source",
+            "value": {
+                "source": [
+                    1,
+                    2
+                ],
+                "mapped": [
+                    2,
+                    4
+                ]
+            }
         }
     ]
 }
