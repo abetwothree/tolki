@@ -3267,7 +3267,9 @@ describe("Arr", () => {
 
         it("should return empty array for non-accessible data", () => {
             expect(Arr.diffAssoc(null, [1, 2])).toEqual([]);
-            expect(Arr.diffAssoc("not array", [1, 2])).toEqual([]);
+            expect(
+                Arr.diffAssoc("not array" as unknown as unknown[], [1, 2]),
+            ).toEqual([]);
         });
 
         it("should return copy of data for non-accessible other", () => {
@@ -5969,7 +5971,9 @@ describe("Arr", () => {
         it("should handle non-accessible data", () => {
             expect(Arr.intersectAssoc(null, [1, 2])).toEqual([]);
             expect(Arr.intersectAssoc([1, 2], null)).toEqual([]);
-            expect(Arr.intersectAssoc("not array", [1, 2])).toEqual([]);
+            expect(
+                Arr.intersectAssoc("not array" as unknown as unknown[], [1, 2]),
+            ).toEqual([]);
             expect(Arr.intersectAssoc([1, 2], "not array")).toEqual([]);
         });
 

@@ -4116,7 +4116,7 @@ export function diff<TValue>(
     other: ArrayItems<TValue>,
 ): TValue[];
 export function diff<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     other: ArrayItems<TValue> | unknown,
 ): TValue[];
 export function diff<TValue>(
@@ -4157,7 +4157,10 @@ export function diffAssoc<TValue>(
     data: ArrayItems<TValue>,
     other: ArrayItems<TValue>,
 ): TValue[];
-export function diffAssoc(data: unknown, other: unknown): unknown[];
+export function diffAssoc(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+): unknown[];
 export function diffAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
     other: ArrayItems<TValue> | unknown,
@@ -4201,9 +4204,9 @@ export function intersect<TValue>(
     other: ArrayItems<TValue>,
     callable?: null,
 ): TValue[];
-// Overload: non-array fallback
+// Overload: untyped array or nullish fallback
 export function intersect<TValue, TOther>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     other: unknown,
     callable?: ((a: TValue, b: TOther) => boolean) | null,
 ): TValue[];
@@ -4267,8 +4270,11 @@ export function intersectAssoc<TValue>(
     data: ArrayItems<TValue>,
     other: ArrayItems<TValue>,
 ): TValue[];
-// Overload: unknown fallback
-export function intersectAssoc(data: unknown, other: unknown): unknown[];
+// Overload: untyped array or nullish fallback
+export function intersectAssoc(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+): unknown[];
 // Implementation
 export function intersectAssoc<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -4321,7 +4327,7 @@ export function intersectAssocUsing<TValue>(
 ): TValue[];
 // Overload: a keyed operand (object, Map, Collection-like) can hand the callback a string key
 export function intersectAssocUsing<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     other: unknown,
     callback: (keyA: number, keyB: number | string) => boolean,
 ): TValue[];
@@ -4365,7 +4371,7 @@ export function intersectByKeys<TValue>(
     other: ArrayItems<unknown>,
 ): TValue[];
 export function intersectByKeys<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     other: ArrayItems<TValue> | unknown,
 ): TValue[];
 export function intersectByKeys<TValue>(
