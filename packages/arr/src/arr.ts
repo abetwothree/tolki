@@ -2553,8 +2553,8 @@ export function pull<TValue, TDefault = null>(
  */
 // Overload: typed array → query string
 export function query<TValue>(data: ArrayItems<TValue>): string;
-// Overload: unknown fallback
-export function query(data: unknown): string;
+// Overload: untyped array or nullish fallback
+export function query(data: readonly unknown[] | null | undefined): string;
 // Implementation
 export function query(data: unknown): string {
     if (isNull(data) || isUndefined(data)) {
@@ -3459,13 +3459,11 @@ export function string<TValue, TDefault = null>(
  * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); -> 'font-bold mt-4 ml-2'
  * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
  */
-// Overload: typed array or record → CSS class string
-export function toCssClasses<TValue>(
-    data: ArrayItems<TValue> | Record<string, TValue>,
-): string;
-// Overload: unknown fallback
+// Overload: typed array → CSS class string
+export function toCssClasses<TValue>(data: ArrayItems<TValue>): string;
+// Overload: untyped array or nullish fallback
 export function toCssClasses(
-    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
+    data: readonly unknown[] | null | undefined,
 ): string;
 // Implementation
 export function toCssClasses(
@@ -3518,13 +3516,11 @@ export function toCssClasses(
  * toCssStyles(['font-weight: bold', 'margin-top: 4px']); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); -> 'font-weight: bold; margin-left: 2px;'
  */
-// Overload: typed array or record → CSS style string
-export function toCssStyles<TValue>(
-    data: ArrayItems<TValue> | Record<string, TValue>,
-): string;
-// Overload: unknown fallback
+// Overload: typed array → CSS style string
+export function toCssStyles<TValue>(data: ArrayItems<TValue>): string;
+// Overload: untyped array or nullish fallback
 export function toCssStyles(
-    data: ArrayItems<unknown> | Record<string, unknown> | unknown,
+    data: readonly unknown[] | null | undefined,
 ): string;
 // Implementation
 export function toCssStyles(

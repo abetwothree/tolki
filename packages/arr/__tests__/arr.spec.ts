@@ -15,6 +15,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
 /**
+ * Route a keyed value into an arr helper whose rows are array-only.
+ *
+ * The shape-agnostic helpers (query, toCssClasses, toCssStyles) still walk a
+ * plain object at runtime, but their rows are array-shaped so `data`'s dispatch
+ * can hand keyed data to obj; these parity cases keep the runtime pinned.
+ *
+ * @param data - The keyed value under test.
+ * @returns The same value, typed as the array shape the rows accept.
+ */
+const keyed = (data: object): unknown[] => data as unknown as unknown[];
+
+/**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
 class Point {
@@ -4215,7 +4227,7 @@ describe("Arr", () => {
     describe("query", () => {
         it("query", () => {
             // Basic object
-            expect(Arr.query({ name: "John", age: 30 })).toBe(
+            expect(Arr.query(keyed({ name: "John", age: 30 }))).toBe(
                 "name=John&age=30",
             );
 
@@ -4223,22 +4235,24 @@ describe("Arr", () => {
             expect(Arr.query(["a", "b", "c"])).toBe("0=a&1=b&2=c");
 
             // Nested object
-            expect(Arr.query({ user: { name: "John", age: 30 } })).toBe(
+            expect(Arr.query(keyed({ user: { name: "John", age: 30 } }))).toBe(
                 "user[name]=John&user[age]=30",
             );
 
             // Array with nested arrays
-            expect(Arr.query({ tags: ["php", "js"] })).toBe(
+            expect(Arr.query(keyed({ tags: ["php", "js"] }))).toBe(
                 "tags[0]=php&tags[1]=js",
             );
 
             // Empty values are skipped
             expect(
-                Arr.query({ name: "John", empty: null, undefined: undefined }),
+                Arr.query(
+                    keyed({ name: "John", empty: null, undefined: undefined }),
+                ),
             ).toBe("name=John");
 
             // Empty object/array
-            expect(Arr.query({})).toBe("");
+            expect(Arr.query(keyed({}))).toBe("");
             expect(Arr.query([])).toBe("");
 
             // Null/undefined input
@@ -4246,23 +4260,27 @@ describe("Arr", () => {
             expect(Arr.query(undefined)).toBe("");
 
             // Special characters are encoded
-            expect(Arr.query({ "special chars": "hello world & more" })).toBe(
-                "special%20chars=hello%20world%20%26%20more",
-            );
+            expect(
+                Arr.query(keyed({ "special chars": "hello world & more" })),
+            ).toBe("special%20chars=hello%20world%20%26%20more");
 
             // Scalar value
-            expect(Arr.query("scalar")).toBe("0=scalar");
-            expect(Arr.query(42)).toBe("0=42");
+            expect(Arr.query("scalar" as unknown as unknown[])).toBe(
+                "0=scalar",
+            );
+            expect(Arr.query(42 as unknown as unknown[])).toBe("0=42");
 
             // Complex nested structure
             expect(
-                Arr.query({
-                    simple: "value",
-                    nested: {
-                        array: [1, 2],
-                        deep: { value: "test" },
-                    },
-                }),
+                Arr.query(
+                    keyed({
+                        simple: "value",
+                        nested: {
+                            array: [1, 2],
+                            deep: { value: "test" },
+                        },
+                    }),
+                ),
             ).toBe(
                 "simple=value&nested[array][0]=1&nested[array][1]=2&nested[deep][value]=test",
             );
@@ -4285,7 +4303,7 @@ describe("Arr", () => {
                 },
             };
 
-            const result = Arr.query(data);
+            const result = Arr.query(keyed(data));
             expect(result).toContain("user[name]=John");
             expect(result).toContain("user[meta][age]=30");
         });
@@ -4307,21 +4325,27 @@ describe("Arr", () => {
         it("casts booleans, drops null, and keeps empty strings like Laravel's http_build_query", () => {
             // Ported from Laravel's testQuery
             expect(Arr.query([])).toBe("");
-            expect(Arr.query({ foo: "bar" })).toBe("foo=bar");
-            expect(Arr.query({ foo: "bar", bar: "baz" })).toBe(
+            expect(Arr.query(keyed({ foo: "bar" }))).toBe("foo=bar");
+            expect(Arr.query(keyed({ foo: "bar", bar: "baz" }))).toBe(
                 "foo=bar&bar=baz",
             );
 
             // PHP's http_build_query casts true to "1" and false to "0", captured in
             // docs/php-parity/task-08-arr-parity.json.
-            expect(Arr.query({ foo: "bar", bar: true })).toBe("foo=bar&bar=1");
-            expect(Arr.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=0");
+            expect(Arr.query(keyed({ foo: "bar", bar: true }))).toBe(
+                "foo=bar&bar=1",
+            );
+            expect(Arr.query(keyed({ foo: "bar", bar: false }))).toBe(
+                "foo=bar&bar=0",
+            );
 
             // null values are dropped entirely, not rendered as "bar="
-            expect(Arr.query({ foo: "bar", bar: null })).toBe("foo=bar");
+            expect(Arr.query(keyed({ foo: "bar", bar: null }))).toBe("foo=bar");
 
             // empty strings are retained as an empty value
-            expect(Arr.query({ foo: "bar", bar: "" })).toBe("foo=bar&bar=");
+            expect(Arr.query(keyed({ foo: "bar", bar: "" }))).toBe(
+                "foo=bar&bar=",
+            );
         });
     });
 
@@ -5169,52 +5193,60 @@ describe("Arr", () => {
 
             // Mixed array with conditional classes
             expect(
-                Arr.toCssClasses({
-                    "font-bold": true,
-                    "mt-4": true,
-                    "ml-2": true,
-                    "mr-2": false,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": true,
+                        "mt-4": true,
+                        "ml-2": true,
+                        "mr-2": false,
+                    }),
+                ),
             ).toBe("font-bold mt-4 ml-2");
 
             // Object-only with conditional keys
             expect(
-                Arr.toCssClasses({
-                    "font-bold": true,
-                    "mt-4": true,
-                    "ml-2": true,
-                    "mr-2": false,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": true,
+                        "mt-4": true,
+                        "ml-2": true,
+                        "mr-2": false,
+                    }),
+                ),
             ).toBe("font-bold mt-4 ml-2");
 
             // Empty cases
             expect(Arr.toCssClasses([])).toBe("");
-            expect(Arr.toCssClasses({})).toBe("");
+            expect(Arr.toCssClasses(keyed({}))).toBe("");
             expect(Arr.toCssClasses(null)).toBe("");
             expect(Arr.toCssClasses(undefined)).toBe("");
 
             // Object with all false values
             expect(
-                Arr.toCssClasses({
-                    "font-bold": false,
-                    "mt-4": false,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": false,
+                        "mt-4": false,
+                    }),
+                ),
             ).toBe("");
 
             // Complex nested object (should be flattened by wrap)
             expect(
-                Arr.toCssClasses({
-                    "font-bold": true,
-                    "text-red": false,
-                    "bg-blue": true,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": true,
+                        "text-red": false,
+                        "bg-blue": true,
+                    }),
+                ),
             ).toBe("font-bold bg-blue");
         });
 
         it("should handle plain object input", () => {
             // Tests isObject branch
             const obj = { "font-bold": true, "text-red": false };
-            expect(Arr.toCssClasses(obj)).toBe("font-bold");
+            expect(Arr.toCssClasses(keyed(obj))).toBe("font-bold");
         });
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
@@ -5249,11 +5281,13 @@ describe("Arr", () => {
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
             // Captured: docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
             // with is_numeric edge-case keys").
-            expect(Arr.toCssClasses({ "": "foo" })).toBe("");
-            expect(Arr.toCssClasses({ " ": "foo" })).toBe(" ");
-            expect(Arr.toCssClasses({ "0x10": "foo" })).toBe("0x10");
-            expect(Arr.toCssClasses({ "1e3": "foo" })).toBe("foo");
-            expect(Arr.toCssClasses({ Infinity: "foo" })).toBe("Infinity");
+            expect(Arr.toCssClasses(keyed({ "": "foo" }))).toBe("");
+            expect(Arr.toCssClasses(keyed({ " ": "foo" }))).toBe(" ");
+            expect(Arr.toCssClasses(keyed({ "0x10": "foo" }))).toBe("0x10");
+            expect(Arr.toCssClasses(keyed({ "1e3": "foo" }))).toBe("foo");
+            expect(Arr.toCssClasses(keyed({ Infinity: "foo" }))).toBe(
+                "Infinity",
+            );
         });
 
         it.each([
@@ -5263,14 +5297,14 @@ describe("Arr", () => {
         ])("applies PHP truthiness to the value %s", (value, expected) => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssClasses({ foo: value })).toBe(expected);
+            expect(Arr.toCssClasses(keyed({ foo: value }))).toBe(expected);
         });
 
         it("drops an empty container value", () => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssClasses({ foo: [] })).toBe("");
-            expect(Arr.toCssClasses({ foo: {} })).toBe("");
+            expect(Arr.toCssClasses(keyed({ foo: [] }))).toBe("");
+            expect(Arr.toCssClasses(keyed({ foo: {} }))).toBe("");
         });
     });
 
@@ -5288,26 +5322,30 @@ describe("Arr", () => {
 
             // Mixed array with conditional styles
             expect(
-                Arr.toCssStyles({
-                    "font-weight: bold": true,
-                    "margin-top: 4px": true,
-                    "margin-left: 2px": true,
-                    "margin-right: 2px": false,
-                }),
+                Arr.toCssStyles(
+                    keyed({
+                        "font-weight: bold": true,
+                        "margin-top: 4px": true,
+                        "margin-left: 2px": true,
+                        "margin-right: 2px": false,
+                    }),
+                ),
             ).toBe("font-weight: bold; margin-top: 4px; margin-left: 2px;");
 
             // Empty cases
             expect(Arr.toCssStyles([])).toBe("");
-            expect(Arr.toCssStyles({})).toBe("");
+            expect(Arr.toCssStyles(keyed({}))).toBe("");
             expect(Arr.toCssStyles(null)).toBe("");
             expect(Arr.toCssStyles(undefined)).toBe("");
 
             // Object with all false values
             expect(
-                Arr.toCssStyles({
-                    "font-weight: bold": false,
-                    "margin-top: 4px": false,
-                }),
+                Arr.toCssStyles(
+                    keyed({
+                        "font-weight: bold": false,
+                        "margin-top: 4px": false,
+                    }),
+                ),
             ).toBe("");
 
             // Styles already ending with semicolon should not get double semicolons
@@ -5322,7 +5360,7 @@ describe("Arr", () => {
                 "font-weight: bold": true,
                 "color: red": false,
             };
-            expect(Arr.toCssStyles(obj)).toBe("font-weight: bold;");
+            expect(Arr.toCssStyles(keyed(obj))).toBe("font-weight: bold;");
         });
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
@@ -5359,11 +5397,13 @@ describe("Arr", () => {
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
             // docs/php-parity/task-08-arr-parity.json
             // ("Arr::toCssStyles with is_numeric edge-case keys").
-            expect(Arr.toCssStyles({ "": "foo" })).toBe(";");
-            expect(Arr.toCssStyles({ " ": "foo" })).toBe(" ;");
-            expect(Arr.toCssStyles({ "0x10": "foo" })).toBe("0x10;");
-            expect(Arr.toCssStyles({ "1e3": "foo" })).toBe("foo;");
-            expect(Arr.toCssStyles({ Infinity: "foo" })).toBe("Infinity;");
+            expect(Arr.toCssStyles(keyed({ "": "foo" }))).toBe(";");
+            expect(Arr.toCssStyles(keyed({ " ": "foo" }))).toBe(" ;");
+            expect(Arr.toCssStyles(keyed({ "0x10": "foo" }))).toBe("0x10;");
+            expect(Arr.toCssStyles(keyed({ "1e3": "foo" }))).toBe("foo;");
+            expect(Arr.toCssStyles(keyed({ Infinity: "foo" }))).toBe(
+                "Infinity;",
+            );
         });
 
         it.each([
@@ -5373,14 +5413,14 @@ describe("Arr", () => {
         ])("applies PHP truthiness to the value %s", (value, expected) => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssStyles({ foo: value })).toBe(expected);
+            expect(Arr.toCssStyles(keyed({ foo: value }))).toBe(expected);
         });
 
         it("drops an empty container value", () => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssStyles({ foo: [] })).toBe("");
-            expect(Arr.toCssStyles({ foo: {} })).toBe("");
+            expect(Arr.toCssStyles(keyed({ foo: [] }))).toBe("");
+            expect(Arr.toCssStyles(keyed({ foo: {} }))).toBe("");
         });
     });
 

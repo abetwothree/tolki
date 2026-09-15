@@ -5288,7 +5288,9 @@ describe("Data", () => {
         });
 
         it("query casts booleans to 1 and 0", () => {
-            expect(Arr.query({ a: true, b: false })).toBe("a=1&b=0");
+            // arr keeps the array backing: its rows no longer take a plain
+            // object, so the keyed case belongs to obj.
+            expect(Arr.query([true, false])).toBe("0=1&1=0");
             expect(Obj.query({ a: true, b: false })).toBe("a=1&b=0");
             expect(Arr.query(["a", "b"])).toBe("0=a&1=b");
             expect(Obj.query({ 0: "a", 1: "b" })).toBe("0=a&1=b");
