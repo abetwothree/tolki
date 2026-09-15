@@ -1189,6 +1189,27 @@
             }
         },
         {
+            "label": "diffAssoc-scalar-backing",
+            "php": "(new Collection(5))->diffAssoc([1, 99, 3])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "intersectAssoc-scalar-backing",
+            "php": "(new Collection(5))->intersectAssoc([5])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "intersectByKeys-scalar-backing",
+            "php": "(new Collection(5))->intersectByKeys([1])",
+            "value": [
+                5
+            ]
+        },
+        {
             "label": "integer-list-missing-index-with-default",
             "php": "Arr::integer([], 0, 5)",
             "value": 5

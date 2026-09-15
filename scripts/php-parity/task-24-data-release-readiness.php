@@ -415,6 +415,14 @@ probe('replaceRecursive-list-string-key-replacer', "(new Collection(['a','b','c'
 probe('replaceRecursive-list-sparse-replacer', "(new Collection(['a']))->replaceRecursive([3 => 'd'])", fn () => (new Collection(['a']))->replaceRecursive([3 => 'd'])->all());
 probe('replaceRecursive-list-mixed-key-replacer', "(new Collection(['a','b']))->replaceRecursive([1 => 'z', 'k' => 'x'])", fn () => (new Collection(['a', 'b']))->replaceRecursive([1 => 'z', 'k' => 'x'])->all());
 
+// ==== C10: a scalar backing on the key-aware setops. dataDiffAssoc, dataIntersectAssoc and
+// dataIntersectByKeys handed a scalar straight to arr instead of wrapping it, so they answered
+// empty. Collection wraps a scalar as a one-item list, which is what dispatch's arrWrap does.
+
+probe('diffAssoc-scalar-backing', "(new Collection(5))->diffAssoc([1, 99, 3])", fn () => (new Collection(5))->diffAssoc([1, 99, 3])->all());
+probe('intersectAssoc-scalar-backing', "(new Collection(5))->intersectAssoc([5])", fn () => (new Collection(5))->intersectAssoc([5])->all());
+probe('intersectByKeys-scalar-backing', "(new Collection(5))->intersectByKeys([1])", fn () => (new Collection(5))->intersectByKeys([1])->all());
+
 // ==== Carried in: data.spec.ts asserted dataInteger([], 0, 5) === 5 with no citation.
 // Arr::integer defaults to null and throws on a missing key, but an explicit default is returned.
 probe('integer-list-missing-index-with-default', "Arr::integer([], 0, 5)", fn () => Arr::integer([], 0, 5));
