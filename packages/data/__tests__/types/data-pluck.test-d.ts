@@ -156,19 +156,24 @@ describe("data pluck type tests", () => {
     });
 
     describe("the DataItems union, the package's own canonical input", () => {
-        it("answers dataPluck from obj, and still covers the list half", () => {
+        it("answers dataPluck from obj's rejects-first row, covering neither backing", () => {
+            // The union's `Row[]` arm matches obj's `NonObjectItems` row, so the answer is
+            // `never[]` — narrower than either backing really returns.
             const declared = Data.dataPluck(unionRows, "name");
             expectTypeOf(declared).toEqualTypeOf(Obj.pluck(unionRows, "name"));
-            // Standing control: obj's rejects-first row answers `never[]` for a union, so
-            // arr's real list answer is NOT assignable. Delete this once obj stops rejecting one.
+            // Standing control: fails the day obj stops rejecting a union outright.
             expectTypeOf(Arr.pluck(rowList, "name")).not.toExtend<
                 typeof declared
             >();
         });
 
-        it("answers dataSelect from obj, and still covers the list half", () => {
+        it("answers dataSelect from obj, covering only its own list arm", () => {
+            // obj's mapped row distributes, so the union answers a union of both shapes —
+            // but arr's own answer for a list of interfaces is `Record<string, unknown>[]`,
+            // which is not one of them.
             const declared = Data.dataSelect(unionRows, "name");
             expectTypeOf(declared).toEqualTypeOf(Obj.select(unionRows, "name"));
+            // Standing control: fails the day arr types a list of interface rows.
             expectTypeOf(Arr.select(rowList, "name")).not.toExtend<
                 typeof declared
             >();
