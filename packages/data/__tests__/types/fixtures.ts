@@ -78,3 +78,15 @@ export const rowsById: Record<"r1" | "r2", Row> = {
 
 /** The canonical union at the shape keyBy needs: rows rather than scalars. */
 export const unionRows: DataItems<Row, "r1" | "r2"> = rowList;
+
+/** A list of pairs: the tuple shape `mapSpread`'s typed arr rows are written for. */
+export const pairList: [number, string][] = [
+    [1, "Ada"],
+    [2, "Grace"],
+];
+
+/** A record of pairs, so `mapSpread`'s keyed backing has the same tuple shape. */
+export const pairsById: Record<"p1" | "p2", [number, string]> = {
+    p1: [1, "Ada"],
+    p2: [2, "Grace"],
+};

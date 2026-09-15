@@ -1990,7 +1990,7 @@ describe("Data", () => {
             });
         });
         it("is array", () => {
-            const data = [
+            const data: [number, number][] = [
                 [1, 2],
                 [3, 4],
             ];
@@ -3181,10 +3181,7 @@ describe("Data", () => {
             ).toEqual({ 10: 1, 20: 2 });
             // docs/php-parity/task-24-data-release-readiness.json, "where-list-key-predicate"
             expect(
-                Data.dataWhere<string, number>(
-                    ["a", "b", "c"],
-                    (_value, key) => key > 0,
-                ),
+                Data.dataWhere(["a", "b", "c"], (_value, key) => key > 0),
             ).toEqual(["b", "c"]);
         });
     });
@@ -6067,11 +6064,12 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataMapSpread maps a Map like the record it mirrors", () => {
-            // Task C5 (mapping family) converts this to dispatch().
-            const callback = (a: number, b: number): number => a + b;
-            expect(Data.dataMapSpread(pairMap, callback)).toEqual(
-                Data.dataMapSpread(pairRecord, callback),
+        it("dataMapSpread maps a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown` args.
+            expect(
+                Data.dataMapSpread(pairMap, (a, b) => Number(a) + Number(b)),
+            ).toEqual(
+                Data.dataMapSpread(pairRecord, (a, b) => Number(a) + Number(b)),
             );
         });
 
@@ -6280,8 +6278,7 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataWhere filters a Map like the record it mirrors", () => {
-            // Task C5 (mapping family) converts this to dispatch().
+        it("dataWhere filters a Map like the record it mirrors", () => {
             expect(
                 Data.dataWhere(
                     asMap as unknown as Record<string, number>,
@@ -6316,8 +6313,7 @@ describe("Data", () => {
             ).toEqual(Data.dataReplaceRecursive(looseRecord, replacer));
         });
 
-        it.fails("dataReject filters a Map like the record it mirrors", () => {
-            // Task C5 (mapping family) converts this to dispatch().
+        it("dataReject filters a Map like the record it mirrors", () => {
             expect(
                 Data.dataReject(
                     asMap as unknown as Record<string, number>,
@@ -6343,28 +6339,20 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataPartition partitions a Map like the record it mirrors",
-            () => {
-                // Task C5 (mapping family) converts this to dispatch().
-                expect(
-                    Data.dataPartition(
-                        asMap as unknown as Record<string, number>,
-                        (value) => value > 1,
-                    ),
-                ).toEqual(Data.dataPartition(asRecord, (value) => value > 1));
-            },
-        );
+        it("dataPartition partitions a Map like the record it mirrors", () => {
+            expect(
+                Data.dataPartition(
+                    asMap as unknown as Record<string, number>,
+                    (value) => value > 1,
+                ),
+            ).toEqual(Data.dataPartition(asRecord, (value) => value > 1));
+        });
 
-        it.fails(
-            "dataWhereNotNull filters a Map like the record it mirrors",
-            () => {
-                // Task C5 (mapping family) converts this to dispatch().
-                expect(Data.dataWhereNotNull(nullableMap)).toEqual(
-                    Data.dataWhereNotNull(nullableRecord),
-                );
-            },
-        );
+        it("dataWhereNotNull filters a Map like the record it mirrors", () => {
+            expect(Data.dataWhereNotNull(nullableMap)).toEqual(
+                Data.dataWhereNotNull(nullableRecord),
+            );
+        });
 
         it("dataValues reads a Map's values like the record it mirrors", () => {
             expect(Data.dataValues(asMap)).toEqual(Data.dataValues(asRecord));
@@ -6374,8 +6362,7 @@ describe("Data", () => {
             expect(Data.dataKeys(asMap)).toEqual(Data.dataKeys(asRecord));
         });
 
-        it.fails("dataFilter filters a Map like the record it mirrors", () => {
-            // Task C5 (mapping family) converts this to dispatch().
+        it("dataFilter filters a Map like the record it mirrors", () => {
             expect(
                 Data.dataFilter(
                     asMap as unknown as Record<string, number>,
@@ -6384,8 +6371,7 @@ describe("Data", () => {
             ).toEqual(Data.dataFilter(asRecord, (value) => value > 1));
         });
 
-        it.fails("dataMap maps a Map like the record it mirrors", () => {
-            // Task C5 (mapping family) converts this to dispatch().
+        it("dataMap maps a Map like the record it mirrors", () => {
             expect(
                 Data.dataMap(
                     asMap as unknown as Record<string, number>,

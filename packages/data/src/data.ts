@@ -1305,26 +1305,13 @@ export function dataMapWithKeys<
  *
  * @param data - The data to map
  * @param callback - The mapping callback
- * @returns Mapped data
+ * @returns Mapped data, matching the delegate's own result
  *
  * @example
  *
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
  */
-
-// `any[]` here is intentional: `dataMapSpread` exists so callers can write a
-// callback whose parameters are concrete types; `unknown[]` would reject that
-// (TS2469/18046). Standard TypeScript escape, invisible to callers.
-export function dataMapSpread<U>(
-    data: unknown,
-    callback: (...args: any[]) => U,
-): unknown {
-    if (isObject(data)) {
-        return objMapSpread(data, callback);
-    }
-
-    return arrMapSpread(arrWrap(data), callback);
-}
+export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
 
 /**
  * Prepend a value to data.
@@ -1971,30 +1958,14 @@ export function dataToCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The data to filter
  * @param callback - The test function
- * @returns Filtered data
+ * @returns Filtered data, matching the delegate's own result
  *
  * @example
  *
  * dataWhere([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
  * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); -> {b: 2, c: 3}
  */
-export function dataWhere<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objWhere(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => boolean,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrWhere(
-        arrWrap(data),
-        callback as (value: TValue, index: number) => boolean,
-    ) as DataItems<TValue>;
-}
+export const dataWhere = dispatch(arrWhere, objWhere);
 
 /**
  * Replace the data items with the given items.
@@ -2074,30 +2045,14 @@ export function dataReplaceRecursive<
  *
  * @param data - The data to filter
  * @param callback - The test function
- * @returns Filtered data (rejected items)
+ * @returns Filtered data (rejected items), matching the delegate's own result
  *
  * @example
  *
  * dataReject([1, 2, 3, 4], (value) => value > 2); -> [1, 2]
  * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); -> {a: 1}
  */
-export function dataReject<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objReject(
-            data as Record<string, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => boolean,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrReject(
-        arrWrap(data),
-        callback as (value: TValue, index: number) => boolean,
-    ) as DataItems<TValue>;
-}
+export const dataReject = dispatch(arrReject, objReject);
 
 /**
  * Reverse the data items.
@@ -2147,59 +2102,27 @@ export function dataPad<
  *
  * @param data - The data to partition
  * @param callback - The test function
- * @returns Array with two groups: [passing, failing]
+ * @returns Array with two groups: [passing, failing], matching the delegate's own result
  *
  * @example
  *
  * dataPartition([1, 2, 3, 4], (value) => value > 2); -> [[3, 4], [1, 2]]
  * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); -> [{b: 2, c: 3}, {a: 1}]
  */
-export function dataPartition<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => boolean,
-): [DataItems<TValue, TKey>, DataItems<TValue, TKey>] {
-    if (isObject(data)) {
-        const [passing, failing] = objPartition(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => boolean,
-        );
-        return [
-            passing as DataItems<TValue, TKey>,
-            failing as DataItems<TValue, TKey>,
-        ];
-    }
-
-    const [passing, failing] = arrPartition(
-        arrWrap(data),
-        callback as (value: TValue, index: number) => boolean,
-    );
-    return [passing as DataItems<TValue>, failing as DataItems<TValue>];
-}
+export const dataPartition = dispatch(arrPartition, objPartition);
 
 /**
  * Filter out null values from data.
  *
  * @param data - The data to filter
- * @returns Data with null values removed
+ * @returns Data with null values removed, matching the delegate's own result
  *
  * @example
  *
  * dataWhereNotNull([1, null, 2, null, 3]); -> [1, 2, 3]
  * dataWhereNotNull({a: 1, b: null, c: 2}); -> {a: 1, c: 2}
  */
-export function dataWhereNotNull<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue | null, TKey>): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objWhereNotNull(
-            data as Record<TKey, TValue | null>,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrWhereNotNull(arrWrap(data)) as DataItems<TValue>;
-}
+export const dataWhereNotNull = dispatch(arrWhereNotNull, objWhereNotNull);
 
 /**
  * Get all values from data (array or object).
@@ -2232,66 +2155,28 @@ export const dataKeys = dispatch(arrKeys, objKeys);
  *
  * @param data - The data to filter
  * @param callback - The callback function to test each value
- * @returns Filtered data maintaining original structure for objects, new array for arrays
+ * @returns Filtered data, matching the delegate's own result
  *
  * @example
  *
  * Data.filter([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
  * Data.filter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
  */
-export function dataFilter<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objFilter(
-            data as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as
-                | ((value: unknown, key: string | number) => boolean)
-                | null,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrFilter(
-        arrWrap(data),
-        callback as (value: TValue, index: number) => boolean,
-    ) as DataItems<TValue>;
-}
+export const dataFilter = dispatch(arrFilter, objFilter);
 
 /**
  * Transform data using a callback function.
  *
  * @param data - The data to map
  * @param callback - The callback function to transform each value
- * @returns Transformed data maintaining original structure
+ * @returns Transformed data, matching the delegate's own result
  *
  * @example
  *
  * dataMap([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
  * dataMap({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
  */
-export function dataMap<
-    TMapValue,
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    callback: (value: TValue, key: TKey) => TMapValue,
-): DataItems<TMapValue, TKey> {
-    if (isObject(data)) {
-        return objMap(
-            data as Record<string, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (value: TValue, key: string | number) => TMapValue,
-        ) as DataItems<TMapValue, TKey>;
-    }
-
-    return arrMap(
-        arrWrap(data),
-        callback as (value: TValue, index: number) => TMapValue,
-    ) as DataItems<TMapValue, TKey>;
-}
+export const dataMap = dispatch(arrMap, objMap);
 
 /**
  * Get the first value from data that passes a test.
