@@ -181,7 +181,12 @@ import {
     phpArrayKey,
 } from "@tolki/utils";
 
-import { isKeyedData, toKeyedData, toPositionalData } from "./dispatch";
+import {
+    dispatch,
+    isKeyedData,
+    toKeyedData,
+    toPositionalData,
+} from "./dispatch";
 
 /**
  * A note on most of the `as` casts below: each function here dispatches a loose
@@ -596,22 +601,14 @@ export function dataCrossJoin(data: unknown, ...others: unknown[]): unknown[] {
  * Divide data into keys and values.
  *
  * @param data - The data to divide
- * @returns Array with keys and values
+ * @returns Array with keys and values, matching the delegate's own result
  *
  * @example
  *
  * dataDivide([1, 2, 3]); -> [[0, 1, 2], [1, 2, 3]]
  * dataDivide({a: 1, b: 2}); -> [['a', 'b'], [1, 2]]
  */
-export function dataDivide<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): [unknown[], unknown[]] {
-    if (isObject(data)) {
-        return objDivide(data);
-    }
-
-    return arrDivide(arrWrap(data));
-}
+export const dataDivide = dispatch(arrDivide, objDivide);
 
 /**
  * Convert data to dot notation.
@@ -896,7 +893,7 @@ export function dataForget<TValue, TKey extends PropertyKey = PropertyKey>(
  * Create data from various item types.
  *
  * @param items - The items to create data from
- * @returns Data created from items
+ * @returns Data created from items, matching the delegate's own result
  *
  * @example
  *
@@ -905,14 +902,9 @@ export function dataForget<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataFrom(new Map([['a', 1]])); -> {a: 1}
  * dataFrom(new Set([1, 2])); -> [1, 2]
  */
-export function dataFrom(items: unknown): unknown[] | Record<string, unknown> {
-    if (isKeyedData(items)) {
-        return objFrom(items as Record<string, unknown>);
-    }
-
-    // arrFrom's rows are array-shaped; keyed items already went to objFrom above.
-    return arrFrom(items as readonly unknown[]);
-}
+// `arr.from` is itself the normalizer — it walks Maps, Sets and generators and rejects
+// scalars — so normalizing before it would swallow its own guard.
+export const dataFrom = dispatch(arrFrom, objFrom, (items) => items);
 
 /**
  * Get a value from data by key.
@@ -2260,43 +2252,27 @@ export function dataWhereNotNull<
  * Get all values from data (array or object).
  *
  * @param data - The data to get values from
- * @returns Array of all values
+ * @returns Array of all values, matching the delegate's own result
  *
  * @example
  *
  * Data.values([1, 2, 3]); -> [1, 2, 3]
  * Data.values({a: 1, b: 2, c: 3}); -> [1, 2, 3]
  */
-export function dataValues<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): TValue[] {
-    if (isObject(data)) {
-        return objValues(data);
-    }
-
-    return arrValues(arrWrap(data));
-}
+export const dataValues = dispatch(arrValues, objValues);
 
 /**
  * Get all keys from data (array or object).
  *
  * @param data - The data to get keys from
- * @returns Array of all keys
+ * @returns Array of all keys, matching the delegate's own result
  *
  * @example
  *
  * Data.keys([1, 2, 3]); -> [0, 1, 2]
  * Data.keys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
  */
-export function dataKeys<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-): (string | number)[] {
-    if (isObject(data)) {
-        return objKeys(data);
-    }
-
-    return arrKeys(arrWrap(data));
-}
+export const dataKeys = dispatch(arrKeys, objKeys);
 
 /**
  * Filter data using a callback function.

@@ -6,6 +6,9 @@
 /** A list backing: the arr delegate's shape. */
 export const numberList = [1, 2, 3];
 
+/** A read-only list backing: `TValue[]` rejects it, `ArrayItems<TValue>` accepts it. */
+export const readonlyNumberList: readonly number[] = [1, 2, 3];
+
 /** A keyed backing: the obj delegate's shape, with literal keys. */
 export const abc = { a: 1, b: 2, c: 3 };
 

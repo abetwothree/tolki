@@ -5848,8 +5848,7 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataDivide divides a Map like the record it mirrors", () => {
-            // Task C2 (foundation family) converts this to dispatch().
+        it("dataDivide divides a Map like the record it mirrors", () => {
             expect(Data.dataDivide(asMap)).toEqual(Data.dataDivide(asRecord));
         });
 
@@ -6378,23 +6377,13 @@ describe("Data", () => {
             },
         );
 
-        it.fails(
-            "dataValues reads a Map's values like the record it mirrors",
-            () => {
-                // Task C2 (foundation family) converts this to dispatch().
-                expect(Data.dataValues(asMap)).toEqual(
-                    Data.dataValues(asRecord),
-                );
-            },
-        );
+        it("dataValues reads a Map's values like the record it mirrors", () => {
+            expect(Data.dataValues(asMap)).toEqual(Data.dataValues(asRecord));
+        });
 
-        it.fails(
-            "dataKeys reads a Map's keys like the record it mirrors",
-            () => {
-                // Task C2 (foundation family) converts this to dispatch().
-                expect(Data.dataKeys(asMap)).toEqual(Data.dataKeys(asRecord));
-            },
-        );
+        it("dataKeys reads a Map's keys like the record it mirrors", () => {
+            expect(Data.dataKeys(asMap)).toEqual(Data.dataKeys(asRecord));
+        });
 
         it.fails("dataFilter filters a Map like the record it mirrors", () => {
             // Task C5 (mapping family) converts this to dispatch().
