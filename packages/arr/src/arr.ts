@@ -568,7 +568,7 @@ export function dot<TValue>(
     depth: number,
 ): Record<string, TValue | FlatArrayValue<TValue>>;
 export function dot<TValue>(
-    data: ArrayItems<TValue> | unknown,
+    data: readonly unknown[] | null | undefined,
     prepend?: string,
     depth?: number,
 ): Record<string, TValue>;
@@ -878,9 +878,17 @@ export function first<TValue, TFirstDefault = null>(
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
-// Overload: non-array fallback
+// Overload: iterable whose callback is only known as "a callback or null" —
+// neither iterable row above accepts that union, and the fallback row is
+// array-shaped so the dispatch can hand keyed data to obj.
 export function first<TValue, TFirstDefault = null>(
-    data: unknown,
+    data: Iterable<TValue>,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: untyped array or nullish fallback
+export function first<TValue, TFirstDefault = null>(
+    data: readonly unknown[] | null | undefined,
     callback?: ((value: TValue, key: number) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
@@ -994,9 +1002,17 @@ export function last<TValue, TFirstDefault = null>(
     callback?: null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
-// Overload: non-array fallback
+// Overload: iterable whose callback is only known as "a callback or null" —
+// neither iterable row above accepts that union, and the fallback row is
+// array-shaped so the dispatch can hand keyed data to obj.
 export function last<TValue, TFirstDefault = null>(
-    data: unknown,
+    data: Iterable<TValue>,
+    callback?: ((value: TValue, key: number) => boolean) | null,
+    defaultValue?: TFirstDefault | (() => TFirstDefault),
+): TValue | TFirstDefault | null;
+// Overload: untyped array or nullish fallback
+export function last<TValue, TFirstDefault = null>(
+    data: readonly unknown[] | null | undefined,
     callback?: ((value: TValue, key: number) => boolean) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
@@ -1198,8 +1214,10 @@ export function flatten<TValue>(
  */
 // Overload: typed array → flipped record
 export function flip<TValue>(data: ArrayItems<TValue>): Record<string, number>;
-// Overload: unknown fallback
-export function flip(data: unknown): Record<string, number>;
+// Overload: untyped array or nullish fallback
+export function flip(
+    data: readonly unknown[] | null | undefined,
+): Record<string, number>;
 // Implementation
 export function flip<TValue>(
     data: readonly TValue[] | unknown,
@@ -1399,7 +1417,7 @@ export function get<
 >(array: TData, key: TPath): ArrayResolvePathOrNull<TData, TPath>;
 export function get<TValue>(array: TValue[], key: PathKey): TValue | null;
 export function get<TValue, TDefault = unknown>(
-    array: ArrayItems<TValue> | unknown,
+    array: readonly unknown[] | null | undefined,
     key: PathKey | null | undefined,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): TValue | TValue[] | TDefault | null;

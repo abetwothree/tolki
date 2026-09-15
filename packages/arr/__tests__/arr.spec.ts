@@ -842,14 +842,14 @@ describe("Arr", () => {
             // Test with object being passed (from() will return an object for objects with callback)
             const objectData = { a: 5, b: 15, c: 25 };
             const objectResult = Arr.first(
-                objectData,
+                keyed(objectData),
                 (value: number) => value === 15,
             );
             expect(objectResult).toBe(15);
 
             // Test with object and no match - should return default
             const noMatchResult = Arr.first(
-                objectData,
+                keyed(objectData),
                 (value: number) => value > 100,
                 "default",
             );
@@ -882,11 +882,11 @@ describe("Arr", () => {
         it("first walks plain objects through their values", () => {
             // Mirrors the Arr::from() normalization Laravel performs, so the
             // callback and no-callback paths agree instead of one of them throwing
-            expect(Arr.first({ a: 1, b: 2 })).toBe(1);
+            expect(Arr.first(keyed({ a: 1, b: 2 }))).toBe(1);
             expect(
-                Arr.first({ a: 1, b: 2 }, (value: number) => value > 1),
+                Arr.first(keyed({ a: 1, b: 2 }), (value: number) => value > 1),
             ).toBe(2);
-            expect(Arr.first({}, null, "default")).toBe("default");
+            expect(Arr.first(keyed({}), null, "default")).toBe("default");
             expect(Arr.first(undefined, null, "default")).toBe("default");
             expect(Arr.first(undefined)).toBeNull();
         });
@@ -1005,11 +1005,14 @@ describe("Arr", () => {
 
         it("last walks plain objects through their values", () => {
             // Laravel's Arr::last() now normalizes with Arr::from() before walking
-            expect(Arr.last({ a: 1, b: 2 })).toBe(2);
+            expect(Arr.last(keyed({ a: 1, b: 2 }))).toBe(2);
             expect(
-                Arr.last({ a: 1, b: 2, c: 3 }, (value: number) => value < 3),
+                Arr.last(
+                    keyed({ a: 1, b: 2, c: 3 }),
+                    (value: number) => value < 3,
+                ),
             ).toBe(2);
-            expect(Arr.last({}, null, "default")).toBe("default");
+            expect(Arr.last(keyed({}), null, "default")).toBe("default");
             expect(Arr.last(undefined, null, "default")).toBe("default");
             expect(Arr.last(undefined)).toBeNull();
         });
@@ -1147,7 +1150,9 @@ describe("Arr", () => {
                 cherry: 2,
             });
 
-            expect(Arr.flip({ apple: 0, banana: 1, cherry: 2 })).toEqual({});
+            // Non-accessible data
+            expect(Arr.flip(null)).toEqual({});
+            expect(Arr.flip(undefined)).toEqual({});
 
             // values that are not valid PHP array keys are skipped
             expect(Arr.flip(["a", 1, null, false, true, 1.5, [], {}])).toEqual({
@@ -1411,11 +1416,15 @@ describe("Arr", () => {
         it("returns the default when the subject is not an array, with or without a null key", () => {
             // Test $array not an array
             expect(Arr.get(null, "foo", "default")).toBe("default");
-            expect(Arr.get("false", "foo", "default")).toBe("default");
+            expect(
+                Arr.get("false" as unknown as unknown[], "foo", "default"),
+            ).toBe("default");
 
             // Test $array not an array and key is null
             expect(Arr.get(null, null, "default")).toBe("default");
-            expect(Arr.get("false", null, "default")).toBe("default");
+            expect(
+                Arr.get("false" as unknown as unknown[], null, "default"),
+            ).toBe("default");
         });
 
         it("returns the array itself when it is empty and the key is null", () => {
@@ -5786,28 +5795,31 @@ describe("Arr", () => {
         it("should call default function when key is null and data is not array", () => {
             // Tests defaultValue as function when key is null and data is not array
             const defaultFn = () => "default";
-            expect(Arr.get("not-array", null, defaultFn)).toBe("default");
-            expect(Arr.get({ a: 1 }, null, defaultFn)).toBe("default");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], null, defaultFn),
+            ).toBe("default");
         });
 
         it("should return non-function default when key is null and data is not array", () => {
             // Tests defaultValue as non-function when key is null and data is not array
-            expect(Arr.get("not-array", null, "default")).toBe("default");
-            expect(Arr.get({ a: 1 }, null, "default-value")).toBe(
-                "default-value",
-            );
+            expect(
+                Arr.get("not-array" as unknown as unknown[], null, "default"),
+            ).toBe("default");
         });
 
         it("should call default function when data is not an array with non-null key", () => {
             // Tests defaultValue function called when key is not null and data is not array
             const defaultFn = () => "default-from-fn";
-            expect(Arr.get("not-array", 0, defaultFn)).toBe("default-from-fn");
-            expect(Arr.get({ a: 1 }, "key", defaultFn)).toBe("default-from-fn");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], 0, defaultFn),
+            ).toBe("default-from-fn");
         });
 
         it("should return non-function default when data is not an array with non-null key", () => {
             // Tests non-function default returned when key is not null and data is not array
-            expect(Arr.get("not-array", 0, "default")).toBe("default");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], 0, "default"),
+            ).toBe("default");
             expect(Arr.get(null, 0, "default")).toBe("default");
         });
 
@@ -5856,8 +5868,9 @@ describe("Arr", () => {
             expect(Arr.get([{}], "0.nonexistent", "default")).toBe("default");
 
             // Test getMixedValue edge cases
-            expect(Arr.get("not-array", "0", "default")).toBe("default");
-            expect(Arr.get({}, "0", "default")).toBe("default");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], "0", "default"),
+            ).toBe("default");
 
             // Test array bounds with mixed notation
             expect(Arr.get([{ data: [1, 2, 3] }], "0.data.10", "default")).toBe(

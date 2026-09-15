@@ -6177,13 +6177,10 @@ describe("arr type tests", () => {
         });
 
         describe("unknown and non-array input", () => {
-            it("returns Record<string, number> for non-array object", () => {
-                const result = Arr.flip({
-                    apple: 0,
-                    banana: 1,
-                    cherry: 2,
-                });
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+            it("rejects a non-array object, which belongs to obj/data", () => {
+                const fruit = { apple: 0, banana: 1, cherry: 2 };
+                // @ts-expect-error - arr's rows are array-shaped so dispatch can route keyed data to obj.
+                Arr.flip(fruit);
             });
 
             it("returns Record<string, number> for null", () => {
