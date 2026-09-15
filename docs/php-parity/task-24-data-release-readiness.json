@@ -1048,6 +1048,43 @@
                     "a": 3
                 }
             ]
+        },
+        {
+            "label": "pop-list-count-exceeds-length",
+            "php": "(new Collection(['foo','bar','baz']))->pop(2) then a fresh pop(6)",
+            "value": {
+                "two": [
+                    "baz",
+                    "bar"
+                ],
+                "first": "foo",
+                "six": [
+                    "baz",
+                    "bar",
+                    "foo"
+                ]
+            }
+        },
+        {
+            "label": "pop-empty-default-count",
+            "php": "(new Collection([]))->pop()",
+            "value": null
+        },
+        {
+            "label": "exceptValues-list-keeps-gap",
+            "php": "Arr::exceptValues(['foo','bar','baz','qux'], ['foo','baz'])",
+            "value": {
+                "1": "bar",
+                "3": "qux"
+            }
+        },
+        {
+            "label": "onlyValues-list-keeps-gap",
+            "php": "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])",
+            "value": {
+                "0": "foo",
+                "2": "baz"
+            }
         }
     ]
 }

@@ -366,4 +366,30 @@ probe('take-assoc-negative-over-size', "Arr::take(['a'=>1,'b'=>2], -10)", fn () 
 // "select-bare-existing-key" only covers the assoc-of-assoc backing.
 probe('select-bare-key-list', "array_values(Arr::select([['a'=>1,'b'=>2],['a'=>3,'b'=>4]], 'a'))", fn () => array_values(Arr::select([['a' => 1, 'b' => 2], ['a' => 3, 'b' => 4]], 'a')));
 
+// ==== A11: dataPop, dataExceptValues, dataOnlyValues — Task A10's smoke-only scan found
+// these still at two it() cases each with named Laravel tests they don't cover.
+
+// CollectionTest::testPopReturnsAndRemovesLastXItemsInCollection — the list-backed half;
+// the assoc-backed half is already "P2 pop(2)/pop(6) on assoc" in task-23-obj-release-readiness.json.
+probe('pop-list-count-exceeds-length', "(new Collection(['foo','bar','baz']))->pop(2) then a fresh pop(6)", function () {
+    $c = new Collection(['foo', 'bar', 'baz']);
+    $two = $c->pop(2)->all();
+    $first = $c->first();
+    $six = (new Collection(['foo', 'bar', 'baz']))->pop(6)->all();
+
+    return ['two' => $two, 'first' => $first, 'six' => $six];
+});
+
+// Popping from an already-empty backing with the default count. Count > 1 on an empty
+// backing is already "D6 shift/pop on collect(null)" (pop3 => []) in task-23-obj-release-readiness.json.
+probe('pop-empty-default-count', "(new Collection([]))->pop()", fn () => (new Collection([]))->pop());
+
+// ArrTest::testExceptValues — the list literal's key-preservation row; the assoc rows are
+// already captured ("exceptValues-assoc-strict" / "-loose" / "-empty" in task-23).
+probe('exceptValues-list-keeps-gap', "Arr::exceptValues(['foo','bar','baz','qux'], ['foo','baz'])", fn () => Arr::exceptValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']));
+
+// ArrTest::testOnlyValues — the list literal's key-preservation row; the assoc rows are
+// already captured ("onlyValues-empty-data" / "-empty-values-assoc" / "-strict-numstr-assoc" / "-loose-numstr-assoc" in task-23).
+probe('onlyValues-list-keeps-gap', "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])", fn () => Arr::onlyValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']));
+
 emit();
