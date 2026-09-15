@@ -234,9 +234,9 @@ export function boolean<TValue, TDefault = null>(
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): boolean;
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function boolean<TDefault = null>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): boolean;
@@ -1251,9 +1251,9 @@ export function float<TValue, TDefault = null>(
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): number;
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function float<TDefault = null>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): number;
@@ -1449,8 +1449,11 @@ export function get<TValue, TDefault = unknown>(
  */
 // Overload: typed array → existence check
 export function has<TValue>(data: ArrayItems<TValue>, keys: PathKeys): boolean;
-// Overload: unknown fallback
-export function has(data: unknown, keys: PathKeys): boolean;
+// Overload: untyped array or nullish fallback
+export function has(
+    data: readonly unknown[] | null | undefined,
+    keys: PathKeys,
+): boolean;
 // Implementation
 export function has<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -1491,8 +1494,11 @@ export function hasAll<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
 ): boolean;
-// Overload: unknown fallback
-export function hasAll(data: unknown, keys: PathKeys): boolean;
+// Overload: untyped array or nullish fallback
+export function hasAll(
+    data: readonly unknown[] | null | undefined,
+    keys: PathKeys,
+): boolean;
 // Implementation
 export function hasAll<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -1530,8 +1536,11 @@ export function hasAny<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
 ): boolean;
-// Overload: unknown fallback
-export function hasAny(data: unknown, keys: PathKeys): boolean;
+// Overload: untyped array or nullish fallback
+export function hasAny(
+    data: readonly unknown[] | null | undefined,
+    keys: PathKeys,
+): boolean;
 // Implementation
 export function hasAny<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -1709,9 +1718,9 @@ export function integer<TValue, TDefault = null>(
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): number;
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function integer<TDefault = null>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): number;
@@ -1750,8 +1759,12 @@ export function join<TValue>(
     glue: string,
     finalGlue?: string,
 ): string;
-// Overload: unknown fallback
-export function join(data: unknown, glue: string, finalGlue?: string): string;
+// Overload: untyped array or nullish fallback
+export function join(
+    data: readonly unknown[] | null | undefined,
+    glue: string,
+    finalGlue?: string,
+): string;
 // Implementation
 export function join<TValue>(
     data: ArrayItems<TValue> | unknown,
@@ -3411,9 +3424,9 @@ export function string<TValue, TDefault = null>(
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): string;
-// Overload: unknown fallback
+// Overload: untyped array or nullish fallback
 export function string<TDefault = null>(
-    data: unknown,
+    data: readonly unknown[] | null | undefined,
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ): string;

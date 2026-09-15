@@ -1518,7 +1518,7 @@ describe("Arr", () => {
             expect(Arr.has(data5, 1)).toBe(true);
 
             expect(Arr.has(null, 0)).toBe(false);
-            expect(Arr.has(false, 0)).toBe(false);
+            expect(Arr.has(false as unknown as unknown[], 0)).toBe(false);
 
             expect(Arr.has(null, null)).toBe(false);
             expect(Arr.has([], null)).toBe(false);
@@ -2133,7 +2133,7 @@ describe("Arr", () => {
             expect(Arr.join(["a", "b"], ", ", " and ")).toBe("a and b");
             expect(Arr.join(["a"], ", ", " and ")).toBe("a");
             expect(Arr.join([], ", ", " and ")).toBe("");
-            expect(Arr.join("test", "")).toBe("");
+            expect(Arr.join("test" as unknown as unknown[], "")).toBe("");
             expect(Arr.join(null, "")).toBe("");
             expect(Arr.join(undefined, "")).toBe("");
         });

@@ -1361,21 +1361,23 @@ describe("arr type tests", () => {
         });
 
         describe("unknown and untyped data", () => {
-            it("returns boolean from unknown data", () => {
+            it("rejects unknown data and returns boolean once narrowed", () => {
                 const data: unknown = [true, false];
-                const result = Arr.boolean(data, 0);
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.boolean(data, 0);
+                const result = Arr.boolean(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
-            it("returns boolean from unknown data with default", () => {
+            it("returns boolean from narrowed unknown data with default", () => {
                 const data: unknown = [true];
-                const result = Arr.boolean(data, 5, true);
+                const result = Arr.boolean(data as unknown[], 5, true);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
-            it("returns boolean from unknown data with closure default", () => {
+            it("returns boolean from narrowed unknown data with closure default", () => {
                 const data: unknown = [true];
-                const result = Arr.boolean(data, 5, () => false);
+                const result = Arr.boolean(data as unknown[], 5, () => false);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
@@ -6524,21 +6526,23 @@ describe("arr type tests", () => {
         });
 
         describe("unknown and untyped data", () => {
-            it("returns number from unknown data", () => {
+            it("rejects unknown data and returns number once narrowed", () => {
                 const data: unknown = [1.5, 2.5];
-                const result = Arr.float(data, 0);
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.float(data, 0);
+                const result = Arr.float(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
 
-            it("returns number from unknown data with default", () => {
+            it("returns number from narrowed unknown data with default", () => {
                 const data: unknown = [1.5];
-                const result = Arr.float(data, 5, 0.0);
+                const result = Arr.float(data as unknown[], 5, 0.0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
 
-            it("returns number from unknown data with closure default", () => {
+            it("returns number from narrowed unknown data with closure default", () => {
                 const data: unknown = [1.5];
-                const result = Arr.float(data, 5, () => 0.0);
+                const result = Arr.float(data as unknown[], 5, () => 0.0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
 
