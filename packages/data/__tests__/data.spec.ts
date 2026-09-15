@@ -865,6 +865,40 @@ describe("Data", () => {
             const result = Data.dataExcept([1, 2, 3, 4], [1, 3]);
             expect(result).toEqual([1, 3]);
         });
+
+        it("removes a dot-notation path, through the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "except-mixed-list"
+            expect(
+                Data.dataExcept(
+                    {
+                        name: "taylor",
+                        framework: { language: "PHP", name: "Laravel" },
+                    },
+                    "framework.language",
+                ),
+            ).toEqual({ name: "taylor", framework: { name: "Laravel" } });
+        });
+
+        it("removes a numeric key given as a number or as its string form", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "except-int-key"
+            expect(
+                Data.dataExcept({ 1: "hAz", 2: { 5: "foo", 12: "baz" } }, 2),
+            ).toEqual({
+                1: "hAz",
+            });
+            expect(Data.dataExcept({ 1: "hAz", 2: "x" }, "2")).toEqual({
+                1: "hAz",
+            });
+        });
+
+        it("treats a null key as a no-op", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-except-null"
+            expect(Data.dataExcept({ a: 1, b: 2 }, null)).toEqual({
+                a: 1,
+                b: 2,
+            });
+            expect(Data.dataExcept([1, 2, 3], null)).toEqual([1, 2, 3]);
+        });
     });
 
     describe("dataExists", () => {
@@ -1285,6 +1319,37 @@ describe("Data", () => {
             const result = Data.dataHasAll([1, 2, 3], [0, 1]);
             expect(result).toBe(true);
         });
+
+        it("counts an empty-string and a null value as present", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "hasAll-empty-and-null-values-count-as-present"
+            const data = { name: "Taylor", age: "", city: null };
+            expect(Data.dataHasAll(data, "name")).toBe(true);
+            expect(Data.dataHasAll(data, "age")).toBe(true);
+            expect(Data.dataHasAll(data, "city")).toBe(true);
+            expect(Data.dataHasAll(data, ["name", "age", "city"])).toBe(true);
+            expect(Data.dataHasAll(data, ["age", "car"])).toBe(false);
+            expect(
+                Data.dataHasAll(data, ["name", "age", "city", "country"]),
+            ).toBe(false);
+        });
+
+        it("resolves dot paths", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "hasAll-dot-paths", "hasAll-through-list"
+            expect(
+                Data.dataHasAll({ user: { name: "Taylor" } }, ["user.name"]),
+            ).toBe(true);
+            expect(
+                Data.dataHasAll({ user: { name: "Taylor" } }, ["user.age"]),
+            ).toBe(false);
+            expect(Data.dataHasAll([{ name: "John" }], ["0.name"])).toBe(true);
+        });
+
+        it("is false for an empty key list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "hasAll-empty-key-list"
+            expect(Data.dataHasAll({ a: 1 }, [])).toBe(false);
+        });
     });
 
     describe("dataHasAny", () => {
@@ -1296,6 +1361,27 @@ describe("Data", () => {
         it("is array", () => {
             const result = Data.dataHasAny([1, 2, 3], [0, 5]);
             expect(result).toBe(true);
+        });
+
+        it("is true as soon as one key exists, even when its value is null or empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "hasAny-variadic", "hasAny-dot-over-null-and-empty"
+            expect(Data.dataHasAny({ name: null, email: "" }, ["name"])).toBe(
+                true,
+            );
+            expect(
+                Data.dataHasAny({ user: { name: null } }, ["user.name"]),
+            ).toBe(true);
+            expect(
+                Data.dataHasAny({ name: "Taylor" }, ["surname", "name"]),
+            ).toBe(true);
+            expect(Data.dataHasAny({ a: 1 }, ["x", "y"])).toBe(false);
+        });
+
+        it("accepts a bare scalar key", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "hasAny-variadic"
+            expect(Data.dataHasAny({ name: "Taylor" }, "name")).toBe(true);
+            expect(Data.dataHasAny([1, 2, 3], [5, 1])).toBe(true);
         });
     });
 
@@ -1578,6 +1664,25 @@ describe("Data", () => {
             const result = Data.dataOnly([1, 2, 3, 4], [0, 2]);
             expect(result).toEqual([1, 3]);
         });
+
+        it("returns nothing for a null key list or a key that does not exist", () => {
+            // docs/php-parity/task-11-final-fixes.json, "only casts a null key to an empty key list"
+            // docs/php-parity/task-23-obj-release-readiness.json, "only-none-exist"
+            expect(Data.dataOnly({ a: 1, b: 2 }, null)).toEqual({});
+            expect(Data.dataOnly([10, 20, 30, 40], null)).toEqual([]);
+            expect(
+                Data.dataOnly({ name: "Desk", price: 100 }, ["nonExistingKey"]),
+            ).toEqual({});
+        });
+
+        it("accepts a bare scalar key on either backing", () => {
+            // docs/php-parity/task-11-final-fixes.json, "only accepts a bare scalar key"
+            // docs/php-parity/task-23-obj-release-readiness.json, "only-mixed-string"
+            expect(Data.dataOnly({ 0: "foo", bar: "baz" }, "bar")).toEqual({
+                bar: "baz",
+            });
+            expect(Data.dataOnly([10, 20, 30, 40], 1)).toEqual([20]);
+        });
     });
 
     describe("dataSelect", () => {
@@ -1606,6 +1711,44 @@ describe("Data", () => {
                 { a: 1, b: 2 },
                 { a: 4, b: 5 },
             ]);
+        });
+
+        it("accepts a bare string key", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "select-bare-existing-key"
+            expect(
+                Data.dataSelect(
+                    {
+                        a: { name: "Taylor", age: 1 },
+                        b: { name: "Abigail", age: 2 },
+                    },
+                    "name",
+                ),
+            ).toEqual({ a: { name: "Taylor" }, b: { name: "Abigail" } });
+            expect(
+                Data.dataSelect(
+                    [
+                        { a: 1, b: 2 },
+                        { a: 3, b: 4 },
+                    ],
+                    "a",
+                ),
+            ).toEqual([{ a: 1 }, { a: 3 }]);
+        });
+
+        it("returns an empty row per item for a missing key or a null key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "select-missing", "select-null"
+            expect(
+                Data.dataSelect(
+                    {
+                        a: { name: "T", role: "D" },
+                        b: { name: "A", role: "I" },
+                    },
+                    "nonExistingKey",
+                ),
+            ).toEqual({ a: {}, b: {} });
+            expect(
+                Data.dataSelect({ a: { name: "T" }, b: { name: "A" } }, null),
+            ).toEqual({ a: {}, b: {} });
         });
     });
 
