@@ -9,6 +9,7 @@ import {
     numberList,
     numberMap,
     numberMapAsRecord,
+    opaque,
     readonlyNumberList,
     settings,
 } from "./fixtures";
@@ -23,18 +24,6 @@ describe("data foundation type tests", () => {
 
         it("matches obj.from for a record", () => {
             expectTypeOf(Data.dataFrom(abc)).toEqualTypeOf(Obj.from(abc));
-        });
-
-        it("matches arr.from for a Map, which still owns the Map row", () => {
-            // `arr.from` keeps a Map-shaped row (removing it would drop a Map onto arr's
-            // Iterable row, typing it `[string, number][]`), so arr wins before obj here.
-            expectTypeOf(Data.dataFrom(numberMap)).toEqualTypeOf(
-                Arr.from(numberMap),
-            );
-            // Standing control: flip the row above to obj once these two agree.
-            expectTypeOf(Arr.from(numberMap)).not.toEqualTypeOf(
-                Obj.from(numberMap),
-            );
         });
     });
 
@@ -89,43 +78,56 @@ describe("data foundation type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `toKeyedData` turns one into the record it mirrors
-        // before obj sees it, but no row in `dispatch`'s type says so. Task C2b owns
-        // the fix; every standing control below fails the moment it lands.
+        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
+        // does at runtime, and a conditional over an overloaded delegate resolves only its
+        // last signature, so the answer is obj's widest row, not the record's exact one.
 
-        it("types a Map on dataKeys as obj's own rejects-first answer", () => {
-            // The declared type is `[]` while the runtime returns the record's keys:
-            // unsound until Task C2b lands. `not` is the control, not a downgrade.
-            expectTypeOf(Data.dataKeys(numberMap)).toEqualTypeOf(
-                Obj.keys(numberMap),
-            );
-            expectTypeOf(Data.dataKeys(numberMap)).not.toEqualTypeOf(
-                Data.dataKeys(numberMapAsRecord),
-            );
+        it("types a Map on dataKeys from obj's widest row", () => {
+            const widest = Obj.keys(opaque);
+            expectTypeOf(Data.dataKeys(numberMap)).toEqualTypeOf<
+                typeof widest
+            >();
+            // Soundness is the point of the row, so assignability, not equality: the
+            // record the runtime builds must satisfy what the Map input declares.
+            expectTypeOf(Data.dataKeys(numberMapAsRecord)).toExtend<
+                typeof widest
+            >();
         });
 
-        it("types a Map on dataValues as obj's own rejects-first answer", () => {
-            // Same defect as dataKeys: `[]` declared, the record's values returned.
-            expectTypeOf(Data.dataValues(numberMap)).toEqualTypeOf(
-                Obj.values(numberMap),
-            );
-            expectTypeOf(Data.dataValues(numberMap)).not.toEqualTypeOf(
-                Data.dataValues(numberMapAsRecord),
-            );
+        it("types a Map on dataValues from obj's widest row", () => {
+            const widest = Obj.values(opaque);
+            expectTypeOf(Data.dataValues(numberMap)).toEqualTypeOf<
+                typeof widest
+            >();
+            // Assignability again: `unknown[]` is wider than the record's `number[]`.
+            expectTypeOf(Data.dataValues(numberMapAsRecord)).toExtend<
+                typeof widest
+            >();
         });
 
-        it("types a Map on dataDivide as obj's own rejects-first answer", () => {
-            // Sound but imprecise: the values half is `unknown[]` rather than the
-            // record's `number[]`, because obj never sees the normalisation either.
-            expectTypeOf(Data.dataDivide(numberMap)).toEqualTypeOf(
-                Obj.divide(numberMap),
-            );
-            expectTypeOf(Data.dataDivide(numberMap)).not.toEqualTypeOf(
-                Data.dataDivide(numberMapAsRecord),
-            );
+        it("types a Map on dataDivide from obj's widest row", () => {
+            const widest = Obj.divide(opaque);
+            expectTypeOf(Data.dataDivide(numberMap)).toEqualTypeOf<
+                typeof widest
+            >();
+            // Assignability again: the values half is `unknown[]`, not `number[]`.
+            expectTypeOf(Data.dataDivide(numberMapAsRecord)).toExtend<
+                typeof widest
+            >();
         });
 
-        it("dataCount types a Map like the record it mirrors", () => {
+        it("types a Map on dataFrom from obj's widest row", () => {
+            const widest = Obj.from(opaque);
+            expectTypeOf(Data.dataFrom(numberMap)).toEqualTypeOf<
+                typeof widest
+            >();
+            // Assignability again: the values are `unknown`, not `number`.
+            expectTypeOf(Data.dataFrom(numberMapAsRecord)).toExtend<
+                typeof widest
+            >();
+        });
+
+        it("types a Map on dataCount like the record it mirrors", () => {
             // JS-only: no Arr::/Collection:: counterpart, so there is no delegate to pin against.
             expectTypeOf(Data.dataCount(numberMap)).toEqualTypeOf(
                 Data.dataCount(numberMapAsRecord),

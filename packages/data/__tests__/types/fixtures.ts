@@ -38,6 +38,9 @@ export const numberMap = new Map([
     ["b", 2],
 ]);
 
+/** Data obj cannot narrow, which reaches the widest row of every obj overload set. */
+export const opaque: unknown = null;
+
 /** The record `numberMap` mirrors: the shape `toKeyedData` builds from it at runtime. */
 export const numberMapAsRecord: Record<string, number> = { a: 1, b: 2 };
 

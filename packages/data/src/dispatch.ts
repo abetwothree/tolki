@@ -5,6 +5,19 @@ import { isIterable, isMap, isObject, isUndefined } from "@tolki/utils";
 type AnyFn = (...args: never[]) => unknown;
 
 /**
+ * The row that tells the type system what `toKeyedData` does to a Map.
+ *
+ * A conditional over an overloaded function resolves its last overload only, so this
+ * answers with `objFn`'s widest row — the one row guaranteed to hold for any record.
+ */
+type KeyedMapRow<TObjFn extends AnyFn> = TObjFn extends (
+    data: never,
+    ...rest: infer TRest
+) => infer TReturn
+    ? (data: ReadonlyMap<PropertyKey, unknown>, ...rest: TRest) => TReturn
+    : never;
+
+/**
  * Determine whether the given data carries its own keys.
  *
  * Plain objects and Maps are the JavaScript equivalents of a PHP associative
@@ -66,7 +79,7 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
  *                arr's rows are array-shaped, so keyed data falls through them to `objFn`.
  * @param objFn - The `@tolki/obj` helper, used for a keyed backing.
  * @param toPositional - How a non-keyed backing reaches `arrFn`.
- * @returns A function carrying both helpers' overloads.
+ * @returns A function carrying both helpers' overloads, behind the Map row.
  */
 export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
     arrFn: TArrFn,
@@ -74,7 +87,7 @@ export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
     // An iterable-aware helper must pass a Set or generator through; `arrWrap` would
     // hand it on as a one-element list, so those helpers override this with toPositionalData.
     toPositional: (data: unknown) => unknown = arrWrap,
-): TArrFn & TObjFn {
+): KeyedMapRow<TObjFn> & TArrFn & TObjFn {
     const forward = (data: unknown, ...rest: readonly unknown[]): unknown => {
         const keyed = isKeyedData(data);
         const target = keyed ? objFn : arrFn;
@@ -87,5 +100,5 @@ export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
 
     // The intersection is the point: it re-runs overload resolution per call site,
     // which is the only construct that forwards an overloaded delegate's return type.
-    return forward as unknown as TArrFn & TObjFn;
+    return forward as unknown as KeyedMapRow<TObjFn> & TArrFn & TObjFn;
 }
