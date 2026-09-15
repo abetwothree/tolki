@@ -36,10 +36,64 @@ const truthy = () => true;
 const toOne = () => 1;
 const toRecord = () => ({ k: 1 });
 
+interface Settings {
+    a: number;
+    b: number;
+}
+declare const settings: Settings;
+class Box {
+    a = 1;
+    b = 2;
+}
+declare const box: Box;
+
+interface NestedSettings {
+    a: number[];
+    b: number[];
+}
+declare const nestedSettings: NestedSettings;
+class NestedBox {
+    a = [1];
+    b = [2];
+}
+declare const nestedBox: NestedBox;
+
+interface RecordsSettings {
+    a: { id: string };
+    b: { id: string };
+}
+declare const recordsSettings: RecordsSettings;
+class RecordsBox {
+    a = { id: "x" };
+    b = { id: "y" };
+}
+declare const recordsBox: RecordsBox;
+
+interface DimSettings {
+    a: number[];
+}
+declare const dimSettings: DimSettings;
+class DimBox {
+    a = [1];
+}
+declare const dimBox: DimBox;
+
 describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for add", () => {
         expectTypeOf(dispatch(Arr.add, Obj.add)(rec, key, nine)).toEqualTypeOf(
             Obj.add(rec, key, nine),
+        );
+    });
+
+    it("routes an interface-typed object to obj for add", () => {
+        expectTypeOf(
+            dispatch(Arr.add, Obj.add)(settings, key, nine),
+        ).toEqualTypeOf(Obj.add(settings, key, nine));
+    });
+
+    it("routes a class instance to obj for add", () => {
+        expectTypeOf(dispatch(Arr.add, Obj.add)(box, key, nine)).toEqualTypeOf(
+            Obj.add(box, key, nine),
         );
     });
 
@@ -62,6 +116,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.boolean(rec, key));
     });
 
+    it("routes an interface-typed object to obj for boolean", () => {
+        expectTypeOf(
+            dispatch(Arr.boolean, Obj.boolean)(settings, key),
+        ).toEqualTypeOf(Obj.boolean(settings, key));
+    });
+
+    it("routes a class instance to obj for boolean", () => {
+        expectTypeOf(
+            dispatch(Arr.boolean, Obj.boolean)(box, key),
+        ).toEqualTypeOf(Obj.boolean(box, key));
+    });
+
     it("keeps a list on arr for boolean", () => {
         expectTypeOf(
             dispatch(Arr.boolean, Obj.boolean)(list, idx),
@@ -78,6 +144,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for chunk", () => {
         expectTypeOf(dispatch(Arr.chunk, Obj.chunk)(rec, size)).toEqualTypeOf(
             Obj.chunk(rec, size),
+        );
+    });
+
+    it("routes an interface-typed object to obj for chunk", () => {
+        expectTypeOf(
+            dispatch(Arr.chunk, Obj.chunk)(settings, size),
+        ).toEqualTypeOf(Obj.chunk(settings, size));
+    });
+
+    it("routes a class instance to obj for chunk", () => {
+        expectTypeOf(dispatch(Arr.chunk, Obj.chunk)(box, size)).toEqualTypeOf(
+            Obj.chunk(box, size),
         );
     });
 
@@ -98,6 +176,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.chunkBy(rec, key));
     });
 
+    it("routes an interface-typed object to obj for chunkBy", () => {
+        expectTypeOf(
+            dispatch(Arr.chunkBy, Obj.chunkBy)(settings, key),
+        ).toEqualTypeOf(Obj.chunkBy(settings, key));
+    });
+
+    it("routes a class instance to obj for chunkBy", () => {
+        expectTypeOf(
+            dispatch(Arr.chunkBy, Obj.chunkBy)(box, key),
+        ).toEqualTypeOf(Obj.chunkBy(box, key));
+    });
+
     it("keeps a list on arr for chunkBy", () => {
         expectTypeOf(
             dispatch(Arr.chunkBy, Obj.chunkBy)(list, key),
@@ -113,6 +203,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.chunkWhile, Obj.chunkWhile)(rec, truthy),
         ).toEqualTypeOf(Obj.chunkWhile(rec, truthy));
+    });
+
+    it("routes an interface-typed object to obj for chunkWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.chunkWhile, Obj.chunkWhile)(settings, truthy),
+        ).toEqualTypeOf(Obj.chunkWhile(settings, truthy));
+    });
+
+    it("routes a class instance to obj for chunkWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.chunkWhile, Obj.chunkWhile)(box, truthy),
+        ).toEqualTypeOf(Obj.chunkWhile(box, truthy));
     });
 
     it("keeps a list on arr for chunkWhile", () => {
@@ -132,6 +234,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.collapse(nestedRec));
     });
 
+    it("routes an interface-typed object to obj for collapse", () => {
+        expectTypeOf(
+            dispatch(Arr.collapse, Obj.collapse)(nestedSettings),
+        ).toEqualTypeOf(Obj.collapse(nestedSettings));
+    });
+
+    it("routes a class instance to obj for collapse", () => {
+        expectTypeOf(
+            dispatch(Arr.collapse, Obj.collapse)(nestedBox),
+        ).toEqualTypeOf(Obj.collapse(nestedBox));
+    });
+
     it("keeps a list on arr for collapse", () => {
         expectTypeOf(
             dispatch(Arr.collapse, Obj.collapse)(nestedList),
@@ -147,6 +261,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.combine, Obj.combine)(rec, rec),
         ).toEqualTypeOf(Obj.combine(rec, rec));
+    });
+
+    it("routes an interface-typed object to obj for combine", () => {
+        expectTypeOf(
+            dispatch(Arr.combine, Obj.combine)(settings, rec),
+        ).toEqualTypeOf(Obj.combine(settings, rec));
+    });
+
+    it("routes a class instance to obj for combine", () => {
+        expectTypeOf(
+            dispatch(Arr.combine, Obj.combine)(box, rec),
+        ).toEqualTypeOf(Obj.combine(box, rec));
     });
 
     it("keeps a list on arr for combine", () => {
@@ -168,6 +294,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.contains(rec, one));
     });
 
+    it("routes an interface-typed object to obj for contains", () => {
+        expectTypeOf(
+            dispatch(Arr.contains, Obj.contains)(settings, one),
+        ).toEqualTypeOf(Obj.contains(settings, one));
+    });
+
+    it("routes a class instance to obj for contains", () => {
+        expectTypeOf(
+            dispatch(Arr.contains, Obj.contains)(box, one),
+        ).toEqualTypeOf(Obj.contains(box, one));
+    });
+
     it("keeps a list on arr for contains", () => {
         expectTypeOf(
             dispatch(Arr.contains, Obj.contains)(list, one),
@@ -183,6 +321,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.crossJoin, Obj.crossJoin)(dimRecA, dimRecB),
         ).toEqualTypeOf(Obj.crossJoin(dimRecA, dimRecB));
+    });
+
+    it("routes an interface-typed object to obj for crossJoin", () => {
+        expectTypeOf(
+            dispatch(Arr.crossJoin, Obj.crossJoin)(dimSettings, dimRecB),
+        ).toEqualTypeOf(Obj.crossJoin(dimSettings, dimRecB));
+    });
+
+    it("routes a class instance to obj for crossJoin", () => {
+        expectTypeOf(
+            dispatch(Arr.crossJoin, Obj.crossJoin)(dimBox, dimRecB),
+        ).toEqualTypeOf(Obj.crossJoin(dimBox, dimRecB));
     });
 
     it("keeps a list on arr for crossJoin", () => {
@@ -201,6 +351,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for diff", () => {
         expectTypeOf(dispatch(Arr.diff, Obj.diff)(rec, rec)).toEqualTypeOf(
             Obj.diff(rec, rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for diff", () => {
+        expectTypeOf(dispatch(Arr.diff, Obj.diff)(settings, rec)).toEqualTypeOf(
+            Obj.diff(settings, rec),
+        );
+    });
+
+    it("routes a class instance to obj for diff", () => {
+        expectTypeOf(dispatch(Arr.diff, Obj.diff)(box, rec)).toEqualTypeOf(
+            Obj.diff(box, rec),
         );
     });
 
@@ -223,6 +385,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.diffAssoc(rec, rec));
     });
 
+    it("routes an interface-typed object to obj for diffAssoc", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssoc, Obj.diffAssoc)(settings, rec),
+        ).toEqualTypeOf(Obj.diffAssoc(settings, rec));
+    });
+
+    it("routes a class instance to obj for diffAssoc", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssoc, Obj.diffAssoc)(box, rec),
+        ).toEqualTypeOf(Obj.diffAssoc(box, rec));
+    });
+
     it("keeps a list on arr for diffAssoc", () => {
         expectTypeOf(
             dispatch(Arr.diffAssoc, Obj.diffAssoc)(list, list),
@@ -239,6 +413,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for divide", () => {
         expectTypeOf(dispatch(Arr.divide, Obj.divide)(rec)).toEqualTypeOf(
             Obj.divide(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for divide", () => {
+        expectTypeOf(dispatch(Arr.divide, Obj.divide)(settings)).toEqualTypeOf(
+            Obj.divide(settings),
+        );
+    });
+
+    it("routes a class instance to obj for divide", () => {
+        expectTypeOf(dispatch(Arr.divide, Obj.divide)(box)).toEqualTypeOf(
+            Obj.divide(box),
         );
     });
 
@@ -259,6 +445,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for dot", () => {
+        expectTypeOf(dispatch(Arr.dot, Obj.dot)(settings)).toEqualTypeOf(
+            Obj.dot(settings),
+        );
+    });
+
+    it("routes a class instance to obj for dot", () => {
+        expectTypeOf(dispatch(Arr.dot, Obj.dot)(box)).toEqualTypeOf(
+            Obj.dot(box),
+        );
+    });
+
     it("keeps a list on arr for dot", () => {
         expectTypeOf(dispatch(Arr.dot, Obj.dot)(list)).toEqualTypeOf(
             Arr.dot(list),
@@ -276,6 +474,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for every", () => {
+        expectTypeOf(
+            dispatch(Arr.every, Obj.every)(settings, truthy),
+        ).toEqualTypeOf(Obj.every(settings, truthy));
+    });
+
+    it("routes a class instance to obj for every", () => {
+        expectTypeOf(dispatch(Arr.every, Obj.every)(box, truthy)).toEqualTypeOf(
+            Obj.every(box, truthy),
+        );
+    });
+
     it("keeps a list on arr for every", () => {
         expectTypeOf(
             dispatch(Arr.every, Obj.every)(list, truthy),
@@ -290,6 +500,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for except", () => {
         expectTypeOf(dispatch(Arr.except, Obj.except)(rec, key)).toEqualTypeOf(
             Obj.except(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for except", () => {
+        expectTypeOf(
+            dispatch(Arr.except, Obj.except)(settings, key),
+        ).toEqualTypeOf(Obj.except(settings, key));
+    });
+
+    it("routes a class instance to obj for except", () => {
+        expectTypeOf(dispatch(Arr.except, Obj.except)(box, key)).toEqualTypeOf(
+            Obj.except(box, key),
         );
     });
 
@@ -312,6 +534,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.exceptValues(rec, one));
     });
 
+    it("routes an interface-typed object to obj for exceptValues", () => {
+        expectTypeOf(
+            dispatch(Arr.exceptValues, Obj.exceptValues)(settings, one),
+        ).toEqualTypeOf(Obj.exceptValues(settings, one));
+    });
+
+    it("routes a class instance to obj for exceptValues", () => {
+        expectTypeOf(
+            dispatch(Arr.exceptValues, Obj.exceptValues)(box, one),
+        ).toEqualTypeOf(Obj.exceptValues(box, one));
+    });
+
     it("keeps a list on arr for exceptValues", () => {
         expectTypeOf(
             dispatch(Arr.exceptValues, Obj.exceptValues)(list, one),
@@ -326,6 +560,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for exists", () => {
         expectTypeOf(dispatch(Arr.exists, Obj.exists)(rec, key)).toEqualTypeOf(
             Obj.exists(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for exists", () => {
+        expectTypeOf(
+            dispatch(Arr.exists, Obj.exists)(settings, key),
+        ).toEqualTypeOf(Obj.exists(settings, key));
+    });
+
+    it("routes a class instance to obj for exists", () => {
+        expectTypeOf(dispatch(Arr.exists, Obj.exists)(box, key)).toEqualTypeOf(
+            Obj.exists(box, key),
         );
     });
 
@@ -348,6 +594,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.filter(rec, truthy));
     });
 
+    it("routes an interface-typed object to obj for filter", () => {
+        expectTypeOf(
+            dispatch(Arr.filter, Obj.filter)(settings, truthy),
+        ).toEqualTypeOf(Obj.filter(settings, truthy));
+    });
+
+    it("routes a class instance to obj for filter", () => {
+        expectTypeOf(
+            dispatch(Arr.filter, Obj.filter)(box, truthy),
+        ).toEqualTypeOf(Obj.filter(box, truthy));
+    });
+
     it("keeps a list on arr for filter", () => {
         expectTypeOf(
             dispatch(Arr.filter, Obj.filter)(list, truthy),
@@ -362,6 +620,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for first", () => {
         expectTypeOf(dispatch(Arr.first, Obj.first)(rec)).toEqualTypeOf(
             Obj.first(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for first", () => {
+        expectTypeOf(dispatch(Arr.first, Obj.first)(settings)).toEqualTypeOf(
+            Obj.first(settings),
+        );
+    });
+
+    it("routes a class instance to obj for first", () => {
+        expectTypeOf(dispatch(Arr.first, Obj.first)(box)).toEqualTypeOf(
+            Obj.first(box),
         );
     });
 
@@ -382,6 +652,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for flatten", () => {
+        expectTypeOf(
+            dispatch(Arr.flatten, Obj.flatten)(settings),
+        ).toEqualTypeOf(Obj.flatten(settings));
+    });
+
+    it("routes a class instance to obj for flatten", () => {
+        expectTypeOf(dispatch(Arr.flatten, Obj.flatten)(box)).toEqualTypeOf(
+            Obj.flatten(box),
+        );
+    });
+
     it("keeps a list on arr for flatten", () => {
         expectTypeOf(dispatch(Arr.flatten, Obj.flatten)(list)).toEqualTypeOf(
             Arr.flatten(list),
@@ -399,6 +681,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for flip", () => {
+        expectTypeOf(dispatch(Arr.flip, Obj.flip)(settings)).toEqualTypeOf(
+            Obj.flip(settings),
+        );
+    });
+
+    it("routes a class instance to obj for flip", () => {
+        expectTypeOf(dispatch(Arr.flip, Obj.flip)(box)).toEqualTypeOf(
+            Obj.flip(box),
+        );
+    });
+
     it("keeps a list on arr for flip", () => {
         expectTypeOf(dispatch(Arr.flip, Obj.flip)(list)).toEqualTypeOf(
             Arr.flip(list),
@@ -413,6 +707,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for float", () => {
         expectTypeOf(dispatch(Arr.float, Obj.float)(rec, key)).toEqualTypeOf(
             Obj.float(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for float", () => {
+        expectTypeOf(
+            dispatch(Arr.float, Obj.float)(settings, key),
+        ).toEqualTypeOf(Obj.float(settings, key));
+    });
+
+    it("routes a class instance to obj for float", () => {
+        expectTypeOf(dispatch(Arr.float, Obj.float)(box, key)).toEqualTypeOf(
+            Obj.float(box, key),
         );
     });
 
@@ -435,6 +741,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for forget", () => {
+        expectTypeOf(
+            dispatch(Arr.forget, Obj.forget)(settings, key),
+        ).toEqualTypeOf(Obj.forget(settings, key));
+    });
+
+    it("routes a class instance to obj for forget", () => {
+        expectTypeOf(dispatch(Arr.forget, Obj.forget)(box, key)).toEqualTypeOf(
+            Obj.forget(box, key),
+        );
+    });
+
     it("keeps a list on arr for forget", () => {
         expectTypeOf(dispatch(Arr.forget, Obj.forget)(list, idx)).toEqualTypeOf(
             Arr.forget(list, idx),
@@ -454,6 +772,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for from", () => {
+        expectTypeOf(dispatch(Arr.from, Obj.from)(settings)).toEqualTypeOf(
+            Obj.from(settings),
+        );
+    });
+
+    it("routes a class instance to obj for from", () => {
+        expectTypeOf(dispatch(Arr.from, Obj.from)(box)).toEqualTypeOf(
+            Obj.from(box),
+        );
+    });
+
     it("keeps a list on arr for from", () => {
         expectTypeOf(dispatch(Arr.from, Obj.from)(list)).toEqualTypeOf(
             Arr.from(list),
@@ -468,6 +798,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for get", () => {
         expectTypeOf(dispatch(Arr.get, Obj.get)(rec, key)).toEqualTypeOf(
             Obj.get(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for get", () => {
+        expectTypeOf(dispatch(Arr.get, Obj.get)(settings, key)).toEqualTypeOf(
+            Obj.get(settings, key),
+        );
+    });
+
+    it("routes a class instance to obj for get", () => {
+        expectTypeOf(dispatch(Arr.get, Obj.get)(box, key)).toEqualTypeOf(
+            Obj.get(box, key),
         );
     });
 
@@ -490,6 +832,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for has", () => {
+        expectTypeOf(dispatch(Arr.has, Obj.has)(settings, key)).toEqualTypeOf(
+            Obj.has(settings, key),
+        );
+    });
+
+    it("routes a class instance to obj for has", () => {
+        expectTypeOf(dispatch(Arr.has, Obj.has)(box, key)).toEqualTypeOf(
+            Obj.has(box, key),
+        );
+    });
+
     it("keeps a list on arr for has", () => {
         expectTypeOf(dispatch(Arr.has, Obj.has)(list, idx)).toEqualTypeOf(
             Arr.has(list, idx),
@@ -506,6 +860,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for hasAll", () => {
         expectTypeOf(dispatch(Arr.hasAll, Obj.hasAll)(rec, key)).toEqualTypeOf(
             Obj.hasAll(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for hasAll", () => {
+        expectTypeOf(
+            dispatch(Arr.hasAll, Obj.hasAll)(settings, key),
+        ).toEqualTypeOf(Obj.hasAll(settings, key));
+    });
+
+    it("routes a class instance to obj for hasAll", () => {
+        expectTypeOf(dispatch(Arr.hasAll, Obj.hasAll)(box, key)).toEqualTypeOf(
+            Obj.hasAll(box, key),
         );
     });
 
@@ -528,6 +894,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for hasAny", () => {
+        expectTypeOf(
+            dispatch(Arr.hasAny, Obj.hasAny)(settings, key),
+        ).toEqualTypeOf(Obj.hasAny(settings, key));
+    });
+
+    it("routes a class instance to obj for hasAny", () => {
+        expectTypeOf(dispatch(Arr.hasAny, Obj.hasAny)(box, key)).toEqualTypeOf(
+            Obj.hasAny(box, key),
+        );
+    });
+
     it("keeps a list on arr for hasAny", () => {
         expectTypeOf(dispatch(Arr.hasAny, Obj.hasAny)(list, idx)).toEqualTypeOf(
             Arr.hasAny(list, idx),
@@ -545,6 +923,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.integer, Obj.integer)(rec, key),
         ).toEqualTypeOf(Obj.integer(rec, key));
+    });
+
+    it("routes an interface-typed object to obj for integer", () => {
+        expectTypeOf(
+            dispatch(Arr.integer, Obj.integer)(settings, key),
+        ).toEqualTypeOf(Obj.integer(settings, key));
+    });
+
+    it("routes a class instance to obj for integer", () => {
+        expectTypeOf(
+            dispatch(Arr.integer, Obj.integer)(box, key),
+        ).toEqualTypeOf(Obj.integer(box, key));
     });
 
     it("keeps a list on arr for integer", () => {
@@ -566,6 +956,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersect(rec, rec));
     });
 
+    it("routes an interface-typed object to obj for intersect", () => {
+        expectTypeOf(
+            dispatch(Arr.intersect, Obj.intersect)(settings, rec),
+        ).toEqualTypeOf(Obj.intersect(settings, rec));
+    });
+
+    it("routes a class instance to obj for intersect", () => {
+        expectTypeOf(
+            dispatch(Arr.intersect, Obj.intersect)(box, rec),
+        ).toEqualTypeOf(Obj.intersect(box, rec));
+    });
+
     it("keeps a list on arr for intersect", () => {
         expectTypeOf(
             dispatch(Arr.intersect, Obj.intersect)(list, list),
@@ -583,6 +985,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.intersectAssoc, Obj.intersectAssoc)(rec, rec),
         ).toEqualTypeOf(Obj.intersectAssoc(rec, rec));
+    });
+
+    it("routes an interface-typed object to obj for intersectAssoc", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectAssoc, Obj.intersectAssoc)(settings, rec),
+        ).toEqualTypeOf(Obj.intersectAssoc(settings, rec));
+    });
+
+    it("routes a class instance to obj for intersectAssoc", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectAssoc, Obj.intersectAssoc)(box, rec),
+        ).toEqualTypeOf(Obj.intersectAssoc(box, rec));
     });
 
     it("keeps a list on arr for intersectAssoc", () => {
@@ -608,6 +1022,26 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersectAssocUsing(rec, rec, truthy));
     });
 
+    it("routes an interface-typed object to obj for intersectAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectAssocUsing, Obj.intersectAssocUsing)(
+                settings,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf(Obj.intersectAssocUsing(settings, rec, truthy));
+    });
+
+    it("routes a class instance to obj for intersectAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectAssocUsing, Obj.intersectAssocUsing)(
+                box,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf(Obj.intersectAssocUsing(box, rec, truthy));
+    });
+
     it("keeps a list on arr for intersectAssocUsing", () => {
         expectTypeOf(
             dispatch(Arr.intersectAssocUsing, Obj.intersectAssocUsing)(
@@ -631,6 +1065,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.intersectByKeys(rec, rec));
     });
 
+    it("routes an interface-typed object to obj for intersectByKeys", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(settings, rec),
+        ).toEqualTypeOf(Obj.intersectByKeys(settings, rec));
+    });
+
+    it("routes a class instance to obj for intersectByKeys", () => {
+        expectTypeOf(
+            dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(box, rec),
+        ).toEqualTypeOf(Obj.intersectByKeys(box, rec));
+    });
+
     it("keeps a list on arr for intersectByKeys", () => {
         expectTypeOf(
             dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(list, list),
@@ -647,6 +1093,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for join", () => {
         expectTypeOf(dispatch(Arr.join, Obj.join)(rec, glue)).toEqualTypeOf(
             Obj.join(rec, glue),
+        );
+    });
+
+    it("routes an interface-typed object to obj for join", () => {
+        expectTypeOf(
+            dispatch(Arr.join, Obj.join)(settings, glue),
+        ).toEqualTypeOf(Obj.join(settings, glue));
+    });
+
+    it("routes a class instance to obj for join", () => {
+        expectTypeOf(dispatch(Arr.join, Obj.join)(box, glue)).toEqualTypeOf(
+            Obj.join(box, glue),
         );
     });
 
@@ -667,6 +1125,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.keyBy(recOfRecords, idKey));
     });
 
+    it("routes an interface-typed object to obj for keyBy", () => {
+        expectTypeOf(
+            dispatch(Arr.keyBy, Obj.keyBy)(recordsSettings, idKey),
+        ).toEqualTypeOf(Obj.keyBy(recordsSettings, idKey));
+    });
+
+    it("routes a class instance to obj for keyBy", () => {
+        expectTypeOf(
+            dispatch(Arr.keyBy, Obj.keyBy)(recordsBox, idKey),
+        ).toEqualTypeOf(Obj.keyBy(recordsBox, idKey));
+    });
+
     it("keeps a list on arr for keyBy", () => {
         expectTypeOf(
             dispatch(Arr.keyBy, Obj.keyBy)(listOfRecords, idKey),
@@ -681,6 +1151,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for keys", () => {
         expectTypeOf(dispatch(Arr.keys, Obj.keys)(rec)).toEqualTypeOf(
             Obj.keys(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for keys", () => {
+        expectTypeOf(dispatch(Arr.keys, Obj.keys)(settings)).toEqualTypeOf(
+            Obj.keys(settings),
+        );
+    });
+
+    it("routes a class instance to obj for keys", () => {
+        expectTypeOf(dispatch(Arr.keys, Obj.keys)(box)).toEqualTypeOf(
+            Obj.keys(box),
         );
     });
 
@@ -701,6 +1183,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for last", () => {
+        expectTypeOf(dispatch(Arr.last, Obj.last)(settings)).toEqualTypeOf(
+            Obj.last(settings),
+        );
+    });
+
+    it("routes a class instance to obj for last", () => {
+        expectTypeOf(dispatch(Arr.last, Obj.last)(box)).toEqualTypeOf(
+            Obj.last(box),
+        );
+    });
+
     it("keeps a list on arr for last", () => {
         expectTypeOf(dispatch(Arr.last, Obj.last)(list)).toEqualTypeOf(
             Arr.last(list),
@@ -715,6 +1209,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for map", () => {
         expectTypeOf(dispatch(Arr.map, Obj.map)(rec, toOne)).toEqualTypeOf(
             Obj.map(rec, toOne),
+        );
+    });
+
+    it("routes an interface-typed object to obj for map", () => {
+        expectTypeOf(dispatch(Arr.map, Obj.map)(settings, toOne)).toEqualTypeOf(
+            Obj.map(settings, toOne),
+        );
+    });
+
+    it("routes a class instance to obj for map", () => {
+        expectTypeOf(dispatch(Arr.map, Obj.map)(box, toOne)).toEqualTypeOf(
+            Obj.map(box, toOne),
         );
     });
 
@@ -735,6 +1241,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.mapSpread(recOfLists, toOne));
     });
 
+    it("routes an interface-typed object to obj for mapSpread", () => {
+        expectTypeOf(
+            dispatch(Arr.mapSpread, Obj.mapSpread)(nestedSettings, toOne),
+        ).toEqualTypeOf(Obj.mapSpread(nestedSettings, toOne));
+    });
+
+    it("routes a class instance to obj for mapSpread", () => {
+        expectTypeOf(
+            dispatch(Arr.mapSpread, Obj.mapSpread)(nestedBox, toOne),
+        ).toEqualTypeOf(Obj.mapSpread(nestedBox, toOne));
+    });
+
     it("keeps a list on arr for mapSpread", () => {
         expectTypeOf(
             dispatch(Arr.mapSpread, Obj.mapSpread)(listOfLists, toOne),
@@ -752,6 +1270,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.mapWithKeys(rec, toRecord));
     });
 
+    it("routes an interface-typed object to obj for mapWithKeys", () => {
+        expectTypeOf(
+            dispatch(Arr.mapWithKeys, Obj.mapWithKeys)(settings, toRecord),
+        ).toEqualTypeOf(Obj.mapWithKeys(settings, toRecord));
+    });
+
+    it("routes a class instance to obj for mapWithKeys", () => {
+        expectTypeOf(
+            dispatch(Arr.mapWithKeys, Obj.mapWithKeys)(box, toRecord),
+        ).toEqualTypeOf(Obj.mapWithKeys(box, toRecord));
+    });
+
     it("keeps a list on arr for mapWithKeys", () => {
         expectTypeOf(
             dispatch(Arr.mapWithKeys, Obj.mapWithKeys)(list, toRecord),
@@ -766,6 +1296,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for only", () => {
         expectTypeOf(dispatch(Arr.only, Obj.only)(rec, key)).toEqualTypeOf(
             Obj.only(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for only", () => {
+        expectTypeOf(dispatch(Arr.only, Obj.only)(settings, key)).toEqualTypeOf(
+            Obj.only(settings, key),
+        );
+    });
+
+    it("routes a class instance to obj for only", () => {
+        expectTypeOf(dispatch(Arr.only, Obj.only)(box, key)).toEqualTypeOf(
+            Obj.only(box, key),
         );
     });
 
@@ -788,6 +1330,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.onlyValues(rec, one));
     });
 
+    it("routes an interface-typed object to obj for onlyValues", () => {
+        expectTypeOf(
+            dispatch(Arr.onlyValues, Obj.onlyValues)(settings, one),
+        ).toEqualTypeOf(Obj.onlyValues(settings, one));
+    });
+
+    it("routes a class instance to obj for onlyValues", () => {
+        expectTypeOf(
+            dispatch(Arr.onlyValues, Obj.onlyValues)(box, one),
+        ).toEqualTypeOf(Obj.onlyValues(box, one));
+    });
+
     it("keeps a list on arr for onlyValues", () => {
         expectTypeOf(
             dispatch(Arr.onlyValues, Obj.onlyValues)(list, one),
@@ -802,6 +1356,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for pad", () => {
         expectTypeOf(dispatch(Arr.pad, Obj.pad)(rec, size, zero)).toEqualTypeOf(
             Obj.pad(rec, size, zero),
+        );
+    });
+
+    it("routes an interface-typed object to obj for pad", () => {
+        expectTypeOf(
+            dispatch(Arr.pad, Obj.pad)(settings, size, zero),
+        ).toEqualTypeOf(Obj.pad(settings, size, zero));
+    });
+
+    it("routes a class instance to obj for pad", () => {
+        expectTypeOf(dispatch(Arr.pad, Obj.pad)(box, size, zero)).toEqualTypeOf(
+            Obj.pad(box, size, zero),
         );
     });
 
@@ -822,6 +1388,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.partition(rec, truthy));
     });
 
+    it("routes an interface-typed object to obj for partition", () => {
+        expectTypeOf(
+            dispatch(Arr.partition, Obj.partition)(settings, truthy),
+        ).toEqualTypeOf(Obj.partition(settings, truthy));
+    });
+
+    it("routes a class instance to obj for partition", () => {
+        expectTypeOf(
+            dispatch(Arr.partition, Obj.partition)(box, truthy),
+        ).toEqualTypeOf(Obj.partition(box, truthy));
+    });
+
     it("keeps a list on arr for partition", () => {
         expectTypeOf(
             dispatch(Arr.partition, Obj.partition)(list, truthy),
@@ -839,6 +1417,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.pluck(recOfRecords, idKey));
     });
 
+    it("routes an interface-typed object to obj for pluck", () => {
+        expectTypeOf(
+            dispatch(Arr.pluck, Obj.pluck)(recordsSettings, idKey),
+        ).toEqualTypeOf(Obj.pluck(recordsSettings, idKey));
+    });
+
+    it("routes a class instance to obj for pluck", () => {
+        expectTypeOf(
+            dispatch(Arr.pluck, Obj.pluck)(recordsBox, idKey),
+        ).toEqualTypeOf(Obj.pluck(recordsBox, idKey));
+    });
+
     it("keeps a list on arr for pluck", () => {
         expectTypeOf(
             dispatch(Arr.pluck, Obj.pluck)(listOfRecords, idKey),
@@ -853,6 +1443,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for pop", () => {
         expectTypeOf(dispatch(Arr.pop, Obj.pop)(rec)).toEqualTypeOf(
             Obj.pop(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for pop", () => {
+        expectTypeOf(dispatch(Arr.pop, Obj.pop)(settings)).toEqualTypeOf(
+            Obj.pop(settings),
+        );
+    });
+
+    it("routes a class instance to obj for pop", () => {
+        expectTypeOf(dispatch(Arr.pop, Obj.pop)(box)).toEqualTypeOf(
+            Obj.pop(box),
         );
     });
 
@@ -873,6 +1475,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.prepend(rec, one));
     });
 
+    it("routes an interface-typed object to obj for prepend", () => {
+        expectTypeOf(
+            dispatch(Arr.prepend, Obj.prepend)(settings, one),
+        ).toEqualTypeOf(Obj.prepend(settings, one));
+    });
+
+    it("routes a class instance to obj for prepend", () => {
+        expectTypeOf(
+            dispatch(Arr.prepend, Obj.prepend)(box, one),
+        ).toEqualTypeOf(Obj.prepend(box, one));
+    });
+
     it("keeps a list on arr for prepend", () => {
         expectTypeOf(
             dispatch(Arr.prepend, Obj.prepend)(list, one),
@@ -890,6 +1504,21 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.prependKeysWith(rec, prefix));
     });
 
+    it("routes an interface-typed object to obj for prependKeysWith", () => {
+        expectTypeOf(
+            dispatch(Arr.prependKeysWith, Obj.prependKeysWith)(
+                settings,
+                prefix,
+            ),
+        ).toEqualTypeOf(Obj.prependKeysWith(settings, prefix));
+    });
+
+    it("routes a class instance to obj for prependKeysWith", () => {
+        expectTypeOf(
+            dispatch(Arr.prependKeysWith, Obj.prependKeysWith)(box, prefix),
+        ).toEqualTypeOf(Obj.prependKeysWith(box, prefix));
+    });
+
     it("keeps a list on arr for prependKeysWith", () => {
         expectTypeOf(
             dispatch(Arr.prependKeysWith, Obj.prependKeysWith)(list, prefix),
@@ -904,6 +1533,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for pull", () => {
         expectTypeOf(dispatch(Arr.pull, Obj.pull)(rec, key)).toEqualTypeOf(
             Obj.pull(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for pull", () => {
+        expectTypeOf(dispatch(Arr.pull, Obj.pull)(settings, key)).toEqualTypeOf(
+            Obj.pull(settings, key),
+        );
+    });
+
+    it("routes a class instance to obj for pull", () => {
+        expectTypeOf(dispatch(Arr.pull, Obj.pull)(box, key)).toEqualTypeOf(
+            Obj.pull(box, key),
         );
     });
 
@@ -926,6 +1567,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.push(rec, key, nine));
     });
 
+    it("routes an interface-typed object to obj for push", () => {
+        expectTypeOf(
+            dispatch(Arr.push, Obj.push)(settings, key, nine),
+        ).toEqualTypeOf(Obj.push(settings, key, nine));
+    });
+
+    it("routes a class instance to obj for push", () => {
+        expectTypeOf(
+            dispatch(Arr.push, Obj.push)(box, key, nine),
+        ).toEqualTypeOf(Obj.push(box, key, nine));
+    });
+
     it("keeps a list on arr for push", () => {
         expectTypeOf(
             dispatch(Arr.push, Obj.push)(list, idx, nine),
@@ -942,6 +1595,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for query", () => {
         expectTypeOf(dispatch(Arr.query, Obj.query)(rec)).toEqualTypeOf(
             Obj.query(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for query", () => {
+        expectTypeOf(dispatch(Arr.query, Obj.query)(settings)).toEqualTypeOf(
+            Obj.query(settings),
+        );
+    });
+
+    it("routes a class instance to obj for query", () => {
+        expectTypeOf(dispatch(Arr.query, Obj.query)(box)).toEqualTypeOf(
+            Obj.query(box),
         );
     });
 
@@ -962,6 +1627,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for random", () => {
+        expectTypeOf(dispatch(Arr.random, Obj.random)(settings)).toEqualTypeOf(
+            Obj.random(settings),
+        );
+    });
+
+    it("routes a class instance to obj for random", () => {
+        expectTypeOf(dispatch(Arr.random, Obj.random)(box)).toEqualTypeOf(
+            Obj.random(box),
+        );
+    });
+
     it("keeps a list on arr for random", () => {
         expectTypeOf(dispatch(Arr.random, Obj.random)(list)).toEqualTypeOf(
             Arr.random(list),
@@ -979,6 +1656,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.reject(rec, truthy));
     });
 
+    it("routes an interface-typed object to obj for reject", () => {
+        expectTypeOf(
+            dispatch(Arr.reject, Obj.reject)(settings, truthy),
+        ).toEqualTypeOf(Obj.reject(settings, truthy));
+    });
+
+    it("routes a class instance to obj for reject", () => {
+        expectTypeOf(
+            dispatch(Arr.reject, Obj.reject)(box, truthy),
+        ).toEqualTypeOf(Obj.reject(box, truthy));
+    });
+
     it("keeps a list on arr for reject", () => {
         expectTypeOf(
             dispatch(Arr.reject, Obj.reject)(list, truthy),
@@ -993,6 +1682,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for reverse", () => {
         expectTypeOf(dispatch(Arr.reverse, Obj.reverse)(rec)).toEqualTypeOf(
             Obj.reverse(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for reverse", () => {
+        expectTypeOf(
+            dispatch(Arr.reverse, Obj.reverse)(settings),
+        ).toEqualTypeOf(Obj.reverse(settings));
+    });
+
+    it("routes a class instance to obj for reverse", () => {
+        expectTypeOf(dispatch(Arr.reverse, Obj.reverse)(box)).toEqualTypeOf(
+            Obj.reverse(box),
         );
     });
 
@@ -1013,6 +1714,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.select(recOfRecords, idKeys));
     });
 
+    it("routes an interface-typed object to obj for select", () => {
+        expectTypeOf(
+            dispatch(Arr.select, Obj.select)(recordsSettings, idKeys),
+        ).toEqualTypeOf(Obj.select(recordsSettings, idKeys));
+    });
+
+    it("routes a class instance to obj for select", () => {
+        expectTypeOf(
+            dispatch(Arr.select, Obj.select)(recordsBox, idKeys),
+        ).toEqualTypeOf(Obj.select(recordsBox, idKeys));
+    });
+
     it("keeps a list on arr for select", () => {
         expectTypeOf(
             dispatch(Arr.select, Obj.select)(listOfRecords, idKeys),
@@ -1027,6 +1740,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for set", () => {
         expectTypeOf(dispatch(Arr.set, Obj.set)(rec, key, nine)).toEqualTypeOf(
             Obj.set(rec, key, nine),
+        );
+    });
+
+    it("routes an interface-typed object to obj for set", () => {
+        expectTypeOf(
+            dispatch(Arr.set, Obj.set)(settings, key, nine),
+        ).toEqualTypeOf(Obj.set(settings, key, nine));
+    });
+
+    it("routes a class instance to obj for set", () => {
+        expectTypeOf(dispatch(Arr.set, Obj.set)(box, key, nine)).toEqualTypeOf(
+            Obj.set(box, key, nine),
         );
     });
 
@@ -1049,6 +1774,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for shift", () => {
+        expectTypeOf(dispatch(Arr.shift, Obj.shift)(settings)).toEqualTypeOf(
+            Obj.shift(settings),
+        );
+    });
+
+    it("routes a class instance to obj for shift", () => {
+        expectTypeOf(dispatch(Arr.shift, Obj.shift)(box)).toEqualTypeOf(
+            Obj.shift(box),
+        );
+    });
+
     it("keeps a list on arr for shift", () => {
         expectTypeOf(dispatch(Arr.shift, Obj.shift)(list)).toEqualTypeOf(
             Arr.shift(list),
@@ -1063,6 +1800,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for shuffle", () => {
         expectTypeOf(dispatch(Arr.shuffle, Obj.shuffle)(rec)).toEqualTypeOf(
             Obj.shuffle(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for shuffle", () => {
+        expectTypeOf(
+            dispatch(Arr.shuffle, Obj.shuffle)(settings),
+        ).toEqualTypeOf(Obj.shuffle(settings));
+    });
+
+    it("routes a class instance to obj for shuffle", () => {
+        expectTypeOf(dispatch(Arr.shuffle, Obj.shuffle)(box)).toEqualTypeOf(
+            Obj.shuffle(box),
         );
     });
 
@@ -1083,6 +1832,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for slice", () => {
+        expectTypeOf(
+            dispatch(Arr.slice, Obj.slice)(settings, one),
+        ).toEqualTypeOf(Obj.slice(settings, one));
+    });
+
+    it("routes a class instance to obj for slice", () => {
+        expectTypeOf(dispatch(Arr.slice, Obj.slice)(box, one)).toEqualTypeOf(
+            Obj.slice(box, one),
+        );
+    });
+
     it("keeps a list on arr for slice", () => {
         expectTypeOf(dispatch(Arr.slice, Obj.slice)(list, one)).toEqualTypeOf(
             Arr.slice(list, one),
@@ -1097,6 +1858,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for sole", () => {
         expectTypeOf(dispatch(Arr.sole, Obj.sole)(rec)).toEqualTypeOf(
             Obj.sole(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for sole", () => {
+        expectTypeOf(dispatch(Arr.sole, Obj.sole)(settings)).toEqualTypeOf(
+            Obj.sole(settings),
+        );
+    });
+
+    it("routes a class instance to obj for sole", () => {
+        expectTypeOf(dispatch(Arr.sole, Obj.sole)(box)).toEqualTypeOf(
+            Obj.sole(box),
         );
     });
 
@@ -1117,6 +1890,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for some", () => {
+        expectTypeOf(
+            dispatch(Arr.some, Obj.some)(settings, truthy),
+        ).toEqualTypeOf(Obj.some(settings, truthy));
+    });
+
+    it("routes a class instance to obj for some", () => {
+        expectTypeOf(dispatch(Arr.some, Obj.some)(box, truthy)).toEqualTypeOf(
+            Obj.some(box, truthy),
+        );
+    });
+
     it("keeps a list on arr for some", () => {
         expectTypeOf(dispatch(Arr.some, Obj.some)(list, truthy)).toEqualTypeOf(
             Arr.some(list, truthy),
@@ -1131,6 +1916,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for sort", () => {
         expectTypeOf(dispatch(Arr.sort, Obj.sort)(rec)).toEqualTypeOf(
             Obj.sort(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for sort", () => {
+        expectTypeOf(dispatch(Arr.sort, Obj.sort)(settings)).toEqualTypeOf(
+            Obj.sort(settings),
+        );
+    });
+
+    it("routes a class instance to obj for sort", () => {
+        expectTypeOf(dispatch(Arr.sort, Obj.sort)(box)).toEqualTypeOf(
+            Obj.sort(box),
         );
     });
 
@@ -1151,6 +1948,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for sortDesc", () => {
+        expectTypeOf(
+            dispatch(Arr.sortDesc, Obj.sortDesc)(settings),
+        ).toEqualTypeOf(Obj.sortDesc(settings));
+    });
+
+    it("routes a class instance to obj for sortDesc", () => {
+        expectTypeOf(dispatch(Arr.sortDesc, Obj.sortDesc)(box)).toEqualTypeOf(
+            Obj.sortDesc(box),
+        );
+    });
+
     it("keeps a list on arr for sortDesc", () => {
         expectTypeOf(dispatch(Arr.sortDesc, Obj.sortDesc)(list)).toEqualTypeOf(
             Arr.sortDesc(list),
@@ -1166,6 +1975,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.sortRecursive, Obj.sortRecursive)(rec),
         ).toEqualTypeOf(Obj.sortRecursive(rec));
+    });
+
+    it("routes an interface-typed object to obj for sortRecursive", () => {
+        expectTypeOf(
+            dispatch(Arr.sortRecursive, Obj.sortRecursive)(settings),
+        ).toEqualTypeOf(Obj.sortRecursive(settings));
+    });
+
+    it("routes a class instance to obj for sortRecursive", () => {
+        expectTypeOf(
+            dispatch(Arr.sortRecursive, Obj.sortRecursive)(box),
+        ).toEqualTypeOf(Obj.sortRecursive(box));
     });
 
     it("keeps a list on arr for sortRecursive", () => {
@@ -1185,6 +2006,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.sortRecursiveDesc(rec));
     });
 
+    it("routes an interface-typed object to obj for sortRecursiveDesc", () => {
+        expectTypeOf(
+            dispatch(Arr.sortRecursiveDesc, Obj.sortRecursiveDesc)(settings),
+        ).toEqualTypeOf(Obj.sortRecursiveDesc(settings));
+    });
+
+    it("routes a class instance to obj for sortRecursiveDesc", () => {
+        expectTypeOf(
+            dispatch(Arr.sortRecursiveDesc, Obj.sortRecursiveDesc)(box),
+        ).toEqualTypeOf(Obj.sortRecursiveDesc(box));
+    });
+
     it("keeps a list on arr for sortRecursiveDesc", () => {
         expectTypeOf(
             dispatch(Arr.sortRecursiveDesc, Obj.sortRecursiveDesc)(list),
@@ -1202,6 +2035,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for splice", () => {
+        expectTypeOf(
+            dispatch(Arr.splice, Obj.splice)(settings, one),
+        ).toEqualTypeOf(Obj.splice(settings, one));
+    });
+
+    it("routes a class instance to obj for splice", () => {
+        expectTypeOf(dispatch(Arr.splice, Obj.splice)(box, one)).toEqualTypeOf(
+            Obj.splice(box, one),
+        );
+    });
+
     it("keeps a list on arr for splice", () => {
         expectTypeOf(dispatch(Arr.splice, Obj.splice)(list, one)).toEqualTypeOf(
             Arr.splice(list, one),
@@ -1216,6 +2061,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for string", () => {
         expectTypeOf(dispatch(Arr.string, Obj.string)(rec, key)).toEqualTypeOf(
             Obj.string(rec, key),
+        );
+    });
+
+    it("routes an interface-typed object to obj for string", () => {
+        expectTypeOf(
+            dispatch(Arr.string, Obj.string)(settings, key),
+        ).toEqualTypeOf(Obj.string(settings, key));
+    });
+
+    it("routes a class instance to obj for string", () => {
+        expectTypeOf(dispatch(Arr.string, Obj.string)(box, key)).toEqualTypeOf(
+            Obj.string(box, key),
         );
     });
 
@@ -1238,6 +2095,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for take", () => {
+        expectTypeOf(
+            dispatch(Arr.take, Obj.take)(settings, size),
+        ).toEqualTypeOf(Obj.take(settings, size));
+    });
+
+    it("routes a class instance to obj for take", () => {
+        expectTypeOf(dispatch(Arr.take, Obj.take)(box, size)).toEqualTypeOf(
+            Obj.take(box, size),
+        );
+    });
+
     it("keeps a list on arr for take", () => {
         expectTypeOf(dispatch(Arr.take, Obj.take)(list, size)).toEqualTypeOf(
             Arr.take(list, size),
@@ -1253,6 +2122,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.toCssClasses, Obj.toCssClasses)(rec),
         ).toEqualTypeOf(Obj.toCssClasses(rec));
+    });
+
+    it("routes an interface-typed object to obj for toCssClasses", () => {
+        expectTypeOf(
+            dispatch(Arr.toCssClasses, Obj.toCssClasses)(settings),
+        ).toEqualTypeOf(Obj.toCssClasses(settings));
+    });
+
+    it("routes a class instance to obj for toCssClasses", () => {
+        expectTypeOf(
+            dispatch(Arr.toCssClasses, Obj.toCssClasses)(box),
+        ).toEqualTypeOf(Obj.toCssClasses(box));
     });
 
     it("keeps a list on arr for toCssClasses", () => {
@@ -1272,6 +2153,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.toCssStyles(rec));
     });
 
+    it("routes an interface-typed object to obj for toCssStyles", () => {
+        expectTypeOf(
+            dispatch(Arr.toCssStyles, Obj.toCssStyles)(settings),
+        ).toEqualTypeOf(Obj.toCssStyles(settings));
+    });
+
+    it("routes a class instance to obj for toCssStyles", () => {
+        expectTypeOf(
+            dispatch(Arr.toCssStyles, Obj.toCssStyles)(box),
+        ).toEqualTypeOf(Obj.toCssStyles(box));
+    });
+
     it("keeps a list on arr for toCssStyles", () => {
         expectTypeOf(
             dispatch(Arr.toCssStyles, Obj.toCssStyles)(list),
@@ -1286,6 +2179,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for union", () => {
         expectTypeOf(dispatch(Arr.union, Obj.union)(rec, rec)).toEqualTypeOf(
             Obj.union(rec, rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for union", () => {
+        expectTypeOf(
+            dispatch(Arr.union, Obj.union)(settings, rec),
+        ).toEqualTypeOf(Obj.union(settings, rec));
+    });
+
+    it("routes a class instance to obj for union", () => {
+        expectTypeOf(dispatch(Arr.union, Obj.union)(box, rec)).toEqualTypeOf(
+            Obj.union(box, rec),
         );
     });
 
@@ -1308,6 +2213,18 @@ describe("arr rows leave keyed data to obj", () => {
         ).toEqualTypeOf(Obj.unshift(rec, recB));
     });
 
+    it("routes an interface-typed object to obj for unshift", () => {
+        expectTypeOf(
+            dispatch(Arr.unshift, Obj.unshift)(settings, recB),
+        ).toEqualTypeOf(Obj.unshift(settings, recB));
+    });
+
+    it("routes a class instance to obj for unshift", () => {
+        expectTypeOf(
+            dispatch(Arr.unshift, Obj.unshift)(box, recB),
+        ).toEqualTypeOf(Obj.unshift(box, recB));
+    });
+
     it("keeps a list on arr for unshift", () => {
         expectTypeOf(
             dispatch(Arr.unshift, Obj.unshift)(list, nine),
@@ -1324,6 +2241,18 @@ describe("arr rows leave keyed data to obj", () => {
     it("routes a record to obj for values", () => {
         expectTypeOf(dispatch(Arr.values, Obj.values)(rec)).toEqualTypeOf(
             Obj.values(rec),
+        );
+    });
+
+    it("routes an interface-typed object to obj for values", () => {
+        expectTypeOf(dispatch(Arr.values, Obj.values)(settings)).toEqualTypeOf(
+            Obj.values(settings),
+        );
+    });
+
+    it("routes a class instance to obj for values", () => {
+        expectTypeOf(dispatch(Arr.values, Obj.values)(box)).toEqualTypeOf(
+            Obj.values(box),
         );
     });
 
@@ -1344,6 +2273,18 @@ describe("arr rows leave keyed data to obj", () => {
         );
     });
 
+    it("routes an interface-typed object to obj for where", () => {
+        expectTypeOf(
+            dispatch(Arr.where, Obj.where)(settings, truthy),
+        ).toEqualTypeOf(Obj.where(settings, truthy));
+    });
+
+    it("routes a class instance to obj for where", () => {
+        expectTypeOf(dispatch(Arr.where, Obj.where)(box, truthy)).toEqualTypeOf(
+            Obj.where(box, truthy),
+        );
+    });
+
     it("keeps a list on arr for where", () => {
         expectTypeOf(
             dispatch(Arr.where, Obj.where)(list, truthy),
@@ -1359,6 +2300,18 @@ describe("arr rows leave keyed data to obj", () => {
         expectTypeOf(
             dispatch(Arr.whereNotNull, Obj.whereNotNull)(rec),
         ).toEqualTypeOf(Obj.whereNotNull(rec));
+    });
+
+    it("routes an interface-typed object to obj for whereNotNull", () => {
+        expectTypeOf(
+            dispatch(Arr.whereNotNull, Obj.whereNotNull)(settings),
+        ).toEqualTypeOf(Obj.whereNotNull(settings));
+    });
+
+    it("routes a class instance to obj for whereNotNull", () => {
+        expectTypeOf(
+            dispatch(Arr.whereNotNull, Obj.whereNotNull)(box),
+        ).toEqualTypeOf(Obj.whereNotNull(box));
     });
 
     it("keeps a list on arr for whereNotNull", () => {
