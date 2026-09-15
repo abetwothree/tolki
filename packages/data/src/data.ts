@@ -166,10 +166,8 @@ import type {
     AddToObject,
     DataItems,
     DataIterableItems,
-    GetFieldType,
     PathKey,
     PathKeys,
-    UnwrapFn,
 } from "@tolki/types";
 import {
     entriesKeyValue,
@@ -270,74 +268,14 @@ export function dataAdd<TValue>(
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * dataItem({items: ['x', 'y']}, 'items'); -> ['x', 'y']
  */
-// Overload: no default value - return field type or never if path doesn't exist
-export function dataItem<
-    TValue extends Record<PropertyKey, unknown>,
-    TPath extends string,
->(data: TValue, key: TPath): GetFieldType<TValue, TPath, never>;
-// Overload: with default value - return field type if exists, otherwise unwrapped default
-export function dataItem<
-    TValue extends Record<PropertyKey, unknown>,
-    TPath extends string,
-    TDefault,
->(
-    data: TValue,
-    key: TPath,
-    defaultValue: TDefault | null,
-): GetFieldType<TValue, TPath, UnwrapFn<TDefault>>;
-// Overload: with default value as a function
-export function dataItem<
-    TValue extends Record<PropertyKey, unknown>,
-    TPath extends string,
-    TDefault extends (...args: unknown[]) => unknown,
->(
-    data: TValue,
-    key: TPath,
-    defaultValue: TDefault,
-): GetFieldType<TValue, TPath, UnwrapFn<TDefault>>;
-// Overload: array with no default
-export function dataItem<TValue, TIndex extends number>(
-    data: TValue[] | readonly TValue[],
-    key: TIndex,
-): GetFieldType<TValue[] | readonly TValue[], TIndex, never>;
-// Overload: array with default
-export function dataItem<TValue, TDefault>(
-    data: TValue[] | readonly TValue[],
-    key: number,
-    defaultValue: TDefault | null,
-): GetFieldType<TValue[] | readonly TValue[], number, UnwrapFn<TDefault>>;
-// Overload: array with default as function
-export function dataItem<
-    TValue,
-    TDefault extends (...args: unknown[]) => unknown,
->(
-    data: TValue[] | readonly TValue[],
-    key: number,
-    defaultValue: TDefault,
-): GetFieldType<TValue[] | readonly TValue[], number, UnwrapFn<TDefault>>;
-// Implementation
-export function dataItem<TValue, TDefault = null>(
-    data: DataItems<TValue, PropertyKey> | readonly TValue[],
-    key: PathKey,
-    defaultValue?: TDefault | (() => TDefault) | null,
-) {
-    if (isKeyedData(data)) {
-        return objectItem(
-            toKeyedData<PropertyKey, TValue>(data),
-            key,
-            defaultValue,
-        );
-    }
-
-    return arrayItem(arrWrap(data), key, defaultValue);
-}
+export const dataItem = dispatch(arrayItem, objectItem);
 
 /**
  * Get a boolean value from data.
  *
  * @param data - The data to get from
  * @param key - The key to get
- * @param defaultValue - Default boolean value
+ * @param defaultValue - Default boolean value, `null` when omitted, as in PHP
  * @returns Boolean value or default
  *
  * @example
@@ -345,17 +283,7 @@ export function dataItem<TValue, TDefault = null>(
  * dataBoolean([true, false], 0, false); -> true
  * dataBoolean({active: true}, 'active', false); -> true
  */
-export function dataBoolean<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    defaultValue = false,
-): boolean {
-    if (isObject(data)) {
-        return objBoolean(data, key, defaultValue);
-    }
-
-    return arrBoolean(arrWrap(data), key, defaultValue);
-}
+export const dataBoolean = dispatch(arrBoolean, objBoolean);
 
 /**
  * Chunk the data into chunks of the given size.
@@ -816,7 +744,7 @@ export const dataFlip = dispatch(arrFlip, objFlip);
  *
  * @param data - The data to get from
  * @param key - The key to get
- * @param defaultValue - Default float value
+ * @param defaultValue - Default float value, `null` when omitted, as in PHP
  * @returns Float value or default
  *
  * @example
@@ -824,17 +752,7 @@ export const dataFlip = dispatch(arrFlip, objFlip);
  * dataFloat([1.5, 2.7], 0, 0.0); -> 1.5
  * dataFloat({price: 9.99}, 'price', 0.0); -> 9.99
  */
-export function dataFloat<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    defaultValue = 0.0,
-): number {
-    if (isObject(data)) {
-        return objFloat(data, key, defaultValue);
-    }
-
-    return arrFloat(arrWrap(data), key, defaultValue);
-}
+export const dataFloat = dispatch(arrFloat, objFloat);
 
 /**
  * Remove keys from data.
@@ -1086,7 +1004,7 @@ export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The data to get from
  * @param key - The key to get
- * @param defaultValue - Default integer value
+ * @param defaultValue - Default integer value, `null` when omitted, as in PHP
  * @returns Integer value or default
  *
  * @example
@@ -1094,17 +1012,7 @@ export function dataSome<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataInteger([1, 2, 3], 0, 0); -> 1
  * dataInteger({count: 42}, 'count', 0); -> 42
  */
-export function dataInteger<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    defaultValue = 0,
-): number {
-    if (isObject(data)) {
-        return objInteger(data, key, defaultValue);
-    }
-
-    return arrInteger(arrWrap(data), key, defaultValue);
-}
+export const dataInteger = dispatch(arrInteger, objInteger);
 
 /**
  * Join data elements with a glue string.
@@ -1890,7 +1798,7 @@ export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
  *
  * @param data - The data to get from
  * @param key - The key to get
- * @param defaultValue - Default string value
+ * @param defaultValue - Default string value, `null` when omitted, as in PHP
  * @returns String value or default
  *
  * @example
@@ -1898,17 +1806,7 @@ export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
  * dataString(['hello', 'world'], 0, ''); -> 'hello'
  * dataString({name: 'John'}, 'name', ''); -> 'John'
  */
-export function dataString<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    defaultValue = "",
-): string {
-    if (isObject(data)) {
-        return objString(data, key, defaultValue);
-    }
-
-    return arrString(arrWrap(data), key, defaultValue);
-}
+export const dataString = dispatch(arrString, objString);
 
 /**
  * Convert data to CSS classes string.

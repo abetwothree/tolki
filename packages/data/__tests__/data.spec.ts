@@ -145,16 +145,12 @@ describe("Data", () => {
             expect(Data.dataBoolean({ active: false }, "missing", true)).toBe(
                 true,
             );
-            // Test with default value (false) - not explicitly passed
             expect(Data.dataBoolean({ active: true }, "active")).toBe(true);
-            expect(Data.dataBoolean({ active: false }, "missing")).toBe(false);
         });
 
         it("is array", () => {
             expect(Data.dataBoolean([true, false], 0, false)).toBe(true);
-            // Test with default value (false) - not explicitly passed
             expect(Data.dataBoolean([true, false], 0)).toBe(true);
-            expect(Data.dataBoolean([true, false], 5)).toBe(false);
         });
 
         it("throws when the value is not a boolean, naming the backing in the message", () => {
@@ -177,6 +173,21 @@ describe("Data", () => {
             // docs/php-parity/task-24-data-release-readiness.json, "boolean-missing-key-default"
             expect(Data.dataBoolean({}, "missing", true)).toBe(true);
             expect(Data.dataBoolean([], 0, false)).toBe(false);
+        });
+
+        it("throws for a missing key when no default is given", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "boolean-missing-key-no-default", "boolean-list-missing-index-no-default"
+            // JS-only: the object backing says "Object value for key [...]"; PHP has
+            // only the array prefix.
+            expect(() =>
+                Data.dataBoolean({ active: false }, "missing"),
+            ).toThrow(
+                "Object value for key [missing] must be a boolean, NULL found.",
+            );
+            expect(() => Data.dataBoolean([true, false], 5)).toThrow(
+                "Array value for key [5] must be a boolean, NULL found.",
+            );
         });
     });
 
@@ -1226,9 +1237,20 @@ describe("Data", () => {
         it("falls back to the default for a missing key", () => {
             // docs/php-parity/task-24-data-release-readiness.json, "float-missing-key-default"
             expect(Data.dataFloat({}, "missing", 1.5)).toBe(1.5);
-            // JS-only: PHP's Arr::float default is null, which fails its own is_float
-            // check and throws; @tolki/data defaults to 0 so a missing key never throws.
-            expect(Data.dataFloat([], 0)).toBe(0);
+            expect(Data.dataFloat([], 0, 1.5)).toBe(1.5);
+        });
+
+        it("throws for a missing key when no default is given", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "float-missing-key-no-default", "float-list-missing-index-no-default"
+            // JS-only: the object backing says "Object value for key [...]"; PHP has
+            // only the array prefix.
+            expect(() => Data.dataFloat({}, "missing")).toThrow(
+                "Object value for key [missing] must be a float, NULL found.",
+            );
+            expect(() => Data.dataFloat([], 0)).toThrow(
+                "Array value for key [0] must be a float, NULL found.",
+            );
         });
     });
 
@@ -1598,18 +1620,15 @@ describe("Data", () => {
 
             expect(Data.dataInteger({}, "missing", 5)).toBe(5);
 
-            // Test with default value (0) - not explicitly passed
             expect(Data.dataInteger({ count: 42 }, "count")).toBe(42);
-            expect(Data.dataInteger({}, "missing")).toBe(0);
         });
 
         it("is array", () => {
             const result = Data.dataInteger([1, 2, 3], 0, 0);
             expect(result).toBe(1);
 
-            // Test with default value (0) - not explicitly passed
             expect(Data.dataInteger([10, 20, 30], 1)).toBe(20);
-            expect(Data.dataInteger([], 0)).toBe(0);
+            expect(Data.dataInteger([], 0, 5)).toBe(5);
         });
 
         it("throws when the value is not an integer, naming the backing in the message", () => {
@@ -1636,6 +1655,19 @@ describe("Data", () => {
             );
             expect(() => Data.dataInteger([1.5], 0)).toThrow(
                 "Array value for key [0] must be an integer, double found.",
+            );
+        });
+
+        it("throws for a missing key when no default is given", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "integer-missing-key-no-default", "integer-list-missing-index-no-default"
+            // JS-only: the object backing says "Object value for key [...]"; PHP has
+            // only the array prefix.
+            expect(() => Data.dataInteger({}, "missing")).toThrow(
+                "Object value for key [missing] must be an integer, NULL found.",
+            );
+            expect(() => Data.dataInteger([], 0)).toThrow(
+                "Array value for key [0] must be an integer, NULL found.",
             );
         });
     });
@@ -3051,18 +3083,14 @@ describe("Data", () => {
             expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
             expect(Data.dataString({}, "missing", "default")).toBe("default");
 
-            // Test with default value ("") - not explicitly passed
             expect(Data.dataString({ name: "Jane" }, "name")).toBe("Jane");
-            expect(Data.dataString({}, "missing")).toBe("");
         });
 
         it("is array", () => {
             expect(Data.dataString(["hello", "world"], 0, "")).toBe("hello");
             expect(Data.dataString([], 0, "default")).toBe("default");
 
-            // Test with default value ("") - not explicitly passed
             expect(Data.dataString(["foo", "bar"], 1)).toBe("bar");
-            expect(Data.dataString([], 0)).toBe("");
         });
 
         it("throws when the value is not a string, naming the backing in the message", () => {
@@ -3076,6 +3104,19 @@ describe("Data", () => {
             );
             expect(() => Data.dataString([1234], 0)).toThrow(
                 "Array value for key [0] must be a string, integer found.",
+            );
+        });
+
+        it("throws for a missing key when no default is given", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "string-missing-key-no-default", "string-list-missing-index-no-default"
+            // JS-only: the object backing says "Object value for key [...]"; PHP has
+            // only the array prefix.
+            expect(() => Data.dataString({}, "missing")).toThrow(
+                "Object value for key [missing] must be a string, NULL found.",
+            );
+            expect(() => Data.dataString([], 0)).toThrow(
+                "Array value for key [0] must be a string, NULL found.",
             );
         });
     });
@@ -5743,26 +5784,16 @@ describe("Data", () => {
         );
 
         it("dataItem reads a nested value off a Map like the record it mirrors", () => {
-            expect(
-                Data.dataItem(
-                    nestedMap as unknown as Record<
-                        string,
-                        Record<string, number>
-                    >,
-                    "x",
-                ),
-            ).toEqual(Data.dataItem(nestedRecord, "x"));
+            expect(Data.dataItem(nestedMap, "x")).toEqual(
+                Data.dataItem(nestedRecord, "x"),
+            );
         });
 
-        it.fails(
-            "dataBoolean reads a boolean off a Map like the record it mirrors",
-            () => {
-                // Task C3 (guards family) converts this to dispatch().
-                expect(Data.dataBoolean(typedMap, "flag", false)).toBe(
-                    Data.dataBoolean(typedRecord, "flag", false),
-                );
-            },
-        );
+        it("dataBoolean reads a boolean off a Map like the record it mirrors", () => {
+            expect(Data.dataBoolean(typedMap, "flag", false)).toBe(
+                Data.dataBoolean(typedRecord, "flag", false),
+            );
+        });
 
         it.fails("dataChunk chunks a Map like the record it mirrors", () => {
             // Task C11 (slicing family) converts this to dispatch().
@@ -5914,15 +5945,11 @@ describe("Data", () => {
             expect(Data.dataFlip(asMap)).toEqual(Data.dataFlip(asRecord));
         });
 
-        it.fails(
-            "dataFloat reads a float off a Map like the record it mirrors",
-            () => {
-                // Task C3 (guards family) converts this to dispatch().
-                expect(Data.dataFloat(typedMap, "price", 0)).toBe(
-                    Data.dataFloat(typedRecord, "price", 0),
-                );
-            },
-        );
+        it("dataFloat reads a float off a Map like the record it mirrors", () => {
+            expect(Data.dataFloat(typedMap, "price", 0)).toBe(
+                Data.dataFloat(typedRecord, "price", 0),
+            );
+        });
 
         it.fails(
             "dataForget forgets a key on a Map like the record it mirrors",
@@ -5988,15 +6015,11 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataInteger reads an integer off a Map like the record it mirrors",
-            () => {
-                // Task C3 (guards family) converts this to dispatch().
-                expect(Data.dataInteger(typedMap, "count", 0)).toBe(
-                    Data.dataInteger(typedRecord, "count", 0),
-                );
-            },
-        );
+        it("dataInteger reads an integer off a Map like the record it mirrors", () => {
+            expect(Data.dataInteger(typedMap, "count", 0)).toBe(
+                Data.dataInteger(typedRecord, "count", 0),
+            );
+        });
 
         it.fails("dataJoin joins a Map like the record it mirrors", () => {
             // Task C7 (output family) converts this to dispatch().
@@ -6248,15 +6271,11 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataString reads a string off a Map like the record it mirrors",
-            () => {
-                // Task C3 (guards family) converts this to dispatch().
-                expect(Data.dataString(typedMap, "name", "")).toBe(
-                    Data.dataString(typedRecord, "name", ""),
-                );
-            },
-        );
+        it("dataString reads a string off a Map like the record it mirrors", () => {
+            expect(Data.dataString(typedMap, "name", "")).toBe(
+                Data.dataString(typedRecord, "name", ""),
+            );
+        });
 
         it.fails(
             "dataToCssClasses reads a Map like the record it mirrors",

@@ -52,6 +52,18 @@ export const opaque: unknown = null;
 /** The record `numberMap` mirrors: the shape `toKeyedData` builds from it at runtime. */
 export const numberMapAsRecord: Record<string, number> = { a: 1, b: 2 };
 
+/** A list of booleans, for the typed accessors. */
+export const booleanList = [true, false];
+
+/** A record of booleans. */
+export const flags = { on: true, off: false };
+
+/** A list of strings, for the typed accessors. */
+export const stringList = ["Ada", "Grace"];
+
+/** A record of strings. */
+export const names = { first: "Ada", last: "Lovelace" };
+
 /** A nested list, for collapse and flatten. */
 export const nestedList = [[1, 2], [3]];
 
