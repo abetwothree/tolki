@@ -616,23 +616,13 @@ export const dataDivide = dispatch(arrDivide, objDivide);
  * @param data - The data to convert
  * @param prepend - String to prepend to keys
  * @param depth - Maximum depth to flatten. Defaults to Infinity.
- * @returns Data in dot notation
+ * @returns Data in dot notation, matching the delegate's own result
  *
  * @example
  *
  * dataDot({a: {b: 1, c: 2}}); -> {'a.b': 1, 'a.c': 2}
  */
-export function dataDot<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    prepend = "",
-    depth: number = Infinity,
-): Record<string, unknown> {
-    if (isObject(data)) {
-        return objDot(data, prepend, depth);
-    }
-
-    return arrDot(arrWrap(data), prepend, depth);
-}
+export const dataDot = dispatch(arrDot, objDot);
 
 /**
  * Convert dot notation back to nested data.
@@ -817,17 +807,9 @@ export function dataFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
  * Flip the keys and values of an object or array.
  *
  * @param data - The data of items to flip
- * @return - the data items flipped
+ * @return - the data items flipped, matching the delegate's own result
  */
-export function dataFlip<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-) {
-    if (isObject(data)) {
-        return objFlip(data);
-    }
-
-    return arrFlip(arrWrap(data));
-}
+export const dataFlip = dispatch(arrFlip, objFlip);
 
 /**
  * Get a float value from data.
@@ -1154,51 +1136,31 @@ export function dataJoin<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The data to key
  * @param keyBy - Key or callback to key by; the callback receives each item and its key (a list's index)
- * @returns Keyed data
+ * @returns Keyed data, matching the delegate's own result
  *
  * @example
  *
  * dataKeyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id');
  * -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
  */
-export function dataKeyBy(
-    data: unknown,
-    keyBy:
-        | string
-        | ((
-              item: unknown,
-              key: string | number,
-          ) => string | number | null | undefined),
-): Record<string | number, unknown> {
-    if (isObject(data)) {
-        return objKeyBy(data, keyBy);
-    }
-
-    return arrKeyBy(arrWrap(data), keyBy);
-}
+export const dataKeyBy = dispatch(arrKeyBy, objKeyBy);
 
 /**
  * Prepend keys with a given prefix.
  *
  * @param data - The data to prepend keys to
  * @param prependWith - The prefix to prepend
- * @returns Data with prepended keys
+ * @returns Data with prepended keys, matching the delegate's own result
  *
  * @example
  *
  * dataPrependKeysWith({name: 'John', age: 30}, 'user_');
  * -> {user_name: 'John', user_age: 30}
  */
-export function dataPrependKeysWith<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, prependWith: string): Record<string, TValue> {
-    if (isObject(data)) {
-        return objPrependKeysWith(data, prependWith);
-    }
-
-    return arrPrependKeysWith(arrWrap(data), prependWith);
-}
+export const dataPrependKeysWith = dispatch(
+    arrPrependKeysWith,
+    objPrependKeysWith,
+);
 
 /**
  * Get only specified keys from data.

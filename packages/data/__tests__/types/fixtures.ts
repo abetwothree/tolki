@@ -75,3 +75,6 @@ export const rowsById: Record<"r1" | "r2", Row> = {
     r1: { id: 1, name: "Ada" },
     r2: { id: 2, name: "Grace" },
 };
+
+/** The canonical union at the shape keyBy needs: rows rather than scalars. */
+export const unionRows: DataItems<Row, "r1" | "r2"> = rowList;

@@ -5852,8 +5852,7 @@ describe("Data", () => {
             expect(Data.dataDivide(asMap)).toEqual(Data.dataDivide(asRecord));
         });
 
-        it.fails("dataDot dots a Map like the record it mirrors", () => {
-            // Task C4 (keying family) converts this to dispatch().
+        it("dataDot dots a Map like the record it mirrors", () => {
             expect(Data.dataDot(nestedMap)).toEqual(Data.dataDot(nestedRecord));
         });
 
@@ -5914,8 +5913,7 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataFlip flips a Map like the record it mirrors", () => {
-            // Task C4 (keying family) converts this to dispatch().
+        it("dataFlip flips a Map like the record it mirrors", () => {
             expect(Data.dataFlip(asMap)).toEqual(Data.dataFlip(asRecord));
         });
 
@@ -6010,22 +6008,17 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataKeyBy keys a Map like the record it mirrors", () => {
-            // Task C4 (keying family) converts this to dispatch().
+        it("dataKeyBy keys a Map like the record it mirrors", () => {
             expect(Data.dataKeyBy(objectsMap, "id")).toEqual(
                 Data.dataKeyBy(objectsRecord, "id"),
             );
         });
 
-        it.fails(
-            "dataPrependKeysWith prepends a Map's keys like the record it mirrors",
-            () => {
-                // Task C4 (keying family) converts this to dispatch().
-                expect(Data.dataPrependKeysWith(asMap, "user_")).toEqual(
-                    Data.dataPrependKeysWith(asRecord, "user_"),
-                );
-            },
-        );
+        it("dataPrependKeysWith prepends a Map's keys like the record it mirrors", () => {
+            expect(Data.dataPrependKeysWith(asMap, "user_")).toEqual(
+                Data.dataPrependKeysWith(asRecord, "user_"),
+            );
+        });
 
         it.fails(
             "dataOnly reads only keys off a Map like the record it mirrors",
