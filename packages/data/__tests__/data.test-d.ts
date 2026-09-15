@@ -62,14 +62,6 @@ describe("data type tests", () => {
         });
     });
 
-    describe("dataShift", () => {
-        it("returns a value, a list of values, or null", () => {
-            expectTypeOf(Data.dataShift([1, 2, 3])).toEqualTypeOf<
-                number | number[] | null
-            >();
-        });
-    });
-
     describe("dataChunkWhile / dataChunkBy overloads", () => {
         it("routes a record to the keyed overload", () => {
             const result = Data.dataChunkWhile(

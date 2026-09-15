@@ -1473,16 +1473,7 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
  * @returns The shifted item(s), or null if the source had nothing to shift.
  * @throws Error if count is negative.
  */
-export function dataShift<TValue, TKey extends PropertyKey = PropertyKey>(
-    items: DataItems<TValue, TKey>,
-    count: number = 1,
-): TValue | TValue[] | null {
-    if (isObject(items)) {
-        return objShift(items, count);
-    }
-
-    return arrShift(arrWrap(items), count);
-}
+export const dataShift = dispatch(arrShift, objShift);
 
 /**
  * Set a value in data by key.
@@ -1559,30 +1550,7 @@ export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
  * @param items - The items to prepend
  * @returns The same data reference, mutated.
  */
-export function dataUnshift<TValue>(
-    data: TValue[],
-    ...items: unknown[]
-): unknown[];
-export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>,
-    ...items: unknown[]
-): Record<PropertyKey, unknown>;
-export function dataUnshift<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    ...items: (TValue | Record<PropertyKey, TValue>)[]
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objUnshift(
-            data,
-            ...(items as Record<TKey, TValue>[]),
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrUnshift(arrWrap(data), ...(items as TValue[])) as DataItems<
-        TValue,
-        TKey
-    >;
-}
+export const dataUnshift = dispatch(arrUnshift, objUnshift);
 
 /**
  * Shuffle data randomly.
@@ -1776,22 +1744,7 @@ export function dataSortRecursiveDesc<
  * @param replacement - The items to insert
  * @returns The removed items.
  */
-export function dataSplice<TValue, TKey extends PropertyKey, TReplacements>(
-    data: DataItems<TValue, TKey>,
-    offset: number,
-    length?: number,
-    ...replacement: TReplacements[]
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objSplice(data, offset, length, ...replacement) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrSplice(arrWrap(data), offset, length, ...replacement);
-}
+export const dataSplice = dispatch(arrSplice, objSplice);
 
 /**
  * Get a string value from data.
@@ -1873,6 +1826,10 @@ export const dataWhere = dispatch(arrWhere, objWhere);
  * keys are `0..n-1`; a string key or a gap makes it an object, as PHP's result is keyed then.
  * A `null`/`undefined` `replacerData` is a no-op (`EnumeratesValues.php:1121`).
  *
+ * Not a `dispatch(arrReplace, objReplace)` pair on purpose: `arr.replace` returns `TValue[]`, so
+ * it drops a string key and fills a gap with `undefined`, where `array_replace` keeps both.
+ * obj serves the list backing so both backings answer what PHP answers.
+ *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data
@@ -1908,6 +1865,9 @@ export function dataReplace<
  * `data`'s backing picks the helper and `replacerData` may take either shape, and a list backing
  * becomes an object for a keyed result, as for `dataReplace` above. A `null`/`undefined`
  * `replacerData` is a no-op.
+ *
+ * Not a `dispatch` pair for the same reason as `dataReplace`: `arr.replaceRecursive` returns
+ * `TValue[]`, which cannot hold the string key or the gap `array_replace_recursive` keeps.
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
@@ -1979,21 +1939,7 @@ export function dataReverse<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param value - The value to pad with
  * @returns Padded data
  */
-export function dataPad<
-    TPadValue,
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    size: number,
-    value: TPadValue,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objPad(data, size, value) as DataItems<TValue, TKey>;
-    }
-
-    return arrPad(arrWrap(data), size, value) as DataItems<TValue, TKey>;
-}
+export const dataPad = dispatch(arrPad, objPad);
 
 /**
  * Partition data into two groups based on callback.
@@ -2453,16 +2399,7 @@ export function dataPluck<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param count - The number of items to pop
  * @returns The popped item(s), or null if the source had nothing to pop.
  */
-export function dataPop<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    count: number = 1,
-) {
-    if (isObject(data)) {
-        return objPop(data, count);
-    }
-
-    return arrPop(data, count);
-}
+export const dataPop = dispatch(arrPop, objPop);
 
 /**
  * Intersect the data with the given items.

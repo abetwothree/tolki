@@ -1628,6 +1628,7 @@ describe("Data", () => {
             expect(result).toBe(1);
 
             expect(Data.dataInteger([10, 20, 30], 1)).toBe(20);
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-list-missing-index-with-default"
             expect(Data.dataInteger([], 0, 5)).toBe(5);
         });
 
@@ -3257,6 +3258,23 @@ describe("Data", () => {
             expect(result).toEqual(["d", "e", "c"]);
         });
 
+        it("keeps a list backing's string key and gap, which arr.replace drops", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "replace-list-string-key-replacer", "replace-list-sparse-replacer"
+            // Guards the C6 decision: obj serves the list backing because arr.replace
+            // returns a list, so it answers ['a','b','c'] and ['a',undefined,undefined,'d'].
+            expect(Data.dataReplace(["a", "b", "c"], { k: "x" })).toEqual({
+                0: "a",
+                1: "b",
+                2: "c",
+                k: "x",
+            });
+            expect(Data.dataReplace(["a"], { 3: "d" })).toEqual({
+                0: "a",
+                3: "d",
+            });
+        });
+
         it("replaces an object's integer keys from a list operand", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
             expect(Data.dataReplace({ 0: "a", 1: "b", x: "c" }, ["z"])).toEqual(
@@ -3329,6 +3347,19 @@ describe("Data", () => {
             const replacements = ["d", "e", ["f", "g"]];
             const result = Data.dataReplaceRecursive(data, replacements);
             expect(result).toEqual(["d", "e", ["f", "g"]]);
+        });
+
+        it("keeps a list backing's string key and gap, which arr.replaceRecursive drops", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "replaceRecursive-list-string-key-replacer", "replaceRecursive-list-sparse-replacer"
+            // Guards the C6 decision, as for dataReplace above.
+            expect(
+                Data.dataReplaceRecursive(["a", "b", "c"], { k: "x" }),
+            ).toEqual({ 0: "a", 1: "b", 2: "c", k: "x" });
+            expect(Data.dataReplaceRecursive(["a"], { 3: "d" })).toEqual({
+                0: "a",
+                3: "d",
+            });
         });
 
         it("accepts a sparse object-shaped replacer for array-backed data", () => {
@@ -6155,17 +6186,11 @@ describe("Data", () => {
             expect(Data.dataAfter(asMap, 2)).toBe(Data.dataAfter(asRecord, 2));
         });
 
-        it.fails(
-            "dataShift shifts off a Map like the record it mirrors",
-            () => {
-                // Task C6 (mutations family) converts this to dispatch().
-                const mapCopy = new Map(asMap);
-                const recordCopy = { ...asRecord };
-                expect(Data.dataShift(mapCopy)).toBe(
-                    Data.dataShift(recordCopy),
-                );
-            },
-        );
+        it("dataShift shifts off a Map like the record it mirrors", () => {
+            const mapCopy = new Map(asMap);
+            const recordCopy = { ...asRecord };
+            expect(Data.dataShift(mapCopy)).toBe(Data.dataShift(recordCopy));
+        });
 
         it.fails(
             "dataSet sets a value on a Map like the record it mirrors",
@@ -6187,17 +6212,13 @@ describe("Data", () => {
             },
         );
 
-        it.fails(
-            "dataUnshift unshifts onto a Map like the record it mirrors",
-            () => {
-                // Task C6 (mutations family) converts this to dispatch().
-                const mapCopy = new Map(asMap);
-                const recordCopy = { ...asRecord };
-                expect(Data.dataUnshift(mapCopy, 99)).toEqual(
-                    Data.dataUnshift(recordCopy, 99),
-                );
-            },
-        );
+        it("dataUnshift unshifts onto a Map like the record it mirrors", () => {
+            const mapCopy = new Map(asMap);
+            const recordCopy = { ...asRecord };
+            expect(Data.dataUnshift(mapCopy, 99)).toEqual(
+                Data.dataUnshift(recordCopy, 99),
+            );
+        });
 
         it.fails(
             "dataShuffle shuffles a Map like the record it mirrors",
@@ -6262,8 +6283,7 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataSplice splices a Map like the record it mirrors", () => {
-            // Task C6 (mutations family) converts this to dispatch().
+        it("dataSplice splices a Map like the record it mirrors", () => {
             const mapCopy = new Map(asMap);
             const recordCopy = { ...asRecord };
             expect(Data.dataSplice(mapCopy, 1, 1)).toEqual(
@@ -6351,8 +6371,7 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataPad pads a Map like the record it mirrors", () => {
-            // Task C6 (mutations family) converts this to dispatch().
+        it("dataPad pads a Map like the record it mirrors", () => {
             expect(Data.dataPad(asMap, 5, 0)).toEqual(
                 Data.dataPad(asRecord, 5, 0),
             );
@@ -6464,8 +6483,7 @@ describe("Data", () => {
             },
         );
 
-        it.fails("dataPop pops off a Map like the record it mirrors", () => {
-            // Task C6 (mutations family) converts this to dispatch().
+        it("dataPop pops off a Map like the record it mirrors", () => {
             const mapCopy = new Map(asMap);
             const recordCopy = { ...asRecord };
             expect(Data.dataPop(mapCopy)).toBe(Data.dataPop(recordCopy));
