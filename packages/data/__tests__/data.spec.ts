@@ -2705,6 +2705,74 @@ describe("Data", () => {
             const result = Data.dataSort(arr);
             expect(result).toEqual([1, 2, 3]);
         });
+
+        it("sorts rows with a closure selector and a dot-notation key, keeping the keys", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sort-rows-natural", "sort-rows-natural-keys"
+            const natural = Data.dataSort({
+                a: { name: "Desk" },
+                b: { name: "Chair" },
+            });
+            expect(Object.keys(natural)).toEqual(["b", "a"]);
+
+            const byClosure = Data.dataSort(
+                { a: { name: "Desk" }, b: { name: "Chair" } },
+                (value) => value.name,
+            );
+            expect(Object.keys(byClosure)).toEqual(["b", "a"]);
+
+            const byDotKey = Data.dataSort(
+                { a: { meta: { k: 2 } }, b: { meta: { k: 1 } } },
+                "meta.k",
+            );
+            expect(Object.keys(byDotKey)).toEqual(["b", "a"]);
+
+            expect(
+                Data.dataSort(
+                    [{ name: "Desk" }, { name: "Chair" }],
+                    (value) => value.name,
+                ),
+            ).toEqual([{ name: "Chair" }, { name: "Desk" }]);
+        });
+
+        it("sorts by several keys, falling through on a tie", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortByMany-keys", "sortByMany-keys-order"
+            const rows = {
+                a: { name: "John", age: 8, meta: { key: 3 } },
+                b: { name: "John", age: 10, meta: { key: 5 } },
+                c: { name: "Dave", age: 10, meta: { key: 3 } },
+                d: { name: "John", age: 8, meta: { key: 2 } },
+            };
+            expect(
+                Object.keys(
+                    Data.dataSort(rows, [
+                        "name",
+                        "age",
+                        "meta.key",
+                    ] as never),
+                ),
+            ).toEqual(["c", "d", "a", "b"]);
+        });
+
+        it("honours a per-key direction descriptor", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortByMany-order"
+            const rows = {
+                a: { name: "John", age: 8, meta: { key: 3 } },
+                b: { name: "John", age: 10, meta: { key: 5 } },
+                c: { name: "Dave", age: 10, meta: { key: 3 } },
+                d: { name: "John", age: 8, meta: { key: 2 } },
+            };
+            expect(
+                Object.keys(
+                    Data.dataSort(rows, [
+                        "name",
+                        ["age", false],
+                        ["meta.key", true],
+                    ] as never),
+                ),
+            ).toEqual(["c", "b", "d", "a"]);
+        });
     });
 
     describe("dataSortDesc", () => {
@@ -2717,6 +2785,31 @@ describe("Data", () => {
             const arr = [3, 1, 2];
             const result = Data.dataSortDesc(arr);
             expect(result).toEqual([3, 2, 1]);
+        });
+
+        it("sorts rows descending with a closure selector and a dot-notation key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "sortDesc-rows-natural", "sortDesc-rows-natural-keys"
+            const result = Data.dataSortDesc({
+                a: { name: "Chair" },
+                b: { name: "Desk" },
+            });
+            expect(Object.keys(result)).toEqual(["b", "a"]);
+            expect(result).toEqual({ b: { name: "Desk" }, a: { name: "Chair" } });
+
+            expect(
+                Data.dataSortDesc(
+                    [{ meta: { k: 1 } }, { meta: { k: 2 } }],
+                    "meta.k",
+                ),
+            ).toEqual([{ meta: { k: 2 } }, { meta: { k: 1 } }]);
+        });
+
+        it("pins the descending key order on the object backing", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortDesc-rows-natural-keys"
+            expect(
+                Object.keys(Data.dataSortDesc({ c: 3, a: 1, b: 2 })),
+            ).toEqual(["c", "b", "a"]);
         });
     });
 
@@ -2798,6 +2891,47 @@ describe("Data", () => {
                         b: [3, 2, 1],
                         a: { d: 2, c: 1 },
                     },
+                ]);
+            });
+
+            it("orders nested numbers descending, numerically", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursiveDesc-numbers"
+                expect(
+                    Data.dataSortRecursiveDesc({ a: [1, 9, 10] }),
+                ).toEqual({ a: [10, 9, 1] });
+                expect(Data.dataSortRecursiveDesc([[1, 9, 10]])).toEqual([
+                    [10, 9, 1],
+                ]);
+            });
+
+            it("descends every level of the ArrTest fixture", () => {
+                // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursiveDesc-literal"
+                const result = Data.dataSortRecursiveDesc({
+                    empty: {},
+                    nested: {
+                        level1: {
+                            level2: { level3: [2, 3, 1] },
+                            values: [4, 5, 6],
+                        },
+                    },
+                    mixed: { a: 1, 2: "b", c: 3, 1: "d" },
+                });
+                expect(Object.keys(result)).toEqual([
+                    "nested",
+                    "mixed",
+                    "empty",
+                ]);
+                expect(result["nested"]).toEqual({
+                    level1: { values: [6, 5, 4], level2: { level3: [3, 2, 1] } },
+                });
+                // JS-only: PHP orders `mixed` as {"c":3,"a":1,"2":"b","1":"d"}; a JS object
+                // hoists integer-like keys ahead of string keys regardless of insertion order,
+                // so only the relative order WITHIN each key class can be pinned here.
+                expect(Object.keys(result["mixed"])).toEqual([
+                    "1",
+                    "2",
+                    "c",
+                    "a",
                 ]);
             });
         });
@@ -3132,6 +3266,29 @@ describe("Data", () => {
                 "house",
             ]);
         });
+
+        it("reverses string keys with their values", () => {
+            // docs/php-parity/task-11-final-fixes.json, "reverse on string keys"
+            // docs/php-parity/task-23-obj-release-readiness.json, "C5 reverse assoc"
+            expect(
+                Object.keys(
+                    Data.dataReverse({ name: "taylor", framework: "laravel" }),
+                ),
+            ).toEqual(["framework", "name"]);
+        });
+
+        it("renumbers an integer-keyed backing instead of carrying the keys along", () => {
+            // JS-only: PHP's collect([10,20,30,40])->reverse() keeps each value on its
+            // ORIGINAL key ({"3":40,"2":30,"1":20,"0":10} — docs/php-parity/
+            // task-11-final-fixes.json, "reverse preserves keys and reverses entry order").
+            // JS cannot express a descending integer-key order in an object or an array,
+            // so the port reverses the values and renumbers. No JS analogue exists.
+            expect(Data.dataReverse({ 0: "zaeed", 1: "alan" })).toEqual({
+                0: "alan",
+                1: "zaeed",
+            });
+            expect(Data.dataReverse([1, [2, 3], 4])).toEqual([4, [2, 3], 1]);
+        });
     });
 
     describe("dataPad", () => {
@@ -3205,6 +3362,21 @@ describe("Data", () => {
         });
         it("is array", () => {
             expect(Data.dataValues([1, 2, 3])).toEqual([1, 2, 3]);
+        });
+
+        it("resets integer keys to a packed list", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "C1 values resets int keys"
+            expect(Data.dataValues({ 1: "a", 2: "b", 3: "c" })).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+        });
+
+        it("returns an empty list for an empty backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "values-empty"
+            expect(Data.dataValues({})).toEqual([]);
+            expect(Data.dataValues([])).toEqual([]);
         });
     });
 
