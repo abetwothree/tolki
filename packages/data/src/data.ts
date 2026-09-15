@@ -1286,7 +1286,7 @@ export function dataPrependKeysWith<
  */
 export function dataOnly<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
-    keys: PathKey[],
+    keys: PathKey[] | PathKeys,
 ): DataItems<TValue, TKey> {
     if (isObject(data)) {
         return objOnly(
