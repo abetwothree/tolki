@@ -248,6 +248,20 @@ function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
 }
 
 /**
+ * Normalize keyed data into the plain object the object helpers walk.
+ *
+ * @param data - The keyed data to normalize.
+ * @returns The data itself when it is already a plain object, otherwise a record built from it.
+ */
+function toKeyedData<TKey extends PropertyKey, TValue>(
+    data: unknown,
+): Record<TKey, TValue> {
+    // Only `obj.from` accepts a Map; every other obj helper walks with Object.entries,
+    // which yields nothing for one, so a Map must become a record before it is delegated.
+    return (isMap(data) ? objFrom(data) : data) as Record<TKey, TValue>;
+}
+
+/**
  * Add an element to data.
  *
  * Note: This function does not accept readonly arrays as they cannot be mutated.
@@ -357,8 +371,12 @@ export function dataItem<TValue, TDefault = null>(
     key: PathKey,
     defaultValue?: TDefault | (() => TDefault) | null,
 ) {
-    if (isObject(data)) {
-        return objectItem(data, key, defaultValue);
+    if (isKeyedData(data)) {
+        return objectItem(
+            toKeyedData<PropertyKey, TValue>(data),
+            key,
+            defaultValue,
+        );
     }
 
     return arrayItem(arrWrap(data), key, defaultValue);
@@ -594,6 +612,10 @@ export function dataCombine<TKeys, TValues>(
 export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
 ): number {
+    if (isKeyedData(data)) {
+        return Object.values(toKeyedData<TKey, TValue>(data)).length;
+    }
+
     return Object.values(data).length;
 }
 
@@ -1555,7 +1577,12 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TKey | false {
-    for (const [key, item] of Object.entries(items)) {
+    // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
+    const entries = isKeyedData(items)
+        ? Object.entries(toKeyedData<TKey, TValue>(items))
+        : Object.entries(arrWrap(items));
+
+    for (const [key, item] of entries) {
         const actualKey = entriesKeyValue(key) as TKey;
 
         if (isFunction(value)) {
@@ -1601,14 +1628,19 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
         return null;
     }
 
-    const keys = dataKeys(items);
-    const position = keys.indexOf(key as string | number);
+    // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
+    const entries = isKeyedData(items)
+        ? Object.entries(toKeyedData<TKey, TValue>(items))
+        : Object.entries(arrWrap(items));
+    const position = entries.findIndex(
+        ([entryKey]) => entriesKeyValue(entryKey) === key,
+    );
 
     if (position === 0) {
         return null;
     }
 
-    return dataGet(items, keys[position - 1] as PathKey) as TValue;
+    return (entries[position - 1] as [string, TValue])[1];
 }
 
 /**
@@ -1630,14 +1662,19 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
         return null;
     }
 
-    const keys = dataKeys(items);
-    const position = keys.indexOf(key as string | number);
+    // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
+    const entries = isKeyedData(items)
+        ? Object.entries(toKeyedData<TKey, TValue>(items))
+        : Object.entries(arrWrap(items));
+    const position = entries.findIndex(
+        ([entryKey]) => entriesKeyValue(entryKey) === key,
+    );
 
-    if (position === keys.length - 1) {
+    if (position === entries.length - 1) {
         return null;
     }
 
-    return dataGet(items, keys[position + 1] as PathKey) as TValue;
+    return (entries[position + 1] as [string, TValue])[1];
 }
 
 /**
@@ -2089,14 +2126,20 @@ export function dataReplace<
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TReplacerKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objReplace(data, replacerData) as DataItems<TValue, TKey>;
+    if (isKeyedData(data)) {
+        return objReplace(
+            toKeyedData<TKey, TValue>(data),
+            replacerData,
+        ) as DataItems<TValue, TKey>;
     }
 
     // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
     return listWhenIndexed(
         // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        objReplace({ ...data }, replacerData) as Record<string, TValue>,
+        objReplace({ ...arrWrap(data) }, replacerData) as Record<
+            string,
+            TValue
+        >,
     ) as DataItems<TValue, TKey>;
 }
 
@@ -2118,9 +2161,9 @@ export function dataReplaceRecursive<
     data: DataItems<TValue, TKey>,
     replacerData: DataItems<TValue, TKey> | null | undefined,
 ): DataItems<TValue, TKey> {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objReplaceRecursive(
-            data,
+            toKeyedData<TKey, TValue>(data),
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             replacerData as Record<PropertyKey, TValue> | null | undefined,
         ) as DataItems<TValue, TKey>;
@@ -2129,7 +2172,7 @@ export function dataReplaceRecursive<
     // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
     return listWhenIndexed(
         objReplaceRecursive(
-            { ...data },
+            { ...arrWrap(data) },
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             replacerData as Record<PropertyKey, TValue> | null | undefined,
         ),
@@ -2628,9 +2671,9 @@ export function dataDiffAssocUsing<
     other: DataItems<TValue, TKey>,
     callback: (keyA: TKey, keyB: TKey) => boolean,
 ): DataItems<TValue, TKey> {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objDiffAssocUsing(
-            data as Record<TKey, TValue>,
+            toKeyedData<TKey, TValue>(data),
             other as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as (
@@ -2678,9 +2721,9 @@ export function dataDiffKeysUsing<
     other: DataItems<TValue, TKey>,
     callback: (keyA: TKey, keyB: TKey) => boolean,
 ): DataItems<TValue, TKey> {
-    if (isObject(data)) {
+    if (isKeyedData(data)) {
         return objDiffKeysUsing(
-            data as Record<TKey, TValue>,
+            toKeyedData<TKey, TValue>(data),
             other as Record<TKey, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             callback as (

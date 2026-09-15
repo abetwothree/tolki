@@ -4682,4 +4682,912 @@ describe("Data", () => {
             );
         });
     });
+
+    describe("Map backing agreement sweep", () => {
+        // JS-only: PHP has no Map; these pin that a Map behaves as the keyed backing it
+        // stands in for, rather than as empty data.
+        const asMap = new Map<string, number>([
+            ["a", 1],
+            ["b", 2],
+            ["c", 3],
+        ]);
+        const asRecord = { a: 1, b: 2, c: 3 };
+
+        const nestedMap = new Map<string, Record<string, number>>([
+            ["x", { p: 1, q: 2 }],
+            ["y", { r: 3 }],
+        ]);
+        const nestedRecord = { x: { p: 1, q: 2 }, y: { r: 3 } };
+
+        const listValuedMap = new Map<string, number[]>([
+            ["a", [1, 2]],
+            ["b", [3]],
+        ]);
+        const listValuedRecord = { a: [1, 2], b: [3] };
+
+        const dottedMap = new Map<string, number>([
+            ["a.b", 1],
+            ["a.c", 2],
+        ]);
+        const dottedRecord = { "a.b": 1, "a.c": 2 };
+
+        const typedMap = new Map<string, unknown>([
+            ["flag", true],
+            ["name", "John"],
+            ["price", 9.99],
+            ["count", 42],
+        ]);
+        const typedRecord = {
+            flag: true,
+            name: "John",
+            price: 9.99,
+            count: 42,
+        };
+
+        const repeatMap = new Map<string, number>([
+            ["a", 1],
+            ["b", 1],
+            ["c", 2],
+        ]);
+        const repeatRecord = { a: 1, b: 1, c: 2 };
+
+        const objectsMap = new Map<string, { id: number; name: string }>([
+            ["x", { id: 1, name: "John" }],
+            ["y", { id: 2, name: "Jane" }],
+        ]);
+        const objectsRecord = {
+            x: { id: 1, name: "John" },
+            y: { id: 2, name: "Jane" },
+        };
+
+        const cssClassMap = new Map<string, boolean>([
+            ["btn", true],
+            ["btn-primary", true],
+            ["disabled", false],
+        ]);
+        const cssClassRecord = {
+            btn: true,
+            "btn-primary": true,
+            disabled: false,
+        };
+
+        const cssStyleMap = new Map<string, string>([
+            ["color", "red"],
+            ["font-size", "14px"],
+        ]);
+        const cssStyleRecord = { color: "red", "font-size": "14px" };
+
+        const nullableMap = new Map<string, number | null>([
+            ["a", 1],
+            ["b", null],
+        ]);
+        const nullableRecord = { a: 1, b: null };
+
+        const pairMap = new Map<string, [number, number]>([
+            ["0", [1, 2]],
+            ["1", [3, 4]],
+        ]);
+        const pairRecord = { 0: [1, 2], 1: [3, 4] } as Record<
+            string,
+            [number, number]
+        >;
+
+        const arrValuedMap = new Map<string, number[]>([["a", [1, 2]]]);
+        const arrValuedRecord = { a: [1, 2] };
+
+        const strcasecmp = (a: unknown, b: unknown): boolean =>
+            String(a).toLowerCase() === String(b).toLowerCase();
+
+        it.fails(
+            "dataAdd adds a key on a Map like the record it mirrors",
+            () => {
+                // Task C14 (writes family) converts this to dispatch().
+                expect(
+                    Data.dataAdd(
+                        asMap as unknown as Record<string, number>,
+                        "d",
+                        4,
+                    ),
+                ).toEqual(Data.dataAdd(asRecord, "d", 4));
+            },
+        );
+
+        it("dataItem reads a nested value off a Map like the record it mirrors", () => {
+            expect(
+                Data.dataItem(
+                    nestedMap as unknown as Record<
+                        string,
+                        Record<string, number>
+                    >,
+                    "x",
+                ),
+            ).toEqual(Data.dataItem(nestedRecord, "x"));
+        });
+
+        it.fails(
+            "dataBoolean reads a boolean off a Map like the record it mirrors",
+            () => {
+                // Task C3 (guards family) converts this to dispatch().
+                expect(Data.dataBoolean(typedMap, "flag", false)).toBe(
+                    Data.dataBoolean(typedRecord, "flag", false),
+                );
+            },
+        );
+
+        it.fails("dataChunk chunks a Map like the record it mirrors", () => {
+            // Task C11 (slicing family) converts this to dispatch().
+            expect(
+                Data.dataChunk(asMap as unknown as Record<string, number>, 2),
+            ).toEqual(Data.dataChunk(asRecord, 2));
+        });
+
+        it.fails(
+            "dataChunkWhile chunks a Map like the record it mirrors",
+            () => {
+                // Task C11 (slicing family) converts this to dispatch().
+                const callback = (
+                    value: number,
+                    _key: string,
+                    chunk: Record<string, number>,
+                ): boolean => Object.values(chunk).at(-1) === value;
+                expect(
+                    Data.dataChunkWhile(
+                        repeatMap as unknown as Record<string, number>,
+                        callback,
+                    ),
+                ).toEqual(Data.dataChunkWhile(repeatRecord, callback));
+            },
+        );
+
+        it.fails("dataChunkBy chunks a Map like the record it mirrors", () => {
+            // Task C11 (slicing family) converts this to dispatch().
+            const key = (value: number): number => value;
+            expect(
+                Data.dataChunkBy(
+                    repeatMap as unknown as Record<string, number>,
+                    key,
+                ),
+            ).toEqual(Data.dataChunkBy(repeatRecord, key));
+        });
+
+        it.fails(
+            "dataCollapse collapses a Map like the record it mirrors",
+            () => {
+                // Task C10 (set-operations family) converts this to dispatch().
+                expect(
+                    Data.dataCollapse(
+                        nestedMap as unknown as Record<
+                            string,
+                            Record<string, number>
+                        >,
+                    ),
+                ).toEqual(Data.dataCollapse(nestedRecord));
+            },
+        );
+
+        it.fails(
+            "dataCombine combines a Map's values as keys like the record it mirrors",
+            () => {
+                // Task C2 (foundation family) converts this to dispatch().
+                expect(
+                    Data.dataCombine(
+                        asMap as unknown as Record<string, number>,
+                        ["x", "y", "z"],
+                    ),
+                ).toEqual(Data.dataCombine(asRecord, ["x", "y", "z"]));
+            },
+        );
+
+        it("dataCount counts a Map like the record it mirrors", () => {
+            expect(Data.dataCount(asMap)).toBe(Data.dataCount(asRecord));
+        });
+
+        it.fails(
+            "dataCrossJoin cross joins a Map like the record it mirrors",
+            () => {
+                // Task C10 (set-operations family) converts this to dispatch(). Each
+                // key is its own dimension, so the other operand is keyed too.
+                const dimensionMap = new Map<string, number[]>([["a", [1, 2]]]);
+                const dimensionRecord = { a: [1, 2] };
+                expect(Data.dataCrossJoin(dimensionMap, { b: [3, 4] })).toEqual(
+                    Data.dataCrossJoin(dimensionRecord, { b: [3, 4] }),
+                );
+            },
+        );
+
+        it.fails("dataDivide divides a Map like the record it mirrors", () => {
+            // Task C2 (foundation family) converts this to dispatch().
+            expect(Data.dataDivide(asMap)).toEqual(Data.dataDivide(asRecord));
+        });
+
+        it.fails("dataDot dots a Map like the record it mirrors", () => {
+            // Task C4 (keying family) converts this to dispatch().
+            expect(Data.dataDot(nestedMap)).toEqual(Data.dataDot(nestedRecord));
+        });
+
+        it.fails("dataUndot undots a Map like the record it mirrors", () => {
+            // Task C4 (keying family) converts this to dispatch().
+            expect(Data.dataUndot(dottedMap)).toEqual(
+                Data.dataUndot(dottedRecord),
+            );
+        });
+
+        it.fails("dataUnion unions a Map like the record it mirrors", () => {
+            // Task C10 (set-operations family) converts this to dispatch().
+            expect(
+                Data.dataUnion(asMap as unknown as Record<string, number>, {
+                    d: 4,
+                }),
+            ).toEqual(Data.dataUnion(asRecord, { d: 4 }));
+        });
+
+        it.fails(
+            "dataExcept excepts keys from a Map like the record it mirrors",
+            () => {
+                // Task C13 (subsets family) converts this to dispatch().
+                expect(Data.dataExcept(asMap, ["a"])).toEqual(
+                    Data.dataExcept(asRecord, ["a"]),
+                );
+            },
+        );
+
+        it.fails(
+            "dataExceptValues excepts values from a Map like the record it mirrors",
+            () => {
+                // Task C13 (subsets family) converts this to dispatch().
+                expect(Data.dataExceptValues(asMap, [2])).toEqual(
+                    Data.dataExceptValues(asRecord, [2]),
+                );
+            },
+        );
+
+        it.fails(
+            "dataExists checks a key on a Map like the record it mirrors",
+            () => {
+                // Task C3 (guards family) converts this to dispatch().
+                expect(Data.dataExists(asMap, "a")).toBe(
+                    Data.dataExists(asRecord, "a"),
+                );
+            },
+        );
+
+        it.fails("dataTake takes from a Map like the record it mirrors", () => {
+            // Task C11 (slicing family) converts this to dispatch().
+            expect(Data.dataTake(asMap, 2)).toEqual(Data.dataTake(asRecord, 2));
+        });
+
+        it.fails(
+            "dataFlatten flattens a Map like the record it mirrors",
+            () => {
+                // Task C11 (slicing family) converts this to dispatch().
+                expect(Data.dataFlatten(listValuedMap)).toEqual(
+                    Data.dataFlatten(listValuedRecord),
+                );
+            },
+        );
+
+        it.fails("dataFlip flips a Map like the record it mirrors", () => {
+            // Task C4 (keying family) converts this to dispatch().
+            expect(Data.dataFlip(asMap)).toEqual(Data.dataFlip(asRecord));
+        });
+
+        it.fails(
+            "dataFloat reads a float off a Map like the record it mirrors",
+            () => {
+                // Task C3 (guards family) converts this to dispatch().
+                expect(Data.dataFloat(typedMap, "price", 0)).toBe(
+                    Data.dataFloat(typedRecord, "price", 0),
+                );
+            },
+        );
+
+        it.fails(
+            "dataForget forgets a key on a Map like the record it mirrors",
+            () => {
+                // Task C13 (subsets family) converts this to dispatch().
+                expect(Data.dataForget(asMap, ["a"])).toEqual(
+                    Data.dataForget(asRecord, ["a"]),
+                );
+            },
+        );
+
+        it("dataFrom builds from a Map like the record it mirrors", () => {
+            // obj.from already special-cases a Map (the one obj helper documented
+            // to accept one), so this agrees today rather than staying red.
+            expect(Data.dataFrom(asMap)).toEqual(Data.dataFrom(asRecord));
+        });
+
+        it.fails("dataGet reads a Map like the record it mirrors", () => {
+            // Task C13 (subsets family) converts this to dispatch().
+            expect(Data.dataGet(asMap, "a", null)).toBe(
+                Data.dataGet(asRecord, "a", null),
+            );
+        });
+
+        it.fails("dataHas checks a Map like the record it mirrors", () => {
+            // Task C9 (predicates family) converts this to dispatch().
+            expect(Data.dataHas(asMap, ["a"])).toBe(
+                Data.dataHas(asRecord, ["a"]),
+            );
+        });
+
+        it.fails("dataHasAll checks a Map like the record it mirrors", () => {
+            // Task C9 (predicates family) converts this to dispatch().
+            expect(Data.dataHasAll(asMap, ["a", "b"])).toBe(
+                Data.dataHasAll(asRecord, ["a", "b"]),
+            );
+        });
+
+        it.fails("dataHasAny checks a Map like the record it mirrors", () => {
+            // Task C9 (predicates family) converts this to dispatch().
+            expect(Data.dataHasAny(asMap, ["z", "a"])).toBe(
+                Data.dataHasAny(asRecord, ["z", "a"]),
+            );
+        });
+
+        it("dataEvery tests a Map like the record it mirrors", () => {
+            // objEvery/objSome already walk a Map through entriesOf, so this
+            // agrees today rather than staying red.
+            expect(Data.dataEvery(asMap, (value) => value > 0)).toBe(
+                Data.dataEvery(asRecord, (value) => value > 0),
+            );
+            expect(Data.dataEvery(asMap, (value) => value > 100)).toBe(
+                Data.dataEvery(asRecord, (value) => value > 100),
+            );
+        });
+
+        it("dataSome tests a Map like the record it mirrors", () => {
+            expect(Data.dataSome(asMap, (value) => value > 2)).toBe(
+                Data.dataSome(asRecord, (value) => value > 2),
+            );
+            expect(Data.dataSome(asMap, (value) => value > 100)).toBe(
+                Data.dataSome(asRecord, (value) => value > 100),
+            );
+        });
+
+        it.fails(
+            "dataInteger reads an integer off a Map like the record it mirrors",
+            () => {
+                // Task C3 (guards family) converts this to dispatch().
+                expect(Data.dataInteger(typedMap, "count", 0)).toBe(
+                    Data.dataInteger(typedRecord, "count", 0),
+                );
+            },
+        );
+
+        it.fails("dataJoin joins a Map like the record it mirrors", () => {
+            // Task C7 (output family) converts this to dispatch().
+            expect(Data.dataJoin(asMap, ", ")).toBe(
+                Data.dataJoin(asRecord, ", "),
+            );
+        });
+
+        it.fails("dataKeyBy keys a Map like the record it mirrors", () => {
+            // Task C4 (keying family) converts this to dispatch().
+            expect(Data.dataKeyBy(objectsMap, "id")).toEqual(
+                Data.dataKeyBy(objectsRecord, "id"),
+            );
+        });
+
+        it.fails(
+            "dataPrependKeysWith prepends a Map's keys like the record it mirrors",
+            () => {
+                // Task C4 (keying family) converts this to dispatch().
+                expect(Data.dataPrependKeysWith(asMap, "user_")).toEqual(
+                    Data.dataPrependKeysWith(asRecord, "user_"),
+                );
+            },
+        );
+
+        it.fails(
+            "dataOnly reads only keys off a Map like the record it mirrors",
+            () => {
+                // Task C13 (subsets family) converts this to dispatch().
+                expect(Data.dataOnly(asMap, ["a"])).toEqual(
+                    Data.dataOnly(asRecord, ["a"]),
+                );
+            },
+        );
+
+        it.fails(
+            "dataOnlyValues reads only values off a Map like the record it mirrors",
+            () => {
+                // Task C13 (subsets family) converts this to dispatch().
+                expect(Data.dataOnlyValues(asMap, [1])).toEqual(
+                    Data.dataOnlyValues(asRecord, [1]),
+                );
+            },
+        );
+
+        it.fails(
+            "dataSelect selects keys off a Map like the record it mirrors",
+            () => {
+                // Task C8 (pluck family) converts this to dispatch().
+                expect(Data.dataSelect(objectsMap, ["id"])).toEqual(
+                    Data.dataSelect(objectsRecord, ["id"]),
+                );
+            },
+        );
+
+        it.fails(
+            "dataMapWithKeys maps a Map like the record it mirrors",
+            () => {
+                // Task C5 (mapping family) converts this to dispatch().
+                const callback = (
+                    value: number,
+                    key: string,
+                ): [string, number] => [`${key}_key`, value * 2];
+                expect(
+                    Data.dataMapWithKeys(
+                        asMap as unknown as Record<string, number>,
+                        callback,
+                    ),
+                ).toEqual(Data.dataMapWithKeys(asRecord, callback));
+            },
+        );
+
+        it.fails("dataMapSpread maps a Map like the record it mirrors", () => {
+            // Task C5 (mapping family) converts this to dispatch().
+            const callback = (a: number, b: number): number => a + b;
+            expect(Data.dataMapSpread(pairMap, callback)).toEqual(
+                Data.dataMapSpread(pairRecord, callback),
+            );
+        });
+
+        it.fails(
+            "dataPrepend prepends onto a Map like the record it mirrors",
+            () => {
+                // Task C14 (writes family) converts this to dispatch().
+                expect(Data.dataPrepend(asMap, 99, "z")).toEqual(
+                    Data.dataPrepend(asRecord, 99, "z"),
+                );
+            },
+        );
+
+        it.fails(
+            "dataPull pulls a value off a Map like the record it mirrors",
+            () => {
+                // Task C14 (writes family) converts this to dispatch().
+                expect(Data.dataPull(asMap, "b", null).value).toBe(
+                    Data.dataPull(asRecord, "b", null).value,
+                );
+            },
+        );
+
+        it.fails(
+            "dataQuery builds a query string from a Map like the record it mirrors",
+            () => {
+                // Task C7 (output family) converts this to dispatch().
+                expect(Data.dataQuery(asMap)).toBe(Data.dataQuery(asRecord));
+            },
+        );
+
+        it.fails(
+            "dataRandom reads a Map's elements like the record it mirrors",
+            () => {
+                // Task C11 (slicing family) converts this to dispatch(). number ===
+                // the full length so the randomness is only in the order.
+                const fromMap = Object.values(
+                    Data.dataRandom(asMap, 3) as Record<string, number>,
+                ).sort();
+                const fromRecord = Object.values(
+                    Data.dataRandom(asRecord, 3) as Record<string, number>,
+                ).sort();
+                expect(fromMap).toEqual(fromRecord);
+            },
+        );
+
+        it("dataSearch finds a value in a Map like the record it mirrors", () => {
+            expect(Data.dataSearch(asMap, 2)).toBe(
+                Data.dataSearch(asRecord, 2),
+            );
+        });
+
+        it("dataBefore reads the item before a value in a Map like the record it mirrors", () => {
+            expect(Data.dataBefore(asMap, 2)).toBe(
+                Data.dataBefore(asRecord, 2),
+            );
+        });
+
+        it("dataAfter reads the item after a value in a Map like the record it mirrors", () => {
+            expect(Data.dataAfter(asMap, 2)).toBe(Data.dataAfter(asRecord, 2));
+        });
+
+        it.fails(
+            "dataShift shifts off a Map like the record it mirrors",
+            () => {
+                // Task C6 (mutations family) converts this to dispatch().
+                const mapCopy = new Map(asMap);
+                const recordCopy = { ...asRecord };
+                expect(Data.dataShift(mapCopy)).toBe(
+                    Data.dataShift(recordCopy),
+                );
+            },
+        );
+
+        it.fails(
+            "dataSet sets a value on a Map like the record it mirrors",
+            () => {
+                // Task C14 (writes family) converts this to dispatch().
+                expect(Data.dataSet(asMap, "d", 4)).toEqual(
+                    Data.dataSet(asRecord, "d", 4),
+                );
+            },
+        );
+
+        it.fails(
+            "dataPush pushes onto a Map like the record it mirrors",
+            () => {
+                // Task C14 (writes family) converts this to dispatch().
+                expect(Data.dataPush(arrValuedMap, "a", 3)).toEqual(
+                    Data.dataPush(arrValuedRecord, "a", 3),
+                );
+            },
+        );
+
+        it.fails(
+            "dataUnshift unshifts onto a Map like the record it mirrors",
+            () => {
+                // Task C6 (mutations family) converts this to dispatch().
+                const mapCopy = new Map(asMap);
+                const recordCopy = { ...asRecord };
+                expect(Data.dataUnshift(mapCopy, 99)).toEqual(
+                    Data.dataUnshift(recordCopy, 99),
+                );
+            },
+        );
+
+        it.fails(
+            "dataShuffle shuffles a Map like the record it mirrors",
+            () => {
+                // Task C11 (slicing family) converts this to dispatch().
+                const fromMap = Object.values(Data.dataShuffle(asMap)).sort();
+                const fromRecord = Object.values(
+                    Data.dataShuffle(asRecord),
+                ).sort();
+                expect(fromMap).toEqual(fromRecord);
+            },
+        );
+
+        it.fails("dataSlice slices a Map like the record it mirrors", () => {
+            // Task C11 (slicing family) converts this to dispatch().
+            expect(Data.dataSlice(asMap, 1)).toEqual(
+                Data.dataSlice(asRecord, 1),
+            );
+        });
+
+        it.fails(
+            "dataSole reads the sole match off a Map like the record it mirrors",
+            () => {
+                // Task C9 (predicates family) converts this to dispatch().
+                expect(Data.dataSole(asMap, (value) => value === 2)).toBe(
+                    Data.dataSole(asRecord, (value) => value === 2),
+                );
+            },
+        );
+
+        it.fails("dataSort sorts a Map like the record it mirrors", () => {
+            // Task C12 (sorting family) converts this to dispatch().
+            expect(Object.values(Data.dataSort(asMap))).toEqual(
+                Object.values(Data.dataSort(asRecord)),
+            );
+        });
+
+        it.fails("dataSortDesc sorts a Map like the record it mirrors", () => {
+            // Task C12 (sorting family) converts this to dispatch().
+            expect(Object.values(Data.dataSortDesc(asMap))).toEqual(
+                Object.values(Data.dataSortDesc(asRecord)),
+            );
+        });
+
+        it.fails(
+            "dataSortRecursive sorts a Map like the record it mirrors",
+            () => {
+                // Task C12 (sorting family) converts this to dispatch().
+                expect(Data.dataSortRecursive(nestedMap)).toEqual(
+                    Data.dataSortRecursive(nestedRecord),
+                );
+            },
+        );
+
+        it.fails(
+            "dataSortRecursiveDesc sorts a Map like the record it mirrors",
+            () => {
+                // Task C12 (sorting family) converts this to dispatch().
+                expect(Data.dataSortRecursiveDesc(nestedMap)).toEqual(
+                    Data.dataSortRecursiveDesc(nestedRecord),
+                );
+            },
+        );
+
+        it.fails("dataSplice splices a Map like the record it mirrors", () => {
+            // Task C6 (mutations family) converts this to dispatch().
+            const mapCopy = new Map(asMap);
+            const recordCopy = { ...asRecord };
+            expect(Data.dataSplice(mapCopy, 1, 1)).toEqual(
+                Data.dataSplice(recordCopy, 1, 1),
+            );
+        });
+
+        it.fails(
+            "dataString reads a string off a Map like the record it mirrors",
+            () => {
+                // Task C3 (guards family) converts this to dispatch().
+                expect(Data.dataString(typedMap, "name", "")).toBe(
+                    Data.dataString(typedRecord, "name", ""),
+                );
+            },
+        );
+
+        it.fails(
+            "dataToCssClasses reads a Map like the record it mirrors",
+            () => {
+                // Task C7 (output family) converts this to dispatch().
+                expect(Data.dataToCssClasses(cssClassMap)).toBe(
+                    Data.dataToCssClasses(cssClassRecord),
+                );
+            },
+        );
+
+        it.fails(
+            "dataToCssStyles reads a Map like the record it mirrors",
+            () => {
+                // Task C7 (output family) converts this to dispatch().
+                expect(Data.dataToCssStyles(cssStyleMap)).toBe(
+                    Data.dataToCssStyles(cssStyleRecord),
+                );
+            },
+        );
+
+        it.fails("dataWhere filters a Map like the record it mirrors", () => {
+            // Task C5 (mapping family) converts this to dispatch().
+            expect(
+                Data.dataWhere(
+                    asMap as unknown as Record<string, number>,
+                    (value) => value > 1,
+                ),
+            ).toEqual(Data.dataWhere(asRecord, (value) => value > 1));
+        });
+
+        it("dataReplace replaces a Map like the record it mirrors", () => {
+            expect(Data.dataReplace(asMap, { b: 20 })).toEqual(
+                Data.dataReplace(asRecord, { b: 20 }),
+            );
+        });
+
+        it("dataReplaceRecursive replaces a Map like the record it mirrors", () => {
+            // A partial replacer (touching only "x", and only "p" within it) so a
+            // surviving base value ("y", and "x.q") must come from the Map itself,
+            // not merely echo back the replacer's own keys.
+            const replacer = { x: { p: 99 } };
+            const looseRecord = nestedRecord as Record<
+                string,
+                Record<string, number>
+            >;
+            expect(
+                Data.dataReplaceRecursive(
+                    nestedMap as unknown as Record<
+                        string,
+                        Record<string, number>
+                    >,
+                    replacer,
+                ),
+            ).toEqual(Data.dataReplaceRecursive(looseRecord, replacer));
+        });
+
+        it.fails("dataReject filters a Map like the record it mirrors", () => {
+            // Task C5 (mapping family) converts this to dispatch().
+            expect(
+                Data.dataReject(
+                    asMap as unknown as Record<string, number>,
+                    (value) => value > 1,
+                ),
+            ).toEqual(Data.dataReject(asRecord, (value) => value > 1));
+        });
+
+        it.fails(
+            "dataReverse reverses a Map like the record it mirrors",
+            () => {
+                // Task C11 (slicing family) converts this to dispatch().
+                expect(Data.dataReverse(asMap)).toEqual(
+                    Data.dataReverse(asRecord),
+                );
+            },
+        );
+
+        it.fails("dataPad pads a Map like the record it mirrors", () => {
+            // Task C6 (mutations family) converts this to dispatch().
+            expect(Data.dataPad(asMap, 5, 0)).toEqual(
+                Data.dataPad(asRecord, 5, 0),
+            );
+        });
+
+        it.fails(
+            "dataPartition partitions a Map like the record it mirrors",
+            () => {
+                // Task C5 (mapping family) converts this to dispatch().
+                expect(
+                    Data.dataPartition(
+                        asMap as unknown as Record<string, number>,
+                        (value) => value > 1,
+                    ),
+                ).toEqual(Data.dataPartition(asRecord, (value) => value > 1));
+            },
+        );
+
+        it.fails(
+            "dataWhereNotNull filters a Map like the record it mirrors",
+            () => {
+                // Task C5 (mapping family) converts this to dispatch().
+                expect(Data.dataWhereNotNull(nullableMap)).toEqual(
+                    Data.dataWhereNotNull(nullableRecord),
+                );
+            },
+        );
+
+        it.fails(
+            "dataValues reads a Map's values like the record it mirrors",
+            () => {
+                // Task C2 (foundation family) converts this to dispatch().
+                expect(Data.dataValues(asMap)).toEqual(
+                    Data.dataValues(asRecord),
+                );
+            },
+        );
+
+        it.fails(
+            "dataKeys reads a Map's keys like the record it mirrors",
+            () => {
+                // Task C2 (foundation family) converts this to dispatch().
+                expect(Data.dataKeys(asMap)).toEqual(Data.dataKeys(asRecord));
+            },
+        );
+
+        it.fails("dataFilter filters a Map like the record it mirrors", () => {
+            // Task C5 (mapping family) converts this to dispatch().
+            expect(
+                Data.dataFilter(
+                    asMap as unknown as Record<string, number>,
+                    (value) => value > 1,
+                ),
+            ).toEqual(Data.dataFilter(asRecord, (value) => value > 1));
+        });
+
+        it.fails("dataMap maps a Map like the record it mirrors", () => {
+            // Task C5 (mapping family) converts this to dispatch().
+            expect(
+                Data.dataMap(
+                    asMap as unknown as Record<string, number>,
+                    (value) => value * 2,
+                ),
+            ).toEqual(Data.dataMap(asRecord, (value) => value * 2));
+        });
+
+        it("dataFirst reads the first value off a Map like the record it mirrors", () => {
+            // objFirst already walks a Map through entriesOf, so this agrees
+            // today rather than staying red.
+            expect(Data.dataFirst(asMap)).toBe(Data.dataFirst(asRecord));
+        });
+
+        it("dataLast reads the last value off a Map like the record it mirrors", () => {
+            expect(Data.dataLast(asMap)).toBe(Data.dataLast(asRecord));
+        });
+
+        it.fails("dataContains checks a Map like the record it mirrors", () => {
+            // Task C9 (predicates family) converts this to dispatch().
+            expect(Data.dataContains(asMap, 2)).toBe(
+                Data.dataContains(asRecord, 2),
+            );
+        });
+
+        it.fails("dataDiff diffs a Map like the record it mirrors", () => {
+            // Task C10 (set-operations family) converts this to dispatch().
+            expect(Data.dataDiff(asMap, { b: 2 })).toEqual(
+                Data.dataDiff(asRecord, { b: 2 }),
+            );
+        });
+
+        it.fails("dataDiffAssoc diffs a Map like the record it mirrors", () => {
+            // Task C10 (set-operations family) converts this to dispatch().
+            expect(
+                Data.dataDiffAssoc(asMap as unknown as Record<string, number>, {
+                    a: 1,
+                    b: 99,
+                    c: 3,
+                }),
+            ).toEqual(Data.dataDiffAssoc(asRecord, { a: 1, b: 99, c: 3 }));
+        });
+
+        it("dataDiffAssocUsing diffs a Map like the record it mirrors", () => {
+            expect(
+                Data.dataDiffAssocUsing(
+                    asMap as unknown as Record<string, number>,
+                    { B: 2 },
+                    strcasecmp,
+                ),
+            ).toEqual(Data.dataDiffAssocUsing(asRecord, { B: 2 }, strcasecmp));
+        });
+
+        it("dataDiffKeysUsing diffs a Map's keys like the record it mirrors", () => {
+            expect(
+                Data.dataDiffKeysUsing(
+                    asMap as unknown as Record<string, number>,
+                    { B: 99 },
+                    strcasecmp,
+                ),
+            ).toEqual(Data.dataDiffKeysUsing(asRecord, { B: 99 }, strcasecmp));
+        });
+
+        it.fails(
+            "dataPluck plucks off a Map like the record it mirrors",
+            () => {
+                // Task C8 (pluck family) converts this to dispatch().
+                expect(Data.dataPluck(objectsMap, "name")).toEqual(
+                    Data.dataPluck(objectsRecord, "name"),
+                );
+            },
+        );
+
+        it.fails("dataPop pops off a Map like the record it mirrors", () => {
+            // Task C6 (mutations family) converts this to dispatch().
+            const mapCopy = new Map(asMap);
+            const recordCopy = { ...asRecord };
+            expect(Data.dataPop(mapCopy)).toBe(Data.dataPop(recordCopy));
+        });
+
+        it.fails(
+            "dataIntersect intersects a Map like the record it mirrors",
+            () => {
+                // Task C10 (set-operations family) converts this to dispatch().
+                expect(Data.dataIntersect(asMap, [1, 2])).toEqual(
+                    Data.dataIntersect(asRecord, [1, 2]),
+                );
+            },
+        );
+
+        it.fails(
+            "dataIntersectAssoc intersects a Map like the record it mirrors",
+            () => {
+                // Task C10 (set-operations family) converts this to dispatch().
+                expect(
+                    Data.dataIntersectAssoc(
+                        asMap as unknown as Record<string, number>,
+                        { a: 1, b: 99, c: 3 },
+                    ),
+                ).toEqual(
+                    Data.dataIntersectAssoc(asRecord, { a: 1, b: 99, c: 3 }),
+                );
+            },
+        );
+
+        it.fails(
+            "dataIntersectAssocUsing intersects a Map like the record it mirrors",
+            () => {
+                // Task C10 (set-operations family) converts this to dispatch().
+                expect(
+                    Data.dataIntersectAssocUsing(
+                        asMap as unknown as Record<string, number>,
+                        { A: 1 },
+                        strcasecmp,
+                    ),
+                ).toEqual(
+                    Data.dataIntersectAssocUsing(
+                        asRecord,
+                        { A: 1 },
+                        strcasecmp,
+                    ),
+                );
+            },
+        );
+
+        it.fails(
+            "dataIntersectByKeys intersects a Map like the record it mirrors",
+            () => {
+                // Task C10 (set-operations family) converts this to dispatch().
+                expect(Data.dataIntersectByKeys(asMap, { a: 1 })).toEqual(
+                    Data.dataIntersectByKeys(asRecord, { a: 1 }),
+                );
+            },
+        );
+    });
 });
