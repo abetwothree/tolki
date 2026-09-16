@@ -1012,6 +1012,13 @@ probe('r3-assoc-backed-contains', "(new Collection(['a'=>['v'=>1],'b'=>['v'=>3],
     ];
 });
 
+// ==== fix-round-3 Group E: the two LIST-backed twins arr.spec needs. "contains-two-args-
+// ==== key-value" records only the matching value, and the callback row is record-backed.
+probe('r3-list-backed-contains', "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 2) and (new Collection([null, 1]))->containsStrict(fn (\$v) => is_null(\$v))", fn () => [
+    'key-value-no-match' => (new Collection([['v' => 1], ['v' => 3], ['v' => 5]]))->contains('v', 2),
+    'containsStrict-callback-null' => (new Collection([null, 1]))->containsStrict(fn ($v) => is_null($v)),
+]);
+
 // ==== fix-round-3 Group E: the record-backed twins of the three list rows obj.spec cites.
 probe('r3-assoc-backed-leaf-rules', "Arr::flatten(['a' => \$o]), Arr::collapse(['g2' => \$o]), array_replace_recursive(['a' => \$o], ['a' => ['x' => 5]])", function () {
     $sized = new class

@@ -2833,6 +2833,14 @@
             }
         },
         {
+            "label": "r3-list-backed-contains",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 2) and (new Collection([null, 1]))->containsStrict(fn ($v) => is_null($v))",
+            "value": {
+                "key-value-no-match": false,
+                "containsStrict-callback-null": false
+            }
+        },
+        {
             "label": "r3-assoc-backed-leaf-rules",
             "php": "Arr::flatten(['a' => $o]), Arr::collapse(['g2' => $o]), array_replace_recursive(['a' => $o], ['a' => ['x' => 5]])",
             "value": {
