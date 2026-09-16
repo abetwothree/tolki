@@ -2830,15 +2830,13 @@ describe("Data", () => {
                 d: { name: "John", age: 8, meta: { key: 2 } },
             };
             expect(
-                Object.keys(
-                    Data.dataSort(rows, ["name", "age", "meta.key"] as never),
-                ),
+                Object.keys(Data.dataSort(rows, ["name", "age", "meta.key"])),
             ).toEqual(["c", "d", "a", "b"]);
 
             // docs/php-parity/task-24-data-release-readiness.json, "sortByMany-keys-list"
             const rowsList = [rows.a, rows.b, rows.c, rows.d];
             expect(
-                Data.dataSort(rowsList, ["name", "age", "meta.key"] as never),
+                Data.dataSort(rowsList, ["name", "age", "meta.key"]),
             ).toEqual([rows.c, rows.d, rows.a, rows.b]);
         });
 
@@ -2856,7 +2854,7 @@ describe("Data", () => {
                         "name",
                         ["age", false],
                         ["meta.key", true],
-                    ] as never),
+                    ]),
                 ),
             ).toEqual(["c", "b", "d", "a"]);
 
@@ -2867,7 +2865,7 @@ describe("Data", () => {
                     "name",
                     ["age", false],
                     ["meta.key", true],
-                ] as never),
+                ]),
             ).toEqual([rows.c, rows.b, rows.d, rows.a]);
         });
     });
@@ -6406,39 +6404,29 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataSort sorts a Map like the record it mirrors", () => {
-            // Task C12 (sorting family) converts this to dispatch().
+        it("dataSort sorts a Map like the record it mirrors", () => {
             expect(Object.values(Data.dataSort(asMap))).toEqual(
                 Object.values(Data.dataSort(asRecord)),
             );
         });
 
-        it.fails("dataSortDesc sorts a Map like the record it mirrors", () => {
-            // Task C12 (sorting family) converts this to dispatch().
+        it("dataSortDesc sorts a Map like the record it mirrors", () => {
             expect(Object.values(Data.dataSortDesc(asMap))).toEqual(
                 Object.values(Data.dataSortDesc(asRecord)),
             );
         });
 
-        it.fails(
-            "dataSortRecursive sorts a Map like the record it mirrors",
-            () => {
-                // Task C12 (sorting family) converts this to dispatch().
-                expect(Data.dataSortRecursive(nestedMap)).toEqual(
-                    Data.dataSortRecursive(nestedRecord),
-                );
-            },
-        );
+        it("dataSortRecursive sorts a Map like the record it mirrors", () => {
+            expect(Data.dataSortRecursive(nestedMap)).toEqual(
+                Data.dataSortRecursive(nestedRecord),
+            );
+        });
 
-        it.fails(
-            "dataSortRecursiveDesc sorts a Map like the record it mirrors",
-            () => {
-                // Task C12 (sorting family) converts this to dispatch().
-                expect(Data.dataSortRecursiveDesc(nestedMap)).toEqual(
-                    Data.dataSortRecursiveDesc(nestedRecord),
-                );
-            },
-        );
+        it("dataSortRecursiveDesc sorts a Map like the record it mirrors", () => {
+            expect(Data.dataSortRecursiveDesc(nestedMap)).toEqual(
+                Data.dataSortRecursiveDesc(nestedRecord),
+            );
+        });
 
         it("dataSplice splices a Map like the record it mirrors", () => {
             const mapCopy = new Map(asMap);

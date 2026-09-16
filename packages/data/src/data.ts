@@ -1342,105 +1342,56 @@ export const dataSole = dispatch(arrSole, objSole);
  *
  * @param data - The data to sort
  * @param callback - The value extractor callback or key to sort by
- * @returns Sorted data
+ * @returns Sorted data, matching the delegate's own result
  *
  * @example
  *
  * dataSort([3, 1, 4, 2]); -> [1, 2, 3, 4]
  * dataSort({c: 3, a: 1, b: 2}); -> {a: 1, b: 2, c: 3}
  */
-export function dataSort<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback:
-        | ((value: TValue, key: PropertyKey) => unknown)
-        | string
-        | null = null,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objSort(data as Record<string, TValue>, callback) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrSort(arrWrap(data), callback);
-}
+export const dataSort = dispatch(arrSort, objSort);
 
 /**
  * Sort data in descending order using a callback.
  *
  * @param data - The data to sort
  * @param callback - The comparison callback or key to sort by
- * @returns Sorted data in descending order
+ * @returns Sorted data in descending order, matching the delegate's own result
  *
  * @example
  *
  * dataSortDesc([1, 3, 2, 4]); -> [4, 3, 2, 1]
  * dataSortDesc({a: 1, c: 3, b: 2}); -> {c: 3, b: 2, a: 1}
  */
-export function dataSortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    callback:
-        | ((value: TValue, key: PropertyKey) => unknown)
-        | string
-        | null = null,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objSortDesc(
-            data as Record<string, TValue>,
-            callback,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrSortDesc(arrWrap(data), callback);
-}
+export const dataSortDesc = dispatch(arrSortDesc, objSortDesc);
 
 /**
  * Sort data recursively.
  *
  * @param data - The data to sort recursively
- * @param options - Sort options
  * @param descending - Whether to sort in descending order
- * @returns Recursively sorted data
+ * @returns Recursively sorted data, matching the delegate's own result
  *
  * @example
  *
  * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
  */
-export function dataSortRecursive<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>, descending = false): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objSortRecursive(data, descending);
-    }
-
-    return arrSortRecursive(arrWrap(data), descending);
-}
+export const dataSortRecursive = dispatch(arrSortRecursive, objSortRecursive);
 
 /**
  * Sort data recursively in descending order.
  *
  * @param data - The data to sort recursively
- * @param options - Sort options
- * @returns Recursively sorted data in descending order
+ * @returns Recursively sorted data in descending order, matching the delegate's own result
  *
  * @example
  *
  * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
  */
-export function dataSortRecursiveDesc<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(data: DataItems<TValue, TKey>): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objSortRecursiveDesc(data);
-    }
-
-    return arrSortRecursiveDesc(arrWrap(data));
-}
+export const dataSortRecursiveDesc = dispatch(
+    arrSortRecursiveDesc,
+    objSortRecursiveDesc,
+);
 
 /**
  * Splice a portion of the data items, mutating it in place. Delegates to
