@@ -2136,6 +2136,110 @@
             }
         },
         {
+            "label": "own-key-channel-round-trip",
+            "php": "$a = ['a','b']; Arr::set($a, '01', 'V'); then Arr::get / Arr::has",
+            "value": {
+                "written": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "own-key-channel-negative-index-round-trip",
+            "php": "$a = ['a','b']; Arr::set($a, '-1', 'V'); then Arr::get / Arr::has",
+            "value": {
+                "written": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "own-key-channel-survives-other-helpers",
+            "php": "on $a = ['a','b'] + Arr::set($a,'01','V'): except, add, set, only, forget",
+            "value": {
+                "except ['zzz']": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "add '2'": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V",
+                        "2": "c"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01",
+                        "integer:2"
+                    ]
+                },
+                "set '2'": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V",
+                        "2": "c"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01",
+                        "integer:2"
+                    ]
+                },
+                "only [0]": {
+                    "json": [
+                        "a"
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "forget '01'": {
+                    "json": [
+                        "a",
+                        "b"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                }
+            }
+        },
+        {
             "label": "add-nested-object-is-replaced-wholesale",
             "php": "$src = [new D4Point(1)]; Arr::add($src, '0.y', 2)",
             "value": {

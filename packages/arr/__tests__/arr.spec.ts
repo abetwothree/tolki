@@ -1973,6 +1973,60 @@ describe("Arr", () => {
             ]);
         });
 
+        it("stores a non-canonical index the read path cannot find again", () => {
+            // JS-only: the write stores "01" as the list's own property (path.spec.ts,
+            // "keeps a non-canonical index a string key on a list") and the read misses it
+            // ("resolves the same casts the write path uses"). PHP round-trips it:
+            // docs/php-parity/task-24-data-release-readiness.json, "own-key-channel-round-trip"
+            const written = Arr.set(["a", "b"], "01", "V");
+
+            expect(Object.entries(written)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["01", "V"],
+            ]);
+            expect(Arr.get(written, "01")).toBeNull();
+            expect(Arr.has(written, "01")).toBe(false);
+        });
+
+        it("answers has but not get for a stored negative index", () => {
+            // JS-only: the same asymmetry is NOT uniform — "-1" is found by has() and
+            // missed by get(), where "01" and "" are missed by both. PHP finds it with
+            // either (task-24-data-release-readiness.json,
+            // "own-key-channel-negative-index-round-trip").
+            const written = Arr.set(["a", "b"], "-1", "V");
+
+            expect(Object.entries(written)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["-1", "V"],
+            ]);
+            expect(Arr.has(written, "-1")).toBe(true);
+            expect(Arr.get(written, "-1")).toBeNull();
+        });
+
+        it("drops a stored non-index key through except, add and a later set", () => {
+            // JS-only: the own-property channel's limits, measured against PHP keeping the
+            // key through all three (task-24-data-release-readiness.json,
+            // "own-key-channel-survives-other-helpers"). only and forget do agree with PHP.
+            const base = () => Arr.set(["a", "b"], "01", "V");
+
+            expect(Object.entries(Arr.except(base(), ["zzz"]))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+            ]);
+            expect(Object.entries(Arr.add(base(), "2", "c"))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "c"],
+            ]);
+            expect(Object.entries(Arr.set(base(), "2", "c"))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "c"],
+            ]);
+        });
+
         it("sets a value at index 0 of an empty array", () => {
             // Test indices
             expect(Arr.set([], 0, "far")).toHaveLength(1);

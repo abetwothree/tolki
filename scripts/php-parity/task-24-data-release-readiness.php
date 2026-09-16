@@ -662,6 +662,56 @@ probe('add-nested-record-leaves-the-caller-value-untouched', "\$src = ['a' => ['
     return ['source' => $src, 'result' => $result];
 });
 
+// ==== fix-round-1 Group H: the own-property channel. PHP holds '01', '' and '-1' as real
+// ==== array keys, so the write is readable again and survives the other helpers; the port
+// ==== stores them as the list's own properties, which only some helpers carry.
+$h1Shape = function (array $a) {
+    $keys = [];
+    foreach (array_keys($a) as $k) {
+        $keys[] = gettype($k) . ':' . $k;
+    }
+
+    return ['json' => $a, 'keys' => $keys];
+};
+$h1Base = function () {
+    $a = ['a', 'b'];
+    Arr::set($a, '01', 'V');
+
+    return $a;
+};
+probe('own-key-channel-round-trip', "\$a = ['a','b']; Arr::set(\$a, '01', 'V'); then Arr::get / Arr::has", function () use ($h1Shape, $h1Base) {
+    return [
+        'written' => $h1Shape($h1Base()),
+        'get' => Arr::get($h1Base(), '01', '<<miss>>'),
+        'has' => Arr::has($h1Base(), '01'),
+    ];
+});
+probe('own-key-channel-negative-index-round-trip', "\$a = ['a','b']; Arr::set(\$a, '-1', 'V'); then Arr::get / Arr::has", function () use ($h1Shape) {
+    $a = ['a', 'b'];
+    Arr::set($a, '-1', 'V');
+
+    return [
+        'written' => $h1Shape($a),
+        'get' => Arr::get($a, '-1', '<<miss>>'),
+        'has' => Arr::has($a, '-1'),
+    ];
+});
+probe('own-key-channel-survives-other-helpers', "on \$a = ['a','b'] + Arr::set(\$a,'01','V'): except, add, set, only, forget", function () use ($h1Shape, $h1Base) {
+    $added = $h1Base();
+    $set = $h1Base();
+    Arr::set($set, '2', 'c');
+    $forgotten = $h1Base();
+    Arr::forget($forgotten, '01');
+
+    return [
+        "except ['zzz']" => $h1Shape(Arr::except($h1Base(), ['zzz'])),
+        "add '2'" => $h1Shape(Arr::add($added, '2', 'c')),
+        "set '2'" => $h1Shape($set),
+        'only [0]' => $h1Shape(Arr::only($h1Base(), [0])),
+        "forget '01'" => $h1Shape($forgotten),
+    ];
+});
+
 // ==== fix-round-1 Group D: what Arr::set does when a path descends through a nested
 // ==== OBJECT. Arr::set's descend test is `is_array`, so an object is no container.
 probe('add-nested-object-is-replaced-wholesale', "\$src = [new D4Point(1)]; Arr::add(\$src, '0.y', 2)", function () {
