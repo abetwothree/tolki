@@ -20,6 +20,12 @@ import {
     unionRows,
 } from "./fixtures";
 
+/** Not a fixture: the dotted keys are what undot reads, and only these two blocks need them. */
+const dottedRecord = { "a.b": 1, "a.c": 2 };
+
+/** The same shape with index-path keys, which is all `Arr.undot` accepts. */
+const indexedRecord = { "0.0": 1, "0.1": 2 };
+
 describe("data keying type tests", () => {
     describe("dataKeyBy", () => {
         it("matches arr.keyBy for a list", () => {
@@ -98,6 +104,43 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataDot(nestedList, "p", 1)).toEqualTypeOf(
                 Arr.dot(nestedList, "p", 1),
             );
+        });
+    });
+
+    describe("dataUndot, which stays hand-written", () => {
+        // No dispatch pair serves it: `asArray` picks the delegate, not the backing. Its rows
+        // still answer from the delegate the matching branch calls, so a `DataItems` union
+        // return no longer erases the per-shape answer either delegate computed.
+
+        it("matches obj.undot for a record", () => {
+            expectTypeOf(Data.dataUndot(dottedRecord)).toEqualTypeOf(
+                Obj.undot(dottedRecord),
+            );
+        });
+
+        it("answers obj.undot's object row for a list, which obj's own call does not pick", () => {
+            // An instantiation expression resolves only the rows that take its type arguments,
+            // so the row answers obj's `<T extends object>` one; obj's own call for a list
+            // picks its earlier NonObjectItems row. objUndot runs either way.
+            expectTypeOf(Data.dataUndot(nestedList)).not.toEqualTypeOf(
+                Obj.undot(nestedList),
+            );
+            expectTypeOf(Data.dataUndot(nestedList)).toEqualTypeOf<
+                ReturnType<typeof Obj.undot<typeof nestedList>>
+            >();
+        });
+
+        it("matches arr.undot once asArray picks the array-shaped rebuild", () => {
+            expectTypeOf(Data.dataUndot(indexedRecord, true)).toEqualTypeOf(
+                Arr.undot(indexedRecord),
+            );
+        });
+
+        it("answers obj.undot's own widest row for an unnarrowed asArray", () => {
+            const asArray = Date.now() > 0;
+            expectTypeOf(Data.dataUndot(dottedRecord, asArray)).toEqualTypeOf<
+                ReturnType<typeof Obj.undot>
+            >();
         });
     });
 

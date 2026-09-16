@@ -163,7 +163,7 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
-import type { DataItems, PathKey } from "@tolki/types";
+import type { DataItems, PathKey, UndotArrayKey } from "@tolki/types";
 import {
     isArray,
     isFunction,
@@ -214,6 +214,9 @@ function toIndexedRecord(backing: ArrayLike<unknown>): Record<string, unknown> {
     // `{ ...list }` copies own keys only, so a hole would vanish and shorten the answer.
     return { ...Array.from(backing) };
 }
+
+/** What `listWhenIndexed` can answer: the delegate's own record, or that record's values. */
+type ListWhenIndexed<TRecord> = TRecord | TRecord[keyof TRecord][];
 
 /** A read-only list resolves to `unknown[]`, which it is not assignable to, so `DataAdd` rejects it. */
 type MutableBacking<T> = T extends readonly unknown[] ? unknown[] : unknown;
@@ -485,30 +488,38 @@ export const dataDot = dispatch(arrDot, objDot);
  * @param asArray - Force array-shaped rebuilding (`Arr.undot`) instead of the
  *   object-shaped one. JS-only ergonomics with no PHP counterpart; throws if any
  *   key's dot segments aren't all non-negative integers.
- * @returns Nested data structure
+ * @returns Nested data structure, matching the delegate the chosen branch calls
  * @throws TypeError via `Arr.undot` when `asArray` is set and a key is not an index path.
  *
  * @example
  *
  * dataUndot({'a.b': 1, 'a.c': 2}); -> {a: {b: 1, c: 2}}
  */
-export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
+export function dataUndot<TData extends object>(
+    data: TData,
+    asArray?: false | undefined,
+): ReturnType<typeof objUndot<TData>>;
+export function dataUndot<TValue, TKey extends UndotArrayKey>(
+    data: Record<TKey, TValue>,
+    asArray: true | undefined,
+): ReturnType<typeof arrUndot<TValue, TKey>>;
+export function dataUndot(
+    data: unknown,
+    asArray?: boolean,
+): ReturnType<typeof objUndot>;
+export function dataUndot<TValue, TKey extends PropertyKey>(
+    data: DataItems<TValue, TKey> | unknown,
     asArray: boolean = false,
-): DataItems<TValue, TKey> {
+): unknown {
     if (isObject(data) && !asArray) {
         // No dispatch pair serves this, so a Map is normalized here the way dispatch would.
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objUndot(toKeyedData<TKey, TValue>(data)) as DataItems<
-            TValue,
-            TKey
-        >;
+        return objUndot(toKeyedData<TKey, TValue>(data));
     }
 
     // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
     // non-numeric-first keys — `dataUndot`'s own contract is broader; `Arr.undot`'s
     // runtime guard is what catches a bad key instead.
-    return arrUndot(data as Record<TKey, TValue>) as DataItems<TValue>;
+    return arrUndot(data as Record<UndotArrayKey, TValue>);
 }
 
 /**
@@ -1450,31 +1461,41 @@ export const dataWhere = dispatch(arrWhere, objWhere);
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
- * @returns The replaced data
+ * @returns The replaced data, matching the delegate's own result
  */
+export function dataReplace<TValue, TReplacer extends object = object>(
+    data: readonly TValue[],
+    replacerData: TReplacer | null | undefined,
+): ListWhenIndexed<
+    ReturnType<typeof objReplace<Record<string, TValue>, TReplacer>>
+>;
+export function dataReplace<
+    TData extends object,
+    TReplacer extends object = object,
+>(
+    data: TData,
+    replacerData: TReplacer | null | undefined,
+): ReturnType<typeof objReplace<TData, TReplacer>>;
+export function dataReplace(
+    data: unknown,
+    replacerData: unknown,
+): ReturnType<typeof objReplace>;
 export function dataReplace<
     TValue,
     TKey extends PropertyKey = PropertyKey,
     TReplacerKey extends PropertyKey = PropertyKey,
 >(
-    data: DataItems<TValue, TKey>,
-    replacerData: DataItems<TValue, TReplacerKey> | null | undefined,
-): DataItems<TValue, TKey> {
+    data: DataItems<TValue, TKey> | unknown,
+    replacerData: DataItems<TValue, TReplacerKey> | null | undefined | unknown,
+): unknown {
     if (isKeyedData(data)) {
-        return objReplace(
-            toKeyedData<TKey, TValue>(data),
-            replacerData,
-        ) as DataItems<TValue, TKey>;
+        return objReplace(toKeyedData<TKey, TValue>(data), replacerData);
     }
 
     // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
     return listWhenIndexed(
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        objReplace(toIndexedRecord(arrWrap(data)), replacerData) as Record<
-            string,
-            TValue
-        >,
-    ) as DataItems<TValue, TKey>;
+        objReplace(toIndexedRecord(arrWrap(data)), replacerData),
+    );
 }
 
 /**
@@ -1489,31 +1510,43 @@ export function dataReplace<
  *
  * @param data - The original data
  * @param items - The items to replace with. `null`/`undefined` is a no-op.
- * @returns The replaced data
+ * @returns The replaced data, matching the delegate's own result
  */
+export function dataReplaceRecursive<TValue, TReplacer extends object = object>(
+    data: readonly TValue[],
+    replacerData: TReplacer | null | undefined,
+): ListWhenIndexed<
+    ReturnType<typeof objReplaceRecursive<Record<string, TValue>, TReplacer>>
+>;
+export function dataReplaceRecursive<
+    TData extends object,
+    TReplacer extends object = object,
+>(
+    data: TData,
+    replacerData: TReplacer | null | undefined,
+): ReturnType<typeof objReplaceRecursive<TData, TReplacer>>;
+export function dataReplaceRecursive(
+    data: unknown,
+    replacerData: unknown,
+): ReturnType<typeof objReplaceRecursive>;
 export function dataReplaceRecursive<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(
-    data: DataItems<TValue, TKey>,
-    replacerData: DataItems<TValue, TKey> | null | undefined,
-): DataItems<TValue, TKey> {
+    data: DataItems<TValue, TKey> | unknown,
+    replacerData: DataItems<TValue, TKey> | null | undefined | unknown,
+): unknown {
     if (isKeyedData(data)) {
         return objReplaceRecursive(
             toKeyedData<TKey, TValue>(data),
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            replacerData as Record<PropertyKey, TValue> | null | undefined,
-        ) as DataItems<TValue, TKey>;
+            replacerData,
+        );
     }
 
     // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
     return listWhenIndexed(
-        objReplaceRecursive(
-            toIndexedRecord(arrWrap(data)),
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            replacerData as Record<PropertyKey, TValue> | null | undefined,
-        ),
-    ) as DataItems<TValue, TKey>;
+        objReplaceRecursive(toIndexedRecord(arrWrap(data)), replacerData),
+    );
 }
 
 /**

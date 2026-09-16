@@ -6,6 +6,7 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
     abc,
     box,
+    nestedRecord,
     numberList,
     numberMap,
     numberMapAsRecord,
@@ -14,6 +15,9 @@ import {
     settings,
     unionItems,
 } from "./fixtures";
+
+/** Mirrors `listWhenIndexed`, data's own step: obj's record, or that record's values. */
+type ListWhenIndexed<TRecord> = TRecord | TRecord[keyof TRecord][];
 
 describe("data mutations type tests", () => {
     describe("dataPop", () => {
@@ -145,6 +149,58 @@ describe("data mutations type tests", () => {
             expectTypeOf(
                 Data.dataReplaceRecursive(["a", "b", "c"], { k: "x" }),
             ).not.toExtend<unknown[]>();
+        });
+
+        it("matches obj.replace for a keyed backing, which obj serves alone", () => {
+            // Both backings reach obj (Task C6), so the keyed row is obj's own answer
+            // rather than the DataItems union, which erased it.
+            expectTypeOf(Data.dataReplace(abc, { b: 20 })).toEqualTypeOf(
+                Obj.replace(abc, { b: 20 }),
+            );
+            expectTypeOf(
+                Data.dataReplaceRecursive(nestedRecord, { a: { x: 9 } }),
+            ).toEqualTypeOf(
+                Obj.replaceRecursive(nestedRecord, { a: { x: 9 } }),
+            );
+        });
+
+        it("answers obj's own record for a list backing, or that record's values", () => {
+            // The list backing reaches obj too, on the record `toIndexedRecord` builds;
+            // `listWhenIndexed` then hands back its values while the keys stay 0..n-1.
+            // That last step is data's own, and the only part these expectations state.
+            expectTypeOf(
+                Data.dataReplace(numberList, { k: "x" }),
+            ).toEqualTypeOf<
+                ListWhenIndexed<
+                    ReturnType<
+                        typeof Obj.replace<
+                            Record<string, number>,
+                            { k: string }
+                        >
+                    >
+                >
+            >();
+            expectTypeOf(
+                Data.dataReplaceRecursive(numberList, { k: "x" }),
+            ).toEqualTypeOf<
+                ListWhenIndexed<
+                    ReturnType<
+                        typeof Obj.replaceRecursive<
+                            Record<string, number>,
+                            { k: string }
+                        >
+                    >
+                >
+            >();
+        });
+
+        it("answers obj's widest row for a backing neither typed row claims", () => {
+            expectTypeOf(Data.dataReplace(opaque, opaque)).toEqualTypeOf<
+                ReturnType<typeof Obj.replace>
+            >();
+            expectTypeOf(
+                Data.dataReplaceRecursive(opaque, opaque),
+            ).toEqualTypeOf<ReturnType<typeof Obj.replaceRecursive>>();
         });
     });
 
