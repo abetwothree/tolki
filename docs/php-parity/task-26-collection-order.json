@@ -1,0 +1,699 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "plain-object-toArray-member-keeps-its-keys",
+            "php": "collect((object) ['toArray' => fn () => [9], 'b' => 2])->keys()->all()",
+            "value": [
+                "toArray",
+                "b"
+            ]
+        },
+        {
+            "label": "plain-object-toArray-member-union-keeps-its-keys",
+            "php": "collect((object) ['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3])->keys()->all()",
+            "value": [
+                "toArray",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "plain-object-toArray-member-union-keeps-its-values",
+            "php": "array_diff_key(collect((object) ['toArray' => fn () => [9], 'b' => 2])->union(['c' => 3])->all(), ['toArray' => null])",
+            "value": {
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "real-arrayable-unwraps-through-toArray",
+            "php": "collect(new D8Arrayable)->all()",
+            "value": [
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "order-initial",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-shift",
+            "php": "$c = collect(base); $returned = $c->shift()",
+            "value": {
+                "returned": "c",
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-shift-two",
+            "php": "$c = collect(base); $returned = $c->shift(2)",
+            "value": {
+                "returned": [
+                    "c",
+                    "a"
+                ],
+                "all": [
+                    "b"
+                ],
+                "values": [
+                    "b"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-pop",
+            "php": "$c = collect(base); $returned = $c->pop()",
+            "value": {
+                "returned": "b",
+                "all": {
+                    "2": "c",
+                    "0": "a"
+                },
+                "values": [
+                    "c",
+                    "a"
+                ],
+                "keys": [
+                    2,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-pop-two",
+            "php": "$c = collect(base); $returned = $c->pop(2)",
+            "value": {
+                "returned": [
+                    "b",
+                    "a"
+                ],
+                "all": {
+                    "2": "c"
+                },
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-push",
+            "php": "$c = collect(base); $c->push('x')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "3": "x"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "x"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "order-pop-then-push",
+            "php": "$c = collect(base); $c->pop(); $c->push('x')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "3": "x"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "x"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "order-prepend",
+            "php": "$c = collect(base); $c->prepend('x')",
+            "value": {
+                "all": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "order-prepend-with-key",
+            "php": "$c = collect(base); $c->prepend('x', 'k')",
+            "value": {
+                "all": {
+                    "k": "x",
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "k",
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-prepend-with-existing-key",
+            "php": "$c = collect(base); $c->prepend('x', 1)",
+            "value": {
+                "all": {
+                    "1": "x",
+                    "2": "c",
+                    "0": "a"
+                },
+                "values": [
+                    "x",
+                    "c",
+                    "a"
+                ],
+                "keys": [
+                    1,
+                    2,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-unshift",
+            "php": "$c = collect(base); $c->unshift('x', 'y')",
+            "value": {
+                "all": [
+                    "x",
+                    "y",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "x",
+                    "y",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "order-splice",
+            "php": "$c = collect(base); $returned = $c->splice(1, 1)",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-splice-with-replacement",
+            "php": "$c = collect(base); $returned = $c->splice(1, 1, ['z'])",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-splice-to-end",
+            "php": "$c = collect(base); $returned = $c->splice(1)",
+            "value": {
+                "returned": [
+                    "a",
+                    "b"
+                ],
+                "all": [
+                    "c"
+                ],
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-pad",
+            "php": "collect(base)->pad(5, 'z')",
+            "value": {
+                "all": [
+                    "c",
+                    "a",
+                    "b",
+                    "z",
+                    "z"
+                ],
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z",
+                    "z"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "order-pad-negative",
+            "php": "collect(base)->pad(-5, 'z')",
+            "value": {
+                "all": [
+                    "z",
+                    "z",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "z",
+                    "z",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "order-pad-no-padding",
+            "php": "collect(base)->pad(2, 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-pad-does-not-mutate",
+            "php": "$c = collect(base); $c->pad(5, 'z'); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-forget",
+            "php": "$c = collect(base); $c->forget(0)",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-forget-many",
+            "php": "$c = collect(base); $c->forget([0, 1])",
+            "value": {
+                "all": {
+                    "2": "c"
+                },
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-offsetUnset",
+            "php": "$c = collect(base); $c->offsetUnset(0)",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-transform",
+            "php": "$c = collect(base); $c->transform(fn ($v) => strtoupper($v))",
+            "value": {
+                "all": {
+                    "2": "C",
+                    "0": "A",
+                    "1": "B"
+                },
+                "values": [
+                    "C",
+                    "A",
+                    "B"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-transform-callback-key-order",
+            "php": "$c = collect(base); $c->transform(recording $key)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "order-put",
+            "php": "$c = collect(base); $c->put('k', 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "k": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    "k"
+                ]
+            }
+        },
+        {
+            "label": "order-put-existing-key",
+            "php": "$c = collect(base); $c->put(0, 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "z",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-offsetSet-null-key",
+            "php": "$c = collect(base); $c->offsetSet(null, 'z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "3": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "order-sort",
+            "php": "collect(base)->sort()",
+            "value": {
+                "all": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-sortKeys",
+            "php": "collect(base)->sortKeys()",
+            "value": {
+                "all": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-sort-does-not-mutate",
+            "php": "$c = collect(base); $c->sort(); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-mixed-shift",
+            "php": "$c = collect([2 => 'c', 'x' => 'a', 1 => 'b']); $returned = $c->shift()",
+            "value": {
+                "returned": "c",
+                "all": {
+                    "x": "a",
+                    "0": "b"
+                },
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "x",
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-mixed-pad",
+            "php": "collect([2 => 'c', 'x' => 'a', 1 => 'b'])->pad(5, 'p')",
+            "value": {
+                "all": {
+                    "0": "c",
+                    "x": "a",
+                    "1": "b",
+                    "2": "p",
+                    "3": "p"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "p",
+                    "p"
+                ],
+                "keys": [
+                    0,
+                    "x",
+                    1,
+                    2,
+                    3
+                ]
+            }
+        }
+    ]
+}
