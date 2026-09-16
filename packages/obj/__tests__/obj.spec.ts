@@ -5285,13 +5285,13 @@ describe("Obj", () => {
                 );
             });
 
-            it("orders two empty containers by their JSON form", () => {
-                // Mixing {} with numbers is not orderable at all - compareValues
-                // ties {} with every number while ranking [] below them - so the
-                // two containers are only comparable against each other.
+            it("ties two empty containers, as PHP's array rule does", () => {
+                // docs/php-parity/task-25-spaceship-arrays.json, "spaceship on
+                // two empty arrays": neither shape holds an entry, so the pair
+                // ties and the stable sort leaves it in insertion order.
                 expect(Object.values(Obj.sort({ a: {}, d: [] }))).toEqual([
-                    [],
                     {},
+                    [],
                 ]);
             });
         });
@@ -5307,10 +5307,10 @@ describe("Obj", () => {
             });
 
             it("does not re-sort by an empty path after the natural sort", () => {
-                // The branches were if/if/if, so a falsy string ran the natural
-                // sort and then the field sort over it, reversing this pair. PHP
-                // cannot arbitrate - Collection::sort("") throws TypeError.
-                const source = { a: { "": 10 }, b: { "": 9 } };
+                // The branches were if/if/if, so a falsy string ran the natural sort and then the field sort over it.
+                // The "" key sits second, so the natural walk (which reads "z" first) and the field walk disagree.
+                // PHP cannot arbitrate - Collection::sort("") throws TypeError.
+                const source = { a: { z: 1, "": 9 }, b: { z: 2, "": 8 } };
 
                 expect(Object.keys(Obj.sort(source, ""))).toEqual(["a", "b"]);
                 expect(Object.values(Obj.sort(source, ""))).toEqual(
@@ -6064,12 +6064,12 @@ describe("Obj", () => {
             });
         });
 
-        it("sorts a list of objects by comparing their JSON string form, not by id or PHP's array rule", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "sortRecursive-list-of-objects" — PHP gives [{id:1},{id:2},{id:10}]; obj sorts by JSON form, not PHP.
+        it("sorts a list of objects by PHP's array rule, not by their JSON form", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-list-of-objects";
+            // task-25-spaceship-arrays.json, "Arr::sort orders equal-count rows element-wise"
             expect(
                 Obj.sortRecursive({ r: [{ id: 2 }, { id: 10 }, { id: 1 }] }),
-            ).toEqual({ r: [{ id: 10 }, { id: 1 }, { id: 2 }] });
+            ).toEqual({ r: [{ id: 1 }, { id: 2 }, { id: 10 }] });
         });
 
         it("keeps an object value that isn't a plain object whole, even inside a list", () => {
