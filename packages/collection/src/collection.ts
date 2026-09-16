@@ -3137,9 +3137,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        const placeholder = null;
+        // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
+        // equal it and a stored null stays a found item (Collection.php:1502).
+        const placeholder = Symbol("firstOrFail");
 
-        const item = this.first(filter, placeholder);
+        const item = this.first<typeof placeholder>(filter, placeholder);
 
         if (item === placeholder) {
             throw new ItemNotFoundException();

@@ -6742,6 +6742,28 @@ describe("Collection", () => {
                 ).not.toBeNull();
             });
         });
+
+        describe("a stored null is a found item", () => {
+            it("returns a stored null instead of throwing", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "firstOrFail-stored-null-list" / "firstOrFail-stored-null-assoc"
+                expect(collect([null]).firstOrFail()).toBeNull();
+                expect(collect({ a: null }).firstOrFail()).toBeNull();
+            });
+
+            it("returns a stored null a callback selected", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "firstOrFail-stored-null-with-callback"
+                expect(
+                    collect([1, null]).firstOrFail((value) => value === null),
+                ).toBeNull();
+                expect(
+                    collect({ a: 1, b: null }).firstOrFail(
+                        (value) => value === null,
+                    ),
+                ).toBeNull();
+            });
+        });
     });
 
     describe("chunk", () => {
