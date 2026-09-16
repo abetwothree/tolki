@@ -93,9 +93,9 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
  * @returns The elements of a materializable iterable, otherwise the data wrapped in a list.
  */
 export function toPositionalBacking(data: unknown): unknown {
-    // Laravel materializes a Traversable backing, so a Set or generator must arrive as its
-    // elements rather than as one item. An array is already positional and is ALIASED, since
-    // the mutating helpers write through it; a string is not iterable here, so it stays wrapped.
+    // Laravel materializes a Traversable, so a Set or generator arrives as its elements. An array
+    // is ALIASED instead, since the mutating helpers write through it; a string is not iterable
+    // here; and the Map guard is defensive only — dispatch sends a Map to obj before this runs.
     if (isIterable(data) && !isArray(data) && !isMap(data)) {
         return [...data];
     }

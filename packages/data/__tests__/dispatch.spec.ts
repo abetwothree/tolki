@@ -56,7 +56,7 @@ describe("dispatch with a positional normalizer", () => {
         expect(dFirst(7)).toBe(7);
     });
 
-    it("differs from the default normalizer on a Set", () => {
+    it("normalizes a Set differently from the default, which answers first() the same", () => {
         const set = new Set([7, 8]);
 
         // The default materializes a Set; the streaming form hands the Set itself on, so a
