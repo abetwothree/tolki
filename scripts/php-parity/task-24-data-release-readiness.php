@@ -445,6 +445,15 @@ probe('d7-union-traversable-backing', "(new Collection(new ArrayIterator([1, 2])
     'list-operand' => (new Collection(new ArrayIterator([1, 2])))->union([9, 9, 9])->all(),
 ]);
 
+// ==== D7 (F-23(4)): combine's keys backing. It never normalised one either, so every
+// backing but a list or a plain object reached array_combine as an empty key set.
+probe('d7-combine-scalar-backing', "(new Collection(5))->combine(['x']), (new Collection('k'))->combine(['x']) and (new Collection(null))->combine([])", fn () => [
+    'int' => (new Collection(5))->combine(['x'])->all(),
+    'string' => (new Collection('k'))->combine(['x'])->all(),
+    'null' => (new Collection(null))->combine([])->all(),
+]);
+probe('d7-combine-traversable-backing', "(new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])", fn () => (new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])->all());
+
 // ==== P-39: what a Traversable backing answers, against what a string backing answers.
 // Collection materialises a Traversable through iterator_to_array, so take(2) sees its
 // elements; a string is not Traversable, so (array) wraps it as one item.

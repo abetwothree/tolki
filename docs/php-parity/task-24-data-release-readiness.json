@@ -1252,6 +1252,27 @@
             }
         },
         {
+            "label": "d7-combine-scalar-backing",
+            "php": "(new Collection(5))->combine(['x']), (new Collection('k'))->combine(['x']) and (new Collection(null))->combine([])",
+            "value": {
+                "int": {
+                    "5": "x"
+                },
+                "string": {
+                    "k": "x"
+                },
+                "null": []
+            }
+        },
+        {
+            "label": "d7-combine-traversable-backing",
+            "php": "(new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])",
+            "value": {
+                "k1": "x",
+                "k2": "y"
+            }
+        },
+        {
             "label": "take-traversable-backing",
             "php": "(new Collection(new ArrayIterator([1, 2, 3])))->take(2)",
             "value": [
