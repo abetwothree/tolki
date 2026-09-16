@@ -6987,6 +6987,8 @@ describe("arr type tests", () => {
             });
 
             it("accepts PathKeys as second parameter", () => {
+                // The array half is read-only since D3 Step 3 (F-23 part 1), so an `as const`
+                // tuple of keys reaches this row too.
                 expectTypeOf(Arr.forget)
                     .parameter(1)
                     .toExtend<
@@ -6994,7 +6996,7 @@ describe("arr type tests", () => {
                         | string
                         | null
                         | undefined
-                        | Array<number | string | null | undefined>
+                        | readonly (number | string | null | undefined)[]
                     >();
             });
 
@@ -8191,17 +8193,18 @@ describe("arr type tests", () => {
                 const data = ["names", { developer: "taylor" }];
                 // "1.developer" on (string | { developer: string })[] union
                 // Path resolves through each union member separately:
-                // string → undefined, { developer: string } → string
-                // Result union: string | undefined
+                // string → the default, { developer: string } → string
+                // Runtime answers "taylor"; the default is a string too, so the union is string
                 const result = Arr.get(data, "1.developer", "dayle");
-                expectTypeOf(result).toEqualTypeOf<string | undefined>();
+                expectTypeOf(result).toEqualTypeOf<string>();
             });
 
             it("handles mixed array/object data with non-existing property", () => {
                 const data = ["names", { developer: "taylor" }];
-                // "1.5" resolves through union: string[5] → string, obj → undefined
+                // "1.5" resolves through union: string[5] → string, obj → the default
+                // Runtime answers "dayle", the default, which is a string as well
                 const result = Arr.get(data, "1.5", "dayle");
-                expectTypeOf(result).toEqualTypeOf<string | undefined>();
+                expectTypeOf(result).toEqualTypeOf<string>();
             });
 
             it("returns element union for literal index on complex functional test data", () => {

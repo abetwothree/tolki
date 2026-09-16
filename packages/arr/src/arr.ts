@@ -1507,7 +1507,8 @@ export function has<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
 ): boolean {
-    const keyList = isArray(keys) ? keys : [keys];
+    // isArray's guard rejects a readonly list, so the branches are typed together instead.
+    const keyList = (isArray(keys) ? keys : [keys]) as readonly PathKey[];
     if (!accessible(data) || keyList.length === 0) {
         return false;
     }
@@ -1552,7 +1553,8 @@ export function hasAll<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
 ): boolean {
-    const keyList = isArray(keys) ? keys : [keys];
+    // isArray's guard rejects a readonly list, so the branches are typed together instead.
+    const keyList = (isArray(keys) ? keys : [keys]) as readonly PathKey[];
 
     if (!accessible(data) || keyList.length === 0) {
         return false;
@@ -1598,7 +1600,8 @@ export function hasAny<TValue>(
         return false;
     }
 
-    const keyList = isArray(keys) ? keys : [keys];
+    // isArray's guard rejects a readonly list, so the branches are typed together instead.
+    const keyList = (isArray(keys) ? keys : [keys]) as readonly PathKey[];
     if (keyList.length === 0) {
         return false;
     }
@@ -2036,7 +2039,8 @@ export function select<TValue extends Record<string, unknown>>(
     keys: PathKeys,
 ): Record<string, unknown>[] {
     const values = getAccessibleValues(data);
-    const keyList = isArray(keys) ? keys : [keys];
+    // isArray's guard rejects a readonly list, so the branches are typed together instead.
+    const keyList = (isArray(keys) ? keys : [keys]) as readonly PathKey[];
 
     return values.map((item) => {
         const typedItem = item as TValue;
