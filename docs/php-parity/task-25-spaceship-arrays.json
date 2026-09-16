@@ -201,6 +201,26 @@
                     "id": 10
                 }
             ]
+        },
+        {
+            "label": "e3 spaceship on a keyed array and a non-numeric string",
+            "php": "['x'=>1] <=> 'abc'",
+            "value": 1
+        },
+        {
+            "label": "e3 greater-than on a keyed array and a non-numeric string",
+            "php": "['x'=>1] > 'abc'",
+            "value": true
+        },
+        {
+            "label": "e3 spaceship on an empty array and true",
+            "php": "[] <=> true",
+            "value": -1
+        },
+        {
+            "label": "e3 spaceship on a one-element array and true",
+            "php": "[1] <=> true",
+            "value": 0
         }
     ]
 }

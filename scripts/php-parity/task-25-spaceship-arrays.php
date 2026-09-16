@@ -92,4 +92,11 @@ probe('spaceship on a DateTime and an empty array', "new DateTime('2020-01-01') 
 probe('Arr::sort orders lists of arrays by count first', 'Arr::sort([[9,9],[10],[1,2,3]])', fn () => array_values(Arr::sort([[9, 9], [10], [1, 2, 3]])));
 probe('Arr::sort orders equal-count rows element-wise', 'Arr::sort([["id"=>2],["id"=>10],["id"=>1]])', fn () => array_values(Arr::sort([['id' => 2], ['id' => 10], ['id' => 1]])));
 
+// E3 — the cells `.changeset/utils-obj-release-readiness.md` names as remaining divergences.
+// Only "spaceship on an empty array and zero" was recorded; these back the rest of the claim.
+probe('e3 spaceship on a keyed array and a non-numeric string', "['x'=>1] <=> 'abc'", fn () => ['x' => 1] <=> 'abc');
+probe('e3 greater-than on a keyed array and a non-numeric string', "['x'=>1] > 'abc'", fn () => ['x' => 1] > 'abc');
+probe('e3 spaceship on an empty array and true', '[] <=> true', fn () => [] <=> true);
+probe('e3 spaceship on a one-element array and true', '[1] <=> true', fn () => [1] <=> true);
+
 emit();
