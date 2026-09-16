@@ -43,11 +43,13 @@ describe("Obj", () => {
             expect(Obj.accessible(() => null)).toBe(false);
         });
 
-        it("returns true for a Date or class instance, which PHP rejects", () => {
-            // JS-only: obj's analogue of a PHP array is any object that isn't a list, even a Date or class instance;
-            // PHP rejects a DateTime (docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime").
-            expect(Obj.accessible(new Date(0))).toBe(true);
-            expect(Obj.accessible(new Point())).toBe(true);
+        it("rejects a Date or class instance but keeps a Map", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime".
+            // A Map is JS's shape for a PHP array with non-string keys, so it stays accessible.
+            expect(Obj.accessible(new Date(0))).toBe(false);
+            expect(Obj.accessible(new Point())).toBe(false);
+            expect(Obj.accessible(new Set([1]))).toBe(false);
+            expect(Obj.accessible(new Map([["a", 1]]))).toBe(true);
         });
     });
 
@@ -73,11 +75,13 @@ describe("Obj", () => {
             expect(Obj.objectifiable(() => null)).toBe(false);
         });
 
-        it("returns true for a Date or class instance, which PHP rejects", () => {
-            // JS-only: obj's analogue of a PHP array is any object that isn't a list, even a Date or class instance;
-            // PHP rejects a DateTime (docs/php-parity/task-23-obj-release-readiness.json, "arrayable-datetime").
-            expect(Obj.objectifiable(new Date(0))).toBe(true);
-            expect(Obj.objectifiable(new Point())).toBe(true);
+        it("rejects a Date or class instance but keeps a Map", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "arrayable-datetime".
+            // A Map is JS's shape for a PHP array with non-string keys, so it stays objectifiable.
+            expect(Obj.objectifiable(new Date(0))).toBe(false);
+            expect(Obj.objectifiable(new Point())).toBe(false);
+            expect(Obj.objectifiable(new Set([1]))).toBe(false);
+            expect(Obj.objectifiable(new Map([["a", 1]]))).toBe(true);
         });
     });
 
@@ -7078,24 +7082,24 @@ describe("Obj", () => {
             expect(Obj.wrap(null)).toEqual({});
         });
 
-        it("returns a Map or a Set as-is, as it returns any object", () => {
-            // JS-only: PHP has no Map or Set, and Arr::wrap wraps every object; obj returns any object it is given.
+        it("returns a Map as-is but wraps a Set", () => {
+            // JS-only: PHP has no Map or Set. A Map carries array entries, so it is
+            // handed back like a plain object; a Set does not, so it is wrapped.
             const map = new Map([["a", 1]]);
             const set = new Set([1]);
 
             expect(Obj.wrap(map)).toBe(map);
-            expect(Obj.wrap(set)).toBe(set);
+            expect(Obj.wrap(set)).toEqual({ 0: set });
         });
 
-        it("returns a Date or class instance as-is, which Arr::wrap wraps", () => {
-            // JS-only: obj's analogue of a PHP array is any object that isn't a list, so wrap hands it back;
-            // PHP wraps every object (docs/php-parity/task-23-obj-release-readiness.json, "wrap-datetime",
-            // "wrap-stdclass-is-wrapped").
+        it("wraps a Date or class instance, as Arr::wrap does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "wrap-datetime" and
+            // "wrap-stdclass-is-wrapped": PHP wraps every value that is not an array.
             const date = new Date(0);
             const point = new Point();
 
-            expect(Obj.wrap(date)).toBe(date);
-            expect(Obj.wrap(point)).toBe(point);
+            expect(Obj.wrap(date)).toEqual({ 0: date });
+            expect(Obj.wrap(point)).toEqual({ 0: point });
         });
 
         it("wraps falsy scalars instead of dropping them", () => {

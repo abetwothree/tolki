@@ -61,18 +61,17 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpAccessible,
     isPhpArrayKey,
     isPhpFalsy,
     isPhpNumeric,
     isPlainObject,
     isPrototypeObject,
-    isSet,
     isString,
     isStringable,
     isSymbol,
     isUndefined,
     isWeakMap,
-    isWeakSet,
     looseEqual,
     phpArrayKey,
     phpTypeName,
@@ -381,15 +380,19 @@ type WrapResult<T> = T extends null
 /**
  * Determine whether the given value is object accessible.
  *
- * A `Date` or class instance counts as an object here; PHP's `accessible` rejects a `DateTime`.
+ * A plain object and a `Map` both carry array entries, so both are accessible. A `Date`,
+ * a `Set` or a class instance keeps its state elsewhere, and PHP's `accessible` rejects a
+ * `DateTime` for the same reason. An array belongs to `@tolki/arr`, not here.
  *
  * @param value - The value to check.
- * @returns True if the value is a plain object, false otherwise.
+ * @returns True if the value is an accessible object, false otherwise.
  *
  * @example
  *
  * accessible({}); -> true
  * accessible({ a: 1, b: 2 }); -> true
+ * accessible(new Map()); -> true
+ * accessible(new Date()); -> false
  * accessible([]); -> false
  * accessible(null); -> false
  */
@@ -397,7 +400,7 @@ export function accessible(
     value: unknown,
 ): value is Record<PropertyKey, unknown>;
 export function accessible(value: unknown): value is object {
-    return isObject(value);
+    return isObject(value) && isPhpAccessible(value);
 }
 
 /**
@@ -426,7 +429,8 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Determine whether the given value is objectifiable.
  *
- * A `Date` or class instance counts as an object here; PHP's `arrayable` rejects a `DateTime`.
+ * Same rule as `accessible`: a plain object or a `Map` carries entries, a `Date`, a `Set`
+ * or a class instance does not. PHP's `arrayable` rejects a `DateTime` on the same grounds.
  *
  * @param value - The value to check.
  * @returns True if the value can be treated as an object, false otherwise.
@@ -435,13 +439,14 @@ function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * objectifiable({}); -> true
  * objectifiable({ a: 1, b: 2 }); -> true
+ * objectifiable(new Date()); -> false
  * objectifiable([]); -> false
  */
 export function objectifiable(value: unknown): value is Record<string, unknown>;
 export function objectifiable(
     value: unknown,
 ): value is Record<string, unknown> {
-    return isObject(value);
+    return isObject(value) && isPhpAccessible(value);
 }
 
 /**
@@ -3380,15 +3385,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     number?: number | null,
     preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
-    // Map/Set/WeakMap/WeakSet pass accessible() (they are objects) but have no own
-    // enumerable entries, so they join the NonObjectItems row instead of throwing.
-    if (
-        !accessible(data) ||
-        isMap(data) ||
-        isSet(data) ||
-        isWeakMap(data) ||
-        isWeakSet(data)
-    ) {
+    // A Map is accessible but keeps its entries off its own keys, so the draw below
+    // would read nothing; it joins the NonObjectItems row instead of throwing.
+    if (!accessible(data) || isMap(data)) {
         return isNull(number) || isUndefined(number)
             ? null
             : ({} as Record<TKey, TValue>);
@@ -4875,7 +4874,8 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * If the given value is not an object and not null, wrap it in one.
  *
- * An object, including a `Date`, a `Map`, a `Set` or a class instance, is returned as-is; PHP wraps every object.
+ * A plain object or a `Map` already holds array entries and is returned as-is. A `Date`,
+ * a `Set` or a class instance is wrapped, as PHP's `Arr::wrap` wraps every non-array.
  *
  * @param value - The value to wrap.
  * @returns An object containing the value, or an empty object if null.
@@ -4884,6 +4884,7 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * wrap('hello'); -> { 0: 'hello' }
  * wrap({ hello: 'world' }); -> { hello: 'world' }
+ * wrap(new Date()); -> { 0: Date }
  * wrap(null); -> {}
  * wrap(undefined); -> { 0: undefined }
  */
@@ -4896,7 +4897,7 @@ export function wrap<TValue>(
         return {};
     }
 
-    return isObject<TValue>(value)
+    return isObject<TValue>(value) && isPhpAccessible(value)
         ? (value as Record<PropertyKey, TValue>)
         : { 0: value };
 }
