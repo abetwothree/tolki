@@ -112,9 +112,9 @@ describe("Utils", () => {
             expect(Utils.compareValues(left, right)).toBe(0);
 
             const leftObject: Record<string, unknown> = { x: 1 };
-            leftObject.self = leftObject;
+            leftObject["self"] = leftObject;
             const rightObject: Record<string, unknown> = { x: 1 };
-            rightObject.self = rightObject;
+            rightObject["self"] = rightObject;
 
             expect(Utils.compareValues(leftObject, rightObject)).toBe(0);
         });
