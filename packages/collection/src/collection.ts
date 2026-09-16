@@ -1058,7 +1058,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         keys: PathKeys | Collection<T, K>,
     ) {
         keys = this.getRawItems(keys) as PathKey[];
-        this.items = dataForget(this.items, keys);
+        this.items = dataForget(this.items as TValue[], keys);
 
         return this;
     }
@@ -1097,7 +1097,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
     ): TValue | TGetDefault | null {
-        return dataGet(this.items, key, defaultValue);
+        // `?? null` only pins the delegate's TDefault: both delegates already read an
+        // omitted default as null, so the value handed back is unchanged.
+        return dataGet(this.items as TValue[], key, defaultValue ?? null);
     }
 
     /**
