@@ -1631,7 +1631,14 @@ export function setMixedImmutable<TValue>(
             return obj.map(deepCopy);
         }
 
-        // Object case - obj is a non-null, non-array object
+        // A class instance, a Date or a Map is no PHP array: copying its entries flattened it
+        // into a plain object, and setMixed then MERGED onto it where `is_array` replaces it
+        // wholesale. PHP holds an object by handle, so sharing the reference is the copy.
+        if (!isPlainObject(obj)) {
+            return obj;
+        }
+
+        // Object case - obj is a non-null, non-array plain object
         const result: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(obj)) {
             defineKey(result, k, deepCopy(v));

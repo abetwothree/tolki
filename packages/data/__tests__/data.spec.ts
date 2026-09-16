@@ -2732,6 +2732,41 @@ describe("Data", () => {
             expect(result).toEqual([1, 99, 3]);
         });
 
+        it("replaces a nested class instance on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-set-list-nested-object-is-replaced-wholesale" ([new D4Point(1)], '0.y',
+            // 2 -> [{"y": 2}]) and "d6-set-assoc-nested-object-is-replaced-wholesale"
+            // (the keyed twin). The list backing used to merge, answering {x: 1, y: 2}.
+            const listItem = new D4Point();
+            const recordItem = new D4Point();
+
+            expect(Data.dataSet([listItem], "0.y", 2)).toEqual([{ y: 2 }]);
+            expect(Data.dataSet({ a: recordItem }, "a.y", 2)).toEqual({
+                a: { y: 2 },
+            });
+            expect(Object.entries(listItem)).toEqual([["x", 1]]);
+            expect(Object.entries(recordItem)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-in-a-list-is-descended" ([['q']], '0.1') and
+            // "d6-nested-list-is-descended-not-replaced" (['a' => ['q']], 'a.1').
+            const listInner = ["q"];
+            const recordInner = ["q"];
+            const fromList = Data.dataSet([listInner], "0.1", "y");
+            const fromRecord = Data.dataSet({ a: recordInner }, "a.1", "y");
+
+            expect(fromList).toEqual([["q", "y"]]);
+            expect(fromRecord).toEqual({ a: ["q", "y"] });
+            // Only pop, shift, splice and unshift mutate, so neither inner list is written.
+            // Read through Object.values: the declared write result is no array type.
+            expect(Object.values(fromList)[0]).not.toBe(listInner);
+            expect(Object.values(fromRecord)[0]).not.toBe(recordInner);
+            expect(listInner).toEqual(["q"]);
+            expect(recordInner).toEqual(["q"]);
+        });
+
         // docs/php-parity/task-17-second-review.json: "Arr::set writes a
         // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key"
         describe("unsafe-key write policy", () => {

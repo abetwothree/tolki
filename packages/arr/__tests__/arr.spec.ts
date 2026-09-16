@@ -46,6 +46,11 @@ class Point {
     y = 2;
 }
 
+/** The single-field instance the write-path probes use, so a citation names the same call. */
+class D4Point {
+    x = 1;
+}
+
 describe("Arr", () => {
     describe("accessible", () => {
         it("accessible", () => {
@@ -1983,6 +1988,44 @@ describe("Arr", () => {
             const result = Arr.set(subject, "1.1.1", 200);
             expect(result).toEqual(["products", ["desk", ["price", 200]]]);
             expect(JSON.stringify(subject)).toBe(snap);
+        });
+
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-set-list-nested-object-is-replaced-wholesale": [new D4Point(1)] plus
+            // Arr::set($src, '0.y', 2) answers [{"y": 2}], recorded type `array`.
+            const point = new D4Point();
+            const result = Arr.set([point], "0.y", 2);
+
+            expect(result).toEqual([{ y: 2 }]);
+            expect(result[0]).not.toBe(point);
+            expect(result[0]).not.toBeInstanceOf(D4Point);
+            expect(Object.entries(point)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list instead of replacing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-in-a-list-is-descended": [['q']] plus Arr::set($src, '0.1',
+            // 'y') descends, because `is_array` holds for the nested list.
+            const inner = ["q"];
+            const result = Arr.set([inner], "0.1", "y");
+
+            expect(result).toEqual([["q", "y"]]);
+            expect(result[0]).not.toBe(inner);
+            expect(inner).toEqual(["q"]);
+        });
+
+        it("keeps a nested Date or Map whole instead of copying its entries", () => {
+            // JS-only: PHP has neither, and it holds an object by handle where an array is
+            // copied by value. Copying a Date's entries left an empty object behind.
+            const when = new Date(0);
+            const result = Arr.set([{ when, tag: "x" }], "0.n", 1);
+
+            expect(result[0]).toEqual({ when, tag: "x", n: 1 });
+            expect((result[0] as { when: Date }).when).toBe(when);
+            expect(Arr.set([{ m: new Map([["k", 1]]) }], "0.m.y", 2)).toEqual([
+                { m: { y: 2 } },
+            ]);
         });
 
         it("treats a non-array subject and a null key the same as the general set behaviour", () => {
