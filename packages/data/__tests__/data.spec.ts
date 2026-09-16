@@ -5770,9 +5770,9 @@ describe("Data", () => {
     });
 
     describe("Set backing agreement sweep", () => {
-        // A Set is JS's Traversable backing, and Laravel materializes one before it works
-        // on it, so every family must see its elements rather than the Set itself. The
-        // rows without their own citation compare against the list the Set materializes to.
+        // JS-only: no PHP call takes a JS Set or generator, so the uncited rows below pin JS-side
+        // agreement — the Set answers what the list it materializes to answers — not Laravel parity.
+        // The cited rows carry the Traversable behaviour that makes materializing the right bar.
         const asSet = () => new Set([1, 2, 3]);
         const asList = () => [1, 2, 3];
 
