@@ -4832,7 +4832,10 @@ describe("Collection", () => {
         });
 
         describe("push key classification", () => {
-            // docs/php-parity/task-17-second-review.json, "push onto a \"01\"-keyed array"
+            // docs/php-parity/task-17-second-review.json, "push onto a {\"01\"}-keyed array"
+            // docs/php-parity/task-17-second-review.json, "push onto a {\"1e2\"}-keyed array"
+            // docs/php-parity/task-17-second-review.json, "push onto a {\"-1\"}-keyed array"
+            // docs/php-parity/task-17-second-review.json, "push onto a {\"5\"}-keyed array"
             it.each([
                 ["01", { "01": "v", 0: 9 }],
                 ["1e2", { "1e2": "v", 0: 9 }],
