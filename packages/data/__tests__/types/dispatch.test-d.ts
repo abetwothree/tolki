@@ -66,3 +66,25 @@ describe("dispatch accepts an iterable backing at the type level", () => {
         expectTypeOf(dFirst(abc)).toEqualTypeOf(Obj.first(abc));
     });
 });
+
+describe("the default normalizer's Set type does not follow its runtime", () => {
+    // A Set is an object, so it lands on obj's widest row and is typed from its (empty) key set,
+    // while toPositionalBacking materializes it and answers from arr. These negative pins fail
+    // the day an overload makes the two agree, which is the fix Part B owns.
+    const numberSet = new Set([7, 8]);
+    const nestedSet = new Set([[1, 2], [3]]);
+    const dKeys = dispatch(Arr.keys, Obj.keys);
+    const dCollapse = dispatch(Arr.collapse, Obj.collapse);
+
+    it("does not yet type a Set's keys the way it answers them", () => {
+        expectTypeOf(dKeys(numberSet)).not.toEqualTypeOf(
+            Arr.keys([...numberSet]),
+        );
+    });
+
+    it("does not yet type a Set's collapse the way it answers it", () => {
+        expectTypeOf(dCollapse(nestedSet)).not.toEqualTypeOf(
+            Arr.collapse([...nestedSet]),
+        );
+    });
+});

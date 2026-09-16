@@ -81,6 +81,9 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
 /**
  * Normalize a positional backing into what the array helpers walk.
  *
+ * @remarks A Set or generator backing answers with its materialized elements at runtime, but is
+ * still typed from obj's widest row, because a Set is an object and lands there.
+ *
  * @param data - The data to normalize.
  * @returns The elements of a materializable iterable, otherwise the data wrapped in a list.
  */
