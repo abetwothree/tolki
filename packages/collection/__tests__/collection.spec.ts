@@ -10737,18 +10737,19 @@ describe("Collection", () => {
         });
 
         describe("empty collection behaviour", () => {
-            it("throws TypeError when reducing an empty collection with no initial value", () => {
-                expect(() => {
+            it("returns null when reducing an empty collection with no initial value", () => {
+                // docs/php-parity/task-24-data-release-readiness.json, "reduce-empty-no-initial"
+                expect(
                     collect([] as number[]).reduce(
                         (carry, value) => carry + value,
-                    );
-                }).toThrow(TypeError);
+                    ),
+                ).toBeNull();
 
-                expect(() => {
+                expect(
                     collect({} as Record<string, number>).reduce(
                         (carry, value) => carry + value,
-                    );
-                }).toThrow(TypeError);
+                    ),
+                ).toBeNull();
             });
 
             it("returns the initial value when reducing an empty collection with an initial value", () => {

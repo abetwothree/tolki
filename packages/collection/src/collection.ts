@@ -5133,7 +5133,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     reduce(
         callback: (carry: TValue, value: TValue, key: TKey) => TValue,
-    ): TValue;
+    ): TValue | null;
     reduce<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
@@ -5149,13 +5149,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const entries = Object.entries(this.items);
 
         if (entries.length === 0) {
-            if (isUndefined(initial)) {
-                throw new TypeError(
-                    "Reduce of empty collection with no initial value",
-                );
-            }
-
-            return initial as TReduce;
+            // PHP's reduce never throws: an empty backing hands back $initial,
+            // which defaults to null (EnumeratesValues.php:843).
+            return isUndefined(initial) ? null : (initial as TReduce);
         }
 
         let result: TReduce;
