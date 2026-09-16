@@ -347,9 +347,9 @@ describe("Obj", () => {
         });
 
         it("keeps non-canonical numeric keys distinct instead of colliding them", () => {
-            // entriesKeyValue's Number()/parseFloat conversion (used for the key handed to the
-            // callback) is lossy for "01": Number("01") === Number("1") === 1. Writing that
-            // converted key back would collapse two entries into one; the raw key must survive.
+            // A Number()/parseFloat conversion of the key handed to the callback is lossy for
+            // "01": Number("01") === Number("1") === 1. Writing that converted key back would
+            // collapse two entries into one, so phpArrayKey leaves "01" a string and it survives.
             const result = Obj.chunkWhile({ 1: "a", "01": "b" }, () => true);
 
             expect(result).toEqual({ 0: { 1: "a", "01": "b" } });
