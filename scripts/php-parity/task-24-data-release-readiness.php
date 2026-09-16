@@ -881,4 +881,23 @@ probe('d6-nested-list-in-a-list-is-descended', "\$src = [['q']]; Arr::add(\$src,
     return ['add' => Arr::add($src, '0.1', 'y'), 'source-after-add' => $src];
 });
 
+// ==== fix-round-2 Group B: Collection::sole with no filter. `unless($filter == null)`
+// ==== returns a proxy that SKIPS the forwarded filter, so a falsy sole item survives.
+probe('r2-sole-no-filter-keeps-a-falsy-item', "(new Collection([null]))->sole() / ([0]) / ([1,2,3])", function () {
+    $count = null;
+
+    try {
+        (new Collection([1, 2, 3]))->sole();
+    } catch (\Illuminate\Support\MultipleItemsFoundException $e) {
+        $count = $e->getMessage();
+    }
+
+    return [
+        '[null]' => (new Collection([null]))->sole(),
+        '[0]' => (new Collection([0]))->sole(),
+        "['']" => (new Collection(['']))->sole(),
+        '[1,2,3]' => $count,
+    ];
+});
+
 emit();

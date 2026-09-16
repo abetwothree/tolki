@@ -2538,6 +2538,16 @@
                     ]
                 ]
             }
+        },
+        {
+            "label": "r2-sole-no-filter-keeps-a-falsy-item",
+            "php": "(new Collection([null]))->sole() / ([0]) / ([1,2,3])",
+            "value": {
+                "[null]": null,
+                "[0]": 0,
+                "['']": "",
+                "[1,2,3]": "3 items were found."
+            }
         }
     ]
 }

@@ -3098,7 +3098,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        const items = this.unless(isNull(filter)).filter(filter);
+        // Laravel's `unless(...)` hands back a HigherOrderWhenProxy that SKIPS the
+        // forwarded filter; this port's `unless` returns the collection, so calling
+        // `filter(null)` would drop every falsy item before the count.
+        const items = isNull(filter) ? this : this.filter(filter);
 
         const count = items.count();
 

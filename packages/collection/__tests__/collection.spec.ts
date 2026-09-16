@@ -6641,6 +6641,26 @@ describe("Collection", () => {
                 }).toThrowError();
             });
         });
+
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "r2-sole-no-filter-keeps-a-falsy-item": PHP's unless() proxy skips the
+        // forwarded filter, so the no-filter form never drops a falsy sole item.
+        it("keeps a falsy sole item when no filter is given", () => {
+            expect(collect([null]).sole()).toBeNull();
+            expect(collect([0]).sole()).toBe(0);
+            expect(collect([""]).sole()).toBe("");
+            expect(collect([false]).sole()).toBe(false);
+        });
+
+        it("still counts every item when no filter is given", () => {
+            // Same row: three items stay three, so the count check is not filtered either.
+            expect(() => collect([1, 2, 3]).sole()).toThrowError(
+                expect.objectContaining({
+                    name: "MultipleItemsFoundException",
+                    message: "3 items were found.",
+                }),
+            );
+        });
     });
 
     describe("firstOrFail", () => {
