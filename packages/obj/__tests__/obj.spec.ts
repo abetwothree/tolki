@@ -8319,7 +8319,7 @@ describe("prototype objects as write targets", () => {
  * declared type does not say; `obj-residuals.test-d.ts` pins the declared side, so a fix to
  * either one fails the other and both notes get rewritten together.
  */
-describe("F-17 residual limits: what the runtime answers where the type disagrees", () => {
+describe("residual limits: what the runtime answers where the type disagrees", () => {
     class Pt {
         x = 1;
 

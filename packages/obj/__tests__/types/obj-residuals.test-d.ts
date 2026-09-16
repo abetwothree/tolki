@@ -28,7 +28,7 @@ class Point {
 declare const optionalAll: { all?: () => number[] };
 declare const optionalAllRecord: { all?: () => { x: number } };
 
-describe("obj F-17 residual type-soundness limits", () => {
+describe("obj residual type-soundness limits", () => {
     describe("a class instance is walked where the runtime keeps it whole", () => {
         it("collapse types the instance's members as copied keys", () => {
             // Runtime: {} — collapse copies only a plain object's or a list's entries.
