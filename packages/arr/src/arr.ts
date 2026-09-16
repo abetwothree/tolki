@@ -75,6 +75,7 @@ import {
     ItemNotFoundException,
     looseEqual,
     MultipleItemsFoundException,
+    operatorMatch,
     phpArrayKey,
     phpTypeName,
     phpValueMatch,
@@ -4100,6 +4101,45 @@ export function whereNotNull<TValue>(
 }
 
 /**
+ * Build the predicate `contains`'s key/operator/value form searches with, the way
+ * `EnumeratesValues::operatorForWhere()` does: a callable key is the predicate itself,
+ * and a null key compares the item rather than a path within it.
+ *
+ * @param key - The path to read from each item, a ready-made predicate, or null for the item
+ * @param operator - The comparison operator
+ * @param value - The value to compare against
+ * @returns A predicate over one item
+ */
+function operatorPredicate<TValue>(
+    key: unknown,
+    operator: string,
+    value: unknown,
+): (item: TValue) => boolean {
+    if (isFunction(key)) {
+        return key as (item: TValue) => boolean;
+    }
+
+    return (item: TValue): boolean =>
+        operatorMatch(readItemPath(item, key), operator, value);
+}
+
+/**
+ * Read `key` from one item the way PHP's `data_get()` does: a null key answers the item
+ * itself, a missing path answers null rather than JavaScript's undefined.
+ *
+ * @param item - The item to read from
+ * @param key - The dot-notated path, or null for the item itself
+ * @returns The value at the path, or null when the path is missing
+ */
+function readItemPath(item: unknown, key: unknown): unknown {
+    if (isNull(key) || isUndefined(key)) {
+        return item;
+    }
+
+    return getNestedValue(item, key as PropertyKey) ?? null;
+}
+
+/**
  * Check if an array contains a given value.
  *
  * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
@@ -4134,12 +4174,48 @@ export function contains<TValue>(
     value: TValue | ((value: TValue, key: number) => boolean),
     strict?: boolean,
 ): boolean;
+// Overload: PHP's key/operator/value form — `contains('age', '>', 30)`. A callable key
+// is the predicate itself, as `operatorForWhere` treats one, so the rest is ignored.
+export function contains<TValue>(
+    data: readonly unknown[] | null | undefined,
+    key: PathKey | ((value: TValue, key: number) => boolean),
+    operator: string,
+    value: unknown,
+): boolean;
+// Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison
+export function contains<TValue>(
+    data: readonly unknown[] | null | undefined,
+    key: PathKey | ((value: TValue, key: number) => boolean),
+    value: unknown,
+): boolean;
 // Implementation
 export function contains<TValue>(
     data: ArrayItems<TValue> | unknown,
     value: TValue | ((value: TValue, key: number) => boolean),
-    strict = false,
+    ...rest: readonly unknown[]
 ): boolean {
+    // PHP overloads on func_num_args(); this port's third parameter is `strict`, so the
+    // operator form is taken only when a non-boolean lands there or a fourth follows.
+    const [third, fourth] = rest;
+
+    if (
+        rest.length > 1 ||
+        (rest.length === 1 && !isBoolean(third) && !isUndefined(third))
+    ) {
+        const operator = rest.length > 1 ? String(third) : "=";
+
+        return contains(
+            data as readonly unknown[],
+            operatorPredicate<TValue>(
+                value,
+                operator,
+                rest.length > 1 ? fourth : third,
+            ),
+        );
+    }
+
+    const strict = third === true;
+
     if (!isArray(data)) {
         return false;
     }
@@ -4163,6 +4239,51 @@ export function contains<TValue>(
 
     // Use PHP-like loose comparison
     return data.some((item) => looseEqual(item, value));
+}
+
+/**
+ * Check if an array contains a given value, using strict comparison.
+ *
+ * With a second argument, each item's `key` path is compared with it the way PHP's
+ * `===` compares — so an array or plain object matches by value, in order. Without one,
+ * this is `contains(data, key, true)`: `in_array($key, $items, true)` for a value, and
+ * `! is_null($this->first($key))` for a callback.
+ *
+ * @see Collection::containsStrict — `packages/collection/stubs/Collection.php:215`.
+ *
+ * @param data - The array to search in.
+ * @param key - The value to search for, or the path to compare when `value` is given.
+ * @param value - The value the path must strictly equal.
+ * @returns True if the item is found, false otherwise.
+ *
+ * @example
+ *
+ * containsStrict([1, 3, 5, '02'], '02'); -> true
+ * containsStrict([1, 3, 5, '02'], 2); -> false
+ * containsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
+ */
+export function containsStrict<TValue>(
+    data: ArrayItems<TValue>,
+    key: TValue | ((value: TValue, index: number) => boolean),
+): boolean;
+export function containsStrict(
+    data: readonly unknown[] | null | undefined,
+    key: unknown,
+    value?: unknown,
+): boolean;
+export function containsStrict<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    key: TValue | ((value: TValue, index: number) => boolean),
+    value?: unknown,
+): boolean {
+    // PHP takes the two-argument form whenever a second argument is passed, a null one included.
+    if (!isUndefined(value)) {
+        return contains(data as readonly unknown[], (item) =>
+            strictEqual(readItemPath(item, key), value),
+        );
+    }
+
+    return contains(data as readonly unknown[], key, true);
 }
 
 /**
@@ -4376,6 +4497,205 @@ export function diffAssoc<TValue>(
 }
 
 /**
+ * Get the items whose index is not present in the given other data.
+ *
+ * This is `array_diff_key` — values are ignored entirely; only the index decides.
+ * `other` is normalized by `arrayableItems`, so a keyed operand matches by key.
+ * PHP keeps each survivor's original index; a JavaScript list cannot hold the gap,
+ * so the survivors are reindexed, as every other list-returning helper here does.
+ *
+ * @see Collection::diffKeys — `packages/collection/stubs/Collection.php:322`. Wraps `array_diff_key`.
+ *
+ * @param data - The original array
+ * @param other - The data to diff against
+ * @returns A new array holding the items whose index is not in other
+ *
+ * @example
+ *
+ * diffKeys([1, 2, 3], [9, 9]); -> [3]
+ * diffKeys([1, 2], { a: 1, 1: 5 }); -> [1]
+ */
+export function diffKeys<TValue>(
+    data: ArrayItems<TValue>,
+    other: unknown,
+): TValue[];
+export function diffKeys(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+): unknown[];
+export function diffKeys<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: unknown,
+): TValue[] {
+    if (!accessible(data)) {
+        return [] as TValue[];
+    }
+
+    const otherItems = arrayableItems(other);
+
+    return (getAccessibleValues(data) as TValue[]).filter(
+        (_value, index) => !Object.hasOwn(otherItems, index),
+    );
+}
+
+/**
+ * Get the items whose value is not present in the given other data, comparing with a callback.
+ *
+ * This is `array_udiff` — the callback replaces the default `(string)` cast comparison,
+ * and reports whether two values are equal. `other` is normalized by `arrayableValues`.
+ *
+ * @see Collection::diffUsing — `packages/collection/stubs/Collection.php:288`. Wraps `array_udiff`.
+ *
+ * @param data - The original array
+ * @param other - The data to diff against
+ * @param callable - Function that reports whether two values are equal
+ * @returns A new array holding the items no value of other is equal to
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * diffUsing(['green', 'brown', 'blue'], ['GREEN', 'yellow'], strcasecmp); -> ['brown', 'blue']
+ */
+export function diffUsing<TValue, TOther>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TOther>,
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[];
+export function diffUsing<TValue, TOther>(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[];
+export function diffUsing<TValue, TOther = TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TOther> | unknown,
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[] {
+    if (!accessible(data)) {
+        return [] as TValue[];
+    }
+
+    const otherValues = arrayableValues<TOther>(other);
+
+    return (getAccessibleValues(data) as TValue[]).filter(
+        (value) =>
+            !otherValues.some((otherValue) => callable(value, otherValue)),
+    );
+}
+
+/**
+ * Get the items whose index and value are not both present in the given other data,
+ * comparing indexes with a callback.
+ *
+ * This is `array_diff_uassoc` — the callback reports whether two keys match, and the
+ * values of a matching pair are compared with PHP's `(string)` cast rule. `other` is
+ * normalized by `arrayableItems`, and the survivors are reindexed.
+ *
+ * @see Collection::diffAssocUsing — `packages/collection/stubs/Collection.php:311`.
+ *      Wraps `array_diff_uassoc`.
+ *
+ * @param data - The original array
+ * @param other - The data to diff against
+ * @param callback - Function that reports whether two keys match
+ * @returns A new array holding the items no matching key/value pair of other covers
+ *
+ * @example
+ *
+ * const same = (a: unknown, b: unknown) => String(a) === String(b);
+ * diffAssocUsing([1, 2, 3], [1, 9, 3], same); -> [2]
+ */
+export function diffAssocUsing<TValue>(
+    data: ArrayItems<TValue>,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+): TValue[];
+export function diffAssocUsing(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+): unknown[];
+export function diffAssocUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+): TValue[] {
+    return diffKeyedUsing(data, other, callback, true);
+}
+
+/**
+ * Get the items whose index is not present in the given other data, comparing indexes
+ * with a callback.
+ *
+ * This is `array_diff_ukey` — values are ignored entirely. `other` is normalized by
+ * `arrayableItems`, and the survivors are reindexed.
+ *
+ * @see Collection::diffKeysUsing — `packages/collection/stubs/Collection.php:334`.
+ *      Wraps `array_diff_ukey`.
+ *
+ * @param data - The original array
+ * @param other - The data to diff against
+ * @param callback - Function that reports whether two keys match
+ * @returns A new array holding the items whose index no key of other matches
+ *
+ * @example
+ *
+ * const same = (a: unknown, b: unknown) => String(a) === String(b);
+ * diffKeysUsing([1, 2], { a: 1, 1: 5 }, same); -> [1]
+ */
+export function diffKeysUsing<TValue>(
+    data: ArrayItems<TValue>,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+): TValue[];
+export function diffKeysUsing(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+): unknown[];
+export function diffKeysUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+): TValue[] {
+    return diffKeyedUsing(data, other, callback, false);
+}
+
+/**
+ * The shared walk behind `diffAssocUsing` and `diffKeysUsing`: find the first key of
+ * `other` the callback matches, then either compare the values or ignore them.
+ *
+ * @param data - The original array
+ * @param other - The data to diff against
+ * @param callback - Function that reports whether two keys match
+ * @param compareValue - Whether a matching key still has to carry a matching value
+ * @returns The surviving items, reindexed
+ */
+function diffKeyedUsing<TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: unknown,
+    callback: (keyA: number, keyB: string | number) => boolean,
+    compareValue: boolean,
+): TValue[] {
+    if (!accessible(data)) {
+        return [] as TValue[];
+    }
+
+    const otherItems = arrayableItems(other);
+    const otherKeys = Object.keys(otherItems);
+
+    return (getAccessibleValues(data) as TValue[]).filter((value, index) => {
+        const matchingKey = otherKeys.find((otherKey) =>
+            callback(index, phpArrayKey(otherKey)),
+        );
+
+        return (
+            matchingKey === undefined ||
+            (compareValue && !phpValueMatch(otherItems[matchingKey], value))
+        );
+    });
+}
+
+/**
  * Intersect the data array with the given other array.
  *
  * Compares scalars the way PHP's `(string) $a === (string) $b` does (see
@@ -4440,6 +4760,47 @@ export function intersect<TValue, TOther = TValue>(
     }
 
     return result;
+}
+
+/**
+ * Intersect the array with the given items, comparing values with a callback.
+ *
+ * This is `array_uintersect`. It is `intersect`'s third parameter under its own name,
+ * so the two share one algorithm; the callback reports whether two values are equal.
+ *
+ * @see Collection::intersectUsing — `packages/collection/stubs/Collection.php:672`.
+ *      Wraps `array_uintersect`.
+ *
+ * @param data - The original array
+ * @param other - The items to intersect with
+ * @param callable - Function that reports whether two values are equal
+ * @returns A new array holding the items some value of other is equal to
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * intersectUsing(['green', 'brown', 'blue'], ['GREEN', 'yellow'], strcasecmp); -> ['green']
+ */
+export function intersectUsing<TValue, TOther>(
+    data: ArrayItems<TValue>,
+    other: ArrayItems<TOther>,
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[];
+export function intersectUsing<TValue, TOther>(
+    data: readonly unknown[] | null | undefined,
+    other: unknown,
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[];
+export function intersectUsing<TValue, TOther = TValue>(
+    data: ArrayItems<TValue> | unknown,
+    other: ArrayItems<TOther> | unknown,
+    callable: (a: TValue, b: TOther) => boolean,
+): TValue[] {
+    return intersect(
+        data as ArrayItems<TValue>,
+        other as ArrayItems<TOther>,
+        callable,
+    );
 }
 
 /**

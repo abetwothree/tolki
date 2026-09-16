@@ -18,6 +18,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  */
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
+/** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
+const caseless = (a: unknown, b: unknown): boolean =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
+/** A key comparator that matches PHP's `strcasecmp` over two array keys. */
+const sameKey = (a: string | number, b: string | number): boolean =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
 /**
  * Route a keyed value into an arr helper whose rows are array-only.
  *
@@ -2915,6 +2923,79 @@ describe("Arr", () => {
                 false,
             );
         });
+
+        it("compares a key path with an operator when a fourth argument follows", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
+            const rows = [{ v: 1 }, { v: 3 }, { v: "4" }, { v: 5 }];
+
+            expect(Arr.contains(rows, "v", "=", 4)).toBe(true);
+            expect(Arr.contains(rows, "v", "==", 4)).toBe(true);
+            expect(Arr.contains(rows, "v", "===", 4)).toBe(false);
+            expect(Arr.contains(rows, "v", ">", 4)).toBe(true);
+        });
+
+        it("compares a key path loosely in the three-argument form", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "contains-two-args-key-value"
+            expect(Arr.contains([{ v: 1 }, { v: 3 }, { v: 5 }], "v", 1)).toBe(
+                true,
+            );
+            expect(Arr.contains([{ v: 1 }, { v: 3 }, { v: 5 }], "v", 2)).toBe(
+                false,
+            );
+            // JS-only: an omitted third argument is the port's `strict` default, so
+            // PHP's `contains($k, null)` is written with an explicit null, not undefined.
+            expect(Arr.contains([{ v: 1 }], "v", undefined)).toBe(false);
+        });
+
+        it("reads the item itself for a null key and takes a callable key whole", () => {
+            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // `data_get($item, null)` answers the item.
+            expect(Arr.contains([1, 2, 3], null, ">", 2)).toBe(true);
+            expect(Arr.contains([1, 2, 3], null, ">", 9)).toBe(false);
+            expect(
+                Arr.contains([1, 2, 3], (item: number) => item === 2, "=", 1),
+            ).toBe(true);
+        });
+    });
+
+    describe("containsStrict", () => {
+        it("compares by value with PHP's ===", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            expect(Arr.containsStrict([1, 3, 5, "02"], "02")).toBe(true);
+            expect(Arr.containsStrict([1, 3, 5, "02"], 2)).toBe(false);
+        });
+
+        it("compares a key path strictly when a second argument is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            expect(
+                Arr.containsStrict([{ tags: ["a", "b"] }], "tags", ["a", "b"]),
+            ).toBe(true);
+            expect(
+                Arr.containsStrict([{ t: { x: 1, y: 2 } }], "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                Arr.containsStrict(
+                    [{ name: null }, { name: "x" }],
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            expect(Arr.containsStrict([{ a: 1 }], "name", null)).toBe(true);
+            expect(Arr.containsStrict([{ name: "x" }], "name", null)).toBe(
+                false,
+            );
+        });
+
+        it("ignores a callback match holding null, as first() does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D2 containsStrict callback matching a null value"
+            expect(
+                Arr.containsStrict([null, 1], (value) => value === null),
+            ).toBe(false);
+        });
     });
 
     describe("filter", () => {
@@ -3514,6 +3595,133 @@ describe("Arr", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
             expect(Arr.diffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
             expect(Arr.diffAssoc(["a", "b"], { 1: "b" })).toEqual(["a"]);
+        });
+    });
+
+    describe("diffKeys", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+        it("keeps the items whose index no key of other carries", () => {
+            expect(Arr.diffKeys([1, 2, 3], [9, 9])).toEqual([3]);
+            expect(Arr.diffKeys([1, 2], { a: 1, 1: 5 })).toEqual([1]);
+        });
+
+        it("ignores values entirely", () => {
+            // Same row, "assoc-value-ignored": diffKeys(['a'=>1,'b'=>2], ['a'=>999]) -> ['b'=>2].
+            expect(Arr.diffKeys([1, 2], [999])).toEqual([2]);
+        });
+
+        it("keeps everything for a nullish operand and nothing for nullish data", () => {
+            // Same row, "nullish-operand".
+            expect(Arr.diffKeys([1, 2], null)).toEqual([1, 2]);
+            expect(Arr.diffKeys(null, [1])).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(Arr.diffKeys([1, 2], collectionLike([9]))).toEqual([2]);
+        });
+    });
+
+    describe("diffUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+        it("drops the items the callback calls equal to some value of other", () => {
+            expect(
+                Arr.diffUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    caseless,
+                ),
+            ).toEqual(["brown", "blue"]);
+        });
+
+        it("keeps everything for a nullish operand and nothing for nullish data", () => {
+            // Same row, "nullish-operand".
+            expect(Arr.diffUsing(["green"], null, caseless)).toEqual(["green"]);
+            expect(Arr.diffUsing(null, ["green"], caseless)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand": only 'brown' survives.
+            expect(
+                Arr.diffUsing(
+                    ["green", "brown"],
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual(["brown"]);
+        });
+    });
+
+    describe("diffAssocUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list"
+        it("compares indexes with the callback and values by PHP's string cast", () => {
+            expect(Arr.diffAssocUsing([1, 2, 3], [1, 9, 3], sameKey)).toEqual([
+                2,
+            ]);
+        });
+
+        it("matches a numeric-string value the way array_diff_uassoc does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-string-cast"
+            expect(Arr.diffAssocUsing([1, 2], ["1", "3"], sameKey)).toEqual([
+                2,
+            ]);
+        });
+
+        it("returns nothing for nullish data and everything for a nullish operand", () => {
+            expect(Arr.diffAssocUsing(null, [1], sameKey)).toEqual([]);
+            expect(Arr.diffAssocUsing([1, 2], null, sameKey)).toEqual([1, 2]);
+        });
+    });
+
+    describe("diffKeysUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list"
+        it("compares indexes with the callback and ignores values", () => {
+            expect(Arr.diffKeysUsing([1, 2], { a: 1, 1: 5 }, sameKey)).toEqual([
+                1,
+            ]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
+            expect(
+                Arr.diffKeysUsing([1, 2, 3], collectionLike([9, 9]), sameKey),
+            ).toEqual([3]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            expect(Arr.diffKeysUsing(null, [1], sameKey)).toEqual([]);
+        });
+    });
+
+    describe("intersectUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+        it("keeps the items the callback calls equal to some value of other", () => {
+            expect(
+                Arr.intersectUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    caseless,
+                ),
+            ).toEqual(["green"]);
+        });
+
+        it("keeps nothing for a nullish operand or nullish data", () => {
+            // Same row, "nullish-operand".
+            expect(Arr.intersectUsing(["green"], null, caseless)).toEqual([]);
+            expect(Arr.intersectUsing(null, ["green"], caseless)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Arr.intersectUsing(
+                    ["green", "brown"],
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual(["green"]);
         });
     });
 
