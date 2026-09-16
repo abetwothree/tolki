@@ -161,13 +161,7 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
-import type {
-    AddToArray,
-    AddToObject,
-    DataItems,
-    PathKey,
-    PathKeys,
-} from "@tolki/types";
+import type { AddToArray, AddToObject, DataItems, PathKey } from "@tolki/types";
 import {
     entriesKeyValue,
     isArray,
@@ -504,26 +498,14 @@ export function dataUnion<TValue>(
  *
  * @param data - The source data
  * @param keys - Keys to exclude
- * @returns Data without specified keys
+ * @returns Data without specified keys, matching the delegate's own result
  *
  * @example
  *
  * dataExcept([1, 2, 3, 4], [1, 3]); -> [1, 3] (indices 0 and 2)
  * dataExcept({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export function dataExcept<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKeys,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objExcept(
-            data as Record<TKey, TValue>,
-            keys as string[],
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrExcept(arrWrap(data), keys as number[]) as DataItems<TValue>;
-}
+export const dataExcept = dispatch(arrExcept, objExcept);
 
 /**
  * Get all data except for specified values.
@@ -531,28 +513,14 @@ export function dataExcept<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param data - The data to filter
  * @param values - The values to exclude
  * @param strict - Whether to use strict comparison
- * @returns Data without specified values
+ * @returns Data without specified values, matching the delegate's own result
  *
  * @example
  *
  * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> [1 => 'bar']
  * dataExceptValues({name: 'taylor', age: 26}, [26]); -> {name: 'taylor'}
  */
-export function dataExceptValues<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    values: TValue | TValue[],
-    strict: boolean = false,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objExceptValues(data, values, strict) as DataItems<TValue, TKey>;
-    }
-
-    return arrExceptValues(data, values, strict);
-}
+export const dataExceptValues = dispatch(arrExceptValues, objExceptValues);
 
 /**
  * Check if a key exists in data.
@@ -624,26 +592,14 @@ export const dataFloat = dispatch(arrFloat, objFloat);
  *
  * @param data - The data to remove from
  * @param keys - Keys to remove
- * @returns Data with keys removed
+ * @returns Data with keys removed, matching the delegate's own result
  *
  * @example
  *
  * dataForget([1, 2, 3, 4], [1, 3]); -> [1, 3] (removes indices 1 and 3)
  * dataForget({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export function dataForget<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKeys,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objForget(
-            data as Record<TKey, TValue>,
-            keys as string[],
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrForget(arrWrap(data), keys as number[]) as DataItems<TValue>;
-}
+export const dataForget = dispatch(arrForget, objForget);
 
 /**
  * Create data from various item types.
@@ -668,36 +624,14 @@ export const dataFrom = dispatch(arrFrom, objFrom, (items) => items);
  * @param data - The data to get from
  * @param key - The key to get
  * @param defaultValue - Default value if key doesn't exist
- * @returns The value or default
+ * @returns The value or default, matching the delegate's own result
  *
  * @example
  *
  * dataGet([1, 2, 3], 1, 'default'); -> 2
  * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
-export function dataGet<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TGetDefault = null,
->(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    defaultValue?: TGetDefault | (() => TGetDefault),
-): TValue | TGetDefault | null {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objGet(
-            data as Record<TKey, TValue>,
-            key as string,
-            defaultValue,
-        ) as TValue | TGetDefault | null;
-    }
-
-    return arrGet(arrWrap(data), key as number, defaultValue) as
-        | TValue
-        | TGetDefault
-        | null;
-}
+export const dataGet = dispatch(arrGet, objGet);
 
 /**
  * Check if data has specified keys.
@@ -847,26 +781,14 @@ export const dataPrependKeysWith = dispatch(
  *
  * @param data - The data to get from
  * @param keys - Keys to include
- * @returns Data with only specified keys
+ * @returns Data with only specified keys, matching the delegate's own result
  *
  * @example
  *
  * dataOnly([1, 2, 3, 4], [0, 2]); -> [1, 3]
  * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
  */
-export function dataOnly<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    keys: PathKey[] | PathKeys,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objOnly(
-            data as Record<TKey, TValue>,
-            keys as string[],
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrOnly(arrWrap(data), keys as number[]) as DataItems<TValue>;
-}
+export const dataOnly = dispatch(arrOnly, objOnly);
 
 /**
  * Get only items with specified values from data.
@@ -874,25 +796,14 @@ export function dataOnly<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param data - The data to filter
  * @param values - The values to include
  * @param strict - Whether to use strict comparison
- * @returns Data with only specified values
+ * @returns Data with only specified values, matching the delegate's own result
  *
  * @example
  *
  * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> [0 => 'foo', 2 => 'baz']
  * dataOnlyValues({name: 'taylor', age: 26}, [26]); -> {age: 26}
  */
-export function dataOnlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    values: TValue | TValue[],
-    strict: boolean = false,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        return objOnlyValues(data, values, strict) as DataItems<TValue, TKey>;
-    }
-
-    return arrOnlyValues(data, values, strict);
-}
+export const dataOnlyValues = dispatch(arrOnlyValues, objOnlyValues);
 
 /**
  * Select specific keys from data items.

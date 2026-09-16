@@ -6114,25 +6114,17 @@ describe("Data", () => {
             ).toEqual(Data.dataUnion(asRecord, { d: 4 }));
         });
 
-        it.fails(
-            "dataExcept excepts keys from a Map like the record it mirrors",
-            () => {
-                // Task C13 (subsets family) converts this to dispatch().
-                expect(Data.dataExcept(asMap, ["a"])).toEqual(
-                    Data.dataExcept(asRecord, ["a"]),
-                );
-            },
-        );
+        it("dataExcept excepts keys from a Map like the record it mirrors", () => {
+            expect(Data.dataExcept(asMap, ["a"])).toEqual(
+                Data.dataExcept(asRecord, ["a"]),
+            );
+        });
 
-        it.fails(
-            "dataExceptValues excepts values from a Map like the record it mirrors",
-            () => {
-                // Task C13 (subsets family) converts this to dispatch().
-                expect(Data.dataExceptValues(asMap, [2])).toEqual(
-                    Data.dataExceptValues(asRecord, [2]),
-                );
-            },
-        );
+        it("dataExceptValues excepts values from a Map like the record it mirrors", () => {
+            expect(Data.dataExceptValues(asMap, [2])).toEqual(
+                Data.dataExceptValues(asRecord, [2]),
+            );
+        });
 
         it("dataExists checks a key on a Map like the record it mirrors", () => {
             expect(Data.dataExists(asMap, "a")).toBe(
@@ -6160,15 +6152,11 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataForget forgets a key on a Map like the record it mirrors",
-            () => {
-                // Task C13 (subsets family) converts this to dispatch().
-                expect(Data.dataForget(asMap, ["a"])).toEqual(
-                    Data.dataForget(asRecord, ["a"]),
-                );
-            },
-        );
+        it("dataForget forgets a key on a Map like the record it mirrors", () => {
+            expect(Data.dataForget(asMap, ["a"])).toEqual(
+                Data.dataForget(asRecord, ["a"]),
+            );
+        });
 
         it("dataFrom builds from a Map like the record it mirrors", () => {
             // obj.from already special-cases a Map (the one obj helper documented
@@ -6176,8 +6164,7 @@ describe("Data", () => {
             expect(Data.dataFrom(asMap)).toEqual(Data.dataFrom(asRecord));
         });
 
-        it.fails("dataGet reads a Map like the record it mirrors", () => {
-            // Task C13 (subsets family) converts this to dispatch().
+        it("dataGet reads a Map like the record it mirrors", () => {
             expect(Data.dataGet(asMap, "a", null)).toBe(
                 Data.dataGet(asRecord, "a", null),
             );
@@ -6249,25 +6236,17 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataOnly reads only keys off a Map like the record it mirrors",
-            () => {
-                // Task C13 (subsets family) converts this to dispatch().
-                expect(Data.dataOnly(asMap, ["a"])).toEqual(
-                    Data.dataOnly(asRecord, ["a"]),
-                );
-            },
-        );
+        it("dataOnly reads only keys off a Map like the record it mirrors", () => {
+            expect(Data.dataOnly(asMap, ["a"])).toEqual(
+                Data.dataOnly(asRecord, ["a"]),
+            );
+        });
 
-        it.fails(
-            "dataOnlyValues reads only values off a Map like the record it mirrors",
-            () => {
-                // Task C13 (subsets family) converts this to dispatch().
-                expect(Data.dataOnlyValues(asMap, [1])).toEqual(
-                    Data.dataOnlyValues(asRecord, [1]),
-                );
-            },
-        );
+        it("dataOnlyValues reads only values off a Map like the record it mirrors", () => {
+            expect(Data.dataOnlyValues(asMap, [1])).toEqual(
+                Data.dataOnlyValues(asRecord, [1]),
+            );
+        });
 
         it("dataSelect selects keys off a Map like the record it mirrors", () => {
             expect(Data.dataSelect(objectsMap, ["id"])).toEqual(
