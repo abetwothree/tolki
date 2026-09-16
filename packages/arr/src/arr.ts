@@ -4184,13 +4184,22 @@ function readItemPath(item: unknown, key: unknown): unknown {
 }
 
 /**
- * Check if an array contains a given value.
+ * Check if an array contains a given value, a matching item, or a matching key path.
+ *
+ * A third argument that is a boolean or absent is this port's `strict` flag, so PHP's
+ * key/value form `contains($key, $flag)` is written with an explicit operator here.
+ * Otherwise a third argument is the key/value form's value, and a fourth makes the
+ * third the operator. A null or undefined key compares the item itself, and a callable
+ * key is the predicate, as `operatorForWhere` treats one.
  *
  * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
  *      Value/callback/key-operator-value search; has no `Arr.php` counterpart at all.
  *
  * @param data - The array to search in.
- * @param value - The value to search for.
+ * @param value - The value to search for, or the key path when a third argument follows.
+ * @param key - The dot path read from each item, a predicate, or null for the item itself.
+ * @param operator - One of PHP's `where()` operators when a fourth argument follows; any
+ *                   other value shares the `=` arm, as PHP's `switch` default does.
  * @param strict - Whether to use strict comparison.
  * @returns True if the value is found, false otherwise.
  *
@@ -4199,6 +4208,9 @@ function readItemPath(item: unknown, key: unknown): unknown {
  * contains([1, 2, 3], 2); -> true
  * contains(['a', 'b', 'c'], 'd'); -> false
  * contains([1, '1'], '1', true); -> true
+ * contains([{ age: 30 }], 'age', 30); -> true (key/value)
+ * contains([{ age: 30 }], 'age', '>', 25); -> true (key/operator/value)
+ * contains([{ on: true }], 'on', '=', true); -> true (a boolean value needs the operator)
  */
 // Overload: callback function - infers TValue from array type
 export function contains<TValue>(
@@ -4219,11 +4231,13 @@ export function contains<TValue>(
     strict?: boolean,
 ): boolean;
 // Overload: PHP's key/operator/value form — `contains('age', '>', 30)`. A callable key
-// is the predicate itself, as `operatorForWhere` treats one, so the rest is ignored.
+// is the predicate itself, as `operatorForWhere` treats one, so the rest is ignored. The
+// operator is `unknown` because PHP's is `mixed`: anything its switch does not name shares
+// the `=` arm ("r3-contains-boolean-value", "non-string-operator").
 export function contains<TValue>(
     data: readonly unknown[] | null | undefined,
     key: PathKey | ((value: TValue, key: number) => boolean),
-    operator: string,
+    operator: unknown,
     value: unknown,
 ): boolean;
 // Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison. The value is

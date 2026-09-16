@@ -3049,6 +3049,15 @@ describe("Arr", () => {
             ).toBe(true);
         });
 
+        it("reads the item itself for an undefined key and takes a non-string operator", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value", "null-key-operator" and "non-string-operator":
+            // a non-string operator misses every case arm and lands on PHP's `default:`.
+            expect(Arr.contains([1, 2, 3], undefined, ">", 2)).toBe(true);
+            expect(Arr.contains([1, 2, 3], undefined, ">", 9)).toBe(false);
+            expect(Arr.contains([{ v: 5 }, { v: 6 }], "v", 5, 6)).toBe(true);
+        });
+
         it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
             // JS-only: docs/php-parity/task-24-data-release-readiness.json,
             // "r3-contains-boolean-value" records "key-true" as true. This port's third
@@ -3818,10 +3827,12 @@ describe("Arr", () => {
             ).toEqual([3]);
         });
 
-        it("returns nothing for nullish data", () => {
-            // JS-only: PHP's Collection has no null backing, so no call records this;
-            // it is the `accessible` guard every helper here shares.
+        it("returns nothing for nullish data and everything for a nullish operand", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records the first.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value", "diffKeysUsing-nullish-operand", for the second.
             expect(Arr.diffKeysUsing(null, [1], sameKey)).toEqual([]);
+            expect(Arr.diffKeysUsing([1, 2], null, sameKey)).toEqual([1, 2]);
         });
     });
 

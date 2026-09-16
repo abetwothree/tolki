@@ -3095,6 +3095,17 @@ describe("Obj", () => {
             ).toBe(true);
         });
 
+        it("reads the entry itself for an undefined key and takes a non-string operator", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value", "null-key-operator" and "non-string-operator":
+            // a non-string operator misses every case arm and lands on PHP's `default:`.
+            expect(Obj.contains({ a: 1, b: 2 }, undefined, ">", 1)).toBe(true);
+            expect(Obj.contains({ a: 1, b: 2 }, undefined, ">", 9)).toBe(false);
+            expect(Obj.contains({ a: { v: 5 }, b: { v: 6 } }, "v", 5, 6)).toBe(
+                true,
+            );
+        });
+
         it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
             // JS-only: docs/php-parity/task-24-data-release-readiness.json,
             // "r3-contains-boolean-value" records "key-true" as true. This port's third
