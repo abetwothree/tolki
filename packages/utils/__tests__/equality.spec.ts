@@ -146,9 +146,9 @@ describe("Utils", () => {
             expect(Utils.compareValues(/a/, /b/)).toBe(0);
         });
 
-        // Recorded divergence, not parity: task-25-spaceship-arrays.json,
-        // "spaceship on a DateTime and a stdClass", its reverse and "... and an
-        // empty array" are all 1, where this port keeps the entry-count rule.
+        // Recorded divergence, not parity: task-25-spaceship-arrays.json, "spaceship on a
+        // DateTime and a stdClass", its reverse and "... and an empty array" are 1, while
+        // "spaceship on an empty array and a DateTime" is -1. This port ties on entry count.
         it("leaves a date against a plain object or an array to the entry count", () => {
             expect(Utils.compareValues(new Date(0), {})).toBe(0);
             expect(Utils.compareValues({}, new Date(0))).toBe(0);
@@ -946,7 +946,8 @@ describe("Utils", () => {
         });
 
         it("answers only the inequality operators when one side alone is an object", () => {
-            // EnumeratesValues.php:1166-1168 — PHP cannot order an object against a scalar.
+            // EnumeratesValues.php:1166-1168 — Laravel's guard ahead of the switch; raw PHP
+            // would order the pair after a "could not be converted to int" notice.
             const stamp = new Date(0);
 
             expect(Utils.operatorMatch(stamp, "!=", 1)).toBe(true);

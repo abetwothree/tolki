@@ -81,11 +81,13 @@ probe('usort orders two DateTime objects chronologically', "usort([new DateTime(
 });
 
 // F-2 review round 1 — a DateTime against the shapes a plain JS object stands
-// for. PHP calls a pair of different classes uncomparable and sorts any object
-// above any array; this port keeps the array rule for those mixed pairs.
+// for. Two objects of different classes are uncomparable and answer 1 either
+// way; an object against an ARRAY is ordered, every object above every array.
 probe('spaceship on a DateTime and a stdClass', "new DateTime('2020-01-01') <=> new stdClass()", fn () => new DateTime('2020-01-01') <=> new stdClass());
 probe('spaceship on a stdClass and a DateTime', "new stdClass() <=> new DateTime('2020-01-01')", fn () => new stdClass() <=> new DateTime('2020-01-01'));
 probe('spaceship on a DateTime and an empty array', "new DateTime('2020-01-01') <=> []", fn () => new DateTime('2020-01-01') <=> []);
+probe('spaceship on an empty array and a DateTime', "[] <=> new DateTime('2020-01-01')", fn () => [] <=> new DateTime('2020-01-01'));
+probe('spaceship on a keyed array and a DateTime', "['a'=>1] <=> new DateTime('2020-01-01')", fn () => ['a' => 1] <=> new DateTime('2020-01-01'));
 
 // F-2 — the same rule seen through Arr::sort, which is the entry point this
 // port mirrors: counts order the rows before any element is looked at.

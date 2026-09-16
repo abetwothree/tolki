@@ -157,7 +157,8 @@ type VisitedPairs = Map<object, Set<object>>;
  * - an array against a scalar keeps JS coercion, where PHP sorts every array above
  *   every scalar;
  * - a `Date` against an array or a plain object keeps the entry-count rule, where
- *   PHP calls the pair uncomparable and answers 1 from either side.
+ *   PHP sorts every object above every array: `new DateTime(...) <=> []` is 1 and
+ *   `[] <=> new DateTime(...)` is -1. (Only two OBJECTS answer 1 from either side.)
  *
  * JS-only: a `Map`, a `Set` and a `RegExp` have no PHP analogue, so there is no
  * rule to port — each carries no own enumerable keys, and any two of them tie.
@@ -647,7 +648,9 @@ export function strictEqual(a: unknown, b: unknown): boolean {
  *
  * An unrecognised operator falls through to `=`, as PHP's `switch` default does.
  * When exactly one side is an object and the pair holds fewer than two strings,
- * PHP cannot order them, so only the inequality operators answer true — and a plain
+ * only the inequality operators answer true. That short-circuit is Laravel's own, ahead
+ * of the switch; raw PHP does order such a pair, emitting `Notice: Object of class P
+ * could not be converted to int` and comparing as if the object were 1. A plain
  * object is not one of those objects, because it models a PHP array here. `===` and
  * `!==` take `strictEqual`, PHP's by-value rule for an array. Every other
  * relational operator orders through `compareValues`, PHP's own comparison rule, so

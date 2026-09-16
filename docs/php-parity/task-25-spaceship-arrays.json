@@ -170,6 +170,16 @@
             "value": 1
         },
         {
+            "label": "spaceship on an empty array and a DateTime",
+            "php": "[] <=> new DateTime('2020-01-01')",
+            "value": -1
+        },
+        {
+            "label": "spaceship on a keyed array and a DateTime",
+            "php": "['a'=>1] <=> new DateTime('2020-01-01')",
+            "value": -1
+        },
+        {
             "label": "Arr::sort orders lists of arrays by count first",
             "php": "Arr::sort([[9,9],[10],[1,2,3]])",
             "value": [
