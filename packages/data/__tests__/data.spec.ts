@@ -64,6 +64,17 @@ describe("Data", () => {
             expect(inner).toEqual(["desk", 200]);
         });
 
+        it("leaves the caller's nested value alone for a record backing", () => {
+            // JS-only: the record half of the case above, and it disagrees with it. Task D5
+            // Step 1 (F-18) removes the disagreement by making arr.add deep-copy too.
+            const inner = { z: 1 };
+
+            expect(Data.dataAdd({ a: inner }, "a.y", 2)).toEqual({
+                a: { z: 1, y: 2 },
+            });
+            expect(inner).toEqual({ z: 1 });
+        });
+
         it("materializes a Set backing and answers from arr.add", () => {
             // JS-only: PHP has no Set, and Arr::add takes an array, so no PHP call records
             // this. The type follows obj here; only the runtime follows arr.
