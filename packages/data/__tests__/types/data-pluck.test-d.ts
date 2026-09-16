@@ -192,7 +192,7 @@ describe("data pluck type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts data no shape can be read off", () => {
             expectTypeOf(Data.dataPluck(opaque, "name")).toEqualTypeOf(
                 Obj.pluck(opaque, "name"),

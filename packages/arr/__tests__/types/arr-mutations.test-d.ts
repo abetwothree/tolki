@@ -59,7 +59,7 @@ describe("arr mutations type tests", () => {
         });
 
         it("adds the record a dot path writes at a list index", () => {
-            // F-24(a): the path row declared the element type unchanged, so this read as
+            // The dot-path row once declared the element type unchanged, so this read as
             // `string[]` while the runtime returns `[{ x: 5 }, "b"]`.
             // docs/php-parity/task-24-data-release-readiness.json,
             // "set-dot-path-under-a-list-index"

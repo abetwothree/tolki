@@ -71,12 +71,13 @@ export function keepKeyedData(data: unknown): unknown {
 }
 
 /**
- * Normalize data into something the array helpers can iterate over.
+ * STREAMS a positional backing: an iterable is handed on UNREAD, so an infinite generator
+ * still works. The opposite of `toPositionalBacking`, which materializes.
  *
  * @param data - The data to normalize.
  * @returns The data itself when it is already iterable, otherwise it wrapped in an array.
  */
-export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
+export function streamPositionalData<TValue>(data: unknown): Iterable<TValue> {
     if (isIterable<TValue>(data)) {
         return data;
     }
@@ -94,7 +95,8 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
 }
 
 /**
- * Normalize a positional backing into what the array helpers walk.
+ * MATERIALIZES a positional backing: a Set or generator is read to exhaustion into a list.
+ * The opposite of `streamPositionalData`, which hands an iterable on unread.
  *
  * @remarks A Set or generator backing answers with its materialized elements at runtime, but is
  * still typed from obj's widest row, because a Set is an object and lands there.
@@ -102,7 +104,7 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
  * Materializing reads to exhaustion, the way Laravel's `iterator_to_array` does: an infinite
  * generator exhausts memory, and a finite one is consumed, so a second call sees an empty backing.
  * An unbounded or single-use backing must go through `dataFirst`, `dataLast`, `dataEvery` or
- * `dataSome`, which pass `toPositionalData` and hand the backing on unread.
+ * `dataSome`, which pass `streamPositionalData` and hand the backing on unread.
  *
  * @param data - The data to normalize.
  * @returns The elements of a materializable iterable, otherwise the data wrapped in a list.
@@ -128,11 +130,14 @@ export function toPositionalBacking(data: unknown): unknown {
  * @param toKeyed - How a keyed backing reaches `objFn`.
  * @returns A function carrying both helpers' overloads, behind the Map row.
  */
+// The Map row must stay FIRST in the intersection: TS tries constituents left to right, and
+// either delegate's own rows claim a Map before it, answering a type the runtime never returns.
+// Measured: moving it last fails 48 type assertions across 11 files in this package.
 export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
     arrFn: TArrFn,
     objFn: TObjFn,
     // A streaming helper must pass a Set or generator through UNREAD, so that an infinite
-    // generator still works; those helpers override this with toPositionalData.
+    // generator still works; those helpers override this with streamPositionalData.
     toPositional: (data: unknown) => unknown = toPositionalBacking,
     // An objFn that reads a Map itself must be handed the Map, or the record it would be
     // converted to re-sorts the integer keys; those helpers override this with keepKeyedData.

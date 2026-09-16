@@ -152,7 +152,7 @@ describe("data subsets type tests", () => {
         it("takes a read-only key list on a list backing", () => {
             // Both delegates answer boolean, so the pin cannot say which one ran. The control
             // is that `arr.has` takes the read-only tuple at all: `PathKeys` carries a
-            // read-only array since D3 Step 3, and this line stops compiling if that is undone.
+            // read-only array half, and this line stops compiling if that is undone.
             expectTypeOf(
                 Data.dataHas(numberList, readonlyIndices),
             ).toEqualTypeOf(Arr.has(numberList, readonlyIndices));
@@ -314,7 +314,7 @@ describe("data subsets type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataGet(settings, "a")).toEqualTypeOf(
                 Obj.get(settings, "a"),

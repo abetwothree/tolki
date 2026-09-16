@@ -2,7 +2,7 @@ import * as Arr from "@tolki/arr";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { dispatch, toPositionalData } from "../../src/dispatch";
+import { dispatch, streamPositionalData } from "../../src/dispatch";
 import {
     abc,
     nestedList,
@@ -52,7 +52,7 @@ describe("dispatch accepts an iterable backing at the type level", () => {
     // Not a fixture: the Set must keep its own type here, since the point is that the
     // iterable-aware form takes one at all. `arr.first`'s Iterable rows are what allow it.
     const numberSet = new Set([7, 8]);
-    const dFirst = dispatch(Arr.first, Obj.first, toPositionalData);
+    const dFirst = dispatch(Arr.first, Obj.first, streamPositionalData);
 
     it("pins a Set against the array delegate's own call", () => {
         expectTypeOf(dFirst(numberSet)).toEqualTypeOf(Arr.first(numberSet));

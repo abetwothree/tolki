@@ -395,7 +395,7 @@ describe("data setops type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataDiff(settings, { b: 2 })).toEqualTypeOf(
                 Obj.diff(settings, { b: 2 }),

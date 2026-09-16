@@ -119,7 +119,7 @@ describe("data keying type tests", () => {
         });
 
         it("answers arr.undot for every positional backing, as the body does", () => {
-            // Before E3 these rows answered obj's `<T extends object>` one, which is unsound:
+            // These rows once answered obj's `<T extends object>` row, which is unsound:
             // the body runs `arrUndot(toPositionalBacking(data))` and a list is not a record.
             expectTypeOf(Data.dataUndot(nestedList)).toEqualTypeOf<
                 ReturnType<
@@ -254,7 +254,7 @@ describe("data keying type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataFlip(settings)).toEqualTypeOf(
                 Obj.flip(settings),

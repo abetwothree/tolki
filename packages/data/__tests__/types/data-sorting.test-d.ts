@@ -222,7 +222,7 @@ describe("data sorting type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataSort(settings)).toEqualTypeOf(
                 Obj.sort(settings),

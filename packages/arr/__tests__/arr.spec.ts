@@ -355,7 +355,7 @@ describe("Arr", () => {
     });
 
     describe("chunkWhile", () => {
-        // docs/php-parity/task-21-chunk-while-by.json — array chunks are reindexed (plan D2)
+        // docs/php-parity/task-21-chunk-while-by.json — array chunks are reindexed
         it("chunks equal adjacent elements", () => {
             const result = Arr.chunkWhile(
                 ["A", "A", "B", "B", "C", "C", "C"],
@@ -2139,7 +2139,7 @@ describe("Arr", () => {
 
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
-        describe("with a hostile __proto__ key (B8)", () => {
+        describe("with a hostile __proto__ key", () => {
             afterEach(() => {
                 expect(
                     ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,

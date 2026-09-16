@@ -305,7 +305,7 @@ describe("data mapping type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataMap(settings, double)).toEqualTypeOf(
                 Obj.map(settings, double),

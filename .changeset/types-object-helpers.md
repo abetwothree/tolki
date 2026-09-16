@@ -4,7 +4,7 @@
 
 Fix `ArrayResolvePathOrNull<TArray, TPath>` and `ArrayResolvePathOrDefault<TArray, TPath, TDefault>`: a path through an optional intermediate segment (`{ a?: { b: string } }` at `"0.a.b"`) resolved to `string | undefined`, where `Arr.get` answers its default — `null` when none was given. The `undefined` an optional segment contributes is now swapped for that default, so the resolved type says what the call returns.
 
-Widen `PathKeys`: its array half is `readonly PathKey[]` rather than `Array<PathKey>`, so an `as const` tuple of keys is accepted wherever a key set is. Nothing reading a key set writes to it. A mutable array still fits. The other direction is breaking: code that *receives* a `PathKeys` — a parameter or field of its own declared with the type — can no longer call `push`, `sort`, `reverse` or `splice` on the array half, because a `readonly` array has no such methods. Copy it first (`[...keys]`).
+Widen `PathKeys`: its array half is `readonly PathKey[]` rather than `Array<PathKey>`, so an `as const` tuple of keys is accepted wherever a key set is. Nothing reading a key set writes to it. A mutable array still fits. The other direction is breaking: code that _receives_ a `PathKeys` — a parameter or field of its own declared with the type — can no longer call `push`, `sort`, `reverse` or `splice` on the array half, because a `readonly` array has no such methods. Copy it first (`[...keys]`).
 
 Document `DataIterableItems<TValue, TKey>`: no package source references it yet, and it is kept for `@tolki/collection`, whose constructor and `getArrayableItems` accept exactly that set.
 

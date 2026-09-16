@@ -6987,7 +6987,7 @@ describe("arr type tests", () => {
             });
 
             it("accepts PathKeys as second parameter", () => {
-                // The array half is read-only since D3 Step 3 (F-23 part 1), so an `as const`
+                // `PathKeys`' array half is `readonly PathKey[]`, so an `as const`
                 // tuple of keys reaches this row too.
                 expectTypeOf(Arr.forget)
                     .parameter(1)

@@ -154,7 +154,7 @@ describe("obj keying type tests", () => {
     });
 
     describe("the bare object row", () => {
-        // F-16: `keyof object` is empty, so ObjectValue/ObjectKey collapse to `never` and every
+        // `keyof object` is empty, so ObjectValue/ObjectKey collapse to `never` and every
         // row built on them answered a type nothing can inhabit. The runtime still walks whatever
         // entries the value carries, so the answer is the widest sound one.
         it("keeps keyBy usable for data typed as the bare object", () => {
@@ -177,7 +177,7 @@ describe("obj keying type tests", () => {
             >();
         });
 
-        // Found by E3's generated sweep of all 89 exports; the five rows above were fixed by
+        // Found by a generated sweep of all 89 exports; the five rows above were fixed by
         // inspection and missed these two, which are the only other ones that collapsed.
         it("keeps random and sole usable for the bare object", () => {
             expectTypeOf(Obj.random(bareObject)).toEqualTypeOf<unknown>();

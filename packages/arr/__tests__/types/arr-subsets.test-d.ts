@@ -11,7 +11,7 @@ import {
     unknownArray,
 } from "./fixtures";
 
-/** An interface-typed row: an interface has no implicit index signature (see E2). */
+/** An interface-typed row: no implicit index signature, so a `Record` constraint rejects it. */
 interface InterfaceRow {
     id: number;
     name: string;
@@ -199,7 +199,7 @@ describe("arr subsets type tests", () => {
         });
 
         it("distributes over a union rather than holding it in one tuple", () => {
-            // F-24(b): `[TValue]` answered `[string | number]`, a tuple wrap can never
+            // `[TValue]` once answered `[string | number]`, a tuple wrap can never
             // build — it holds exactly one member, so the answer is a union of one-tuples.
             expectTypeOf(Arr.wrap(scalarUnion)).toEqualTypeOf<
                 [string] | [number]
@@ -394,7 +394,7 @@ describe("arr subsets type tests", () => {
         });
     });
 
-    // F-24 / Batch C6-C8: pluck, select and keyBy constrained their row type on
+    // pluck, select and keyBy once constrained their row type on
     // `Record<string, unknown>`, which an interface does not satisfy — it has no
     // implicit index signature — so interface-typed rows widened or failed outright.
     describe("interface-typed rows", () => {

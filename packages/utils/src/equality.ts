@@ -152,13 +152,16 @@ type VisitedPairs = Map<object, Set<object>>;
  * Faithful to PHP, this order is **not transitive** — `null` ties `0` and `""`,
  * yet `0 > ""`.
  *
- * Three recorded divergences from PHP:
+ * Four recorded divergences from PHP:
  * - a cyclic pair ties, where PHP raises `Error: Nesting level too deep`;
  * - an array against a scalar keeps JS coercion, where PHP sorts every array above
  *   every scalar;
  * - a `Date` against an array or a plain object keeps the entry-count rule, where
  *   PHP sorts every object above every array: `new DateTime(...) <=> []` is 1 and
  *   `[] <=> new DateTime(...)` is -1. (Only two OBJECTS answer 1 from either side.)
+ * - an EMPTY plain object against null or a boolean reads as truthy, where PHP casts
+ *   an empty array to false: `compareValues({}, null)` is 1 and `({}, true)` is 0,
+ *   where PHP's `[] <=> null` is 0 and `[] <=> true` is -1. The `[]` spelling agrees.
  *
  * JS-only: a `Map`, a `Set` and a `RegExp` have no PHP analogue, so there is no
  * rule to port — each carries no own enumerable keys, and any two of them tie.

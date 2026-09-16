@@ -1050,7 +1050,7 @@ describe("Obj", () => {
 
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
-        describe("with a hostile __proto__ key (B8)", () => {
+        describe("with a hostile __proto__ key", () => {
             afterEach(() => {
                 expect(
                     ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
@@ -3591,7 +3591,7 @@ describe("Obj", () => {
         });
     });
 
-    describe("intersect family nullish data guard (C6)", () => {
+    describe("intersect family nullish data guard", () => {
         type IntersectFamilyFn = (
             data: unknown,
             other: unknown,
@@ -7799,7 +7799,7 @@ describe("Obj", () => {
                     collectionLike({ id: 123, foo_bar: "Hello" }),
                 ),
             ).toEqual({ id: 1, first_word: "Hello" });
-            // C6's fixture shares no key+value pair with its operand either wrapped or raw,
+            // The preceding case shares no key+value pair with its operand wrapped or raw,
             // so this key-matching case is what actually pins diffAssoc's own unwrap.
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
             expect(
@@ -8315,7 +8315,7 @@ describe("prototype objects as write targets", () => {
 });
 
 /**
- * The runtime half of follow-up F-17's type-soundness limits. Each case answers something the
+ * The runtime half of this package's known type-soundness limits. Each case answers something the
  * declared type does not say; `obj-residuals.test-d.ts` pins the declared side, so a fix to
  * either one fails the other and both notes get rewritten together.
  */

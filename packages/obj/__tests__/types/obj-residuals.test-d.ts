@@ -2,12 +2,12 @@ import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
 /**
- * The type-soundness limits follow-up F-17 parked, pinned in one place so a future change to any
- * of them is visible. Each `it` states what the runtime answers; the assertion pins what the type
- * DECLARES, so the pin fails the day a row is tightened and the note has to be rewritten.
+ * The type-soundness limits this package knowingly keeps, pinned in one place so a future change
+ * to any of them is visible. Each `it` states what the runtime answers; the assertion pins what
+ * the type DECLARES, so the pin fails the day a row is tightened and the note has to be rewritten.
  *
  * The matching runtime answers are pinned in `obj.spec.ts`, under
- * "F-17 residual limits: what the runtime answers where the type disagrees".
+ * "residual limits: what the runtime answers where the type disagrees".
  */
 
 /** A class instance with an own field and a prototype method, which no type can tell from a plain object. */

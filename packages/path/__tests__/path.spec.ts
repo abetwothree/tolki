@@ -2866,7 +2866,7 @@ describe("Path Functions", () => {
         });
     });
 
-    // F-12: PHP hands every dot segment straight to the array subscript, so PHP's
+    // PHP hands every dot segment straight to the array subscript, so PHP's
     // own array-key cast decides what it names. parseInt()/Number() accepted
     // leading zeros and other non-canonical forms, so "01" wrote index 1.
     describe("PHP key semantics on the write path", () => {

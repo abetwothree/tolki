@@ -332,7 +332,7 @@ describe("data guards type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataExists(settings, "a")).toEqualTypeOf(
                 Obj.exists(settings, "a"),

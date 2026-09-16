@@ -313,7 +313,7 @@ describe("Utils", () => {
             expect(Utils.compareValues([5], 5)).toBe(0);
         });
 
-        // The same recorded divergence, against the rows D1 probed for it:
+        // The same recorded divergence, against the rows that probed for it:
         // task-25-spaceship-arrays.json, "spaceship on an empty array and zero",
         // "... and its only element as a string", "... and a numeric string" are all 1.
         it("leaves an array against a string to JS coercion too", () => {

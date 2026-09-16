@@ -448,7 +448,7 @@ describe("data slicing type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataTake(settings, 2)).toEqualTypeOf(
                 Obj.take(settings, 2),

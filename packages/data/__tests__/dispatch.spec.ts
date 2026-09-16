@@ -6,9 +6,9 @@ import {
     dispatch,
     isKeyedData,
     keepKeyedData,
+    streamPositionalData,
     toKeyedData,
     toPositionalBacking,
-    toPositionalData,
 } from "../src/dispatch";
 
 describe("dispatch", () => {
@@ -36,7 +36,7 @@ describe("dispatch", () => {
 });
 
 describe("dispatch with a positional normalizer", () => {
-    const dFirst = dispatch(arrFirst, objFirst, toPositionalData);
+    const dFirst = dispatch(arrFirst, objFirst, streamPositionalData);
     const dFirstDefault = dispatch(arrFirst, objFirst);
 
     it("walks a Set's elements instead of wrapping the Set", () => {
@@ -62,7 +62,7 @@ describe("dispatch with a positional normalizer", () => {
 
         // The default materializes a Set; the streaming form hands the Set itself on, so a
         // callback-less `first` never reads an infinite generator past its first item.
-        expect(toPositionalData(set)).toBe(set);
+        expect(streamPositionalData(set)).toBe(set);
         expect(toPositionalBacking(set)).toEqual([7, 8]);
         expect(dFirstDefault(set)).toBe(7);
     });
@@ -140,10 +140,10 @@ describe("dispatch with a keyed normalizer", () => {
     const dFirstKeeping = dispatch(
         arrFirst,
         objFirst,
-        toPositionalData,
+        streamPositionalData,
         keepKeyedData,
     );
-    const dFirstConverting = dispatch(arrFirst, objFirst, toPositionalData);
+    const dFirstConverting = dispatch(arrFirst, objFirst, streamPositionalData);
 
     it("lets the object helper read the Map's own order", () => {
         const map = new Map([

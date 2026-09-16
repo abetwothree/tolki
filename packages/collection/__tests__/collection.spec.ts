@@ -640,7 +640,7 @@ describe("Collection", () => {
 
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
-        describe("with a hostile __proto__ key (B8)", () => {
+        describe("with a hostile __proto__ key", () => {
             afterEach(() => {
                 expect(
                     ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
@@ -1084,7 +1084,7 @@ describe("Collection", () => {
             expect(diff.all()).toEqual({ a: 1, c: 3 });
         });
 
-        it("diffs across a mismatched operand shape by value (C5)", () => {
+        it("diffs across a mismatched operand shape by value", () => {
             // PHP-verified via docs/php-parity/task-06-setops.json ("diff and
             // intersect accept any array operand"): collect(['a'=>10,'b'=>20])
             // ->diff([20]) === ['a'=>10].
@@ -1185,8 +1185,8 @@ describe("Collection", () => {
         });
 
         it("unwraps a Collection-like operand when matching keys and values", () => {
-            // C6's fixture shares no key+value pair with its operand either wrapped or
-            // raw, so this key-matching case is what actually pins the unwrap.
+            // The preceding case shares no key+value pair with its operand either wrapped
+            // or raw, so this key-matching case is what actually pins the unwrap.
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
             expect(
                 collect({ id: 1, name: "a" })
@@ -1945,7 +1945,7 @@ describe("Collection", () => {
         });
 
         it("traverses a nested list with numeric segments, through the object backing", () => {
-            // JS-only (follow-up F-15): PHP's Collection::get is a literal array_key_exists
+            // JS-only: PHP's Collection::get is a literal array_key_exists
             // lookup, not Arr::get's dot-path traversal; this pins the JS dot-path extension.
             const collection = collect({
                 products: [{ name: "desk" }, { name: "chair" }],
@@ -6870,7 +6870,7 @@ describe("Collection", () => {
 
     describe("chunkWhile", () => {
         describe("Laravel Tests", () => {
-            // docs/php-parity/task-21-chunk-while-by.json — array-backed chunks are reindexed (plan D2),
+            // docs/php-parity/task-21-chunk-while-by.json — array-backed chunks are reindexed,
             // so the numeric-key assertions from CollectionTest go through .toArray() on the chunk.
             // Read chunks with get(n): first()/last() resolve to `unknown`, so calling a method on them fails ts:check.
             it("test chunk while on equal elements", () => {

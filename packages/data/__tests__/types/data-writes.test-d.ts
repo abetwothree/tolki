@@ -96,8 +96,8 @@ describe("data writes type tests", () => {
         });
 
         it("matches arr.add for a read-only list", () => {
-            // F-18 removed the reason for the rejection — arr.add copies along the written
-            // path rather than writing through — and E3 removed the shape that enforced it.
+            // `arr.add` copies along the written path rather than writing through, so a
+            // read-only list is safe to accept; nothing in the overloads rejects one.
             expectTypeOf(Data.dataAdd(readonlyNumberList, 3, 9)).toEqualTypeOf(
                 Arr.add(readonlyNumberList, 3, 9),
             );
@@ -264,7 +264,7 @@ describe("data writes type tests", () => {
         });
     });
 
-    describe("inputs that fail to compile today (E2)", () => {
+    describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
         it("accepts an interface-typed record", () => {
             expectTypeOf(Data.dataSet(settings, "a", 9)).toEqualTypeOf(
                 Obj.set(settings, "a", 9),

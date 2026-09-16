@@ -1103,7 +1103,7 @@ describe("Data", () => {
             });
         });
 
-        it("keeps a sparse list backing's hole, interior or trailing (F-19)", () => {
+        it("keeps a sparse list backing's hole, interior or trailing", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for —
             // and a TRAILING hole declares no own key, so it needs materializing first.
@@ -2403,7 +2403,7 @@ describe("Data", () => {
             });
         });
 
-        it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
+        it("keeps a sparse list backing's hole, as dataUnion already does", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for.
             const sparse = sparseList();
@@ -2612,9 +2612,9 @@ describe("Data", () => {
             // docs/php-parity/task-28-search-equality.json, "search-reordered-keys-strict",
             // "search-reordered-keys-loose", "search-numeric-string-element-strict",
             // "search-numeric-string-element-loose", "search-array-needle-wrong-order-strict"
-            expect(Data.dataSearch([{ b: 2, a: 1 }], { a: 1, b: 2 }, true)).toBe(
-                false,
-            );
+            expect(
+                Data.dataSearch([{ b: 2, a: 1 }], { a: 1, b: 2 }, true),
+            ).toBe(false);
             expect(Data.dataSearch([{ b: 2, a: 1 }], { a: 1, b: 2 })).toBe(0);
             expect(Data.dataSearch([[1, 2]], [1, "2"], true)).toBe(false);
             expect(Data.dataSearch([[1, 2]], [1, "2"])).toBe(0);
@@ -3774,7 +3774,7 @@ describe("Data", () => {
             ).toEqual({ name: "taylor", family: "otwell", age: 26 });
         });
 
-        it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
+        it("keeps a sparse list backing's hole, as dataUnion already does", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for.
             const sparse = sparseList();
@@ -3859,7 +3859,7 @@ describe("Data", () => {
             expect(result).toEqual([{ a: 99 }, { b: 2 }]);
         });
 
-        it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
+        it("keeps a sparse list backing's hole, as dataUnion already does", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for.
             const sparse = sparseList();
@@ -4890,8 +4890,8 @@ describe("Data", () => {
         });
 
         it("unwraps a Collection-like operand when matching keys and values", () => {
-            // C6's fixture shares no key+value pair with its operand either wrapped or
-            // raw, so this key-matching case is what actually pins the unwrap.
+            // The preceding case shares no key+value pair with its operand either wrapped
+            // or raw, so this key-matching case is what actually pins the unwrap.
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
             expect(
                 Data.dataDiffAssoc(
@@ -5748,7 +5748,7 @@ describe("Data", () => {
             );
         });
 
-        it("diff also compares values across a mismatched operand shape (C5)", () => {
+        it("diff also compares values across a mismatched operand shape", () => {
             // Every other row above pairs same-shape operands. PHP-verified via
             // docs/php-parity/task-06-setops.json ("diff and intersect accept any
             // array operand"): array_diff compares by value only, so shape doesn't matter.

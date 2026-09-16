@@ -179,9 +179,9 @@ import {
     dispatch,
     isKeyedData,
     keepKeyedData,
+    streamPositionalData,
     toKeyedData,
     toPositionalBacking,
-    toPositionalData,
 } from "./dispatch";
 
 /**
@@ -240,9 +240,9 @@ type NonObjectBacking =
  * One shape is turned away: a backing the compiler has **not narrowed** (`unknown`), which no
  * typed row can claim. Relaxing that has to be a deliberate widening, not a side effect.
  *
- * A read-only list is accepted, and answers `arr.add`'s own row: F-18 made `arr.add` copy along
- * the written path instead of writing through, so the read-only rejection was only ever a shape
- * of `MutableBacking`, which now guards the `unknown` row alone.
+ * A read-only list is accepted, and answers `arr.add`'s own row: `arr.add` copies along the
+ * written path instead of writing through, so the read-only rejection was only ever a shape of
+ * `MutableBacking`, which now guards the `unknown` row alone.
  *
  * Every other backing every sibling write helper takes is accepted here: a Map, a Set, a list, a
  * record, an interface, a class instance, and a scalar, string or nullish value.
@@ -303,7 +303,7 @@ export const dataAdd: DataAdd = dispatch(arrAdd, objAdd);
  * @example
  *
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
- * dataItem({items: ['x', 'y']}, 'items'); -> ['x', 'y']
+ * dataItem({items: {x: 1, y: 2}}, 'items'); -> {x: 1, y: 2}
  */
 export const dataItem = dispatch(arrayItem, objectItem);
 
@@ -389,7 +389,7 @@ type ObjCombineRow<TKeys, TValues> = ReturnType<
 
 /**
  * `dataCombine`'s keys backing. `undefined` is excluded: `toPositionalBacking` keeps it as a
- * one-element list — the difference from `toPositionalData` that `dispatch.spec` pins — so
+ * one-element list — the difference from `streamPositionalData` that `dispatch.spec` pins — so
  * `array_combine` would reject every values set but a one-element one.
  */
 type CombineKeysBacking = string | number | bigint | boolean | symbol | null;
@@ -688,7 +688,7 @@ export const dataTake = dispatch(arrTake, objTake);
  * @example
  *
  * dataFlatten([[1, 2], [3, [4, 5]]], 1); -> [1, 2, 3, [4, 5]]
- * dataFlatten({a: {b: {c: 1}}}, 1); -> {'a.b': {c: 1}}
+ * dataFlatten({a: {b: {c: 1}}}, 1); -> [{c: 1}]
  */
 export const dataFlatten = dispatch(arrFlatten, objFlatten);
 
@@ -820,12 +820,12 @@ export const dataHasAny = dispatch(arrHasAny, objHasAny);
  * dataEvery(new Set([2, 4]), (value) => value % 2 === 0); -> true
  */
 // A Set or generator must reach `arrEvery` UNREAD, so an infinite generator still answers;
-// this normalises with `toPositionalData` rather than the materialising default, and hands
+// this normalises with `streamPositionalData` rather than the materialising default, and hands
 // `objEvery` the Map itself, which it reads in insertion order.
 export const dataEvery = dispatch(
     arrEvery,
     objEvery,
-    toPositionalData,
+    streamPositionalData,
     keepKeyedData,
 );
 
@@ -846,12 +846,12 @@ export const dataEvery = dispatch(
  * dataSome(new Set([1, 3]), (value) => value > 2); -> true
  */
 // A Set or generator must reach `arrSome` UNREAD, so an infinite generator still answers;
-// this normalises with `toPositionalData` rather than the materialising default, and hands
+// this normalises with `streamPositionalData` rather than the materialising default, and hands
 // `objSome` the Map itself, which it reads in insertion order.
 export const dataSome = dispatch(
     arrSome,
     objSome,
-    toPositionalData,
+    streamPositionalData,
     keepKeyedData,
 );
 
@@ -1126,7 +1126,8 @@ export const dataQuery = dispatch(arrQuery, objQuery);
  * @example
  *
  * dataRandom([1, 2, 3, 4], 2); -> [2, 4] (random selection)
- * dataRandom({a: 1, b: 2, c: 3}, 1); -> {b: 2} (random selection)
+ * dataRandom({a: 1, b: 2, c: 3}, 1); -> {0: 2} (random, reindexed)
+ * dataRandom({a: 1, b: 2, c: 3}, 1, true); -> {b: 2} (random, keys kept)
  */
 export const dataRandom = dispatch(arrRandom, objRandom);
 
@@ -1351,8 +1352,8 @@ export const dataSet = dispatch(arrSet, objSet);
  *
  * @example
  *
- * dataPush([1, 2], null, [3, 4]); -> [1, 2, 3, 4]
- * dataPush({a: [1, 2]}, 'a', [3, 4]); -> {a: [1, 2, 3, 4]}
+ * dataPush([1, 2], null, 3, 4); -> [1, 2, 3, 4]
+ * dataPush({a: [1, 2]}, 'a', 3, 4); -> {a: [1, 2, 3, 4]}
  */
 export const dataPush = dispatch(arrPush, objPush);
 
@@ -1518,8 +1519,8 @@ export const dataToCssClasses = dispatch(arrToCssClasses, objToCssClasses);
  *
  * @example
  *
- * dataToCssStyles({color: 'red', 'font-size': '14px'}); -> 'color:red;font-size:14px'
- * dataToCssStyles(['color:red', 'font-size:14px']); -> 'color:red;font-size:14px'
+ * dataToCssStyles(['color:red', 'font-size:14px']); -> 'color:red; font-size:14px;'
+ * dataToCssStyles({'color:red': true, 'display:none': false}); -> 'color:red;'
  */
 export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
 
@@ -1553,7 +1554,7 @@ export const dataWhere = dispatch(arrWhere, objWhere);
  * obj serves the list backing so both backings answer what PHP answers.
  *
  * @param data - The original data
- * @param items - The items to replace with. `null`/`undefined` is a no-op.
+ * @param replacerData - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data, matching the delegate's own result
  */
 export function dataReplace<TValue, TReplacer extends object = object>(
@@ -1606,7 +1607,7 @@ export function dataReplace<
  * `TValue[]`, which cannot hold the string key or the gap `array_replace_recursive` keeps.
  *
  * @param data - The original data
- * @param items - The items to replace with. `null`/`undefined` is a no-op.
+ * @param replacerData - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data, matching the delegate's own result
  */
 export function dataReplaceRecursive<TValue, TReplacer extends object = object>(
@@ -1729,8 +1730,8 @@ export const dataWhereNotNull = dispatch(arrWhereNotNull, objWhereNotNull);
  *
  * @example
  *
- * Data.values([1, 2, 3]); -> [1, 2, 3]
- * Data.values({a: 1, b: 2, c: 3}); -> [1, 2, 3]
+ * dataValues([1, 2, 3]); -> [1, 2, 3]
+ * dataValues({a: 1, b: 2, c: 3}); -> [1, 2, 3]
  */
 export const dataValues = dispatch(arrValues, objValues);
 
@@ -1742,8 +1743,8 @@ export const dataValues = dispatch(arrValues, objValues);
  *
  * @example
  *
- * Data.keys([1, 2, 3]); -> [0, 1, 2]
- * Data.keys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
+ * dataKeys([1, 2, 3]); -> [0, 1, 2]
+ * dataKeys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
  */
 export const dataKeys = dispatch(arrKeys, objKeys);
 
@@ -1756,8 +1757,8 @@ export const dataKeys = dispatch(arrKeys, objKeys);
  *
  * @example
  *
- * Data.filter([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
- * Data.filter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
+ * dataFilter([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
+ * dataFilter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
  */
 export const dataFilter = dispatch(arrFilter, objFilter);
 
@@ -1791,13 +1792,13 @@ export const dataMap = dispatch(arrMap, objMap);
  * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  * dataFirst(new Map([['a', 1], ['b', 2]])); -> 1
  */
-// A Set or generator reaches `arrFirst` UNREAD via `toPositionalData`, so a callback-less call
+// A Set or generator reaches `arrFirst` UNREAD via `streamPositionalData`, so a callback-less call
 // answers an infinite generator; given a callback `arrFirst` materialises, so that form still
 // needs a finite backing. `objFirst` is handed the Map itself, which it reads in insertion order.
 export const dataFirst = dispatch(
     arrFirst,
     objFirst,
-    toPositionalData,
+    streamPositionalData,
     keepKeyedData,
 );
 
@@ -1813,17 +1814,17 @@ export const dataFirst = dispatch(
  *
  * @example
  *
- * Data.last([1, 2, 3, 4], (value) => value < 4); -> 3
- * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
- * Data.last(new Map([['a', 1], ['b', 2]])); -> 2
+ * dataLast([1, 2, 3, 4], (value) => value < 4); -> 3
+ * dataLast({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
+ * dataLast(new Map([['a', 1], ['b', 2]])); -> 2
  */
-// A Set or generator reaches `arrLast` UNREAD via `toPositionalData`, but `last` has to walk to
+// A Set or generator reaches `arrLast` UNREAD via `streamPositionalData`, but `last` has to walk to
 // the end whatever it is handed, so the backing must still be finite. `objLast` is handed the
 // Map itself, which it reads in insertion order.
 export const dataLast = dispatch(
     arrLast,
     objLast,
-    toPositionalData,
+    streamPositionalData,
     keepKeyedData,
 );
 
@@ -1836,8 +1837,8 @@ export const dataLast = dispatch(
  *
  * @example
  *
- * Data.contains([1, 2, 3], 2); -> true
- * Data.contains({a: 1, b: 2}, (value) => value > 1); -> true
+ * dataContains([1, 2, 3], 2); -> true
+ * dataContains({a: 1, b: 2}, (value) => value > 1); -> true
  */
 export const dataContains = dispatch(arrContains, objContains);
 
@@ -1854,7 +1855,7 @@ export const dataContains = dispatch(arrContains, objContains);
  *
  * @example
  *
- * Data.diff([1, 2, 3, 4], [2, 4]); -> [1, 3]
+ * dataDiff([1, 2, 3, 4], [2, 4]); -> [1, 3]
  */
 export const dataDiff = dispatch(arrDiff, objDiff);
 
@@ -1924,8 +1925,8 @@ export const dataDiffKeysUsing = dispatch(arrDiffKeysUsing, objDiffKeysUsing);
  *
  * @example
  *
- * Data.pluck([{name: 'John'}, {name: 'Jane'}], 'name'); -> ['John', 'Jane']
- * Data.pluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
+ * dataPluck([{name: 'John'}, {name: 'Jane'}], 'name'); -> ['John', 'Jane']
+ * dataPluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
  */
 export const dataPluck = dispatch(arrPluck, objPluck);
 

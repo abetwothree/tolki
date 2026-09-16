@@ -20,13 +20,13 @@ export const readonlyNumberList: readonly number[] = [1, 2, 3];
 /** A keyed backing: the obj delegate's shape, with literal keys. */
 export const abc = { a: 1, b: 2, c: 3 };
 
-/** An interface-typed record: interfaces have no implicit index signature (see E2). */
+/** An interface-typed record: an interface has no implicit index signature. */
 export interface Settings {
     a: number;
     b: number;
 }
 
-/** A value typed by the `Settings` interface — the input that fails to compile today. */
+/** A `Settings` value: rejected by a `Record` constraint, taken by `T extends object`. */
 export const settings: Settings = { a: 1, b: 2 };
 
 /** A class instance: also has no index signature. */

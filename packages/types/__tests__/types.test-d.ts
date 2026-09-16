@@ -415,7 +415,7 @@ test("ProxyTarget", () => {
 });
 
 // -------------------------------------------------
-// F-1: an optional intermediate segment resolves to the default, not `undefined`
+// An optional intermediate segment resolves to the default, not `undefined`
 // -------------------------------------------------
 
 import type {
@@ -457,7 +457,7 @@ test("ArrayResolvePathOrNull answers null through an optional segment", () => {
 });
 
 // -------------------------------------------------
-// F-23 part 1: a key set may be read-only
+// A key set may be read-only
 // -------------------------------------------------
 
 import type { PathKeys } from "../src/path-resolve";
