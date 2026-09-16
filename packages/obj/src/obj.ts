@@ -852,6 +852,9 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
  * through its `all()` method, and any other item that isn't a plain object or a list is skipped,
  * as `Arr::collapse` skips a PHP object: a `Date`, a `Map` or a class instance.
  *
+ * Declared-type limits (F-17), pinned in `obj-residuals.test-d.ts`: a class instance's own keys are typed as
+ * copied, and an OPTIONAL `all?()` is not unwrapped, where the runtime skips the first and reads the second.
+ *
  * @param object - The object of objects or lists to collapse.
  * @returns A new flattened object.
  *
@@ -919,6 +922,10 @@ export function collapse<
  *
  * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
  *      Wraps `array_combine`.
+ *
+ * Declared-type limits (F-17), pinned in `obj-residuals.test-d.ts`: a literal `-0` key types as "0" and an
+ * integer-valued float past PHP_INT_MAX types as its decimal expansion, where the runtime stores "-0" and
+ * PHP's exponent form. TypeScript prints a number its own way; only the runtime applies PHP's cast.
  *
  * @param keysObject - The object or list whose values become the keys.
  * @param valuesObject - The object or list whose values become the values.
@@ -1184,6 +1191,10 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * integer keys are renumbered after the items, even when there are none, as `array_unshift` does.
  *
  * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`. Wraps `array_unshift`; mutates.
+ *
+ * Declared-type limit (F-17), pinned in `obj-residuals.test-d.ts`: a `Map` is object-accessible, so it is
+ * mutated and returned as itself with the items as own keys, where the row declares a plain record. A `Set`
+ * is not accessible, so it already answers the fresh record the row declares.
  *
  * @param items - The items to prepend. The first item is the target object, mutated in place when object-accessible.
  * @returns The same object reference, mutated (or a new object when the first item isn't object-accessible).
@@ -1619,6 +1630,10 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
  * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
  *
+ * Declared-type limits (F-17), pinned in `obj-residuals.test-d.ts`: a class instance and a typed array are
+ * walked, and an OPTIONAL `all?()` is not unwrapped, where the runtime keeps the first two whole and reads
+ * the third. A type cannot tell a class instance from a plain object, nor prove an optional method is there.
+ *
  * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
  *
  * @param data - The object (or value) to flatten.
@@ -1967,6 +1982,10 @@ export function from(items: unknown): Record<string, unknown> {
  *
  * A literal key wins over dot-path traversal even when it contains dots, and a
  * literal key whose value is `undefined` still counts as found.
+ *
+ * Declared-type limit (F-17), pinned in `obj-residuals.test-d.ts`: a path through a user class's PROTOTYPE
+ * method resolves to that method, where the runtime answers the default — only own keys are read. The path
+ * types name built-in prototype members as missing, but a user class's are indistinguishable from own ones.
  *
  * @param  data - The object to get the item from.
  * @param  key - The key or dot-notated path of the item to get.
@@ -4116,6 +4135,9 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Recursively sort an object by keys and values.
  * Only arrays and plain objects are sorted; any other object value (a class instance, Date or Map) is kept as it is.
+ *
+ * Declared-type limits (F-17), pinned in `obj-residuals.test-d.ts`: top-level `Date` data types as `Date`
+ * where the runtime answers `{}`, and a tuple value keeps its declared order where the runtime sorts it.
  *
  * @param data - The object to sort recursively.
  * @param descending - Whether to sort in descending order.

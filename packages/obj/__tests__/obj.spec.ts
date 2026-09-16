@@ -8248,3 +8248,97 @@ describe("prototype objects as write targets", () => {
         },
     );
 });
+
+/**
+ * The runtime half of follow-up F-17's type-soundness limits. Each case answers something the
+ * declared type does not say; `obj-residuals.test-d.ts` pins the declared side, so a fix to
+ * either one fails the other and both notes get rewritten together.
+ */
+describe("F-17 residual limits: what the runtime answers where the type disagrees", () => {
+    class Pt {
+        x = 1;
+
+        m(): number {
+            return 1;
+        }
+    }
+
+    class Sized {
+        x = 1;
+        y = 2;
+    }
+
+    it("keeps a class instance whole in collapse, flatten and replaceRecursive", () => {
+        // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects":
+        // Arr::collapse([(object) ['b' => 2]]) answers [], and ['g1' => ['a' => 1],
+        // 'g2' => (object) ['b' => 2]] answers {"a": 1} — an object contributes nothing.
+        expect(Obj.collapse({ p: new Pt() })).toEqual({});
+        expect(Obj.flatten({ a: new Sized() })).toEqual([new Sized()]);
+        expect(Obj.flatten({ a: new Sized() })[0]).toBeInstanceOf(Sized);
+        expect(
+            Obj.replaceRecursive({ a: new Sized() }, { a: { x: 5 } }),
+        ).toEqual({ a: { x: 5 } });
+    });
+
+    it("keeps a typed array whole in flatten", () => {
+        // JS-only: PHP has no typed array. It is not a plain object, so the same
+        // leaf rule that keeps a Date keeps this.
+        const flattened = Obj.flatten({ a: new Uint8Array([1]) });
+
+        expect(flattened).toHaveLength(1);
+        expect(flattened[0]).toBeInstanceOf(Uint8Array);
+    });
+
+    it("unwraps an optional all() member in collapse and flatten", () => {
+        // JS-only: PHP has no optional method; the unwrap tests `is_callable`, which
+        // an optional member passes at runtime and no type can promise.
+        const row = { all: () => [1, 2] } as { all?: () => number[] };
+
+        expect(Obj.collapse({ a: { all: () => ({ x: 1 }) } })).toEqual({
+            x: 1,
+        });
+        expect(Obj.flatten({ a: row })).toEqual([1, 2]);
+        expect(Obj.flatten({ a: row }, 1)).toEqual([1, 2]);
+    });
+
+    it("casts a combine key the way PHP's (string) cast prints a number", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "d6-combine-key-cast-minus-zero-and-1e19": PHP stores "-0" and "1.0E+19",
+        // neither of which TypeScript's own `${n}` spells that way.
+        expect(Object.keys(Obj.combine([-0, 1e19], ["a", "b"]))).toEqual([
+            "-0",
+            "1.0E+19",
+        ]);
+    });
+
+    it("misses a user class's prototype method in get", () => {
+        // JS-only: PHP has no prototype chain, so no call records this. Only own keys
+        // are read, so the path resolves to the default.
+        expect(Obj.get({ p: new Pt() }, "p.m")).toBeNull();
+    });
+
+    it("answers an empty object for top-level Date data and sorts a tuple in sortRecursive", () => {
+        // JS-only: a Date has no own enumerable keys, so there is nothing to copy;
+        // a tuple is a list at runtime, so its values sort like any other list's.
+        expect(Obj.sortRecursive(new Date(0))).toEqual({});
+        expect(Obj.sortRecursive({ t: [2, 1] })).toEqual({ t: [1, 2] });
+    });
+
+    it("mutates a Map in unshift and builds a fresh record for a Set", () => {
+        // JS-only: PHP has neither. A Map is object-accessible, so unshift writes
+        // through it; a Set is not, so it takes the fresh-record branch.
+        const map = new Map([["a", 1]]);
+        const mapResult = Obj.unshift(map, "x");
+
+        expect(mapResult).toBe(map);
+        expect(Object.keys(map)).toEqual(["0"]);
+        expect([...map.entries()]).toEqual([["a", 1]]);
+
+        const set = new Set([1]);
+        const setResult = Obj.unshift(set, "x", "y");
+
+        expect(setResult).not.toBe(set);
+        expect(setResult).toEqual({ 0: "x", 1: "y" });
+        expect([...set.values()]).toEqual([1]);
+    });
+});
