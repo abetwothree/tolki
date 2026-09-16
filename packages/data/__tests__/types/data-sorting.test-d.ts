@@ -170,6 +170,8 @@ describe("data sorting type tests", () => {
 
     describe("the DataItems union, the package's own canonical input", () => {
         it("answers each sorter from obj, and still covers the list half", () => {
+            // Assignability, not equality: obj answers the whole union, so the arr row
+            // below is only a lower bound on it and can never equal it.
             const sorted = Data.dataSort(unionItems);
             expectTypeOf(sorted).toEqualTypeOf(Obj.sort(unionItems));
             expectTypeOf(Arr.sort(numberList)).toExtend<typeof sorted>();

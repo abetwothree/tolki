@@ -162,9 +162,9 @@ describe("data subsets type tests", () => {
     });
 
     describe("a read-only key list on a list backing mis-routes to obj", () => {
-        // Standing control, reported as a concern: arr's key parameters are `PathKeys`
-        // (mutable), so a read-only tuple skips every arr row and lands on obj's
-        // NonObjectItems row, which answers `{}` while the runtime still answers arr's list.
+        // Standing control: arr's keys are `PathKeys` (mutable), so a read-only tuple skips
+        // every arr row and lands on obj's NonObjectItems row, answering `{}` where the
+        // runtime answers arr's list. Task D3 Step 3 (F-23 part 1) widens PathKeys; re-read then.
         it("types dataExcept from obj's array-rejecting row", () => {
             expectTypeOf(
                 Data.dataExcept(numberList, readonlyIndices),
@@ -229,6 +229,8 @@ describe("data subsets type tests", () => {
 
     describe("the DataItems union, the package's own canonical input", () => {
         it("answers each subset helper from obj, and still covers the list half", () => {
+            // Assignability, not equality on the onlyValues row below: obj answers the
+            // whole union, so the arr row is only a lower bound on it and cannot equal it.
             const only = Data.dataOnly(unionItems, ["a"]);
             expectTypeOf(only).toEqualTypeOf(Obj.only(unionItems, ["a"]));
 

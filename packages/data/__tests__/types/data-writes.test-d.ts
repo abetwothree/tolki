@@ -153,6 +153,29 @@ describe("data writes type tests", () => {
         });
     });
 
+    describe("a read-only list backing", () => {
+        it("takes a read-only list", () => {
+            // dataAdd is absent on purpose: it rejects a read-only list until Task D5
+            // Step 1 (F-18) makes arr.add deep-copy along the written path.
+            expectTypeOf(Data.dataSet(readonlyNumberList, 0, 9)).toEqualTypeOf(
+                Arr.set(readonlyNumberList, 0, 9),
+            );
+            expectTypeOf(
+                Data.dataPush(readonlyNumberList, null, 9),
+            ).toEqualTypeOf(Arr.push(readonlyNumberList, null, 9));
+            expectTypeOf(Data.dataPull(readonlyNumberList, 0)).toEqualTypeOf(
+                Arr.pull(readonlyNumberList, 0),
+            );
+
+            // Assignability, not equality: dataPrepend stays hand-written and answers the
+            // DataItems union, which no delegate's exact answer can equal.
+            const prepended = Data.dataPrepend(readonlyNumberList, 9);
+            expectTypeOf(Arr.prepend(readonlyNumberList, 9)).toExtend<
+                typeof prepended
+            >();
+        });
+    });
+
     describe("the DataItems union, the package's own canonical input", () => {
         it("answers each converted write from obj", () => {
             expectTypeOf(Data.dataSet(unionItems, "a", 9)).toEqualTypeOf(
@@ -175,10 +198,13 @@ describe("data writes type tests", () => {
         // does at runtime, and a conditional over an overloaded delegate resolves only its
         // last signature, so the answer is obj's widest row, not the record's exact one.
 
-        it("types a Map on dataSet as unknown", () => {
-            // obj.set's last overload unions its record answer with NullishKeyValue, which
-            // the Map row instantiates at the unresolved key, so the whole union widens.
-            expectTypeOf(Data.dataSet(numberMap, "a", 9)).toBeUnknown();
+        it("types a Map on dataSet from obj's widest row", () => {
+            // `dispatch`'s KeyedMapRow resolves objFn's widest overload, whose answer unions
+            // a record with NullishKeyValue at an unresolved key, so the union widens to
+            // unknown. The fix belongs in dispatch.ts's KeyedMapRow, not in obj.set.
+            expectTypeOf(Data.dataSet(numberMap, "a", 9)).toEqualTypeOf<
+                ReturnType<typeof Obj.set>
+            >();
         });
 
         it("types a Map on dataAdd from obj's widest row", () => {
