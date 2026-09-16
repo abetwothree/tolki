@@ -1558,20 +1558,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return String(item);
         };
 
-        const joinItems = (
-            items: Array<unknown> | Record<string, unknown>,
-            separator: string | null,
-        ) => {
-            const values = isArray(items) ? items : Object.values(items);
-            const stringValues = values.map(convertToString);
+        const joinItems = (items: unknown[], separator: string | null) => {
+            const stringValues = items.map(convertToString);
 
             return stringValues.join(separator ?? "");
         };
 
         if (isFunction(value)) {
-            const items = this.map(value).all();
+            const ordered = this.orderedEntries();
 
-            return joinItems(items, glue);
+            // `map` answers from the plain object, which re-sorts integer keys ascending;
+            // implode is positional, so a Map-built backing is read through its own pairs.
+            return joinItems(
+                ordered
+                    ? ordered.map(([key, item]) => value(item, key))
+                    : Object.values(this.map(value).all()),
+                glue,
+            );
         }
 
         const first = this.first();
@@ -1586,17 +1589,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 isArray(first) ||
                 (isObject(first) && first.constructor === Object)
             ) {
-                // isFunction's guard can't subtract a typed callback from the union
-                // (its constraint takes unknown[]), so re-narrow what the branch above left.
-                const items = this.pluck(value as PropertyKey).all();
+                // With no key argument `pluck` answers a list in iteration order, so
+                // plucking the ORDERED values keeps PHP's order. The cast re-narrows what
+                // isFunction left: its constraint takes unknown[], so it subtracts nothing.
+                const items = dataPluck(
+                    this.orderedValues(),
+                    value as PropertyKey as string,
+                    null,
+                );
 
-                return joinItems(items, glue);
+                return joinItems(items as unknown[], glue);
             }
         }
 
         // When dealing with simple values (strings, numbers, etc.),
         // the value parameter becomes the glue
-        return joinItems(this.all(), value as string | null);
+        return joinItems(this.orderedValues(), value as string | null);
     }
 
     /**
@@ -1830,7 +1838,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.last();
         }
 
-        const collection = this.newInstance(this.items);
+        // PHP's `new static($this->items)` copies the array, because an array is a value
+        // there. A JS backing is a reference, so without a copy `pop` below would delete
+        // this collection's last entry — a read-only call silently losing an item.
+        const collection = this.detachedCopy();
 
         const finalItem = collection.pop();
 
@@ -2613,7 +2624,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TConcatKey, TConcatValue>
             | Collection<TConcatValue, TConcatKey>,
     ) {
-        const result = this.newInstance(this.items);
+        // PHP's `new static($this)` copies the array, because an array is a value there.
+        // A JS backing is a reference, so without a copy every `push` below would append
+        // to this collection as well as to the result.
+        const result = this.detachedCopy();
         const items = this.getRawItems(source);
 
         for (const [, value] of Object.entries(items)) {
@@ -5993,6 +6007,42 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected orderedEntries(): Array<[TKey, TValue]> | undefined {
         return this.itemsWithOrder && this.orderedFrom(this.itemsWithOrder);
+    }
+
+    /**
+     * The values this collection holds, in the order PHP keeps them.
+     *
+     * @returns The values in insertion order, which `all()` cannot express for integer keys
+     */
+    protected orderedValues(): TValue[] {
+        const ordered = this.orderedEntries();
+
+        return ordered
+            ? ordered.map(([, value]) => value)
+            : this.getItemValues(this.items);
+    }
+
+    /**
+     * A copy of this collection that shares no backing with it.
+     *
+     * PHP gets this for free: `new static($this->items)` copies the array, because an array
+     * is a value. A JS backing is a reference, so a method that builds a working copy and
+     * then writes to it has to detach here or it writes through to the receiver.
+     *
+     * @returns A new instance holding the same entries, in the same order, over its own backing
+     */
+    protected detachedCopy(): this {
+        const ordered = this.orderedEntries();
+
+        // A Map is the only input the constructor adopts an order from, so an ordered
+        // backing has to be handed back as one or the copy loses the order on the way in.
+        if (ordered) {
+            return this.newInstance(new Map(ordered));
+        }
+
+        return this.newInstance(
+            isArray(this.items) ? [...this.items] : { ...this.items },
+        );
     }
 
     /**

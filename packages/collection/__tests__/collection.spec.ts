@@ -12440,6 +12440,180 @@ describe("Collection", () => {
         });
     });
 
+    // `concat` and `join` built their working copy with `newInstance(this.items)`, which
+    // ALIASES the backing, so `push`/`pop` on the copy wrote this collection: `concat`
+    // appended to its own receiver and `join` deleted the receiver's last entry.
+    describe("concat and join work on a copy, never on the receiver", () => {
+        /** The PHP array `[2 => 'c', 0 => 'a', 1 => 'b']`, which only a Map expresses in JS. */
+        const outOfOrder = () =>
+            new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+        /** The three views every probe row records, in one comparable object. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ) => ({
+            all: collection.all(),
+            values: collection.values().all(),
+            keys: collection.keys().all(),
+        });
+
+        it("concat leaves every backing's receiver untouched", () => {
+            const list = collect([1, 2, 3]);
+            const listBacking = list.all();
+            list.concat(["z"]);
+
+            // docs/php-parity/task-27-carried-fixes.json, "concat-list-leaves-the-receiver-alone"
+            expect(views(list)).toEqual({
+                all: [1, 2, 3],
+                values: [1, 2, 3],
+                keys: [0, 1, 2],
+            });
+            expect(list.all()).toBe(listBacking);
+
+            const keyed = collect({ a: 1, b: 2 });
+            keyed.concat(["z"]);
+
+            // docs/php-parity/task-27-carried-fixes.json, "concat-keyed-leaves-the-receiver-alone"
+            expect(views(keyed)).toEqual({
+                all: { a: 1, b: 2 },
+                values: [1, 2],
+                keys: ["a", "b"],
+            });
+
+            const ordered = collect(outOfOrder());
+            ordered.concat(["z"]);
+
+            // docs/php-parity/task-27-carried-fixes.json,
+            // "concat-out-of-order-leaves-the-receiver-alone"
+            expect(views(ordered)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+
+        it("concat answers a collection over its own backing", () => {
+            const receiver = collect({ a: 1, b: 2 });
+            const result = receiver.concat(["z"]);
+
+            expect(result.all()).not.toBe(receiver.all());
+
+            // docs/php-parity/task-27-carried-fixes.json, "concat-keyed-result" —
+            // PHP holds `['a' => 1, 'b' => 2, 0 => 'z']`, and a JS object iterates its
+            // integer keys first, so only the ENTRIES can match, not their order.
+            expect(result.all()).toEqual({ a: 1, b: 2, 0: "z" });
+
+            // docs/php-parity/task-27-carried-fixes.json, "concat-list-result"
+            expect(views(collect([1, 2, 3]).concat(["z"]))).toEqual({
+                all: [1, 2, 3, "z"],
+                values: [1, 2, 3, "z"],
+                keys: [0, 1, 2, 3],
+            });
+        });
+
+        it("concat keeps the receiver's order in the result", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "concat-out-of-order-result"
+            expect(views(collect(outOfOrder()).concat(["z"]))).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", 3: "z" },
+                values: ["c", "a", "b", "z"],
+                keys: [2, 0, 1, 3],
+            });
+
+            // docs/php-parity/task-27-carried-fixes.json, "concat-collection-operand-result"
+            expect(views(collect([1, 2]).concat(collect({ x: "z" })))).toEqual({
+                all: [1, 2, "z"],
+                values: [1, 2, "z"],
+                keys: [0, 1, 2],
+            });
+        });
+
+        it("join leaves every backing's receiver untouched", () => {
+            const list = collect([1, 2, 3]);
+            const listBacking = list.all();
+            list.join(", ", " and ");
+
+            // docs/php-parity/task-27-carried-fixes.json, "join-list-leaves-the-receiver-alone"
+            expect(views(list)).toEqual({
+                all: [1, 2, 3],
+                values: [1, 2, 3],
+                keys: [0, 1, 2],
+            });
+            expect(list.all()).toBe(listBacking);
+
+            const keyed = collect({ a: 1, b: 2 });
+            keyed.join(", ", " and ");
+
+            // docs/php-parity/task-27-carried-fixes.json, "join-keyed-leaves-the-receiver-alone"
+            expect(views(keyed)).toEqual({
+                all: { a: 1, b: 2 },
+                values: [1, 2],
+                keys: ["a", "b"],
+            });
+
+            const ordered = collect(outOfOrder());
+            ordered.join(", ", " and ");
+
+            // docs/php-parity/task-27-carried-fixes.json,
+            // "join-out-of-order-leaves-the-receiver-alone"
+            expect(views(ordered)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+
+        it("join still answers what PHP answers", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "join-list-result"
+            expect(collect([1, 2, 3]).join(", ", " and ")).toBe("1, 2 and 3");
+
+            // docs/php-parity/task-27-carried-fixes.json, "join-keyed-result"
+            expect(collect({ a: 1, b: 2 }).join(", ", " and ")).toBe("1 and 2");
+
+            // docs/php-parity/task-27-carried-fixes.json, "join-single-entry-result"
+            expect(collect({ a: 1 }).join(", ", " and ")).toBe(1);
+
+            // docs/php-parity/task-27-carried-fixes.json, "join-empty-result"
+            expect(collect([]).join(", ", " and ")).toBe("");
+        });
+
+        it("join and implode read a Map backing in PHP's order", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "join-out-of-order-result"
+            expect(collect(outOfOrder()).join(", ", " and ")).toBe(
+                "c, a and b",
+            );
+
+            // docs/php-parity/task-27-carried-fixes.json, "join-out-of-order-no-final-glue"
+            expect(collect(outOfOrder()).join(", ")).toBe("c, a, b");
+
+            // docs/php-parity/task-27-carried-fixes.json, "implode-out-of-order"
+            expect(collect(outOfOrder()).implode("-")).toBe("c-a-b");
+        });
+
+        it("implode reads a Map backing in order through a key and a callback", () => {
+            const rows = collect(
+                new Map([
+                    [2, { n: "c" }],
+                    [0, { n: "a" }],
+                ]),
+            );
+
+            // docs/php-parity/task-27-carried-fixes.json, "implode-out-of-order-pluck"
+            expect(rows.implode("n", "-")).toBe("c-a");
+
+            // docs/php-parity/task-27-carried-fixes.json, "implode-out-of-order-callback"
+            expect(
+                collect(outOfOrder()).implode(
+                    (value) => value.toUpperCase(),
+                    "-",
+                ),
+            ).toBe("C-A-B");
+        });
+    });
+
     describe("newInstance subclass extensibility", () => {
         class TestCollectionWithExtraState<
             TValue = unknown,
