@@ -72,7 +72,9 @@ import {
     isSymbol,
     isUndefined,
     isWeakMap,
+    ItemNotFoundException,
     looseEqual,
+    MultipleItemsFoundException,
     phpArrayKey,
     phpTypeName,
     phpValueMatch,
@@ -3774,20 +3776,20 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the first item in the object, but only if exactly one item exists. Otherwise, throw an exception.
  *
- * Throws `No items found` / `Multiple items found (N items)`; Laravel's exception messages differ.
+ * Throws Laravel's own exceptions: `ItemNotFoundException` with no message, `MultipleItemsFoundException` with the count.
  *
  * @param data - The object to check.
  * @param callback - Optional callback to filter items.
  * @returns The single item in the object.
- * @throws Error if no items or multiple items exist.
+ * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
  *
  * @example
  *
  * sole({ only: 42 }); -> 42
  * sole({ a: 1, b: 2, c: 3 }, (value) => value > 2); -> 3
- * sole({}); -> throws Error: No items found
- * sole({ a: 1, b: 2 }); -> throws Error: Multiple items found (2 items)
- * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws Error: Multiple items found (2 items)
+ * sole({}); -> throws ItemNotFoundException
+ * sole({ a: 1, b: 2 }); -> throws MultipleItemsFoundException: 2 items were found.
+ * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws MultipleItemsFoundException: 2 items were found.
  */
 export function sole(
     data: NonObjectItems,
@@ -3806,14 +3808,14 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     callback?: (value: TValue, key: TKey) => boolean,
 ): TValue {
     if (!accessible(data)) {
-        throw new Error("No items found");
+        throw new ItemNotFoundException();
     }
 
     const obj = data as Record<TKey, TValue>;
     const entries = Object.entries(obj);
 
     if (entries.length === 0) {
-        throw new Error("No items found");
+        throw new ItemNotFoundException();
     }
 
     let filteredEntries: [TKey, TValue][];
@@ -3834,11 +3836,11 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     const count = filteredEntries.length;
 
     if (count === 0) {
-        throw new Error("No items found");
+        throw new ItemNotFoundException();
     }
 
     if (count > 1) {
-        throw new Error(`Multiple items found (${count} items)`);
+        throw new MultipleItemsFoundException(count);
     }
 
     return filteredEntries[0]![1];

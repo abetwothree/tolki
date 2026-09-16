@@ -1,7 +1,11 @@
 import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
-import { isString } from "@tolki/utils";
+import {
+    isString,
+    ItemNotFoundException,
+    MultipleItemsFoundException,
+} from "@tolki/utils";
 import { afterEach, assertType, describe, expect, it, vi } from "vitest";
 
 /**
@@ -5114,14 +5118,15 @@ describe("Obj", () => {
         });
 
         it("should throw error for empty objects", () => {
-            expect(() => Obj.sole({})).toThrow("No items found");
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback"
+            expect(() => Obj.sole({})).toThrow(ItemNotFoundException);
         });
 
         it("should throw error for multiple items", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback"
             const obj = { a: 1, b: 2 };
-            expect(() => Obj.sole(obj)).toThrow(
-                "Multiple items found (2 items)",
-            );
+            expect(() => Obj.sole(obj)).toThrow(MultipleItemsFoundException);
+            expect(() => Obj.sole(obj)).toThrow("2 items were found.");
         });
 
         it("should work with callback", () => {
@@ -5129,23 +5134,24 @@ describe("Obj", () => {
             expect(Obj.sole(obj, (value) => value > 2)).toBe(3);
 
             expect(() => Obj.sole(obj, (value) => value > 3)).toThrow(
-                "No items found",
+                ItemNotFoundException,
             );
         });
 
         it("should handle non-objects", () => {
-            expect(() => Obj.sole(null)).toThrow("No items found");
-            expect(() => Obj.sole([])).toThrow("No items found");
+            expect(() => Obj.sole(null)).toThrow(ItemNotFoundException);
+            expect(() => Obj.sole([])).toThrow(ItemNotFoundException);
         });
 
         it("throws when the callback matches more than one item", () => {
-            // ArrTest::testSoleThrowsExceptionIfMoreThanOneItemExists; message wording stays JS's own, not PHP's.
+            // ArrTest::testSoleThrowsExceptionIfMoreThanOneItemExists;
+            // docs/php-parity/task-23-obj-release-readiness.json, "sole-assoc-multi-callback"
             expect(() =>
                 Obj.sole(
                     { a: "baz", b: "foo", c: "baz" },
                     (value) => value === "baz",
                 ),
-            ).toThrow("Multiple items found (2 items)");
+            ).toThrow("2 items were found.");
         });
     });
 
@@ -7633,7 +7639,7 @@ describe("Obj", () => {
 
                     return false;
                 }),
-            ).toThrow("No items found");
+            ).toThrow(ItemNotFoundException);
             Obj.keyBy({ 1: { id: 1 }, x: { id: 2 } }, (_item, key) => {
                 seen.push(key);
 
