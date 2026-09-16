@@ -95,9 +95,27 @@ import {
 // `unknown` test always holds; distribution is the whole point of writing it as a conditional.
 type WrapResult<TValue> = TValue extends unknown ? [TValue] : never;
 
+// CanonicalIndex (set): only an integer's canonical spelling is an array key — the rule
+// PHP's key cast and this port's `phpArrayKey` both apply, so "01", "+1" and "1e1" stay
+// string keys and the write leaves every element alone.
+type CanonicalIndex<TSegment extends string> =
+    TSegment extends `${infer TIndex extends number}`
+        ? `${TIndex}` extends TSegment
+            ? TSegment
+            : never
+        : never;
+// A negative index addresses no slot of a JS list, so `Arr::set` stores it as the list's
+// own property and rebuilds no element; deeper in the path it still seeds a fresh list.
+type ListIndex<TSegment extends string> = TSegment extends `-${string}`
+    ? never
+    : CanonicalIndex<TSegment>;
+type PathHead<TPath extends string> = TPath extends `${infer THead}.${string}`
+    ? THead
+    : TPath;
+
 // ArraySetPath* (set): Arr::set replaces a non-record element with a fresh container before
-// writing, so only a record element is merged onto; a rest starting with an index rebuilds
-// a nested list, which the element type already covers.
+// writing, so only a record element is merged onto. A rest starting with an index seeds a
+// list instead, whose own member types this row deliberately approximates.
 type ArraySetPathTarget<TValue> = TValue extends readonly unknown[]
     ? Record<never, never>
     : TValue extends object
@@ -108,18 +126,23 @@ type ArraySetPathElement<
     TRest extends string,
     TSetValue,
 > = SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>;
+type ArraySetPathListElement<TValue> = [TValue] extends [readonly unknown[]]
+    ? TValue[]
+    : (TValue | unknown[])[];
 type ArraySetPathResult<
     TValue,
     TPath extends string,
     TSetValue,
-> = TPath extends `${number}.${infer TRest}`
-    ? TRest extends `${number}` | `${number}.${string}`
+> = TPath extends `${infer THead}.${infer TRest}`
+    ? [ListIndex<THead>] extends [never]
         ? TValue[]
-        : [ArraySetPathElement<TValue, TRest, TSetValue>] extends [TValue]
-          ? [TValue] extends [ArraySetPathElement<TValue, TRest, TSetValue>]
-              ? TValue[]
+        : [CanonicalIndex<PathHead<TRest>>] extends [never]
+          ? [ArraySetPathElement<TValue, TRest, TSetValue>] extends [TValue]
+              ? [TValue] extends [ArraySetPathElement<TValue, TRest, TSetValue>]
+                  ? TValue[]
+                  : (TValue | ArraySetPathElement<TValue, TRest, TSetValue>)[]
               : (TValue | ArraySetPathElement<TValue, TRest, TSetValue>)[]
-          : (TValue | ArraySetPathElement<TValue, TRest, TSetValue>)[]
+          : ArraySetPathListElement<TValue>
     : TValue[];
 
 const sortSpecComparator = createSortSpecComparator((item, key) =>

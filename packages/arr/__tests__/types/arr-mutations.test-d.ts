@@ -59,6 +59,39 @@ describe("arr mutations type tests", () => {
             >();
         });
 
+        it("rebuilds no element for a head that only looks like an index", () => {
+            // Only an integer's canonical spelling is an array key, so "01" is stored as
+            // the list's own property. docs/php-parity/task-24-data-release-readiness.json,
+            // "set-then-get-noncanonical-index-nested"
+            expectTypeOf(Arr.set(["a", "b"], "01.x", 5)).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("rebuilds no element for a negative head", () => {
+            // A negative index addresses no slot of a JS list, so the write lands on the
+            // list's own "-1" property instead of rebuilding element 0.
+            expectTypeOf(Arr.set(["a", "b"], "-1.x", 5)).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("widens a scalar element the rest rebuilds as a list", () => {
+            // The rest starts with an index, so element 0 becomes a fresh list; its own
+            // member types are deliberately approximated rather than spelled out.
+            expectTypeOf(Arr.set(["a", "b"], "0.1", 5)).toEqualTypeOf<
+                (string | unknown[])[]
+            >();
+        });
+
+        it("rebuilds a record when the rest only looks like an index", () => {
+            // The same canonical-spelling rule one segment deeper: "01" seeds a record,
+            // not a list, so the element gains that key.
+            expectTypeOf(Arr.set(["a", "b"], "0.01", 5)).toEqualTypeOf<
+                (string | { "01": number })[]
+            >();
+        });
+
         it("nests the record a deeper dot path writes at a list index", () => {
             expectTypeOf(Arr.set(["a", "b"], "0.x.y", 5)).toEqualTypeOf<
                 (string | { x: { y: number } })[]
