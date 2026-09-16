@@ -2891,7 +2891,9 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
     count: number = 1,
 ): TValue | TValue[] | null {
-    if (isNull(data) || !accessible(data)) {
+    // A prototype object is never written, and popping deletes the key it took,
+    // which every inheritor would see; it pops nothing, as shift and splice do.
+    if (isNull(data) || !accessible(data) || isPrototypeObject(data)) {
         return count === 1 ? null : [];
     }
 

@@ -3618,6 +3618,40 @@ describe("Obj", () => {
             expect(Obj.pop(null, 3)).toEqual([]);
             expect(Obj.pop([], 3)).toEqual([]);
         });
+
+        it("leaves a prototype object untouched instead of deleting from it", () => {
+            // JS-only: a PHP array has no prototype; a delete on one is a write every inheritor sees.
+            class Holder {}
+            Object.defineProperty(Holder.prototype, "kept", {
+                value: "str",
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+
+            expect(Obj.pop(Holder.prototype)).toBeNull();
+            expect(Obj.pop(Holder.prototype, 2)).toEqual([]);
+            expect(Object.entries(Holder.prototype)).toEqual([["kept", "str"]]);
+        });
+
+        it("refuses a hostile prototype object carrying its own __proto__ key", () => {
+            // JS-only: Object.create(null) is the only way to give a prototype object an own
+            // enumerable "__proto__" key; a literal `{ __proto__: ... }` sets the link instead.
+            const hostile = Object.create(null) as Record<string, unknown>;
+            hostile["__proto__"] = { polluted: true };
+            hostile["kept"] = "str";
+            const Hostile = function () {} as unknown as { prototype: unknown };
+            Hostile.prototype = hostile;
+            hostile["constructor"] = Hostile;
+
+            expect(Obj.pop(hostile)).toBeNull();
+            expect(Obj.pop(hostile, 3)).toEqual([]);
+            expect(Object.keys(hostile)).toEqual([
+                "__proto__",
+                "kept",
+                "constructor",
+            ]);
+        });
     });
 
     describe("take", () => {
