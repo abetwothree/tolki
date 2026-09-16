@@ -18,6 +18,9 @@ import {
 /** A record whose value is a list, so push has something to append to. */
 const listValued = { a: [1, 2] };
 
+/** Not a fixture: the Set keeps its own type here, since the point is that a row takes one. */
+const numberSet = new Set([7, 8]);
+
 /** The nested read-only backing `arr.add`'s shallow copy would write through (F-18). */
 const deepReadonlyList: readonly (string | readonly string[])[] = [
     "products",
@@ -69,6 +72,28 @@ describe("data writes type tests", () => {
             );
         });
 
+        it("matches obj.add for a Set, whose type does not follow its runtime", () => {
+            // Observed: dispatch materializes the Set and arr.add answers [7, 8], while
+            // obj.add answers {"0": 9}. Typed from obj here, as every sibling is; Part B owns it.
+            expectTypeOf(Data.dataAdd(numberSet, 0, 9)).toEqualTypeOf(
+                Obj.add(numberSet, 0, 9),
+            );
+            expectTypeOf(Data.dataAdd(numberSet, 0, 9)).not.toEqualTypeOf(
+                Arr.add([...numberSet], 0, 9),
+            );
+        });
+
+        it("matches obj's widest row for a scalar, string or nullish backing", () => {
+            // The delegate that runs is arr.add, on the wrapped backing, but arr.add takes
+            // no such input, so the row answers obj's widest — as the Map row does.
+            const widest = Obj.add(opaque, "b", 9);
+            expectTypeOf(Data.dataAdd("abc", "b", 9)).toEqualTypeOf(widest);
+            expectTypeOf(Data.dataAdd(7, "b", 9)).toEqualTypeOf(widest);
+            expectTypeOf(Data.dataAdd(true, "b", 9)).toEqualTypeOf(widest);
+            expectTypeOf(Data.dataAdd(null, "b", 9)).toEqualTypeOf(widest);
+            expectTypeOf(Data.dataAdd(undefined, "b", 9)).toEqualTypeOf(widest);
+        });
+
         it("rejects a read-only list until arr.add deep-copies (D5 Step 1)", () => {
             // arr.add copies only the top level, so a dot path writes into the caller's
             // nested value. Task D5 Step 1 (F-18) deep-copies; relax this deliberately then.
@@ -76,6 +101,13 @@ describe("data writes type tests", () => {
             Data.dataAdd(readonlyNumberList, 3, 9);
             // @ts-expect-error and neither is one whose nested list is read-only
             Data.dataAdd(deepReadonlyList, "1.1", 200);
+        });
+
+        it("rejects a backing the compiler has not narrowed", () => {
+            // The only row that could take `unknown` would take a read-only list with it,
+            // which is the one thing F-18 asks dataAdd to keep turning away.
+            // @ts-expect-error an unnarrowed backing matches no row
+            Data.dataAdd(opaque, "b", 9);
         });
     });
 

@@ -206,16 +206,45 @@ function listWhenIndexed<TValue>(
 /** A read-only list resolves to `unknown[]`, which it is not assignable to, so `DataAdd` rejects it. */
 type MutableBacking<T> = T extends readonly unknown[] ? unknown[] : unknown;
 
+/** The backings `dispatch` wraps into a one-element list: everything that is not an object. */
+type NonObjectBacking =
+    | string
+    | number
+    | bigint
+    | boolean
+    | symbol
+    | null
+    | undefined;
+
 /**
  * `dataAdd`'s rows, each answering with its delegate's own return type.
  *
- * A read-only list is rejected until Task D5 Step 1 (F-18) makes `arr.add` deep-copy along the
- * written path: the copy is shallow today, so a dot-path key writes into the caller's nested
- * value. Relax this then, deliberately rather than by accident.
+ * Two shapes are turned away, and both for the same reason — the only row that would admit them
+ * takes `unknown`, which would admit a read-only list with them:
+ *
+ * - a **read-only list**, until Task D5 Step 1 (F-18) makes `arr.add` deep-copy along the written
+ *   path. The copy is shallow today, so a dot-path key writes into the caller's nested value.
+ * - a backing the compiler has **not narrowed** (`unknown`), which no typed row can claim.
+ *
+ * Relax these then, deliberately rather than by accident. Every other backing every sibling write
+ * helper takes is accepted here: a Map, a Set, a list, a record, an interface, a class instance,
+ * and a scalar, string or nullish value.
  */
 interface DataAdd {
     (
         data: ReadonlyMap<PropertyKey, unknown>,
+        key: PathKey,
+        value: unknown,
+    ): ReturnType<typeof objAdd>;
+    (
+        data: NonObjectBacking,
+        key: PathKey,
+        value: unknown,
+    ): ReturnType<typeof objAdd>;
+    // A Set is typed from obj's widest row, as it is on every sibling helper, even though
+    // `dispatch` materializes it and answers from `arr.add`. Part B owns closing that gap.
+    (
+        data: ReadonlySet<unknown>,
         key: PathKey,
         value: unknown,
     ): ReturnType<typeof objAdd>;
@@ -234,7 +263,7 @@ interface DataAdd {
 /**
  * Add an element to data.
  *
- * @param data - The data to add to. A read-only list is rejected; see `DataAdd`
+ * @param data - The data to add to. A read-only list and an unnarrowed one are rejected; see `DataAdd`
  * @param key - The key to add at
  * @param value - The value to add
  * @returns New data with the element added, matching the delegate's own result

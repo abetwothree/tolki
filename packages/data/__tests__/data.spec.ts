@@ -63,6 +63,27 @@ describe("Data", () => {
             ]);
             expect(inner).toEqual(["desk", 200]);
         });
+
+        it("materializes a Set backing and answers from arr.add", () => {
+            // JS-only: PHP has no Set, and Arr::add takes an array, so no PHP call records
+            // this. The type follows obj here; only the runtime follows arr.
+            expect(Data.dataAdd(new Set([7, 8]), 0, 9)).toEqual([7, 8]);
+            expect(Data.dataAdd(new Set([7, 8]), 2, 9)).toEqual([7, 8, 9]);
+            expect(Obj.add(new Set([7, 8]), 0, 9)).toEqual({ 0: 9 });
+        });
+
+        it("wraps a scalar, string or nullish backing as a list", () => {
+            // JS-only: Arr::add takes an array, so no PHP call records a scalar backing.
+            expect(Data.dataAdd(5, 1, 9)).toEqual([5, 9]);
+            expect(Data.dataAdd("ab", 1, 9)).toEqual(["ab", 9]);
+            expect(Data.dataAdd(null, 0, 9)).toEqual([9]);
+
+            // Compared by element identity: an undefined element is not a missing one.
+            const wrapped = Data.dataAdd(undefined, 1, 9);
+            expect(wrapped).toHaveLength(2);
+            expect(wrapped[0]).toBeUndefined();
+            expect(wrapped[1]).toBe(9);
+        });
     });
 
     describe("dataItem", () => {
