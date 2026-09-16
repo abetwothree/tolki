@@ -161,7 +161,7 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
-import type { DataItems } from "@tolki/types";
+import type { DataItems, PathKey } from "@tolki/types";
 import {
     entriesKeyValue,
     isArray,
@@ -203,10 +203,38 @@ function listWhenIndexed<TValue>(
         : items;
 }
 
+/** A read-only list resolves to `unknown[]`, which it is not assignable to, so `DataAdd` rejects it. */
+type MutableBacking<T> = T extends readonly unknown[] ? unknown[] : unknown;
+
+/**
+ * `dataAdd`'s rows, each answering with its delegate's own return type.
+ *
+ * A read-only list is rejected until Task D5 Step 1 (F-18) makes `arr.add` deep-copy along the
+ * written path: the copy is shallow today, so a dot-path key writes into the caller's nested
+ * value. Relax this then, deliberately rather than by accident.
+ */
+interface DataAdd {
+    (
+        data: ReadonlyMap<PropertyKey, unknown>,
+        key: PathKey,
+        value: unknown,
+    ): ReturnType<typeof objAdd>;
+    <TValue, TAddValue>(
+        data: TValue[],
+        key: PathKey,
+        value: TAddValue,
+    ): ReturnType<typeof arrAdd<TValue, TAddValue>>;
+    <TData extends object, TKey extends string | number, TAddValue>(
+        data: TData & MutableBacking<TData>,
+        key: TKey,
+        value: TAddValue,
+    ): ReturnType<typeof objAdd<TData, TKey, TAddValue>>;
+}
+
 /**
  * Add an element to data.
  *
- * @param data - The data to add to
+ * @param data - The data to add to. A read-only list is rejected; see `DataAdd`
  * @param key - The key to add at
  * @param value - The value to add
  * @returns New data with the element added, matching the delegate's own result
@@ -216,7 +244,7 @@ function listWhenIndexed<TValue>(
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export const dataAdd = dispatch(arrAdd, objAdd);
+export const dataAdd: DataAdd = dispatch(arrAdd, objAdd);
 
 /**
  * Get an item from data or return default value.

@@ -10,12 +10,19 @@ import {
     numberList,
     numberMap,
     opaque,
+    readonlyNumberList,
     settings,
     unionItems,
 } from "./fixtures";
 
 /** A record whose value is a list, so push has something to append to. */
 const listValued = { a: [1, 2] };
+
+/** The nested read-only backing `arr.add`'s shallow copy would write through (F-18). */
+const deepReadonlyList: readonly (string | readonly string[])[] = [
+    "products",
+    ["desk"],
+];
 
 describe("data writes type tests", () => {
     describe("dataSet", () => {
@@ -60,6 +67,15 @@ describe("data writes type tests", () => {
             expectTypeOf(Data.dataAdd(abc, "d", 9)).toEqualTypeOf(
                 Obj.add(abc, "d", 9),
             );
+        });
+
+        it("rejects a read-only list until arr.add deep-copies (D5 Step 1)", () => {
+            // arr.add copies only the top level, so a dot path writes into the caller's
+            // nested value. Task D5 Step 1 (F-18) deep-copies; relax this deliberately then.
+            // @ts-expect-error a read-only list is not a mutable backing
+            Data.dataAdd(readonlyNumberList, 3, 9);
+            // @ts-expect-error and neither is one whose nested list is read-only
+            Data.dataAdd(deepReadonlyList, "1.1", 200);
         });
     });
 

@@ -43,13 +43,25 @@ describe("Data", () => {
             assertType<(number | string)[]>(result2);
         });
 
-        it("takes a readonly array, which the delegate copies before writing", () => {
-            // JS-only: arr.add spreads its input before writing, so a readonly
-            // backing is safe and the old compile-time rejection was unnecessary.
-            const readonlyArray: readonly number[] = [1, 2, 3];
+        it("leaves the caller's own list alone", () => {
+            // JS-only: arr.add copies the top level only, so the list handed in is untouched.
+            const source = [1, 2, 3];
 
-            expect(Data.dataAdd(readonlyArray, 3, 4)).toEqual([1, 2, 3, 4]);
-            expect(readonlyArray).toEqual([1, 2, 3]);
+            expect(Data.dataAdd(source, 3, 4)).toEqual([1, 2, 3, 4]);
+            expect(source).toEqual([1, 2, 3]);
+        });
+
+        it("writes a dot path through to the caller's nested value", () => {
+            // JS-only: today's behaviour. arr.add copies only the top level, so the nested
+            // array the caller still holds is written through. Task D5 Step 1 (F-18) owns it.
+            const inner = ["desk"];
+            const source = ["products", inner];
+
+            expect(Data.dataAdd(source, "1.1", 200)).toEqual([
+                "products",
+                ["desk", 200],
+            ]);
+            expect(inner).toEqual(["desk", 200]);
         });
     });
 
