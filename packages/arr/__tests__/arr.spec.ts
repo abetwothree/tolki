@@ -3,7 +3,11 @@ import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
-import { isArray } from "@tolki/utils";
+import {
+    isArray,
+    ItemNotFoundException,
+    MultipleItemsFoundException,
+} from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -4187,23 +4191,26 @@ describe("Arr", () => {
             ).toBe("apple");
 
             // Should throw for empty arrays
-            expect(() => Arr.sole([])).toThrow("No items found");
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback";
+            // task-23-obj-release-readiness.json, "sole-none" - the message is empty in Laravel too.
+            expect(() => Arr.sole([])).toThrow(ItemNotFoundException);
             expect(() => Arr.sole([1, 2, 3], (value) => value > 5)).toThrow(
-                "No items found",
+                ItemNotFoundException,
             );
 
             // Should throw for multiple items
-            expect(() => Arr.sole([1, 2])).toThrow(
-                "Multiple items found (2 items)",
-            );
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback";
+            // task-23-obj-release-readiness.json, "sole-multi-list"
+            expect(() => Arr.sole([1, 2])).toThrow(MultipleItemsFoundException);
+            expect(() => Arr.sole([1, 2])).toThrow("2 items were found.");
             expect(() => Arr.sole([1, 2, 3], (value) => value > 1)).toThrow(
-                "Multiple items found (2 items)",
+                "2 items were found.",
             );
 
             // Should throw for non-accessible data
-            expect(() => Arr.sole(null)).toThrow("No items found");
+            expect(() => Arr.sole(null)).toThrow(ItemNotFoundException);
             expect(() => Arr.sole("not array" as unknown as unknown[])).toThrow(
-                "No items found",
+                ItemNotFoundException,
             );
         });
     });

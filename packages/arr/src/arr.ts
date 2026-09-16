@@ -71,7 +71,9 @@ import {
     isSymbol,
     isUndefined,
     isWeakMap,
+    ItemNotFoundException,
     looseEqual,
+    MultipleItemsFoundException,
     phpArrayKey,
     phpTypeName,
     phpValueMatch,
@@ -2997,15 +2999,15 @@ export function slice<TValue>(
  * @param data - The array to check.
  * @param callback - Optional callback to filter items.
  * @returns The single item in the array.
- * @throws Error if no items or multiple items exist.
+ * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
  *
  * @example
  *
  * sole([42]); -> 42
  * sole([1, 2, 3], (value) => value > 2); -> 3
- * sole([]); -> throws Error: No items found
- * sole([1, 2]); -> throws Error: Multiple items found (2 items)
- * sole([1, 2, 3], (value) => value > 1); -> throws Error: Multiple items found (2 items)
+ * sole([]); -> throws ItemNotFoundException
+ * sole([1, 2]); -> throws MultipleItemsFoundException: 2 items were found.
+ * sole([1, 2, 3], (value) => value > 1); -> throws MultipleItemsFoundException: 2 items were found.
  */
 // Overload: array type with callback for proper type inference
 export function sole<TValue>(
@@ -3030,7 +3032,7 @@ export function sole<TValue>(
     const values = getAccessibleValues(data) as TValue[];
 
     if (values.length === 0) {
-        throw new Error("No items found");
+        throw new ItemNotFoundException();
     }
 
     let filteredValues: TValue[];
@@ -3052,11 +3054,11 @@ export function sole<TValue>(
     const count = filteredValues.length;
 
     if (count === 0) {
-        throw new Error("No items found");
+        throw new ItemNotFoundException();
     }
 
     if (count > 1) {
-        throw new Error(`Multiple items found (${count} items)`);
+        throw new MultipleItemsFoundException(count);
     }
 
     return filteredValues[0] as TValue;
