@@ -204,6 +204,17 @@ function listWhenIndexed<TValue>(
         : items;
 }
 
+/**
+ * Copy a list backing into the record obj's helpers walk, keeping every index it declares.
+ *
+ * @param backing - The list backing, which may be sparse.
+ * @returns A record of its indices, a hole included as the `undefined` `arr.union` fills it with.
+ */
+function toIndexedRecord(backing: ArrayLike<unknown>): Record<string, unknown> {
+    // `{ ...list }` copies own keys only, so a hole would vanish and shorten the answer.
+    return { ...Array.from(backing) };
+}
+
 /** A read-only list resolves to `unknown[]`, which it is not assignable to, so `DataAdd` rejects it. */
 type MutableBacking<T> = T extends readonly unknown[] ? unknown[] : unknown;
 
@@ -962,7 +973,7 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     // [$key => $value] + $list starts with the key, so it stays a list only when the key casts to 0.
-    const prepended = objPrepend({ ...backing }, value, ...rest);
+    const prepended = objPrepend(toIndexedRecord(backing), value, ...rest);
 
     return (
         phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended
@@ -1436,7 +1447,7 @@ export function dataReplace<
     // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
     return listWhenIndexed(
         // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-        objReplace({ ...arrWrap(data) }, replacerData) as Record<
+        objReplace(toIndexedRecord(arrWrap(data)), replacerData) as Record<
             string,
             TValue
         >,
@@ -1475,7 +1486,7 @@ export function dataReplaceRecursive<
     // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
     return listWhenIndexed(
         objReplaceRecursive(
-            { ...arrWrap(data) },
+            toIndexedRecord(arrWrap(data)),
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             replacerData as Record<PropertyKey, TValue> | null | undefined,
         ),

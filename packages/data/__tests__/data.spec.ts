@@ -2225,6 +2225,30 @@ describe("Data", () => {
                 0: "b",
             });
         });
+
+        it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
+            // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
+            // a sparse backing must answer exactly like the dense list it stands for.
+            const sparse = ["a", , "c"];
+            expect(Data.dataPrepend(sparse, "z", 0)).toStrictEqual([
+                "z",
+                undefined,
+                "c",
+            ]);
+            expect(Data.dataPrepend(sparse, "z", 0)).toStrictEqual(
+                Data.dataPrepend(["a", undefined, "c"], "z", 0),
+            );
+            expect(Data.dataPrepend(sparse, "z", "k")).toStrictEqual({
+                0: "a",
+                1: undefined,
+                2: "c",
+                k: "z",
+            });
+            // The keyed backing has no hole to fill: a genuine gap stays a gap.
+            expect(
+                Data.dataPrepend({ 0: "a", 2: "c" }, "z", "k"),
+            ).toStrictEqual({ 0: "a", 2: "c", k: "z" });
+        });
     });
 
     describe("dataPull", () => {
@@ -3492,6 +3516,24 @@ describe("Data", () => {
                 ),
             ).toEqual({ name: "taylor", family: "otwell", age: 26 });
         });
+
+        it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
+            // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
+            // a sparse backing must answer exactly like the dense list it stands for.
+            const sparse = ["a", , "c"];
+            expect(Data.dataReplace(sparse, { 0: "x" })).toStrictEqual([
+                "x",
+                undefined,
+                "c",
+            ]);
+            expect(Data.dataReplace(sparse, { 0: "x" })).toStrictEqual(
+                Data.dataReplace(["a", undefined, "c"], { 0: "x" }),
+            );
+            // The keyed backing has no hole to fill: a genuine gap stays a gap.
+            expect(
+                Data.dataReplace({ 0: "a", 2: "c" }, { 0: "x" }),
+            ).toStrictEqual({ 0: "x", 2: "c" });
+        });
     });
 
     describe("dataReplaceRecursive", () => {
@@ -3558,6 +3600,24 @@ describe("Data", () => {
                 0: { a: 99 },
             });
             expect(result).toEqual([{ a: 99 }, { b: 2 }]);
+        });
+
+        it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
+            // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
+            // a sparse backing must answer exactly like the dense list it stands for.
+            const sparse = ["a", , "c"];
+            expect(Data.dataReplaceRecursive(sparse, { 0: "x" })).toStrictEqual(
+                ["x", undefined, "c"],
+            );
+            expect(Data.dataReplaceRecursive(sparse, { 0: "x" })).toStrictEqual(
+                Data.dataReplaceRecursive(["a", undefined, "c"], { 0: "x" }),
+            );
+            // The keyed backing has no hole to fill: a genuine gap stays a gap. Typed as a
+            // record because the replacer shares `data`'s own TKey on this signature.
+            const gapped: Record<string, string> = { 0: "a", 2: "c" };
+            expect(Data.dataReplaceRecursive(gapped, { 0: "x" })).toStrictEqual(
+                { 0: "x", 2: "c" },
+            );
         });
 
         it("replaces an object's integer keys from a list operand", () => {
