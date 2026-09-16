@@ -1002,12 +1002,18 @@ export function dataSearch<TValue, TKey extends PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict?: boolean,
 ): TKey | false;
+// Overload: the package's own canonical input, whose list half answers an index
+export function dataSearch<TValue, TKey extends PropertyKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TKey | number | false;
 // Implementation
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
-): TKey | false {
+): TKey | number | false {
     // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
     const entries = isKeyedData(items)
         ? Object.entries(toKeyedData<TKey, TValue>(items))
@@ -1060,14 +1066,19 @@ export function dataBefore<TValue, TKey extends PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict?: boolean,
 ): TValue | null;
+// Overload: the package's own canonical input, which either half satisfies
+export function dataBefore<TValue, TKey extends PropertyKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TValue | null;
 // Implementation
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    // The keyed overload: `items` is still the union here, which matches no public row.
-    const key = dataSearch(items as Record<TKey, TValue>, value, strict);
+    const key = dataSearch(items, value, strict);
 
     if (key === false) {
         return null;
@@ -1108,14 +1119,19 @@ export function dataAfter<TValue, TKey extends PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict?: boolean,
 ): TValue | null;
+// Overload: the package's own canonical input, which either half satisfies
+export function dataAfter<TValue, TKey extends PropertyKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TValue | null;
 // Implementation
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    // The keyed overload: `items` is still the union here, which matches no public row.
-    const key = dataSearch(items as Record<TKey, TValue>, value, strict);
+    const key = dataSearch(items, value, strict);
 
     if (key === false) {
         return null;

@@ -1,7 +1,13 @@
 import * as Data from "@tolki/data";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { abc, numberList, readonlyNumberList, rowsById } from "./fixtures";
+import {
+    abc,
+    numberList,
+    readonlyNumberList,
+    rowsById,
+    unionItems,
+} from "./fixtures";
 
 describe("data search type tests", () => {
     describe("dataSearch", () => {
@@ -131,6 +137,28 @@ describe("data search type tests", () => {
             // JS-only: as above.
             expectTypeOf(Data.dataAfter(rowsById, rowsById.r1)).toEqualTypeOf<
                 (typeof rowsById)["r1"] | null
+            >();
+        });
+    });
+
+    describe("the DataItems union, the package's own canonical input", () => {
+        // No delegate exists for these three, so the expected types are written out; the
+        // rows exist because per-shape overloads alone turned the union away with TS2769.
+
+        it("answers dataSearch with either half's key", () => {
+            // JS-only: the record half answers TKey, the list half its index.
+            expectTypeOf(Data.dataSearch(unionItems, 2)).toEqualTypeOf<
+                string | number | false
+            >();
+        });
+
+        it("answers dataBefore and dataAfter with the value", () => {
+            // JS-only: both halves hold the same value type, so the key shape drops out.
+            expectTypeOf(Data.dataBefore(unionItems, 2)).toEqualTypeOf<
+                number | null
+            >();
+            expectTypeOf(Data.dataAfter(unionItems, 2)).toEqualTypeOf<
+                number | null
             >();
         });
     });
