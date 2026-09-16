@@ -158,6 +158,8 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isArray(variable)` - checks if the variable is an array
   - `toArrayable(variable)` - converts the variable is an object with the `toArray` method
   - `isObject(variable)` - checks if the variable is a non-null non-array object
+  - `isPlainObject(variable)` - checks if the variable is a plain object, one whose prototype is `Object.prototype` or `null`; an array, a class instance and a built-in such as `Date` or `Map` are not
+  - `isPhpAccessible(variable)` - checks if the variable carries array entries rather than object state, the question PHP's `Arr::accessible` asks: an array, a plain object and a `Map` do, a `Date`, a `Set` or a class instance does not
   - `isObjectAny(variable)` - checks if the variable is a object (including arrays, null)
   - `isTruthyObject(variable)` - checks if the variable is a non-null non-undefined object (including arrays)
   - `isPrototypeObject(variable)` - checks if the variable is a prototype object (`Object.prototype`, `Array.prototype`, a class's `prototype`), which no caller-supplied path may write into
