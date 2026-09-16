@@ -12388,11 +12388,18 @@ describe("Collection", () => {
             const readers: Array<
                 [string, (collection: Collection<number, number>) => unknown]
             > = [
+                // Each row cites docs/php-parity/task-26-collection-order.json:
+                // "order-merge-leaves-the-receiver-alone"
                 ["merge", (c) => c.merge(operand())],
+                // "order-intersect-leaves-the-receiver-alone"
                 ["intersect", (c) => c.intersect(operand())],
+                // "order-replace-leaves-the-receiver-alone"
                 ["replace", (c) => c.replace(operand())],
+                // "order-only-leaves-the-receiver-alone"
                 ["only", (c) => c.only(collect(operand()))],
+                // "order-zip-leaves-the-receiver-alone"
                 ["zip", (c) => c.zip(collect(operand()))],
+                // "order-crossJoin-leaves-the-receiver-alone"
                 ["crossJoin", (c) => c.crossJoin(collect(operand()))],
             ];
 
@@ -12400,8 +12407,7 @@ describe("Collection", () => {
                 const collection = collect([1, 2, 3]);
                 read(collection);
 
-                // docs/php-parity/task-26-collection-order.json,
-                // "order-<name>-leaves-the-receiver-alone" — one row per method above.
+                // Every row above records the same thing: the receiver is untouched.
                 expect({ name, ...views(collection) }).toEqual({
                     name,
                     ...untouched,
