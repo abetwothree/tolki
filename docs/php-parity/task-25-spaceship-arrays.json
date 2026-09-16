@@ -132,6 +132,44 @@
             "message": "Nesting level too deep - recursive dependency?"
         },
         {
+            "label": "spaceship on two DateTime objects, earlier on the left",
+            "php": "new DateTime('2020-01-01') <=> new DateTime('2021-01-01')",
+            "value": -1
+        },
+        {
+            "label": "spaceship on two DateTime objects, later on the left",
+            "php": "new DateTime('2021-01-01') <=> new DateTime('2020-01-01')",
+            "value": 1
+        },
+        {
+            "label": "spaceship on two DateTime objects of the same instant",
+            "php": "new DateTime('2020-01-01') <=> new DateTime('2020-01-01')",
+            "value": 0
+        },
+        {
+            "label": "usort orders two DateTime objects chronologically",
+            "php": "usort([new DateTime('2021-01-01'), new DateTime('2020-01-01')], fn ($x, $y) => $x <=> $y)",
+            "value": [
+                "2020",
+                "2021"
+            ]
+        },
+        {
+            "label": "spaceship on a DateTime and a stdClass",
+            "php": "new DateTime('2020-01-01') <=> new stdClass()",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a stdClass and a DateTime",
+            "php": "new stdClass() <=> new DateTime('2020-01-01')",
+            "value": 1
+        },
+        {
+            "label": "spaceship on a DateTime and an empty array",
+            "php": "new DateTime('2020-01-01') <=> []",
+            "value": 1
+        },
+        {
             "label": "Arr::sort orders lists of arrays by count first",
             "php": "Arr::sort([[9,9],[10],[1,2,3]])",
             "value": [

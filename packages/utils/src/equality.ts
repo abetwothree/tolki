@@ -146,7 +146,8 @@ type VisitedPairs = Map<object, Set<object>>;
  *
  * Numeric operands compare numerically (`"9"` sorts below `"10"`); null/boolean
  * compares both sides as booleans; two arrays or objects take PHP's array rule —
- * fewer entries first, then element-wise over the left operand's keys.
+ * fewer entries first, then element-wise over the left operand's keys. Two `Date`s
+ * compare by time value, as PHP compares two `DateTime` objects.
  *
  * Faithful to PHP, this order is **not transitive** — `null` ties `0` and `""`,
  * yet `0 > ""`.
@@ -155,8 +156,12 @@ type VisitedPairs = Map<object, Set<object>>;
  * - a cyclic pair ties, where PHP raises `Error: Nesting level too deep`;
  * - an array against a scalar keeps JS coercion, where PHP sorts every array above
  *   every scalar;
- * - an exotic object (`Date`, `Map`, `Set`) carries no own enumerable keys, so any
- *   two of them tie.
+ * - a `Date` against an array or a plain object keeps the entry-count rule, where
+ *   PHP calls the pair uncomparable and answers 1 from either side.
+ *
+ * JS-only: a `Map`, a `Set` and a `RegExp` have no PHP analogue, so there is no
+ * rule to port — each carries no own enumerable keys, and any two of them tie.
+ * That is a decision, not a divergence; do not "fix" it by analogy with `Date`.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -198,6 +203,15 @@ function comparePhpValues(
         const right = toPhpBool(b);
 
         return left === right ? 0 : left ? 1 : -1;
+    }
+
+    // PHP compares two DateTime objects chronologically rather than by their
+    // property tables, so a Date pair must not fall into the array rule below.
+    if (a instanceof Date && b instanceof Date) {
+        const left = a.getTime();
+        const right = b.getTime();
+
+        return left < right ? -1 : left > right ? 1 : 0;
     }
 
     if (typeof a === "object" && typeof b === "object") {

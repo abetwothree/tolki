@@ -67,6 +67,26 @@ probe('spaceship on two self-referencing stdClass objects', '$o->self = $o; $o <
     return $o <=> $p;
 });
 
+// F-2 review round 1 — DateTime, the one exotic object this port also models.
+// Its state is not a property table, so PHP does NOT take the array rule for
+// it: two DateTime objects compare chronologically, whatever they hold.
+probe('spaceship on two DateTime objects, earlier on the left', "new DateTime('2020-01-01') <=> new DateTime('2021-01-01')", fn () => new DateTime('2020-01-01') <=> new DateTime('2021-01-01'));
+probe('spaceship on two DateTime objects, later on the left', "new DateTime('2021-01-01') <=> new DateTime('2020-01-01')", fn () => new DateTime('2021-01-01') <=> new DateTime('2020-01-01'));
+probe('spaceship on two DateTime objects of the same instant', "new DateTime('2020-01-01') <=> new DateTime('2020-01-01')", fn () => new DateTime('2020-01-01') <=> new DateTime('2020-01-01'));
+probe('usort orders two DateTime objects chronologically', "usort([new DateTime('2021-01-01'), new DateTime('2020-01-01')], fn (\$x, \$y) => \$x <=> \$y)", function () {
+    $dates = [new DateTime('2021-01-01'), new DateTime('2020-01-01')];
+    usort($dates, fn ($x, $y) => $x <=> $y);
+
+    return array_map(fn (DateTime $date) => $date->format('Y'), $dates);
+});
+
+// F-2 review round 1 — a DateTime against the shapes a plain JS object stands
+// for. PHP calls a pair of different classes uncomparable and sorts any object
+// above any array; this port keeps the array rule for those mixed pairs.
+probe('spaceship on a DateTime and a stdClass', "new DateTime('2020-01-01') <=> new stdClass()", fn () => new DateTime('2020-01-01') <=> new stdClass());
+probe('spaceship on a stdClass and a DateTime', "new stdClass() <=> new DateTime('2020-01-01')", fn () => new stdClass() <=> new DateTime('2020-01-01'));
+probe('spaceship on a DateTime and an empty array', "new DateTime('2020-01-01') <=> []", fn () => new DateTime('2020-01-01') <=> []);
+
 // F-2 — the same rule seen through Arr::sort, which is the entry point this
 // port mirrors: counts order the rows before any element is looked at.
 probe('Arr::sort orders lists of arrays by count first', 'Arr::sort([[9,9],[10],[1,2,3]])', fn () => array_values(Arr::sort([[9, 9], [10], [1, 2, 3]])));

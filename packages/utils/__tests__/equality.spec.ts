@@ -100,6 +100,62 @@ describe("Utils", () => {
             );
         });
 
+        // task-25-spaceship-arrays.json, "spaceship on two DateTime objects,
+        // earlier on the left", "... later on the left", "... of the same
+        // instant" - a DateTime's state is not a property table, so PHP does
+        // not take the array rule for it.
+        it("orders two dates chronologically, not by their empty key sets", () => {
+            expect(
+                Utils.compareValues(
+                    new Date("2020-01-01"),
+                    new Date("2021-01-01"),
+                ),
+            ).toBe(-1);
+            expect(
+                Utils.compareValues(
+                    new Date("2021-01-01"),
+                    new Date("2020-01-01"),
+                ),
+            ).toBe(1);
+            expect(
+                Utils.compareValues(
+                    new Date("2020-01-01"),
+                    new Date("2020-01-01"),
+                ),
+            ).toBe(0);
+        });
+
+        // task-25-spaceship-arrays.json, "usort orders two DateTime objects
+        // chronologically". Compared by identity, not by a serialised form.
+        it("sorts a list of dates chronologically through the comparator", () => {
+            const earlier = new Date("2020-01-01");
+            const later = new Date("2021-01-01");
+
+            const sorted = [later, earlier].sort(Utils.compareValues);
+
+            expect(sorted[0]).toBe(earlier);
+            expect(sorted[1]).toBe(later);
+        });
+
+        // JS-only: a Map, a Set and a RegExp have no PHP analogue at all, so
+        // there is no rule to port - each keeps its state off its own
+        // enumerable keys, and any two of them tie on the entry count.
+        it("ties two Maps, two Sets or two RegExps", () => {
+            expect(Utils.compareValues(new Map([["a", 1]]), new Map())).toBe(0);
+            expect(Utils.compareValues(new Set([1, 2]), new Set())).toBe(0);
+            expect(Utils.compareValues(/a/, /b/)).toBe(0);
+        });
+
+        // Recorded divergence, not parity: task-25-spaceship-arrays.json,
+        // "spaceship on a DateTime and a stdClass", its reverse and "... and an
+        // empty array" are all 1, where this port keeps the entry-count rule.
+        it("leaves a date against a plain object or an array to the entry count", () => {
+            expect(Utils.compareValues(new Date(0), {})).toBe(0);
+            expect(Utils.compareValues({}, new Date(0))).toBe(0);
+            expect(Utils.compareValues(new Date(0), [])).toBe(0);
+            expect(Utils.compareValues(new Date(0), { x: 1 })).toBe(-1);
+        });
+
         // task-25-spaceship-arrays.json, "spaceship on two self-referencing arrays"
         // and "... stdClass objects": PHP throws a catchable Error for both, where
         // this port ties the repeated pair so a sort over cyclic rows finishes.
