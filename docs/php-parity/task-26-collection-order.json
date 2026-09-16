@@ -136,6 +136,44 @@
             }
         },
         {
+            "label": "order-shift-past-the-end",
+            "php": "$c = collect(base); $returned = $c->shift(5)",
+            "value": {
+                "returned": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "all": [],
+                "values": [],
+                "keys": []
+            }
+        },
+        {
+            "label": "order-pop-past-the-end",
+            "php": "$c = collect(base); $returned = $c->pop(5)",
+            "value": {
+                "returned": [
+                    "b",
+                    "a",
+                    "c"
+                ],
+                "all": [],
+                "values": [],
+                "keys": []
+            }
+        },
+        {
+            "label": "order-pop-after-emptying",
+            "php": "$c = collect(base); $c->shift(3); $returned = $c->pop()",
+            "value": {
+                "returned": null,
+                "all": [],
+                "values": [],
+                "keys": []
+            }
+        },
+        {
             "label": "order-push",
             "php": "$c = collect(base); $c->push('x')",
             "value": {
@@ -222,6 +260,30 @@
                 ],
                 "keys": [
                     "k",
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-prepend-with-null-key",
+            "php": "$c = collect(base); $c->prepend('x', null)",
+            "value": {
+                "all": {
+                    "": "x",
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "",
                     2,
                     0,
                     1
@@ -322,6 +384,25 @@
             }
         },
         {
+            "label": "order-splice-two-from-start",
+            "php": "$c = collect(base); $returned = $c->splice(0, 2)",
+            "value": {
+                "returned": [
+                    "c",
+                    "a"
+                ],
+                "all": [
+                    "b"
+                ],
+                "values": [
+                    "b"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
             "label": "order-splice-to-end",
             "php": "$c = collect(base); $returned = $c->splice(1)",
             "value": {
@@ -337,6 +418,48 @@
                 ],
                 "keys": [
                     0
+                ]
+            }
+        },
+        {
+            "label": "order-splice-negative-offset",
+            "php": "$c = collect(base); $returned = $c->splice(-2, 1)",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-splice-negative-length",
+            "php": "$c = collect(base); $returned = $c->splice(1, -1)",
+            "value": {
+                "returned": [
+                    "a"
+                ],
+                "all": [
+                    "c",
+                    "b"
+                ],
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
                 ]
             }
         },

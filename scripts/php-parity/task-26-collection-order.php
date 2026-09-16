@@ -102,6 +102,25 @@ probe('order-pop-two', '$c = collect(base); $returned = $c->pop(2)', function ()
 
     return ['returned' => $returned->all()] + d8Views($c);
 });
+probe('order-shift-past-the-end', '$c = collect(base); $returned = $c->shift(5)', function () {
+    $c = collect(d8Base());
+    $returned = $c->shift(5);
+
+    return ['returned' => $returned->all()] + d8Views($c);
+});
+probe('order-pop-past-the-end', '$c = collect(base); $returned = $c->pop(5)', function () {
+    $c = collect(d8Base());
+    $returned = $c->pop(5);
+
+    return ['returned' => $returned->all()] + d8Views($c);
+});
+probe('order-pop-after-emptying', '$c = collect(base); $c->shift(3); $returned = $c->pop()', function () {
+    $c = collect(d8Base());
+    $c->shift(3);
+    $returned = $c->pop();
+
+    return ['returned' => $returned] + d8Views($c);
+});
 probe('order-push', "\$c = collect(base); \$c->push('x')", function () {
     $c = collect(d8Base());
     $c->push('x');
@@ -124,6 +143,12 @@ probe('order-prepend', "\$c = collect(base); \$c->prepend('x')", function () {
 probe('order-prepend-with-key', "\$c = collect(base); \$c->prepend('x', 'k')", function () {
     $c = collect(d8Base());
     $c->prepend('x', 'k');
+
+    return d8Views($c);
+});
+probe('order-prepend-with-null-key', "\$c = collect(base); \$c->prepend('x', null)", function () {
+    $c = collect(d8Base());
+    $c->prepend('x', null);
 
     return d8Views($c);
 });
@@ -151,9 +176,27 @@ probe('order-splice-with-replacement', "\$c = collect(base); \$returned = \$c->s
 
     return ['returned' => $returned->all()] + d8Views($c);
 });
+probe('order-splice-two-from-start', '$c = collect(base); $returned = $c->splice(0, 2)', function () {
+    $c = collect(d8Base());
+    $returned = $c->splice(0, 2);
+
+    return ['returned' => $returned->all()] + d8Views($c);
+});
 probe('order-splice-to-end', '$c = collect(base); $returned = $c->splice(1)', function () {
     $c = collect(d8Base());
     $returned = $c->splice(1);
+
+    return ['returned' => $returned->all()] + d8Views($c);
+});
+probe('order-splice-negative-offset', '$c = collect(base); $returned = $c->splice(-2, 1)', function () {
+    $c = collect(d8Base());
+    $returned = $c->splice(-2, 1);
+
+    return ['returned' => $returned->all()] + d8Views($c);
+});
+probe('order-splice-negative-length', '$c = collect(base); $returned = $c->splice(1, -1)', function () {
+    $c = collect(d8Base());
+    $returned = $c->splice(1, -1);
 
     return ['returned' => $returned->all()] + d8Views($c);
 });
