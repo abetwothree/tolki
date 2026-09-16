@@ -170,7 +170,9 @@ import {
     isNull,
     isObject,
     isUndefined,
+    looseEqual,
     phpArrayKey,
+    strictEqual,
 } from "@tolki/utils";
 
 import {
@@ -1139,8 +1141,8 @@ export const dataRandom = dispatch(arrRandom, objRandom);
  * @returns The key of the found item, the index when the backing is a list or a
  * numeric-string-keyed record, or false
  *
- * @remarks JS-only: PHP compares arrays by value, so `[] === []` holds there and never here;
- * searching for an array literal cannot match, strict or loose.
+ * @remarks Comparison follows PHP's `===`/`==` through `strictEqual`/`looseEqual`, so an
+ * array or object needle matches by value, as `Collection::search` does.
  */
 // Overload: list backing, whose key is the index
 export function dataSearch<TValue>(
@@ -1182,15 +1184,17 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
             continue;
         }
 
+        // PHP's array_search uses PHP's own ===/==, which compare arrays by value.
+        // JavaScript's compare by reference, so a literal needle could never match.
         if (strict) {
-            if (item === value) {
+            if (strictEqual(item, value)) {
                 return actualKey;
             }
 
             continue;
         }
 
-        if (item == value) {
+        if (looseEqual(item, value)) {
             return actualKey;
         }
     }

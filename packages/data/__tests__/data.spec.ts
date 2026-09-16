@@ -2586,10 +2586,7 @@ describe("Data", () => {
             expect(Data.dataSearch(falsy, 0, true)).toBe(1);
             expect(Data.dataSearch(falsy, 1, true)).toBe(2);
             expect(Data.dataSearch(falsy, "", true)).toBe(4);
-            // JS-only: PHP's `[] === []` is true by value, so Laravel finds the empty
-            // array at index 3. JS compares arrays by reference, so a fresh `[]` never
-            // matches; this case has no JS analogue.
-            expect(Data.dataSearch(falsy, [], true)).toBe(false);
+            expect(Data.dataSearch(falsy, [], true)).toBe(3);
         });
 
         it("collapses falsy values in loose mode", () => {
@@ -2597,6 +2594,41 @@ describe("Data", () => {
             const falsy = [false, 0, 1, [], ""];
             expect(Data.dataSearch(falsy, 0)).toBe(0);
             expect(Data.dataSearch(falsy, "")).toBe(0);
+            expect(Data.dataSearch(falsy, "1")).toBe(2);
+        });
+
+        it("matches an array or object needle by value, as PHP's === and == do", () => {
+            // docs/php-parity/task-28-search-equality.json, "search-array-needle-strict",
+            // "search-array-needle-loose", "search-keyed-needle-strict",
+            // "search-keyed-needle-loose", "search-empty-array-needle-loose"
+            expect(Data.dataSearch([[1, 2], [3]], [1, 2], true)).toBe(0);
+            expect(Data.dataSearch([[1, 2], [3]], [1, 2])).toBe(0);
+            expect(Data.dataSearch({ x: { a: 1 } }, { a: 1 }, true)).toBe("x");
+            expect(Data.dataSearch({ x: { a: 1 } }, { a: 1 })).toBe("x");
+            expect(Data.dataSearch([[]], [])).toBe(0);
+        });
+
+        it("keeps === key-order- and type-sensitive where == is neither", () => {
+            // docs/php-parity/task-28-search-equality.json, "search-reordered-keys-strict",
+            // "search-reordered-keys-loose", "search-numeric-string-element-strict",
+            // "search-numeric-string-element-loose", "search-array-needle-wrong-order-strict"
+            expect(Data.dataSearch([{ b: 2, a: 1 }], { a: 1, b: 2 }, true)).toBe(
+                false,
+            );
+            expect(Data.dataSearch([{ b: 2, a: 1 }], { a: 1, b: 2 })).toBe(0);
+            expect(Data.dataSearch([[1, 2]], [1, "2"], true)).toBe(false);
+            expect(Data.dataSearch([[1, 2]], [1, "2"])).toBe(0);
+            expect(Data.dataSearch([[1, 2]], [2, 1], true)).toBe(false);
+            expect(Data.dataSearch({ k: [1, 2] }, [2, 1], true)).toBe(false);
+        });
+
+        it("takes PHP's loose casts, not JavaScript's, for a null needle", () => {
+            // docs/php-parity/task-28-search-equality.json,
+            // "search-null-needle-on-zero-loose", "search-null-needle-on-zero-strict"
+            expect(Data.dataSearch([0], null)).toBe(0);
+            expect(Data.dataSearch({ a: 0 }, null)).toBe("a");
+            expect(Data.dataSearch([0], null, true)).toBe(false);
+            expect(Data.dataSearch({ a: 0 }, null, true)).toBe(false);
         });
 
         it("returns the string key of a hit on the object backing", () => {
@@ -2689,6 +2721,15 @@ describe("Data", () => {
             // The first element has nothing before it.
             expect(Data.dataBefore(falsy, false, true)).toBeNull();
         });
+
+        it("finds the item before an array or object needle matched by value", () => {
+            // docs/php-parity/task-28-search-equality.json, "before-array-needle",
+            // "before-keyed-needle" — before() calls search(), so it inherits its rule.
+            expect(Data.dataBefore([[0], [1, 2]], [1, 2])).toEqual([0]);
+            expect(
+                Data.dataBefore({ a: { k: 0 }, b: { k: 1 } }, { k: 1 }),
+            ).toEqual({ k: 0 });
+        });
     });
 
     describe("dataAfter", () => {
@@ -2741,6 +2782,15 @@ describe("Data", () => {
             expect(Data.dataAfter(falsy, 0, true)).toBe(1);
             // The last element has nothing after it.
             expect(Data.dataAfter(falsy, "", true)).toBeNull();
+        });
+
+        it("finds the item after an array or object needle matched by value", () => {
+            // docs/php-parity/task-28-search-equality.json, "after-array-needle",
+            // "after-keyed-needle" — after() calls search(), so it inherits its rule.
+            expect(Data.dataAfter([[1, 2], [9]], [1, 2])).toEqual([9]);
+            expect(
+                Data.dataAfter({ a: { k: 0 }, b: { k: 1 } }, { k: 0 }),
+            ).toEqual({ k: 1 });
         });
     });
 
