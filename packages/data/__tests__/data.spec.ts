@@ -2262,7 +2262,8 @@ describe("Data", () => {
         });
 
         it("spreads a Collection-like row's items on the array backing", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-map-spread-collection-row"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-spread-collection-row", "list"
             const rows = [{ all: () => [1, "a"] }, { all: () => [2, "b"] }];
 
             expect(

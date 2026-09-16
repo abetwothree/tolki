@@ -3025,7 +3025,9 @@ describe("Arr", () => {
         });
 
         it("compares a key path loosely in the three-argument form", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "contains-two-args-key-value"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "contains-two-args-key-value" for the match, and "r3-list-backed-contains",
+            // "key-value-no-match", for the miss the first row never recorded.
             expect(Arr.contains([{ v: 1 }, { v: 3 }, { v: 5 }], "v", 1)).toBe(
                 true,
             );
@@ -3096,8 +3098,9 @@ describe("Arr", () => {
         });
 
         it("ignores a callback match holding null, as first() does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "D2 containsStrict callback matching a null value"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-list-backed-contains", "containsStrict-callback-null": the list-backed
+            // twin. task-23's row of that name is backed by ['a' => null, 'b' => 1].
             expect(
                 Arr.containsStrict([null, 1], (value) => value === null),
             ).toBe(false);
@@ -3705,8 +3708,10 @@ describe("Arr", () => {
     });
 
     describe("diffKeys", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
         it("keeps the items whose index no key of other carries", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys",
+            // "list" ([1,2,3] against [9,9] -> [2 => 3]) and "list-keyed-operand"
+            // ([1,2] against ['a' => 1, 1 => 5] -> [1]).
             expect(Arr.diffKeys([1, 2, 3], [9, 9])).toEqual([3]);
             expect(Arr.diffKeys([1, 2], { a: 1, 1: 5 })).toEqual([1]);
         });
@@ -3737,7 +3742,7 @@ describe("Arr", () => {
     });
 
     describe("diffUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", "list"
         it("drops the items the callback calls equal to some value of other", () => {
             expect(
                 Arr.diffUsing(
@@ -3775,7 +3780,7 @@ describe("Arr", () => {
 
     describe("diffAssocUsing", () => {
         // docs/php-parity/task-24-data-release-readiness.json,
-        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list"
+        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list", "diffAssocUsing-list"
         it("compares indexes with the callback and values by PHP's string cast", () => {
             expect(Arr.diffAssocUsing([1, 2, 3], [1, 9, 3], sameKey)).toEqual([
                 2,
@@ -3799,7 +3804,7 @@ describe("Arr", () => {
 
     describe("diffKeysUsing", () => {
         // docs/php-parity/task-24-data-release-readiness.json,
-        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list"
+        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list", "diffKeysUsing-list"
         it("compares indexes with the callback and ignores values", () => {
             expect(Arr.diffKeysUsing([1, 2], { a: 1, 1: 5 }, sameKey)).toEqual([
                 1,
@@ -3821,7 +3826,7 @@ describe("Arr", () => {
     });
 
     describe("intersectUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using", "list"
         it("keeps the items the callback calls equal to some value of other", () => {
             expect(
                 Arr.intersectUsing(
@@ -4811,7 +4816,8 @@ describe("Arr", () => {
         });
 
         it("spreads a Collection-like row's items, not its own fields", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-map-spread-collection-row"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-spread-collection-row", "list"
             const rows = [collectionLike([1, "a"]), collectionLike([2, "b"])];
 
             expect(

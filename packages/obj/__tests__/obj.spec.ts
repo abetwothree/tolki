@@ -3051,7 +3051,9 @@ describe("Obj", () => {
         });
 
         it("compares a key path with an operator when a fourth argument follows", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "operator": the record-backed twin of the
+            // list-backed "contains-three-args-operator" row.
             const rows = {
                 a: { v: 1 },
                 b: { v: 3 },
@@ -3066,7 +3068,9 @@ describe("Obj", () => {
         });
 
         it("compares a key path loosely in the three-argument form", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "contains-two-args-key-value"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "key-value": the record-backed twin, which
+            // records the non-matching value too.
             const rows = { a: { v: 1 }, b: { v: 3 }, c: { v: 5 } };
 
             expect(Obj.contains(rows, "v", 1)).toBe(true);
@@ -3113,7 +3117,8 @@ describe("Obj", () => {
 
     describe("containsStrict", () => {
         it("compares by value with PHP's ===", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "containsStrict-numeric-string".
             expect(
                 Obj.containsStrict({ a: 1, b: 3, c: 5, d: "02" }, "02"),
             ).toBe(true);
@@ -3123,7 +3128,9 @@ describe("Obj", () => {
         });
 
         it("compares a key path strictly when a second argument is given", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "containsStrict-two-args": the task-23 row of
+            // that name records the same five calls over a LIST-backed Collection.
             expect(
                 Obj.containsStrict({ r: { tags: ["a", "b"] } }, "tags", [
                     "a",
@@ -3153,7 +3160,8 @@ describe("Obj", () => {
 
         it("ignores a callback match holding null, as first() does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json,
-            // "D2 containsStrict callback matching a null value"
+            // "D2 containsStrict callback matching a null value", "strict": the recorded
+            // call is (new Collection(['a' => null, 'b' => 1]))->containsStrict(...).
             expect(
                 Obj.containsStrict(
                     { a: null, b: 1 },
@@ -3254,7 +3262,7 @@ describe("Obj", () => {
     });
 
     describe("diffKeys", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys", "assoc"
         it("keeps the entries whose key other does not carry", () => {
             expect(
                 Obj.diffKeys(
@@ -3296,7 +3304,7 @@ describe("Obj", () => {
     });
 
     describe("diffUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", "assoc"
         it("drops the entries the callback calls equal to some value of other", () => {
             expect(
                 Obj.diffUsing(
@@ -3334,7 +3342,7 @@ describe("Obj", () => {
     });
 
     describe("intersectUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using", "assoc"
         it("keeps the entries the callback calls equal to some value of other", () => {
             expect(
                 Obj.intersectUsing(
@@ -4703,7 +4711,8 @@ describe("Obj", () => {
         });
 
         it("files a list return under its own indexes, letting the last row win", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-map-with-keys-list-return"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-with-keys-list-return", "arr-assoc" then "arr-single-row".
             expect(
                 Obj.mapWithKeys({ a: 1, b: 2 }, (value, key) => [
                     `key_${String(key)}`,
@@ -4838,7 +4847,9 @@ describe("Obj", () => {
         });
 
         it("casts its key the way PHP casts an array key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast"
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast",
+            // "float", "negative-float", "true" and "false"; task-24,
+            // "r3-prepend-extra-keys", "negative-float-above-minus-one" for the last.
             expect(Obj.prepend({ a: 1, 1: "x" }, "v", 1.5)).toEqual({
                 1: "v",
                 a: 1,
@@ -4855,6 +4866,8 @@ describe("Obj", () => {
                 0: "v",
                 a: 1,
             });
+            // A float between -1 and 0 truncates to PHP's key 0, not to "-0".
+            expect(Obj.prepend({ a: 1 }, "v", -0.5)).toEqual({ 0: "v", a: 1 });
         });
 
         it("keeps a symbol key as a symbol, as keyBy does", () => {
@@ -7559,7 +7572,9 @@ describe("Obj", () => {
         });
 
         it("spreads a Collection-like row's items, not its own fields", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-map-spread-collection-row"
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-spread-collection-row", "assoc": the record-backed sub-key, not the
+            // "list" one — Arr::mapSpread(['x' => new Collection([1, 'a'])], ...).
             const rows = {
                 x: collectionLike([1, "a"]),
                 y: collectionLike([2, "b"]),
@@ -8307,22 +8322,26 @@ describe("F-17 residual limits: what the runtime answers where the type disagree
     it("skips a class instance in collapse", () => {
         // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects",
         // "assoc-object-item": ['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]] answers
-        // {"a": 1}, and "only-object" answers [] — an object contributes nothing.
+        // {"a": 1}. task-24, "r3-assoc-backed-leaf-rules", "collapse-only-object-assoc":
+        // the record-backed twin of "only-object", which records a LIST of one object.
         expect(Obj.collapse({ g1: { a: 1 }, g2: new Pt() })).toEqual({ a: 1 });
         expect(Obj.collapse({ g2: new Pt() })).toEqual({});
     });
 
     it("keeps a class instance as one leaf in flatten", () => {
-        // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf",
-        // "map": Arr::flatten(['a' => $object, ...]) keeps $object itself as a leaf.
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "r3-assoc-backed-leaf-rules", "flatten-single-object-entry": Arr::flatten(['a' =>
+        // $o]) answers one leaf, the object itself. task-23's "flatten-object-leaf" "map"
+        // makes the same call with two further entries, so it records a count of 3.
         expect(Obj.flatten({ a: new Sized() })).toEqual([new Sized()]);
         expect(Obj.flatten({ a: new Sized() })[0]).toBeInstanceOf(Sized);
     });
 
     it("replaces a class instance whole in replaceRecursive", () => {
-        // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-object-leaf",
-        // "p": ['p' => (object) ['x' => 1]] under ['p' => ['y' => 2]] answers {"y": 2} —
-        // PHP recurses into two arrays only, so the object is replaced, never merged.
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "r3-assoc-backed-leaf-rules", "replaceRecursive-object-under-array": ['a' => $o]
+        // under ['a' => ['x' => 5]] answers {"a": {"x": 5}} — PHP recurses into two arrays
+        // only, so the object is replaced, never merged. task-23's "p" uses other inputs.
         expect(
             Obj.replaceRecursive({ a: new Sized() }, { a: { x: 5 } }),
         ).toEqual({ a: { x: 5 } });
@@ -8353,7 +8372,7 @@ describe("F-17 residual limits: what the runtime answers where the type disagree
         // docs/php-parity/task-24-data-release-readiness.json,
         // "d6-combine-key-cast-minus-zero-and-1e19": PHP stores "-0" and "1.0E+19",
         // neither of which TypeScript's own `${n}` spells that way.
-        expect(Object.keys(Obj.combine([-0, 1e19], ["a", "b"]))).toEqual([
+        expect(Object.keys(Obj.combine([-0, 1e19], [1, 2]))).toEqual([
             "-0",
             "1.0E+19",
         ]);

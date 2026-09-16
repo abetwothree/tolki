@@ -140,8 +140,9 @@ describe("obj write type tests", () => {
 
         it("replaces an existing integer key without collapsing the record", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "d6-prepend-existing-integer-key": Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)
-            // answers {"1": "z", "b": 2}, keys [1, "b"] — only key 1 is replaced.
+            // "d6-prepend-existing-integer-key" (key 1) and "r3-prepend-extra-keys",
+            // "existing-integer-key-2" (key 2). PHP lists the prepended key first; JS
+            // enumerates an integer-like key in ascending order, so only the values move.
             expectTypeOf(Obj.prepend({ 1: "a", b: 2 }, "z", 1)).toEqualTypeOf<{
                 1: string;
                 b: number;
@@ -166,8 +167,10 @@ describe("obj write type tests", () => {
         });
 
         it("keeps a float that truncates to minus zero on the wide-number row", () => {
-            // JS-only: PHP stores key "0" for -0.5, but "-0" names no TypeScript literal
-            // type, so the row stays as wide as it was before the truncation was modelled.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-prepend-extra-keys", "negative-float-above-minus-one": PHP stores key
+            // int:0 for -0.5. JS-only from there on: "-0" names no TypeScript literal
+            // type, so the row stays as wide as it was before truncation was modelled.
             expectTypeOf(Obj.prepend({ a: 1 }, "v", -0.5)).toEqualTypeOf<{
                 [x: `${number}`]: string;
                 a: number;

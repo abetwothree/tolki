@@ -766,19 +766,35 @@ describe("Utils", () => {
     });
 
     describe("operatorMatch", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
-        it("compares with each of PHP's where() operators", () => {
-            expect(Utils.operatorMatch("4", "=", 4)).toBe(true);
-            expect(Utils.operatorMatch("4", "==", 4)).toBe(true);
-            expect(Utils.operatorMatch("4", "===", 4)).toBe(false);
-            expect(Utils.operatorMatch(5, ">", 4)).toBe(true);
-            expect(Utils.operatorMatch(1, ">", 4)).toBe(false);
-            expect(Utils.operatorMatch("4", "!==", 4)).toBe(true);
-            expect(Utils.operatorMatch(1, "!=", 4)).toBe(true);
+        it("compares two equal numbers with each of PHP's eleven operators", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // "4 vs 4": the whole row, one assertion per recorded operator.
+            expect(Utils.operatorMatch(4, "=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "==", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "!=", 4)).toBe(false);
             expect(Utils.operatorMatch(4, "<>", 4)).toBe(false);
-            expect(Utils.operatorMatch(4, "<", 5)).toBe(true);
-            expect(Utils.operatorMatch(5, "<=", 5)).toBe(true);
-            expect(Utils.operatorMatch(5, ">=", 6)).toBe(false);
+            expect(Utils.operatorMatch(4, "<", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, ">", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, ">=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "===", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "!==", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<=>", 4)).toBe(false);
+        });
+
+        it("compares a number with its numeric string across the same eleven", () => {
+            // Same row, "4 vs \"4\"": only `===` and `!==` tell the two spellings apart.
+            expect(Utils.operatorMatch(4, "=", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "==", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "!=", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "<>", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "<", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, ">", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "<=", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, ">=", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "===", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "!==", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "<=>", "4")).toBe(false);
         });
 
         it("treats an unrecognised operator as PHP's switch default does", () => {

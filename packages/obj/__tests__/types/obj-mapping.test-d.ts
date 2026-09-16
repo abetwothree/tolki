@@ -80,8 +80,9 @@ describe("obj mapping type tests", () => {
 
         it("files a list return under its own indexes, as the fold does", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "d6-map-with-keys-list-return": ['a'=>1,'b'=>2] with a ["key_$k", $v*2]
-            // return answers ["key_b", 4], not a record keyed by the first member.
+            // "d6-map-with-keys-list-return", "arr-assoc": ['a'=>1,'b'=>2] with a
+            // ["key_$k", $v*2] return answers ["key_b", 4], not a record keyed by the
+            // first member. The positions are what the type pins; the values widen.
             expectTypeOf(
                 Obj.mapWithKeys(abc, (value, key) => [
                     `key_${String(key)}`,
