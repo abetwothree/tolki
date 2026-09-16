@@ -74,6 +74,13 @@ probe(
     'collect(new D8Arrayable)->all()',
     fn () => collect(new D8Arrayable)->all(),
 );
+// The same question one level down: a set operation's OPERAND. PHP never calls the
+// member, so the Closure stays a value and array_intersect's string cast kills it.
+probe(
+    'plain-object-toArray-member-as-an-operand-is-never-unwrapped',
+    "collect(['b' => 2, 'c' => 3])->intersect((object) ['toArray' => fn () => [9], 'b' => 2])",
+    fn () => collect(['b' => 2, 'c' => 3])->intersect((object) ['toArray' => fn () => [9], 'b' => 2])->all(),
+);
 
 // ==== F-15: Collection's key lookups are a literal array_key_exists, never a dot path.
 // ==== Recorded so the JS extension is documented against ground truth, not settled here.
@@ -293,5 +300,130 @@ probe('order-mixed-shift', "\$c = collect([2 => 'c', 'x' => 'a', 1 => 'b']); \$r
 probe('order-mixed-pad', "collect([2 => 'c', 'x' => 'a', 1 => 'b'])->pad(5, 'p')", fn () => d8Views(
     collect([2 => 'c', 'x' => 'a', 1 => 'b'])->pad(5, 'p'),
 ));
+
+// ==== F-25 Stage 2: the POSITIONAL READERS, which answer by insertion order, not by key ====
+probe('order-first', 'collect(base)->first()', fn () => collect(d8Base())->first());
+probe('order-last', 'collect(base)->last()', fn () => collect(d8Base())->last());
+probe('order-first-callback', "collect(base)->first(fn (\$v) => \$v !== 'c')", fn () => collect(d8Base())->first(fn ($v) => $v !== 'c'));
+probe('order-last-callback', "collect(base)->last(fn (\$v) => \$v !== 'b')", fn () => collect(d8Base())->last(fn ($v) => $v !== 'b'));
+probe('order-first-callback-key-order', '$c = collect(base); $c->first(recording $key)', function () {
+    $seen = [];
+    collect(d8Base())->first(function ($value, $key) use (&$seen) {
+        $seen[] = $key;
+
+        return false;
+    });
+
+    return $seen;
+});
+probe('order-first-no-match-default', "collect(base)->first(fn (\$v) => false, 'fallback')", fn () => collect(d8Base())->first(fn ($v) => false, 'fallback'));
+probe('order-last-no-match-default', "collect(base)->last(fn (\$v) => false, 'fallback')", fn () => collect(d8Base())->last(fn ($v) => false, 'fallback'));
+probe('order-slice', 'collect(base)->slice(1)', fn () => d8Views(collect(d8Base())->slice(1)));
+probe('order-slice-with-length', 'collect(base)->slice(1, 1)', fn () => d8Views(collect(d8Base())->slice(1, 1)));
+probe('order-slice-negative-offset', 'collect(base)->slice(-2)', fn () => d8Views(collect(d8Base())->slice(-2)));
+probe('order-slice-negative-length', 'collect(base)->slice(1, -1)', fn () => d8Views(collect(d8Base())->slice(1, -1)));
+probe('order-slice-offset-past-the-start', 'collect(base)->slice(-5, 1)', fn () => d8Views(collect(d8Base())->slice(-5, 1)));
+probe('order-slice-does-not-mutate', '$c = collect(base); $c->slice(1); $c', function () {
+    $c = collect(d8Base());
+    $c->slice(1);
+
+    return d8Views($c);
+});
+probe('order-skip', 'collect(base)->skip(1)', fn () => d8Views(collect(d8Base())->skip(1)));
+probe('order-take', 'collect(base)->take(2)', fn () => d8Views(collect(d8Base())->take(2)));
+probe('order-take-negative', 'collect(base)->take(-2)', fn () => d8Views(collect(d8Base())->take(-2)));
+probe('order-mixed-slice', "collect([2 => 'c', 'x' => 'a', 1 => 'b'])->slice(1)", fn () => d8Views(
+    collect([2 => 'c', 'x' => 'a', 1 => 'b'])->slice(1),
+));
+
+// ==== A read-only operation leaves the RECEIVER exactly as it found it, whatever the operand ====
+probe('order-union-leaves-the-receiver-alone', "\$c = collect([1, 2, 3]); \$c->union([7 => 'x', 3 => 'y']); \$c", function () {
+    $c = collect([1, 2, 3]);
+    $c->union([7 => 'x', 3 => 'y']);
+
+    return d8Views($c);
+});
+probe('order-diff-leaves-the-receiver-alone', "\$c = collect([1, 2, 3]); \$c->diff([7 => 'x', 3 => 'y']); \$c", function () {
+    $c = collect([1, 2, 3]);
+    $c->diff([7 => 'x', 3 => 'y']);
+
+    return d8Views($c);
+});
+probe('order-union-result', "collect([1, 2, 3])->union([7 => 'x', 3 => 'y'])", fn () => d8Views(
+    collect([1, 2, 3])->union([7 => 'x', 3 => 'y']),
+));
+
+// ==== `add`/`offsetSet(null)` append where PHP's `$array[] =` does: past the highest integer key ====
+probe('append-key-past-the-highest-integer-key', "\$c = collect([5 => 'a']); \$c->add('z')", function () {
+    $c = collect([5 => 'a']);
+    $c->add('z');
+
+    return d8Views($c);
+});
+probe('append-key-skips-an-occupied-slot', "\$c = collect(['x' => 1, 3 => 'b', 'y' => 2]); \$c->add('z')", function () {
+    $c = collect(['x' => 1, 3 => 'b', 'y' => 2]);
+    $c->add('z');
+
+    return d8Views($c);
+});
+probe('append-key-with-no-integer-key-is-zero', "\$c = collect(['a' => 1]); \$c->add('z')", function () {
+    $c = collect(['a' => 1]);
+    $c->add('z');
+
+    return d8Views($c);
+});
+probe('append-key-on-an-empty-collection-is-zero', "\$c = collect([]); \$c->add('z')", function () {
+    $c = collect([]);
+    $c->add('z');
+
+    return d8Views($c);
+});
+probe('append-key-on-the-out-of-order-base', "\$c = collect(base); \$c->add('z')", function () {
+    $c = collect(d8Base());
+    $c->add('z');
+
+    return d8Views($c);
+});
+probe('append-key-twice-keeps-counting-up', "\$c = collect([5 => 'a']); \$c->add('y'); \$c->add('z')", function () {
+    $c = collect([5 => 'a']);
+    $c->add('y');
+    $c->add('z');
+
+    return d8Views($c);
+});
+probe('append-key-offsetSet-null-matches-add', "\$c = collect([5 => 'a']); \$c->offsetSet(null, 'z')", function () {
+    $c = collect([5 => 'a']);
+    $c->offsetSet(null, 'z');
+
+    return d8Views($c);
+});
+// PHP 8.3+ counts on from a negative key too; the JS port floors the next key at 0 (see `add`).
+probe('append-key-after-a-negative-key', "\$c = collect([-3 => 'a']); \$c->add('z')", function () {
+    $c = collect([-3 => 'a']);
+    $c->add('z');
+
+    return d8Views($c);
+});
+
+// ==== the two writers D8's mutator sweep did not reach ====
+probe('order-pull', '$c = collect(base); $returned = $c->pull(0)', function () {
+    $c = collect(d8Base());
+    $returned = $c->pull(0);
+
+    return ['returned' => $returned] + d8Views($c);
+});
+// PHP has no Collection::set; ArrayAccess is the nearest analogue of the JS extension.
+probe('order-array-set-new-key', "\$c = collect(base); \$c['k'] = 'z'", function () {
+    $c = collect(d8Base());
+    $c['k'] = 'z';
+
+    return d8Views($c);
+});
+probe('order-array-set-existing-key', "\$c = collect(base); \$c[0] = 'z'", function () {
+    $c = collect(d8Base());
+    $c[0] = 'z';
+
+    return d8Views($c);
+});
 
 emit();

@@ -39,6 +39,12 @@
             ]
         },
         {
+            "label": "plain-object-toArray-member-as-an-operand-is-never-unwrapped",
+            "php": "collect(['b' => 2, 'c' => 3])->intersect((object) ['toArray' => fn () => [9], 'b' => 2])",
+            "threw": "Error",
+            "message": "Object of class Closure could not be converted to string"
+        },
+        {
             "label": "get-dot-path-is-a-literal-key",
             "php": "collect(['a' => ['b' => 1]])->get('a.b', 'fallback')",
             "value": "fallback"
@@ -838,6 +844,508 @@
                     1,
                     2,
                     3
+                ]
+            }
+        },
+        {
+            "label": "order-first",
+            "php": "collect(base)->first()",
+            "value": "c"
+        },
+        {
+            "label": "order-last",
+            "php": "collect(base)->last()",
+            "value": "b"
+        },
+        {
+            "label": "order-first-callback",
+            "php": "collect(base)->first(fn ($v) => $v !== 'c')",
+            "value": "a"
+        },
+        {
+            "label": "order-last-callback",
+            "php": "collect(base)->last(fn ($v) => $v !== 'b')",
+            "value": "a"
+        },
+        {
+            "label": "order-first-callback-key-order",
+            "php": "$c = collect(base); $c->first(recording $key)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "order-first-no-match-default",
+            "php": "collect(base)->first(fn ($v) => false, 'fallback')",
+            "value": "fallback"
+        },
+        {
+            "label": "order-last-no-match-default",
+            "php": "collect(base)->last(fn ($v) => false, 'fallback')",
+            "value": "fallback"
+        },
+        {
+            "label": "order-slice",
+            "php": "collect(base)->slice(1)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-slice-with-length",
+            "php": "collect(base)->slice(1, 1)",
+            "value": {
+                "all": [
+                    "a"
+                ],
+                "values": [
+                    "a"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-slice-negative-offset",
+            "php": "collect(base)->slice(-2)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-slice-negative-length",
+            "php": "collect(base)->slice(1, -1)",
+            "value": {
+                "all": [
+                    "a"
+                ],
+                "values": [
+                    "a"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-slice-offset-past-the-start",
+            "php": "collect(base)->slice(-5, 1)",
+            "value": {
+                "all": {
+                    "2": "c"
+                },
+                "values": [
+                    "c"
+                ],
+                "keys": [
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-slice-does-not-mutate",
+            "php": "$c = collect(base); $c->slice(1); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-skip",
+            "php": "collect(base)->skip(1)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-take",
+            "php": "collect(base)->take(2)",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a"
+                },
+                "values": [
+                    "c",
+                    "a"
+                ],
+                "keys": [
+                    2,
+                    0
+                ]
+            }
+        },
+        {
+            "label": "order-take-negative",
+            "php": "collect(base)->take(-2)",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-mixed-slice",
+            "php": "collect([2 => 'c', 'x' => 'a', 1 => 'b'])->slice(1)",
+            "value": {
+                "all": {
+                    "x": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    "x",
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-union-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->union([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-diff-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->diff([7 => 'x', 3 => 'y']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "order-union-result",
+            "php": "collect([1, 2, 3])->union([7 => 'x', 3 => 'y'])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "7": "x",
+                    "3": "y"
+                },
+                "values": [
+                    1,
+                    2,
+                    3,
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    7,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "append-key-past-the-highest-integer-key",
+            "php": "$c = collect([5 => 'a']); $c->add('z')",
+            "value": {
+                "all": {
+                    "5": "a",
+                    "6": "z"
+                },
+                "values": [
+                    "a",
+                    "z"
+                ],
+                "keys": [
+                    5,
+                    6
+                ]
+            }
+        },
+        {
+            "label": "append-key-skips-an-occupied-slot",
+            "php": "$c = collect(['x' => 1, 3 => 'b', 'y' => 2]); $c->add('z')",
+            "value": {
+                "all": {
+                    "x": 1,
+                    "3": "b",
+                    "y": 2,
+                    "4": "z"
+                },
+                "values": [
+                    1,
+                    "b",
+                    2,
+                    "z"
+                ],
+                "keys": [
+                    "x",
+                    3,
+                    "y",
+                    4
+                ]
+            }
+        },
+        {
+            "label": "append-key-with-no-integer-key-is-zero",
+            "php": "$c = collect(['a' => 1]); $c->add('z')",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "z"
+                },
+                "values": [
+                    1,
+                    "z"
+                ],
+                "keys": [
+                    "a",
+                    0
+                ]
+            }
+        },
+        {
+            "label": "append-key-on-an-empty-collection-is-zero",
+            "php": "$c = collect([]); $c->add('z')",
+            "value": {
+                "all": [
+                    "z"
+                ],
+                "values": [
+                    "z"
+                ],
+                "keys": [
+                    0
+                ]
+            }
+        },
+        {
+            "label": "append-key-on-the-out-of-order-base",
+            "php": "$c = collect(base); $c->add('z')",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "3": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "append-key-twice-keeps-counting-up",
+            "php": "$c = collect([5 => 'a']); $c->add('y'); $c->add('z')",
+            "value": {
+                "all": {
+                    "5": "a",
+                    "6": "y",
+                    "7": "z"
+                },
+                "values": [
+                    "a",
+                    "y",
+                    "z"
+                ],
+                "keys": [
+                    5,
+                    6,
+                    7
+                ]
+            }
+        },
+        {
+            "label": "append-key-offsetSet-null-matches-add",
+            "php": "$c = collect([5 => 'a']); $c->offsetSet(null, 'z')",
+            "value": {
+                "all": {
+                    "5": "a",
+                    "6": "z"
+                },
+                "values": [
+                    "a",
+                    "z"
+                ],
+                "keys": [
+                    5,
+                    6
+                ]
+            }
+        },
+        {
+            "label": "append-key-after-a-negative-key",
+            "php": "$c = collect([-3 => 'a']); $c->add('z')",
+            "value": {
+                "all": {
+                    "-3": "a",
+                    "-2": "z"
+                },
+                "values": [
+                    "a",
+                    "z"
+                ],
+                "keys": [
+                    -3,
+                    -2
+                ]
+            }
+        },
+        {
+            "label": "order-pull",
+            "php": "$c = collect(base); $returned = $c->pull(0)",
+            "value": {
+                "returned": "a",
+                "all": {
+                    "2": "c",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "order-array-set-new-key",
+            "php": "$c = collect(base); $c['k'] = 'z'",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "k": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    "k"
+                ]
+            }
+        },
+        {
+            "label": "order-array-set-existing-key",
+            "php": "$c = collect(base); $c[0] = 'z'",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "z",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "z",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
                 ]
             }
         }
