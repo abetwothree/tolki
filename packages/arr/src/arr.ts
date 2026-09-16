@@ -219,8 +219,9 @@ function copyAlongPath(
     let cursor = root as unknown as Record<string, unknown>;
 
     for (const segment of throughLeaf ? segments : segments.slice(0, -1)) {
-        // An absent or non-container child is replaced wholesale, so nothing of
-        // the caller's own value survives below this point to be written into.
+        // The bail below must stay in step with setMixed's own descend test: it
+        // replaces an absent or non-container child wholesale, so nothing of the
+        // caller's value survives below this point to be written into.
         if (!Object.hasOwn(cursor, segment)) {
             return root;
         }

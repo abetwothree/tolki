@@ -137,6 +137,22 @@ describe("Arr", () => {
             expect(list).toEqual([100]);
         });
 
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-nested-object-is-replaced-wholesale": Arr::set descends by is_array,
+            // so the write lands on a fresh container and the instance is left whole.
+            const point = new Point();
+            const [first] = Arr.add([point], "0.z", 3) as unknown[];
+
+            expect(first).toEqual({ z: 3 });
+            expect(first).not.toBe(point);
+            expect(first).not.toBeInstanceOf(Point);
+            expect(Object.entries(point)).toEqual([
+                ["x", 1],
+                ["y", 2],
+            ]);
+        });
+
         it("keeps a descended list's own non-index key", () => {
             // JS-only: PHP holds "" as a real array key, so no Arr::add call can record
             // this; the port stores it as the list's own property and the copy step used

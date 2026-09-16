@@ -119,6 +119,21 @@ describe("Obj", () => {
             assertType<{ name: string }>(result);
         });
 
+        it("merges onto a nested class instance instead of replacing it", () => {
+            // JS-only divergence, pinned so it is not mistaken for parity: PHP replaces
+            // the object wholesale (task-24-data-release-readiness.json, "add-assoc-
+            // nested-object-is-replaced-wholesale" answers {a: {y: 2}}). arr.add does not.
+            const point = new Point();
+            const result = Obj.add({ a: point }, "a.z", 3);
+
+            expect(result).toEqual({ a: { x: 1, y: 2, z: 3 } });
+            expect(result.a).not.toBe(point);
+            expect(Object.entries(point)).toEqual([
+                ["x", 1],
+                ["y", 2],
+            ]);
+        });
+
         it("should preserve type when nested key exists", () => {
             const obj = { user: { name: "John", age: 25 } };
             const result = Obj.add(obj, "user.age", 30);

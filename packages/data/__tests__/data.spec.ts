@@ -80,6 +80,27 @@ describe("Data", () => {
             expect(inner).toEqual({ z: 1 });
         });
 
+        it("answers each backing's own rule for a nested class instance", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "add-nested-object-is-
+            // replaced-wholesale" and "add-assoc-nested-object-is-replaced-wholesale": the
+            // list backing matches PHP; the record backing merges instead, as obj.add does.
+            const listItem = new Point();
+            const recordItem = new Point();
+
+            expect(Data.dataAdd([listItem], "0.z", 3)).toEqual([{ z: 3 }]);
+            expect(Data.dataAdd({ a: recordItem }, "a.z", 3)).toEqual({
+                a: { x: 1, y: 2, z: 3 },
+            });
+            expect(Object.entries(listItem)).toEqual([
+                ["x", 1],
+                ["y", 2],
+            ]);
+            expect(Object.entries(recordItem)).toEqual([
+                ["x", 1],
+                ["y", 2],
+            ]);
+        });
+
         it("materializes a Set backing and answers from arr.add", () => {
             // JS-only: PHP has no Set, and Arr::add takes an array, so no PHP call records
             // this. The type follows obj here; only the runtime follows arr.

@@ -2136,6 +2136,55 @@
             }
         },
         {
+            "label": "add-nested-object-is-replaced-wholesale",
+            "php": "$src = [new D4Point(1)]; Arr::add($src, '0.y', 2)",
+            "value": {
+                "source": [
+                    {
+                        "x": 1
+                    }
+                ],
+                "source_type": "D4Point",
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "add-assoc-nested-object-is-replaced-wholesale",
+            "php": "$src = ['a' => new D4Point(1)]; Arr::add($src, 'a.y', 2)",
+            "value": {
+                "source": {
+                    "a": {
+                        "x": 1
+                    }
+                },
+                "source_type": "D4Point",
+                "result": {
+                    "a": {
+                        "y": 2
+                    }
+                },
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "add-nested-arrayaccess-is-replaced-wholesale",
+            "php": "$src = [new ArrayObject(['z' => 1])]; Arr::add($src, '0.y', 2)",
+            "value": {
+                "source_count": 1,
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
+        },
+        {
             "label": "push-integer-key-mutates-the-caller-by-reference",
             "php": "$src = [['x']]; Arr::push($src, 0, 'y')",
             "value": {

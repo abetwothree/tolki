@@ -1317,6 +1317,19 @@ export function getMixedValue<TValue, TDefault = null>(
  */
 
 /**
+ * Determine whether a path segment's value is a container a write descends into.
+ *
+ * `Arr::set` tests `is_array`, so a class instance, `Date` or `Map` is not a
+ * container: the write replaces it wholesale rather than merging onto it.
+ *
+ * @param value - The value found at a path segment.
+ * @returns True when the value is a list or a plain object.
+ */
+function isWritableContainer(value: unknown): boolean {
+    return isArray(value) || isPlainObject(value);
+}
+
+/**
  * Set a value in an array using mixed array/object dot notation (mutable version).
  * Supports both numeric array indices and object property names in paths.
  *
@@ -1397,11 +1410,7 @@ export function setMixed<TValue>(
 
             // If the next level doesn't exist or isn't an object/array, create it
             const nextValue = current[segment];
-            if (
-                isNull(nextValue) ||
-                isUndefined(nextValue) ||
-                !isObjectAny(nextValue)
-            ) {
+            if (!isWritableContainer(nextValue)) {
                 current[segment] = (isNumber(nextSegment) ? [] : {}) as TValue;
             }
 
@@ -1419,11 +1428,7 @@ export function setMixed<TValue>(
                 unsafe && !Object.hasOwn(obj, property)
                     ? undefined
                     : obj[property];
-            if (
-                isNull(nextValue) ||
-                isUndefined(nextValue) ||
-                !isObjectAny(nextValue)
-            ) {
+            if (!isWritableContainer(nextValue)) {
                 defineKey(
                     obj,
                     property,
