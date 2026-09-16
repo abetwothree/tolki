@@ -91,6 +91,7 @@ import {
     phpArrayKey,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
+    resolveSliceRange,
     strictEqual,
     toArrayable,
     toJsonable,
@@ -1004,6 +1005,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
     ): TValue | TFirstDefault | null {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.firstOrdered(ordered, callback, defaultValue);
+        }
+
         return dataFirst(
             this.items,
             // `this.items` is a union, so the call lands on obj's widest row, whose
@@ -1841,10 +1848,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
     keys(): Collection<TKey, number> {
+        const ordered = this.orderedEntries();
+
         // If we have preserved order for numeric keys, use it
-        if (this.itemsWithOrder) {
+        if (ordered) {
             return this.newInstance(
-                this.itemsWithOrder.map(([key]) => key),
+                ordered.map(([key]) => key),
             ) as unknown as Collection<TKey, number>;
         }
 
@@ -1871,6 +1880,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback?: ((value: TValue, key: TKey) => boolean) | null,
         defaultValue?: D | (() => D),
     ): TValue | D | null {
+        const ordered = this.orderedEntries();
+
+        // array_reverse then reset: `last` is `first` over the entries read backwards.
+        if (ordered) {
+            return this.firstOrdered(
+                [...ordered].reverse(),
+                callback,
+                defaultValue,
+            );
+        }
+
         const result = dataLast(
             this.items,
             // Same as `first`: obj's widest row takes an `unknown`-valued callback.
@@ -2030,16 +2050,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
-        const entries: Array<[TKey, TValue]> = this.itemsWithOrder
-            ? this.itemsWithOrder
-            : isArray(this.items)
-              ? Object.entries(this.items).map(
-                    ([key, value]) =>
-                        [phpArrayKey(key), value] as unknown as [TKey, TValue],
-                )
-              : (Object.entries(this.items) as unknown as Array<
-                    [TKey, TValue]
-                >);
+        const entries: Array<[TKey, TValue]> =
+            this.orderedEntries() ??
+            (isArray(this.items)
+                ? Object.entries(this.items).map(
+                      ([key, value]) =>
+                          [phpArrayKey(key), value] as unknown as [
+                              TKey,
+                              TValue,
+                          ],
+                  )
+                : (Object.entries(this.items) as unknown as Array<
+                      [TKey, TValue]
+                  >));
 
         const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
 
@@ -2295,9 +2318,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         let position = 0;
 
-        // Use itemsWithOrder when available to preserve numeric key insertion order
-        const entries = this.itemsWithOrder
-            ? this.itemsWithOrder.slice(offset)
+        // Use the ordered entries when available to preserve numeric key insertion order
+        const ordered = this.orderedEntries();
+        const entries = ordered
+            ? ordered.slice(offset)
             : Object.entries(this.slice(offset).all() as Record<TKey, TValue>);
 
         for (const [, value] of entries) {
@@ -2395,12 +2419,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        if (this.itemsWithOrder) {
-            const kept = this.itemsWithOrder.slice(
-                0,
-                Math.max(this.itemsWithOrder.length - count, 0),
-            );
-            const removed = this.itemsWithOrder
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            const kept = ordered.slice(0, Math.max(ordered.length - count, 0));
+            const removed = ordered
                 .slice(kept.length)
                 .map(([, value]) => value)
                 .reverse();
@@ -2469,7 +2492,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
      */
     prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
-        if (this.itemsWithOrder) {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
             if (arguments.length > 1) {
                 // `[$key => $value] + $array`: the new pair leads, and wins its key outright.
                 const ownKey = phpArrayKey(key ?? null);
@@ -2477,16 +2502,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 this.setOrderedItems(
                     [
                         [ownKey, value as unknown as TValue],
-                        ...this.itemsWithOrder.filter(
+                        ...ordered.filter(
                             ([existing]) => String(existing) !== String(ownKey),
                         ),
                     ],
                     false,
                 );
             } else {
-                this.unshiftOrdered(this.itemsWithOrder, [
-                    value as unknown as TValue,
-                ]);
+                this.unshiftOrdered(ordered, [value as unknown as TValue]);
             }
 
             return this;
@@ -2559,13 +2582,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     unshift<T>(...values: T[]) {
         // Arrays stay on the built-in unshift, which keeps the undefined items Arr.unshift drops;
         // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
+        const ordered = this.orderedEntries();
+
         if (isArray(this.items)) {
             this.items.unshift(...(values as unknown as TValue[]));
-        } else if (this.itemsWithOrder) {
-            this.unshiftOrdered(
-                this.itemsWithOrder,
-                values as unknown as TValue[],
-            );
+        } else if (ordered) {
+            this.unshiftOrdered(ordered, values as unknown as TValue[]);
         } else {
             dataUnshift(this.items, ...values);
         }
@@ -2942,12 +2964,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        if (this.itemsWithOrder) {
-            const removed = this.itemsWithOrder
-                .slice(0, count)
-                .map(([, value]) => value);
+        const ordered = this.orderedEntries();
 
-            this.setOrderedItems(this.itemsWithOrder.slice(count), true);
+        if (ordered) {
+            const removed = ordered.slice(0, count).map(([, value]) => value);
+
+            this.setOrderedItems(ordered.slice(count), true);
 
             if (count === 1) {
                 return removed[0] as TValue;
@@ -3048,6 +3070,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
      */
     slice(offset: number, length: number | null = null) {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            const { start, end } = resolveSliceRange(
+                ordered.length,
+                offset,
+                length,
+            );
+
+            // array_slice($items, $offset, $length, true): positional, and keys survive.
+            return this.newInstance(new Map(ordered.slice(start, end)));
+        }
+
         return this.newInstance(dataSlice(this.items, offset, length));
     }
 
@@ -3681,9 +3716,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 ? [this.getRawItems(replacement)]
                 : ([] as []);
 
-        if (this.itemsWithOrder) {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
             return this.spliceOrdered(
-                this.itemsWithOrder,
+                ordered,
                 offset,
                 length,
                 replacementItems.flatMap(
@@ -3871,11 +3908,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
     values() {
-        // Use itemsWithOrder when available to preserve numeric key insertion order
-        if (this.itemsWithOrder) {
-            return this.newInstance(
-                this.itemsWithOrder.map(([, value]) => value),
-            );
+        // Use the ordered entries when available to preserve numeric key insertion order
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.newInstance(ordered.map(([, value]) => value));
         }
 
         return this.newInstance(dataValues(this.items));
@@ -3955,10 +3992,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
      */
     pad<TPadValue>(size: number, value: TPadValue) {
-        if (this.itemsWithOrder) {
-            return this.newInstance(
-                this.padOrdered(this.itemsWithOrder, size, value),
-            );
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.newInstance(this.padOrdered(ordered, size, value));
         }
 
         return this.newInstance(dataPad(this.items, size, value));
@@ -5883,11 +5920,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Rebuild the insertion order after a mutation that wrote the backing in place.
+     * Reconcile an insertion order against what the backing actually holds now.
      *
-     * @param previous - The order the backing carried before the mutation
+     * @param previous - The order the backing carried before
+     * @returns The entries the backing holds, in that order
      */
-    protected reorderAfterMutation(previous: Array<[TKey, TValue]>): void {
+    protected orderedFrom(
+        previous: Array<[TKey, TValue]>,
+    ): Array<[TKey, TValue]> {
         const items = this.items as Record<string, TValue>;
         const ordered: Array<[TKey, TValue]> = [];
         const placed = new Set<string>();
@@ -5908,7 +5948,51 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        this.itemsWithOrder = ordered;
+        return ordered;
+    }
+
+    /**
+     * Rebuild the insertion order after a mutation that wrote the backing in place.
+     *
+     * @param previous - The order the backing carried before the mutation
+     */
+    protected reorderAfterMutation(previous: Array<[TKey, TValue]>): void {
+        this.itemsWithOrder = this.orderedFrom(previous);
+    }
+
+    /**
+     * The first entry of an ordered list that passes the test, as PHP's `first` does.
+     *
+     * @param ordered - The entries to walk, in the order they answer
+     * @param callback - The test each entry must pass, or null for the leading entry
+     * @param defaultValue - What to answer when nothing passes, resolved if it is a thunk
+     * @returns The matching value, or the resolved default
+     */
+    protected firstOrdered<TFirstDefault>(
+        ordered: Array<[TKey, TValue]>,
+        callback?: ((value: TValue, key: TKey) => boolean) | null,
+        defaultValue?: TFirstDefault | (() => TFirstDefault),
+    ): TValue | TFirstDefault | null {
+        const match = callback
+            ? ordered.find(([key, value]) => callback(value, key))
+            : ordered[0];
+
+        // An empty backing defers to dataFirst, so the thunk-or-value default resolves in one place.
+        return match
+            ? match[1]
+            : (dataFirst([], null, defaultValue) as TFirstDefault | null);
+    }
+
+    /**
+     * The entries this collection holds, in the order PHP keeps them.
+     *
+     * Reconciled on every read, so a writer that does not rebuild the view cannot make a
+     * reader answer with an entry the backing has dropped or miss one it has gained.
+     *
+     * @returns The ordered entries, or undefined when the backing object already holds the order
+     */
+    protected orderedEntries(): Array<[TKey, TValue]> | undefined {
+        return this.itemsWithOrder && this.orderedFrom(this.itemsWithOrder);
     }
 
     /**

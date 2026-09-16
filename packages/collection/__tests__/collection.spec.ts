@@ -12027,6 +12027,204 @@ describe("Collection", () => {
         });
     });
 
+    // The positional readers answer by POSITION, so they read the ordered pairs; reading the
+    // re-sorted object instead made them answer by key, which is a different entry entirely.
+    describe("a Map-built backing answers the positional readers in order", () => {
+        /** The PHP array `[2 => 'c', 0 => 'a', 1 => 'b']`, which only a Map expresses in JS. */
+        const outOfOrder = () =>
+            new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+        /** The three views every probe row records, in one comparable object. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ) => ({
+            all: collection.all(),
+            values: collection.values().all(),
+            keys: collection.keys().all(),
+        });
+
+        it("first answers the entry written first, not the lowest key", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-first"
+            expect(collect(outOfOrder()).first()).toBe("c");
+        });
+
+        it("last answers the entry written last, not the highest key", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-last"
+            expect(collect(outOfOrder()).last()).toBe("b");
+        });
+
+        it("first and last walk the callback in insertion order", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-first-callback"
+            expect(collect(outOfOrder()).first((value) => value !== "c")).toBe(
+                "a",
+            );
+
+            // docs/php-parity/task-26-collection-order.json, "order-last-callback"
+            expect(collect(outOfOrder()).last((value) => value !== "b")).toBe(
+                "a",
+            );
+
+            const seen: number[] = [];
+            collect(outOfOrder()).first((_value, key) => {
+                seen.push(key);
+
+                return false;
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-first-callback-key-order"
+            expect(seen).toEqual([2, 0, 1]);
+        });
+
+        it("first and last resolve the default when nothing matches", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-first-no-match-default"
+            expect(collect(outOfOrder()).first(() => false, "fallback")).toBe(
+                "fallback",
+            );
+
+            // docs/php-parity/task-26-collection-order.json, "order-last-no-match-default"
+            expect(collect(outOfOrder()).last(() => false, "fallback")).toBe(
+                "fallback",
+            );
+
+            // JS-only: PHP's `value()` unwraps a Closure default; so does this port's.
+            expect(
+                collect(outOfOrder()).first(
+                    () => false,
+                    () => "thunk",
+                ),
+            ).toBe("thunk");
+        });
+
+        it("slice takes by position and keeps the keys it took", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-slice"
+            expect(views(collect(outOfOrder()).slice(1))).toEqual({
+                all: { 0: "a", 1: "b" },
+                values: ["a", "b"],
+                keys: [0, 1],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-slice-with-length"
+            expect(views(collect(outOfOrder()).slice(1, 1))).toEqual({
+                all: { 0: "a" },
+                values: ["a"],
+                keys: [0],
+            });
+        });
+
+        it("slice reads a negative offset and a negative length as array_slice does", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-slice-negative-offset"
+            expect(views(collect(outOfOrder()).slice(-2))).toEqual({
+                all: { 0: "a", 1: "b" },
+                values: ["a", "b"],
+                keys: [0, 1],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-slice-negative-length"
+            expect(views(collect(outOfOrder()).slice(1, -1))).toEqual({
+                all: { 0: "a" },
+                values: ["a"],
+                keys: [0],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-slice-offset-past-the-start"
+            expect(views(collect(outOfOrder()).slice(-5, 1))).toEqual({
+                all: { 2: "c" },
+                values: ["c"],
+                keys: [2],
+            });
+        });
+
+        it("slice leaves the source collection alone", () => {
+            const collection = collect(outOfOrder());
+            collection.slice(1);
+
+            // docs/php-parity/task-26-collection-order.json, "order-slice-does-not-mutate"
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+
+        it("slice keeps a string key sitting among the integers", () => {
+            const collection = collect(
+                new Map<number | string, string>([
+                    [2, "c"],
+                    ["x", "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // docs/php-parity/task-26-collection-order.json, "order-mixed-slice"
+            expect(views(collection.slice(1))).toEqual({
+                all: { x: "a", 1: "b" },
+                values: ["a", "b"],
+                keys: ["x", 1],
+            });
+        });
+
+        it("skip and take ride on the same ordered slice", () => {
+            // docs/php-parity/task-26-collection-order.json, "order-skip"
+            expect(views(collect(outOfOrder()).skip(1))).toEqual({
+                all: { 0: "a", 1: "b" },
+                values: ["a", "b"],
+                keys: [0, 1],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-take"
+            expect(views(collect(outOfOrder()).take(2))).toEqual({
+                all: { 0: "a", 2: "c" },
+                values: ["c", "a"],
+                keys: [2, 0],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-take-negative"
+            expect(views(collect(outOfOrder()).take(-2))).toEqual({
+                all: { 0: "a", 1: "b" },
+                values: ["a", "b"],
+                keys: [0, 1],
+            });
+        });
+
+        it("pull drops its key from every view", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-pull"
+            expect(collection.pull(0)).toBe("a");
+            expect(views(collection)).toEqual({
+                all: { 1: "b", 2: "c" },
+                values: ["c", "b"],
+                keys: [2, 1],
+            });
+        });
+
+        it("set appends a new key last and updates an existing one in place", () => {
+            const added = collect(outOfOrder());
+            added.set("k", "z");
+
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key"
+            expect(views(added)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", k: "z" },
+                values: ["c", "a", "b", "z"],
+                keys: [2, 0, 1, "k"],
+            });
+
+            const updated = collect(outOfOrder());
+            updated.set(0, "z");
+
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key"
+            expect(views(updated)).toEqual({
+                all: { 0: "z", 1: "b", 2: "c" },
+                values: ["c", "z", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+    });
+
     // `add` appended at the COUNT, which is not a free key: on `{x: 1, 3: 'b', y: 2}` the
     // count is 3, so the append overwrote an entry that was already there.
     describe("a null key appends where PHP's $array[] = does", () => {
