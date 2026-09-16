@@ -1718,8 +1718,9 @@ export const dataMap = dispatch(arrMap, objMap);
  * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  * dataFirst(new Map([['a', 1], ['b', 2]])); -> 1
  */
-// A Set or generator must reach `arrFirst` UNREAD, so an infinite generator still answers;
-// this normalises with `toPositionalData` rather than the materialising default.
+// A Set or generator reaches `arrFirst` UNREAD via `toPositionalData`, so a callback-less call
+// answers an infinite generator; given a callback `arrFirst` materialises, so that form still
+// needs a finite backing.
 export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
 
 /**
@@ -1738,8 +1739,8 @@ export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
  * Data.last({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
  * Data.last(new Map([['a', 1], ['b', 2]])); -> 2
  */
-// A Set or generator must reach `arrLast` UNREAD, so an infinite generator still answers;
-// this normalises with `toPositionalData` rather than the materialising default.
+// A Set or generator reaches `arrLast` UNREAD via `toPositionalData`, but `last` has to walk to
+// the end whatever it is handed, so the backing must still be finite.
 export const dataLast = dispatch(arrLast, objLast, toPositionalData);
 
 /**

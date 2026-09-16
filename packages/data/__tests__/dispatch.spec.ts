@@ -59,8 +59,8 @@ describe("dispatch with a positional normalizer", () => {
     it("differs from the default normalizer on a Set", () => {
         const set = new Set([7, 8]);
 
-        // The default materializes a Set; the streaming form hands the Set itself on, so
-        // an infinite generator is never read past the item first/last needs.
+        // The default materializes a Set; the streaming form hands the Set itself on, so a
+        // callback-less `first` never reads an infinite generator past its first item.
         expect(toPositionalData(set)).toBe(set);
         expect(toPositionalBacking(set)).toEqual([7, 8]);
         expect(dFirstDefault(set)).toBe(7);

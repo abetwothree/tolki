@@ -3855,8 +3855,9 @@ describe("Data", () => {
                     yield 300;
                 })();
 
-            // Guards the streaming normalizer these four pass explicitly: it hands the Set
-            // or generator on UNREAD, so an infinite generator still answers.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set or
+            // generator on UNREAD, so a callback-less call answers an infinite generator; given a
+            // callback `arrFirst` materialises, so that form still needs a finite backing.
             expect(Data.dataFirst(items())).toBe(100);
             expect(Data.dataFirst(items(), (value) => value > 150)).toBe(200);
             expect(Data.dataFirst(new Set([100, 200]))).toBe(100);
@@ -3935,8 +3936,9 @@ describe("Data", () => {
                     yield 300;
                 })();
 
-            // Guards the streaming normalizer these four pass explicitly: it hands the Set
-            // or generator on UNREAD, so an infinite generator still answers.
+            // Guards the streaming normalizer these four pass explicitly: it hands the Set or
+            // generator on UNREAD, but `last` has to walk to the end whatever it is handed, so the
+            // backing must still be finite.
             expect(Data.dataLast(items())).toBe(300);
             expect(Data.dataLast(items(), (value) => value < 300)).toBe(200);
             expect(Data.dataLast(new Set([100, 200]))).toBe(200);
