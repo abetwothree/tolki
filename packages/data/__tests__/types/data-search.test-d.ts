@@ -9,6 +9,9 @@ import {
     unionItems,
 } from "./fixtures";
 
+/** A record whose keys survive `entriesKeyValue` differently: "10" becomes 10, "foo" does not. */
+const numericKeyedRecord = { "10": "x", foo: "y" };
+
 describe("data search type tests", () => {
     describe("dataSearch", () => {
         it("returns the index or false for a list", () => {
@@ -18,11 +21,20 @@ describe("data search type tests", () => {
             >();
         });
 
-        it("returns the literal key or false for a record", () => {
-            // JS-only: as above.
+        it("returns the literal key, an index or false for a record", () => {
+            // JS-only: `entriesKeyValue` turns a numeric-string key into a number, so the
+            // record row answers an index too, exactly as the list and union rows do.
             expectTypeOf(Data.dataSearch(abc, 2)).toEqualTypeOf<
-                "a" | "b" | "c" | false
+                "a" | "b" | "c" | number | false
             >();
+        });
+
+        it("answers a numeric-string-keyed record with a number", () => {
+            // JS-only: the runtime answers 10 for { "10": "x" }, not "10", so a row without
+            // `number` would be unsound. That is the whole reason the row is this wide.
+            expectTypeOf(
+                Data.dataSearch(numericKeyedRecord, "x"),
+            ).toEqualTypeOf<"10" | "foo" | number | false>();
         });
 
         it("infers the callback's value and key", () => {
@@ -51,7 +63,7 @@ describe("data search type tests", () => {
                 number | false
             >();
             expectTypeOf(Data.dataSearch(abc, 2, true)).toEqualTypeOf<
-                "a" | "b" | "c" | false
+                "a" | "b" | "c" | number | false
             >();
         });
 

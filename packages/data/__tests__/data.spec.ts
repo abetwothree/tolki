@@ -2327,6 +2327,13 @@ describe("Data", () => {
             );
         });
 
+        it("returns a number for a numeric-string key on the object backing", () => {
+            // JS-only: `entriesKeyValue` converts the key, so the record row must admit a
+            // number. PHP has no string-keyed "10" to cast, so no probe records this.
+            expect(Data.dataSearch({ "10": "x", foo: "y" }, "x")).toBe(10);
+            expect(Data.dataSearch({ "10": "x", foo: "y" }, "y")).toBe("foo");
+        });
+
         it("returns false when nothing matches, by value or by callback", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "search-not-found", "search-callback-not-found"

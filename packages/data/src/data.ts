@@ -1025,12 +1025,12 @@ export function dataSearch<TValue>(
     value: TValue | string | number | ((item: TValue, key: number) => boolean),
     strict?: boolean,
 ): number | false;
-// Overload: keyed backing, whose key is the record's own
+// Overload: keyed backing, whose numeric-string key comes back as a number
 export function dataSearch<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict?: boolean,
-): TKey | false;
+): TKey | number | false;
 // Overload: the package's own canonical input, whose list half answers an index
 export function dataSearch<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
