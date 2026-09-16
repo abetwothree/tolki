@@ -76,6 +76,7 @@ import {
     ItemNotFoundException,
     looseEqual,
     MultipleItemsFoundException,
+    operatorMatch,
     phpArrayKey,
     phpTypeName,
     phpValueMatch,
@@ -4770,11 +4771,47 @@ export function contains(
     value: unknown,
     strict?: boolean,
 ): boolean;
+// Overload: PHP's key/operator/value form — `contains('age', '>', 30)`. A callable key
+// is the predicate itself, as `operatorForWhere` treats one, so the rest is ignored.
+export function contains<TValue>(
+    data: unknown,
+    key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
+    operator: string,
+    value: unknown,
+): boolean;
+// Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison
+export function contains<TValue>(
+    data: unknown,
+    key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
+    value: unknown,
+): boolean;
 export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
     value: TValue | ((value: TValue, key: PropertyKey) => boolean),
-    strict = false,
+    ...rest: readonly unknown[]
 ): boolean {
+    // PHP overloads on func_num_args(); this port's third parameter is `strict`, so the
+    // operator form is taken only when a non-boolean lands there or a fourth follows.
+    const [third, fourth] = rest;
+
+    if (
+        rest.length > 1 ||
+        (rest.length === 1 && !isBoolean(third) && !isUndefined(third))
+    ) {
+        const operator = rest.length > 1 ? String(third) : "=";
+
+        return contains(
+            data,
+            operatorPredicate<TValue>(
+                value,
+                operator,
+                rest.length > 1 ? fourth : third,
+            ),
+        );
+    }
+
+    const strict = third === true;
+
     if (!accessible(data)) {
         return false;
     }
@@ -4807,6 +4844,92 @@ export function contains<TValue>(
     }
 
     return false;
+}
+
+/**
+ * Read `key` from one item the way PHP's `data_get()` does: a null key answers the item
+ * itself, a missing path answers null rather than JavaScript's undefined.
+ *
+ * @param item - The item to read from
+ * @param key - The dot-notated path, or null for the item itself
+ * @returns The value at the path, or null when the path is missing
+ */
+function readItemPath(item: unknown, key: unknown): unknown {
+    if (isNull(key) || isUndefined(key)) {
+        return item;
+    }
+
+    return getNestedValue(item, key as PropertyKey) ?? null;
+}
+
+/**
+ * Build the predicate `contains`'s key/operator/value form searches with, the way
+ * `EnumeratesValues::operatorForWhere()` does: a callable key is the predicate itself.
+ *
+ * @param key - The path to read from each item, a ready-made predicate, or null for the item
+ * @param operator - The comparison operator
+ * @param value - The value to compare against
+ * @returns A predicate over one item
+ */
+function operatorPredicate<TValue>(
+    key: unknown,
+    operator: string,
+    value: unknown,
+): (item: TValue) => boolean {
+    if (isFunction(key)) {
+        return key as (item: TValue) => boolean;
+    }
+
+    return (item: TValue): boolean =>
+        operatorMatch(readItemPath(item, key), operator, value);
+}
+
+/**
+ * Check if an object contains a given value, using strict comparison.
+ *
+ * With a second argument, each entry's `key` path is compared with it the way PHP's
+ * `===` compares — so an array or plain object matches by value, in order. Without one,
+ * this is `contains(data, key, true)`: `in_array($key, $items, true)` for a value, and
+ * `! is_null($this->first($key))` for a callback.
+ *
+ * @see Collection::containsStrict — `packages/collection/stubs/Collection.php:215`.
+ *
+ * @param data - The object to search in.
+ * @param key - The value to search for, or the path to compare when `value` is given.
+ * @param value - The value the path must strictly equal.
+ * @returns True if the item is found, false otherwise.
+ *
+ * @example
+ *
+ * containsStrict({ a: 1, b: '02' }, '02'); -> true
+ * containsStrict({ a: 1, b: '02' }, 2); -> false
+ * containsStrict({ row: { tags: ['a', 'b'] } }, 'tags', ['a', 'b']); -> true
+ */
+export function containsStrict(data: NonObjectItems, key: unknown): boolean;
+export function containsStrict<T extends object>(
+    data: T,
+    key:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean),
+): boolean;
+export function containsStrict(
+    data: unknown,
+    key: unknown,
+    value?: unknown,
+): boolean;
+export function containsStrict<TValue>(
+    data: Record<PropertyKey, TValue> | unknown,
+    key: TValue | ((value: TValue, key: PropertyKey) => boolean),
+    value?: unknown,
+): boolean {
+    // PHP takes the two-argument form whenever a second argument is passed, a null one included.
+    if (!isUndefined(value)) {
+        return contains(data, (item: unknown) =>
+            strictEqual(readItemPath(item, key), value),
+        );
+    }
+
+    return contains(data, key, true);
 }
 
 /**
@@ -5048,6 +5171,118 @@ export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Get the entries whose key is not present in the given other object.
+ *
+ * This is `array_diff_key` — values are ignored entirely; only the key decides.
+ * `other` is normalized by `arrayableItems`, so a nullish operand keeps every entry.
+ *
+ * @see Collection::diffKeys — `packages/collection/stubs/Collection.php:322`. Wraps `array_diff_key`.
+ *
+ * @param data - The original object
+ * @param other - The object to diff against
+ * @returns A new object holding the entries whose key is not in other
+ *
+ * @example
+ *
+ * diffKeys({ id: 1, first_word: 'Hello' }, { id: 123, foo_bar: 'Hello' }); -> { first_word: 'Hello' }
+ * diffKeys({ a: 1, b: 2 }, { a: 999 }); -> { b: 2 }
+ */
+export function diffKeys(
+    data: NonObjectItems,
+    other: unknown,
+): Record<string, never>;
+export function diffKeys<T1 extends object>(
+    data: T1,
+    other: unknown,
+): Partial<T1>;
+export function diffKeys(
+    data: unknown,
+    other: unknown,
+): Record<string, unknown>;
+export function diffKeys<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    other: unknown,
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const obj = data as Record<TKey, TValue>;
+    const otherItems = arrayableItems(other);
+    const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
+
+    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+        if (!Object.hasOwn(otherItems, key)) {
+            defineKey(result as Record<string, TValue>, key as string, value);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Get the entries whose value is not present in the given other object, comparing with a callback.
+ *
+ * This is `array_udiff` — the callback replaces `diff`'s `(string)` cast comparison and
+ * reports whether two values are equal. `other` is normalized by `arrayableValues`.
+ *
+ * @see Collection::diffUsing — `packages/collection/stubs/Collection.php:288`. Wraps `array_udiff`.
+ *
+ * @param data - The original object
+ * @param other - The object to diff against
+ * @param callable - Function that reports whether two values are equal
+ * @returns A new object holding the entries no value of other is equal to
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * diffUsing({ a: 'green', b: 'brown' }, { A: 'GREEN' }, strcasecmp); -> { b: 'brown' }
+ */
+export function diffUsing(
+    data: NonObjectItems,
+    other: unknown,
+    callable: (a: unknown, b: unknown) => boolean,
+): Record<string, never>;
+export function diffUsing<T1 extends object, T2 extends object>(
+    data: T1,
+    other: T2 | null | undefined,
+    callable: (
+        a: ObjectValue<T1>,
+        b: ObjectValue<ArrayableItems<T2>>,
+    ) => boolean,
+): Partial<T1>;
+export function diffUsing(
+    data: unknown,
+    other: unknown,
+    callable: (a: unknown, b: unknown) => boolean,
+): Record<string, unknown>;
+export function diffUsing<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
+    callable: (a: T1, b: T2) => boolean,
+): Record<PropertyKey, T1> {
+    const result: Record<PropertyKey, T1> = {};
+
+    if (!accessible(data)) {
+        return result;
+    }
+
+    const otherValues = arrayableValues<T2>(other);
+
+    for (const [key, value] of Object.entries(
+        data as Record<PropertyKey, T1>,
+    )) {
+        if (
+            !otherValues.some((otherValue) => callable(value as T1, otherValue))
+        ) {
+            defineKey(result as Record<string, T1>, key, value as T1);
+        }
+    }
+
+    return result;
+}
+
+/**
  * Diff the data object with the given other object using a callback for key comparison.
  * Compares keys using the callback and values using PHP's `(string)` cast rule.
  *
@@ -5256,6 +5491,57 @@ export function intersect<T1, T2 = T1>(
     }
 
     return result;
+}
+
+/**
+ * Intersect the object with the given items, comparing values with a callback.
+ *
+ * This is `array_uintersect`. It is `intersect`'s third parameter under its own name,
+ * so the two share one algorithm; the callback reports whether two values are equal.
+ *
+ * @see Collection::intersectUsing — `packages/collection/stubs/Collection.php:672`.
+ *      Wraps `array_uintersect`.
+ *
+ * @param data - The original object
+ * @param other - The object to intersect with
+ * @param callable - Function that reports whether two values are equal
+ * @returns A new object holding the entries some value of other is equal to
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * intersectUsing({ a: 'green', b: 'brown' }, { A: 'GREEN' }, strcasecmp); -> { a: 'green' }
+ */
+export function intersectUsing(
+    data: NonObjectItems,
+    other: unknown,
+    callable: (a: unknown, b: unknown) => boolean,
+): Record<string, never>;
+export function intersectUsing<T1 extends object, T2 extends object>(
+    data: T1,
+    other: T2 | null | undefined,
+    callable: (
+        a: ObjectValue<T1>,
+        b: ObjectValue<ArrayableItems<T2>>,
+    ) => boolean,
+): Partial<T1>;
+export function intersectUsing(
+    data: unknown,
+    other: unknown,
+    callable: (a: unknown, b: unknown) => boolean,
+): Record<string, unknown>;
+export function intersectUsing<T1, T2 = T1>(
+    data: Record<PropertyKey, T1> | unknown,
+    other: Record<PropertyKey, T2> | unknown,
+    callable: (a: T1, b: T2) => boolean,
+): Record<PropertyKey, T1> {
+    // Narrowing back from intersect's `Partial<T1>` row: the runtime keeps whole
+    // entries, so no value it copies is newly optional.
+    return intersect(
+        data as Record<PropertyKey, T1>,
+        other as Record<PropertyKey, T2>,
+        callable,
+    ) as Record<PropertyKey, T1>;
 }
 
 /**

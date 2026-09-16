@@ -16,6 +16,10 @@ import { afterEach, assertType, describe, expect, it, vi } from "vitest";
  */
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
+/** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
+const caseless = (a: unknown, b: unknown): boolean =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
 /**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
@@ -2994,6 +2998,104 @@ describe("Obj", () => {
             expect(Obj.contains({ a: NaN }, NaN)).toBe(false);
             expect(Obj.contains({ a: { x: 1 } }, { x: "1" })).toBe(true);
         });
+
+        it("compares a key path with an operator when a fourth argument follows", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
+            const rows = {
+                a: { v: 1 },
+                b: { v: 3 },
+                c: { v: "4" },
+                d: { v: 5 },
+            };
+
+            expect(Obj.contains(rows, "v", "=", 4)).toBe(true);
+            expect(Obj.contains(rows, "v", "==", 4)).toBe(true);
+            expect(Obj.contains(rows, "v", "===", 4)).toBe(false);
+            expect(Obj.contains(rows, "v", ">", 4)).toBe(true);
+        });
+
+        it("compares a key path loosely in the three-argument form", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "contains-two-args-key-value"
+            const rows = { a: { v: 1 }, b: { v: 3 }, c: { v: 5 } };
+
+            expect(Obj.contains(rows, "v", 1)).toBe(true);
+            expect(Obj.contains(rows, "v", 2)).toBe(false);
+            // JS-only: an omitted third argument is the port's `strict` default, so
+            // PHP's `contains($k, null)` is written with an explicit null, not undefined.
+            expect(Obj.contains(rows, "v", undefined)).toBe(false);
+        });
+
+        it("reads the entry itself for a null key and takes a callable key whole", () => {
+            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // `data_get($item, null)` answers the item.
+            expect(Obj.contains({ a: 1, b: 2 }, null, ">", 1)).toBe(true);
+            expect(Obj.contains({ a: 1, b: 2 }, null, ">", 9)).toBe(false);
+            expect(
+                Obj.contains(
+                    { a: 1, b: 2 },
+                    (item: number) => item === 2,
+                    "=",
+                    1,
+                ),
+            ).toBe(true);
+        });
+    });
+
+    describe("containsStrict", () => {
+        it("compares by value with PHP's ===", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            expect(
+                Obj.containsStrict({ a: 1, b: 3, c: 5, d: "02" }, "02"),
+            ).toBe(true);
+            expect(Obj.containsStrict({ a: 1, b: 3, c: 5, d: "02" }, 2)).toBe(
+                false,
+            );
+        });
+
+        it("compares a key path strictly when a second argument is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            expect(
+                Obj.containsStrict({ r: { tags: ["a", "b"] } }, "tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                Obj.containsStrict({ r: { t: { x: 1, y: 2 } } }, "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                Obj.containsStrict(
+                    { r: { name: null }, s: { name: "x" } },
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            expect(Obj.containsStrict({ r: { a: 1 } }, "name", null)).toBe(
+                true,
+            );
+            expect(Obj.containsStrict({ r: { name: "x" } }, "name", null)).toBe(
+                false,
+            );
+        });
+
+        it("ignores a callback match holding null, as first() does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json,
+            // "D2 containsStrict callback matching a null value"
+            expect(
+                Obj.containsStrict(
+                    { a: null, b: 1 },
+                    (value) => value === null,
+                ),
+            ).toBe(false);
+        });
+
+        it("returns false for non-object data", () => {
+            expect(Obj.containsStrict(null, "x")).toBe(false);
+            expect(Obj.containsStrict([], "x")).toBe(false);
+        });
     });
 
     describe("diff", () => {
@@ -3078,6 +3180,109 @@ describe("Obj", () => {
             expect(Obj.diff({ a: 10, b: 20 }, new Set([20]))).toEqual({
                 a: 10,
             });
+        });
+    });
+
+    describe("diffKeys", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+        it("keeps the entries whose key other does not carry", () => {
+            expect(
+                Obj.diffKeys(
+                    { id: 1, first_word: "Hello" },
+                    { id: 123, foo_bar: "Hello" },
+                ),
+            ).toEqual({ first_word: "Hello" });
+        });
+
+        it("ignores values entirely", () => {
+            // Same row, "assoc-value-ignored".
+            expect(Obj.diffKeys({ a: 1, b: 2 }, { a: 999 })).toEqual({ b: 2 });
+        });
+
+        it("keeps a matching key's own integer index out of the result", () => {
+            // Same row, "list": diffKeys([1,2,3], [9,9]) -> [2 => 3].
+            expect(Obj.diffKeys({ 0: 1, 1: 2, 2: 3 }, { 0: 9, 1: 9 })).toEqual({
+                2: 3,
+            });
+        });
+
+        it("keeps everything for a nullish operand and nothing for nullish data", () => {
+            // Same row, "nullish-operand".
+            expect(Obj.diffKeys({ a: 1 }, null)).toEqual({ a: 1 });
+            expect(Obj.diffKeys(null, { a: 1 })).toEqual({});
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Obj.diffKeys({ a: 1, b: 2 }, collectionLike({ a: 9 })),
+            ).toEqual({ b: 2 });
+        });
+    });
+
+    describe("diffUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+        it("drops the entries the callback calls equal to some value of other", () => {
+            expect(
+                Obj.diffUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    caseless,
+                ),
+            ).toEqual({ b: "brown", c: "blue" });
+        });
+
+        it("keeps everything for a nullish operand and nothing for nullish data", () => {
+            // Same row, "nullish-operand".
+            expect(Obj.diffUsing({ a: "green" }, null, caseless)).toEqual({
+                a: "green",
+            });
+            expect(Obj.diffUsing(null, { a: "green" }, caseless)).toEqual({});
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Obj.diffUsing(
+                    { a: "green", b: "brown" },
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual({ b: "brown" });
+        });
+    });
+
+    describe("intersectUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+        it("keeps the entries the callback calls equal to some value of other", () => {
+            expect(
+                Obj.intersectUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    caseless,
+                ),
+            ).toEqual({ a: "green" });
+        });
+
+        it("keeps nothing for a nullish operand or nullish data", () => {
+            // Same row, "nullish-operand".
+            expect(Obj.intersectUsing({ a: "green" }, null, caseless)).toEqual(
+                {},
+            );
+            expect(Obj.intersectUsing(null, { a: "green" }, caseless)).toEqual(
+                {},
+            );
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Obj.intersectUsing(
+                    { a: "green", b: "brown" },
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual({ a: "green" });
         });
     });
 
