@@ -4323,6 +4323,16 @@ describe("Data", () => {
             expect(Object.keys(arrResult)).toEqual(["0", "1"]);
             expect(arrResult).toEqual(["bar", "qux"]);
         });
+
+        it("wraps a scalar or nullish backing as a list rather than throwing", () => {
+            // JS-only: Collection has no exceptValues to wrap a scalar, and Arr::exceptValues
+            // takes an array, so no PHP call records this. It is the family's own wrapping.
+            expect(Data.dataExceptValues(5, [1])).toEqual([5]);
+            expect(Data.dataExceptValues(5, [5])).toEqual([]);
+            expect(Data.dataExceptValues("ab", [1])).toEqual(["ab"]);
+            expect(Data.dataExceptValues(null, [1])).toEqual([]);
+            expect(Data.dataExceptValues(undefined, [1])).toEqual([undefined]);
+        });
     });
 
     describe("dataDiffAssoc", () => {
@@ -4700,6 +4710,18 @@ describe("Data", () => {
             const arrResult = Data.dataOnlyValues(arr, ["foo", "baz"]);
             expect(Object.keys(arrResult)).toEqual(["0", "1"]);
             expect(arrResult).toEqual(["foo", "baz"]);
+        });
+
+        it("wraps a scalar or nullish backing as a list rather than throwing", () => {
+            // JS-only: Collection has no onlyValues to wrap a scalar, and Arr::onlyValues
+            // takes an array, so no PHP call records this. It is the family's own wrapping.
+            expect(Data.dataOnlyValues(5, [5])).toEqual([5]);
+            expect(Data.dataOnlyValues(5, [1])).toEqual([]);
+            expect(Data.dataOnlyValues("ab", ["ab"])).toEqual(["ab"]);
+            expect(Data.dataOnlyValues(null, [1])).toEqual([]);
+            expect(Data.dataOnlyValues(undefined, [undefined])).toEqual([
+                undefined,
+            ]);
         });
     });
 
