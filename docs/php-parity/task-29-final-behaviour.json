@@ -1,0 +1,305 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "count-traversable-backing",
+            "php": "collect(gen(1,2))->count()",
+            "value": 2
+        },
+        {
+            "label": "mapWithKeys-traversable-backing",
+            "php": "collect(gen(1,2))->mapWithKeys(fn ($v, $k) => [$k => $v])",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "search-traversable-backing",
+            "php": "collect(gen(1,2))->search(2)",
+            "value": 1
+        },
+        {
+            "label": "before-traversable-backing",
+            "php": "collect(gen(1,2))->before(2)",
+            "value": 1
+        },
+        {
+            "label": "after-traversable-backing",
+            "php": "collect(gen(1,2))->after(1)",
+            "value": 2
+        },
+        {
+            "label": "replace-traversable-backing",
+            "php": "collect(gen(1,2))->replace([0 => 9])",
+            "value": [
+                9,
+                2
+            ]
+        },
+        {
+            "label": "replaceRecursive-traversable-backing",
+            "php": "collect(gen(1,2))->replaceRecursive([0 => 9])",
+            "value": [
+                9,
+                2
+            ]
+        },
+        {
+            "label": "sortRecursive-list-of-ints",
+            "php": "Arr::sortRecursive([3,1,2])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "sortRecursive-explicit-zero-based-keys",
+            "php": "Arr::sortRecursive([0=>3,1=>1,2=>2])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-explicit-zero-based-keys",
+            "php": "Arr::sortRecursiveDesc([0=>3,1=>1,2=>2])",
+            "value": [
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "sortRecursive-nested-lists",
+            "php": "Arr::sortRecursive([[3,1,2],[9,8]])",
+            "value": [
+                [
+                    8,
+                    9
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-nested-lists",
+            "php": "Arr::sortRecursiveDesc([[3,1,2],[9,8]])",
+            "value": [
+                [
+                    3,
+                    2,
+                    1
+                ],
+                [
+                    9,
+                    8
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-string-keys-stay-ksorted",
+            "php": "Arr::sortRecursive(['b'=>2,'a'=>1])",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "sortRecursiveDesc-string-keys-stay-krsorted",
+            "php": "Arr::sortRecursiveDesc(['b'=>2,'a'=>1])",
+            "value": {
+                "b": 2,
+                "a": 1
+            }
+        },
+        {
+            "label": "sortRecursive-gapped-int-keys-stay-ksorted",
+            "php": "Arr::sortRecursive([0=>3,2=>1])",
+            "value": {
+                "0": 3,
+                "2": 1
+            }
+        },
+        {
+            "label": "sortRecursive-literal-js-spelling",
+            "php": "Arr::sortRecursive($srJs)",
+            "value": {
+                "20": [
+                    0,
+                    1,
+                    2
+                ],
+                "30": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "repositories": [
+                    {
+                        "id": 0
+                    },
+                    {
+                        "id": 1
+                    }
+                ],
+                "users": [
+                    {
+                        "age": 25,
+                        "name": "jane"
+                    },
+                    {
+                        "mail": "joe@example.com",
+                        "name": "joe",
+                        "numbers": [
+                            0,
+                            1,
+                            2
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "add-over-null-list-value",
+            "php": "Arr::add([null], 0, 9)",
+            "value": [
+                9
+            ]
+        },
+        {
+            "label": "add-over-null-keyed-value",
+            "php": "Arr::add(['a'=>null], 'a', 9)",
+            "value": {
+                "a": 9
+            }
+        },
+        {
+            "label": "add-over-null-nested-list",
+            "php": "Arr::add([['b'=>null]], '0.b', 9)",
+            "value": [
+                {
+                    "b": 9
+                }
+            ]
+        },
+        {
+            "label": "add-over-null-nested-keyed",
+            "php": "Arr::add(['a'=>['b'=>null]], 'a.b', 9)",
+            "value": {
+                "a": {
+                    "b": 9
+                }
+            }
+        },
+        {
+            "label": "add-leaves-false-alone",
+            "php": "Arr::add([false], 0, 9)",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "add-leaves-zero-alone",
+            "php": "Arr::add(['a'=>0], 'a', 9)",
+            "value": {
+                "a": 0
+            }
+        },
+        {
+            "label": "set-interior-empty-segment",
+            "php": "Arr::set($a, 'a..b', 9)",
+            "value": {
+                "a": {
+                    "": {
+                        "b": 9
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-leading-empty-segment",
+            "php": "Arr::set($a, '.a', 9)",
+            "value": {
+                "": {
+                    "a": 9
+                }
+            }
+        },
+        {
+            "label": "set-trailing-empty-segment",
+            "php": "Arr::set($a, 'a.', 9)",
+            "value": {
+                "a": {
+                    "": 9
+                }
+            }
+        },
+        {
+            "label": "set-only-empty-segments",
+            "php": "Arr::set($a, '..', 9)",
+            "value": {
+                "": {
+                    "": {
+                        "": 9
+                    }
+                }
+            }
+        },
+        {
+            "label": "set-empty-key",
+            "php": "Arr::set($a, '', 9)",
+            "value": {
+                "": 9
+            }
+        },
+        {
+            "label": "get-through-empty-segment",
+            "php": "Arr::get(['a'=>[''=>['b'=>7]]], 'a..b')",
+            "value": 7
+        },
+        {
+            "label": "query-nested-key-brackets",
+            "php": "Arr::query(['a'=>['b'=>1]])",
+            "value": "a%5Bb%5D=1"
+        },
+        {
+            "label": "query-list-value-brackets",
+            "php": "Arr::query(['a'=>[1,2]])",
+            "value": "a%5B0%5D=1&a%5B1%5D=2"
+        },
+        {
+            "label": "query-deep-nested-brackets",
+            "php": "Arr::query(['a'=>['b'=>['c'=>1]]])",
+            "value": "a%5Bb%5D%5Bc%5D=1"
+        },
+        {
+            "label": "query-bracket-inside-a-key",
+            "php": "Arr::query(['a[b]'=>1])",
+            "value": "a%5Bb%5D=1"
+        },
+        {
+            "label": "query-rfc3986-sub-delimiters",
+            "php": "Arr::query([\"k!'()*~-._\" => \"v!'()*~-._\"])",
+            "value": "k%21%27%28%29%2A~-._=v%21%27%28%29%2A~-._"
+        },
+        {
+            "label": "query-space-and-plus",
+            "php": "Arr::query(['a b'=>'c d','f+o'=>'b&r'])",
+            "value": "a%20b=c%20d&f%2Bo=b%26r"
+        },
+        {
+            "label": "query-flat-list",
+            "php": "Arr::query([1,2,3])",
+            "value": "0=1&1=2&2=3"
+        }
+    ]
+}

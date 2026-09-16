@@ -85,6 +85,18 @@ describe("Arr", () => {
     });
 
     describe("add", () => {
+        it("writes over a key already holding null, as Arr::add does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "add-over-null-list-value",
+            // "add-over-null-nested-list", "add-leaves-false-alone".
+            // Arr::add asks `is_null(Arr::get(...))`, not whether the key exists.
+            expect(Arr.add([null], 0, 9)).toEqual([9]);
+            expect(Arr.add([{ b: null }], "0.b", 9)).toEqual([{ b: 9 }]);
+            // `undefined` is what this port stores for a path PHP reads as null.
+            expect(Arr.add([undefined], 0, 9)).toEqual([9]);
+            expect(Arr.add([false], 0, 9)).toEqual([false]);
+            expect(Arr.add([0], 0, 9)).toEqual([0]);
+        });
+
         it("add", () => {
             // Test adding to array when key doesn't exist
             expect(Arr.add(["Desk"], 1, 100)).toEqual(["Desk", 100]);
@@ -4863,6 +4875,22 @@ describe("Arr", () => {
     });
 
     describe("query", () => {
+        it("percent-encodes brackets, as PHP_QUERY_RFC3986 does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "query-nested-key-brackets",
+            // "query-list-value-brackets", "query-bracket-inside-a-key",
+            // "query-rfc3986-sub-delimiters". Arr::query is
+            // http_build_query(..., PHP_QUERY_RFC3986), which encodes [ and ] and the five
+            // sub-delimiters encodeURIComponent leaves alone.
+            expect(Arr.query(keyed({ a: { b: 1 } }))).toBe("a%5Bb%5D=1");
+            expect(Arr.query(keyed({ a: [1, 2] }))).toBe(
+                "a%5B0%5D=1&a%5B1%5D=2",
+            );
+            expect(Arr.query(keyed({ "a[b]": 1 }))).toBe("a%5Bb%5D=1");
+            expect(Arr.query(keyed({ "k!'()*~-._": "v!'()*~-._" }))).toBe(
+                "k%21%27%28%29%2A~-._=v%21%27%28%29%2A~-._",
+            );
+        });
+
         it("query", () => {
             // Basic object
             expect(Arr.query(keyed({ name: "John", age: 30 }))).toBe(
@@ -4874,12 +4902,12 @@ describe("Arr", () => {
 
             // Nested object
             expect(Arr.query(keyed({ user: { name: "John", age: 30 } }))).toBe(
-                "user[name]=John&user[age]=30",
+                "user%5Bname%5D=John&user%5Bage%5D=30",
             );
 
             // Array with nested arrays
             expect(Arr.query(keyed({ tags: ["php", "js"] }))).toBe(
-                "tags[0]=php&tags[1]=js",
+                "tags%5B0%5D=php&tags%5B1%5D=js",
             );
 
             // Empty values are skipped
@@ -4920,7 +4948,7 @@ describe("Arr", () => {
                     }),
                 ),
             ).toBe(
-                "simple=value&nested[array][0]=1&nested[array][1]=2&nested[deep][value]=test",
+                "simple=value&nested%5Barray%5D%5B0%5D=1&nested%5Barray%5D%5B1%5D=2&nested%5Bdeep%5D%5Bvalue%5D=test",
             );
         });
 
@@ -4942,8 +4970,8 @@ describe("Arr", () => {
             };
 
             const result = Arr.query(keyed(data));
-            expect(result).toContain("user[name]=John");
-            expect(result).toContain("user[meta][age]=30");
+            expect(result).toContain("user%5Bname%5D=John");
+            expect(result).toContain("user%5Bmeta%5D%5Bage%5D=30");
         });
 
         it("recurses into array elements that are themselves objects", () => {
@@ -4954,10 +4982,10 @@ describe("Arr", () => {
                 { nested: { deep: "value" } },
             ];
             const queryResult = Arr.query(arrayWithObjects);
-            expect(queryResult).toContain("0[name]=John");
-            expect(queryResult).toContain("0[age]=30");
+            expect(queryResult).toContain("0%5Bname%5D=John");
+            expect(queryResult).toContain("0%5Bage%5D=30");
             expect(queryResult).toContain("1=simpleString");
-            expect(queryResult).toContain("2[nested][deep]=value");
+            expect(queryResult).toContain("2%5Bnested%5D%5Bdeep%5D=value");
         });
 
         it("casts booleans, drops null, and keeps empty strings like Laravel's http_build_query", () => {
@@ -6062,6 +6090,29 @@ describe("Arr", () => {
     });
 
     describe("sortRecursive", () => {
+        it("sorts a zero-keyed record by value, as array_is_list does", () => {
+            // docs/php-parity/task-29-final-behaviour.json,
+            // "sortRecursive-explicit-zero-based-keys",
+            // "sortRecursiveDesc-explicit-zero-based-keys",
+            // "sortRecursive-gapped-int-keys-stay-ksorted".
+            // Arr::sortRecursive sorts a LIST by value; a record keyed 0..n-1 is one.
+            expect(Arr.sortRecursive(keyed({ 0: 3, 1: 1, 2: 2 }))).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+            });
+            expect(Arr.sortRecursiveDesc(keyed({ 0: 3, 1: 1, 2: 2 }))).toEqual({
+                0: 3,
+                1: 2,
+                2: 1,
+            });
+            // A gap breaks array_is_list, so the keys are sorted instead.
+            expect(Arr.sortRecursive(keyed({ 0: 3, 2: 1 }))).toEqual({
+                0: 3,
+                2: 1,
+            });
+        });
+
         it("sortRecursive", () => {
             // Basic nested array sorting
             const basic = {
@@ -6096,12 +6147,15 @@ describe("Arr", () => {
                 },
             };
 
+            // docs/php-parity/task-29-final-behaviour.json, "sortRecursive-literal-js-spelling".
+            // ArrTest writes `30 => [2=>'a',1=>'b',0=>'c']`, which no JS object can hold: a plain
+            // object enumerates integer keys ascending, so it IS a list and sorts by value.
             const complexExpected = {
                 20: [0, 1, 2],
                 30: {
-                    0: "c",
+                    0: "a",
                     1: "b",
-                    2: "a",
+                    2: "c",
                 },
                 repositories: [{ id: 0 }, { id: 1 }],
                 users: [

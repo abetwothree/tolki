@@ -305,7 +305,12 @@ export function add<TValue, TAddValue>(
     key: PathKey,
     value: TAddValue,
 ): (TValue | TAddValue)[] {
-    if (hasMixed(data, key)) {
+    // Arr::add asks `is_null(Arr::get(...))`, not whether the key exists, so a key already
+    // holding null is written. `obj.add` already reads it that way; this row did not.
+    // `undefined` counts as null here, as it does everywhere a path PHP reads as null.
+    const current = getMixedValue(data, key);
+
+    if (!isNull(current) && !isUndefined(current)) {
         return [...data];
     }
 
@@ -2752,7 +2757,7 @@ export function pull<TValue, TDefault = null>(
  * query({name: 'John', age: 30}); -> 'name=John&age=30'
  * query(['a', 'b', 'c']); -> '0=a&1=b&2=c'
  * query({tags: ['php', 'js']}); -> 'tags[0]=php&tags[1]=js'
- * query({user: {name: 'John', age: 30}}); -> 'user[name]=John&user[age]=30'
+ * query({user: {name: 'John', age: 30}}); -> 'user%5Bname%5D=John&user%5Bage%5D=30'
  * query({foo: 'bar', bar: true}); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
  * query({foo: 'bar', bar: false}); -> 'foo=bar&bar=0'
  */
@@ -2766,11 +2771,14 @@ export function query(data: unknown): string {
         return "";
     }
 
-    const encodeKeyComponent = (key: string): string => {
-        return encodeURIComponent(key)
-            .replace(/%5B/g, "[")
-            .replace(/%5D/g, "]");
-    };
+    // http_build_query runs PHP_QUERY_RFC3986, which percent-encodes every reserved
+    // character in both halves — brackets included. encodeURIComponent leaves !'()*
+    // alone, so those five are escaped here to land on the same string PHP emits.
+    const encodeQueryComponent = (component: string): string =>
+        encodeURIComponent(component).replace(
+            /[!'()*]/g,
+            (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+        );
 
     // Mirrors PHP's http_build_query scalar casting: booleans become "1"
     // or "0", not JavaScript's "true"/"false"/""; other scalars use
@@ -2795,10 +2803,9 @@ export function query(data: unknown): string {
                     if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
-                        // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
-                        const encodedKey = encodeKeyComponent(key);
+                        const encodedKey = encodeQueryComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
+                            `${encodedKey}=${encodeQueryComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2811,10 +2818,9 @@ export function query(data: unknown): string {
                     if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
-                        // Use a custom encoder that doesn't encode [ and ] to match PHP behavior
-                        const encodedKey = encodeKeyComponent(key);
+                        const encodedKey = encodeQueryComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
+                            `${encodedKey}=${encodeQueryComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -2822,9 +2828,9 @@ export function query(data: unknown): string {
         } else {
             // Scalar value
             const key = prefix || "0";
-            const encodedKey = encodeKeyComponent(key);
+            const encodedKey = encodeQueryComponent(key);
             parts.push(
-                `${encodedKey}=${encodeURIComponent(stringifyQueryValue(obj))}`,
+                `${encodedKey}=${encodeQueryComponent(stringifyQueryValue(obj))}`,
             );
         }
 
@@ -3550,6 +3556,24 @@ function sortRecursiveValue(
             }
         }
 
+        const sortedResult: Record<string, unknown> = {};
+
+        // array_is_list: keys exactly 0..n-1 spell a PHP LIST, which Arr::sortRecursive
+        // sorts by VALUE and reindexes rather than by key.
+        if (entries.every(([key], index) => key === String(index))) {
+            entries
+                .map(([key]) => result[key])
+                .sort((a, b) => {
+                    const comparison = compareValues(a, b);
+                    return isDesc ? -comparison : comparison;
+                })
+                .forEach((value, index) => {
+                    defineKey(sortedResult, String(index), value);
+                });
+
+            return sortedResult;
+        }
+
         // Sort object keys
         const sortedEntries = entries.sort(([keyA], [keyB]) => {
             const comparison = compareValues(keyA, keyB);
@@ -3557,7 +3581,6 @@ function sortRecursiveValue(
         });
 
         // Rebuild object with sorted keys
-        const sortedResult: Record<string, unknown> = {};
         for (const [key] of sortedEntries) {
             defineKey(sortedResult, key, result[key]);
         }

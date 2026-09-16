@@ -99,6 +99,17 @@ describe("Obj", () => {
     });
 
     describe("add", () => {
+        it("writes over a key already holding null, as Arr::add does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "add-over-null-keyed-value",
+            // "add-over-null-nested-keyed", "add-leaves-zero-alone"
+            expect(Obj.add({ a: null }, "a", 9)).toEqual({ a: 9 });
+            expect(Obj.add({ a: { b: null } }, "a.b", 9)).toEqual({
+                a: { b: 9 },
+            });
+            expect(Obj.add({ a: 0 }, "a", 9)).toEqual({ a: 0 });
+            expect(Obj.add({ a: false }, "a", 9)).toEqual({ a: false });
+        });
+
         it("should add a value if key doesn't exist", () => {
             const obj = { name: "John" };
             const result = Obj.add(obj, "age", 30);
@@ -2690,6 +2701,20 @@ describe("Obj", () => {
     });
 
     describe("set", () => {
+        it("writes an empty dot segment as the array key PHP writes", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "set-interior-empty-segment",
+            // "set-leading-empty-segment", "set-trailing-empty-segment",
+            // "set-only-empty-segments", "set-empty-key", "get-through-empty-segment".
+            // Arr::set explodes on ".", so "" is a real key; skipping it wrote the wrong
+            // path or dropped the value outright.
+            expect(Obj.set({}, "a..b", 9)).toEqual({ a: { "": { b: 9 } } });
+            expect(Obj.set({}, ".a", 9)).toEqual({ "": { a: 9 } });
+            expect(Obj.set({}, "a.", 9)).toEqual({ a: { "": 9 } });
+            expect(Obj.set({}, "..", 9)).toEqual({ "": { "": { "": 9 } } });
+            expect(Obj.set({}, "", 9)).toEqual({ "": 9 });
+            expect(Obj.get({ a: { "": { b: 7 } } }, "a..b")).toBe(7);
+        });
+
         it("should set simple values", () => {
             const obj = { name: "John" };
             const result = Obj.set(obj, "age", 30);
@@ -4967,6 +4992,21 @@ describe("Obj", () => {
     });
 
     describe("query", () => {
+        it("percent-encodes brackets, as PHP_QUERY_RFC3986 does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "query-deep-nested-brackets",
+            // "query-space-and-plus", "query-flat-list"
+            expect(Obj.query({ a: { b: { c: 1 } } })).toBe("a%5Bb%5D%5Bc%5D=1");
+            expect(Obj.query({ "a b": "c d", "f+o": "b&r" })).toBe(
+                "a%20b=c%20d&f%2Bo=b%26r",
+            );
+            expect(Obj.query({ 0: 1, 1: 2, 2: 3 })).toBe("0=1&1=2&2=3");
+            // "query-rfc3986-sub-delimiters": RFC3986 escapes the five characters
+            // encodeURIComponent leaves alone, and leaves ~-._ unreserved.
+            expect(Obj.query({ "k!'()*~-._": "v!'()*~-._" })).toBe(
+                "k%21%27%28%29%2A~-._=v%21%27%28%29%2A~-._",
+            );
+        });
+
         it("should build query string from object", () => {
             const obj = { name: "John", age: "30", active: "true" };
             expect(Obj.query(obj)).toBe("name=John&age=30&active=true");
@@ -4974,7 +5014,7 @@ describe("Obj", () => {
 
         it("should handle nested objects", () => {
             const obj = { user: { name: "John", age: 30 } };
-            expect(Obj.query(obj)).toBe("user[name]=John&user[age]=30");
+            expect(Obj.query(obj)).toBe("user%5Bname%5D=John&user%5Bage%5D=30");
         });
 
         it("should handle arrays with various types", () => {
@@ -4982,7 +5022,7 @@ describe("Obj", () => {
                 tags: ["js", "ts", null, undefined, { home: "page" }],
             };
             expect(Obj.query(obj)).toBe(
-                "tags[0]=js&tags[1]=ts&tags[4][home]=page",
+                "tags%5B0%5D=js&tags%5B1%5D=ts&tags%5B4%5D%5Bhome%5D=page",
             );
         });
 
@@ -5004,7 +5044,7 @@ describe("Obj", () => {
                     },
                 },
             };
-            expect(Obj.query(obj)).toBe("level1[level2][value]=deep");
+            expect(Obj.query(obj)).toBe("level1%5Blevel2%5D%5Bvalue%5D=deep");
         });
 
         it("should handle object values with null and undefined mixed", () => {
@@ -5025,7 +5065,7 @@ describe("Obj", () => {
                 ],
             };
             expect(Obj.query(obj)).toBe(
-                "matrix[0][0]=1&matrix[0][1]=2&matrix[1][0]=3&matrix[1][1]=4",
+                "matrix%5B0%5D%5B0%5D=1&matrix%5B0%5D%5B1%5D=2&matrix%5B1%5D%5B0%5D=3&matrix%5B1%5D%5B1%5D=4",
             );
         });
 
@@ -6422,7 +6462,10 @@ describe("Obj", () => {
         });
 
         it("sorts lists by value, recurses into them, and sorts keys", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-literal"
+            // docs/php-parity/task-29-final-behaviour.json, "sortRecursive-literal-js-spelling".
+            // ArrTest's own literal writes `30 => [2=>'a',1=>'b',0=>'c']`, which JavaScript
+            // cannot hold: a plain object enumerates integer keys ascending, so the value that
+            // arrives is `[0=>'c',1=>'b',2=>'a']` — a LIST, which array_is_list sorts by value.
             const sorted = Obj.sortRecursive({
                 users: [
                     {
@@ -6439,7 +6482,7 @@ describe("Obj", () => {
 
             expect(sorted).toEqual({
                 20: [0, 1, 2],
-                30: { 0: "c", 1: "b", 2: "a" },
+                30: { 0: "a", 1: "b", 2: "c" },
                 repositories: [{ id: 0 }, { id: 1 }],
                 users: [
                     { age: 25, name: "jane" },

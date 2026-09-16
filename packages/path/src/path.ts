@@ -1,4 +1,3 @@
-import { wrap as arrWrap } from "@tolki/arr";
 import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
 import {
     arrayValueMessage,
@@ -823,7 +822,14 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
         return dotFlattenArray(data, prepend, depth);
     }
 
-    return dotFlattenArray(arrWrap(data), prepend, depth);
+    // `Arr::wrap`'s own rule, written out: importing `wrap` from @tolki/arr for this one
+    // call closed an import cycle, since arr already imports this module. Neither an object
+    // nor an array reaches here, so the array pass-through arm cannot apply.
+    return dotFlattenArray(
+        isNull(data) ? [] : [data as TValue],
+        prepend,
+        depth,
+    );
 }
 
 /**
@@ -1823,10 +1829,15 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     const segments = keyStr.split(".");
     let current: Record<string, unknown> = result;
 
-    for (let i = 0; i < segments.length - 1; i++) {
-        const segment = segments[i];
-        if (!segment) {
-            continue;
+    const lastIndex = segments.length - 1;
+
+    // An empty segment is a real PHP array key: `Arr::set($a, 'a..b', 9)` writes
+    // `$a['a']['']['b']`. Skipping it wrote the wrong path or dropped the value.
+    for (const [index, segment] of segments.entries()) {
+        if (index === lastIndex) {
+            defineKey(current, segment, value);
+
+            break;
         }
 
         // An unsafe segment not yet its own risks reading the inherited
@@ -1850,11 +1861,6 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
         );
 
         current = current[segment] as Record<string, unknown>;
-    }
-
-    const lastSegment = segments[segments.length - 1];
-    if (lastSegment) {
-        defineKey(current, lastSegment, value);
     }
 
     return result as Record<TKey, TValue>;

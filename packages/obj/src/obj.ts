@@ -3359,7 +3359,7 @@ export function pull<
  *
  * query({ name: 'John', age: 30 }); -> 'name=John&age=30'
  * query({ user: { name: 'John', age: 30 } }); -> 'user[name]=John&user[age]=30'
- * query({ tags: ['php', 'js'] }); -> 'tags[0]=php&tags[1]=js'
+ * query({ tags: ['php', 'js'] }); -> 'tags%5B0%5D=php&tags%5B1%5D=js'
  * query({ foo: 'bar', bar: true }); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
  * query({ foo: 'bar', bar: false }); -> 'foo=bar&bar=0'
  */
@@ -3370,11 +3370,14 @@ export function query(data: unknown): string {
         return "";
     }
 
-    const encodeKeyComponent = (key: string): string => {
-        return encodeURIComponent(key)
-            .replace(/%5B/g, "[")
-            .replace(/%5D/g, "]");
-    };
+    // http_build_query runs PHP_QUERY_RFC3986, which percent-encodes every reserved
+    // character in both halves — brackets included. encodeURIComponent leaves !'()*
+    // alone, so those five are escaped here to land on the same string PHP emits.
+    const encodeQueryComponent = (component: string): string =>
+        encodeURIComponent(component).replace(
+            /[!'()*]/g,
+            (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+        );
 
     // Mirrors PHP's http_build_query scalar casting: booleans become "1"
     // or "0" rather than JavaScript's "true"/"false".
@@ -3398,9 +3401,9 @@ export function query(data: unknown): string {
                     if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
-                        const encodedKey = encodeKeyComponent(key);
+                        const encodedKey = encodeQueryComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
+                            `${encodedKey}=${encodeQueryComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -3413,9 +3416,9 @@ export function query(data: unknown): string {
                     if (isArray(value) || isObject(value)) {
                         parts.push(...buildQuery(value, key));
                     } else {
-                        const encodedKey = encodeKeyComponent(key);
+                        const encodedKey = encodeQueryComponent(key);
                         parts.push(
-                            `${encodedKey}=${encodeURIComponent(stringifyQueryValue(value))}`,
+                            `${encodedKey}=${encodeQueryComponent(stringifyQueryValue(value))}`,
                         );
                     }
                 }
@@ -3423,9 +3426,9 @@ export function query(data: unknown): string {
         } else {
             // Scalar value
             const key = prefix || "0";
-            const encodedKey = encodeKeyComponent(key);
+            const encodedKey = encodeQueryComponent(key);
             parts.push(
-                `${encodedKey}=${encodeURIComponent(stringifyQueryValue(obj))}`,
+                `${encodedKey}=${encodeQueryComponent(stringifyQueryValue(obj))}`,
             );
         }
 
@@ -4204,12 +4207,25 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
     const entries = Object.entries(data as T).map(
         ([key, value]) => [key, sortNested(value)] as [string, unknown],
     );
+    // array_is_list: keys exactly 0..n-1 is the record spelling of a PHP LIST, and
+    // Arr::sortRecursive sorts a list by VALUE and reindexes. JS enumerates integer
+    // keys ascending, so this reads the same order PHP's array_is_list walks.
+    const isList = entries.every(([key], index) => key === String(index));
+    const result: Record<string, unknown> = {};
+
+    if (isList) {
+        entries.sort(([, a], [, b]) => direction(compareValues(a, b)));
+
+        entries.forEach(([, value], index) => {
+            defineKey(result, String(index), value);
+        });
+
+        return result as T;
+    }
 
     entries.sort(([keyA], [keyB]) =>
         direction(compareValues(phpArrayKey(keyA), phpArrayKey(keyB))),
     );
-
-    const result: Record<string, unknown> = {};
 
     for (const [key, value] of entries) {
         defineKey(result, key, value);

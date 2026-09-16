@@ -278,9 +278,6 @@ importers:
 
   packages/path:
     dependencies:
-      "@tolki/arr":
-        specifier: workspace:^
-        version: link:../arr
       "@tolki/types":
         specifier: workspace:^
         version: link:../types

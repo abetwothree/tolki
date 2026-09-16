@@ -78,7 +78,6 @@ import {
     values as arrValues,
     where as arrWhere,
     whereNotNull as arrWhereNotNull,
-    wrap as arrWrap,
 } from "@tolki/arr";
 import {
     add as objAdd,
@@ -168,7 +167,6 @@ import {
     isArray,
     isFunction,
     isNull,
-    isObject,
     isUndefined,
     looseEqual,
     phpArrayKey,
@@ -461,7 +459,9 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
         return Object.values(toKeyedData<TKey, TValue>(data)).length;
     }
 
-    return Object.values(data).length;
+    // Object.values sees nothing on a Set or generator, so normalize first, exactly as
+    // `dispatch` does for every sibling: a Set or generator is materialized to its elements.
+    return (toPositionalBacking(data) as unknown[]).length;
 }
 
 /**
@@ -1010,9 +1010,11 @@ export function dataMapWithKeys<
             : mapped;
     };
 
-    if (isObject(data)) {
+    // isKeyedData, not isObject: a Set and a generator are objects but positional, and obj
+    // would read no entries off either. A Map is keyed and becomes a record here.
+    if (isKeyedData(data)) {
         return objMapWithKeys(
-            data as Record<string, TValue>,
+            toKeyedData<string, TValue>(data),
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             normalizedCallback as (
                 value: TValue,
@@ -1022,7 +1024,7 @@ export function dataMapWithKeys<
     }
 
     return arrMapWithKeys(
-        arrWrap(data) as TValue[],
+        toPositionalBacking(data) as TValue[],
         (value: TValue, index: number) =>
             normalizedCallback(value, index as TKey),
     ) as Record<TMapWithKeysKey, TMapWithKeysValue>;
@@ -1172,7 +1174,7 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
     const entries = isKeyedData(items)
         ? Object.entries(toKeyedData<TKey, TValue>(items))
-        : Object.entries(arrWrap(items));
+        : Object.entries(toPositionalBacking(items) as unknown[]);
 
     for (const [key, item] of entries) {
         const actualKey = phpArrayKey(key) as TKey;
@@ -1237,16 +1239,18 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    const key = dataSearch(items, value, strict);
+    // No Arr/Collection delegate exists for this function, so the backing is normalized here —
+    // ONCE, because a generator is single-use and `dataSearch` would otherwise consume it.
+    const backing = isKeyedData(items)
+        ? toKeyedData<TKey, TValue>(items)
+        : (toPositionalBacking(items) as TValue[]);
+    const key = dataSearch(backing as DataItems<TValue, TKey>, value, strict);
 
     if (key === false) {
         return null;
     }
 
-    // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
-    const entries = isKeyedData(items)
-        ? Object.entries(toKeyedData<TKey, TValue>(items))
-        : Object.entries(arrWrap(items));
+    const entries = Object.entries(backing);
     const position = entries.findIndex(
         ([entryKey]) => phpArrayKey(entryKey) === key,
     );
@@ -1292,16 +1296,18 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    const key = dataSearch(items, value, strict);
+    // No Arr/Collection delegate exists for this function, so the backing is normalized here —
+    // ONCE, because a generator is single-use and `dataSearch` would otherwise consume it.
+    const backing = isKeyedData(items)
+        ? toKeyedData<TKey, TValue>(items)
+        : (toPositionalBacking(items) as TValue[]);
+    const key = dataSearch(backing as DataItems<TValue, TKey>, value, strict);
 
     if (key === false) {
         return null;
     }
 
-    // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
-    const entries = isKeyedData(items)
-        ? Object.entries(toKeyedData<TKey, TValue>(items))
-        : Object.entries(arrWrap(items));
+    const entries = Object.entries(backing);
     const position = entries.findIndex(
         ([entryKey]) => phpArrayKey(entryKey) === key,
     );
@@ -1592,7 +1598,10 @@ export function dataReplace<
 
     // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
     return listWhenIndexed(
-        objReplace(toIndexedRecord(arrWrap(data)), replacerData),
+        objReplace(
+            toIndexedRecord(toPositionalBacking(data) as unknown[]),
+            replacerData,
+        ),
     );
 }
 
@@ -1647,7 +1656,10 @@ export function dataReplaceRecursive<
 
     // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
     return listWhenIndexed(
-        objReplaceRecursive(toIndexedRecord(arrWrap(data)), replacerData),
+        objReplaceRecursive(
+            toIndexedRecord(toPositionalBacking(data) as unknown[]),
+            replacerData,
+        ),
     );
 }
 

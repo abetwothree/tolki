@@ -64,6 +64,14 @@ class D4Point {
 
 describe("Data", () => {
     describe("dataAdd", () => {
+        it("writes over a null-valued key on either backing", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "add-over-null-list-value",
+            // "add-over-null-keyed-value". arr.add and obj.add disagreed here, and dataAdd
+            // inherited whichever one the backing picked.
+            expect(Data.dataAdd([null], 0, 9)).toEqual([9]);
+            expect(Data.dataAdd({ a: null }, "a", 9)).toEqual({ a: 9 });
+        });
+
         it("is object", () => {
             const result = Data.dataAdd({ a: 1 }, "b", 2);
             expect(result).toEqual({ a: 1, b: 2 });
@@ -2829,6 +2837,19 @@ describe("Data", () => {
     });
 
     describe("dataSet", () => {
+        it("writes an empty dot segment on either backing", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "set-interior-empty-segment",
+            // "set-trailing-empty-segment". The record backing dropped the empty segment.
+            expect(Data.dataSet({}, "a..b", 9)).toEqual({
+                a: { "": { b: 9 } },
+            });
+            expect(Data.dataSet({}, "a.", 9)).toEqual({ a: { "": 9 } });
+            // A list backing keeps its own shape, holding PHP's keyed result as element 0.
+            expect(Data.dataSet([], "a..b", 9)).toEqual([
+                { a: { "": { b: 9 } } },
+            ]);
+        });
+
         it("is object", () => {
             const result = Data.dataSet({ a: 1, b: 2 }, "c", 3);
             expect(result).toEqual({
@@ -3490,6 +3511,88 @@ describe("Data", () => {
                     "a",
                 ]);
             });
+        });
+
+        describe("sortRecursive across both backings", () => {
+            // docs/php-parity/task-29-final-behaviour.json,
+            // "sortRecursive-list-of-ints", "sortRecursive-explicit-zero-based-keys",
+            // "sortRecursiveDesc-explicit-zero-based-keys", "sortRecursive-nested-lists",
+            // "sortRecursiveDesc-nested-lists". Arr::sortRecursive branches on array_is_list,
+            // so a record keyed 0..n-1 spells a PHP LIST and sorts by value, not by key.
+            it("sorts a zero-keyed record by value, as it sorts the list", () => {
+                expect(Data.dataSortRecursive([3, 1, 2])).toEqual([1, 2, 3]);
+                expect(Data.dataSortRecursive({ 0: 3, 1: 1, 2: 2 })).toEqual({
+                    0: 1,
+                    1: 2,
+                    2: 3,
+                });
+                expect(Data.dataSortRecursiveDesc([3, 1, 2])).toEqual([
+                    3, 2, 1,
+                ]);
+                expect(
+                    Data.dataSortRecursiveDesc({ 0: 3, 1: 1, 2: 2 }),
+                ).toEqual({ 0: 3, 1: 2, 2: 1 });
+            });
+
+            it("agrees on a nested list and the record spelling of it", () => {
+                expect(
+                    Data.dataSortRecursive([
+                        [3, 1, 2],
+                        [9, 8],
+                    ]),
+                ).toEqual([
+                    [8, 9],
+                    [1, 2, 3],
+                ]);
+                expect(
+                    Data.dataSortRecursive({ 0: [3, 1, 2], 1: [9, 8] }),
+                ).toEqual({ 0: [8, 9], 1: [1, 2, 3] });
+                expect(
+                    Data.dataSortRecursiveDesc([
+                        [3, 1, 2],
+                        [9, 8],
+                    ]),
+                ).toEqual([
+                    [3, 2, 1],
+                    [9, 8],
+                ]);
+                expect(
+                    Data.dataSortRecursiveDesc({ 0: [3, 1, 2], 1: [9, 8] }),
+                ).toEqual({ 0: [3, 2, 1], 1: [9, 8] });
+            });
+
+            it("still sorts a string-keyed or gapped record by key", () => {
+                // docs/php-parity/task-29-final-behaviour.json,
+                // "sortRecursive-string-keys-stay-ksorted",
+                // "sortRecursiveDesc-string-keys-stay-krsorted",
+                // "sortRecursive-gapped-int-keys-stay-ksorted"
+                expect(
+                    Object.entries(Data.dataSortRecursive({ b: 2, a: 1 })),
+                ).toEqual([
+                    ["a", 1],
+                    ["b", 2],
+                ]);
+                expect(
+                    Object.entries(Data.dataSortRecursiveDesc({ b: 2, a: 1 })),
+                ).toEqual([
+                    ["b", 2],
+                    ["a", 1],
+                ]);
+                expect(Data.dataSortRecursive({ 0: 3, 2: 1 })).toEqual({
+                    0: 3,
+                    2: 1,
+                });
+            });
+        });
+    });
+
+    describe("dataQuery", () => {
+        it("percent-encodes brackets on either backing", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "query-nested-key-brackets",
+            // "query-list-value-brackets", "query-flat-list"
+            expect(Data.dataQuery({ a: { b: 1 } })).toBe("a%5Bb%5D=1");
+            expect(Data.dataQuery([{ b: 1 }])).toBe("0%5Bb%5D=1");
+            expect(Data.dataQuery([1, 2, 3])).toBe("0=1&1=2&2=3");
         });
     });
 
@@ -6498,6 +6601,49 @@ describe("Data", () => {
             expect(Data.dataValues("abc")).toEqual(["abc"]);
         });
 
+        it("normalizes a Set for the helpers that bypass dispatch", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "count-traversable-backing",
+            // "mapWithKeys-traversable-backing", "search-traversable-backing",
+            // "before-traversable-backing", "after-traversable-backing",
+            // "replace-traversable-backing", "replaceRecursive-traversable-backing".
+            // These seven write out their own normalization instead of taking dispatch's,
+            // and each one used to read a Set as empty data.
+            const pair = () => new Set([1, 2]);
+
+            expect(Data.dataCount(pair())).toBe(2);
+            expect(
+                Data.dataMapWithKeys(pair(), (value, key) => ({
+                    [key]: value,
+                })),
+            ).toEqual({ 0: 1, 1: 2 });
+            expect(Data.dataSearch(pair(), 2)).toBe(1);
+            expect(Data.dataBefore(pair(), 2)).toBe(1);
+            expect(Data.dataAfter(pair(), 1)).toBe(2);
+            expect(Data.dataReplace(pair(), { 0: 9 })).toEqual([9, 2]);
+            expect(Data.dataReplaceRecursive(pair(), { 0: 9 })).toEqual([9, 2]);
+        });
+
+        it("normalizes a generator for those seven, reading it only once", () => {
+            // Same rows. A generator is single-use, so dataBefore/dataAfter must materialize
+            // ONCE and search the materialized backing rather than draining it twice.
+            const pair = function* (): Generator<number> {
+                yield 1;
+                yield 2;
+            };
+
+            expect(Data.dataCount(pair())).toBe(2);
+            expect(
+                Data.dataMapWithKeys(pair(), (value, key) => ({
+                    [key]: value,
+                })),
+            ).toEqual({ 0: 1, 1: 2 });
+            expect(Data.dataSearch(pair(), 2)).toBe(1);
+            expect(Data.dataBefore(pair(), 2)).toBe(1);
+            expect(Data.dataAfter(pair(), 1)).toBe(2);
+            expect(Data.dataReplace(pair(), { 0: 9 })).toEqual([9, 2]);
+            expect(Data.dataReplaceRecursive(pair(), { 0: 9 })).toEqual([9, 2]);
+        });
+
         it("keeps writing through an array backing instead of a copy", () => {
             // The materialized branch must not catch an array: pop/shift/splice/unshift
             // mutate the caller's own array, which a spread copy would silently break.
@@ -6839,24 +6985,20 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataMapWithKeys maps a Map like the record it mirrors",
-            () => {
-                // dataMapWithKeys cannot be a dispatch pair: it normalises the tuples the
-                // callback returns, which neither delegate does, so nothing normalises a Map
-                // for it and this row stays red.
-                const callback = (
-                    value: number,
-                    key: string,
-                ): [string, number] => [`${key}_key`, value * 2];
-                expect(
-                    Data.dataMapWithKeys(
-                        asMap as unknown as Record<string, number>,
-                        callback,
-                    ),
-                ).toEqual(Data.dataMapWithKeys(asRecord, callback));
-            },
-        );
+        it("dataMapWithKeys maps a Map like the record it mirrors", () => {
+            // dataMapWithKeys cannot be a dispatch pair — it normalises the tuples the callback
+            // returns, which neither delegate does — so it runs dispatch's own normalisers itself.
+            const callback = (value: number, key: string): [string, number] => [
+                `${key}_key`,
+                value * 2,
+            ];
+            expect(
+                Data.dataMapWithKeys(
+                    asMap as unknown as Record<string, number>,
+                    callback,
+                ),
+            ).toEqual(Data.dataMapWithKeys(asRecord, callback));
+        });
 
         it("dataMapSpread maps a Map like the record it mirrors", () => {
             // A Map reaches obj's widest row, whose callback takes `unknown` args.

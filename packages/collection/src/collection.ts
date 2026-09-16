@@ -637,7 +637,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const results = dataCrossJoin(
             this.getItemValues(this.items),
             ...items.map((item) => this.getRawItems(item)),
-        ) as DataItems<TValue, TKey>[];
+        );
 
         return this.newInstance(results);
     }
@@ -1939,7 +1939,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 this.items,
                 value as string | ((item: unknown) => unknown),
                 key as string | ((item: unknown) => string | number) | null,
-            ) as DataItems<TPluckValue, TKey>,
+            ),
         ) as unknown as Collection<TPluckValue, TKey>;
     }
 
@@ -2482,7 +2482,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        const poppedValues = dataPop(this.items, count) as TValue[];
+        const poppedValues = dataPop(this.items, count);
 
         return this.newInstance(poppedValues) as unknown as Collection<
             TValue[],
@@ -2795,18 +2795,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isFunction(count)) {
             const countValue = count(this) as number;
             return this.newInstance(
-                dataRandom(this.items, countValue, preserveKeys) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                dataRandom(this.items, countValue, preserveKeys),
             );
         }
 
         return this.newInstance(
-            dataRandom(this.items, count as number, preserveKeys) as DataItems<
-                TValue,
-                TKey
-            >,
+            dataRandom(this.items, count as number, preserveKeys),
         );
     }
 
@@ -5996,9 +5990,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             : ordered[0];
 
         // An empty backing defers to dataFirst, so the thunk-or-value default resolves in one place.
-        return match
-            ? match[1]
-            : (dataFirst([], null, defaultValue) as TFirstDefault | null);
+        return match ? match[1] : dataFirst([], null, defaultValue);
     }
 
     /**
