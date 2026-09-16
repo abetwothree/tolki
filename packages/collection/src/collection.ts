@@ -748,10 +748,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return this.newInstance(
-            dataDiffAssocUsing<TValue, TKey>(
+            dataDiffAssocUsing(
                 this.items,
                 this.getRawItems(items),
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes a bare key and rejects a typed callback (contravariance).
+                callback as (
+                    keyA: string | number,
+                    keyB: string | number,
+                ) => boolean,
             ),
         );
     }
@@ -808,10 +813,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return this.newInstance(
-            dataDiffKeysUsing<TValue, TKey>(
+            dataDiffKeysUsing(
                 this.items,
                 this.getRawItems(items),
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes a bare key and rejects a typed callback (contravariance).
+                callback as (
+                    keyA: string | number,
+                    keyB: string | number,
+                ) => boolean,
             ),
         );
     }

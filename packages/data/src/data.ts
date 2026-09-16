@@ -11,6 +11,8 @@ import {
     crossJoin as arrCrossJoin,
     diff as arrDiff,
     diffAssoc as arrDiffAssoc,
+    diffAssocUsing as arrDiffAssocUsing,
+    diffKeysUsing as arrDiffKeysUsing,
     divide as arrDivide,
     dot as arrDot,
     every as arrEvery,
@@ -1685,8 +1687,8 @@ export const dataDiffAssoc = dispatch(arrDiffAssoc, objDiffAssoc);
 /**
  * Diff data with the given other data using a callback for key comparison.
  * Compares keys using the callback and values using PHP's `(string)` cast rule.
- * For arrays, obj's algorithm runs over the indices, so `other` is read through
- * `arrayableItems` and the survivors are reindexed.
+ * A list's keys are its indices, so `other` is read through `arrayableItems` on
+ * both backings and a list's survivors are reindexed.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -1698,45 +1700,16 @@ export const dataDiffAssoc = dispatch(arrDiffAssoc, objDiffAssoc);
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffAssocUsing({a: 'green', b: 'brown'}, {A: 'green', c: 'blue'}, strcasecmp); -> {b: 'brown'}
  */
-export function dataDiffAssocUsing<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
-    callback: (keyA: TKey, keyB: TKey) => boolean,
-): DataItems<TValue, TKey> {
-    if (isKeyedData(data)) {
-        return objDiffAssocUsing(
-            toKeyedData<TKey, TValue>(data),
-            other as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (
-                keyA: string | number,
-                keyB: string | number,
-            ) => boolean,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    // A list's keys are its indices, so array_diff_uassoc over an index-keyed copy is the list case.
-    return Object.values(
-        objDiffAssocUsing(
-            { ...arrWrap(data) },
-            other,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (
-                keyA: string | number,
-                keyB: string | number,
-            ) => boolean,
-        ),
-    ) as DataItems<TValue>;
-}
+export const dataDiffAssocUsing = dispatch(
+    arrDiffAssocUsing,
+    objDiffAssocUsing,
+);
 
 /**
  * Diff data keys with the given other data using a callback for key comparison only.
  * Compares keys using the callback and ignores values completely.
- * For arrays, obj's algorithm runs over the indices, so `other` is read through
- * `arrayableItems` and the survivors are reindexed.
+ * A list's keys are its indices, so `other` is read through `arrayableItems` on
+ * both backings and a list's survivors are reindexed.
  *
  * @param data - The data to diff
  * @param other - The data to diff against
@@ -1748,39 +1721,7 @@ export function dataDiffAssocUsing<
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
  */
-export function dataDiffKeysUsing<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
->(
-    data: DataItems<TValue, TKey>,
-    other: DataItems<TValue, TKey>,
-    callback: (keyA: TKey, keyB: TKey) => boolean,
-): DataItems<TValue, TKey> {
-    if (isKeyedData(data)) {
-        return objDiffKeysUsing(
-            toKeyedData<TKey, TValue>(data),
-            other as Record<TKey, TValue>,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (
-                keyA: string | number,
-                keyB: string | number,
-            ) => boolean,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    // A list's keys are its indices, so array_diff_ukey over an index-keyed copy is the list case.
-    return Object.values(
-        objDiffKeysUsing(
-            { ...arrWrap(data) },
-            other,
-            // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
-            callback as (
-                keyA: string | number,
-                keyB: string | number,
-            ) => boolean,
-        ),
-    ) as DataItems<TValue>;
-}
+export const dataDiffKeysUsing = dispatch(arrDiffKeysUsing, objDiffKeysUsing);
 
 /**
  * Pluck values from data by a key path.

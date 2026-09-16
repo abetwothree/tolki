@@ -4582,6 +4582,34 @@ describe("Data", () => {
             ).toEqual([2]);
         });
 
+        it("materializes a Set or generator backing, as every dispatch pair does", () => {
+            // JS-only: PHP has neither. Both used to be wrapped whole as a single
+            // element here, where dataDiffAssoc has always materialized them; the
+            // dispatch conversion put the two families back in step.
+            function* nums(): Generator<number> {
+                yield 1;
+                yield 2;
+                yield 3;
+            }
+
+            expect(
+                Data.dataDiffAssocUsing(
+                    new Set([1, 2, 3]),
+                    [1, 9, 3],
+                    strcasecmp,
+                ),
+            ).toEqual([2]);
+            expect(
+                Data.dataDiffAssocUsing(nums(), [1, 9, 3], strcasecmp),
+            ).toEqual([2]);
+            expect(
+                Data.dataDiffKeysUsing(new Set([1, 2, 3]), [9, 9], strcasecmp),
+            ).toEqual([3]);
+            expect(Data.dataDiffAssoc(new Set([1, 2, 3]), [1, 9, 3])).toEqual([
+                2,
+            ]);
+        });
+
         it("hands the callback a list's indices as numbers, for diffKeysUsing too", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "callback-key *Using on a list"
             const seen = new Set<string>();
@@ -6452,8 +6480,9 @@ describe("Data", () => {
         it.fails(
             "dataMapWithKeys maps a Map like the record it mirrors",
             () => {
-                // dataMapWithKeys stays hand-written: obj.mapWithKeys folds a tuple
-                // return wrongly, so no dispatch pair serves it. Task D6 Step 4b owns it.
+                // dataMapWithKeys stays hand-written, so nothing normalises a Map for
+                // it. Task D6 found obj's tuple fold matches PHP after all, so converting
+                // it would drop data's own tuple normalisation — a behaviour change.
                 const callback = (
                     value: number,
                     key: string,

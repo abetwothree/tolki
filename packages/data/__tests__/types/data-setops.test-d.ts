@@ -68,53 +68,40 @@ describe("data setops type tests", () => {
         });
     });
 
-    describe("the two hand-written exceptions, pinned against obj only", () => {
-        // Both serve BOTH backings from obj, so obj's call is the only delegate to pin against.
-        // Their hand-written `DataItems` return cannot hold obj's `Partial<T>`, so the pin is the
-        // negative one: it fails the day Task D6 adds arr.diffKeys/diffUsing and converts them.
+    describe("dataDiffAssocUsing and dataDiffKeysUsing", () => {
         const sameKey = (keyA: PropertyKey, keyB: PropertyKey): boolean =>
             String(keyA) === String(keyB);
 
-        it("does not yet forward obj.diffAssocUsing's own return type", () => {
+        it("matches arr.diffAssocUsing for a list", () => {
+            const delegate = Arr.diffAssocUsing(numberList, [1, 9, 3], sameKey);
+
+            expectTypeOf(
+                Data.dataDiffAssocUsing(numberList, [1, 9, 3], sameKey),
+            ).toEqualTypeOf(delegate);
+        });
+
+        it("matches obj.diffAssocUsing for a record", () => {
+            const delegate = Obj.diffAssocUsing(abc, { a: 1, b: 9 }, sameKey);
+
             expectTypeOf(
                 Data.dataDiffAssocUsing(abc, { a: 1, b: 9 }, sameKey),
-            ).not.toEqualTypeOf(
-                Obj.diffAssocUsing(abc, { a: 1, b: 9 }, sameKey),
-            );
+            ).toEqualTypeOf(delegate);
         });
 
-        it("does not yet forward obj.diffKeysUsing's own return type", () => {
+        it("matches arr.diffKeysUsing for a list", () => {
+            const delegate = Arr.diffKeysUsing(numberList, [1, 9, 3], sameKey);
+
+            expectTypeOf(
+                Data.dataDiffKeysUsing(numberList, [1, 9, 3], sameKey),
+            ).toEqualTypeOf(delegate);
+        });
+
+        it("matches obj.diffKeysUsing for a record", () => {
+            const delegate = Obj.diffKeysUsing(abc, { a: 1, b: 9 }, sameKey);
+
             expectTypeOf(
                 Data.dataDiffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
-            ).not.toEqualTypeOf(
-                Obj.diffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
-            );
-        });
-
-        it("keeps obj.diffAssocUsing's return assignable to the declared one", () => {
-            const declaredAssoc = Data.dataDiffAssocUsing(
-                abc,
-                { a: 1, b: 9 },
-                sameKey,
-            );
-
-            // Downgraded to assignability: equality is impossible while the return is hand-written.
-            expectTypeOf(
-                Obj.diffAssocUsing(abc, { a: 1, b: 9 }, sameKey),
-            ).toExtend<typeof declaredAssoc>();
-        });
-
-        it("keeps obj.diffKeysUsing's return assignable to the declared one", () => {
-            const declaredKeys = Data.dataDiffKeysUsing(
-                abc,
-                { a: 1, b: 9 },
-                sameKey,
-            );
-
-            // Downgraded to assignability: equality is impossible while the return is hand-written.
-            expectTypeOf(
-                Obj.diffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
-            ).toExtend<typeof declaredKeys>();
+            ).toEqualTypeOf(delegate);
         });
     });
 
@@ -336,6 +323,26 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataDiffAssoc(numberMap, [2])).toEqualTypeOf<
                 typeof widest
             >();
+        });
+
+        it("types a Map on dataDiffAssocUsing from obj's widest row", () => {
+            const sameKey = (keyA: PropertyKey, keyB: PropertyKey): boolean =>
+                String(keyA) === String(keyB);
+            const widest = Obj.diffAssocUsing(opaque, [2], sameKey);
+
+            expectTypeOf(
+                Data.dataDiffAssocUsing(numberMap, [2], sameKey),
+            ).toEqualTypeOf<typeof widest>();
+        });
+
+        it("types a Map on dataDiffKeysUsing from obj's widest row", () => {
+            const sameKey = (keyA: PropertyKey, keyB: PropertyKey): boolean =>
+                String(keyA) === String(keyB);
+            const widest = Obj.diffKeysUsing(opaque, [2], sameKey);
+
+            expectTypeOf(
+                Data.dataDiffKeysUsing(numberMap, [2], sameKey),
+            ).toEqualTypeOf<typeof widest>();
         });
 
         it("types a Map on dataIntersect from obj's widest row", () => {
