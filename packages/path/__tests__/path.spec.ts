@@ -1440,7 +1440,8 @@ describe("Path Functions", () => {
 
         it("handles empty segment in path", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "set-nested-record-key-cast", row "": the trailing segment is the "" key.
+            // "set-scalar-element-empty-trailing-segment": the trailing segment is the
+            // "" key, and the scalar it replaces becomes the record holding it.
             const arr = ["a"];
             const result = Path.setMixed(arr, "0.", "value");
 
@@ -1450,13 +1451,14 @@ describe("Path Functions", () => {
         it("handles empty first segment with non-empty array", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "set-list-key-cast", row "": PHP stores the "" key beside the indices.
-            const arr = ["a"];
+            const arr = ["a", "b"];
             const result = Path.setMixed(arr, "", "value");
 
             expect((result as unknown as Record<string, string>)[""]).toBe(
                 "value",
             );
             expect(result[0]).toBe("a");
+            expect(result[1]).toBe("b");
         });
 
         it("creates object at path when next segment is string", () => {
@@ -3001,10 +3003,8 @@ describe("Path Functions", () => {
 
             it("removes nothing for a non-canonical index among several keys", () => {
                 // docs/php-parity/task-24-data-release-readiness.json,
-                // "forget-list-key-cast", row "01": only the canonical key removes
-                // an item, so '0.2' takes 'z' and '0.01' takes nothing.
-                // JS-only: PHP keeps the surviving items at keys 0 and 1; a JS list
-                // reindexes, which Task A2 documents as deliberate.
+                // "forget-list-noncanonical-among-several-keys": only the canonical key
+                // removes an item, so '0.2' takes 'z' and '0.01' takes nothing.
                 expect(
                     Path.forgetKeysArray([["x", "y", "z"]], ["0.01", "0.2"]),
                 ).toEqual([["x", "y"]]);

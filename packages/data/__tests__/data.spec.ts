@@ -57,7 +57,7 @@ describe("Data", () => {
 
         it("leaves the caller's nested value alone for a list backing", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "add-list-leaves-the-caller-value-untouched"
+            // "add-nested-list-leaves-the-caller-value-untouched"
             const inner = ["desk"];
             const source = ["products", inner];
 
@@ -70,8 +70,8 @@ describe("Data", () => {
 
         it("leaves the caller's nested value alone for a record backing", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "add-leaves-the-caller-value-untouched": the record half of the case above,
-            // which now answers the same way.
+            // "add-nested-record-leaves-the-caller-value-untouched": the record half of
+            // the case above, which now answers the same way.
             const inner = { z: 1 };
 
             expect(Data.dataAdd({ a: inner }, "a.y", 2)).toEqual({

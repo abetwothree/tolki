@@ -6757,6 +6757,8 @@ describe("Collection", () => {
                 expect(
                     collect([1, null]).firstOrFail((value) => value === null),
                 ).toBeNull();
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "firstOrFail-stored-null-assoc-with-callback"
                 expect(
                     collect({ a: 1, b: null }).firstOrFail(
                         (value) => value === null,
