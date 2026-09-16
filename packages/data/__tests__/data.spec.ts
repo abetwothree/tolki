@@ -650,6 +650,44 @@ describe("Data", () => {
                 repo: 1,
             });
         });
+
+        it("wraps a scalar, string or nullish keys backing rather than reading it empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d7-combine-scalar-backing"
+            // PHP's empty array is this package's empty record, as combine always keys.
+            expect(Data.dataCombine(5, ["x"])).toEqual({ 5: "x" });
+            expect(Data.dataCombine("k", ["x"])).toEqual({ k: "x" });
+            expect(Data.dataCombine(null, [])).toEqual({});
+            // The keyed mirror of the same one-key backing.
+            expect(Data.dataCombine({ 0: 5 }, ["x"])).toEqual({ 5: "x" });
+        });
+
+        it("materializes a Traversable keys backing rather than reading it empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d7-combine-traversable-backing"
+            expect(Data.dataCombine(new Set(["k1", "k2"]), ["x", "y"])).toEqual(
+                { k1: "x", k2: "y" },
+            );
+            // The keyed mirror of the same backing, which needs no materializing.
+            expect(Data.dataCombine({ 0: "k1", 1: "k2" }, ["x", "y"])).toEqual({
+                k1: "x",
+                k2: "y",
+            });
+        });
+
+        it("normalizes a Map keys backing the way dispatch would", () => {
+            // JS-only: PHP has no Map. `toKeyedData` builds the record it mirrors, and the
+            // two must answer alike — the body used to read a Map as an empty key set and throw.
+            const asMap = new Map([
+                ["a", "k1"],
+                ["b", "k2"],
+            ]);
+            expect(Data.dataCombine(asMap, ["x", "y"])).toEqual({
+                k1: "x",
+                k2: "y",
+            });
+            expect(Data.dataCombine(asMap, ["x", "y"])).toEqual(
+                Data.dataCombine({ a: "k1", b: "k2" }, ["x", "y"]),
+            );
+        });
     });
 
     describe("dataCount", () => {
@@ -6389,19 +6427,13 @@ describe("Data", () => {
             ).toEqual(Data.dataCollapse(nestedRecord));
         });
 
-        it.fails(
-            "dataCombine combines a Map's values as keys like the record it mirrors",
-            () => {
-                // dataCombine stays hand-written: Task C2 closed without a recorded
-                // decision. Task D7's F-23(4) step owns its Map backing.
-                expect(
-                    Data.dataCombine(
-                        asMap as unknown as Record<string, number>,
-                        ["x", "y", "z"],
-                    ),
-                ).toEqual(Data.dataCombine(asRecord, ["x", "y", "z"]));
-            },
-        );
+        it("dataCombine combines a Map's values as keys like the record it mirrors", () => {
+            // dataCombine stays hand-written, so it normalizes its own keys backing
+            // rather than reaching toKeyedData through dispatch. Task D7 made it do so.
+            expect(Data.dataCombine(asMap, ["x", "y", "z"])).toEqual(
+                Data.dataCombine(asRecord, ["x", "y", "z"]),
+            );
+        });
 
         it("dataCount counts a Map like the record it mirrors", () => {
             expect(Data.dataCount(asMap)).toBe(Data.dataCount(asRecord));

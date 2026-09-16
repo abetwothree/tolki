@@ -395,15 +395,26 @@ export function dataCombine<TKeys, TValues>(
     itemsB: DataItems<TValues>,
 ): ReturnType<typeof objCombine>;
 export function dataCombine<TKeys, TValues>(
-    itemsA: DataItems<TKeys>,
+    itemsA:
+        | ReadonlyMap<PropertyKey, TKeys>
+        | Iterable<TKeys>
+        | NonObjectBacking,
+    itemsB: DataItems<TValues>,
+): ReturnType<typeof objCombine>;
+export function dataCombine<TKeys, TValues>(
+    itemsA: DataItems<TKeys> | ReadonlyMap<PropertyKey, TKeys> | unknown,
     itemsB: DataItems<TValues>,
 ) {
-    if (isObject(itemsA)) {
+    // No dispatch pair serves this, so the keys backing is normalized the way dispatch would.
+    if (isKeyedData(itemsA)) {
         // Collection::combine keys by $this->all(), which never unwraps; handing obj a list keeps it from doing so.
-        return objCombine(Object.values(itemsA), itemsB);
+        return objCombine(
+            Object.values(toKeyedData<PropertyKey, TKeys>(itemsA)),
+            itemsB,
+        );
     }
 
-    return arrCombine(itemsA, itemsB);
+    return arrCombine(toPositionalBacking(itemsA) as TKeys[], itemsB);
 }
 
 /**

@@ -6,12 +6,14 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
     abc,
     box,
+    names,
     numberList,
     numberMap,
     numberMapAsRecord,
     opaque,
     readonlyNumberList,
     settings,
+    stringList,
 } from "./fixtures";
 
 describe("data foundation type tests", () => {
@@ -66,6 +68,24 @@ describe("data foundation type tests", () => {
 
         it("matches obj.divide for a record", () => {
             expectTypeOf(Data.dataDivide(abc)).toEqualTypeOf(Obj.divide(abc));
+        });
+    });
+
+    describe("dataCombine, which stays hand-written", () => {
+        // Its rows are written as `ReturnType<typeof arrCombine>` / `<typeof objCombine>`,
+        // so a full delegate-call pin is impossible: the row erases the arguments. Each
+        // assertion pins the delegate's own widest answer instead, never a hand-written one.
+
+        it("answers arr.combine's own return for a list", () => {
+            expectTypeOf(
+                Data.dataCombine(stringList, numberList),
+            ).toEqualTypeOf<ReturnType<typeof Arr.combine>>();
+        });
+
+        it("answers obj.combine's own return for a record", () => {
+            expectTypeOf(Data.dataCombine(names, numberList)).toEqualTypeOf<
+                ReturnType<typeof Obj.combine>
+            >();
         });
     });
 
@@ -124,6 +144,13 @@ describe("data foundation type tests", () => {
             // Assignability again: the values are `unknown`, not `number`.
             expectTypeOf(Data.dataFrom(numberMapAsRecord)).toExtend<
                 typeof widest
+            >();
+        });
+
+        it("types a Map on dataCombine from obj's widest row", () => {
+            // The row this task added; before it, a Map matched none and had to be cast.
+            expectTypeOf(Data.dataCombine(numberMap, numberList)).toEqualTypeOf<
+                ReturnType<typeof Obj.combine>
             >();
         });
 
