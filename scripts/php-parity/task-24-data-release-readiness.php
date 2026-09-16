@@ -1092,4 +1092,39 @@ probe('r3-set-list-nested-object-is-replaced-wholesale', "\$src = [new D4Point(1
     ];
 });
 
+// ==== fix-round-4 Group A: "r3-operator-table" pairs NAN only with numbers, so nothing
+// ==== recorded that PHP casts BOTH sides to bool against a bool or null, NAN included.
+probe('r4-nan-bool-null-table', "(new Collection([['v' => NAN]]))->contains('v', <op>, true|false|null) for all eleven operators", function () {
+    $operators = ['=', '==', '!=', '<>', '<', '>', '<=', '>=', '===', '!==', '<=>'];
+    $pairs = [
+        'NAN vs true' => [NAN, true],
+        'true vs NAN' => [true, NAN],
+        'NAN vs false' => [NAN, false],
+        'false vs NAN' => [false, NAN],
+        'NAN vs null' => [NAN, null],
+        'null vs NAN' => [null, NAN],
+    ];
+
+    $table = [];
+
+    foreach ($pairs as $name => [$retrieved, $value]) {
+        foreach ($operators as $operator) {
+            $table[$name][$operator] = (new Collection([['v' => $retrieved]]))->contains('v', $operator, $value);
+        }
+    }
+
+    // The raw ints too: `contains` only reports the truthiness of `<=>`, and 0 is what
+    // says `NAN <=> true` is an ORDERED tie rather than the 1 an uncomparable pair gives.
+    $table['raw spaceship'] = [
+        'NAN <=> true' => NAN <=> true,
+        'true <=> NAN' => true <=> NAN,
+        'NAN <=> false' => NAN <=> false,
+        'false <=> NAN' => false <=> NAN,
+        'NAN <=> null' => NAN <=> null,
+        'null <=> NAN' => null <=> NAN,
+    ];
+
+    return $table;
+});
+
 emit();

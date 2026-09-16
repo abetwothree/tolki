@@ -650,8 +650,10 @@ export function strictEqual(a: unknown, b: unknown): boolean {
  * When exactly one side is an object and the pair holds fewer than two strings,
  * PHP cannot order them, so only the inequality operators answer true. Every other
  * relational operator orders through `compareValues`, PHP's own comparison rule, so
- * `null` is ordered rather than refused; `NaN` orders with nothing but is still
- * unequal under `<=>`, as PHP's `NAN <=> 1` answers 1.
+ * `null` is ordered rather than refused. `NaN` orders with no number and no string —
+ * `<`, `>`, `<=` and `>=` are all false there and `<=>` still answers 1, as PHP's
+ * `NAN <=> 1` does — but against a bool or null PHP casts both sides to bool and
+ * orders normally, so `NAN <=> true` is 0 and `NAN <=> null` is 1.
  *
  * @param retrieved - The value read from the item
  * @param operator - The comparison operator (`=`, `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `===`, `!==`, `<=>`)
@@ -683,7 +685,15 @@ export function operatorMatch(
     }
 
     // NAN orders with nothing, yet `NAN <=> 1` is 1, not 0 (task-24, "raw spaceship").
-    const uncomparable = isNaNValue(retrieved) || isNaNValue(value);
+    // Against a bool or null PHP casts both sides to bool first, so NAN does order there
+    // (task-24, "r4-nan-bool-null-table": `NAN <=> true` is 0 and `NAN <=> null` is 1).
+    const castsToBool =
+        isBoolean(retrieved) ||
+        isBoolean(value) ||
+        isNullish(retrieved) ||
+        isNullish(value);
+    const uncomparable =
+        !castsToBool && (isNaNValue(retrieved) || isNaNValue(value));
     // PHP orders with its own rules, not JavaScript's: null casts to a bool (or to "" against
     // a string) and two numeric strings compare numerically, so `-1 > null` and `"10" > "9"`
     // both hold there. compareValues is that rule (task-24, "r3-operator-table").

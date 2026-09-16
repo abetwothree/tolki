@@ -2913,6 +2913,98 @@
                 ],
                 "result_type": "array"
             }
+        },
+        {
+            "label": "r4-nan-bool-null-table",
+            "php": "(new Collection([['v' => NAN]]))->contains('v', <op>, true|false|null) for all eleven operators",
+            "value": {
+                "NAN vs true": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "true vs NAN": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "NAN vs false": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "false vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "null vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "raw spaceship": {
+                    "NAN <=> true": 0,
+                    "true <=> NAN": 0,
+                    "NAN <=> false": 1,
+                    "false <=> NAN": -1,
+                    "NAN <=> null": 1,
+                    "null <=> NAN": -1
+                }
+            }
         }
     ]
 }

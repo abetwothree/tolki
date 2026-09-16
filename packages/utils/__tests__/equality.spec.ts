@@ -819,12 +819,45 @@ describe("Utils", () => {
             );
         });
 
-        it("leaves a NaN operand unordered under every relational operator", () => {
+        it("leaves a NaN operand unordered against a number", () => {
             // Same row, "NAN vs 1": PHP answers false for <, >, <= and >= alike.
             expect(Utils.operatorMatch(Number.NaN, "<", 1)).toBe(false);
             expect(Utils.operatorMatch(Number.NaN, ">", 1)).toBe(false);
             expect(Utils.operatorMatch(Number.NaN, "<=", 1)).toBe(false);
             expect(Utils.operatorMatch(Number.NaN, ">=", 1)).toBe(false);
+        });
+
+        it("orders a NaN operand against a bool, which PHP casts both sides for", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-nan-bool-null-table", "NAN vs true" and "true vs NAN": NAN casts to
+            // true, so the pair ties and `<=`/`>=` hold while `<=>` is falsy.
+            expect(Utils.operatorMatch(Number.NaN, "<=", true)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, ">=", true)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<", true)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, ">", true)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", true)).toBe(false);
+            expect(Utils.operatorMatch(true, "<=", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(true, ">=", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(true, "<=>", Number.NaN)).toBe(false);
+            // Same row, "NAN vs false" and "false vs NAN": a truthy NAN sorts above false.
+            expect(Utils.operatorMatch(Number.NaN, ">", false)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, ">=", false)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<", false)).toBe(false);
+            expect(Utils.operatorMatch(false, "<", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(false, "<=", Number.NaN)).toBe(true);
+        });
+
+        it("orders a NaN operand against null the same way", () => {
+            // Same row, "NAN vs null" and "null vs NAN": null casts to false, NAN to
+            // true, so NAN sorts above it and `<=>` answers 1 for the real difference.
+            expect(Utils.operatorMatch(Number.NaN, ">", null)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, ">=", null)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<", null)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=", null)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", null)).toBe(true);
+            expect(Utils.operatorMatch(null, "<", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(null, "<=", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(null, ">=", Number.NaN)).toBe(false);
         });
 
         it("orders a null operand the way PHP's comparison cast does", () => {
