@@ -2794,7 +2794,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
     ): TKey | false {
-        return dataSearch(this.items, value, strict);
+        return dataSearch(this.items as Record<TKey, TValue>, value, strict);
     }
 
     /**
@@ -2816,7 +2816,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
     ): TValue | null {
-        return dataBefore(this.items, value, strict);
+        return dataBefore(this.items as Record<TKey, TValue>, value, strict);
     }
 
     /**
@@ -2838,7 +2838,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
     ): TValue | null {
-        return dataAfter(this.items, value, strict);
+        return dataAfter(this.items as Record<TKey, TValue>, value, strict);
     }
 
     /**
