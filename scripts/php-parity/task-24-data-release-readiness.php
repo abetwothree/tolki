@@ -434,6 +434,17 @@ probe('intersectByKeys-scalar-backing', "(new Collection(5))->intersectByKeys([1
 // intersectAssoc, a different call, so it cannot be cited for this one.
 probe('intersectAssocUsing-scalar-backing', "(new Collection(5))->intersectAssocUsing([5], fn (\$a, \$b) => strcasecmp((string) \$a, (string) \$b))", fn () => (new Collection(5))->intersectAssocUsing([5], fn ($a, $b) => strcasecmp((string) $a, (string) $b))->all());
 
+// ==== D7 (F-23 routed by P-40): union was left out of the C10 scalar sweep. It is the one
+// setop whose backing is its LEFT operand, so a scalar backing must win over the operand.
+probe('d7-union-scalar-backing', "(new Collection(5))->union([9]) and (new Collection('x'))->union([9])", fn () => [
+    'int' => (new Collection(5))->union([9])->all(),
+    'string' => (new Collection('x'))->union([9])->all(),
+]);
+probe('d7-union-traversable-backing', "(new Collection(new ArrayIterator([1, 2])))->union(['d' => 4]) and ->union([9, 9, 9])", fn () => [
+    'keyed-operand' => (new Collection(new ArrayIterator([1, 2])))->union(['d' => 4])->all(),
+    'list-operand' => (new Collection(new ArrayIterator([1, 2])))->union([9, 9, 9])->all(),
+]);
+
 // ==== P-39: what a Traversable backing answers, against what a string backing answers.
 // Collection materialises a Traversable through iterator_to_array, so take(2) sees its
 // elements; a string is not Traversable, so (array) wraps it as one item.

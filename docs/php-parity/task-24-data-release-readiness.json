@@ -1224,6 +1224,34 @@
             ]
         },
         {
+            "label": "d7-union-scalar-backing",
+            "php": "(new Collection(5))->union([9]) and (new Collection('x'))->union([9])",
+            "value": {
+                "int": [
+                    5
+                ],
+                "string": [
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "d7-union-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2])))->union(['d' => 4]) and ->union([9, 9, 9])",
+            "value": {
+                "keyed-operand": {
+                    "0": 1,
+                    "1": 2,
+                    "d": 4
+                },
+                "list-operand": [
+                    1,
+                    2,
+                    9
+                ]
+            }
+        },
+        {
             "label": "take-traversable-backing",
             "php": "(new Collection(new ArrayIterator([1, 2, 3])))->take(2)",
             "value": [
