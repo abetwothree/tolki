@@ -1921,6 +1921,12 @@ describe("Arr", () => {
             expect(Arr.set([1, 2, 3], 3, "new")).toEqual([1, 2, 3, "new"]);
         });
 
+        it("rebuilds a scalar element as a record for a dot path under its index", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "set-dot-path-under-a-list-index"
+            expect(Arr.set(["a", "b"], "0.x", 5)).toEqual([{ x: 5 }, "b"]);
+        });
+
         it("stores a key that is no array index as an own property", () => {
             // Arr::set([1,2,3],'invalid.path','value') ->
             // {0:1,1:2,2:3,invalid:{path:'value'}}. A JS array is an object,

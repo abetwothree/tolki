@@ -49,6 +49,36 @@ describe("arr mutations type tests", () => {
             >();
         });
 
+        it("adds the record a dot path writes at a list index", () => {
+            // F-24(a): the path row declared the element type unchanged, so this read as
+            // `string[]` while the runtime returns `[{ x: 5 }, "b"]`.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "set-dot-path-under-a-list-index"
+            expectTypeOf(Arr.set(["a", "b"], "0.x", 5)).toEqualTypeOf<
+                (string | { x: number })[]
+            >();
+        });
+
+        it("nests the record a deeper dot path writes at a list index", () => {
+            expectTypeOf(Arr.set(["a", "b"], "0.x.y", 5)).toEqualTypeOf<
+                (string | { x: { y: number } })[]
+            >();
+        });
+
+        it("merges the write onto a record element already there", () => {
+            expectTypeOf(Arr.set(idObjects, "0.name", "Ada")).toEqualTypeOf<
+                ({ id: number } | { id: number; name: string })[]
+            >();
+        });
+
+        it("leaves the element type alone for a path under a non-index key", () => {
+            // A non-index head is a string key stored on the array itself, so no element
+            // is rebuilt: Arr.set(["a"], "user.name", "x") -> ["a"] with a `user` property.
+            expectTypeOf(Arr.set(["a"], "user.name", "x")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
         it("returns string[] for an empty array", () => {
             // Kept inline: the empty array is the value under test — no
             // fixture can stand in for "no elements" without losing the

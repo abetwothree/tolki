@@ -35,6 +35,7 @@ import type {
     PathKey,
     PathKeys,
     PluckValue,
+    SetObjectPath,
     SortSpec,
     TruthyArray,
     UndotArrayKey,
@@ -88,6 +89,33 @@ import {
  * argument; every other function returns a new value. arr and obj agree
  * on this — re-read Collection.php before "aligning" one to the other.
  */
+
+// ArraySetPath* (set): Arr::set replaces a non-record element with a fresh container before
+// writing, so only a record element is merged onto; a rest starting with an index rebuilds
+// a nested list, which the element type already covers.
+type ArraySetPathTarget<TValue> = TValue extends readonly unknown[]
+    ? Record<never, never>
+    : TValue extends object
+      ? TValue
+      : Record<never, never>;
+type ArraySetPathElement<
+    TValue,
+    TRest extends string,
+    TSetValue,
+> = SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>;
+type ArraySetPathResult<
+    TValue,
+    TPath extends string,
+    TSetValue,
+> = TPath extends `${number}.${infer TRest}`
+    ? TRest extends `${number}` | `${number}.${string}`
+        ? TValue[]
+        : [ArraySetPathElement<TValue, TRest, TSetValue>] extends [TValue]
+          ? [TValue] extends [ArraySetPathElement<TValue, TRest, TSetValue>]
+              ? TValue[]
+              : (TValue | ArraySetPathElement<TValue, TRest, TSetValue>)[]
+          : (TValue | ArraySetPathElement<TValue, TRest, TSetValue>)[]
+    : TValue[];
 
 const sortSpecComparator = createSortSpecComparator((item, key) =>
     getNestedValue(item, key as PropertyKey),
@@ -2891,12 +2919,17 @@ export function set<TSetValue>(
     key: null | undefined,
     value: TSetValue,
 ): TSetValue;
-// Overload: dot-notated path key → nested write, outer element type unchanged
-export function set<TValue, TPath extends `${string}.${string}`>(
+// Overload: dot-notated path key → nested write. A path under a list index rebuilds that
+// element, so the element type gains the record the write creates there.
+export function set<
+    TValue,
+    TSetValue,
+    const TPath extends `${string}.${string}`,
+>(
     array: ArrayItems<TValue>,
     key: TPath,
-    value: unknown,
-): TValue[];
+    value: TSetValue,
+): ArraySetPathResult<TValue, TPath, TSetValue>;
 // Overload: top-level key with a same-type value → preserves array type
 // `NoInfer<TValue>` keeps `value` from driving `TValue` on its own, so a
 // same-shaped write (e.g. an object matching the element shape) still
