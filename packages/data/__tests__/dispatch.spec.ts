@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
     dispatch,
     isKeyedData,
+    keepKeyedData,
     toKeyedData,
     toPositionalBacking,
     toPositionalData,
@@ -118,5 +119,45 @@ describe("toKeyedData", () => {
         const rec = { a: 1 };
 
         expect(toKeyedData(rec)).toBe(rec);
+    });
+});
+
+describe("keepKeyedData", () => {
+    it("hands a Map on by reference, so its insertion order survives", () => {
+        const map = new Map([
+            [2, "c"],
+            [0, "a"],
+        ]);
+
+        expect(keepKeyedData(map)).toBe(map);
+
+        // The record the default normalizer builds cannot hold that order.
+        expect(Object.keys(toKeyedData(map))).toEqual(["0", "2"]);
+    });
+});
+
+describe("dispatch with a keyed normalizer", () => {
+    const dFirstKeeping = dispatch(
+        arrFirst,
+        objFirst,
+        toPositionalData,
+        keepKeyedData,
+    );
+    const dFirstConverting = dispatch(arrFirst, objFirst, toPositionalData);
+
+    it("lets the object helper read the Map's own order", () => {
+        const map = new Map([
+            [2, "c"],
+            [0, "a"],
+        ]);
+
+        expect(dFirstKeeping(map)).toBe("c");
+        expect(dFirstConverting(map)).toBe("a");
+    });
+
+    it("changes nothing for a plain record, which carries its own order", () => {
+        const rec = { b: 7, a: 8 };
+
+        expect(dFirstKeeping(rec)).toBe(dFirstConverting(rec));
     });
 });

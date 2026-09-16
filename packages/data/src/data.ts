@@ -176,6 +176,7 @@ import {
 import {
     dispatch,
     isKeyedData,
+    keepKeyedData,
     toKeyedData,
     toPositionalBacking,
     toPositionalData,
@@ -794,8 +795,14 @@ export const dataHasAny = dispatch(arrHasAny, objHasAny);
  * dataEvery(new Set([2, 4]), (value) => value % 2 === 0); -> true
  */
 // A Set or generator must reach `arrEvery` UNREAD, so an infinite generator still answers;
-// this normalises with `toPositionalData` rather than the materialising default.
-export const dataEvery = dispatch(arrEvery, objEvery, toPositionalData);
+// this normalises with `toPositionalData` rather than the materialising default, and hands
+// `objEvery` the Map itself, which it reads in insertion order.
+export const dataEvery = dispatch(
+    arrEvery,
+    objEvery,
+    toPositionalData,
+    keepKeyedData,
+);
 
 /**
  * Test if some items in data pass a test.
@@ -814,8 +821,14 @@ export const dataEvery = dispatch(arrEvery, objEvery, toPositionalData);
  * dataSome(new Set([1, 3]), (value) => value > 2); -> true
  */
 // A Set or generator must reach `arrSome` UNREAD, so an infinite generator still answers;
-// this normalises with `toPositionalData` rather than the materialising default.
-export const dataSome = dispatch(arrSome, objSome, toPositionalData);
+// this normalises with `toPositionalData` rather than the materialising default, and hands
+// `objSome` the Map itself, which it reads in insertion order.
+export const dataSome = dispatch(
+    arrSome,
+    objSome,
+    toPositionalData,
+    keepKeyedData,
+);
 
 /**
  * Get an integer value from data.
@@ -1717,8 +1730,13 @@ export const dataMap = dispatch(arrMap, objMap);
  */
 // A Set or generator reaches `arrFirst` UNREAD via `toPositionalData`, so a callback-less call
 // answers an infinite generator; given a callback `arrFirst` materialises, so that form still
-// needs a finite backing.
-export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
+// needs a finite backing. `objFirst` is handed the Map itself, which it reads in insertion order.
+export const dataFirst = dispatch(
+    arrFirst,
+    objFirst,
+    toPositionalData,
+    keepKeyedData,
+);
 
 /**
  * Get the last value from data that passes a test.
@@ -1737,8 +1755,14 @@ export const dataFirst = dispatch(arrFirst, objFirst, toPositionalData);
  * Data.last(new Map([['a', 1], ['b', 2]])); -> 2
  */
 // A Set or generator reaches `arrLast` UNREAD via `toPositionalData`, but `last` has to walk to
-// the end whatever it is handed, so the backing must still be finite.
-export const dataLast = dispatch(arrLast, objLast, toPositionalData);
+// the end whatever it is handed, so the backing must still be finite. `objLast` is handed the
+// Map itself, which it reads in insertion order.
+export const dataLast = dispatch(
+    arrLast,
+    objLast,
+    toPositionalData,
+    keepKeyedData,
+);
 
 /**
  * Determine if data contains a value.

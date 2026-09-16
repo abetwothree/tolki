@@ -50,9 +50,24 @@ export function isKeyedData(data: unknown): boolean {
 export function toKeyedData<TKey extends PropertyKey, TValue>(
     data: unknown,
 ): Record<TKey, TValue> {
-    // Only `obj.from` accepts a Map; every other obj helper walks with Object.entries,
-    // which yields nothing for one, so a Map must become a record before it is delegated.
+    // Most obj helpers walk with Object.entries, which yields nothing for a Map, so one has
+    // to become a record first. That record cannot hold an out-of-order integer key, so the
+    // four helpers that read a Map themselves take `keepKeyedData` instead.
     return (isMap(data) ? objFrom(data) : data) as Record<TKey, TValue>;
+}
+
+/**
+ * Hand keyed data to the object helper exactly as it arrived.
+ *
+ * `obj.first`, `obj.last`, `obj.every` and `obj.some` read a Map's own entries, so they are
+ * the only helpers that can see the insertion order a record loses: `{2: "c", 0: "a"}` always
+ * iterates `0` first, while PHP's `[2 => 'c', 0 => 'a']` keeps the order it was written in.
+ *
+ * @param data - The keyed data to pass along.
+ * @returns The data itself, converted by nothing.
+ */
+export function keepKeyedData(data: unknown): unknown {
+    return data;
 }
 
 /**
@@ -110,6 +125,7 @@ export function toPositionalBacking(data: unknown): unknown {
  *                arr's rows are array-shaped, so keyed data falls through them to `objFn`.
  * @param objFn - The `@tolki/obj` helper, used for a keyed backing.
  * @param toPositional - How a non-keyed backing reaches `arrFn`.
+ * @param toKeyed - How a keyed backing reaches `objFn`.
  * @returns A function carrying both helpers' overloads, behind the Map row.
  */
 export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
@@ -118,13 +134,16 @@ export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
     // A streaming helper must pass a Set or generator through UNREAD, so that an infinite
     // generator still works; those helpers override this with toPositionalData.
     toPositional: (data: unknown) => unknown = toPositionalBacking,
+    // An objFn that reads a Map itself must be handed the Map, or the record it would be
+    // converted to re-sorts the integer keys; those helpers override this with keepKeyedData.
+    toKeyed: (data: unknown) => unknown = toKeyedData,
 ): KeyedMapRow<TObjFn> & TArrFn & TObjFn {
     const forward = (data: unknown, ...rest: readonly unknown[]): unknown => {
         const keyed = isKeyedData(data);
         const target = keyed ? objFn : arrFn;
 
         return (target as unknown as (...args: readonly unknown[]) => unknown)(
-            keyed ? toKeyedData(data) : toPositional(data),
+            keyed ? toKeyed(data) : toPositional(data),
             ...rest,
         );
     };

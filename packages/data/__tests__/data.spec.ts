@@ -7135,4 +7135,115 @@ describe("Data", () => {
             );
         });
     });
+
+    // `dispatch` converted every Map to a record before delegating, and a record re-sorts
+    // integer keys ascending — so the four readers that answer BY POSITION answered from the
+    // wrong end of an out-of-order backing. They are handed the Map itself now.
+    describe("a Map's insertion order reaches the positional readers", () => {
+        /** The PHP array `[2 => 'c', 0 => 'a', 1 => 'b']`, which only a Map expresses in JS. */
+        const outOfOrder = () =>
+            new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+        /** The keys a callback is offered, in the order it is offered them. */
+        const keysSeen = (
+            run: (
+                callback: (value: unknown, key: unknown) => boolean,
+            ) => unknown,
+            answer: boolean,
+        ) => {
+            const seen: unknown[] = [];
+            run((_value, key) => {
+                seen.push(key);
+
+                return answer;
+            });
+
+            return seen;
+        };
+
+        it("dataFirst and dataLast read a Map from PHP's ends", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "arr-first-out-of-order"
+            expect(Data.dataFirst(outOfOrder())).toBe("c");
+
+            // docs/php-parity/task-27-carried-fixes.json, "arr-last-out-of-order"
+            expect(Data.dataLast(outOfOrder())).toBe("b");
+
+            // docs/php-parity/task-27-carried-fixes.json, "arr-first-out-of-order-callback"
+            expect(Data.dataFirst(outOfOrder(), (value) => value !== "c")).toBe(
+                "a",
+            );
+
+            // docs/php-parity/task-27-carried-fixes.json, "arr-last-out-of-order-callback"
+            expect(Data.dataLast(outOfOrder(), (value) => value !== "b")).toBe(
+                "a",
+            );
+        });
+
+        it("dataFirst and dataLast walk a Map in PHP's order", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "arr-first-out-of-order-key-order"
+            expect(
+                keysSeen((cb) => Data.dataFirst(outOfOrder(), cb), false),
+            ).toEqual([2, 0, 1]);
+
+            // docs/php-parity/task-27-carried-fixes.json, "arr-last-out-of-order-key-order"
+            expect(
+                keysSeen((cb) => Data.dataLast(outOfOrder(), cb), false),
+            ).toEqual([1, 0, 2]);
+        });
+
+        it("dataEvery and dataSome walk a Map in PHP's order", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "every-out-of-order-key-order"
+            expect(
+                keysSeen((cb) => Data.dataEvery(outOfOrder(), cb), true),
+            ).toEqual([2, 0, 1]);
+
+            // docs/php-parity/task-27-carried-fixes.json, "contains-out-of-order-key-order"
+            expect(
+                keysSeen((cb) => Data.dataSome(outOfOrder(), cb), false),
+            ).toEqual([2, 0, 1]);
+
+            // docs/php-parity/task-27-carried-fixes.json, "contains-out-of-order-first-match"
+            expect(
+                keysSeen((cb) => Data.dataSome(outOfOrder(), cb), true),
+            ).toEqual([2]);
+        });
+
+        it("each reader answers a Map exactly as its obj delegate does", () => {
+            expect(Data.dataFirst(outOfOrder())).toBe(Obj.first(outOfOrder()));
+            expect(Data.dataLast(outOfOrder())).toBe(Obj.last(outOfOrder()));
+            expect(
+                keysSeen((cb) => Data.dataEvery(outOfOrder(), cb), true),
+            ).toEqual(keysSeen((cb) => Obj.every(outOfOrder(), cb), true));
+            expect(
+                keysSeen((cb) => Data.dataSome(outOfOrder(), cb), false),
+            ).toEqual(keysSeen((cb) => Obj.some(outOfOrder(), cb), false));
+        });
+
+        it("the list backing holds the same order in its own positions", () => {
+            // docs/php-parity/task-27-carried-fixes.json, "arr-first-out-of-order" and
+            // "arr-last-out-of-order": the same three values, positionally.
+            expect(Data.dataFirst(["c", "a", "b"])).toBe("c");
+            expect(Data.dataLast(["c", "a", "b"])).toBe("b");
+            expect(
+                keysSeen((cb) => Data.dataFirst(["c", "a", "b"], cb), false),
+            ).toEqual([0, 1, 2]);
+        });
+
+        it("the plain-object backing cannot hold that order", () => {
+            const record = { 2: "c", 0: "a", 1: "b" };
+
+            // JS-only: a JS object iterates integer keys ascending (ECMA-262
+            // OrdinaryOwnPropertyKeys), so PHP's [2 => 'c', ...] is unreachable from a record
+            // and `first` answers "a". The Map above is the only backing that keeps the order.
+            expect(Data.dataFirst(record)).toBe("a");
+            expect(Data.dataLast(record)).toBe("c");
+            expect(keysSeen((cb) => Data.dataFirst(record, cb), false)).toEqual(
+                [0, 1, 2],
+            );
+        });
+    });
 });
