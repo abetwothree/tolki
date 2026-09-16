@@ -43,6 +43,15 @@ describe("arr mutations type tests", () => {
             >();
         });
 
+        it("keeps the list element type even when the write widens it", () => {
+            // KNOWN-UNSOUND: the runtime answers [["a"], [5]], so the true type is
+            // (string | number)[][]. The index-rest row keeps TValue[] when the element
+            // is already a list, so a value written under it reads back at the wrong type.
+            expectTypeOf(Arr.set([["a"], ["b"]], "1.0", 5)).toEqualTypeOf<
+                string[][]
+            >();
+        });
+
         it("preserves object element type via a dot path", () => {
             expectTypeOf(Arr.set(idObjects, "0.id", 2)).toEqualTypeOf<
                 { id: number }[]
@@ -96,6 +105,15 @@ describe("arr mutations type tests", () => {
         it("nests the record a deeper dot path writes at a list index", () => {
             expectTypeOf(Arr.set(["a", "b"], "0.x.y", 5)).toEqualTypeOf<
                 (string | { x: { y: number } })[]
+            >();
+        });
+
+        it("admits no padding for an out-of-range canonical head", () => {
+            // KNOWN-UNSOUND: the runtime answers ["a", undefined, undefined, undefined,
+            // undefined, { x: 1 }] — the head is past the end, so the write pads the gap.
+            // The row names neither `undefined` nor the pad, so a read of one is mistyped.
+            expectTypeOf(Arr.set(["a"], "5.x", 1)).toEqualTypeOf<
+                (string | { x: number })[]
             >();
         });
 

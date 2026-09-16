@@ -116,7 +116,7 @@ type PathHead<TPath extends string> = TPath extends `${infer THead}.${string}`
 
 // ArraySetPath* (set): Arr::set replaces a non-record element with a fresh container before
 // writing, so only a record element is merged onto. A rest starting with an index seeds a
-// list instead, whose own member types this row deliberately approximates.
+// list instead, whose members ArraySetPathListElement types.
 // `object`, not `Record<never, never>`: an empty array's element type is `never`, and the
 // record seed's own index signatures rode that through into the public answer.
 type ArraySetPathTarget<TValue> = [TValue] extends [never]
@@ -131,9 +131,15 @@ type ArraySetPathElement<
     TRest extends string,
     TSetValue,
 > = SetObjectPath<ArraySetPathTarget<TValue>, TRest, TSetValue>;
+// KNOWN-UNSOUND: an already-list element keeps TValue[], so Arr.set([["a"],["b"]], "1.0", 5)
+// answers string[][] where the runtime makes it (string | number)[][] — a value written under
+// the path reads back at the wrong type. Pinned in arr-mutations.test-d.ts.
 type ArraySetPathListElement<TValue> = [TValue] extends [readonly unknown[]]
     ? TValue[]
     : (TValue | unknown[])[];
+// KNOWN-UNSOUND: an out-of-range canonical head pads the gap with `undefined` elements no row
+// below admits. Whether the head is in range is unknowable from TValue, so widening every row
+// would be wrong the other way; the limit is pinned in arr-mutations.test-d.ts instead.
 type ArraySetPathResult<
     TValue,
     TPath extends string,
