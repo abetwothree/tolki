@@ -462,4 +462,123 @@ probe('reduce-empty-no-initial', "(new Collection([]))->reduce(fn (\$c, \$v) => 
     'assoc' => (new Collection((object) []))->reduce(fn ($c, $v) => $c + $v),
 ]);
 
+// ==== D4 (F-12): PHP key semantics on the WRITE path. Arr::set, Arr::push and Arr::forget
+// hand every dot segment straight to the array subscript, so PHP's own key cast applies:
+// "01" and "" stay string keys, "1" and "-1" become integers, and a dotted "1.5" is two
+// segments. json_encode cannot show int-vs-string keys, so each row records them separately.
+
+$d4Segments = ['01', '1', '-1', '1.5', ''];
+
+/** Render a probe result as its JSON shape plus the PHP type of every top-level key. */
+$d4Shape = fn (array $array): array => [
+    'json' => json_decode(json_encode($array, JSON_UNESCAPED_SLASHES), true),
+    'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
+];
+
+$d4Set = function (array $array, string $key) use ($d4Shape): array {
+    Arr::set($array, $key, 'V');
+
+    return $d4Shape($array);
+};
+
+probe('set-list-key-cast', "Arr::set(['a','b'], \$seg, 'V') for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Set) {
+    return array_combine($d4Segments, array_map(fn ($s) => $d4Set(['a', 'b'], $s), $d4Segments));
+});
+probe('set-record-key-cast', "Arr::set(['x'=>1], \$seg, 'V') for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Set) {
+    return array_combine($d4Segments, array_map(fn ($s) => $d4Set(['x' => 1], $s), $d4Segments));
+});
+probe('set-nested-list-key-cast', "Arr::set([['a','b']], '0.'.\$seg, 'V') for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
+    return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
+        $array = [['a', 'b']];
+        Arr::set($array, '0.' . $s, 'V');
+
+        return $d4Shape($array[0]);
+    }, $d4Segments));
+});
+probe('set-nested-record-key-cast', "Arr::set([['x'=>1]], '0.'.\$seg, 'V') for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
+    return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
+        $array = [['x' => 1]];
+        Arr::set($array, '0.' . $s, 'V');
+
+        return $d4Shape($array[0]);
+    }, $d4Segments));
+});
+
+probe('push-list-key-cast', "Arr::push([['a']], \$seg, 'V') for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
+    return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
+        $array = [['a']];
+        Arr::push($array, $s, 'V');
+
+        return $d4Shape($array);
+    }, $d4Segments));
+});
+probe('push-record-key-cast', "Arr::push(['k'=>['a']], \$seg, 'V') for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
+    return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
+        $array = ['k' => ['a']];
+        Arr::push($array, $s, 'V');
+
+        return $d4Shape($array);
+    }, $d4Segments));
+});
+
+probe('forget-record-key-cast', "Arr::forget(['a'=>['x','y','z']], 'a.'.\$seg) for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
+    return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
+        $array = ['a' => ['x', 'y', 'z']];
+        Arr::forget($array, 'a.' . $s);
+
+        return $d4Shape($array['a']);
+    }, $d4Segments));
+});
+probe('forget-list-key-cast', "Arr::forget([['x','y','z']], '0.'.\$seg) for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
+    return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
+        $array = [['x', 'y', 'z']];
+        Arr::forget($array, '0.' . $s);
+
+        return $d4Shape($array[0]);
+    }, $d4Segments));
+});
+
+// Arr::undot keeps a non-canonical key a string key, at the top level and inside a path.
+probe('undot-noncanonical-index', "Arr::undot(['01' => 'a']) and Arr::undot(['0.01' => 'a'])", function () use ($d4Shape) {
+    return ['top level' => $d4Shape(Arr::undot(['01' => 'a'])), 'nested' => $d4Shape(Arr::undot(['0.01' => 'a'])[0])];
+});
+
+// The read side of the same cast, for the round trip: an empty segment names the "" key,
+// and "01" never reaches a list's index 1.
+probe('get-write-path-key-cast', "Arr::get with an empty segment, a non-canonical index, and a stored '01' key", fn () => [
+    "[['' => 1]] '0.'" => Arr::get([['' => 1]], '0.'),
+    "[['a','b']] '0.01'" => Arr::get([['a', 'b']], '0.01'),
+    "[['01' => 'z']] '0.01'" => Arr::get([['01' => 'z']], '0.01'),
+    "['a','b'] '01'" => Arr::get(['a', 'b'], '01'),
+]);
+probe('set-then-get-noncanonical-index', "\$a = []; Arr::set(\$a, '01', 5); Arr::get(\$a, '01')", function () {
+    $a = [];
+    Arr::set($a, '01', 5);
+
+    return Arr::get($a, '01');
+});
+probe('set-then-get-noncanonical-index-nested', "\$a = [[]]; Arr::set(\$a, '0.01', 5); Arr::get(\$a, '0.01')", function () {
+    $a = [[]];
+    Arr::set($a, '0.01', 5);
+
+    return ['written' => $a, 'read back' => Arr::get($a, '0.01')];
+});
+
+probe('forget-top-level-key-cast', "Arr::forget(['products', ['desk', [100]]], \$seg) for \$seg in '01','1',''", function () use ($d4Shape) {
+    return array_combine(['01', '1', ''], array_map(function ($s) use ($d4Shape) {
+        $array = ['products', ['desk', [100]]];
+        Arr::forget($array, $s);
+
+        return $d4Shape($array);
+    }, ['01', '1', '']));
+});
+
+// An empty MIDDLE segment is a real "" key too, not a segment to skip.
+probe('set-empty-middle-segment', "\$a = []; Arr::set(\$a, '0..1', 'V')", function () use ($d4Shape) {
+    $a = [];
+    Arr::set($a, '0..1', 'V');
+
+    return ['outer' => $d4Shape($a), 'inner' => $d4Shape($a[0])];
+});
+
 emit();
