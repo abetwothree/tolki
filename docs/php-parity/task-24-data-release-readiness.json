@@ -2134,6 +2134,24 @@
                     }
                 }
             }
+        },
+        {
+            "label": "push-integer-key-mutates-the-caller-by-reference",
+            "php": "$src = [['x']]; Arr::push($src, 0, 'y')",
+            "value": {
+                "source": [
+                    [
+                        "x",
+                        "y"
+                    ]
+                ],
+                "result": [
+                    [
+                        "x",
+                        "y"
+                    ]
+                ]
+            }
         }
     ]
 }

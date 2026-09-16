@@ -2645,6 +2645,28 @@ describe("Data", () => {
                 ["c", "d", ["x", "y"]],
             ]);
         });
+
+        it("leaves the caller's nested value alone on a list backing", () => {
+            // JS-only: PHP pushes through the reference and mutates
+            // (task-24-data-release-readiness.json, "push-integer-key-mutates-the-caller-
+            // by-reference"); this port's settled contract keeps push non-mutating.
+            const inner = ["x"];
+            const result = Data.dataPush([inner], 0, "y");
+
+            expect(result).toEqual([["x", "y"]]);
+            expect(inner).toEqual(["x"]);
+            expect(result[0]).not.toBe(inner);
+        });
+
+        it("leaves the caller's nested value alone on a record backing", () => {
+            // JS-only: the record half of the case above, which answers the same way.
+            const inner = ["x"];
+            const result = Data.dataPush({ 0: inner }, 0, "y");
+
+            expect(result).toEqual({ 0: ["x", "y"] });
+            expect(inner).toEqual(["x"]);
+            expect(result[0]).not.toBe(inner);
+        });
     });
 
     describe("dataUnshift", () => {

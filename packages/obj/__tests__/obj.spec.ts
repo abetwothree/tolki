@@ -4896,6 +4896,18 @@ describe("Obj", () => {
             expect(result).toEqual({ items: ["a", "b"] });
         });
 
+        it("leaves the caller's nested value alone for an integer key", () => {
+            // JS-only: the arr sibling of this case (task-24-data-release-readiness.json,
+            // "push-integer-key-mutates-the-caller-by-reference" is what PHP does instead);
+            // obj already answered this way, so it pins the agreement.
+            const inner = ["x"];
+            const result = Obj.push({ 0: inner }, 0, "y");
+
+            expect(result).toEqual({ 0: ["x", "y"] });
+            expect(inner).toEqual(["x"]);
+            expect(result[0]).not.toBe(inner);
+        });
+
         it("throws PHP's message when the key holds a non-array", () => {
             // PHP-verified in docs/php-parity/task-12-regression-pins.json
             // ("push requires an array at the key").

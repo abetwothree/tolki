@@ -656,4 +656,13 @@ probe('add-nested-record-leaves-the-caller-value-untouched', "\$src = ['a' => ['
     return ['source' => $src, 'result' => $result];
 });
 
+// ==== fix-round-1 Group A: the existing push-mutates row uses the STRING key '0'. The
+// ==== defect was on the integer key, so the contrast needs its own recorded call.
+probe('push-integer-key-mutates-the-caller-by-reference', "\$src = [['x']]; Arr::push(\$src, 0, 'y')", function () {
+    $src = [['x']];
+    $result = Arr::push($src, 0, 'y');
+
+    return ['source' => $src, 'result' => $result];
+});
+
 emit();

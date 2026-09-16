@@ -2073,6 +2073,18 @@ describe("Arr", () => {
             expect(inner).toEqual(["a"]);
         });
 
+        it("leaves the caller's nested value alone for an integer key too", () => {
+            // JS-only: same contract, integer key. PHP mutates through the reference
+            // (task-24-data-release-readiness.json, "push-integer-key-mutates-the-
+            // caller-by-reference"); the copy step used to skip a non-string key.
+            const inner = ["x"];
+            const result = Arr.push([inner], 0, "y");
+
+            expect(result).toEqual([["x", "y"]]);
+            expect(inner).toEqual(["x"]);
+            expect(result[0]).not.toBe(inner);
+        });
+
         it("leaves the caller's list alone for a missing index", () => {
             // JS-only: the same contract for the top-level form. PHP stores a gapped
             // key 4 (task-24-data-release-readiness.json, "push-missing-index-stores-

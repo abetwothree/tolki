@@ -186,11 +186,13 @@ function copyAlongPath(
 ): unknown[] {
     const root = [...data];
 
-    if (!isString(key)) {
+    // A nullish key names no path at all: add and push both route it to their
+    // whole-value form, which descends into nothing the caller still holds.
+    if (isNull(key) || isUndefined(key)) {
         return root;
     }
 
-    const segments = key.split(".");
+    const segments = isString(key) ? key.split(".") : [String(key)];
     let cursor = root as unknown as Record<string, unknown>;
 
     for (const segment of throughLeaf ? segments : segments.slice(0, -1)) {
