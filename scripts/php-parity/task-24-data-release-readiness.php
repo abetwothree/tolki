@@ -581,4 +581,47 @@ probe('set-empty-middle-segment', "\$a = []; Arr::set(\$a, '0..1', 'V')", functi
     return ['outer' => $d4Shape($a), 'inner' => $d4Shape($a[0])];
 });
 
+// ==== D5 (F-18): what the caller's own value looks like after a write helper runs.
+// Arr::add takes $array BY VALUE, and a PHP array is a value all the way down, so the
+// caller's nested array is untouched. Arr::push takes it by REFERENCE and mutates it —
+// recorded so the port's settled "only pop/shift/splice/unshift mutate" rule is an
+// explicit, documented divergence rather than an unnoticed one.
+probe('add-leaves-the-caller-value-untouched', "\$src = [['desk' => 100]]; Arr::add(\$src, '0.chair', 150)", function () {
+    $src = [['desk' => 100]];
+    $result = Arr::add($src, '0.chair', 150);
+
+    return ['source' => $src, 'result' => $result];
+});
+probe('add-list-leaves-the-caller-value-untouched', "\$src = [[100]]; Arr::add(\$src, '0.1', 150)", function () {
+    $src = [[100]];
+    $result = Arr::add($src, '0.1', 150);
+
+    return ['source' => $src, 'result' => $result];
+});
+probe('add-existing-key-is-a-no-op', "\$src = [['desk' => 100]]; Arr::add(\$src, '0.desk', 150)", function () {
+    $src = [['desk' => 100]];
+
+    return Arr::add($src, '0.desk', 150);
+});
+probe('push-mutates-the-caller-by-reference', "\$src = [['a']]; Arr::push(\$src, '0', 'b')", function () {
+    $src = [['a']];
+    $result = Arr::push($src, '0', 'b');
+
+    return ['source' => $src, 'result' => $result];
+});
+probe('push-missing-index-stores-an-empty-array', "\$src = [1, 2, 3]; Arr::push(\$src, 4)", function () {
+    $src = [1, 2, 3];
+    Arr::push($src, 4);
+
+    return ['source' => $src, 'keys' => array_keys($src)];
+});
+
+// ==== D5 (F-24a): a dot path under a list index replaces the scalar with a record.
+probe('set-dot-path-under-a-list-index', "\$a = ['a', 'b']; Arr::set(\$a, '0.x', 5)", function () {
+    $a = ['a', 'b'];
+    Arr::set($a, '0.x', 5);
+
+    return $a;
+});
+
 emit();

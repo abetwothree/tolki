@@ -1966,6 +1966,95 @@
                     ]
                 }
             }
+        },
+        {
+            "label": "add-leaves-the-caller-value-untouched",
+            "php": "$src = [['desk' => 100]]; Arr::add($src, '0.chair', 150)",
+            "value": {
+                "source": [
+                    {
+                        "desk": 100
+                    }
+                ],
+                "result": [
+                    {
+                        "desk": 100,
+                        "chair": 150
+                    }
+                ]
+            }
+        },
+        {
+            "label": "add-list-leaves-the-caller-value-untouched",
+            "php": "$src = [[100]]; Arr::add($src, '0.1', 150)",
+            "value": {
+                "source": [
+                    [
+                        100
+                    ]
+                ],
+                "result": [
+                    [
+                        100,
+                        150
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "add-existing-key-is-a-no-op",
+            "php": "$src = [['desk' => 100]]; Arr::add($src, '0.desk', 150)",
+            "value": [
+                {
+                    "desk": 100
+                }
+            ]
+        },
+        {
+            "label": "push-mutates-the-caller-by-reference",
+            "php": "$src = [['a']]; Arr::push($src, '0', 'b')",
+            "value": {
+                "source": [
+                    [
+                        "a",
+                        "b"
+                    ]
+                ],
+                "result": [
+                    [
+                        "a",
+                        "b"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "push-missing-index-stores-an-empty-array",
+            "php": "$src = [1, 2, 3]; Arr::push($src, 4)",
+            "value": {
+                "source": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "4": []
+                },
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "set-dot-path-under-a-list-index",
+            "php": "$a = ['a', 'b']; Arr::set($a, '0.x', 5)",
+            "value": [
+                {
+                    "x": 5
+                },
+                "b"
+            ]
         }
     ]
 }
