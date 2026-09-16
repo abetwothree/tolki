@@ -11,12 +11,16 @@ import {
     nestedRecord,
     numberList,
     numberMap,
+    numberMapAsRecord,
     opaque,
     readonlyNumberList,
     settings,
     stringList,
     unionItems,
 } from "./fixtures";
+
+/** Not a fixture: the Set keeps its own type here, since the point is that a row takes one. */
+const numberSet = new Set([7, 8]);
 
 describe("data setops type tests", () => {
     describe("dataDiff", () => {
@@ -266,6 +270,23 @@ describe("data setops type tests", () => {
             expectTypeOf(Arr.union([1], [4])).toExtend<unknown[]>();
             expectTypeOf(Data.dataUnion([1], { 3: 4 })).not.toExtend<
                 unknown[]
+            >();
+        });
+
+        it("takes the backings its body now normalizes, answering the record's own type", () => {
+            // No delegate to pin against: the body picks obj or arr per backing and the
+            // rows are its own, so the Map, Set and scalar rows answer the record mirror's
+            // type. Task D7 widened them; a narrowing would fail here rather than silently.
+            const record = Data.dataUnion(numberMapAsRecord, { d: 4 });
+            expectTypeOf(Data.dataUnion(numberMap, { d: 4 })).toEqualTypeOf<
+                typeof record
+            >();
+            expectTypeOf(Data.dataUnion(numberSet, [9])).toEqualTypeOf<
+                typeof record
+            >();
+            expectTypeOf(Data.dataUnion(5, [9])).toEqualTypeOf<typeof record>();
+            expectTypeOf(Data.dataUnion("x", [9])).toEqualTypeOf<
+                typeof record
             >();
         });
     });

@@ -972,6 +972,51 @@ describe("Data", () => {
             ).toEqual({ name: "Hello", id: 1 });
         });
 
+        it("wraps a scalar or string backing as a one item list, which then wins", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d7-union-scalar-backing"
+            expect(Data.dataUnion(5, [9])).toEqual([5]);
+            expect(Data.dataUnion("x", [9])).toEqual(["x"]);
+            // The keyed mirror of the same backing: a one-key record also wins.
+            expect(Data.dataUnion({ 0: 5 }, [9])).toEqual({ 0: 5 });
+        });
+
+        it("materializes a Traversable backing instead of losing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d7-union-traversable-backing"
+            expect(Data.dataUnion(new Set([1, 2]), { d: 4 })).toEqual({
+                0: 1,
+                1: 2,
+                d: 4,
+            });
+            expect(Data.dataUnion(new Set([1, 2]), [9, 9, 9])).toEqual([
+                1, 2, 9,
+            ]);
+            // The keyed mirror of the same backing, which needs no materializing.
+            expect(Data.dataUnion({ 0: 1, 1: 2 }, { d: 4 })).toEqual({
+                0: 1,
+                1: 2,
+                d: 4,
+            });
+        });
+
+        it("normalizes a Map backing the way dispatch would", () => {
+            // JS-only: PHP has no Map. `toKeyedData` builds the record it mirrors, and the
+            // two must answer alike — the hand-written body used to drop the Map entirely.
+            const asMap = new Map([
+                ["a", 1],
+                ["b", 2],
+                ["c", 3],
+            ]);
+            expect(Data.dataUnion(asMap, { d: 4 })).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+            });
+            expect(Data.dataUnion(asMap, { d: 4 })).toEqual(
+                Data.dataUnion({ a: 1, b: 2, c: 3 }, { d: 4 }),
+            );
+        });
+
         it("reads the backing by its own entries, never calling a function-valued all member", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
             let calls = 0;
@@ -6387,14 +6432,12 @@ describe("Data", () => {
             );
         });
 
-        it.fails("dataUnion unions a Map like the record it mirrors", () => {
-            // dataUnion stays hand-written: arr.union cannot hold PHP's keyed answer for a
-            // list backing, so no dispatch pair serves it. Task D7 owns its Map backing.
-            expect(
-                Data.dataUnion(asMap as unknown as Record<string, number>, {
-                    d: 4,
-                }),
-            ).toEqual(Data.dataUnion(asRecord, { d: 4 }));
+        it("dataUnion unions a Map like the record it mirrors", () => {
+            // dataUnion stays hand-written, so it normalizes its own backing rather than
+            // reaching toKeyedData through dispatch. Task D7 made it do so.
+            expect(Data.dataUnion(asMap, { d: 4 })).toEqual(
+                Data.dataUnion(asRecord, { d: 4 }),
+            );
         });
 
         it("dataExcept excepts keys from a Map like the record it mirrors", () => {

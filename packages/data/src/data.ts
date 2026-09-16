@@ -510,15 +510,23 @@ export function dataUndot<TValue, TKey extends PropertyKey = PropertyKey>(
  * @return A new object or array containing all values
  */
 export function dataUnion<TValue>(
-    ...items: (TValue[] | Record<PropertyKey, TValue> | null | undefined)[]
+    ...items: (
+        | TValue[]
+        | Record<PropertyKey, TValue>
+        | ReadonlyMap<PropertyKey, TValue>
+        | Iterable<TValue>
+        | NonObjectBacking
+    )[]
 ) {
     // A nullish operand is `(array) null` in PHP: empty, and no evidence about the backing.
     const [backing = [], ...operands] = items.filter(
         (item) => !isNull(item) && !isUndefined(item),
     ) as (TValue[] | Record<PropertyKey, TValue>)[];
 
-    if (isObject(backing)) {
-        return objUnion(backing, ...operands);
+    // No dispatch pair serves this, so the backing is normalized the way dispatch would:
+    // a Map becomes a record, and a scalar, string or Traversable becomes a list.
+    if (isKeyedData(backing)) {
+        return objUnion(toKeyedData<PropertyKey, TValue>(backing), ...operands);
     }
 
     return operands.reduce<TValue[] | Record<PropertyKey, TValue>>(
@@ -528,7 +536,7 @@ export function dataUnion<TValue>(
             // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
             return isArray(result) ? listWhenIndexed(merged) : merged;
         },
-        arrUnion(backing),
+        arrUnion(toPositionalBacking(backing) as TValue[]),
     );
 }
 
