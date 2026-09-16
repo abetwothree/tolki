@@ -93,9 +93,9 @@ const recordMap = new Map([
     ["b", { id: "y" }],
 ]);
 const dimMap = new Map([["a", [1]]]);
-// Task C2b gave `dispatch` a Map row: `toKeyedData` swaps a Map for the record obj walks,
-// and nothing in the type said so. A conditional over an overloaded delegate resolves only its
-// last signature, so that row answers with obj's widest overload — what these fixtures reach.
+// `dispatch` carries a Map row because a Map reaches obj, and nothing in the delegates' own
+// types said so. A conditional over an overloaded delegate resolves only its last signature,
+// so that row answers with obj's widest overload — what these fixtures reach.
 declare const opaque: unknown;
 declare const opaqueKey: PathKey;
 declare const opaqueFn: () => unknown;
