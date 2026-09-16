@@ -1,6 +1,10 @@
 import * as Arr from "@tolki/arr";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
+import {
+    ItemNotFoundException,
+    MultipleItemsFoundException,
+} from "@tolki/utils";
 import { afterEach, assertType, describe, expect, it } from "vitest";
 
 const strcasecmp = (a: unknown, b: unknown) =>
@@ -2795,34 +2799,37 @@ describe("Data", () => {
         it("throws when nothing matches, on either backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "sole-none"
             // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback"
-            // JS-only message: Laravel throws ItemNotFoundException with an empty message;
-            // the port throws a plain Error carrying a readable one.
             expect(() =>
                 Data.dataSole({ a: "foo" }, (value) => value === "baz"),
-            ).toThrow("No items found");
-            expect(() => Data.dataSole([])).toThrow("No items found");
-            expect(() => Data.dataSole({})).toThrow("No items found");
+            ).toThrow(ItemNotFoundException);
+            expect(() => Data.dataSole([])).toThrow(ItemNotFoundException);
+            expect(() => Data.dataSole({})).toThrow(ItemNotFoundException);
         });
 
         it("throws when more than one item matches, reporting the count", () => {
             // docs/php-parity/task-23-obj-release-readiness.json,
             // "sole-multi-list", "sole-assoc-multi-callback"
             // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback"
-            // JS-only message: Laravel throws MultipleItemsFoundException("2 items were found.").
             expect(() =>
                 Data.dataSole(
                     ["baz", "foo", "baz"],
                     (value) => value === "baz",
                 ),
-            ).toThrow("Multiple items found (2 items)");
+            ).toThrow(MultipleItemsFoundException);
+            expect(() =>
+                Data.dataSole(
+                    ["baz", "foo", "baz"],
+                    (value) => value === "baz",
+                ),
+            ).toThrow("2 items were found.");
             expect(() =>
                 Data.dataSole(
                     { a: "baz", b: "foo", c: "baz" },
                     (value) => value === "baz",
                 ),
-            ).toThrow("Multiple items found (2 items)");
+            ).toThrow("2 items were found.");
             expect(() => Data.dataSole({ a: 1, b: 2 })).toThrow(
-                "Multiple items found (2 items)",
+                "2 items were found.",
             );
         });
     });
