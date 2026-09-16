@@ -90,6 +90,32 @@ describe("data setops type tests", () => {
                 Obj.diffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
             );
         });
+
+        it("keeps obj.diffAssocUsing's return assignable to the declared one", () => {
+            const declaredAssoc = Data.dataDiffAssocUsing(
+                abc,
+                { a: 1, b: 9 },
+                sameKey,
+            );
+
+            // Downgraded to assignability: equality is impossible while the return is hand-written.
+            expectTypeOf(
+                Obj.diffAssocUsing(abc, { a: 1, b: 9 }, sameKey),
+            ).toExtend<typeof declaredAssoc>();
+        });
+
+        it("keeps obj.diffKeysUsing's return assignable to the declared one", () => {
+            const declaredKeys = Data.dataDiffKeysUsing(
+                abc,
+                { a: 1, b: 9 },
+                sameKey,
+            );
+
+            // Downgraded to assignability: equality is impossible while the return is hand-written.
+            expectTypeOf(
+                Obj.diffKeysUsing(abc, { a: 1, b: 9 }, sameKey),
+            ).toExtend<typeof declaredKeys>();
+        });
     });
 
     describe("dataIntersect", () => {
