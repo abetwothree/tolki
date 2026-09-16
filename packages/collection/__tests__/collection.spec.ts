@@ -8594,7 +8594,9 @@ describe("Collection", () => {
             });
             c.add("home");
 
-            // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
+            // docs/php-parity/task-26-collection-order.json,
+            // "append-key-with-no-integer-key-is-zero": no integer key means the append lands on 0,
+            // whatever else the backing holds — here seven string keys instead of the row's one.
             expect(c.all()).toEqual({
                 a: 5,
                 b: 2,
@@ -8657,9 +8659,9 @@ describe("Collection", () => {
 
                 c.offsetSet(null, "qux");
 
-                // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
-                // The PHP case above is a list; this backing has no integer key at all, so the
-                // append lands on 0 — the count, 2, is not a key PHP's `$array[] =` would pick.
+                // docs/php-parity/task-26-collection-order.json,
+                // "append-key-with-no-integer-key-is-zero": the PHP case above is a list, but this
+                // backing has no integer key, so the append lands on 0 — never on the count, 2.
                 expect(c.get(0)).toBe("qux");
 
                 const d = collect(["foo", "foo"]);
@@ -12206,7 +12208,8 @@ describe("Collection", () => {
             const added = collect(outOfOrder());
             added.set("k", "z");
 
-            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key"
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key".
+            // PHP has no Collection::set, so the row records `$c['k'] = 'z'` instead.
             expect(views(added)).toEqual({
                 all: { 0: "a", 1: "b", 2: "c", k: "z" },
                 values: ["c", "a", "b", "z"],
@@ -12216,7 +12219,8 @@ describe("Collection", () => {
             const updated = collect(outOfOrder());
             updated.set(0, "z");
 
-            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key"
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key".
+            // PHP has no Collection::set, so the row records `$c[0] = 'z'` instead.
             expect(views(updated)).toEqual({
                 all: { 0: "z", 1: "b", 2: "c" },
                 values: ["c", "z", "b"],
@@ -12273,7 +12277,8 @@ describe("Collection", () => {
             const collection = collect({});
             collection.add("z");
 
-            // docs/php-parity/task-26-collection-order.json, "append-key-on-an-empty-collection-is-zero"
+            // docs/php-parity/task-26-collection-order.json, "append-key-on-an-empty-collection-is-zero".
+            // The row's `collect([])` is PHP's only empty array; `{}` picks the object branch here.
             expect(views(collection)).toEqual({
                 all: { 0: "z" },
                 values: ["z"],
@@ -12395,7 +12400,8 @@ describe("Collection", () => {
                 const collection = collect([1, 2, 3]);
                 read(collection);
 
-                // docs/php-parity/task-26-collection-order.json, "order-union-leaves-the-receiver-alone"
+                // docs/php-parity/task-26-collection-order.json,
+                // "order-<name>-leaves-the-receiver-alone" — one row per method above.
                 expect({ name, ...views(collection) }).toEqual({
                     name,
                     ...untouched,
