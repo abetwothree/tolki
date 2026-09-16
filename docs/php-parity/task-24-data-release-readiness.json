@@ -2205,6 +2205,30 @@
             }
         },
         {
+            "label": "e3-own-key-channel-empty-root",
+            "php": "$a = []; $a['01'] = 'V'; and $b = []; Arr::set($b, '01', 'V')",
+            "value": {
+                "raw subscript": {
+                    "json": {
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "Arr::set": {
+                    "json": {
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
             "label": "own-key-channel-negative-index-round-trip",
             "php": "$a = ['a','b']; Arr::set($a, '-1', 'V'); then Arr::get / Arr::has",
             "value": {

@@ -2078,6 +2078,17 @@ describe("Arr", () => {
             expect(Arr.has(written, "01")).toBe(false);
         });
 
+        it("nests a record instead of storing an own key when the list is empty", () => {
+            // JS-only: an EMPTY list root takes a third shape, neither PHP's nor the own-key
+            // channel above — PHP answers ['01' => 'V'] either way
+            // (docs/php-parity/task-24-data-release-readiness.json, "e3-own-key-channel-empty-root").
+            const written = Arr.set([], "01", "V");
+
+            expect(Object.entries(written)).toEqual([["0", { "01": "V" }]]);
+            expect(Arr.get(written, "01")).toBeNull();
+            expect(Arr.get(written, "0.01")).toBe("V");
+        });
+
         it("answers has but not get for a stored negative index", () => {
             // JS-only: the same asymmetry is NOT uniform — "-1" is found by has() and
             // missed by get(), where "01" and "" are missed by both. PHP finds it with

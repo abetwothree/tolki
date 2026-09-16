@@ -705,6 +705,21 @@ probe('own-key-channel-round-trip', "\$a = ['a','b']; Arr::set(\$a, '01', 'V'); 
         'has' => Arr::has($h1Base(), '01'),
     ];
 });
+// ==== E3: the EMPTY list root, which the non-empty rows above do not cover. PHP draws no
+// ==== distinction — the key lands the same way whether the array already held elements.
+probe('e3-own-key-channel-empty-root', "\$a = []; \$a['01'] = 'V'; and \$b = []; Arr::set(\$b, '01', 'V')", function () use ($h1Shape) {
+    $a = [];
+    $a['01'] = 'V';
+    $b = [];
+    Arr::set($b, '01', 'V');
+
+    return [
+        'raw subscript' => $h1Shape($a),
+        'Arr::set' => $h1Shape($b),
+        'get' => Arr::get($b, '01', '<<miss>>'),
+        'has' => Arr::has($b, '01'),
+    ];
+});
 probe('own-key-channel-negative-index-round-trip', "\$a = ['a','b']; Arr::set(\$a, '-1', 'V'); then Arr::get / Arr::has", function () use ($h1Shape) {
     $a = ['a', 'b'];
     Arr::set($a, '-1', 'V');
