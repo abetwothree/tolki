@@ -84,6 +84,11 @@ export function toPositionalData<TValue>(data: unknown): Iterable<TValue> {
  * @remarks A Set or generator backing answers with its materialized elements at runtime, but is
  * still typed from obj's widest row, because a Set is an object and lands there.
  *
+ * Materializing reads to exhaustion, the way Laravel's `iterator_to_array` does: an infinite
+ * generator exhausts memory, and a finite one is consumed, so a second call sees an empty backing.
+ * An unbounded or single-use backing must go through `dataFirst`, `dataLast`, `dataEvery` or
+ * `dataSome`, which pass `toPositionalData` and hand the backing on unread.
+ *
  * @param data - The data to normalize.
  * @returns The elements of a materializable iterable, otherwise the data wrapped in a list.
  */
