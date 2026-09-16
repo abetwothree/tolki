@@ -3262,7 +3262,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(dataSort(this.items, callback));
+        return this.newInstance(dataSort(this.items as TValue[], callback));
     }
 
     /**
@@ -3283,7 +3283,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(dataSortDesc(this.items, callback));
+        return this.newInstance(dataSortDesc(this.items as TValue[], callback));
     }
 
     /**
