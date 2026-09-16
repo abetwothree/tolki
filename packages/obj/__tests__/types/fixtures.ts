@@ -78,6 +78,9 @@ export const integerKeyed = { 0: "zero", 1: "one", name: "n" };
 /** An object-shaped value typed as `unknown`, for the untyped fallback rows. */
 export const unknownObject: unknown = { a: 1 };
 
+/** A value typed as the bare `object`: it names no key, yet carries entries at runtime. */
+export const bareObject: object = { a: 1 };
+
 /** A dictionary of booleans, for the CSS helpers. */
 export const booleanFlags: Record<string, boolean> = {
     "font-bold": true,

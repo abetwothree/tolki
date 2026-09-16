@@ -4,6 +4,7 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import {
     abc,
+    bareObject,
     integerKeyed,
     numberList,
     type Row,
@@ -148,6 +149,31 @@ describe("obj keying type tests", () => {
         it("types a list's entries under their indexes", () => {
             expectTypeOf(Obj.undot(numberList)).toEqualTypeOf<
                 Record<number, unknown>
+            >();
+        });
+    });
+
+    describe("the bare object row", () => {
+        // F-16: `keyof object` is empty, so ObjectValue/ObjectKey collapse to `never` and every
+        // row built on them answered a type nothing can inhabit. The runtime still walks whatever
+        // entries the value carries, so the answer is the widest sound one.
+        it("keeps keyBy usable for data typed as the bare object", () => {
+            expectTypeOf(Obj.keyBy(bareObject, "id")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+
+        it("keeps keys, values and first usable for the bare object", () => {
+            expectTypeOf(Obj.keys(bareObject)).toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf(Obj.values(bareObject)).toEqualTypeOf<unknown[]>();
+            expectTypeOf(Obj.first(bareObject)).toEqualTypeOf<unknown>();
+        });
+
+        it("keeps pluck usable for the bare object", () => {
+            expectTypeOf(Obj.pluck(bareObject, "id")).toEqualTypeOf<
+                unknown[]
             >();
         });
     });
