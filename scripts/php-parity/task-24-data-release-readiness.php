@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Ground truth for docs/superpowers/plans/<date>-tolki-data-release-readiness.md (Part A).
+ * Ground truth for the `@tolki/data` release-readiness work.
  *
  * Only behaviours NOT already captured elsewhere in docs/php-parity/ appear here; everything
- * reused is listed in the plan's reuse table and cited from its existing file.
+ * reused is cited from its existing file instead.
  * Run: pnpm php:parity
  */
 
@@ -409,10 +409,9 @@ probe('exceptValues-list-keeps-gap', "Arr::exceptValues(['foo','bar','baz','qux'
 // already captured ("onlyValues-empty-data" / "-empty-values-assoc" / "-strict-numstr-assoc" / "-loose-numstr-assoc" in task-23).
 probe('onlyValues-list-keeps-gap', "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])", fn () => Arr::onlyValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']));
 
-// ==== C6: whether dataReplace/dataReplaceRecursive may route a list backing through
-// arr.replace/arr.replaceRecursive. Those two return a JS list, so they drop a string key
-// and fill a gap with undefined. array_replace keeps both, so obj has to serve both backings.
-// task-05-replace.json and task-23 only cover same-shape and int-keyed replacers.
+// ==== arr.replace/arr.replaceRecursive return a JS list, so they drop a string key and fill
+// a gap with undefined; array_replace keeps both, so obj has to serve BOTH backings. The
+// earlier files only cover same-shape and int-keyed replacers, which hide the difference.
 
 probe('replace-list-string-key-replacer', "(new Collection(['a','b','c']))->replace(['k' => 'x'])", fn () => (new Collection(['a', 'b', 'c']))->replace(['k' => 'x'])->all());
 probe('replace-list-sparse-replacer', "(new Collection(['a']))->replace([3 => 'd'])", fn () => (new Collection(['a']))->replace([3 => 'd'])->all());

@@ -130,7 +130,6 @@ describe("data slicing type tests", () => {
             );
         });
 
-        // Migrated from `data.test-d.ts`'s "dataChunkWhile / dataChunkBy overloads" block.
         it("routes a record to the keyed overload", () => {
             // The callback is inline and unannotated on purpose: an annotation would
             // supply the very types these rows assert, making all three tautologies.
@@ -180,7 +179,6 @@ describe("data slicing type tests", () => {
             );
         });
 
-        // Migrated from `data.test-d.ts`'s "dataChunkWhile / dataChunkBy overloads" block.
         it("matches each backing given a bare path key", () => {
             expectTypeOf(Data.dataChunkBy([1, 2], "x")).toEqualTypeOf(
                 Arr.chunkBy([1, 2], "x"),
@@ -235,7 +233,6 @@ describe("data slicing type tests", () => {
             ).toEqualTypeOf<number | string | null>();
         });
 
-        // Migrated from `data.test-d.ts`'s "first and last return types" block.
         it("types a Map from obj's widest row, not from the Map's own value type", () => {
             // Standing control for a narrowing `dispatch` lost: the hand-written
             // `Map<TKey, TValue>` overload answered `number | null` here. `KeyedMapRow`
@@ -270,7 +267,6 @@ describe("data slicing type tests", () => {
             ).toEqualTypeOf(Obj.last(abc, (value) => value < 3));
         });
 
-        // Migrated from `data.test-d.ts`'s "first and last return types" block.
         it("infers the value and the default from an iterable", () => {
             expectTypeOf(
                 Data.dataLast(new Set([1, 2]), null, "fallback"),

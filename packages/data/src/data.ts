@@ -238,8 +238,8 @@ type NonObjectBacking =
  * Two shapes are turned away, and both for the same reason — the only row that would admit them
  * takes `unknown`, which would admit a read-only list with them:
  *
- * - a **read-only list**. Task D5 (F-18) made `arr.add` copy along the written path, so this is
- *   now a limit of the row shapes rather than a mutation risk; widening it needs its own task.
+ * - a **read-only list**. `arr.add` copies along the written path, so this is now a limit of the
+ *   row shapes rather than a mutation risk; widening it needs its own task.
  * - a backing the compiler has **not narrowed** (`unknown`), which no typed row can claim.
  *
  * Relaxing either is its own task, and has to be a deliberate widening of the rows rather than a
@@ -326,7 +326,9 @@ export const dataBoolean = dispatch(arrBoolean, objBoolean);
  *
  * @param data - The data to chunk
  * @param size - The size of each chunk
- * @param preserveKeys - Whether to preserve the original keys, defaults to true
+ * @param preserveKeys - Whether to keep each entry's own key instead of reindexing the chunk.
+ *   The default follows the backing: `false` for a list, whose keys are already just indices,
+ *   and `true` for a keyed backing, whose keys carry meaning.
  * @returns Chunked data
  */
 export const dataChunk = dispatch(arrChunk, objChunk);
@@ -474,6 +476,9 @@ export const dataCrossJoin = dispatch(arrCrossJoin, objCrossJoin);
  * @param data - The data to divide
  * @returns Array with keys and values, matching the delegate's own result
  *
+ * @remarks JS-only: a JS object hoists integer-like keys ahead of string ones, so a mixed-key
+ * record divides into a different PAIR ORDER than PHP's, though the key types still match.
+ *
  * @example
  *
  * dataDivide([1, 2, 3]); -> [[0, 1, 2], [1, 2, 3]]
@@ -589,7 +594,7 @@ export function dataUnion<TValue>(
             // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
             return isArray(result) ? listWhenIndexed(merged) : merged;
         },
-        // Array.from, as toIndexedRecord uses for the other three list backings (F-19): a
+        // Array.from, as toIndexedRecord uses for the other three list backings: a
         // TRAILING hole declares no own key, so arr.union alone would shorten the answer
         // where the dense list it stands for keeps its length.
         arrUnion(Array.from(toPositionalBacking(backing) as ArrayLike<TValue>)),
@@ -602,6 +607,9 @@ export function dataUnion<TValue>(
  * @param data - The source data
  * @param keys - Keys to exclude
  * @returns Data without specified keys, matching the delegate's own result
+ *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
  *
  * @example
  *
@@ -618,9 +626,12 @@ export const dataExcept = dispatch(arrExcept, objExcept);
  * @param strict - Whether to use strict comparison
  * @returns Data without specified values, matching the delegate's own result
  *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
+ *
  * @example
  *
- * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> [1 => 'bar']
+ * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['bar']
  * dataExceptValues({name: 'taylor', age: 26}, [26]); -> {name: 'taylor'}
  */
 export const dataExceptValues = dispatch(arrExceptValues, objExceptValues);
@@ -645,6 +656,9 @@ export const dataExists = dispatch(arrExists, objExists);
  * @param data - The data to take from
  * @param limit - Number of items to take
  * @returns Limited data
+ *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
  *
  * @example
  *
@@ -898,6 +912,9 @@ export const dataPrependKeysWith = dispatch(
  * @param keys - Keys to include
  * @returns Data with only specified keys, matching the delegate's own result
  *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
+ *
  * @example
  *
  * dataOnly([1, 2, 3, 4], [0, 2]); -> [1, 3]
@@ -913,9 +930,12 @@ export const dataOnly = dispatch(arrOnly, objOnly);
  * @param strict - Whether to use strict comparison
  * @returns Data with only specified values, matching the delegate's own result
  *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
+ *
  * @example
  *
- * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> [0 => 'foo', 2 => 'baz']
+ * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['foo', 'baz']
  * dataOnlyValues({name: 'taylor', age: 26}, [26]); -> {age: 26}
  */
 export const dataOnlyValues = dispatch(arrOnlyValues, objOnlyValues);
@@ -959,12 +979,9 @@ export function dataMapWithKeys<
         | [TMapWithKeysKey, TMapWithKeysValue]
         | Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue> {
-    // The declared callback type permits either a `[key, value]` tuple or a
-    // `Record<K, V>`. Both objMapWithKeys and arrMapWithKeys only understand
-    // the Record form (they fold the result via `Object.entries`, which on
-    // an actual tuple/array yields `{0: key, 1: value}` instead), so a tuple
-    // return is normalized into a single-pair Record here, before either
-    // branch, so the two paths can't drift out of sync on this again.
+    // The callback may return a `[key, value]` tuple or a `Record<K, V>`, but both delegates
+    // fold with `Object.entries`, which reads a tuple as `{0: key, 1: value}`. A tuple is
+    // normalized to a single-pair Record here, so the two branches cannot drift apart.
     const normalizedCallback = (
         value: TValue,
         key: TKey,
@@ -1015,7 +1032,7 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  *
  * No `dispatch` pair is possible: `arr.prepend` takes `key?: number` and returns `TValue[]`,
  * so it cannot express PHP's keyed answer at all. Only the non-integer-like key's entry
- * disappearing, where PHP's `+` keeps it, is an arr defect; Task D5 owns arr.prepend.
+ * disappearing, where PHP's `+` keeps it, is an arr defect, and it is arr.prepend's to fix.
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
@@ -1107,6 +1124,9 @@ export const dataRandom = dispatch(arrRandom, objRandom);
  * @param strict - Whether to use strict comparison
  * @returns The key of the found item, the index when the backing is a list or a
  * numeric-string-keyed record, or false
+ *
+ * @remarks JS-only: PHP compares arrays by value, so `[] === []` holds there and never here;
+ * searching for an array literal cannot match, strict or loose.
  */
 // Overload: list backing, whose key is the index
 export function dataSearch<TValue>(
@@ -1356,6 +1376,9 @@ export const dataSlice = dispatch(arrSlice, objSlice);
  * @returns The sole matching item
  * @throws Error if more than one or no items match
  *
+ * @remarks JS-only: PHP's `ItemNotFoundException`/`MultipleItemsFoundException` have no JS
+ * analogue, so `@tolki/utils` ships same-named `Error` subclasses in their place.
+ *
  * @example
  *
  * dataSole([1, 2, 3], (value) => value > 2); -> 3
@@ -1409,6 +1432,9 @@ export const dataSortRecursive = dispatch(arrSortRecursive, objSortRecursive);
  *
  * @param data - The data to sort recursively
  * @returns Recursively sorted data in descending order, matching the delegate's own result
+ *
+ * @remarks JS-only: a JS object hoists integer-like keys ahead of string ones whatever the sort
+ * produced, so only the relative order WITHIN each key class matches PHP's.
  *
  * @example
  *
@@ -1481,6 +1507,9 @@ export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
  * @param data - The data to filter
  * @param callback - The test function
  * @returns Filtered data, matching the delegate's own result
+ *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
  *
  * @example
  *
@@ -1606,6 +1635,9 @@ export function dataReplaceRecursive<
  * @param callback - The test function
  * @returns Filtered data (rejected items), matching the delegate's own result
  *
+ * @remarks JS-only: the callback is REQUIRED — PHP's no-argument form drops every truthy value,
+ * which no typed row expresses — and a list backing renumbers, since JS has no sparse key.
+ *
  * @example
  *
  * dataReject([1, 2, 3, 4], (value) => value > 2); -> [1, 2]
@@ -1618,6 +1650,9 @@ export const dataReject = dispatch(arrReject, objReject);
  *
  * @param data - The data to reverse
  * @returns Reversed data
+ *
+ * @remarks JS-only: PHP keeps each value on its original integer key; a JS object cannot hold
+ * a descending integer order, so an integer-keyed backing is reversed AND renumbered.
  */
 export const dataReverse = dispatch(arrReverse, objReverse);
 
@@ -1638,6 +1673,9 @@ export const dataPad = dispatch(arrPad, objPad);
  * @param callback - The test function
  * @returns Array with two groups: [passing, failing], matching the delegate's own result
  *
+ * @remarks JS-only: a list backing RENUMBERS, because a JS array cannot hold a sparse integer
+ * key; the keys PHP preserves are observable on the object backing.
+ *
  * @example
  *
  * dataPartition([1, 2, 3, 4], (value) => value > 2); -> [[3, 4], [1, 2]]
@@ -1650,6 +1688,9 @@ export const dataPartition = dispatch(arrPartition, objPartition);
  *
  * @param data - The data to filter
  * @returns Data with null values removed, matching the delegate's own result
+ *
+ * @remarks JS-only: PHP has one null, so the check matches `null` alone and an `undefined` value
+ * survives; a list backing also renumbers, since a JS array has no sparse integer key.
  *
  * @example
  *

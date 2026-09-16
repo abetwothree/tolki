@@ -152,8 +152,8 @@ describe("data mutations type tests", () => {
         });
 
         it("matches obj.replace for a keyed backing, which obj serves alone", () => {
-            // Both backings reach obj (Task C6), so the keyed row is obj's own answer
-            // rather than the DataItems union, which erased it.
+            // arr.replace returns a list, so obj serves BOTH backings and the keyed row is
+            // obj's own answer rather than the DataItems union, which erased it.
             expectTypeOf(Data.dataReplace(abc, { b: 20 })).toEqualTypeOf(
                 Obj.replace(abc, { b: 20 }),
             );

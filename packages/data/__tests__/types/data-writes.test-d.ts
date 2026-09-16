@@ -21,7 +21,7 @@ const listValued = { a: [1, 2] };
 /** Not a fixture: the Set keeps its own type here, since the point is that a row takes one. */
 const numberSet = new Set([7, 8]);
 
-/** The nested read-only backing `arr.add`'s shallow copy would write through (F-18). */
+/** The nested read-only backing no `dataAdd` row claims, since none takes a read-only list. */
 const deepReadonlyList: readonly (string | readonly string[])[] = [
     "products",
     ["desk"],
@@ -47,9 +47,10 @@ describe("data writes type tests", () => {
             );
         });
 
-        it("matches obj.set for a null key (F-23)", () => {
-            // F-23: the old hand-written row typed this as DataItems; obj answers the
-            // value itself, because PHP's `$data[null] = $v` replaces the whole array.
+        it("matches obj.set for a null key", () => {
+            // The old hand-written row typed this as DataItems; obj answers the value
+            // itself, because PHP's `$data[null] = $v` replaces the whole array.
+
             expectTypeOf(Data.dataSet(abc, null, 9)).toEqualTypeOf(
                 Obj.set(abc, null, 9),
             );
@@ -95,8 +96,8 @@ describe("data writes type tests", () => {
         });
 
         it("rejects a read-only list, which no row claims", () => {
-            // Task D5 (F-18) made arr.add copy along the written path, so this is a limit
-            // of the row shapes now, not a mutation risk. Widening it needs its own task.
+            // arr.add copies along the written path rather than writing through, so this is
+            // a limit of the row shapes, not a mutation risk. Widening it needs its own task.
             // @ts-expect-error a read-only list is not a mutable backing
             Data.dataAdd(readonlyNumberList, 3, 9);
             // @ts-expect-error and neither is one whose nested list is read-only
@@ -137,7 +138,7 @@ describe("data writes type tests", () => {
     describe("dataPrepend, which stays hand-written", () => {
         // Standing control: no dispatch pair is possible while `arr.prepend` declares
         // `key?: number` and returns `TValue[]`, which cannot express PHP's keyed answer at
-        // all. Only the non-integer key's entry vanishing is an arr defect; Task D5 owns it.
+        // all. Only the non-integer key's entry vanishing is an arr defect, arr.prepend's to fix.
 
         it("still has an arr delegate that answers a list for any key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
@@ -187,8 +188,8 @@ describe("data writes type tests", () => {
 
     describe("a read-only list backing", () => {
         it("takes a read-only list", () => {
-            // dataAdd is absent on purpose: it rejects a read-only list until Task D5
-            // Step 1 (F-18) makes arr.add deep-copy along the written path.
+            // dataAdd is absent on purpose: no row of its claims a read-only list, which is
+            // a limit of the row shapes rather than a mutation risk (arr.add copies).
             expectTypeOf(Data.dataSet(readonlyNumberList, 0, 9)).toEqualTypeOf(
                 Arr.set(readonlyNumberList, 0, 9),
             );

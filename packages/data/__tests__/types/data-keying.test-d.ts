@@ -173,8 +173,8 @@ describe("data keying type tests", () => {
         });
 
         it("answers dataKeyBy off an empty key set, covering both backings", () => {
-            // The union's `keyof` still collapses to `never`, but obj's bare-object row (F-16)
-            // now answers `unknown` for it rather than `never`, so the list backing fits too.
+            // The union's `keyof` still collapses to `never`, but obj's bare-object row
+            // answers `unknown` for it rather than `never`, so the list backing fits too.
             const declared = Data.dataKeyBy(unionRows, "id");
             expectTypeOf(declared).toEqualTypeOf(Obj.keyBy(unionRows, "id"));
             expectTypeOf(Arr.keyBy(rowList, "id")).toExtend<typeof declared>();

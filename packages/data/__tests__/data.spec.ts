@@ -269,11 +269,9 @@ describe("Data", () => {
         });
 
         it("throws when the value is not a boolean, naming the backing in the message", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "boolean-string-value", "boolean-list-int-key"
-            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
-            // object backing reports "Object value for key [...]" because @tolki/obj
-            // is the object-shaped port of the same helper.
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-string-value", "boolean-list-int-key"
+            // JS-only: @tolki/obj reports "Object value for key [...]" because it is the
+            // object-shaped port of the same helper; PHP has only the array prefix.
             expect(() =>
                 Data.dataBoolean({ string: "foo bar" }, "string"),
             ).toThrow(
@@ -293,8 +291,7 @@ describe("Data", () => {
         it("throws for a missing key when no default is given", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "boolean-missing-key-no-default", "boolean-list-missing-index-no-default"
-            // JS-only: the object backing says "Object value for key [...]"; PHP has
-            // only the array prefix.
+            // JS-only: the object backing says "Object value for key [...]"; PHP has only the array prefix.
             expect(() =>
                 Data.dataBoolean({ active: false }, "missing"),
             ).toThrow(
@@ -1123,7 +1120,7 @@ describe("Data", () => {
             expect(Data.dataUnion(trailingHoleList(), {})).toStrictEqual(
                 Data.dataUnion(["a", undefined, undefined], {}),
             );
-            // The three siblings F-19 already fixed answer the same way for both shapes.
+            // The three siblings that also fill a hole answer the same way for both shapes.
             expect(
                 Data.dataPrepend(trailingHoleList(), "z", "k"),
             ).toStrictEqual({ 0: "a", 1: undefined, 2: undefined, k: "z" });
@@ -1319,11 +1316,9 @@ describe("Data", () => {
         });
 
         it("keeps the original keys when taking the tail of an object backing", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "collection-take-negative-keeps-keys"
-            // PHP: collect(['taylor','dayle','shawn'])->take(-2) -> [1=>'dayle', 2=>'shawn'].
-            // JS-only: a list backing cannot hold sparse integer keys, so the array case
-            // renumbers; the object backing is where the PHP key shape is observable.
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-take-negative-keeps-keys":
+            // collect(['taylor','dayle','shawn'])->take(-2) -> [1 => 'dayle', 2 => 'shawn'].
+            // JS-only: a list cannot hold sparse keys, so it renumbers; the object backing shows the shape.
             const result = Data.dataTake(
                 { 0: "taylor", 1: "dayle", 2: "shawn" },
                 -2,
@@ -1494,11 +1489,9 @@ describe("Data", () => {
         });
 
         it("throws when the value is not a number, naming the backing in the message", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "float-string-value", "float-list-int-key"
-            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
-            // object backing reports "Object value for key [...]" because @tolki/obj
-            // is the object-shaped port of the same helper.
+            // docs/php-parity/task-24-data-release-readiness.json, "float-string-value", "float-list-int-key"
+            // JS-only: @tolki/obj reports "Object value for key [...]" because it is the
+            // object-shaped port of the same helper; PHP has only the array prefix.
             expect(() =>
                 Data.dataFloat({ string: "foo bar" }, "string"),
             ).toThrow(
@@ -1518,8 +1511,7 @@ describe("Data", () => {
         it("throws for a missing key when no default is given", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "float-missing-key-no-default", "float-list-missing-index-no-default"
-            // JS-only: the object backing says "Object value for key [...]"; PHP has
-            // only the array prefix.
+            // JS-only: the object backing says "Object value for key [...]"; PHP has only the array prefix.
             expect(() => Data.dataFloat({}, "missing")).toThrow(
                 "Object value for key [missing] must be a float, NULL found.",
             );
@@ -1916,11 +1908,9 @@ describe("Data", () => {
         });
 
         it("throws when the value is not an integer, naming the backing in the message", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "integer-string-value", "integer-list-int-key"
-            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
-            // object backing reports "Object value for key [...]" because @tolki/obj
-            // is the object-shaped port of the same helper.
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-string-value", "integer-list-int-key"
+            // JS-only: @tolki/obj reports "Object value for key [...]" because it is the
+            // object-shaped port of the same helper; PHP has only the array prefix.
             expect(() =>
                 Data.dataInteger({ string: "foo bar" }, "string"),
             ).toThrow(
@@ -1945,8 +1935,7 @@ describe("Data", () => {
         it("throws for a missing key when no default is given", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "integer-missing-key-no-default", "integer-list-missing-index-no-default"
-            // JS-only: the object backing says "Object value for key [...]"; PHP has
-            // only the array prefix.
+            // JS-only: the object backing says "Object value for key [...]"; PHP has only the array prefix.
             expect(() => Data.dataInteger({}, "missing")).toThrow(
                 "Object value for key [missing] must be an integer, NULL found.",
             );
@@ -2805,9 +2794,8 @@ describe("Data", () => {
 
         it("replaces a nested class instance on both backings", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-set-list-nested-object-is-replaced-wholesale" ([new D4Point(1)], '0.y',
-            // 2 -> [{"y": 2}]) and "d6-set-assoc-nested-object-is-replaced-wholesale"
-            // (the keyed twin). The list backing used to merge, answering {x: 1, y: 2}.
+            // "r3-set-list-nested-object-is-replaced-wholesale" and its keyed twin "d6-set-assoc-…".
+            // The list backing used to merge, answering {x: 1, y: 2}.
             const listItem = new D4Point();
             const recordItem = new D4Point();
 
@@ -3029,7 +3017,7 @@ describe("Data", () => {
         });
         it("keeps an undefined item on both backings", () => {
             // JS-only: undefined has no PHP analogue. arr.unshift used to drop it while
-            // obj.unshift kept it, so the two backings answered differently (F-9).
+            // obj.unshift kept it, so the two backings answered differently.
             // Compared by element identity: an undefined element is not a missing one.
             const list = Data.dataUnshift(["a"], undefined, "b");
             const record = Data.dataUnshift({ x: "a" }, undefined, "b");
@@ -3513,11 +3501,9 @@ describe("Data", () => {
         });
 
         it("throws when the value is not a string, naming the backing in the message", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value"
-            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
-            // JS-only: PHP has one message prefix ("Array value for key [...]"); the
-            // object backing reports "Object value for key [...]" because @tolki/obj
-            // is the object-shaped port of the same helper.
+            // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value" and
+            // task-24-data-release-readiness.json, "string-list-int-key". JS-only: @tolki/obj
+            // reports "Object value for key [...]"; PHP has only the array prefix.
             expect(() => Data.dataString({ integer: 1234 }, "integer")).toThrow(
                 "Object value for key [integer] must be a string, integer found.",
             );
@@ -3529,8 +3515,7 @@ describe("Data", () => {
         it("throws for a missing key when no default is given", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "string-missing-key-no-default", "string-list-missing-index-no-default"
-            // JS-only: the object backing says "Object value for key [...]"; PHP has
-            // only the array prefix.
+            // JS-only: the object backing says "Object value for key [...]"; PHP has only the array prefix.
             expect(() => Data.dataString({}, "missing")).toThrow(
                 "Object value for key [missing] must be a string, NULL found.",
             );
@@ -3679,8 +3664,7 @@ describe("Data", () => {
         it("keeps a list backing's string key and gap, which arr.replace drops", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "replace-list-string-key-replacer", "replace-list-sparse-replacer"
-            // Guards the C6 decision: obj serves the list backing because arr.replace
-            // returns a list, so it answers ['a','b','c'] and ['a',undefined,undefined,'d'].
+            // obj serves the LIST backing too: arr.replace answers a list, dropping both keys.
             expect(Data.dataReplace(["a", "b", "c"], { k: "x" })).toEqual({
                 0: "a",
                 1: "b",
@@ -3798,7 +3782,7 @@ describe("Data", () => {
         it("keeps a list backing's string key and gap, which arr.replaceRecursive drops", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "replaceRecursive-list-string-key-replacer", "replaceRecursive-list-sparse-replacer"
-            // Guards the C6 decision, as for dataReplace above.
+            // obj serves the list backing here too, for the reason dataReplace gives above.
             expect(
                 Data.dataReplaceRecursive(["a", "b", "c"], { k: "x" }),
             ).toEqual({ 0: "a", 1: "b", 2: "c", k: "x" });
@@ -3911,6 +3895,7 @@ describe("Data", () => {
             // JS-only: Laravel's reject() with no callback drops truthy values
             // (docs/php-parity/task-24-data-release-readiness.json, "reject-no-callback").
             // The port requires a callback; calling without one throws TypeError instead.
+
             // @ts-expect-error - dataReject requires a callback
             expect(() => Data.dataReject([1, null, 2, false, 3])).toThrow(
                 TypeError,
@@ -4458,9 +4443,8 @@ describe("Data", () => {
 
         it("reads a boolean third argument as strict, where PHP reads it as the value, on both backings", () => {
             // JS-only: docs/php-parity/task-24-data-release-readiness.json,
-            // "r4-assoc-backed-operator-forms" records "key-true-assoc" and
-            // "key-true-list" as true. This port's third parameter is `strict` and takes
-            // the boolean first, so PHP's call is written with an explicit operator here.
+            // "r4-assoc-backed-operator-forms" records "key-true-assoc"/"key-true-list" as true.
+            // This port's third parameter is `strict`, so PHP's call needs an explicit operator.
             const rows = { a: { active: true }, b: { active: false } };
             const list = [{ active: true }, { active: false }];
 
@@ -4492,10 +4476,9 @@ describe("Data", () => {
         });
 
         it("takes the key/value form and a null key on both backings", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-assoc-backed-contains", "key-value" and "null-key";
-            // "r3-list-backed-contains", "key-value-no-match"; and
-            // "r4-assoc-backed-operator-forms", "null-key-list".
+            // docs/php-parity/task-24-data-release-readiness.json: "r3-assoc-backed-contains"
+            // ("key-value", "null-key"), "r3-list-backed-contains" ("key-value-no-match") and
+            // "r4-assoc-backed-operator-forms" ("null-key-list").
             const three = { a: { v: 1 }, b: { v: 3 }, c: { v: 5 } };
             const threeList = [{ v: 1 }, { v: 3 }, { v: 5 }];
 
@@ -6622,8 +6605,8 @@ describe("Data", () => {
         });
 
         it("dataCombine combines a Map's values as keys like the record it mirrors", () => {
-            // dataCombine stays hand-written, so it normalizes its own keys backing
-            // rather than reaching toKeyedData through dispatch. Task D7 made it do so.
+            // dataCombine cannot be a dispatch pair: it normalizes the KEYS operand, which
+            // dispatch only ever normalizes the first argument of, so it does that itself.
             expect(Data.dataCombine(asMap, ["x", "y", "z"])).toEqual(
                 Data.dataCombine(asRecord, ["x", "y", "z"]),
             );
@@ -6651,16 +6634,16 @@ describe("Data", () => {
         });
 
         it("dataUndot undots a Map like the record it mirrors", () => {
-            // dataUndot stays hand-written, so it normalizes its own keyed backing
-            // rather than reaching toKeyedData through dispatch. Task D7 made it do so.
+            // dataUndot cannot be a dispatch pair: it answers a list or a record from the
+            // same input, which no single delegate covers, so it normalizes its own backing.
             expect(Data.dataUndot(dottedMap)).toEqual(
                 Data.dataUndot(dottedRecord),
             );
         });
 
         it("dataUnion unions a Map like the record it mirrors", () => {
-            // dataUnion stays hand-written, so it normalizes its own backing rather than
-            // reaching toKeyedData through dispatch. Task D7 made it do so.
+            // dataUnion cannot be a dispatch pair: it folds a VARIADIC list of operands,
+            // which no arr/obj pair takes, so it normalizes its own backing.
             expect(Data.dataUnion(asMap, { d: 4 })).toEqual(
                 Data.dataUnion(asRecord, { d: 4 }),
             );
@@ -6809,9 +6792,9 @@ describe("Data", () => {
         it.fails(
             "dataMapWithKeys maps a Map like the record it mirrors",
             () => {
-                // dataMapWithKeys stays hand-written, so nothing normalises a Map for
-                // it. Task D6 found obj's tuple fold matches PHP after all, so converting
-                // it would drop data's own tuple normalisation — a behaviour change.
+                // dataMapWithKeys cannot be a dispatch pair: it normalises the tuples the
+                // callback returns, which neither delegate does, so nothing normalises a Map
+                // for it and this row stays red.
                 const callback = (
                     value: number,
                     key: string,

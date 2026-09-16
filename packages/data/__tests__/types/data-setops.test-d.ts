@@ -276,7 +276,7 @@ describe("data setops type tests", () => {
         it("takes the backings its body now normalizes, answering the record's own type", () => {
             // No delegate to pin against: the body picks obj or arr per backing and the
             // rows are its own, so the Map, Set and scalar rows answer the record mirror's
-            // type. Task D7 widened them; a narrowing would fail here rather than silently.
+            // type. Narrowing any of them would fail here rather than silently.
             const record = Data.dataUnion(numberMapAsRecord, { d: 4 });
             expectTypeOf(Data.dataUnion(numberMap, { d: 4 })).toEqualTypeOf<
                 typeof record

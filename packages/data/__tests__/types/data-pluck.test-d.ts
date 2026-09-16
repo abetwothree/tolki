@@ -158,9 +158,8 @@ describe("data pluck type tests", () => {
 
         it("answers dataSelect from obj, covering only its own list arm", () => {
             // obj's mapped row distributes, so the union answers a union of both shapes.
-            // Task D5 widened arr's row constraint to `object`, so arr's own answer for a
-            // list of interface rows is `Pick<Row, "name">[]` — the control it used to
-            // need here is gone, and arr-subsets.test-d.ts pins that answer directly.
+            // arr's row constraint is `object`, so its own answer for a list of interface
+            // rows is `Pick<Row, "name">[]`, which arr-subsets.test-d.ts pins directly.
             const declared = Data.dataSelect(unionRows, "name");
             expectTypeOf(declared).toEqualTypeOf(Obj.select(unionRows, "name"));
         });

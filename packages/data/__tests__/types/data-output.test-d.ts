@@ -19,8 +19,8 @@ import {
 
 describe("data output type tests", () => {
     // Every function here answers `string` on both backings, so a return-type pin cannot
-    // discriminate (lesson 9). The gate is the PARAMETER side: each row below is an input
-    // `DataItems<TValue, TKey>` rejects, so the delegate pin is what makes the call compile.
+    // discriminate which delegate ran. The gate is the PARAMETER side: each row below is an
+    // input `DataItems<TValue, TKey>` rejects, so the delegate pin is what makes it compile.
 
     describe("dataJoin", () => {
         it("matches arr.join for a list", () => {

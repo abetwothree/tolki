@@ -18,7 +18,7 @@ import {
     unionItems,
 } from "./fixtures";
 
-/** F-23: the key list a caller builds with `as const`, which `PathKeys` alone rejects. */
+/** The key list a caller builds with `as const`, which a mutable `PathKeys` would reject. */
 const readonlyKeys = ["a", "b"] as const;
 const readonlyIndices = [0, 1] as const;
 
@@ -142,7 +142,7 @@ describe("data subsets type tests", () => {
         });
     });
 
-    describe("dataHas, converted earlier but named by F-23", () => {
+    describe("dataHas, whose read-only key list arrived with the rest", () => {
         it("matches obj.has for a read-only key list", () => {
             expectTypeOf(Data.dataHas(abc, readonlyKeys)).toEqualTypeOf(
                 Obj.has(abc, readonlyKeys),
@@ -160,8 +160,8 @@ describe("data subsets type tests", () => {
     });
 
     describe("a read-only key list on a list backing", () => {
-        // D3 Step 3 (F-23 part 1) made `PathKeys` carry a read-only array, so a read-only
-        // tuple now reaches arr's list rows instead of falling through to obj.
+        // `PathKeys` carries a read-only array, so a read-only tuple reaches arr's list
+        // rows instead of falling through to obj.
         it("types dataExcept from arr's list row", () => {
             expectTypeOf(
                 Data.dataExcept(numberList, readonlyIndices),

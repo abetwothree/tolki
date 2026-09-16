@@ -19,7 +19,7 @@ import {
 
 describe("data predicates type tests", () => {
     // Six of the seven answer `boolean` on both backings, so a return pin cannot discriminate
-    // (lesson 9). For those the gate is the PARAMETER side: `opaque` is the one input
+    // which delegate ran. For those the gate is the PARAMETER side: `opaque` is the one input
     // `DataItems`/`DataIterableItems` reject, so the delegate pin is what makes the call compile.
 
     describe("dataHas", () => {
@@ -107,13 +107,11 @@ describe("data predicates type tests", () => {
             ).toEqualTypeOf(Obj.every(opaque, (value) => Number(value) > 0));
         });
 
-        // Migrated from `data.test-d.ts`'s "three way overloads" block: these pin which
-        // overload each backing selects, which a boolean return type cannot show.
+        // These pin which overload each backing selects, which a boolean return type cannot show.
         it("routes a Map to dispatch's Map row, not to obj's own ReadonlyMap row", () => {
-            // Standing control for a narrowing `dispatch` lost: the hand-written
-            // `Map<TKey, TValue>` overload typed this callback `(number, string)`, and
-            // `objEvery` still has a `ReadonlyMap` row that would, but `KeyedMapRow`
-            // precedes it in the intersection and resolves obj's widest row instead.
+            // Standing control for a narrowing `dispatch` lost: the hand-written `Map<TKey, TValue>`
+            // overload typed this callback `(number, string)`, and `objEvery`'s `ReadonlyMap` row
+            // would too, but `KeyedMapRow` precedes it and resolves obj's widest row instead.
             Data.dataEvery(new Map([["a", 1]]), (value, key) => {
                 expectTypeOf(value).toEqualTypeOf<unknown>();
                 expectTypeOf(key).toEqualTypeOf<string | number>();
@@ -158,7 +156,6 @@ describe("data predicates type tests", () => {
             ).toEqualTypeOf(Obj.some(opaque, (value) => Number(value) > 0));
         });
 
-        // Migrated from `data.test-d.ts`'s "three way overloads" block.
         it("routes an array to the positional overload", () => {
             Data.dataSome([1, 2, 3], (value, key) => {
                 expectTypeOf(value).toEqualTypeOf<number>();
