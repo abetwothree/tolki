@@ -23,6 +23,9 @@ const interfaceRows: InterfaceRow[] = [
     { id: 2, name: "Grace" },
 ];
 
+declare const scalarUnion: string | number;
+declare const nullableString: string | null;
+
 describe("arr subsets type tests", () => {
     describe("only", () => {
         it("preserves string element type", () => {
@@ -193,6 +196,22 @@ describe("arr subsets type tests", () => {
 
         it("passes a nested array through unchanged", () => {
             expectTypeOf(Arr.wrap(numberGrid)).toEqualTypeOf<number[][]>();
+        });
+
+        it("distributes over a union rather than holding it in one tuple", () => {
+            // F-24(b): `[TValue]` answered `[string | number]`, a tuple wrap can never
+            // build — it holds exactly one member, so the answer is a union of one-tuples.
+            expectTypeOf(Arr.wrap(scalarUnion)).toEqualTypeOf<
+                [string] | [number]
+            >();
+        });
+
+        it("distributes a nullable union member into its own one-tuple", () => {
+            // The fallback row distributes; it does not re-run the dedicated null and array
+            // rows per member, so a null member is still tupled rather than dropped.
+            expectTypeOf(Arr.wrap(nullableString)).toEqualTypeOf<
+                [string] | [null]
+            >();
         });
 
         it("passes a readonly array through unchanged, rather than wrapping it as a single value", () => {

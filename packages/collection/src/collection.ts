@@ -2316,7 +2316,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(this.items);
         }
 
-        const keysParam = keys.flatMap((key) =>
+        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
+        // that flatMap cannot infer an element type from; the cast below names it anyway.
+        const keysParam = keys.flatMap((key): unknown[] =>
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
@@ -2344,7 +2346,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(this.items);
         }
 
-        const keysParam = keys.flatMap((key) =>
+        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
+        // that flatMap cannot infer an element type from; the cast below names it anyway.
+        const keysParam = keys.flatMap((key): unknown[] =>
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 

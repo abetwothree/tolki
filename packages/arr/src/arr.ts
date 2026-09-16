@@ -90,6 +90,11 @@ import {
  * on this — re-read Collection.php before "aligning" one to the other.
  */
 
+// WrapResult (wrap): a naked conditional, so a union answers a union of one-tuples rather
+// than one tuple holding the whole union — wrap only ever holds one member at a time. The
+// `unknown` test always holds; distribution is the whole point of writing it as a conditional.
+type WrapResult<TValue> = TValue extends unknown ? [TValue] : never;
+
 // ArraySetPath* (set): Arr::set replaces a non-record element with a fresh container before
 // writing, so only a record element is merged onto; a rest starting with an index rebuilds
 // a nested list, which the element type already covers.
@@ -4192,7 +4197,7 @@ export function wrap<TValue>(value: TValue[]): TValue[];
 // because wrap aliases its input array rather than copying it — a mutable
 // return type here would allow writes through to the readonly source.
 export function wrap<TValue>(value: readonly TValue[]): readonly TValue[];
-export function wrap<TValue>(value: TValue): [TValue];
+export function wrap<TValue>(value: TValue): WrapResult<TValue>;
 export function wrap<TValue>(value: TValue | null): TValue[] | [] {
     if (isNull(value)) {
         return [];
