@@ -150,34 +150,37 @@ describe("data subsets type tests", () => {
         });
 
         it("takes a read-only key list on a list backing", () => {
-            // The obj pin below compiles but cannot discriminate: both delegates answer
-            // boolean, so it would hold whichever one ran. The `@ts-expect-error` is the
-            // real control — `arr.has` declares `PathKeys`, whose `Array<PathKey>` is mutable.
+            // Both delegates answer boolean, so the pin cannot say which one ran. The control
+            // is that `arr.has` takes the read-only tuple at all: `PathKeys` carries a
+            // read-only array since D3 Step 3, and this line stops compiling if that is undone.
             expectTypeOf(
                 Data.dataHas(numberList, readonlyIndices),
-            ).toEqualTypeOf(Obj.has(numberList, readonlyIndices));
-            // @ts-expect-error arr.has's PathKeys rejects a read-only index tuple
-            Arr.has(numberList, readonlyIndices);
+            ).toEqualTypeOf(Arr.has(numberList, readonlyIndices));
         });
     });
 
-    describe("a read-only key list on a list backing mis-routes to obj", () => {
-        // Standing control: arr's keys are `PathKeys` (mutable), so a read-only tuple skips
-        // every arr row and lands on obj's NonObjectItems row, answering `{}` where the
-        // runtime answers arr's list. Task D3 Step 3 (F-23 part 1) widens PathKeys; re-read then.
-        it("types dataExcept from obj's array-rejecting row", () => {
+    describe("a read-only key list on a list backing", () => {
+        // D3 Step 3 (F-23 part 1) made `PathKeys` carry a read-only array, so a read-only
+        // tuple now reaches arr's list rows instead of falling through to obj.
+        it("types dataExcept from arr's list row", () => {
             expectTypeOf(
                 Data.dataExcept(numberList, readonlyIndices),
-            ).toEqualTypeOf(Obj.except(numberList, readonlyIndices));
+            ).toEqualTypeOf(Arr.except(numberList, readonlyIndices));
         });
 
-        it("types dataOnly and dataForget the same way", () => {
+        it("types dataForget the same way", () => {
+            expectTypeOf(
+                Data.dataForget(numberList, readonlyIndices),
+            ).toEqualTypeOf(Arr.forget(numberList, readonlyIndices));
+        });
+
+        // Standing control: `Arr.only` declares `number | number[] | null`, not `PathKeys`, so a
+        // read-only tuple still skips every arr row and lands on obj's NonObjectItems row, where
+        // the runtime answers arr's list. Widening that one signature is its own change.
+        it("still types dataOnly from obj's array-rejecting row", () => {
             expectTypeOf(
                 Data.dataOnly(numberList, readonlyIndices),
             ).toEqualTypeOf(Obj.only(numberList, readonlyIndices));
-            expectTypeOf(
-                Data.dataForget(numberList, readonlyIndices),
-            ).toEqualTypeOf(Obj.forget(numberList, readonlyIndices));
         });
     });
 

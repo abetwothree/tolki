@@ -129,15 +129,12 @@ describe("data keying type tests", () => {
             >();
         });
 
-        it("answers dataKeyBy off an empty key set, covering neither backing", () => {
-            // obj's `<T extends object>` row reads the union's collapsed `keyof`, which is
-            // `never`, so the answer is `Record<string, never>` — narrower than either backing.
+        it("answers dataKeyBy off an empty key set, covering both backings", () => {
+            // The union's `keyof` still collapses to `never`, but obj's bare-object row (F-16)
+            // now answers `unknown` for it rather than `never`, so the list backing fits too.
             const declared = Data.dataKeyBy(unionRows, "id");
             expectTypeOf(declared).toEqualTypeOf(Obj.keyBy(unionRows, "id"));
-            // Standing control: delete this row once a union stops collapsing obj's `keyof`.
-            expectTypeOf(Arr.keyBy(rowList, "id")).not.toExtend<
-                typeof declared
-            >();
+            expectTypeOf(Arr.keyBy(rowList, "id")).toExtend<typeof declared>();
         });
     });
 
