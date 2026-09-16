@@ -230,9 +230,15 @@ function copyAlongPath(
             return root;
         }
 
-        const clone = isArray(child)
-            ? [...child]
-            : { ...(child as Record<string, unknown>) };
+        // Descriptors, not a spread: Arr::set stores a key that is no list index on the
+        // list itself, and a spread would copy only the indexed elements back out.
+        const clone: unknown[] | Record<string, unknown> = isArray(child)
+            ? []
+            : {};
+        Object.defineProperties(
+            clone,
+            Object.getOwnPropertyDescriptors(child) as PropertyDescriptorMap,
+        );
 
         defineKey(cursor, segment, clone);
         cursor = clone as Record<string, unknown>;

@@ -137,6 +137,22 @@ describe("Arr", () => {
             expect(list).toEqual([100]);
         });
 
+        it("keeps a descended list's own non-index key", () => {
+            // JS-only: PHP holds "" as a real array key, so no Arr::add call can record
+            // this; the port stores it as the list's own property and the copy step used
+            // to spread it away. docs/php-parity/task-24-..., "get-write-path-key-cast"
+            const inner = Arr.set(["a", "b"], "", "V");
+            const [first] = Arr.add([inner], "0.2", "c") as unknown[];
+
+            expect(Object.entries(first as object)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "c"],
+                ["", "V"],
+            ]);
+            expect(first).not.toBe(inner);
+        });
+
         it("leaves the caller's value alone when the key already exists", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "add-existing-key-is-a-no-op"
@@ -2083,6 +2099,22 @@ describe("Arr", () => {
             expect(result).toEqual([["x", "y"]]);
             expect(inner).toEqual(["x"]);
             expect(result[0]).not.toBe(inner);
+        });
+
+        it("keeps a descended list's own non-index key", () => {
+            // JS-only: the push half of the same case. "01" is no array index, so the
+            // write stored it as the list's own property (path.spec pins that write) and
+            // the copy step has to carry it down with the elements.
+            const inner = Arr.set(["a", "b"], "01", "V");
+            const [first] = Arr.push([inner], "0", "z") as unknown[];
+
+            expect(Object.entries(first as object)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "z"],
+                ["01", "V"],
+            ]);
+            expect(first).not.toBe(inner);
         });
 
         it("leaves the caller's list alone for a missing index", () => {
