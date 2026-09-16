@@ -26,6 +26,11 @@ class Point {
     y = 2;
 }
 
+/** The single-field instance the write-path probes use, so a citation names the same call. */
+class D4Point {
+    x = 1;
+}
+
 describe("Data", () => {
     describe("dataAdd", () => {
         it("is object", () => {
@@ -80,25 +85,34 @@ describe("Data", () => {
             expect(inner).toEqual({ z: 1 });
         });
 
-        it("answers each backing's own rule for a nested class instance", () => {
+        it("replaces a nested class instance on both backings", () => {
             // docs/php-parity/task-24-data-release-readiness.json, "add-nested-object-is-
-            // replaced-wholesale" and "add-assoc-nested-object-is-replaced-wholesale": the
-            // list backing matches PHP; the record backing merges instead, as obj.add does.
-            const listItem = new Point();
-            const recordItem = new Point();
+            // replaced-wholesale" ([new D4Point(1)], '0.y', 2 -> [{"y": 2}]) and
+            // "add-assoc-nested-object-is-replaced-wholesale" (the keyed twin).
+            const listItem = new D4Point();
+            const recordItem = new D4Point();
 
-            expect(Data.dataAdd([listItem], "0.z", 3)).toEqual([{ z: 3 }]);
-            expect(Data.dataAdd({ a: recordItem }, "a.z", 3)).toEqual({
-                a: { x: 1, y: 2, z: 3 },
+            expect(Data.dataAdd([listItem], "0.y", 2)).toEqual([{ y: 2 }]);
+            expect(Data.dataAdd({ a: recordItem }, "a.y", 2)).toEqual({
+                a: { y: 2 },
             });
-            expect(Object.entries(listItem)).toEqual([
-                ["x", 1],
-                ["y", 2],
-            ]);
-            expect(Object.entries(recordItem)).toEqual([
-                ["x", 1],
-                ["y", 2],
-            ]);
+            expect(Object.entries(listItem)).toEqual([["x", 1]]);
+            expect(Object.entries(recordItem)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-is-descended-not-replaced": ['a' => ['q']] plus
+            // Arr::add($src, 'a.1', 'y') answers {"a": ["q", "y"]} and leaves the source.
+            const listInner = ["q"];
+            const recordInner = ["q"];
+
+            expect(Data.dataAdd([listInner], "0.1", "y")).toEqual([["q", "y"]]);
+            expect(Data.dataAdd({ a: recordInner }, "a.1", "y")).toEqual({
+                a: ["q", "y"],
+            });
+            expect(listInner).toEqual(["q"]);
+            expect(recordInner).toEqual(["q"]);
         });
 
         it("materializes a Set backing and answers from arr.add", () => {

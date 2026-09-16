@@ -1822,13 +1822,17 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
                 ? undefined
                 : current[segment];
 
+        // Arr::set descends by is_array, so a class instance, Date or Map on the path is
+        // replaced wholesale; a list is a container and keeps its elements. The clone is
+        // what makes the write immutable, so it has to match the container's own shape.
         defineKey(
             current,
             segment,
-            !existing || !isObject(existing)
+            !isWritableContainer(existing)
                 ? {}
-                : // Clone nested objects to maintain immutability
-                  { ...(existing as Record<string, unknown>) },
+                : isArray(existing)
+                  ? [...(existing as unknown[])]
+                  : { ...(existing as Record<string, unknown>) },
         );
 
         current = current[segment] as Record<string, unknown>;

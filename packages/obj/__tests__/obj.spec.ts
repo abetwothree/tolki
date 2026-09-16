@@ -28,6 +28,11 @@ class Point {
     y = 2;
 }
 
+/** The single-field instance the write-path probes use, so a citation names the same call. */
+class D4Point {
+    x = 1;
+}
+
 describe("Obj", () => {
     describe("accessible", () => {
         it("should return true for objects", () => {
@@ -123,19 +128,29 @@ describe("Obj", () => {
             assertType<{ name: string }>(result);
         });
 
-        it("merges onto a nested class instance instead of replacing it", () => {
-            // JS-only divergence, pinned so it is not mistaken for parity: PHP replaces
-            // the object wholesale (task-24-data-release-readiness.json, "add-assoc-
-            // nested-object-is-replaced-wholesale" answers {a: {y: 2}}). arr.add does not.
-            const point = new Point();
-            const result = Obj.add({ a: point }, "a.z", 3);
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "add-assoc-nested-
+            // object-is-replaced-wholesale": ['a' => new D4Point(1)] plus
+            // Arr::add($src, 'a.y', 2) answers {"a": {"y": 2}}, a plain array.
+            const point = new D4Point();
+            const result = Obj.add({ a: point }, "a.y", 2);
 
-            expect(result).toEqual({ a: { x: 1, y: 2, z: 3 } });
+            expect(result).toEqual({ a: { y: 2 } });
             expect(result.a).not.toBe(point);
-            expect(Object.entries(point)).toEqual([
-                ["x", 1],
-                ["y", 2],
-            ]);
+            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(Object.entries(point)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list instead of replacing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-is-descended-not-replaced": ['a' => ['q']] plus
+            // Arr::add($src, 'a.1', 'y') answers {"a": ["q", "y"]} and leaves the source.
+            const inner = ["q"];
+            const result = Obj.add({ a: inner }, "a.1", "y");
+
+            expect(result).toEqual({ a: ["q", "y"] });
+            expect(result.a).not.toBe(inner);
+            expect(inner).toEqual(["q"]);
         });
 
         it("should preserve type when nested key exists", () => {
@@ -2686,6 +2701,42 @@ describe("Obj", () => {
             const obj = { user: { name: "John" } };
             const result = Obj.set(obj, "user.age", 30);
             expect(result).toEqual({ user: { name: "John", age: 30 } });
+        });
+
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-set-assoc-nested-
+            // object-is-replaced-wholesale": ['a' => new D4Point(1)] plus
+            // Arr::set($src, 'a.y', 2) answers {"a": {"y": 2}}, recorded type `array`.
+            const point = new D4Point();
+            const result = Obj.set({ a: point }, "a.y", 2);
+
+            expect(result).toEqual({ a: { y: 2 } });
+            expect(result.a).not.toBe(point);
+            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(Object.entries(point)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list instead of replacing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-is-descended-not-replaced": ['a' => ['q']] plus
+            // Arr::set($src, 'a.1', 'y') answers {"a": ["q", "y"]}.
+            const inner = ["q"];
+            const result = Obj.set({ a: inner }, "a.1", "y");
+
+            expect(result).toEqual({ a: ["q", "y"] });
+            expect(result.a).not.toBe(inner);
+            expect(inner).toEqual(["q"]);
+        });
+
+        it("replaces a nested Date or Map, which carry no array entries", () => {
+            // JS-only: PHP has neither, but Arr::set's is_array test replaces every
+            // non-array, and both fail isPlainObject here for the same reason.
+            expect(Obj.set({ a: new Date(0) }, "a.y", 2)).toEqual({
+                a: { y: 2 },
+            });
+            expect(Obj.set({ a: new Map() }, "a.y", 2)).toEqual({
+                a: { y: 2 },
+            });
         });
 
         it("should replace entire object when key is null", () => {
