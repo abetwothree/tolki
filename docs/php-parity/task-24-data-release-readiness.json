@@ -2055,6 +2055,85 @@
                 },
                 "b"
             ]
+        },
+        {
+            "label": "firstOrFail-stored-null-assoc-with-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null]))->firstOrFail(fn ($v) => is_null($v))",
+            "value": null
+        },
+        {
+            "label": "set-scalar-element-empty-trailing-segment",
+            "php": "$a = ['a']; Arr::set($a, '0.', 'value')",
+            "value": {
+                "outer": {
+                    "json": [
+                        {
+                            "": "value"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "inner": {
+                    "json": {
+                        "": "value"
+                    },
+                    "keys": [
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-list-noncanonical-among-several-keys",
+            "php": "Arr::forget([['x','y','z']], ['0.01', '0.2'])",
+            "value": {
+                "json": [
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    "integer:0",
+                    "integer:1"
+                ]
+            }
+        },
+        {
+            "label": "add-nested-list-leaves-the-caller-value-untouched",
+            "php": "$src = ['products', ['desk']]; Arr::add($src, '1.1', 200)",
+            "value": {
+                "source": [
+                    "products",
+                    [
+                        "desk"
+                    ]
+                ],
+                "result": [
+                    "products",
+                    [
+                        "desk",
+                        200
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "add-nested-record-leaves-the-caller-value-untouched",
+            "php": "$src = ['a' => ['z' => 1]]; Arr::add($src, 'a.y', 2)",
+            "value": {
+                "source": {
+                    "a": {
+                        "z": 1
+                    }
+                },
+                "result": {
+                    "a": {
+                        "z": 1,
+                        "y": 2
+                    }
+                }
+            }
         }
     ]
 }

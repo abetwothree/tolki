@@ -624,4 +624,36 @@ probe('set-dot-path-under-a-list-index', "\$a = ['a', 'b']; Arr::set(\$a, '0.x',
     return $a;
 });
 
+// ==== Citation-integrity sweep over the D4-D5 batch: five assertions named a real label
+// whose recorded call used a different fixture. These are the calls they actually make.
+
+probe('firstOrFail-stored-null-assoc-with-callback', "(new Collection(['a' => 1, 'b' => null]))->firstOrFail(fn (\$v) => is_null(\$v))", fn () => (new Collection(['a' => 1, 'b' => null]))->firstOrFail(fn ($v) => is_null($v)));
+
+probe('set-scalar-element-empty-trailing-segment', "\$a = ['a']; Arr::set(\$a, '0.', 'value')", function () use ($d4Shape) {
+    $a = ['a'];
+    Arr::set($a, '0.', 'value');
+
+    return ['outer' => $d4Shape($a), 'inner' => $d4Shape($a[0])];
+});
+
+probe('forget-list-noncanonical-among-several-keys', "Arr::forget([['x','y','z']], ['0.01', '0.2'])", function () use ($d4Shape) {
+    $a = [['x', 'y', 'z']];
+    Arr::forget($a, ['0.01', '0.2']);
+
+    return $d4Shape($a[0]);
+});
+
+probe('add-nested-list-leaves-the-caller-value-untouched', "\$src = ['products', ['desk']]; Arr::add(\$src, '1.1', 200)", function () {
+    $src = ['products', ['desk']];
+    $result = Arr::add($src, '1.1', 200);
+
+    return ['source' => $src, 'result' => $result];
+});
+probe('add-nested-record-leaves-the-caller-value-untouched', "\$src = ['a' => ['z' => 1]]; Arr::add(\$src, 'a.y', 2)", function () {
+    $src = ['a' => ['z' => 1]];
+    $result = Arr::add($src, 'a.y', 2);
+
+    return ['source' => $src, 'result' => $result];
+});
+
 emit();
