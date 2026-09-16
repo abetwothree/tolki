@@ -1598,6 +1598,112 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.intersectAssocUsing(numberMap, rec, truthy);
     });
 
+    it("routes a record to obj for diffAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssocUsing, Obj.diffAssocUsing)(rec, rec, truthy),
+        ).toEqualTypeOf(Obj.diffAssocUsing(rec, rec, truthy));
+    });
+
+    it("routes an interface-typed object to obj for diffAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssocUsing, Obj.diffAssocUsing)(
+                settings,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf(Obj.diffAssocUsing(settings, rec, truthy));
+    });
+
+    it("routes a class instance to obj for diffAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssocUsing, Obj.diffAssocUsing)(box, rec, truthy),
+        ).toEqualTypeOf(Obj.diffAssocUsing(box, rec, truthy));
+    });
+
+    it("routes a Map to obj for diffAssocUsing", () => {
+        const widest = Obj.diffAssocUsing(opaque, rec, truthy);
+        expectTypeOf(
+            dispatch(Arr.diffAssocUsing, Obj.diffAssocUsing)(
+                numberMap,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for diffAssocUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffAssocUsing, Obj.diffAssocUsing)(
+                list,
+                list,
+                truthy,
+            ),
+        ).toEqualTypeOf(Arr.diffAssocUsing(list, list, truthy));
+    });
+
+    it("rejects a record on arr for diffAssocUsing", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.diffAssocUsing(rec, rec, truthy);
+        // @ts-expect-error - arr-valid tail: only the record can be the error
+        Arr.diffAssocUsing(rec, list, truthy);
+    });
+
+    it("rejects a Map on arr for diffAssocUsing", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.diffAssocUsing(numberMap, rec, truthy);
+    });
+
+    it("routes a record to obj for diffKeysUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffKeysUsing, Obj.diffKeysUsing)(rec, rec, truthy),
+        ).toEqualTypeOf(Obj.diffKeysUsing(rec, rec, truthy));
+    });
+
+    it("routes an interface-typed object to obj for diffKeysUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffKeysUsing, Obj.diffKeysUsing)(
+                settings,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf(Obj.diffKeysUsing(settings, rec, truthy));
+    });
+
+    it("routes a class instance to obj for diffKeysUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffKeysUsing, Obj.diffKeysUsing)(box, rec, truthy),
+        ).toEqualTypeOf(Obj.diffKeysUsing(box, rec, truthy));
+    });
+
+    it("routes a Map to obj for diffKeysUsing", () => {
+        const widest = Obj.diffKeysUsing(opaque, rec, truthy);
+        expectTypeOf(
+            dispatch(Arr.diffKeysUsing, Obj.diffKeysUsing)(
+                numberMap,
+                rec,
+                truthy,
+            ),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for diffKeysUsing", () => {
+        expectTypeOf(
+            dispatch(Arr.diffKeysUsing, Obj.diffKeysUsing)(list, list, truthy),
+        ).toEqualTypeOf(Arr.diffKeysUsing(list, list, truthy));
+    });
+
+    it("rejects a record on arr for diffKeysUsing", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.diffKeysUsing(rec, rec, truthy);
+        // @ts-expect-error - arr-valid tail: only the record can be the error
+        Arr.diffKeysUsing(rec, list, truthy);
+    });
+
+    it("rejects a Map on arr for diffKeysUsing", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.diffKeysUsing(numberMap, rec, truthy);
+    });
+
     it("routes a record to obj for intersectByKeys", () => {
         expectTypeOf(
             dispatch(Arr.intersectByKeys, Obj.intersectByKeys)(rec, rec),
