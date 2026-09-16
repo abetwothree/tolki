@@ -317,6 +317,47 @@ Most of these attribute classes (`#[Table]`, `#[Hidden]`, `#[Visible]`, `#[Appen
 
 ## Typing Attributes Without #[TsCasts]
 
+### Accessor getter bodies
+
+When an accessor's getter signature and its `Attribute<Get, Set>` docblock are *both* vague, the getter body is read, so an accessor that used to publish `unknown[]` publishes the shape it actually returns:
+
+```php
+class Release extends Model
+{
+    protected function versionData(): Attribute
+    {
+        return Attribute::get(fn () => ['major' => $this->major, 'minor' => $this->minor]);
+    }
+
+    protected function tagList(): Attribute
+    {
+        return Attribute::get(fn (): array => collect(explode(',', $this->tags_csv))->map(fn ($tag) => ['name' => $tag])->values()->all());
+    }
+
+    /** An empty literal carries no element information, so the `: array` signature answers instead. */
+    protected function emptyList(): Attribute
+    {
+        return Attribute::get(fn (): array => []);
+    }
+}
+```
+
+```typescript
+export interface ReleaseMutators {
+  version_data: { major: number; minor: number };
+  tag_list: { name: string }[];
+  empty_list: unknown[];
+  dynamic_totals: unknown[];
+  // …
+}
+```
+
+`Attribute::make()`, `Attribute::get()`, and `new Attribute(get: ...)` are all read, as is an old-style `get{Name}Attribute()` body, and a trait-declared accessor resolves against the model that uses the trait.
+
+The limit: a precise annotation still wins outright and is read *before* the body, so this never overrides an accurate `@return Attribute<Get, Set>`. The body step adds no rules of its own — it inherits the engine's limits exactly — so what stays vague is whatever the engine itself can't resolve: an empty `[]` literal (it carries no element information, so `empty_list` keeps its `: array` signature), loop-built keys (`dynamic_totals` above), and a call whose own return the engine can't type. Two accessors that read each other both degrade to `unknown` rather than recursing forever.
+
+Delegation by itself is **not** a limit. `channelOptions()` calls `static::channelLabels()`, whose signature is a bare `: array`, and still publishes `{ "1": string; "2": string }`, because that helper's own body is read the same way; `channels()` reads an untyped `protected $allowedChannels` property and publishes `string[]`.
+
 ### Typing `array` casts with `@property`
 
 A column cast to `'array'` (or any other cast the accessor → cast → DB waterfall can't type more precisely) generates as `unknown[]`. Rather than reaching for `#[TsCasts]`, add a class-level `@property`/`@property-read` docblock tag naming the real shape — the same convention PHPStan/Larastan already read — and it wins wherever the resolved type would otherwise stay vague:
@@ -351,6 +392,97 @@ class Preset extends Model { ... }
 ```
 
 `$config` generates as `{ filters?: Record<string, unknown>; sorts?: string[] } | null` — the alias expands inline (no import of `PresetDto` itself is emitted, since only its shape is used), optional keys keep their `?`, and PHPStan validates the same alias. `@phpstan-import-type ... as Alias` and `@psalm-type`/`@psalm-import-type` are both recognized, an alias may reference another imported alias, and a cyclical import degrades to `unknown` rather than hanging the publish run. This is the preferred path over `#[TsCasts]` for a shape that's already worth documenting for static analysis.
+
+### Nullable and intersection docblock types
+
+A nullable alias keeps its `| null` through the expansion. The postfix spelling is the one the workbench pins:
+
+```php
+/**
+ * @phpstan-import-type GridConfig from GridConfigDto
+ * @phpstan-import-type GridPreset from GridConfigDto
+ *
+ * @property GridConfig|null $grid_config
+ * @property GridPreset|null $grid_preset
+ */
+class Team extends Model { ... }
+```
+
+```typescript
+export interface Team {
+  grid_config: { filters?: Record<string, unknown>; sorts?: string[]; columns?: string[] } | null;
+  grid_preset: { name: string; locked?: boolean } | null;
+  // …
+}
+```
+
+A **leading** `?` works the same way — stripped before the container match, then re-appended — on a generic and on an alias alike:
+
+```php
+/** @return Attribute<?array<int, int>, never> */
+protected function stateIds(): Attribute
+
+/** @return Attribute<?FlagValue, never> */   // FlagValue is a @phpstan-type alias
+protected function flagDefault(): Attribute
+```
+
+```typescript
+export interface OrderMutators {
+  state_ids: number[] | null;
+  // …
+}
+
+export interface DocblockGenericsFixtureMutators {
+  flag_default: boolean | number | string | null;
+  // …
+}
+```
+
+Without that handling the `?` would stop the container matching at all, and the type would fall through to `unknown`.
+
+A docblock **intersection** resolves each member and joins them with `&`:
+
+```php
+/** @return Attribute<Collection<int, User&object{pivot: TaskAssignment}>, never> */
+protected function assignedUsers(): Attribute
+```
+
+```typescript
+export interface DocblockGenericsFixtureMutators {
+  assigned_users: (User & { pivot: unknown })[];
+  // …
+}
+```
+
+The limit: an `object{...}` member resolves through the same string-only shape channel as any other docblock shape, so a class named **inside** it degrades to `unknown` — `User` keeps its import, `TaskAssignment` doesn't. A member that resolves to nothing is dropped rather than collapsing the whole intersection, since `A & B` is assignable to `A`.
+
+### Trait `@template` bindings
+
+A generic trait's `@template` parameter is bound by the `@use` tag on the class that uses it, so one trait supplies a correctly-typed accessor to many models:
+
+```php
+/** @template TChild of Model */
+trait AggregatesChildren
+{
+    /** @return Attribute<EloquentCollection<int, TChild>, never> */
+    protected function childItems(): Attribute { ... }
+}
+
+class DocblockGenericsFixture extends Model
+{
+    /** @use AggregatesChildren<Comment> */
+    use AggregatesChildren;
+}
+```
+
+```typescript
+export interface DocblockGenericsFixtureMutators {
+  child_items: Comment[];
+  // …
+}
+```
+
+The binding comes from the `@use` tag, which PHPStan reads for the same purpose, so the substitution is checked by static analysis as well.
 
 ### Typing castable-with-arguments casts
 
@@ -392,6 +524,48 @@ class Activity extends Model
 ```
 
 `causer` generates as `User | null` even though no other model declares a reverse relation pointing at `Activity`. The second generic argument (`$this`, Laravel's own convention for the child) carries no target information and is ignored. A generic naming the base `Model` class (`MorphTo<Model, $this>`) isn't narrowing — it's the common, useless case (`@phpstan-return MorphTo<Model, $this>` is what Larastan itself expects when a relation's targets aren't known upfront) — so it falls through to the reverse scan exactly as if no generic were present, rather than emitting a `Model` token nothing can import. Two differently-named `morphTo` relations on the same model resolve independently either way, since both the docblock generic and the reverse scan are read per relation, not per model.
+
+#### Parents found through a subclass or a custom pivot
+
+The reverse scan finds two shapes a plain `morphOne`/`morphMany` lookup would miss, neither of which needs a docblock.
+
+A parent may declare its related model as a **subclass** of the model that actually owns the `morphTo()`. `Venue::reviews()` returns `morphMany(VenueReview::class, 'reviewable')`, where `VenueReview extends Review` and only `Review` declares `reviewable()` — so `Venue` is still folded into `Review`'s union:
+
+```typescript
+export interface ReviewRelations {
+  reviewable: Artist | Venue;
+  // …
+}
+
+export interface VenueReviewRelations {
+  reviewable: Venue;
+  // …
+}
+```
+
+A subclass never inherits a sibling's parents, so `VenueReview::reviewable` stays `Venue` and `Artist` never appears there. The union runs one direction only: a parent declared against the base `Review` is never folded into a subclass, because a row written through that relation carries `Review`'s own morph value rather than the subclass's.
+
+A `morphToMany(...)->using(Pivot::class)` is the second shape. When the custom pivot itself declares a `morphTo()`, the pivot row's own morph column names the declaring parent directly, so it resolves like any other:
+
+```php
+class Venue extends Model
+{
+    /** Labels attached via the custom Labelable pivot, which itself carries the morphTo back */
+    public function labels(): MorphToMany
+    {
+        return $this->morphToMany(Label::class, 'labelable')->using(Labelable::class);
+    }
+}
+```
+
+```typescript
+export interface LabelableRelations {
+  labelable: Artist | Venue;
+  // …
+}
+```
+
+The limit: a `morphToMany()` with no `->using()` adds nothing to the map, and neither does a `morphedByMany()` — that's the inverse declaration, and keying it would record the wrong parent.
 
 ### DTO-typed accessors and casts
 
@@ -450,14 +624,18 @@ A symptom-first index of the annotations above (plus one from [API Resources](./
 
 | Still generating `unknown`?                                                                                          | Add this                                                                                                                                                                | Unlocks                                                                                                                                                                                                       |
 | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Attribute<Collection, never>` / `Attribute<array, never>` resolving to `unknown[]`                                  | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>` / `Attribute<array<int, string>, never>` (or `array{...}` for a fixed shape)                    | The real element type (`LineItem[]` / `string[]`), imported automatically                                                                                                                                     |
+| `Attribute<Collection, never>` resolving to `unknown[]` where the getter builds the value in a loop                  | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>` (or `array{...}` for a fixed shape)                                                             | The real element type (`LineItem[]`), imported automatically. Loop-built keys aren't statically knowable, so reading the getter body can't cover this one                                                     |
 | A bare `'array'`/`'collection'` cast with no shape anywhere else                                                     | A class-level `@property`/`@property-read` tag, e.g. `@property array<string, mixed>\|null $settings`                                                                   | `Record<string, unknown> \| null` (or more specific, if the tag is) instead of `unknown[] \| null` — see [Typing `array` casts with `@property`](#typing-array-casts-with-property)                           |
 | A JSON shape worth naming once and reusing                                                                           | `@phpstan-type Name array{...}` on the class that owns it, `@phpstan-import-type Name from ThatClass` + `@property Name $prop` on the model                             | A named, PHPStan-checked object shape expanded inline, no import of the DTO itself — see [Typing json columns with `@phpstan-type` aliases](#typing-json-columns-with-phpstan-type-aliases)                   |
 | `AsEnumCollection`/`AsCollection` cast with no argument, resolving to `unknown[]`                                    | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                                    | The mapped element's real type (enum or DTO shape), suffixed `[]` — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts)                                                         |
-| `morphTo()` typed `unknown \| null` even though the app knows the possible targets                                   | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                                   | The narrowed union, every member imported — see [Typing `morphTo` relations](#typing-morphto-relations)                                                                                                       |
+| `morphTo()` still `unknown \| null` because **no** model declares the matching `morphOne`/`morphMany` inverse | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                                   | The narrowed union, every member imported — see [Typing `morphTo` relations](#typing-morphto-relations)                                                                                                       |
+| `morphTo()` on a model whose parents point at a **subclass**, or reach it through a `->using()` pivot | Nothing extra — the reverse scan folds both in automatically                                                                                                            | The parent union — see [Parents found through a subclass or a custom pivot](#parents-found-through-a-subclass-or-a-custom-pivot)                                                                              |
 | An `Arrayable` DTO accessor/cast generating `unknown[]`                                                              | Nothing extra — typed public properties (promoted constructor properties included) are read automatically once `toArray()` has no `@return array{...}` shape of its own | A property-derived object shape instead of `unknown[]` — see [DTO-typed accessors and casts](#dto-typed-accessors-and-casts)                                                                                  |
 | `$this->relation->only([...])`/`->except([...])` losing the related model's own `#[TsCasts]`/`@property` refinements | Nothing extra — automatic whenever the relation resolves to a single model and every filtered key is a real database column                                             | `Pick<Model, 'a' \| 'b'>` referencing the model's own generated interface — `except()` picks the complement, every other column — see [API Resources § Relation Filters](./api-resources.md#relation-filters) |
 | An accessor or relation missing from an inlined `$this->relation->except([...])`                                     | Name it explicitly — switch that key to `only([...])`, or give it its own entry in `toArray()`                                                                          | The key back. An inlined `except()` expands to database columns only, matching what `Model::except()` returns at runtime — see [API Resources § Relation Filters](./api-resources.md#relation-filters)        |
+| An accessor generating `unknown[]` from a vague `Attribute<array, never>` or a bare `: array` getter                 | Nothing extra — the getter body is read automatically once the signature and docblock are both vague                                                                    | The shape the body returns — see [Accessor getter bodies](#accessor-getter-bodies)                                                                                                                           |
+| A query-selected attribute (`selectRaw('… as rank')`) with no column, cast, or accessor behind it                    | A class-level `@property` / `@property-read` tag naming it                                                                                                             | The tag's type wherever a resource or handler references the attribute. It doesn't add the attribute to the model's own interface, which lists only what the schema and casts declare                         |
+| A docblock generic that is nullable (`?Alias`, `Attribute<?array<int, int>, never>`) resolving to `unknown`          | Nothing extra — the leading `?` is stripped, resolved, and re-appended                                                                                                 | The real type with `\| null` — see [Nullable and intersection docblock types](#nullable-and-intersection-docblock-types)                                                                                       |
 
 ## PHPDoc Descriptions
 

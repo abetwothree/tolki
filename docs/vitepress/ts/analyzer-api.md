@@ -4,7 +4,7 @@ The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-pub
 
 ## Analyzing a Method
 
-`analyze()` walks a method's return value the same way it walks a `JsonResource`'s `toArray()` — nested array literals, conditionals, closures, and method calls are all understood, whether or not the class is a resource. `$method` defaults to `'toArray'`; pass any public method name to analyze a different one:
+`analyze()` walks a method's return value the same way it walks a `JsonResource`'s `toArray()` — nested array literals, conditionals, closures, and method calls are all understood, whether or not the class is a resource. Receiver-type inference applies throughout: on any class and any method you analyze, `$x->method()` and `$x->property` type from whichever class the receiver resolves to. `$method` defaults to `'toArray'`; pass any public method name to analyze a different one:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Ast\AstEngine;
@@ -72,7 +72,7 @@ Two other class kinds are worth calling out:
 
 **A `$wrap = null` collection has nowhere to land.** A `ResourceCollection` with no extra keys beyond its wrapped items collapses to a flat `export type X = Y[]` alias rather than an interface, and an alias has no property list or import set for `AnalysisResult` to carry — so all three fields come back empty. `ts:publish` writes that alias; `analyze()` has no answer for the shape.
 
-**`unknown` is an honest floor, not a bug.** Every pattern this page documents is one the analyzer specifically recognizes; anything else — an expression it can't trace, a reassigned local, an unresolvable closure default — degrades to `unknown` rather than guessing. See [API Resources § Local Variables](./api-resources.md#local-variables) for what that looks like from the resource side.
+**`unknown` is an honest floor, not a bug.** Every pattern this page documents is one the analyzer specifically recognizes; anything else — an expression it can't trace, a reassigned local, an unresolvable closure default — degrades to `unknown` rather than guessing. See [API Resources § Local Variables and Narrowing](./api-resources.md#local-variables-and-narrowing) for what that looks like from the resource side.
 
 Every feature that infers a type runs on this engine — resources, broadcast events, model metadata, and both Inertia features. What each one adds on top of the analysis is on its own feature page, linked above.
 

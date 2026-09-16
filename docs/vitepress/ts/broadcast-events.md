@@ -97,6 +97,36 @@ export interface TeamMessageSent {
 
 `senderToken` never appears in the generated interface. The analyzer reads `broadcastWith()`'s body, resolving each `$this->…` reference against the event's own declared properties, so the `@return array{teamId: int, content: string}` docblock above is documentation rather than a requirement — the same interface comes out without it.
 
+When the body *can't* type a value, that `@return array{…}` shape is what types it:
+
+```php
+final class DocblockShapedEvent implements ShouldBroadcast
+{
+    public function __construct(public Post $post) {}
+
+    /** @return array{published_at: string|null} */
+    public function broadcastWith(): array
+    {
+        return ['published_at' => $this->opaque()];
+    }
+
+    /** Deliberately untyped. */
+    private function opaque()
+    {
+        return $this->post->getAttribute('published_at');
+    }
+}
+```
+
+```typescript
+/** @see Workbench\App\Events\DocblockShapedEvent */
+export interface DocblockShapedEvent {
+  published_at: string | null;
+}
+```
+
+The body still wins wherever it resolves something. The docblock only fills a key the analyzer left `unknown`, so a stale `@return` can't overwrite a type the body already established.
+
 When `broadcastWith()` exists it is the only source of the payload; the public properties are not consulted at all. A key it renames, computes, or drops is reflected exactly, so `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }` with no `teamId` in sight.
 
 ## Model & Enum-Aware Properties

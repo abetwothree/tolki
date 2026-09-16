@@ -35,7 +35,67 @@ The analyzer recognizes the following patterns inside `toArray()`:
 
 Types are resolved from the model's database columns and cast definitions.
 
-### Local Variables
+### Method Return Types
+
+A method call types from the called method's own signature — its native return type first, then its `@return` docblock. The receiver can be an enum cast, a Carbon cast, a model, an Eloquent collection, or a service resolved out of the container:
+
+```php
+public function toArray(Request $request): array
+{
+    $record = $this->resource;
+
+    return [
+        'priority_label' => $this->priority->label(),                                 // enum cast
+        'published_date' => $this->published_at->setTimezone('UTC')->toDateString(),  // Carbon cast
+        'from_label' => Priority::from(1)->label(),                                   // enum static constructor
+        'record_class' => $record::className(),                                       // static call on a variable's class
+        'author_fresh' => $this->author->fresh(),                                     // model
+        'comment_ids' => $this->comments->modelKeys(),                                // Eloquent collection
+    ];
+}
+```
+
+```typescript
+export interface ReceiverMethodResource {
+  priority_label: string;
+  published_date: string;
+  from_label: string;
+  record_class: string;
+  author_fresh: User | null;
+  comment_ids: number[];
+  // …
+}
+```
+
+A property read on the same receiver resolves the same way, so `$post?->author?->name` is `string | null` once `$post` is known to hold a `Post`. That is also how a value object is read: `$this->stats?->views` publishes `number | null` off the object's own declared property. Nullsafe steps add `| null` to the result, and never add it twice.
+
+#### A bare `array` signature falls back to the body
+
+Reflection alone turns a bare `: array` into `unknown[]`, which claims a list where an associative array is a JSON object. The method body's literal shape answers instead:
+
+```php
+final class PriceQuoteService
+{
+    public function quote(): array
+    {
+        return ['unit' => '1.00', 'minimum' => 10, 'discounted' => ['unit' => '0.90']];
+    }
+}
+
+// in toArray():
+'quote' => resolve(PriceQuoteService::class)->quote(),
+```
+
+```typescript
+export interface ServiceReturnResource {
+  quote: { unit: string; minimum: number; discounted: { unit: string } };
+  tiers: { "1": string; "2": string };
+}
+```
+
+The limit: the body fallback carries no import channel, so a body whose shape names an enum or a model is discarded whole and the vague declaration stands — give the method a native return type or a `@return array{...}` docblock when you need that token. `Model::toArray()` is declined on any receiver, since which relations are loaded is runtime state no declaration describes; use the [Model `toArray()` Spread](#model-toarray-spread) form instead.
+
+### Local Variables and Narrowing
 
 A variable assigned once from a model property and returned directly carries that type into the generated interface — you don't need to inline the property access:
 
@@ -66,6 +126,38 @@ public function toArray(Request $request): array
 
 If you see a property come out as `unknown` when it looks like it should resolve, check whether the backing variable is reassigned more than once, or reassigned inside a conditional branch — the analyzer can't tell which write is live at return time, so it deliberately falls back to `unknown` rather than guessing.
 
+#### Narrowing with `instanceof`
+
+An early-exit guard narrows a variable for every statement after it, so a `morphTo` union resolves to the one class the guard proves:
+
+```php
+'parent' => $this->whenLoaded('attachable', function () {
+    $parent = $this->attachable;
+
+    if (! $parent || ! $parent instanceof Post) {
+        return null;
+    }
+
+    return [
+        'title' => $parent->title,
+        'class' => $parent::className(),
+        'morph' => $parent->getMorphClass(),
+    ];
+}),
+'record_title' => $record instanceof Post ? $record->title : null,
+```
+
+```typescript
+export interface NarrowedParentResource {
+  parent?: { title: string; class: string; morph: string } | null;
+  record_title: string | null;
+}
+```
+
+An `instanceof` ternary narrows its true arm the same way. A ternary testing `$this->resource` goes one further and narrows the *backing model* for that arm, so a relation only the subclass declares resolves there — `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null` on a `Team`-backed resource.
+
+The limit: the statement form and the ternary form of the *same* positive test disagree. A positive `if ($parent instanceof Post) { … }` body binds nothing — only the negated early-exit `if` narrows the statements that follow — while the positive ternary above does narrow its true arm. The early-exit form also binds only a variable the method writes once whose own guard body doesn't read it.
+
 ### Conditional Methods
 
 All conditional methods produce **optional** properties (with `?` in TypeScript) by default. Every one of
@@ -77,14 +169,14 @@ covered just below the table; the rest of the family is covered right after that
 | ----------------------------------------------- | ---------------------------------------------- | ------------------------- |
 | `$this->when(cond, value)`                      | Include when condition is true                 | Inferred from value       |
 | `$this->unless(cond, value)`                    | Include when condition is false                | Inferred from value       |
-| `$this->whenHas('attr')`                        | Include when attribute is present              | From model column type    |
-| `$this->whenAppended('attr')`                   | Include when accessor has been appended        | From model column type    |
+| `$this->whenHas('attr', $value)`                | Include when attribute is present              | From `$value`, else the column |
+| `$this->whenAppended('attr', $value)`           | Include when accessor has been appended        | From `$value`, else the column |
 | `$this->whenNotNull($this->attr)`               | Include when not null                          | From model column type    |
 | `$this->whenNull($this->attr)`                  | Include when null                              | `null`                    |
 | `$this->whenLoaded('relation')`                 | Include when relation is loaded                | From model relation type  |
 | `$this->whenCounted('relation')`                | Include when count is loaded                   | `number`                  |
 | `$this->whenAggregated('rel', 'col', 'fn')`     | Include when aggregate is loaded               | `number`                  |
-| `$this->whenExistsLoaded('relation')`           | Include when existence flag is loaded          | `boolean`                 |
+| `$this->whenExistsLoaded('relation', $value)`   | Include when existence flag is loaded          | From `$value`, else `boolean` |
 | `$this->whenPivotLoaded('table')`               | Include when pivot is loaded                   | `unknown`                 |
 | `$this->whenPivotLoadedAs('accessor', 'table')` | Include when pivot (custom accessor) is loaded | `unknown`                 |
 | `$this->transform($value, $callback)`           | Transform `$value` via `$callback` when filled | Inferred from `$callback` |
@@ -170,6 +262,33 @@ lets it widen the type:
 
 A parameter with its own default (`fn ($notes = '') => strlen($notes)`) still runs cleanly with zero
 arguments, so that arm keeps widening the type as usual.
+
+#### `whenHas()`, `whenAppended()` and `whenExistsLoaded()` type from the value you pass
+
+All three end in Laravel's `value()` helper, so the value argument — not the attribute you named — is what the property carries whenever the analyzer can type it. `whenHas()` and `whenExistsLoaded()` forward the attribute into the closure's first parameter; `whenAppended()` invokes its value with no arguments at all:
+
+```php
+return [
+    'has_title' => $this->whenHas('title', fn ($title): bool => $title !== ''),
+    'title_length' => $this->whenHas('title', fn ($title) => strlen($title)),
+    'appended_label' => $this->whenAppended('title_display', fn () => 'label'),
+    'comments_flag' => $this->whenExistsLoaded('comments', fn ($exists) => $exists ? 'yes' : 'no'),
+    'title_unresolvable' => $this->whenHas('title', fn ($title) => json_decode($title)),
+];
+```
+
+```typescript
+export interface WhenHasValueResource {
+  has_title?: boolean;
+  title_length?: number;
+  appended_label?: string;
+  comments_flag?: string;
+  title_unresolvable?: string;
+  // …
+}
+```
+
+The limit, and the useful half of it: a value the analyzer can't type leaves the named attribute's own type standing rather than trading it for `unknown` — `json_decode()` returns `mixed`, so `title_unresolvable` keeps the column's `string`. Omitting the value argument entirely still types from the attribute, so `whenHas('phone')` and `whenExistsLoaded('user')` are unchanged.
 
 #### An explicit `null` in the value slot
 
@@ -336,6 +455,37 @@ The analyzer resolves closures and arrow functions used as value arguments. Simp
 
 This works anywhere a value expression is expected — including `when`, `whenLoaded`, `whenNotNull`, `merge`, and `mergeWhen`.
 
+### Collection Pipelines
+
+A chain of collection operations keeps its element type to the end, whether it's rooted at a relation or at `collect()`:
+
+```php
+return [
+    'comment_ids' => $this->comments->map(fn ($comment) => $comment->id)->values()->all(),
+    'title_words' => collect(explode(' ', $this->title))->map(fn ($word) => ['word' => $word])->values()->all(),
+    'author_name' => data_get($this->author, 'name'),
+    'author_name_or_guest' => data_get($this->author, 'name', 'guest'),
+    'doubled' => $this->comments->concat($this->comments)->values(),
+];
+```
+
+```typescript
+export interface CollectionPipelineResource {
+  comment_ids: number[];
+  title_words: { word: string }[];
+  author_name: string | null;
+  author_name_or_guest: string | null;
+  doubled: Comment[];
+  // …
+}
+```
+
+- A trailing `->all()` is identity on the published type, since a `Collection<X>` and the `array<X>` behind it both render `X[]`, and `->values()` restores sequential keys. An op that breaks `0..n-1` keys (`filter`, `sortBy`, `keyBy`, …) adds the `Record<string, X>` arm that `json_encode()` really emits.
+- A `collect()` root takes its element type from its argument and binds the `map()` parameter to that value, which is why `$word` above is `string`.
+- `data_get($target, 'a.b')` is the nullsafe chain `$target?->a?->b`. A default unions its own type in rather than removing the `null` arm, because `data_get()` returns the default only when the key is **missing**, never when a present value is null.
+
+The limit: `concat($source)` is identity **only** when `$source` resolves to exactly the receiver's own collection type. Anything else declines the whole chain, since a concat of `Comment[]` and `Tag[]` is a different collection rather than a longer one. A `data_get()` key containing a `*` segment declines too.
+
 ### Parent `toArray()` Spread
 
 Extend a parent resource using `...parent::toArray($request)`. Parent properties appear first, and the child can override any key:
@@ -492,6 +642,103 @@ trait IncludesExtras
 
 > [!NOTE]
 > When a trait method has no `@return array{...}` PHPDoc or `#[TsCasts]` attribute, its properties will be typed as `unknown`.
+
+### Return Branches and `@return` Shapes
+
+Every `return` in a spread method counts, not only the first. A guard branch returning `[]` really does omit its keys, so the keys the other branches publish become optional — and the method's own `@return` types what its body could not:
+
+```php
+trait GathersPermissions
+{
+    /**
+     * @return array{permissions?: array<string, bool>, links?: array{self: string, related: array<string, array{name: string}>}}
+     */
+    public function gatherPermissions(): array
+    {
+        if (! $this->resource instanceof Model) {
+            return [];
+        }
+
+        return ['permissions' => $this->opaque(), 'links' => $this->opaque()];
+    }
+
+    /** @return array<string, string> */
+    public function gatherLabels(): array
+    {
+        $data = [];
+        $data['main_label'] = $this->opaque();
+
+        if ($this->resource->exists) {
+            $data['extra_label'] = $this->opaque();
+        }
+
+        return $data;
+    }
+
+    /** Deliberately untyped so only the docblocks above can type what it returns. */
+    protected function opaque()
+    {
+        return $this->resource->getAttribute('title');
+    }
+}
+```
+
+```typescript
+export interface PermissionsSpreadResource {
+  permissions?: Record<string, boolean>;
+  links?: { self: string; related: Record<string, { name: string }> };
+  main_label: string;
+  extra_label?: string;
+  // …
+}
+```
+
+Both `@return` forms are read: an `array{…}` shape per key, and an `array<string, V>` value type applied to every key the body left `unknown`. A key the shape spells `key?:` marks the property optional as well.
+
+The limit: **the body always wins.** The docblock only ever fills a property the analyzer left `unknown`, so a stale `@return` can't overwrite a resolved type. A shape value naming a class is skipped, since the map is string-only and can't carry that import.
+
+### Interpolated Keys
+
+A key built from literal text around a variable can't become a fixed property name, because the runtime key varies per iteration. Both the interpolated and the concatenated spelling publish a template-literal index signature — these are the remaining members of the same `PermissionsSpreadResource` above:
+
+```php
+/** @return array<string, string> */
+public function gatherChannelLabels(): array
+{
+    $data = ['primary_label' => 'Primary'];
+
+    foreach (['email', 'sms'] as $name) {
+        $data["{$name}_label"] = 'Channel';
+    }
+
+    return $data;
+}
+
+/** @return array<string, string> */
+public function gatherRegionLabels(): array
+{
+    $data = [];
+
+    foreach (['east', 'west'] as $name) {
+        $data[$name.'_region'] = 'Region';
+    }
+
+    return $data;
+}
+```
+
+```typescript
+export interface PermissionsSpreadResource {
+  primary_label: string;
+  [key: `${string}_label`]: string | undefined;
+  [key: `${string}_region`]: string | undefined;
+  // …
+}
+```
+
+The value type carries `| undefined` rather than the signature carrying a `?`, since `[key: T]?:` is a TypeScript syntax error and a key matching the pattern isn't guaranteed present.
+
+The limit: a purely dynamic key (`$data[$name]`) or a purely literal one is left to the ordinary handling — the shape needs both a literal and a dynamic segment. A literal segment containing a backtick declines the whole key, since an escaped backtick couldn't be read back.
 
 ### Model `toArray()` Spread
 
@@ -709,6 +956,32 @@ If you relied on one of those arriving through an `except()`-filtered relation, 
 Switch the property to `only([...])`, or add the key as its own entry in `toArray()`. TypeScript
 will point at every site that reads a now-missing key.
 :::
+
+#### Attribute Filters on Any Model
+
+`only([...])` and `except([...])` type against **any** receiver holding a model, not only a relation. A bare `$this->only([...])` the resource forwards to its backing model, a `whenLoaded` closure parameter's `$category->only([...])`, and a local variable holding a model all build the same answer:
+
+```php
+return [
+    ...$this->only(['id', 'comments_count']),
+    'summary' => $this->when(true, fn () => $this->only(['id', 'title'])),
+    'category' => $this->whenLoaded('categoryRel', fn ($category) => $category->only(['id', 'name'])),
+    'dynamic' => $this->only($request->input('fields')),
+];
+```
+
+```typescript
+export interface OnlyValueResource {
+  id: number;
+  comments_count: number;
+  summary?: Pick<Post, 'id' | 'title'>;
+  category?: Pick<Category, 'id' | 'name'>;
+  dynamic: Record<string, unknown>;
+  // …
+}
+```
+
+The limit: the `Pick<>` reference needs a **literal** key list to read. `$this->only($request->input('fields'))` carries none, so it keeps the vague `Record<string, unknown>` instead of guessing a member list.
 
 ### `exclude_hidden` and attribute filters
 
@@ -948,6 +1221,17 @@ class UserResource extends JsonResource
 > When `name` is set, it also affects the output filename. For example, `#[TsResource(name: 'Address')]` generates `address.ts` instead of `address-resource.ts`.
 
 ### `#[TsCasts]` — Override Property Types
+
+::: tip Before reaching for `#[TsCasts]`
+Several shapes that used to need an override now resolve on their own. Check these first:
+
+- A method call on an enum, Carbon, a model, or a service — or a property read on any of those, or on a value object — see [Method Return Types](#method-return-types).
+- A value behind a local variable, a closure-local, or an `instanceof` guard — see [Local Variables and Narrowing](#local-variables-and-narrowing).
+- A collection chain, `data_get()`, or `only([...])` on any model receiver — see [Collection Pipelines](#collection-pipelines) and [Attribute Filters on Any Model](#attribute-filters-on-any-model).
+- A key only some branches return, or one a spread method's `@return` describes — see [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
+
+`#[TsCasts]` is still the right tool when the type is owned by the frontend and needs its own import, or when a shape is genuinely dynamic.
+:::
 
 Use this attribute to override inferred types or add virtual properties with custom TypeScript types:
 
