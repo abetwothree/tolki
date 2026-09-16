@@ -79,14 +79,9 @@ describe("data pluck type tests", () => {
         });
 
         it("matches arr.pluck for a list given a callback key", () => {
-            // Standing control: arr's `TValue extends Record<string, unknown>` widens the
-            // row, so the list half reads `row["id"]` as unknown where obj reads `row.id`
-            // as number. Simplify once arr stops widening; the pins already stand.
             expectTypeOf(
-                Data.dataPluck(rowList, "name", (row) => Number(row["id"])),
-            ).toEqualTypeOf(
-                Arr.pluck(rowList, "name", (row) => Number(row["id"])),
-            );
+                Data.dataPluck(rowList, "name", (row) => row.id),
+            ).toEqualTypeOf(Arr.pluck(rowList, "name", (row) => row.id));
         });
     });
 
@@ -98,11 +93,9 @@ describe("data pluck type tests", () => {
         });
 
         it("matches arr.pluck for a list", () => {
-            // Same arr widening as the callback key above: `row.name` does not compile
-            // on the list half because the row arrives as Record<string, unknown>.
             expectTypeOf(
-                Data.dataPluck(rowList, (row) => row["name"]),
-            ).toEqualTypeOf(Arr.pluck(rowList, (row) => row["name"]));
+                Data.dataPluck(rowList, (row) => row.name),
+            ).toEqualTypeOf(Arr.pluck(rowList, (row) => row.name));
         });
     });
 
