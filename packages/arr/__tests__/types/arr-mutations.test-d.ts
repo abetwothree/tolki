@@ -62,7 +62,7 @@ describe("arr mutations type tests", () => {
         it("rebuilds no element for a head that only looks like an index", () => {
             // Only an integer's canonical spelling is an array key, so "01" is stored as
             // the list's own property. docs/php-parity/task-24-data-release-readiness.json,
-            // "set-then-get-noncanonical-index-nested"
+            // "r2-set-noncanonical-index-head-with-rest"
             expectTypeOf(Arr.set(["a", "b"], "01.x", 5)).toEqualTypeOf<
                 string[]
             >();
@@ -86,7 +86,8 @@ describe("arr mutations type tests", () => {
 
         it("rebuilds a record when the rest only looks like an index", () => {
             // The same canonical-spelling rule one segment deeper: "01" seeds a record,
-            // not a list, so the element gains that key.
+            // not a list, so the element gains that key. docs/php-parity/
+            // task-24-data-release-readiness.json, "set-then-get-noncanonical-index-nested"
             expectTypeOf(Arr.set(["a", "b"], "0.01", 5)).toEqualTypeOf<
                 (string | { "01": number })[]
             >();

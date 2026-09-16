@@ -900,4 +900,16 @@ probe('r2-sole-no-filter-keeps-a-falsy-item', "(new Collection([null]))->sole() 
     ];
 });
 
+// ==== fix-round-2 Group C: no recorded row carried the '01.x' shape — a non-canonical index
+// ==== HEAD with a rest. The write stores "01" on the array itself and rebuilds no element.
+probe('r2-set-noncanonical-index-head-with-rest', "\$a = ['a','b']; Arr::set(\$a, '01.x', 5)", function () {
+    $a = ['a', 'b'];
+    Arr::set($a, '01.x', 5);
+
+    return [
+        'written' => $a,
+        'keys' => array_map(fn ($key) => get_debug_type($key) . ':' . $key, array_keys($a)),
+    ];
+});
+
 emit();

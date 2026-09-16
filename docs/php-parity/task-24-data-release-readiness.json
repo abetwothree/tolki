@@ -2548,6 +2548,24 @@
                 "['']": "",
                 "[1,2,3]": "3 items were found."
             }
+        },
+        {
+            "label": "r2-set-noncanonical-index-head-with-rest",
+            "php": "$a = ['a','b']; Arr::set($a, '01.x', 5)",
+            "value": {
+                "written": {
+                    "0": "a",
+                    "1": "b",
+                    "01": {
+                        "x": 5
+                    }
+                },
+                "keys": [
+                    "int:0",
+                    "int:1",
+                    "string:01"
+                ]
+            }
         }
     ]
 }
