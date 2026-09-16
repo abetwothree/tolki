@@ -176,6 +176,16 @@ describe("obj keying type tests", () => {
                 unknown[]
             >();
         });
+
+        // Found by E3's generated sweep of all 89 exports; the five rows above were fixed by
+        // inspection and missed these two, which are the only other ones that collapsed.
+        it("keeps random and sole usable for the bare object", () => {
+            expectTypeOf(Obj.random(bareObject)).toEqualTypeOf<unknown>();
+            expectTypeOf(Obj.random(bareObject, 2)).toEqualTypeOf<
+                Record<number, unknown>
+            >();
+            expectTypeOf(Obj.sole(bareObject)).toEqualTypeOf<unknown>();
+        });
     });
 
     describe("flattenDot", () => {

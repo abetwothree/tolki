@@ -3452,12 +3452,12 @@ export function random(
 export function random<T extends object>(
     data: T,
     number?: null | undefined,
-): ObjectValue<T>;
+): BareObjectValue<T>;
 export function random<T extends object>(
     data: T,
     number: number,
     preserveKeys?: false | undefined,
-): Record<number, ObjectValue<T>>;
+): Record<number, BareObjectValue<T>>;
 export function random<T extends object>(
     data: T,
     number: number,
@@ -3474,7 +3474,7 @@ export function random<T extends object>(
     data: T,
     number: number | null | undefined,
     preserveKeys?: boolean,
-): ObjectValue<T> | Partial<T> | Record<number, ObjectValue<T>>;
+): BareObjectValue<T> | Partial<T> | Record<number, BareObjectValue<T>>;
 export function random(
     data: unknown,
     number?: number | null,
@@ -3901,8 +3901,8 @@ export function sole(
 ): never;
 export function sole<T extends object>(
     data: T,
-    callback?: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
-): ObjectValue<T>;
+    callback?: (value: BareObjectValue<T>, key: BareObjectKey<T>) => boolean,
+): BareObjectValue<T>;
 export function sole(
     data: unknown,
     callback?: (value: unknown, key: string | number) => boolean,
