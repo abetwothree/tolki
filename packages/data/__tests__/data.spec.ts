@@ -917,6 +917,25 @@ describe("Data", () => {
                 user: { languages: ["PHP", "C#"], name: "Taylor" },
             });
         });
+
+        it("normalizes a Map backing the way dispatch would", () => {
+            // JS-only: PHP has no Map. `toKeyedData` builds the record it mirrors, and the
+            // two must answer alike — obj.undot walks with Object.entries, which reads a
+            // Map as empty, so the backing has to become a record first.
+            const dotted = new Map([
+                ["address.city", "NYC"],
+                ["address.zip", "10001"],
+            ]);
+            expect(Data.dataUndot(dotted)).toEqual({
+                address: { city: "NYC", zip: "10001" },
+            });
+            expect(Data.dataUndot(dotted)).toEqual(
+                Data.dataUndot({
+                    "address.city": "NYC",
+                    "address.zip": "10001",
+                }),
+            );
+        });
     });
 
     describe("dataUnion", () => {
@@ -6456,9 +6475,9 @@ describe("Data", () => {
             expect(Data.dataDot(nestedMap)).toEqual(Data.dataDot(nestedRecord));
         });
 
-        it.fails("dataUndot undots a Map like the record it mirrors", () => {
-            // dataUndot stays hand-written: Task C4 closed without converting it.
-            // Task D7 Step 4c owns its hand-written DataItems return and this row.
+        it("dataUndot undots a Map like the record it mirrors", () => {
+            // dataUndot stays hand-written, so it normalizes its own keyed backing
+            // rather than reaching toKeyedData through dispatch. Task D7 made it do so.
             expect(Data.dataUndot(dottedMap)).toEqual(
                 Data.dataUndot(dottedRecord),
             );
