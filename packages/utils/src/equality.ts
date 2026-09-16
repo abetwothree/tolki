@@ -136,13 +136,27 @@ function toPhpBool(value: unknown): boolean {
 }
 
 /**
+ * The object pairs already being compared further up the stack, as
+ * `left -> the right-hand operands it is open against`.
+ */
+type VisitedPairs = Map<object, Set<object>>;
+
+/**
  * Order two values the way PHP 8's `<=>` does.
  *
  * Numeric operands compare numerically (`"9"` sorts below `"10"`); null/boolean
- * compares both sides as booleans; arrays/objects order by JSON form.
+ * compares both sides as booleans; two arrays or objects take PHP's array rule —
+ * fewer entries first, then element-wise over the left operand's keys.
  *
  * Faithful to PHP, this order is **not transitive** — `null` ties `0` and `""`,
  * yet `0 > ""`.
+ *
+ * Three recorded divergences from PHP:
+ * - a cyclic pair ties, where PHP raises `Error: Nesting level too deep`;
+ * - an array against a scalar keeps JS coercion, where PHP sorts every array above
+ *   every scalar;
+ * - an exotic object (`Date`, `Map`, `Set`) carries no own enumerable keys, so any
+ *   two of them tie.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -150,8 +164,25 @@ function toPhpBool(value: unknown): boolean {
  *
  * @example
  * compareValues(0, ""); -> 1
+ * compareValues([1], [1, 2]); -> -1
  */
 export function compareValues(a: unknown, b: unknown): number {
+    return comparePhpValues(a, b, undefined);
+}
+
+/**
+ * `compareValues` carrying the recursion state PHP's array rule needs.
+ *
+ * @param a - First value to compare
+ * @param b - Second value to compare
+ * @param visited - The object pairs already open further up the stack
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
+function comparePhpValues(
+    a: unknown,
+    b: unknown,
+    visited: VisitedPairs | undefined,
+): number {
     // PHP takes the null-against-string arm before the boolean one, so null
     // compares as "" there and ends up below "0" rather than tying it.
     if (isNullish(a) && isString(b)) {
@@ -169,9 +200,8 @@ export function compareValues(a: unknown, b: unknown): number {
         return left === right ? 0 : left ? 1 : -1;
     }
 
-    // Stable JSON ordering, not PHP's array rule -- see the note on the docblock.
     if (typeof a === "object" && typeof b === "object") {
-        return compareStrings(JSON.stringify(a), JSON.stringify(b));
+        return comparePhpArrays(a, b, visited ?? new Map());
     }
 
     if (isPhpNumeric(a) && isPhpNumeric(b)) {
@@ -191,6 +221,76 @@ export function compareValues(a: unknown, b: unknown): number {
 
     if (a < b) return -1;
     if (a > b) return 1;
+    return 0;
+}
+
+/**
+ * Compare two PHP arrays, tying any pair the walk has already reached.
+ *
+ * @param a - First operand, modelling a PHP array
+ * @param b - Second operand, modelling a PHP array
+ * @param visited - The object pairs already open further up the stack
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
+function comparePhpArrays(a: object, b: object, visited: VisitedPairs): number {
+    const open = visited.get(a);
+
+    if (open?.has(b)) {
+        return 0;
+    }
+
+    const rights = open ?? new Set<object>();
+
+    if (!open) {
+        visited.set(a, rights);
+    }
+
+    // Only a pair still on the stack may tie itself, so the mark comes off
+    // again: the same pair reached down a later branch is compared afresh.
+    rights.add(b);
+    const result = comparePhpEntries(a, b, visited);
+    rights.delete(b);
+
+    return result;
+}
+
+/**
+ * PHP's `zend_hash_compare`: entry count first, then the left operand's keys in order.
+ *
+ * @param a - First operand, modelling a PHP array
+ * @param b - Second operand, modelling a PHP array
+ * @param visited - The object pairs already open further up the stack
+ * @returns -1 if a < b, 1 if a > b, 0 if equal
+ */
+function comparePhpEntries(
+    a: object,
+    b: object,
+    visited: VisitedPairs,
+): number {
+    const aKeys = Object.keys(a);
+    const bCount = Object.keys(b).length;
+
+    if (aKeys.length !== bCount) {
+        return aKeys.length < bCount ? -1 : 1;
+    }
+
+    const left = a as Record<string, unknown>;
+    const right = b as Record<string, unknown>;
+
+    for (const key of aKeys) {
+        // PHP calls the pair uncomparable when the right side lacks a key, and
+        // answers 1 for it whichever side the missing key is on.
+        if (!Object.hasOwn(b, key)) {
+            return 1;
+        }
+
+        const result = comparePhpValues(left[key], right[key], visited);
+
+        if (result !== 0) {
+            return result;
+        }
+    }
+
     return 0;
 }
 

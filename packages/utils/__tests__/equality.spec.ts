@@ -20,15 +20,104 @@ describe("Utils", () => {
         expect(Utils.compareValues(undefined, undefined)).toBe(0);
         expect(Utils.compareValues(undefined, 1)).toBe(-1);
         expect(Utils.compareValues(1, undefined)).toBe(1);
+    });
 
-        // Object comparisons
-        expect(Utils.compareValues({ x: 1 }, { x: 1 })).toBe(0);
-        expect(Utils.compareValues({ x: 1 }, { x: 2 })).toBe(-1);
-        expect(Utils.compareValues({ x: 2 }, { x: 1 })).toBe(1);
+    describe("compareValues follows PHP's array comparison rule", () => {
+        // docs/php-parity/task-25-spaceship-arrays.json, "spaceship on arrays of
+        // different length, shorter on the left", "... longer on the left",
+        // "spaceship where the longer array holds the smaller elements" and
+        // "spaceship on an empty array and a one-element array"
+        it("orders two arrays by entry count before it looks at an element", () => {
+            expect(Utils.compareValues([1], [1, 2])).toBe(-1);
+            expect(Utils.compareValues([1, 2], [1])).toBe(1);
+            expect(Utils.compareValues([9, 9], [10])).toBe(1);
+            expect(Utils.compareValues([], [1])).toBe(-1);
+        });
 
-        // Mixed type comparisons
-        expect(Utils.compareValues({}, [])).toBe(1); // "{}" > "[]"
-        expect(Utils.compareValues([], {})).toBe(-1); // "[]" < "{}"
+        // task-25-spaceship-arrays.json, "spaceship on two empty arrays". A plain
+        // object and an array both model a PHP array here, so an empty one of
+        // either shape holds no entries and the pair ties.
+        it("ties two empty containers, whichever shape they carry", () => {
+            expect(Utils.compareValues([], [])).toBe(0);
+            expect(Utils.compareValues({}, {})).toBe(0);
+            expect(Utils.compareValues({}, [])).toBe(0);
+            expect(Utils.compareValues([], {})).toBe(0);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on equal-length arrays
+        // differing in the last element", "... in the first element",
+        // "spaceship on identical arrays" and "spaceship on arrays of numeric strings"
+        it("compares two equal-length arrays element-wise", () => {
+            expect(Utils.compareValues([1, 2], [1, 3])).toBe(-1);
+            expect(Utils.compareValues([2, 1], [1, 9])).toBe(1);
+            expect(Utils.compareValues([1, 2], [1, 2])).toBe(0);
+            expect(Utils.compareValues(["9"], ["10"])).toBe(-1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on keyed arrays sharing their
+        // keys", "... holding the same pairs in another order", and the stdClass
+        // rows "spaceship on stdClass objects sharing a property" / "... with equal properties"
+        it("compares two keyed objects by key, in whatever order they carry", () => {
+            expect(Utils.compareValues({ x: 1 }, { x: 2 })).toBe(-1);
+            expect(Utils.compareValues({ x: 2 }, { x: 1 })).toBe(1);
+            expect(Utils.compareValues({ x: 1 }, { x: 1 })).toBe(0);
+            expect(Utils.compareValues({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(0);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on keyed arrays with disjoint
+        // keys" and its reversed twin, "spaceship on a keyed array and a list of
+        // the same length", "spaceship on stdClass objects with disjoint properties"
+        it("answers 1 for a pair PHP calls uncomparable, from either side", () => {
+            expect(Utils.compareValues({ a: 1 }, { b: 1 })).toBe(1);
+            expect(Utils.compareValues({ b: 1 }, { a: 1 })).toBe(1);
+            expect(Utils.compareValues({ a: 1 }, [1])).toBe(1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship walks the left operand keys in
+        // their own order" - the empty-string key decides nothing here because the
+        // left operand reaches "z" first.
+        it("walks the left operand's own key order, not a sorted one", () => {
+            expect(Utils.compareValues({ z: 1, "": 9 }, { z: 2, "": 8 })).toBe(
+                -1,
+            );
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on nested arrays differing one
+        // level down" and "... differing in an inner count"
+        it("recurses, so an inner count outranks an inner element", () => {
+            expect(Utils.compareValues([[1], [2]], [[1], [3]])).toBe(-1);
+            expect(Utils.compareValues([[1]], [[1, 2]])).toBe(-1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on nested arrays differing one
+        // level down". The same row twice on the left is the point: a pair that
+        // tied must still be compared against the next right-hand operand.
+        it("compares a repeated operand again for each right-hand side", () => {
+            const row = { m: 1 };
+
+            expect(Utils.compareValues([row, row], [{ m: 1 }, { m: 2 }])).toBe(
+                -1,
+            );
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on two self-referencing arrays"
+        // and "... stdClass objects": PHP throws a catchable Error for both, where
+        // this port ties the repeated pair so a sort over cyclic rows finishes.
+        it("ties a cyclic pair instead of throwing", () => {
+            const left: unknown[] = [1];
+            left.push(left);
+            const right: unknown[] = [1];
+            right.push(right);
+
+            expect(Utils.compareValues(left, right)).toBe(0);
+
+            const leftObject: Record<string, unknown> = { x: 1 };
+            leftObject.self = leftObject;
+            const rightObject: Record<string, unknown> = { x: 1 };
+            rightObject.self = rightObject;
+
+            expect(Utils.compareValues(leftObject, rightObject)).toBe(0);
+        });
     });
 
     describe("compareValues follows PHP 8's comparison rules", () => {
@@ -166,6 +255,15 @@ describe("Utils", () => {
             expect(Utils.compareValues([1], 5)).toBe(-1);
             expect(Utils.compareValues([1], 0)).toBe(1);
             expect(Utils.compareValues([5], 5)).toBe(0);
+        });
+
+        // The same recorded divergence, against the rows D1 probed for it:
+        // task-25-spaceship-arrays.json, "spaceship on an empty array and zero",
+        // "... and its only element as a string", "... and a numeric string" are all 1.
+        it("leaves an array against a string to JS coercion too", () => {
+            expect(Utils.compareValues([], 0)).toBe(0);
+            expect(Utils.compareValues(["a"], "a")).toBe(0);
+            expect(Utils.compareValues([1], "1")).toBe(0);
         });
     });
 

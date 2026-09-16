@@ -1,6 +1,8 @@
 ---
-"@tolki/utils": minor
+"@tolki/utils": major
 ---
+
+**Breaking.** `compareValues(a, b)` orders two arrays or objects by PHP's array-comparison rule instead of by their `JSON.stringify` form: the operand with fewer entries sorts first, and only when the counts match are the entries compared one by one over the left operand's own keys, recursing through `compareValues`. A key the right operand lacks makes the pair uncomparable, which PHP answers `1` for from either side. Every sort in this monorepo runs through this comparator, so results change: `[{ id: 2 }, { id: 10 }, { id: 1 }]` now sorts to `[{ id: 1 }, { id: 2 }, { id: 10 }]` rather than to the order of the three JSON strings. Cyclic input no longer throws — a pair the walk is already comparing ties, where PHP raises `Error: Nesting level too deep`. Two divergences from PHP remain, both as before: an array against a scalar keeps JavaScript's coercion rather than sorting above every scalar, and an exotic object (`Date`, `Map`, `Set`) has no own enumerable keys, so any two of them tie.
 
 Add `phpArrayKey(key)`: the key PHP stores for an array key. A canonical decimal integer string ("10", "-1") becomes a number; every other string ("01", "1.5", " 1") stays as it is. Any other value is cast the way PHP casts an array offset: `null` becomes `""`, a boolean `0` or `1`, and a float is truncated toward zero (`INF` and `NAN` become `0`).
 
