@@ -3003,6 +3003,22 @@ describe("Arr", () => {
                 Arr.contains([1, 2, 3], (item: number) => item === 2, "=", 1),
             ).toBe(true);
         });
+
+        it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
+            // JS-only: docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value" records "key-true" as true. This port's third
+            // parameter is `strict` and takes the boolean first, so PHP's call is written
+            // with an explicit operator here — "key-operator-true", also true.
+            const rows = [{ active: true }, { active: false }];
+
+            expect(Arr.contains(rows, "active", true)).toBe(false);
+            expect(Arr.contains(rows, "active", "=", true)).toBe(true);
+            // Same row, "containsStrict-key-of-a-row": routing a boolean by whether the
+            // key is a member of the data would flip THIS to true, and Laravel says false.
+            expect(
+                Arr.containsStrict(["date", "class", { foo: 50 }, ""], "foo"),
+            ).toBe(false);
+        });
     });
 
     describe("containsStrict", () => {

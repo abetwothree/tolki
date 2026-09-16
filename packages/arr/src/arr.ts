@@ -96,6 +96,18 @@ import {
 // `unknown` test always holds; distribution is the whole point of writing it as a conditional.
 type WrapResult<TValue> = TValue extends unknown ? [TValue] : never;
 
+// NonBooleanValue (contains): `unknown` minus `boolean`, which no built-in operator spells.
+// The key/value row cannot carry a boolean, because the `strict` row takes a boolean third
+// argument first, so declaring `unknown` there would promise a form this port never runs.
+type NonBooleanValue =
+    | string
+    | number
+    | bigint
+    | symbol
+    | object
+    | null
+    | undefined;
+
 // CanonicalIndex (set): only an integer's canonical spelling is an array key — the rule
 // PHP's key cast and this port's `phpArrayKey` both apply, so "01", "+1" and "1e1" stay
 // string keys and the write leaves every element alone.
@@ -4214,11 +4226,13 @@ export function contains<TValue>(
     operator: string,
     value: unknown,
 ): boolean;
-// Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison
+// Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison. The value is
+// every type but `boolean`: a boolean third argument is this port's `strict` flag, which
+// takes it first, so PHP's `contains($key, $flag)` is written `contains(data, key, "=", flag)`.
 export function contains<TValue>(
     data: readonly unknown[] | null | undefined,
     key: PathKey | ((value: TValue, key: number) => boolean),
-    value: unknown,
+    value: NonBooleanValue,
 ): boolean;
 // Implementation
 export function contains<TValue>(

@@ -12,6 +12,8 @@ import {
     user,
 } from "./fixtures";
 
+declare const opaque: unknown;
+
 describe("obj predicate type tests", () => {
     describe("exists, has, hasAll and hasAny", () => {
         it("return boolean for typed, interface and unknown data", () => {
@@ -123,6 +125,17 @@ describe("obj predicate type tests", () => {
         it("accepts any needle, because loose comparison may match across types", () => {
             expectTypeOf(Obj.contains(abc, "1")).toEqualTypeOf<boolean>();
             expectTypeOf(Obj.contains(abc, 1, true)).toEqualTypeOf<boolean>();
+        });
+
+        it("keeps the key/value row off every boolean and unknown third argument", () => {
+            // The row declares `NonBooleanValue`, so it promises only the forms the
+            // runtime takes: a boolean third argument is `strict`, and an opaque one has
+            // no row at all. Both are written with the four-argument operator form.
+            expectTypeOf(
+                Obj.contains({ a: { v: 1 } }, "v", "=", opaque),
+            ).toEqualTypeOf<boolean>();
+            // @ts-expect-error - an unknown value belongs on the operator row, not this one
+            Obj.contains({ a: { v: 1 } }, "v", opaque);
         });
     });
 

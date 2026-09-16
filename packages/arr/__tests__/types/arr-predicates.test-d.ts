@@ -11,6 +11,8 @@ import {
     unionElements,
 } from "./fixtures";
 
+declare const opaque: unknown;
+
 describe("arr predicate type tests", () => {
     describe("every", () => {
         it("returns boolean and infers callback params for an array", () => {
@@ -238,6 +240,17 @@ describe("arr predicate type tests", () => {
             expectTypeOf(
                 Arr.contains([1, 2], 1, true),
             ).toEqualTypeOf<boolean>();
+        });
+
+        it("keeps the key/value row off every boolean and unknown third argument", () => {
+            // The row declares `NonBooleanValue`, so it promises only the forms the
+            // runtime takes: a boolean third argument is `strict`, and an opaque one has
+            // no row at all. Both are written with the four-argument operator form.
+            expectTypeOf(
+                Arr.contains([{ v: 1 }], "v", "=", opaque),
+            ).toEqualTypeOf<boolean>();
+            // @ts-expect-error - an unknown value belongs on the operator row, not this one
+            Arr.contains([{ v: 1 }], "v", opaque);
         });
 
         it("returns boolean and infers callback params", () => {

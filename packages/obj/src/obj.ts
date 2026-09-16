@@ -107,6 +107,17 @@ type ObjectPullRest<T, P> = P extends keyof T
     ? Simplify<Omit<T, P>>
     : OmitObjectPath<T, `${P & (string | number)}`>;
 type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
+// NonBooleanValue (contains): `unknown` minus `boolean`, which no built-in operator spells.
+// The key/value row cannot carry a boolean, because the `strict` row takes a boolean third
+// argument first, so declaring `unknown` there would promise a form this port never runs.
+type NonBooleanValue =
+    | string
+    | number
+    | bigint
+    | symbol
+    | object
+    | null
+    | undefined;
 // set returns its value for a null or undefined key, so a key that may be nullish adds V to its result.
 // NoInfer keeps V off the result's top level, where TypeScript would stop widening a literal value.
 type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
@@ -4871,11 +4882,13 @@ export function contains<TValue>(
     operator: string,
     value: unknown,
 ): boolean;
-// Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison
+// Overload: PHP's key/value form — `contains('age', 30)`, an `=` comparison. The value is
+// every type but `boolean`: a boolean third argument is this port's `strict` flag, which
+// takes it first, so PHP's `contains($key, $flag)` is written `contains(data, key, "=", flag)`.
 export function contains<TValue>(
     data: unknown,
     key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
-    value: unknown,
+    value: NonBooleanValue,
 ): boolean;
 export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
