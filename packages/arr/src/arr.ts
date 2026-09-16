@@ -138,6 +138,52 @@ function toWalkable<TValue>(data: unknown): Iterable<TValue> {
 }
 
 /**
+ * Copy the list and every container a dot path descends into, so a write through
+ * one of the in-place path helpers lands only on copies the caller never held.
+ *
+ * @param data - The list to copy.
+ * @param key - The dot path the write will follow.
+ * @param throughLeaf - Whether the container named by the last segment is written into too.
+ * @returns The copied list, carrying a fresh container at every descended segment.
+ */
+function copyAlongPath(
+    data: readonly unknown[],
+    key: PathKey,
+    throughLeaf: boolean = false,
+): unknown[] {
+    const root = [...data];
+
+    if (!isString(key)) {
+        return root;
+    }
+
+    const segments = key.split(".");
+    let cursor = root as unknown as Record<string, unknown>;
+
+    for (const segment of throughLeaf ? segments : segments.slice(0, -1)) {
+        // An absent or non-container child is replaced wholesale, so nothing of
+        // the caller's own value survives below this point to be written into.
+        if (!Object.hasOwn(cursor, segment)) {
+            return root;
+        }
+
+        const child = cursor[segment];
+        if (!isArray(child) && !isPlainObject(child)) {
+            return root;
+        }
+
+        const clone = isArray(child)
+            ? [...child]
+            : { ...(child as Record<string, unknown>) };
+
+        defineKey(cursor, segment, clone);
+        cursor = clone as Record<string, unknown>;
+    }
+
+    return root;
+}
+
+/**
  * Add an element to an array using "dot" notation if it doesn't exist.
  *
  * @param data - The array to add the element to.
@@ -155,13 +201,17 @@ export function add<TValue, TAddValue>(
     key: PathKey,
     value: TAddValue,
 ): (TValue | TAddValue)[] {
-    const mutableData = [...data];
-
-    if (!hasMixed(mutableData, key)) {
-        return setMixed(mutableData, key, value);
+    if (hasMixed(data, key)) {
+        return [...data];
     }
 
-    return mutableData;
+    // setMixed writes in place, so the containers it descends into are copied
+    // first: only pop, shift, splice and unshift may touch the caller's value.
+    return setMixed(
+        copyAlongPath(data, key) as (TValue | TAddValue)[],
+        key,
+        value,
+    );
 }
 
 /**
@@ -2929,7 +2979,13 @@ export function push<TValue>(
     key: PathKey,
     ...values: TValue[]
 ): TValue[] {
-    return pushWithPath(data, key, ...values);
+    // pushWithPath appends in place, down to the array AT the key, so the list
+    // and every container along the path are copied before it runs.
+    return pushWithPath(
+        isArray(data) ? copyAlongPath(data, key, true) : data,
+        key,
+        ...values,
+    );
 }
 
 /**

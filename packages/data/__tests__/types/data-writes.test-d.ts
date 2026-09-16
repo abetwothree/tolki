@@ -94,9 +94,9 @@ describe("data writes type tests", () => {
             expectTypeOf(Data.dataAdd(undefined, "b", 9)).toEqualTypeOf(widest);
         });
 
-        it("rejects a read-only list until arr.add deep-copies (D5 Step 1)", () => {
-            // arr.add copies only the top level, so a dot path writes into the caller's
-            // nested value. Task D5 Step 1 (F-18) deep-copies; relax this deliberately then.
+        it("rejects a read-only list, which no row claims", () => {
+            // Task D5 (F-18) made arr.add copy along the written path, so this is a limit
+            // of the row shapes now, not a mutation risk. Widening it needs its own task.
             // @ts-expect-error a read-only list is not a mutable backing
             Data.dataAdd(readonlyNumberList, 3, 9);
             // @ts-expect-error and neither is one whose nested list is read-only
@@ -105,7 +105,7 @@ describe("data writes type tests", () => {
 
         it("rejects a backing the compiler has not narrowed", () => {
             // The only row that could take `unknown` would take a read-only list with it,
-            // which is the one thing F-18 asks dataAdd to keep turning away.
+            // and the rows above pin that dataAdd keeps turning both away.
             // @ts-expect-error an unnarrowed backing matches no row
             Data.dataAdd(opaque, "b", 9);
         });

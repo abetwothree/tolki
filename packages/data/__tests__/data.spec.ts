@@ -55,9 +55,9 @@ describe("Data", () => {
             expect(source).toEqual([1, 2, 3]);
         });
 
-        it("writes a dot path through to the caller's nested value", () => {
-            // JS-only: today's behaviour. arr.add copies only the top level, so the nested
-            // array the caller still holds is written through. Task D5 Step 1 (F-18) owns it.
+        it("leaves the caller's nested value alone for a list backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-list-leaves-the-caller-value-untouched"
             const inner = ["desk"];
             const source = ["products", inner];
 
@@ -65,12 +65,13 @@ describe("Data", () => {
                 "products",
                 ["desk", 200],
             ]);
-            expect(inner).toEqual(["desk", 200]);
+            expect(inner).toEqual(["desk"]);
         });
 
         it("leaves the caller's nested value alone for a record backing", () => {
-            // JS-only: the record half of the case above, and it disagrees with it. Task D5
-            // Step 1 (F-18) removes the disagreement by making arr.add deep-copy too.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-leaves-the-caller-value-untouched": the record half of the case above,
+            // which now answers the same way.
             const inner = { z: 1 };
 
             expect(Data.dataAdd({ a: inner }, "a.y", 2)).toEqual({

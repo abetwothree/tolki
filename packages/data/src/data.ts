@@ -221,8 +221,8 @@ type NonObjectBacking =
  * Two shapes are turned away, and both for the same reason — the only row that would admit them
  * takes `unknown`, which would admit a read-only list with them:
  *
- * - a **read-only list**, until Task D5 Step 1 (F-18) makes `arr.add` deep-copy along the written
- *   path. The copy is shallow today, so a dot-path key writes into the caller's nested value.
+ * - a **read-only list**. Task D5 (F-18) made `arr.add` copy along the written path, so this is
+ *   now a limit of the row shapes rather than a mutation risk; widening it needs its own task.
  * - a backing the compiler has **not narrowed** (`unknown`), which no typed row can claim.
  *
  * Relax these then, deliberately rather than by accident. Every other backing every sibling write

@@ -119,6 +119,35 @@ describe("Arr", () => {
             );
         });
 
+        it("leaves the caller's nested value alone, on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-leaves-the-caller-value-untouched" and
+            // "add-list-leaves-the-caller-value-untouched": Arr::add takes the
+            // array by value, and a PHP array is a value all the way down.
+            const record = { desk: 100 };
+
+            expect(Arr.add([record], "0.chair", 150)).toEqual([
+                { desk: 100, chair: 150 },
+            ]);
+            expect(record).toEqual({ desk: 100 });
+
+            const list = [100];
+
+            expect(Arr.add([list], "0.1", 150)).toEqual([[100, 150]]);
+            expect(list).toEqual([100]);
+        });
+
+        it("leaves the caller's value alone when the key already exists", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-existing-key-is-a-no-op"
+            const record = { desk: 100 };
+            const source = [record];
+
+            expect(Arr.add(source, "0.desk", 150)).toEqual([{ desk: 100 }]);
+            expect(record).toEqual({ desk: 100 });
+            expect(Arr.add(source, "0.desk", 150)).not.toBe(source);
+        });
+
         // add's shallow `[...data]` copy exposes an item's own aliased
         // "__proto__" key to setMixed; the clone-before-descend fix covers it.
         it("never pollutes Object.prototype through an item's own aliased __proto__ key", () => {
@@ -2022,6 +2051,47 @@ describe("Arr", () => {
         it("appends to the root array for an undefined key, like null", () => {
             // JS-only: undefined has no PHP analogue; push treats it like null, matching Obj.push.
             expect(Arr.push([1, 2], undefined, 3)).toEqual([1, 2, 3]);
+        });
+
+        it("leaves the caller's list and its nested value alone", () => {
+            // JS-only: Arr::push takes the array BY REFERENCE and does mutate it
+            // (task-24-data-release-readiness.json, "push-mutates-the-caller-by-
+            // reference"); this port's settled contract keeps push non-mutating.
+            const inner = ["a"];
+            const source = [inner];
+            const result = Arr.push(source, "0", "b");
+
+            expect(result).toEqual([["a", "b"]]);
+            expect(result).not.toBe(source);
+            expect(source).toEqual([["a"]]);
+            expect(inner).toEqual(["a"]);
+        });
+
+        it("leaves the caller's list alone for a missing index", () => {
+            // JS-only: the same contract for the top-level form. PHP stores a gapped
+            // key 4 (task-24-data-release-readiness.json, "push-missing-index-stores-
+            // an-empty-array"); the port clamps that to an append, as its docblock says.
+            const source: unknown[] = [1, 2, 3];
+            const result = Arr.push(source, 4);
+
+            expect(result).toEqual([1, 2, 3, []]);
+            expect(source).toEqual([1, 2, 3]);
+        });
+
+        it("leaves the caller's list alone for a null key", () => {
+            // JS-only: the same contract for the root-append form.
+            const source = ["a"];
+            const result = Arr.push(source, null, "b");
+
+            expect(result).toEqual(["a", "b"]);
+            expect(source).toEqual(["a"]);
+        });
+
+        it("stands a non-accessible backing in for an empty array", () => {
+            // JS-only: Arr::push takes ArrayAccess|array, so no PHP call records a
+            // nullish backing; there is nothing of the caller's to copy either.
+            expect(Arr.push(null, "0", "value")).toEqual([["value"]]);
+            expect(Arr.push(undefined, null, "value")).toEqual(["value"]);
         });
 
         it("creates nested structure for deep paths and appends when a path segment does not exist", () => {
