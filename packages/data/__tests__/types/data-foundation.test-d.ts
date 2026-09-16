@@ -72,20 +72,61 @@ describe("data foundation type tests", () => {
     });
 
     describe("dataCombine, which stays hand-written", () => {
-        // Its rows are written as `ReturnType<typeof arrCombine>` / `<typeof objCombine>`,
-        // so a full delegate-call pin is impossible: the row erases the arguments. Each
-        // assertion pins the delegate's own widest answer instead, never a hand-written one.
+        // Its rows apply each delegate to the call the body actually makes, so these are
+        // full delegate-call pins. obj is handed the backing's VALUES, never the backing,
+        // so the record pin passes `Object.values(...)` — as the body does.
 
-        it("answers arr.combine's own return for a list", () => {
+        it("matches arr.combine for a list", () => {
+            const own = Arr.combine(stringList, numberList);
+
             expectTypeOf(
                 Data.dataCombine(stringList, numberList),
-            ).toEqualTypeOf<ReturnType<typeof Arr.combine>>();
+            ).toEqualTypeOf(own);
         });
 
-        it("answers obj.combine's own return for a record", () => {
-            expectTypeOf(Data.dataCombine(names, numberList)).toEqualTypeOf<
-                ReturnType<typeof Obj.combine>
-            >();
+        it("matches obj.combine for a record", () => {
+            const own = Obj.combine(Object.values(names), numberList);
+
+            expectTypeOf(Data.dataCombine(names, numberList)).toEqualTypeOf(
+                own,
+            );
+        });
+
+        it("routes a list and a record to different delegates", () => {
+            // The pin that discriminates: arr promises every key, obj's CombineRecord makes
+            // a key built from a list of values optional, so the two rows cannot coincide.
+            const viaArr = Data.dataCombine(stringList, numberList);
+            const viaObj = Data.dataCombine(names, numberList);
+
+            expectTypeOf(viaArr).not.toEqualTypeOf(viaObj);
+        });
+
+        it("matches arr.combine for a Set, a generator and a scalar", () => {
+            const own = Arr.combine(stringList, numberList);
+            const generator = (function* () {
+                yield "a";
+            })();
+
+            expectTypeOf(
+                Data.dataCombine(new Set(stringList), numberList),
+            ).toEqualTypeOf(own);
+            expectTypeOf(Data.dataCombine(generator, numberList)).toEqualTypeOf(
+                Arr.combine(["a"], numberList),
+            );
+            expectTypeOf(Data.dataCombine("k", numberList)).toEqualTypeOf(
+                Arr.combine(["k"], numberList),
+            );
+        });
+
+        it("turns away undefined, which the runtime cannot serve", () => {
+            // `toPositionalBacking` keeps `undefined` as a one-element list, so
+            // `array_combine` throws for every values set but a one-element one.
+            // @ts-expect-error - undefined is not one of dataCombine's keys backings
+            Data.dataCombine(undefined, numberList);
+            // null is served: `arrWrap` drops it, so an empty values set combines to `{}`.
+            expectTypeOf(Data.dataCombine(null, [])).toEqualTypeOf(
+                Arr.combine([], []),
+            );
         });
     });
 
@@ -147,11 +188,17 @@ describe("data foundation type tests", () => {
             >();
         });
 
-        it("types a Map on dataCombine from obj's widest row", () => {
+        it("types a Map on dataCombine like the record it mirrors", () => {
             // The row this task added; before it, a Map matched none and had to be cast.
-            expectTypeOf(Data.dataCombine(numberMap, numberList)).toEqualTypeOf<
-                ReturnType<typeof Obj.combine>
-            >();
+            // A delegate-call pin, on the call the body makes: obj sees the VALUES.
+            const own = Obj.combine(
+                Object.values(numberMapAsRecord),
+                numberList,
+            );
+
+            expectTypeOf(Data.dataCombine(numberMap, numberList)).toEqualTypeOf(
+                own,
+            );
         });
 
         it("types a Map on dataCount like the record it mirrors", () => {

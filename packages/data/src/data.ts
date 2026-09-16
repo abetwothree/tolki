@@ -374,36 +374,49 @@ export const dataChunkBy = dispatch(arrChunkBy, objChunkBy);
  */
 export const dataCollapse = dispatch(arrCollapse, objCollapse);
 
+/** The value each delegate answers with for the call `dataCombine` actually makes it. */
+type ArrCombineRow<TKeys, TValues> = ReturnType<
+    typeof arrCombine<TKeys, TValues>
+>;
+/** obj is handed the backing's VALUES, never the backing, so its row is keyed on `TKeys[]`. */
+type ObjCombineRow<TKeys, TValues> = ReturnType<
+    typeof objCombine<TKeys[], DataItems<TValues>>
+>;
+
+/**
+ * `dataCombine`'s keys backing. `undefined` is excluded: `toPositionalBacking` keeps it as a
+ * one-element list — the difference from `toPositionalData` that `dispatch.spec` pins — so
+ * `array_combine` would reject every values set but a one-element one.
+ */
+type CombineKeysBacking = Exclude<NonObjectBacking, undefined>;
+
 /**
  * Combine two data sets: the first set's values become the keys, the second set's values the values.
  * Either set may be a list or an object, as `array_combine` takes any two arrays.
+ *
+ * A Map and a record go to `obj.combine`; a list, a Set, a generator and a scalar go to
+ * `arr.combine`, which is where `isKeyedData` sends each of them at runtime.
  *
  * @param itemsA - The first data set
  * @param itemsB - The second data set
  * @returns Combined data set
  */
-export function dataCombine<
-    TKeys extends Record<PropertyKey, unknown>,
-    TValues extends Record<PropertyKey, unknown>,
->(
-    itemsA: Record<PropertyKey, TKeys>,
+export function dataCombine<TKeys, TValues>(
+    itemsA: ReadonlyMap<PropertyKey, TKeys>,
     itemsB: DataItems<TValues>,
-): ReturnType<typeof objCombine>;
+): ObjCombineRow<TKeys, TValues>;
 export function dataCombine<TKeys, TValues>(
     itemsA: TKeys[],
     itemsB: DataItems<TValues>,
-): ReturnType<typeof arrCombine>;
+): ArrCombineRow<TKeys, TValues>;
 export function dataCombine<TKeys, TValues>(
     itemsA: Record<PropertyKey, TKeys>,
     itemsB: DataItems<TValues>,
-): ReturnType<typeof objCombine>;
+): ObjCombineRow<TKeys, TValues>;
 export function dataCombine<TKeys, TValues>(
-    itemsA:
-        | ReadonlyMap<PropertyKey, TKeys>
-        | Iterable<TKeys>
-        | NonObjectBacking,
+    itemsA: Iterable<TKeys> | CombineKeysBacking,
     itemsB: DataItems<TValues>,
-): ReturnType<typeof objCombine>;
+): ArrCombineRow<TKeys, TValues>;
 export function dataCombine<TKeys, TValues>(
     itemsA: DataItems<TKeys> | ReadonlyMap<PropertyKey, TKeys> | unknown,
     itemsB: DataItems<TValues>,
@@ -511,15 +524,21 @@ export function dataUndot<TValue, TKey extends PropertyKey>(
     data: DataItems<TValue, TKey> | unknown,
     asArray: boolean = false,
 ): unknown {
-    if (isObject(data) && !asArray) {
-        // No dispatch pair serves this, so a Map is normalized here the way dispatch would.
-        return objUndot(toKeyedData<TKey, TValue>(data));
+    // No dispatch pair serves this, so the backing is normalized the way dispatch would:
+    // a Map becomes a record, and a scalar, string or Traversable becomes a list. isObject
+    // would send a Set or a generator down the keyed branch, which reads them as empty.
+    if (isKeyedData(data)) {
+        const keyed = toKeyedData<TKey, TValue>(data);
+
+        // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
+        // non-numeric-first keys — `dataUndot`'s own contract is broader; `Arr.undot`'s
+        // runtime guard is what catches a bad key instead.
+        return asArray
+            ? arrUndot(keyed as Record<UndotArrayKey, TValue>)
+            : objUndot(keyed);
     }
 
-    // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
-    // non-numeric-first keys — `dataUndot`'s own contract is broader; `Arr.undot`'s
-    // runtime guard is what catches a bad key instead.
-    return arrUndot(data as Record<UndotArrayKey, TValue>);
+    return arrUndot(toPositionalBacking(data) as Record<UndotArrayKey, TValue>);
 }
 
 /**

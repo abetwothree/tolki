@@ -951,6 +951,23 @@ describe("Data", () => {
                 }),
             );
         });
+
+        it("wraps a scalar, string or Traversable backing rather than reading it empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r4-undot-backings"
+            function* dotted(): Generator<string> {
+                yield "a.b";
+            }
+
+            expect(Data.dataUndot(5)).toEqual([5]);
+            expect(Data.dataUndot("a.b")).toEqual(["a.b"]);
+            expect(Data.dataUndot(true)).toEqual([true]);
+            expect(Data.dataUndot(new Set(["a.b"]))).toEqual(["a.b"]);
+            expect(Data.dataUndot(dotted())).toEqual(["a.b"]);
+            expect(Data.dataUndot(null)).toEqual([]);
+            expect(Data.dataUndot([1, 2, 3])).toEqual([1, 2, 3]);
+            // The keyed mirror of the same one-element backing.
+            expect(Data.dataUndot({ 0: 5 })).toEqual({ 0: 5 });
+        });
     });
 
     describe("dataUnion", () => {
