@@ -4615,6 +4615,28 @@ describe("Obj", () => {
             expect(result).toEqual({ John: 30, Jane: 25 });
         });
 
+        it("files a list return under its own indexes, letting the last row win", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-map-with-keys-list-return"
+            expect(
+                Obj.mapWithKeys({ a: 1, b: 2 }, (value, key) => [
+                    `key_${String(key)}`,
+                    value * 2,
+                ]),
+            ).toEqual({ 0: "key_b", 1: 4 });
+            expect(
+                Obj.mapWithKeys({ a: 1 }, (value, key) => [
+                    `key_${String(key)}`,
+                    value * 2,
+                ]),
+            ).toEqual({ 0: "key_a", 1: 2 });
+            // Same row, "arr-pair-return": a single-pair record is the idiomatic return.
+            expect(
+                Obj.mapWithKeys({ a: 1, b: 2 }, (value, key) => ({
+                    [key]: value * 2,
+                })),
+            ).toEqual({ a: 2, b: 4 });
+        });
+
         it("should handle non-objects", () => {
             expect(Obj.mapWithKeys(null, () => ({}))).toEqual({});
             expect(Obj.mapWithKeys([], () => ({}))).toEqual({});

@@ -220,6 +220,11 @@ type BareObjectValue<T> =
     IsBareObject<T> extends true ? unknown : ObjectValue<T>;
 type BareObjectKey<T> =
     IsBareObject<T> extends true ? string | number : ObjectKey<T>;
+// mapWithKeys folds the callback's return with Object.entries, so a LIST return files its members
+// under their indexes and the last row wins — the answer PHP's `foreach ($assoc as ...)` gives too.
+type MapWithKeysList<T extends readonly unknown[]> = number extends T["length"]
+    ? Record<number, T[number]>
+    : { [I in keyof T & `${number}`]: T[I] };
 // A symbol key is optional: keyBy stores one only when some row resolves to it.
 type KeyByResult<V, S extends symbol> = [S] extends [never]
     ? Record<string, V>
@@ -3040,6 +3045,15 @@ export function mapWithKeys(
         key: string | number,
     ) => Record<PropertyKey, unknown>,
 ): Record<string, never>;
+// A list return files its members under their own indexes, so it has to be read before the
+// record row, whose `Record<TMapKey, …>` would otherwise infer TMapKey as `keyof` the list.
+export function mapWithKeys<
+    T extends object,
+    const TMapped extends readonly unknown[],
+>(
+    data: T,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => TMapped,
+): MapWithKeysList<TMapped>;
 export function mapWithKeys<
     T extends object,
     TMapKey extends PropertyKey,
