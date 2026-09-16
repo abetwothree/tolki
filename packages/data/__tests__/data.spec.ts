@@ -6405,9 +6405,9 @@ describe("Data", () => {
         });
 
         it("dataChunk chunks a Map like the record it mirrors", () => {
-            expect(
-                Data.dataChunk(asMap as unknown as Record<string, number>, 2),
-            ).toEqual(Data.dataChunk(asRecord, 2));
+            expect(Data.dataChunk(asMap, 2)).toEqual(
+                Data.dataChunk(asRecord, 2),
+            );
         });
 
         it("dataChunkWhile chunks a Map like the record it mirrors", () => {
@@ -6417,33 +6417,23 @@ describe("Data", () => {
                 _key: PropertyKey,
                 chunk: Record<string, unknown>,
             ): boolean => Object.values(chunk).at(-1) === value;
-            expect(
-                Data.dataChunkWhile(
-                    repeatMap as unknown as Record<string, number>,
-                    callback,
-                ),
-            ).toEqual(Data.dataChunkWhile(repeatRecord, callback));
+            expect(Data.dataChunkWhile(repeatMap, callback)).toEqual(
+                Data.dataChunkWhile(repeatRecord, callback),
+            );
         });
 
         it("dataChunkBy chunks a Map like the record it mirrors", () => {
-            const key = (value: number): number => value;
-            expect(
-                Data.dataChunkBy(
-                    repeatMap as unknown as Record<string, number>,
-                    key,
-                ),
-            ).toEqual(Data.dataChunkBy(repeatRecord, key));
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
+            const key = (value: unknown): number => Number(value);
+            expect(Data.dataChunkBy(repeatMap, key)).toEqual(
+                Data.dataChunkBy(repeatRecord, key),
+            );
         });
 
         it("dataCollapse collapses a Map like the record it mirrors", () => {
-            expect(
-                Data.dataCollapse(
-                    nestedMap as unknown as Record<
-                        string,
-                        Record<string, number>
-                    >,
-                ),
-            ).toEqual(Data.dataCollapse(nestedRecord));
+            expect(Data.dataCollapse(nestedMap)).toEqual(
+                Data.dataCollapse(nestedRecord),
+            );
         });
 
         it("dataCombine combines a Map's values as keys like the record it mirrors", () => {
@@ -6797,11 +6787,9 @@ describe("Data", () => {
         });
 
         it("dataWhere filters a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
             expect(
-                Data.dataWhere(
-                    asMap as unknown as Record<string, number>,
-                    (value) => value > 1,
-                ),
+                Data.dataWhere(asMap, (value: unknown) => Number(value) > 1),
             ).toEqual(Data.dataWhere(asRecord, (value) => value > 1));
         });
 
@@ -6820,23 +6808,15 @@ describe("Data", () => {
                 string,
                 Record<string, number>
             >;
-            expect(
-                Data.dataReplaceRecursive(
-                    nestedMap as unknown as Record<
-                        string,
-                        Record<string, number>
-                    >,
-                    replacer,
-                ),
-            ).toEqual(Data.dataReplaceRecursive(looseRecord, replacer));
+            expect(Data.dataReplaceRecursive(nestedMap, replacer)).toEqual(
+                Data.dataReplaceRecursive(looseRecord, replacer),
+            );
         });
 
         it("dataReject filters a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
             expect(
-                Data.dataReject(
-                    asMap as unknown as Record<string, number>,
-                    (value) => value > 1,
-                ),
+                Data.dataReject(asMap, (value: unknown) => Number(value) > 1),
             ).toEqual(Data.dataReject(asRecord, (value) => value > 1));
         });
 
@@ -6851,10 +6831,11 @@ describe("Data", () => {
         });
 
         it("dataPartition partitions a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
             expect(
                 Data.dataPartition(
-                    asMap as unknown as Record<string, number>,
-                    (value) => value > 1,
+                    asMap,
+                    (value: unknown) => Number(value) > 1,
                 ),
             ).toEqual(Data.dataPartition(asRecord, (value) => value > 1));
         });
@@ -6874,20 +6855,16 @@ describe("Data", () => {
         });
 
         it("dataFilter filters a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
             expect(
-                Data.dataFilter(
-                    asMap as unknown as Record<string, number>,
-                    (value) => value > 1,
-                ),
+                Data.dataFilter(asMap, (value: unknown) => Number(value) > 1),
             ).toEqual(Data.dataFilter(asRecord, (value) => value > 1));
         });
 
         it("dataMap maps a Map like the record it mirrors", () => {
+            // A Map reaches obj's widest row, whose callback takes `unknown`.
             expect(
-                Data.dataMap(
-                    asMap as unknown as Record<string, number>,
-                    (value) => value * 2,
-                ),
+                Data.dataMap(asMap, (value: unknown) => Number(value) * 2),
             ).toEqual(Data.dataMap(asRecord, (value) => value * 2));
         });
 
@@ -6915,7 +6892,7 @@ describe("Data", () => {
 
         it("dataDiffAssoc diffs a Map like the record it mirrors", () => {
             expect(
-                Data.dataDiffAssoc(asMap as unknown as Record<string, number>, {
+                Data.dataDiffAssoc(asMap, {
                     a: 1,
                     b: 99,
                     c: 3,
@@ -6925,21 +6902,13 @@ describe("Data", () => {
 
         it("dataDiffAssocUsing diffs a Map like the record it mirrors", () => {
             expect(
-                Data.dataDiffAssocUsing(
-                    asMap as unknown as Record<string, number>,
-                    { B: 2 },
-                    strcasecmp,
-                ),
+                Data.dataDiffAssocUsing(asMap, { B: 2 }, strcasecmp),
             ).toEqual(Data.dataDiffAssocUsing(asRecord, { B: 2 }, strcasecmp));
         });
 
         it("dataDiffKeysUsing diffs a Map's keys like the record it mirrors", () => {
             expect(
-                Data.dataDiffKeysUsing(
-                    asMap as unknown as Record<string, number>,
-                    { B: 99 },
-                    strcasecmp,
-                ),
+                Data.dataDiffKeysUsing(asMap, { B: 99 }, strcasecmp),
             ).toEqual(Data.dataDiffKeysUsing(asRecord, { B: 99 }, strcasecmp));
         });
 
@@ -6963,10 +6932,7 @@ describe("Data", () => {
 
         it("dataIntersectAssoc intersects a Map like the record it mirrors", () => {
             expect(
-                Data.dataIntersectAssoc(
-                    asMap as unknown as Record<string, number>,
-                    { a: 1, b: 99, c: 3 },
-                ),
+                Data.dataIntersectAssoc(asMap, { a: 1, b: 99, c: 3 }),
             ).toEqual(Data.dataIntersectAssoc(asRecord, { a: 1, b: 99, c: 3 }));
         });
 
