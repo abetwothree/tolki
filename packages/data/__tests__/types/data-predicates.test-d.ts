@@ -238,6 +238,23 @@ describe("data predicates type tests", () => {
                 Obj.contains(opaque, 2),
             );
         });
+
+        it("inherits arr and obj's NonBooleanValue cost on the key/value form", () => {
+            // `dispatch` forwards both delegates' rows, so the four shapes their
+            // `contains` docblocks name cost a `dataContains` caller too. Each is
+            // written as the four-argument operator form instead.
+            const cost = <TNeedle>(needle: TNeedle): void => {
+                // @ts-expect-error - an unknown value belongs on the operator row
+                Data.dataContains([{ v: 1 }], "v", opaque);
+                // @ts-expect-error - and so does an unconstrained type parameter
+                Data.dataContains({ a: { v: 1 } }, "v", needle);
+                expectTypeOf(
+                    Data.dataContains([{ v: 1 }], "v", "=", needle),
+                ).toEqualTypeOf<boolean>();
+            };
+
+            expectTypeOf(cost).toBeFunction();
+        });
     });
 
     describe("dataSole", () => {

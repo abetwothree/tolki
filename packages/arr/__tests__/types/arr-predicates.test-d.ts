@@ -12,6 +12,9 @@ import {
 } from "./fixtures";
 
 declare const opaque: unknown;
+// `declare`, not an initializer: a `const` narrows to its initializer's type, which would
+// hide `contains`' cost by handing the call a `string` where the declared type is wider.
+declare const flag: boolean;
 
 describe("arr predicate type tests", () => {
     describe("every", () => {
@@ -242,15 +245,43 @@ describe("arr predicate type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
-        it("keeps the key/value row off every boolean and unknown third argument", () => {
-            // The row declares `NonBooleanValue`, so it promises only the forms the
-            // runtime takes: a boolean third argument is `strict`, and an opaque one has
-            // no row at all. Both are written with the four-argument operator form.
+        it("keeps the key/value row off every third argument the runtime cannot serve", () => {
+            // The row declares `NonBooleanValue`, so it promises only the forms the runtime
+            // takes: a boolean third argument is `strict`. Four shapes pay for that, and
+            // each is written with the four-argument operator form instead.
             expectTypeOf(
                 Arr.contains([{ v: 1 }], "v", "=", opaque),
             ).toEqualTypeOf<boolean>();
-            // @ts-expect-error - an unknown value belongs on the operator row, not this one
+            // @ts-expect-error - 1 of 4: an unknown value belongs on the operator row
             Arr.contains([{ v: 1 }], "v", opaque);
+            // A plain boolean is NOT one of the four: it matches the earlier `strict` row,
+            // which is exactly what the runtime does with a boolean third argument.
+            expectTypeOf(
+                Arr.contains([{ v: 1 }], "v", flag),
+            ).toEqualTypeOf<boolean>();
+        });
+
+        it("keeps it off a union holding boolean and off a type parameter", () => {
+            // The other three of the four. A generic needle has to be turned away because
+            // the call site may instantiate it with `boolean`, which `strict` would take.
+            const cost = <TNeedle, TBoolish extends string | boolean>(
+                union: string | boolean,
+                needle: TNeedle,
+                boolish: TBoolish,
+            ): void => {
+                // @ts-expect-error - 2 of 4: a union holding boolean is not NonBooleanValue
+                Arr.contains([{ v: 1 }], "v", union);
+                // @ts-expect-error - 3 of 4: an unconstrained type parameter could be a boolean
+                Arr.contains([{ v: 1 }], "v", needle);
+                // @ts-expect-error - 4 of 4: nor may a constraint that holds boolean
+                Arr.contains([{ v: 1 }], "v", boolish);
+                // Each is written this way instead, on the operator row.
+                expectTypeOf(
+                    Arr.contains([{ v: 1 }], "v", "=", union),
+                ).toEqualTypeOf<boolean>();
+            };
+
+            expectTypeOf(cost).toBeFunction();
         });
 
         it("returns boolean and infers callback params", () => {

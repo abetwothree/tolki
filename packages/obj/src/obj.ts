@@ -108,8 +108,8 @@ type ObjectPullRest<T, P> = P extends keyof T
     : OmitObjectPath<T, `${P & (string | number)}`>;
 type ArrayElementOf<T> = T extends readonly (infer E)[] ? E : never;
 // NonBooleanValue (contains): `unknown` minus `boolean`, which no built-in operator spells.
-// The key/value row cannot carry a boolean, because the `strict` row takes a boolean third
-// argument first, so declaring `unknown` there would promise a form this port never runs.
+// The `strict` row takes a boolean third argument first, so declaring `unknown` here would
+// promise a form this port never runs. `contains`'s docblock names the four shapes it costs.
 type NonBooleanValue =
     | string
     | number
@@ -4857,6 +4857,13 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * Otherwise a third argument is the key/value form's value, and a fourth makes the
  * third the operator. A null or undefined key compares the entry itself, and a callable
  * key is the predicate, as `operatorForWhere` treats one.
+ *
+ * The key/value row therefore declares `NonBooleanValue`, and four third-argument shapes
+ * pay for it — each rejected, each written as `contains(data, key, "=", value)` instead:
+ * an `unknown` value; a union holding `boolean` (`string | boolean`, `null | boolean`);
+ * an unconstrained type parameter, which could be instantiated with `boolean`; and a type
+ * parameter whose constraint holds `boolean`. A plain `boolean` is NOT among them: it
+ * matches the earlier `strict` row, which is what the runtime does with it.
  *
  * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
  *      Value/callback/key-operator-value search; has no `Arr.php` counterpart at all.
