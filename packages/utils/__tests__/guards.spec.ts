@@ -655,6 +655,34 @@ describe("Utils", () => {
         expect(Utils.isAccessibleData(undefined)).toBe(false);
     });
 
+    it("isPhpAccessible", () => {
+        // Shapes that carry array entries
+        expect(Utils.isPhpAccessible([1, 2, 3])).toBe(true);
+        expect(Utils.isPhpAccessible([])).toBe(true);
+        expect(Utils.isPhpAccessible({ a: 1 })).toBe(true);
+        expect(Utils.isPhpAccessible(Object.create(null))).toBe(true);
+        expect(Utils.isPhpAccessible(new Map([["a", 1]]))).toBe(true);
+
+        // docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime":
+        // PHP's Arr::accessible rejects a DateTime, which is not ArrayAccess.
+        expect(Utils.isPhpAccessible(new Date())).toBe(false);
+        expect(Utils.isPhpAccessible(new Set([1]))).toBe(false);
+        expect(Utils.isPhpAccessible(new WeakMap())).toBe(false);
+        expect(Utils.isPhpAccessible(/a/)).toBe(false);
+
+        class Point {
+            x = 1;
+        }
+
+        expect(Utils.isPhpAccessible(new Point())).toBe(false);
+
+        // Non-objects
+        expect(Utils.isPhpAccessible("hello")).toBe(false);
+        expect(Utils.isPhpAccessible(123)).toBe(false);
+        expect(Utils.isPhpAccessible(null)).toBe(false);
+        expect(Utils.isPhpAccessible(undefined)).toBe(false);
+    });
+
     describe("phpValueMatch", () => {
         it.each([
             [0, "0", true],
