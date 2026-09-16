@@ -1459,8 +1459,8 @@ export function setMixed<TValue>(
     }
 
     // JS-only: the else branch stores a non-index key as the list's OWN property, which is no
-    // element — get and has miss it, and except, add and set drop it, all of which PHP keeps
-    // (task-24-data-release-readiness.json, "own-key-channel-*"). only and forget do agree.
+    // element — get misses it, has too EXCEPT for a negative index, and except, add and set drop
+    // it, all PHP keeps (task-24-data-release-readiness.json, "own-key-channel-*"). only, forget agree.
     const lastSegment = segments[segments.length - 1];
 
     if (isNumber(lastSegment) && lastSegment >= 0 && isArray(current)) {
