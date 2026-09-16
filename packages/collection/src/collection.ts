@@ -70,7 +70,6 @@ import {
     compareValues,
     createSortSpecComparator,
     defineKey,
-    entriesKeyValue,
     isArray,
     isBoolean,
     isFunction,
@@ -1961,7 +1960,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            const loopKey = entriesKeyValue(key);
+            const loopKey = phpArrayKey(key);
 
             const mapped = callback(value as TValue, loopKey as TKey);
 
@@ -2015,7 +2014,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             : isArray(this.items)
               ? Object.entries(this.items).map(
                     ([key, value]) =>
-                        [entriesKeyValue(key), value] as [TKey, TValue],
+                        [phpArrayKey(key), value] as unknown as [TKey, TValue],
                 )
               : (Object.entries(this.items) as unknown as Array<
                     [TKey, TValue]
@@ -4352,7 +4351,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     each(callback: (value: TValue, key: TKey) => unknown) {
         for (const [key, value] of Object.entries(this.items)) {
-            let loopKey = entriesKeyValue(key) as unknown;
+            let loopKey = phpArrayKey(key) as unknown;
             if (isObject(value)) {
                 loopKey = String(loopKey);
             }
@@ -4385,7 +4384,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 values = arrWrap(chunk as unknown);
             }
 
-            const loopKey = entriesKeyValue(key as unknown as PropertyKey);
+            const loopKey = phpArrayKey(key);
             return callback(
                 ...(values as TValue[]),
                 loopKey as unknown as TValue,
@@ -5171,7 +5170,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             result = callback(
                 result,
                 value as TValue,
-                entriesKeyValue(key) as TKey,
+                phpArrayKey(key) as TKey,
             );
         }
 
@@ -5200,7 +5199,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const returned = callback(
                 result,
                 value as TValue,
-                entriesKeyValue(key) as TKey,
+                phpArrayKey(key) as TKey,
             ) as TReduce | undefined;
 
             if (!isUndefined(returned)) {

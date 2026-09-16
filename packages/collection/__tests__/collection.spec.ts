@@ -3832,8 +3832,8 @@ describe("Collection", () => {
             expect(arraySeenKeys).toEqual([0, 1]);
 
             // Object-backed: the raw string key, matching objMapWithKeys —
-            // NOT run through entriesKeyValue, which would coerce "0x10"
-            // and "1e3" into the numbers 16 and 1000.
+            // not converted at all, so "0x10" and "1e3" reach the callback
+            // as the keys the object literal declared.
             const objectSeenKeys: unknown[] = [];
             collect({ "0x10": "a", "1e3": "b" }).mapWithKeys((value, key) => {
                 objectSeenKeys.push(key);
@@ -8975,6 +8975,18 @@ describe("Collection", () => {
     });
 
     describe("each", () => {
+        it("hands the callback PHP's key, so a non-canonical one stays a string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "chunkBy-noncanonical-key-type":
+            // PHP keeps "01" a string key; only a canonical integer string is stored as an int.
+            const seen: PropertyKey[] = [];
+
+            collect({ "01": "a", "10": "b", x: "c" }).each((_value, key) => {
+                seen.push(key);
+            });
+
+            expect(seen).toEqual([10, "01", "x"]);
+        });
+
         describe("Laravel Tests", () => {
             it("test each", () => {
                 const c = collect([1, 2, { foo: "bar" }, { bam: "baz" }]);
@@ -10631,6 +10643,23 @@ describe("Collection", () => {
     });
 
     describe("reduce", () => {
+        it("hands the callback PHP's key, so a non-canonical one stays a string", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "chunkBy-noncanonical-key-type":
+            // PHP keeps "01" a string key; only a canonical integer string is stored as an int.
+            const seen: PropertyKey[] = [];
+
+            collect({ "01": "a", "10": "b", x: "c" }).reduce<null>(
+                (carry, _value, key) => {
+                    seen.push(key);
+
+                    return carry;
+                },
+                null,
+            );
+
+            expect(seen).toEqual([10, "01", "x"]);
+        });
+
         describe("Laravel Tests", () => {
             it("test reduce", () => {
                 const data = collect([1, 2, 3]);
