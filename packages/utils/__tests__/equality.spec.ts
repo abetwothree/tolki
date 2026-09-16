@@ -896,6 +896,49 @@ describe("Utils", () => {
             expect(Utils.operatorMatch(1, ">=", undefined)).toBe(true);
         });
 
+        it("compares two arrays under === by value, as PHP's === does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r4-strict-operators",
+            // "[1,2] vs [1,2]", "[] vs []", "[[1]] vs [[1]]", "[1,2] vs [1,\"2\"]" and
+            // "[1,2] vs [2,1]": same keys, same order and same types, recursing.
+            expect(Utils.operatorMatch([1, 2], "===", [1, 2])).toBe(true);
+            expect(Utils.operatorMatch([1, 2], "!==", [1, 2])).toBe(false);
+            expect(Utils.operatorMatch([], "===", [])).toBe(true);
+            expect(Utils.operatorMatch([[1]], "===", [[1]])).toBe(true);
+            expect(Utils.operatorMatch([1, 2], "===", [1, "2"])).toBe(false);
+            expect(Utils.operatorMatch([1, 2], "!==", [1, "2"])).toBe(true);
+            expect(Utils.operatorMatch([1, 2], "===", [2, 1])).toBe(false);
+        });
+
+        it("compares two plain objects under === by value, but a class instance by identity", () => {
+            // Same row, "['a'=>1,'b'=>2] vs the same pairs" and "... reordered": a plain
+            // object models a PHP array, so key ORDER counts. "D4Point(1) vs another
+            // D4Point(1)" / "vs itself" and "DateTimeImmutable@0 vs another" keep identity.
+            class Point {
+                constructor(public x: number) {}
+            }
+
+            const point = new Point(1);
+            const stamp = new Date(0);
+
+            expect(
+                Utils.operatorMatch({ a: 1, b: 2 }, "===", { a: 1, b: 2 }),
+            ).toBe(true);
+            expect(
+                Utils.operatorMatch({ a: 1, b: 2 }, "===", { b: 2, a: 1 }),
+            ).toBe(false);
+            expect(
+                Utils.operatorMatch({ a: 1, b: 2 }, "!==", { b: 2, a: 1 }),
+            ).toBe(true);
+            expect(Utils.operatorMatch(point, "===", new Point(1))).toBe(false);
+            expect(Utils.operatorMatch(point, "!==", new Point(1))).toBe(true);
+            expect(Utils.operatorMatch(point, "===", point)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "===", new Date(0))).toBe(false);
+            expect(Utils.operatorMatch(stamp, "!==", new Date(0))).toBe(true);
+            // Same row, "[1,2] vs 1": an array against a scalar is never identical.
+            expect(Utils.operatorMatch([1, 2], "===", 1)).toBe(false);
+            expect(Utils.operatorMatch([1, 2], "!==", 1)).toBe(true);
+        });
+
         it("answers only the inequality operators when one side alone is an object", () => {
             // EnumeratesValues.php:1166-1168 — PHP cannot order an object against a scalar.
             const stamp = new Date(0);

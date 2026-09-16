@@ -1127,4 +1127,35 @@ probe('r4-nan-bool-null-table', "(new Collection([['v' => NAN]]))->contains('v',
     return $table;
 });
 
+// ==== fix-round-4 Group C: nothing recorded `===`/`!==` over two ARRAYS. PHP compares those
+// ==== by value (keys, order and types), and only a real object by identity.
+probe('r4-strict-operators', "(new Collection([['v' => \$retrieved]]))->contains('v', '==='|'!==', \$value) over arrays and objects", function () {
+    $point = new D4Point(1);
+    $stamp = new DateTimeImmutable('@0');
+
+    $pairs = [
+        '[1,2] vs [1,2]' => [[1, 2], [1, 2]],
+        '[1,2] vs [1,"2"]' => [[1, 2], [1, '2']],
+        '[1,2] vs [2,1]' => [[1, 2], [2, 1]],
+        '[] vs []' => [[], []],
+        "['a'=>1,'b'=>2] vs the same pairs" => [['a' => 1, 'b' => 2], ['a' => 1, 'b' => 2]],
+        "['a'=>1,'b'=>2] vs the same pairs reordered" => [['a' => 1, 'b' => 2], ['b' => 2, 'a' => 1]],
+        '[[1]] vs [[1]]' => [[[1]], [[1]]],
+        'D4Point(1) vs another D4Point(1)' => [$point, new D4Point(1)],
+        'D4Point(1) vs itself' => [$point, $point],
+        'DateTimeImmutable@0 vs another' => [$stamp, new DateTimeImmutable('@0')],
+        '[1,2] vs 1' => [[1, 2], 1],
+    ];
+
+    $table = [];
+
+    foreach ($pairs as $name => [$retrieved, $value]) {
+        foreach (['=', '==', '!=', '<>', '===', '!=='] as $operator) {
+            $table[$name][$operator] = (new Collection([['v' => $retrieved]]))->contains('v', $operator, $value);
+        }
+    }
+
+    return $table;
+});
+
 emit();

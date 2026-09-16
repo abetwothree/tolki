@@ -712,10 +712,13 @@ export function operatorMatch(
             return ordered((sign) => sign <= 0);
         case ">=":
             return ordered((sign) => sign >= 0);
+        // PHP's `===` compares an array by value — same keys, same order, same types —
+        // and only a real object by identity. strictEqual is that rule; JS's own `===`
+        // would call every pair of equal arrays unequal (task-24, "r4-strict-operators").
         case "===":
-            return retrieved === value;
+            return strictEqual(retrieved, value);
         case "!==":
-            return retrieved !== value;
+            return !strictEqual(retrieved, value);
         // PHP's `<=>` is truthy for any non-zero result, so only an equal pair is
         // falsy; an uncomparable one answers 1, not 0, and so counts as unequal.
         case "<=>":

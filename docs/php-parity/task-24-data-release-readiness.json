@@ -3005,6 +3005,100 @@
                     "null <=> NAN": -1
                 }
             }
+        },
+        {
+            "label": "r4-strict-operators",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', '==='|'!==', $value) over arrays and objects",
+            "value": {
+                "[1,2] vs [1,2]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "[1,2] vs [1,\"2\"]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[1,2] vs [2,1]": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "===": false,
+                    "!==": true
+                },
+                "[] vs []": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "['a'=>1,'b'=>2] vs the same pairs": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "['a'=>1,'b'=>2] vs the same pairs reordered": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[[1]] vs [[1]]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "D4Point(1) vs another D4Point(1)": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "D4Point(1) vs itself": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "DateTimeImmutable@0 vs another": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[1,2] vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "===": false,
+                    "!==": true
+                }
+            }
         }
     ]
 }
