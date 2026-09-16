@@ -77,6 +77,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPlainObject,
     isString,
     isSymbol,
     isTruthy,
@@ -5842,8 +5843,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return obj;
         }
 
-        // If it has a toArray method, use it
-        if (toArrayable(items)) {
+        // PHP asks `instanceof Arrayable`, which no plain array of data carries: a plain object
+        // whose `toArray` is merely a member is cast with `(array)` and keeps every key.
+        if (!isPlainObject(items) && toArrayable(items)) {
             return items.toArray() as DataItems<TValue, TKey>;
         }
 

@@ -169,12 +169,37 @@ describe("Collection", () => {
             expect(collection.all()).toEqual([1, 2, 3]);
         });
 
-        it("creates a collection from an object with a toArray method", () => {
-            const arrayable = {
-                toArray: () => [4, 5, 6],
-            };
-            const collection = collect(arrayable);
+        it("creates a collection from an Arrayable class instance", () => {
+            class ArrayableNumbers {
+                toArray() {
+                    return [4, 5, 6];
+                }
+            }
+
+            // docs/php-parity/task-26-collection-order.json, "real-arrayable-unwraps-through-toArray"
+            const collection = collect(new ArrayableNumbers());
             expect(collection.all()).toEqual([4, 5, 6]);
+        });
+
+        it("keeps a plain object's own keys when toArray is merely a member", () => {
+            const duckTyped = { toArray: () => [9], b: 2 };
+
+            // docs/php-parity/task-26-collection-order.json, "plain-object-toArray-member-keeps-its-keys"
+            expect(collect(duckTyped).keys().all()).toEqual(["toArray", "b"]);
+
+            // docs/php-parity/task-26-collection-order.json, "plain-object-toArray-member-union-keeps-its-keys"
+            const united = collect(duckTyped).union({ c: 3 });
+            expect(united.keys().all()).toEqual(["toArray", "b", "c"]);
+
+            // docs/php-parity/task-26-collection-order.json, "plain-object-toArray-member-union-keeps-its-values"
+            const { toArray, ...rest } = united.all() as Record<
+                string,
+                unknown
+            >;
+            expect(rest).toEqual({ b: 2, c: 3 });
+
+            // JS-only: PHP's member is a Closure, which no probe can encode; here it stays the function.
+            expect(toArray).toBe(duckTyped.toArray);
         });
 
         it("creates a collection from a primitive value (string, number, boolean)", () => {
@@ -2760,7 +2785,14 @@ describe("Collection", () => {
         });
 
         it("normalizes an Arrayable operand the way diff does", () => {
-            const arrayable = { toArray: () => ({ b: 20 }) };
+            // A class instance, not an object literal: only a real Arrayable unwraps.
+            class ArrayableOperand {
+                toArray() {
+                    return { b: 20 };
+                }
+            }
+
+            const arrayable = new ArrayableOperand();
             expect(
                 new Collection({ a: 10, b: 20 })
                     .intersect(arrayable as never)
