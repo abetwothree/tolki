@@ -201,8 +201,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Insertion order for a Map-built collection whose keys are numeric, which
      * a plain object cannot hold (ECMA-262 `OrdinaryOwnPropertyKeys`). Only
-     * `getRawItems` writes it; the sort family renumbers keys instead, so
-     * `all()` and `values()` can no longer disagree about a sorted order.
+     * `adoptRawItems` and the reorder helpers write it; the sort family
+     * renumbers keys instead, so `all()` and `values()` cannot disagree.
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
@@ -241,7 +241,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null
             | undefined,
     ) {
-        this.items = this.getRawItems(items);
+        this.items = this.adoptRawItems(items);
 
         // Return a proxy that intercepts property access
         // return this.createProxy();
@@ -1069,14 +1069,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     forget<T, K extends PropertyKey = PropertyKey>(
         keys: PathKeys | Collection<T, K>,
     ) {
-        // Read the order first: getRawItems adopts a Map operand's own order onto this collection.
-        const ordered = this.itemsWithOrder;
-
         keys = this.getRawItems(keys) as PathKey[];
         this.items = dataForget(this.items as TValue[], keys);
 
-        if (ordered) {
-            this.reorderAfterMutation(ordered);
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
         }
 
         return this;
@@ -3688,16 +3685,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | DataItems<TReplace, TKeyReplace>
             | Collection<TReplace, TKeyReplace>,
     ) {
-        // Read the order first: getRawItems adopts a Map operand's own order onto this collection.
-        const ordered = this.itemsWithOrder;
         const replacementItems =
             replacement !== undefined
                 ? [this.getRawItems(replacement)]
                 : ([] as []);
 
-        if (ordered) {
+        if (this.itemsWithOrder) {
             return this.spliceOrdered(
-                ordered,
+                this.itemsWithOrder,
                 offset,
                 length,
                 replacementItems.flatMap(
@@ -6026,7 +6021,78 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Results array of items from Collection or Arrayable.
+     * Read a Map's entries as the pairs a PHP array would hold, casting a
+     * numeric-looking key to a number the way PHP's array key cast does.
+     *
+     * @param items - The Map to read
+     * @returns The entries in the Map's own insertion order
+     */
+    protected mapEntries(
+        items: ReadonlyMap<unknown, unknown>,
+    ): Array<[TKey, TValue]> {
+        return [...items.entries()].map(([key, value]) => {
+            // PHP has no symbol key to cast, and Number(symbol) throws rather than answering NaN.
+            if (isSymbol(key)) {
+                return [key as TKey, value as TValue];
+            }
+
+            const numKey = Number(key);
+            const numeric =
+                !Number.isNaN(numKey) && String(numKey) === String(key);
+
+            return [(numeric ? numKey : key) as TKey, value as TValue];
+        });
+    }
+
+    /**
+     * The insertion order a backing carries that a plain object cannot hold.
+     *
+     * @param items - The items this collection is being built from
+     * @returns The ordered pairs, or undefined when the backing object already holds the order
+     */
+    protected adoptedOrder(items: unknown): Array<[TKey, TValue]> | undefined {
+        if (items instanceof Collection) {
+            return items.itemsWithOrder
+                ? ([...items.itemsWithOrder] as Array<[TKey, TValue]>)
+                : undefined;
+        }
+
+        if (!isMap(items)) {
+            return undefined;
+        }
+
+        const pairs = this.mapEntries(items);
+
+        // Only an integer key can disagree with a plain object's ascending order, and a symbol
+        // key has no PHP order to keep — so neither an all-string nor a symbol-bearing Map
+        // earns an ordered view, which is also how a symbol stays out of `itemsWithOrder`.
+        return pairs.some(([key]) => isNumber(key)) &&
+            !pairs.some(([key]) => isSymbol(key))
+            ? pairs
+            : undefined;
+    }
+
+    /**
+     * Read items INTO this collection, adopting the order a plain object cannot hold.
+     *
+     * This is the ONLY writer of `itemsWithOrder` at construction time; `getRawItems`
+     * stays pure so reading an operand can never overwrite the receiver's own order.
+     *
+     * @param items - The items this collection is being built from
+     * @returns The items preserving their original structure
+     */
+    protected adoptRawItems(items: unknown): DataItems<TValue, TKey> {
+        const ordered = this.adoptedOrder(items);
+
+        if (ordered) {
+            this.itemsWithOrder = ordered;
+        }
+
+        return this.getRawItems(items);
+    }
+
+    /**
+     * Results array of items from Collection or Arrayable, without touching this collection.
      *
      * @param items - The items to convert to an array or record
      * @returns The items preserving their original structure
@@ -6038,39 +6104,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // If it's already a Collection, get its items
         if (items instanceof Collection) {
-            // Also preserve the itemsWithOrder if it exists
-            if (items.itemsWithOrder) {
-                this.itemsWithOrder = [...items.itemsWithOrder];
-            }
             return items.all();
         }
 
-        // If it's a Map, convert to object and preserve insertion order
+        // If it's a Map, convert to an object; `adoptedOrder` keeps the order a caller owns
         if (isMap(items)) {
             const obj = {} as Record<TKey, TValue>;
-            const orderedPairs: Array<[TKey, TValue]> = [];
-            let hasNumericKeys = false;
 
-            for (const [key, value] of items.entries()) {
-                // Convert numeric string keys to numbers
-                let finalKey: TKey = key as TKey;
-                const numKey = Number(key);
-                if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
-                    hasNumericKeys = true;
-                    finalKey = numKey as TKey;
-                }
-
-                defineKey(
-                    obj as Record<string, TValue>,
-                    finalKey,
-                    value as TValue,
-                );
-                orderedPairs.push([finalKey, value as TValue]);
-            }
-
-            // Store ordered pairs only if we have numeric keys (to preserve insertion order)
-            if (hasNumericKeys) {
-                this.itemsWithOrder = orderedPairs;
+            for (const [key, value] of this.mapEntries(items)) {
+                defineKey(obj as Record<string, TValue>, key, value);
             }
 
             return obj;

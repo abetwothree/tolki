@@ -12021,6 +12021,99 @@ describe("Collection", () => {
         });
     });
 
+    // `getRawItems` used to write `this.itemsWithOrder` while READING an operand, so a
+    // read-only call wrote the receiver a fresh view built from somebody else's keys.
+    describe("reading an operand never writes the receiver's ordered view", () => {
+        /** The three views every probe row records, in one comparable object. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ) => ({
+            all: collection.all(),
+            values: collection.values().all(),
+            keys: collection.keys().all(),
+        });
+
+        /** `[7 => 'x', 3 => 'y']`: an operand whose order a plain object cannot hold. */
+        const operand = () =>
+            new Map([
+                [7, "x"],
+                [3, "y"],
+            ]);
+
+        const untouched = {
+            all: [1, 2, 3],
+            values: [1, 2, 3],
+            keys: [0, 1, 2],
+        };
+
+        it("union against a Map operand leaves the receiver's three views alone", () => {
+            const collection = collect([1, 2, 3]);
+            collection.union(operand());
+
+            // docs/php-parity/task-26-collection-order.json, "order-union-leaves-the-receiver-alone"
+            expect(views(collection)).toEqual(untouched);
+        });
+
+        it("diff leaves the receiver's three views alone", () => {
+            const collection = collect([1, 2, 3]);
+
+            // `diff`'s operand type takes a Collection, not a bare Map; the Collection
+            // built from one carries the same ordered view, so it pins the same defect.
+            collection.diff(collect(operand()));
+
+            // docs/php-parity/task-26-collection-order.json, "order-diff-leaves-the-receiver-alone"
+            expect(views(collection)).toEqual(untouched);
+        });
+
+        it("every set operation that reads an operand stays read-only", () => {
+            const readers: Array<
+                [string, (collection: Collection<number, number>) => unknown]
+            > = [
+                ["merge", (c) => c.merge(operand())],
+                ["intersect", (c) => c.intersect(operand())],
+                ["replace", (c) => c.replace(operand())],
+                ["only", (c) => c.only(collect(operand()))],
+                ["zip", (c) => c.zip(collect(operand()))],
+                ["crossJoin", (c) => c.crossJoin(collect(operand()))],
+            ];
+
+            for (const [name, read] of readers) {
+                const collection = collect([1, 2, 3]);
+                read(collection);
+
+                // docs/php-parity/task-26-collection-order.json, "order-union-leaves-the-receiver-alone"
+                expect({ name, ...views(collection) }).toEqual({
+                    name,
+                    ...untouched,
+                });
+            }
+        });
+
+        it("a Map with a symbol key builds instead of throwing", () => {
+            const marker = Symbol("marker");
+
+            // JS-only: PHP has no symbol key, and Number(symbol) threw inside the constructor.
+            const collection = collect(
+                new Map<symbol | number, string>([
+                    [marker, "s"],
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+            );
+
+            expect((collection.all() as Record<symbol, string>)[marker]).toBe(
+                "s",
+            );
+
+            // A symbol has no PHP order to keep, so its presence suppresses the ordered view.
+            expect(views(collection)).toEqual({
+                all: collection.all(),
+                values: ["a", "c"],
+                keys: [0, 2],
+            });
+        });
+    });
+
     describe("newInstance subclass extensibility", () => {
         class TestCollectionWithExtraState<
             TValue = unknown,
@@ -12975,7 +13068,7 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
                     .all(),
         ],
         [
-            "getRawItems (Map key)",
+            "adoptRawItems (Map key)",
             () =>
                 new Collection(
                     new Map<string, unknown>([
