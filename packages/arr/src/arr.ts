@@ -2400,7 +2400,9 @@ export function pop<TValue>(
     data: TValue[] | Record<PropertyKey, unknown> | null | undefined,
     count: number = 1,
 ): TValue | TValue[] | null {
-    if (!accessible(data)) {
+    // A prototype object is never written, and popping deletes the element it took,
+    // which every inheritor would see; it pops nothing, as obj.pop does.
+    if (!accessible(data) || isPrototypeObject(data)) {
         return count === 1 ? null : [];
     }
 
@@ -2940,7 +2942,8 @@ export function shift<TValue>(
     }
 
     // Collection::shift checks isEmpty() before the count, so non-array data yields null for any count.
-    if (!accessible(data)) {
+    // A prototype object is never written, and shifting renumbers its whole container, so it shifts nothing.
+    if (!accessible(data) || isPrototypeObject(data)) {
         return null;
     }
 
@@ -3594,7 +3597,9 @@ export function splice<TValue, TReplacements>(
     length?: number,
     ...replacement: TReplacements[]
 ): TValue[] {
-    if (!accessible(data)) {
+    // A prototype object is never written, and splicing removes and inserts elements every
+    // inheritor would see; it splices nothing, as obj.splice does.
+    if (!accessible(data) || isPrototypeObject(data)) {
         return [] as TValue[];
     }
 

@@ -210,7 +210,8 @@ describe("Arr", () => {
             expect(first).not.toBe(inner);
             expect(first).toEqual({ reading: 1, unit: "kg" });
             expect(
-                Object.getOwnPropertyDescriptor(first as object, "reading")?.get,
+                Object.getOwnPropertyDescriptor(first as object, "reading")
+                    ?.get,
             ).toBeUndefined();
         });
 
@@ -6685,6 +6686,56 @@ describe("Arr", () => {
             Arr.unshift(Array.prototype, 1);
 
             unpolluted();
+        });
+
+        it("splice never inserts into Array.prototype", () => {
+            // JS-only: the one mutator that writes with no element to remove first.
+            expect(Arr.splice(Array.prototype, 0, 0, "PWNED")).toEqual([]);
+
+            unpolluted();
+        });
+
+        it("pop, shift and splice never remove from Array.prototype", () => {
+            // JS-only: these three took the seeded element off the shared global. The
+            // afterEach above clears index "0" and the length again either way.
+            Array.prototype.push("PWNED");
+
+            expect(Arr.pop(Array.prototype)).toBeNull();
+            expect(Arr.shift(Array.prototype)).toBeNull();
+            expect(Arr.splice(Array.prototype, 0, 1)).toEqual([]);
+            expect(Array.prototype.length).toBe(1);
+            expect(Array.prototype[0]).toBe("PWNED");
+        });
+
+        it("refuses an array-shaped prototype object with its own __proto__ key", () => {
+            // JS-only: defineProperty is the only way to give an ARRAY an own enumerable
+            // "__proto__" key; a literal `{ __proto__: ... }` sets the link instead. No
+            // global is touched, so the identity guard is the only thing under test.
+            const hostile: unknown[] = ["kept"];
+            Object.defineProperty(hostile, "__proto__", {
+                value: { polluted: true },
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+            const Hostile = function () {} as unknown as { prototype: unknown };
+            Hostile.prototype = hostile;
+            Object.defineProperty(hostile, "constructor", {
+                value: Hostile,
+                enumerable: false,
+                configurable: true,
+                writable: true,
+            });
+
+            expect(Arr.pop(hostile)).toBeNull();
+            expect(Arr.pop(hostile, 2)).toEqual([]);
+            expect(Arr.shift(hostile)).toBeNull();
+            expect(Arr.splice(hostile, 0, 1, "X")).toEqual([]);
+            expect(Object.entries(hostile)).toEqual([
+                ["0", "kept"],
+                ["__proto__", { polluted: true }],
+            ]);
+            expect(hostile.length).toBe(1);
         });
     });
 });
