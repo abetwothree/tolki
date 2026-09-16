@@ -3285,6 +3285,16 @@ describe("Data", () => {
             });
         });
 
+        it("keeps an integer-like and a string key together on a list backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "replace-list-mixed-key-replacer"
+            expect(Data.dataReplace(["a", "b"], { 1: "z", k: "x" })).toEqual({
+                0: "a",
+                1: "z",
+                k: "x",
+            });
+        });
+
         it("replaces an object's integer keys from a list operand", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "object-backing-list-operand"
             expect(Data.dataReplace({ 0: "a", 1: "b", x: "c" }, ["z"])).toEqual(
@@ -3370,6 +3380,14 @@ describe("Data", () => {
                 0: "a",
                 3: "d",
             });
+        });
+
+        it("keeps an integer-like and a string key together on a list backing", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "replaceRecursive-list-mixed-key-replacer"
+            expect(
+                Data.dataReplaceRecursive(["a", "b"], { 1: "z", k: "x" }),
+            ).toEqual({ 0: "a", 1: "z", k: "x" });
         });
 
         it("accepts a sparse object-shaped replacer for array-backed data", () => {
