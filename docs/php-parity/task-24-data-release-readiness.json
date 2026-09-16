@@ -2481,6 +2481,63 @@
                     "1.0E+19"
                 ]
             ]
+        },
+        {
+            "label": "d6-list-operand-edges",
+            "php": "(new Collection([1, 2]))->diffKeys([999]) / ->diffKeys(null) / ->diffKeys(new Collection([9])) and the diffUsing / intersectUsing twins",
+            "value": {
+                "diffKeys-value-ignored": {
+                    "1": 2
+                },
+                "diffKeys-nullish-operand": [
+                    1,
+                    2
+                ],
+                "diffKeys-collection-operand": {
+                    "1": 2
+                },
+                "diffUsing-nullish-operand": [
+                    "green"
+                ],
+                "diffUsing-collection-operand": {
+                    "1": "brown"
+                },
+                "intersectUsing-nullish-operand": [],
+                "intersectUsing-collection-operand": [
+                    "green"
+                ]
+            }
+        },
+        {
+            "label": "d6-prepend-existing-integer-key",
+            "php": "Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)",
+            "value": {
+                "result": {
+                    "1": "z",
+                    "b": 2
+                },
+                "keys": [
+                    1,
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "d6-nested-list-in-a-list-is-descended",
+            "php": "$src = [['q']]; Arr::add($src, '0.1', 'y')",
+            "value": {
+                "add": [
+                    [
+                        "q",
+                        "y"
+                    ]
+                ],
+                "source-after-add": [
+                    [
+                        "q"
+                    ]
+                ]
+            }
         }
     ]
 }

@@ -852,4 +852,33 @@ probe('d6-combine-key-cast-minus-zero-and-1e19', "(new Collection([-0.0, 1e19]))
     );
 });
 
+// ==== Task D6 citation audit: the LIST forms of the operand edges the rows above record
+// ==== only for a keyed backing, so @tolki/arr's assertions cite a call of their own shape.
+probe('d6-list-operand-edges', "(new Collection([1, 2]))->diffKeys([999]) / ->diffKeys(null) / ->diffKeys(new Collection([9])) and the diffUsing / intersectUsing twins", function () {
+    $caseless = 'strcasecmp';
+
+    return [
+        'diffKeys-value-ignored' => (new Collection([1, 2]))->diffKeys([999])->all(),
+        'diffKeys-nullish-operand' => (new Collection([1, 2]))->diffKeys(null)->all(),
+        'diffKeys-collection-operand' => (new Collection([1, 2]))->diffKeys(new Collection([9]))->all(),
+        'diffUsing-nullish-operand' => (new Collection(['green']))->diffUsing(null, $caseless)->all(),
+        'diffUsing-collection-operand' => (new Collection(['green', 'brown']))->diffUsing(new Collection(['GREEN']), $caseless)->all(),
+        'intersectUsing-nullish-operand' => (new Collection(['green']))->intersectUsing(null, $caseless)->all(),
+        'intersectUsing-collection-operand' => (new Collection(['green', 'brown']))->intersectUsing(new Collection(['GREEN']), $caseless)->all(),
+    ];
+});
+
+// ==== Task D6 citation audit: prepend onto an EXISTING integer key of a keyed array, and
+// ==== the list form of the nested-list descend the row above records for a keyed one.
+probe('d6-prepend-existing-integer-key', "Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)", function () {
+    $result = Arr::prepend([1 => 'a', 'b' => 2], 'z', 1);
+
+    return ['result' => $result, 'keys' => array_keys($result)];
+});
+probe('d6-nested-list-in-a-list-is-descended', "\$src = [['q']]; Arr::add(\$src, '0.1', 'y')", function () {
+    $src = [['q']];
+
+    return ['add' => Arr::add($src, '0.1', 'y'), 'source-after-add' => $src];
+});
+
 emit();
