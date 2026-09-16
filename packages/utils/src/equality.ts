@@ -1,6 +1,7 @@
 import {
     isArray,
     isBoolean,
+    isFunction,
     isNull,
     isObject,
     isPhpFalsy,
@@ -639,4 +640,72 @@ export function strictEqual(a: unknown, b: unknown): boolean {
     }
 
     return false;
+}
+
+/**
+ * Compare two values with one of PHP's `where()` operators, the way Laravel's
+ * `EnumeratesValues::operatorForWhere()` does.
+ *
+ * An unrecognised operator falls through to `=`, as PHP's `switch` default does.
+ * When exactly one side is an object and the pair holds fewer than two strings,
+ * PHP cannot order them, so only the inequality operators answer true.
+ *
+ * @param retrieved - The value read from the item
+ * @param operator - The comparison operator (`=`, `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `===`, `!==`, `<=>`)
+ * @param value - The value to compare against
+ * @returns True if the comparison holds
+ *
+ * @example
+ *
+ * operatorMatch(3, '>', 2); -> true
+ * operatorMatch('4', '===', 4); -> false
+ * operatorMatch(1, 'nonsense', '1'); -> true (unknown operators compare loosely)
+ */
+export function operatorMatch(
+    retrieved: unknown,
+    operator: string,
+    value: unknown,
+): boolean {
+    const operands = [retrieved, value];
+    const stringish = operands.filter(
+        (item) =>
+            isString(item) ||
+            (isObject(item) &&
+                isFunction((item as { toString?: unknown }).toString)),
+    );
+
+    if (stringish.length < 2 && operands.filter(isObject).length === 1) {
+        return ["!=", "<>", "!=="].includes(operator);
+    }
+
+    // PHP's relational operators on null answer false either way, so a nullish
+    // operand short-circuits instead of coercing the way JavaScript's would.
+    const ordered = (compare: (a: number, b: number) => boolean): boolean =>
+        !isNullish(retrieved) &&
+        !isNullish(value) &&
+        compare(retrieved as number, value as number);
+
+    switch (operator) {
+        case "!=":
+        case "<>":
+            return !looseEqual(retrieved, value);
+        case "<":
+            return ordered((a, b) => a < b);
+        case ">":
+            return ordered((a, b) => a > b);
+        case "<=":
+            return ordered((a, b) => a <= b);
+        case ">=":
+            return ordered((a, b) => a >= b);
+        case "===":
+            return retrieved === value;
+        case "!==":
+            return retrieved !== value;
+        // PHP's `<=>` is truthy for any non-zero result, so it holds when the pair
+        // orders either way; two values that neither compare are equal, not unequal.
+        case "<=>":
+            return ordered((a, b) => a < b || a > b);
+        default:
+            return looseEqual(retrieved, value);
+    }
 }

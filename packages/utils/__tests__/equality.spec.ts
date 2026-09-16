@@ -764,4 +764,57 @@ describe("Utils", () => {
             expect(Utils.strictEqual([], {})).toBe(false);
         });
     });
+
+    describe("operatorMatch", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
+        it("compares with each of PHP's where() operators", () => {
+            expect(Utils.operatorMatch("4", "=", 4)).toBe(true);
+            expect(Utils.operatorMatch("4", "==", 4)).toBe(true);
+            expect(Utils.operatorMatch("4", "===", 4)).toBe(false);
+            expect(Utils.operatorMatch(5, ">", 4)).toBe(true);
+            expect(Utils.operatorMatch(1, ">", 4)).toBe(false);
+            expect(Utils.operatorMatch("4", "!==", 4)).toBe(true);
+            expect(Utils.operatorMatch(1, "!=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "<>", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<", 5)).toBe(true);
+            expect(Utils.operatorMatch(5, "<=", 5)).toBe(true);
+            expect(Utils.operatorMatch(5, ">=", 6)).toBe(false);
+        });
+
+        it("treats an unrecognised operator as PHP's switch default does", () => {
+            // EnumeratesValues.php:1170-1173 — `default:` shares the `=` arm.
+            expect(Utils.operatorMatch(1, "nonsense", "1")).toBe(true);
+            expect(Utils.operatorMatch(1, "nonsense", 2)).toBe(false);
+        });
+
+        it("answers PHP's spaceship truthiness, so an incomparable pair is equal", () => {
+            // `$a <=> $b` is truthy only when the pair orders; NAN and 1 vs "1" order neither way.
+            expect(Utils.operatorMatch(1, "<=>", 2)).toBe(true);
+            expect(Utils.operatorMatch(2, "<=>", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, "<=>", 1)).toBe(false);
+            expect(Utils.operatorMatch(1, "<=>", "1")).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", 1)).toBe(false);
+        });
+
+        it("refuses to order a nullish operand, as PHP's relational operators do", () => {
+            expect(Utils.operatorMatch(null, "<", 1)).toBe(false);
+            expect(Utils.operatorMatch(1, ">", null)).toBe(false);
+            expect(Utils.operatorMatch(undefined, "<=", 1)).toBe(false);
+            expect(Utils.operatorMatch(1, ">=", undefined)).toBe(false);
+        });
+
+        it("answers only the inequality operators when one side alone is an object", () => {
+            // EnumeratesValues.php:1166-1168 — PHP cannot order an object against a scalar.
+            const stamp = new Date(0);
+
+            expect(Utils.operatorMatch(stamp, "!=", 1)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "<>", 1)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "!==", 1)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "=", 1)).toBe(false);
+            expect(Utils.operatorMatch(stamp, ">", 1)).toBe(false);
+            // Two objects, or an object against a string, fall through to the switch.
+            expect(Utils.operatorMatch({ a: 1 }, "=", { a: 1 })).toBe(true);
+            expect(Utils.operatorMatch({ a: 1 }, "=", "x")).toBe(false);
+        });
+    });
 });
