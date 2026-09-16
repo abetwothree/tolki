@@ -2444,6 +2444,29 @@
                 },
                 "result_type": "array"
             }
+        },
+        {
+            "label": "d6-nested-list-is-descended-not-replaced",
+            "php": "$src = ['a' => ['q']]; Arr::add($src, 'a.1', 'y') and Arr::set($src, 'a.1', 'y')",
+            "value": {
+                "add": {
+                    "a": [
+                        "q",
+                        "y"
+                    ]
+                },
+                "set": {
+                    "a": [
+                        "q",
+                        "y"
+                    ]
+                },
+                "source-after-add": {
+                    "a": [
+                        "q"
+                    ]
+                }
+            }
         }
     ]
 }

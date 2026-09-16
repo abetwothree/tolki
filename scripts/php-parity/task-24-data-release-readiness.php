@@ -833,4 +833,15 @@ probe('d6-set-assoc-nested-object-is-replaced-wholesale', "\$src = ['a' => new D
     ];
 });
 
+// ==== Task D6 Step 4c: the other half of the descend test — a nested LIST is a container,
+// ==== so Arr::add and Arr::set write into it rather than replacing it.
+probe('d6-nested-list-is-descended-not-replaced', "\$src = ['a' => ['q']]; Arr::add(\$src, 'a.1', 'y') and Arr::set(\$src, 'a.1', 'y')", function () {
+    $added = ['a' => ['q']];
+    $addResult = Arr::add($added, 'a.1', 'y');
+    $set = ['a' => ['q']];
+    Arr::set($set, 'a.1', 'y');
+
+    return ['add' => $addResult, 'set' => $set, 'source-after-add' => $added];
+});
+
 emit();
