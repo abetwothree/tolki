@@ -962,6 +962,19 @@ export const dataRandom = dispatch(arrRandom, objRandom);
  * @param strict - Whether to use strict comparison
  * @returns The key of the found item or false
  */
+// Overload: list backing, whose key is the index
+export function dataSearch<TValue>(
+    items: readonly TValue[],
+    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    strict?: boolean,
+): number | false;
+// Overload: keyed backing, whose key is the record's own
+export function dataSearch<TValue, TKey extends PropertyKey>(
+    items: Record<TKey, TValue>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TKey | false;
+// Implementation
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
@@ -1007,12 +1020,26 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param strict - Whether to use strict comparison
  * @returns The item before the found item or false
  */
+// Overload: list backing, whose key is the index
+export function dataBefore<TValue>(
+    items: readonly TValue[],
+    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    strict?: boolean,
+): TValue | null;
+// Overload: keyed backing, whose key is the record's own
+export function dataBefore<TValue, TKey extends PropertyKey>(
+    items: Record<TKey, TValue>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TValue | null;
+// Implementation
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    const key = dataSearch(items, value, strict);
+    // The keyed overload: `items` is still the union here, which matches no public row.
+    const key = dataSearch(items as Record<TKey, TValue>, value, strict);
 
     if (key === false) {
         return null;
@@ -1041,12 +1068,26 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param strict - Whether to use strict comparison
  * @returns The item after the found item or null
  */
+// Overload: list backing, whose key is the index
+export function dataAfter<TValue>(
+    items: readonly TValue[],
+    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    strict?: boolean,
+): TValue | null;
+// Overload: keyed backing, whose key is the record's own
+export function dataAfter<TValue, TKey extends PropertyKey>(
+    items: Record<TKey, TValue>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TValue | null;
+// Implementation
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    const key = dataSearch(items, value, strict);
+    // The keyed overload: `items` is still the union here, which matches no public row.
+    const key = dataSearch(items as Record<TKey, TValue>, value, strict);
 
     if (key === false) {
         return null;
