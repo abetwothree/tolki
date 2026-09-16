@@ -405,8 +405,8 @@ probe('pop-empty-default-count', "(new Collection([]))->pop()", fn () => (new Co
 // already captured ("exceptValues-assoc-strict" / "-loose" / "-empty" in task-23).
 probe('exceptValues-list-keeps-gap', "Arr::exceptValues(['foo','bar','baz','qux'], ['foo','baz'])", fn () => Arr::exceptValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']));
 
-// ArrTest::testOnlyValues — the list literal's key-preservation row; the assoc rows are
-// already captured ("onlyValues-empty-data" / "-empty-values-assoc" / "-strict-numstr-assoc" / "-loose-numstr-assoc" in task-23).
+// ArrTest::testOnlyValues — the list literal's key-preservation row; task-23 already has the
+// assoc ones ("onlyValues-empty-data", "-empty-values-assoc", "-strict-numstr-assoc", "-loose-numstr-assoc").
 probe('onlyValues-list-keeps-gap', "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])", fn () => Arr::onlyValues(['foo', 'bar', 'baz', 'qux'], ['foo', 'baz']));
 
 // ==== arr.replace/arr.replaceRecursive return a JS list, so they drop a string key and fill
