@@ -413,3 +413,59 @@ import type { ProxyTarget } from "../src/collections";
 test("ProxyTarget", () => {
     expectTypeOf<ProxyTarget>().toEqualTypeOf<object>();
 });
+
+// -------------------------------------------------
+// F-1: an optional intermediate segment resolves to the default, not `undefined`
+// -------------------------------------------------
+
+import type {
+    ArrayResolvePathOrDefault,
+    ArrayResolvePathOrNull,
+} from "../src/path-resolve";
+
+type OptionalIntermediate = { a?: { b: string } }[];
+type RequiredIntermediate = { a: { b: string } }[];
+
+// `Arr.get([{}], "0.a.b")` returns its default at runtime, never `undefined`, so the
+// optional `a` must contribute the default to the resolved type rather than `undefined`.
+test("ArrayResolvePathOrDefault answers the default through an optional segment", () => {
+    expectTypeOf<
+        ArrayResolvePathOrDefault<OptionalIntermediate, "0.a.b", 42>
+    >().toEqualTypeOf<string | 42>();
+
+    // A required chain resolves outright, so the default stays out of the union.
+    expectTypeOf<
+        ArrayResolvePathOrDefault<RequiredIntermediate, "0.a.b", 42>
+    >().toEqualTypeOf<string>();
+
+    // A widened path cannot be checked, so it falls back to the element type plus the default.
+    expectTypeOf<
+        ArrayResolvePathOrDefault<OptionalIntermediate, string, 42>
+    >().toEqualTypeOf<{ a?: { b: string } } | 42>();
+});
+
+test("ArrayResolvePathOrNull answers null through an optional segment", () => {
+    expectTypeOf<
+        ArrayResolvePathOrNull<OptionalIntermediate, "0.a.b">
+    >().toEqualTypeOf<string | null>();
+
+    expectTypeOf<
+        ArrayResolvePathOrNull<RequiredIntermediate, "0.a.b">
+    >().toEqualTypeOf<string>();
+
+    expectTypeOf<ArrayResolvePathOrNull<string[], 0>>().toEqualTypeOf<string>();
+});
+
+// -------------------------------------------------
+// F-23 part 1: a key set may be read-only
+// -------------------------------------------------
+
+import type { PathKeys } from "../src/path-resolve";
+
+// `dataExcept(x, ["a", "b"] as const)` has to compile, so the array half of PathKeys is
+// read-only. A mutable array still fits, because every array extends its read-only twin.
+test("PathKeys takes a read-only key tuple as well as a mutable one", () => {
+    expectTypeOf<readonly ["a", "b"]>().toExtend<PathKeys>();
+    expectTypeOf<["a", "b"]>().toExtend<PathKeys>();
+    expectTypeOf<readonly (string | number)[]>().toExtend<PathKeys>();
+});

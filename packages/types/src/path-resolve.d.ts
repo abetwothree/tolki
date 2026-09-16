@@ -5,8 +5,11 @@ export type PathKey = number | string | null | undefined;
 
 /**
  * A set of keys used to access a path in an object or array.
+ *
+ * The array half is `readonly`, so a caller may hand over an `as const` tuple: nothing
+ * reading a key set writes to it.
  */
-export type PathKeys = number | string | null | undefined | Array<PathKey>;
+export type PathKeys = number | string | null | undefined | readonly PathKey[];
 
 /**
  * Unwraps a value or function that returns a value.
@@ -202,8 +205,31 @@ export type IsLiteral<T> = string extends T
  */
 export type ArrayResolvePathOrNull<TArray extends readonly unknown[], TPath> =
     IsLiteral<TPath> extends true
-        ? ArrayResolvePath<TArray, TPath, TArray[number]>
+        ? PathFallback<ArrayResolvePath<TArray, TPath, TArray[number]>, null>
         : ArrayResolvePath<TArray, TPath, TArray[number]> | null;
+
+/**
+ * Swaps the `undefined` an optional intermediate segment leaves behind for the value
+ * the helper actually answers with.
+ *
+ * `{ a?: { b: string } }` resolved at `"a.b"` is `string | undefined`, because the
+ * optional `a` distributes through the walk. `Arr.get` never returns `undefined` for
+ * that path — it returns its default, `null` when none was given — so the resolved
+ * type must say so. A fully unresolved path is already `never` here and takes the
+ * fallback whole.
+ *
+ * @example
+ * ```ts
+ * type A = PathFallback<string | undefined, null>; // string | null
+ * type B = PathFallback<string, "D">; // string
+ * type C = PathFallback<never, "D">; // "D"
+ * ```
+ */
+type PathFallback<TResolved, TFallback> = [TResolved] extends [never]
+    ? TFallback
+    : TResolved extends undefined
+      ? TFallback
+      : TResolved;
 
 /**
  * Resolves a path within an array and adds `| TDefault` only when the path
@@ -232,7 +258,7 @@ export type ArrayResolvePathOrDefault<
     TDefault,
 > =
     IsLiteral<TPath> extends true
-        ? ArrayResolvePath<TArray, TPath, TDefault>
+        ? PathFallback<ArrayResolvePath<TArray, TPath, TDefault>, TDefault>
         : ArrayResolvePath<TArray, TPath, TArray[number]> | TDefault;
 
 /**
