@@ -6076,7 +6076,8 @@ describe("Data", () => {
         it.fails(
             "dataCombine combines a Map's values as keys like the record it mirrors",
             () => {
-                // Task C2 (foundation family) converts this to dispatch().
+                // dataCombine stays hand-written: Task C2 closed without a recorded
+                // decision. Task D7's F-23(4) step owns its Map backing.
                 expect(
                     Data.dataCombine(
                         asMap as unknown as Record<string, number>,
@@ -6108,7 +6109,8 @@ describe("Data", () => {
         });
 
         it.fails("dataUndot undots a Map like the record it mirrors", () => {
-            // Task C4 (keying family) converts this to dispatch().
+            // dataUndot stays hand-written: Task C4 closed without converting it.
+            // Task D7 Step 4c owns its hand-written DataItems return and this row.
             expect(Data.dataUndot(dottedMap)).toEqual(
                 Data.dataUndot(dottedRecord),
             );
@@ -6267,7 +6269,8 @@ describe("Data", () => {
         it.fails(
             "dataMapWithKeys maps a Map like the record it mirrors",
             () => {
-                // Task C5 (mapping family) converts this to dispatch().
+                // dataMapWithKeys stays hand-written: obj.mapWithKeys folds a tuple
+                // return wrongly, so no dispatch pair serves it. Task D6 Step 4b owns it.
                 const callback = (
                     value: number,
                     key: string,
