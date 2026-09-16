@@ -388,7 +388,7 @@ type ObjCombineRow<TKeys, TValues> = ReturnType<
  * one-element list — the difference from `toPositionalData` that `dispatch.spec` pins — so
  * `array_combine` would reject every values set but a one-element one.
  */
-type CombineKeysBacking = Exclude<NonObjectBacking, undefined>;
+type CombineKeysBacking = string | number | bigint | boolean | symbol | null;
 
 /**
  * Combine two data sets: the first set's values become the keys, the second set's values the values.
