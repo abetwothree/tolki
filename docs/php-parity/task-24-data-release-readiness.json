@@ -3099,6 +3099,142 @@
                     "!==": true
                 }
             }
+        },
+        {
+            "label": "r4-object-scalar-guard",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) over object/array against scalar",
+            "value": {
+                "stdClass vs \"\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"\" vs stdClass": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"abc\" vs stdClass": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "stdClass vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "stdClass vs true": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "assoc array vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"abc\" vs assoc array": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "assoc array vs true": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "empty array vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "empty array vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                }
+            }
         }
     ]
 }

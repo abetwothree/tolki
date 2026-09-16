@@ -1,7 +1,6 @@
 import {
     isArray,
     isBoolean,
-    isFunction,
     isNull,
     isObject,
     isPhpFalsy,
@@ -648,7 +647,9 @@ export function strictEqual(a: unknown, b: unknown): boolean {
  *
  * An unrecognised operator falls through to `=`, as PHP's `switch` default does.
  * When exactly one side is an object and the pair holds fewer than two strings,
- * PHP cannot order them, so only the inequality operators answer true. Every other
+ * PHP cannot order them, so only the inequality operators answer true — and a plain
+ * object is not one of those objects, because it models a PHP array here. `===` and
+ * `!==` take `strictEqual`, PHP's by-value rule for an array. Every other
  * relational operator orders through `compareValues`, PHP's own comparison rule, so
  * `null` is ordered rather than refused. `NaN` orders with no number and no string —
  * `<`, `>`, `<=` and `>=` are all false there and `<=>` still answers 1, as PHP's
@@ -673,14 +674,18 @@ export function operatorMatch(
     value: unknown,
 ): boolean {
     const operands = [retrieved, value];
+    // A plain object models a PHP ARRAY here, not a stdClass, so `is_object` does not count
+    // it; a class instance, a Date or a Map does (task-24, "r4-object-scalar-guard").
+    const isPhpObject = (item: unknown): item is object =>
+        isObject(item) && !isPlainObject(item);
+    // PHP counts a string or a `\Stringable`. An own `toString` is what `__toString` looks
+    // like from JS, so a Date counts too — the same reading `looseEqual` already takes.
     const stringish = operands.filter(
         (item) =>
-            isString(item) ||
-            (isObject(item) &&
-                isFunction((item as { toString?: unknown }).toString)),
+            isString(item) || (isPhpObject(item) && hasCustomToString(item)),
     );
 
-    if (stringish.length < 2 && operands.filter(isObject).length === 1) {
+    if (stringish.length < 2 && operands.filter(isPhpObject).length === 1) {
         return ["!=", "<>", "!=="].includes(operator);
     }
 

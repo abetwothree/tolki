@@ -952,5 +952,56 @@ describe("Utils", () => {
             expect(Utils.operatorMatch({ a: 1 }, "=", { a: 1 })).toBe(true);
             expect(Utils.operatorMatch({ a: 1 }, "=", "x")).toBe(false);
         });
+
+        it("refuses to order a class instance against a string, as PHP's guard does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-object-scalar-guard", "stdClass vs \"\"", "\"\" vs stdClass",
+            // "\"abc\" vs stdClass" and "stdClass vs true": a class instance is what
+            // `is_object` counts, and it carries no `__toString`, so no string casting.
+            class Point {
+                constructor(public x: number) {}
+            }
+
+            const point = new Point(1);
+
+            expect(Utils.operatorMatch(point, ">", "")).toBe(false);
+            expect(Utils.operatorMatch(point, ">=", "")).toBe(false);
+            expect(Utils.operatorMatch("", "<", point)).toBe(false);
+            expect(Utils.operatorMatch("", "<=", point)).toBe(false);
+            expect(Utils.operatorMatch("abc", ">", point)).toBe(false);
+            expect(Utils.operatorMatch(point, "<", "abc")).toBe(false);
+            expect(Utils.operatorMatch(point, "<=>", "abc")).toBe(false);
+            expect(Utils.operatorMatch(point, "=", true)).toBe(false);
+            expect(Utils.operatorMatch(point, "!=", true)).toBe(true);
+        });
+
+        it("keeps a plain object off that guard, because it models a PHP array", () => {
+            // Same row, "assoc array vs true" and "empty array vs null": PHP's guard
+            // never sees an array, so `['x' => 1] == true` and `[] == null` both hold.
+            expect(Utils.operatorMatch({ x: 1 }, "=", true)).toBe(true);
+            expect(Utils.operatorMatch({ x: 1 }, "!=", true)).toBe(false);
+            expect(Utils.operatorMatch({ x: 1 }, "<=", true)).toBe(true);
+            expect(Utils.operatorMatch({ x: 1 }, ">=", true)).toBe(true);
+            expect(Utils.operatorMatch({ x: 1 }, "<", true)).toBe(false);
+            expect(Utils.operatorMatch({ x: 1 }, "<=>", true)).toBe(false);
+            expect(Utils.operatorMatch({}, "=", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "==", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "!=", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "===", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "!==", null)).toBe(true);
+        });
+
+        it("keeps compareValues' array-vs-scalar divergence on a plain object too", () => {
+            // Same row, "assoc array vs \"abc\"", "\"abc\" vs assoc array" and
+            // "empty array vs null": PHP sorts every array above every scalar and calls
+            // `[] <=> null` 0; compareValues keeps JS coercion, a documented divergence.
+            expect(Utils.operatorMatch({ x: 1 }, ">", "abc")).toBe(false);
+            expect(Utils.operatorMatch({ x: 1 }, "<", "abc")).toBe(true);
+            expect(Utils.operatorMatch("abc", "<", { x: 1 })).toBe(false);
+            expect(Utils.operatorMatch("abc", ">", { x: 1 })).toBe(true);
+            expect(Utils.operatorMatch({}, ">", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "<=", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "<=>", null)).toBe(true);
+        });
     });
 });

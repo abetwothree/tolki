@@ -1158,4 +1158,32 @@ probe('r4-strict-operators', "(new Collection([['v' => \$retrieved]]))->contains
     return $table;
 });
 
+// ==== fix-round-4 Group B: operatorForWhere's `is_object` guard. An ARRAY never reaches it,
+// ==== so the port's plain object — which models an array — must not either.
+probe('r4-object-scalar-guard', "(new Collection([['v' => \$retrieved]]))->contains('v', <op>, \$value) over object/array against scalar", function () {
+    $operators = ['=', '==', '!=', '<>', '<', '>', '<=', '>=', '===', '!==', '<=>'];
+    $pairs = [
+        'stdClass vs ""' => [new D4Point(1), ''],
+        '"" vs stdClass' => ['', new D4Point(1)],
+        '"abc" vs stdClass' => ['abc', new D4Point(1)],
+        'stdClass vs "abc"' => [new D4Point(1), 'abc'],
+        'stdClass vs true' => [new D4Point(1), true],
+        'assoc array vs "abc"' => [['x' => 1], 'abc'],
+        '"abc" vs assoc array' => ['abc', ['x' => 1]],
+        'assoc array vs true' => [['x' => 1], true],
+        'empty array vs null' => [[], null],
+        'empty array vs "abc"' => [[], 'abc'],
+    ];
+
+    $table = [];
+
+    foreach ($pairs as $name => [$retrieved, $value]) {
+        foreach ($operators as $operator) {
+            $table[$name][$operator] = (new Collection([['v' => $retrieved]]))->contains('v', $operator, $value);
+        }
+    }
+
+    return $table;
+});
+
 emit();
