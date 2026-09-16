@@ -1213,7 +1213,8 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
  * negative count throws, an empty source returns null for any count, a
  * count of zero returns an empty array, then items are shifted off.
  *
- * @param items - The data to shift from. Mutated in place.
+ * @param items - The data to shift from. Mutated in place for an array or record backing; a Set or
+ * generator backing is materialized first, so the write lands on the copy and is discarded.
  * @param count - Number of items to shift
  * @returns The shifted item(s), or null if the source had nothing to shift.
  * @throws Error if count is negative.
@@ -1291,9 +1292,10 @@ export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
  * Prepend one or more items to the beginning of the data items, mutating
  * it in place. Delegates to arrUnshift/objUnshift, which both mutate.
  *
- * @param data - The data to unshift to. Mutated in place.
+ * @param data - The data to unshift to. Mutated in place for an array or record backing; a Set or
+ * generator backing is materialized first, so the write lands on the copy and is discarded.
  * @param items - The items to prepend
- * @returns The same data reference, mutated.
+ * @returns The same data reference, mutated — or, for a Set or generator backing, the copy.
  */
 export const dataUnshift = dispatch(arrUnshift, objUnshift);
 
@@ -1445,7 +1447,8 @@ export function dataSortRecursiveDesc<
  * arrSplice/objSplice, which both mutate and return only what was removed —
  * obj keeps the removed entries' own keys, arr reindexes positionally.
  *
- * @param data - The data to splice. Mutated in place.
+ * @param data - The data to splice. Mutated in place for an array or record backing; a Set or
+ * generator backing is materialized first, so the write lands on the copy and is discarded.
  * @param offset - The starting index
  * @param length - The number of items to remove. Defaults to everything
  * from offset to the end.
@@ -1911,7 +1914,8 @@ export const dataPluck = dispatch(arrPluck, objPluck);
  * Delegates to arrPop/objPop, which both mutate and agree on returning the
  * popped item(s) in reverse order for a count greater than one.
  *
- * @param data - The data to pop from. Mutated in place.
+ * @param data - The data to pop from. Mutated in place for an array or record backing; a Set or
+ * generator backing is materialized first, so the write lands on the copy and is discarded.
  * @param count - The number of items to pop
  * @returns The popped item(s), or null if the source had nothing to pop.
  */

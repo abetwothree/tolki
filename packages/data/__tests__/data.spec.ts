@@ -5856,6 +5856,12 @@ describe("Data", () => {
         it("mutates a Set's materialized copy like the list it stands for", () => {
             expect(Data.dataPop(asSet())).toBe(Data.dataPop(asList()));
             expect(Data.dataShift(asSet())).toBe(Data.dataShift(asList()));
+
+            // The copy is what gets written, so the caller's Set is left alone: a stated
+            // contract rather than an accident of materializing the backing.
+            const set = asSet();
+            Data.dataPop(set);
+            expect([...set]).toEqual([1, 2, 3]);
         });
 
         it("reads a Set through the typed accessors like the list it stands for", () => {
