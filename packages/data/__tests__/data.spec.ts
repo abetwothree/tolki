@@ -2339,10 +2339,13 @@ describe("Data", () => {
         });
 
         it("returns a number for a numeric-string key on the object backing", () => {
-            // JS-only: `entriesKeyValue` converts the key, so the record row must admit a
-            // number. PHP has no string-keyed "10" to cast, so no probe records this.
+            // docs/php-parity/task-23-obj-release-readiness.json, "chunkBy-noncanonical-key-type":
+            // `phpArrayKey` converts a canonical integer string and leaves "01" a string, as PHP
+            // stores it. The list backing can only carry canonical indices, so it always answers a number.
             expect(Data.dataSearch({ "10": "x", foo: "y" }, "x")).toBe(10);
             expect(Data.dataSearch({ "10": "x", foo: "y" }, "y")).toBe("foo");
+            expect(Data.dataSearch({ "01": "x", foo: "y" }, "x")).toBe("01");
+            expect(Data.dataSearch(["x", "y"], "y")).toBe(1);
         });
 
         it("returns false when nothing matches, by value or by callback", () => {

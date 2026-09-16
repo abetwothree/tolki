@@ -9,7 +9,7 @@ import {
     unionItems,
 } from "./fixtures";
 
-/** A record whose keys survive `entriesKeyValue` differently: "10" becomes 10, "foo" does not. */
+/** A record whose keys survive `phpArrayKey` differently: "10" becomes 10, "foo" does not. */
 const numericKeyedRecord = { "10": "x", foo: "y" };
 
 describe("data search type tests", () => {
@@ -22,7 +22,7 @@ describe("data search type tests", () => {
         });
 
         it("returns the literal key, an index or false for a record", () => {
-            // JS-only: `entriesKeyValue` turns a numeric-string key into a number, so the
+            // JS-only: `phpArrayKey` turns a canonical integer-string key into a number, so the
             // record row answers an index too, exactly as the list and union rows do.
             expectTypeOf(Data.dataSearch(abc, 2)).toEqualTypeOf<
                 "a" | "b" | "c" | number | false

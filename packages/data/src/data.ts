@@ -163,7 +163,6 @@ import {
 } from "@tolki/obj";
 import type { DataItems, PathKey } from "@tolki/types";
 import {
-    entriesKeyValue,
     isArray,
     isFunction,
     isNull,
@@ -1050,7 +1049,7 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
         : Object.entries(arrWrap(items));
 
     for (const [key, item] of entries) {
-        const actualKey = entriesKeyValue(key) as TKey;
+        const actualKey = phpArrayKey(key) as TKey;
 
         if (isFunction(value)) {
             if (value(item as TValue, actualKey)) {
@@ -1119,7 +1118,7 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
         ? Object.entries(toKeyedData<TKey, TValue>(items))
         : Object.entries(arrWrap(items));
     const position = entries.findIndex(
-        ([entryKey]) => entriesKeyValue(entryKey) === key,
+        ([entryKey]) => phpArrayKey(entryKey) === key,
     );
 
     if (position === 0) {
@@ -1172,7 +1171,7 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
         ? Object.entries(toKeyedData<TKey, TValue>(items))
         : Object.entries(arrWrap(items));
     const position = entries.findIndex(
-        ([entryKey]) => entriesKeyValue(entryKey) === key,
+        ([entryKey]) => phpArrayKey(entryKey) === key,
     );
 
     if (position === entries.length - 1) {
