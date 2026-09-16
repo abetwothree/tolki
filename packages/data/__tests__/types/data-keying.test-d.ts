@@ -226,6 +226,19 @@ describe("data keying type tests", () => {
                 typeof widest
             >();
         });
+
+        it("types a Map on dataUndot from obj's widest row", () => {
+            // Without this row the Map fell to `<TData extends object>`, which computed
+            // its values from `ObjectValue<Map<...>>` rather than from the record
+            // `toKeyedData` builds — a type the body never returns.
+            const widest = Obj.undot(opaque);
+            expectTypeOf(Data.dataUndot(numberMap)).toEqualTypeOf<
+                typeof widest
+            >();
+            expectTypeOf(Data.dataUndot(numberMapAsRecord)).toExtend<
+                typeof widest
+            >();
+        });
     });
 
     describe("inputs that fail to compile today (E2)", () => {

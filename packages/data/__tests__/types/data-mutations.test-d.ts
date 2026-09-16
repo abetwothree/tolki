@@ -294,6 +294,29 @@ describe("data mutations type tests", () => {
                 typeof widest
             >();
         });
+
+        it("types a Map on dataReplace from obj's widest row", () => {
+            // Without this row the Map fell to `<TData extends object>` and answered
+            // `Map<string, number> | { b: number }` — a union whose first half is the
+            // untouched Map, which the body never returns.
+            const widest = Obj.replace(opaque, opaque);
+            expectTypeOf(Data.dataReplace(numberMap, { b: 20 })).toEqualTypeOf<
+                typeof widest
+            >();
+            expectTypeOf(
+                Data.dataReplace(numberMapAsRecord, { b: 20 }),
+            ).toExtend<typeof widest>();
+        });
+
+        it("types a Map on dataReplaceRecursive from obj's widest row", () => {
+            const widest = Obj.replaceRecursive(opaque, opaque);
+            expectTypeOf(
+                Data.dataReplaceRecursive(numberMap, { b: 20 }),
+            ).toEqualTypeOf<typeof widest>();
+            expectTypeOf(
+                Data.dataReplaceRecursive(numberMapAsRecord, { b: 20 }),
+            ).toExtend<typeof widest>();
+        });
     });
 
     describe("inputs that fail to compile today (E2)", () => {

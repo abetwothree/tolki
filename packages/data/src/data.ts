@@ -508,6 +508,10 @@ export const dataDot = dispatch(arrDot, objDot);
  *
  * dataUndot({'a.b': 1, 'a.c': 2}); -> {a: {b: 1, c: 2}}
  */
+export function dataUndot(
+    data: ReadonlyMap<PropertyKey, unknown>,
+    asArray?: false | undefined,
+): ReturnType<typeof objUndot>;
 export function dataUndot<TData extends object>(
     data: TData,
     asArray?: false | undefined,
@@ -1488,6 +1492,10 @@ export function dataReplace<TValue, TReplacer extends object = object>(
 ): ListWhenIndexed<
     ReturnType<typeof objReplace<Record<string, TValue>, TReplacer>>
 >;
+export function dataReplace<TReplacer extends object = object>(
+    data: ReadonlyMap<PropertyKey, unknown>,
+    replacerData: TReplacer | null | undefined,
+): ReturnType<typeof objReplace>;
 export function dataReplace<
     TData extends object,
     TReplacer extends object = object,
@@ -1537,6 +1545,10 @@ export function dataReplaceRecursive<TValue, TReplacer extends object = object>(
 ): ListWhenIndexed<
     ReturnType<typeof objReplaceRecursive<Record<string, TValue>, TReplacer>>
 >;
+export function dataReplaceRecursive<TReplacer extends object = object>(
+    data: ReadonlyMap<PropertyKey, unknown>,
+    replacerData: TReplacer | null | undefined,
+): ReturnType<typeof objReplaceRecursive>;
 export function dataReplaceRecursive<
     TData extends object,
     TReplacer extends object = object,
