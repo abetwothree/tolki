@@ -3145,7 +3145,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // equal it and a stored null stays a found item (Collection.php:1502).
         const placeholder = Symbol("firstOrFail");
 
-        const item = this.first<typeof placeholder>(filter, placeholder);
+        // `first` answers `| null` only for its no-default form; this call always hands
+        // one over, so the placeholder is the single stand-in for an absent item.
+        const item = this.first<typeof placeholder>(filter, placeholder) as
+            | TValue
+            | typeof placeholder;
 
         if (item === placeholder) {
             throw new ItemNotFoundException();
