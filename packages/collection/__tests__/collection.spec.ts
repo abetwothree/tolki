@@ -11579,6 +11579,439 @@ describe("Collection", () => {
         });
     });
 
+    // Every row pins all three views together: asserting only all() is what let the stale
+    // ordering below survive. A JS object re-sorts integer keys ascending (ECMA-262), so all()
+    // carries the same ENTRIES as the cited PHP array while values()/keys() carry its ORDER.
+    describe("a Map-built backing keeps PHP's order through every mutator", () => {
+        /** The PHP array `[2 => 'c', 0 => 'a', 1 => 'b']`, which only a Map expresses in JS. */
+        const outOfOrder = () =>
+            new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+        /** `[2 => 'c', 'x' => 'a', 1 => 'b']`, where a string key sits among the integers. */
+        const mixedOrder = () =>
+            new Map<number | string, string>([
+                [2, "c"],
+                ["x", "a"],
+                [1, "b"],
+            ]);
+
+        /** The three views every probe row records, in one comparable object. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ) => ({
+            all: collection.all(),
+            values: collection.values().all(),
+            keys: collection.keys().all(),
+        });
+
+        it("starts from the order the Map was built in", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-initial"
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+
+            // JS-only: PHP's array holds 2, 0, 1; a JS object can only hold them ascending.
+            expect(Object.keys(collection.all())).toEqual(["0", "1", "2"]);
+        });
+
+        it("shift returns the entry written first and renumbers what is left", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-shift"
+            expect(collection.shift()).toBe("c");
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b" },
+                values: ["a", "b"],
+                keys: [0, 1],
+            });
+        });
+
+        it("shift(2) takes the first two entries written", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-shift-two"
+            expect(collection.shift(2).all()).toEqual(["c", "a"]);
+            expect(views(collection)).toEqual({
+                all: { 0: "b" },
+                values: ["b"],
+                keys: [0],
+            });
+        });
+
+        it("shift past the end takes what is there and empties the collection", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-shift-past-the-end"
+            expect(collection.shift(5).all()).toEqual(["c", "a", "b"]);
+            expect(views(collection)).toEqual({
+                all: {},
+                values: [],
+                keys: [],
+            });
+        });
+
+        it("shift keeps a string key and renumbers only the integers", () => {
+            const collection = collect(mixedOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-mixed-shift"
+            expect(collection.shift()).toBe("c");
+            expect(views(collection)).toEqual({
+                all: { 0: "b", x: "a" },
+                values: ["a", "b"],
+                keys: ["x", 0],
+            });
+        });
+
+        it("pop returns the entry written last and renumbers nothing", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-pop"
+            expect(collection.pop()).toBe("b");
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 2: "c" },
+                values: ["c", "a"],
+                keys: [2, 0],
+            });
+        });
+
+        it("pop(2) returns the last two entries in reverse", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-pop-two"
+            expect(collection.pop(2).all()).toEqual(["b", "a"]);
+            expect(views(collection)).toEqual({
+                all: { 2: "c" },
+                values: ["c"],
+                keys: [2],
+            });
+        });
+
+        it("pop past the end empties the collection, and pops null after that", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-pop-past-the-end"
+            expect(collection.pop(5).all()).toEqual(["b", "a", "c"]);
+            expect(views(collection)).toEqual({
+                all: {},
+                values: [],
+                keys: [],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-pop-after-emptying"
+            expect(collection.pop()).toBeNull();
+            expect(collection.pop(2).all()).toEqual([]);
+        });
+
+        it("push appends above the highest integer key, not at the count", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-push"
+            expect(views(collection.push("x"))).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", 3: "x" },
+                values: ["c", "a", "b", "x"],
+                keys: [2, 0, 1, 3],
+            });
+
+            const popped = collect(outOfOrder());
+            popped.pop();
+
+            // docs/php-parity/task-26-collection-order.json, "order-pop-then-push"
+            expect(views(popped.push("x"))).toEqual({
+                all: { 0: "a", 2: "c", 3: "x" },
+                values: ["c", "a", "x"],
+                keys: [2, 0, 3],
+            });
+        });
+
+        it("prepend without a key renumbers, the way array_unshift does", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-prepend"
+            expect(views(collection.prepend("x"))).toEqual({
+                all: { 0: "x", 1: "c", 2: "a", 3: "b" },
+                values: ["x", "c", "a", "b"],
+                keys: [0, 1, 2, 3],
+            });
+        });
+
+        it("prepend with a key puts that key first and renumbers nothing", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-prepend-with-key"
+            expect(views(collection.prepend("x", "k"))).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", k: "x" },
+                values: ["x", "c", "a", "b"],
+                keys: ["k", 2, 0, 1],
+            });
+        });
+
+        it("prepend with a null key files it under the empty string", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-prepend-with-null-key"
+            expect(views(collection.prepend("x", null))).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", "": "x" },
+                values: ["x", "c", "a", "b"],
+                keys: ["", 2, 0, 1],
+            });
+        });
+
+        it("prepend with an existing key wins that key outright", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-prepend-with-existing-key"
+            expect(views(collection.prepend("x", 1))).toEqual({
+                all: { 0: "a", 1: "x", 2: "c" },
+                values: ["x", "c", "a"],
+                keys: [1, 2, 0],
+            });
+        });
+
+        it("unshift renumbers the ordered pairs", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-unshift"
+            expect(views(collection.unshift("x", "y"))).toEqual({
+                all: { 0: "x", 1: "y", 2: "c", 3: "a", 4: "b" },
+                values: ["x", "y", "c", "a", "b"],
+                keys: [0, 1, 2, 3, 4],
+            });
+        });
+
+        it("splice removes by position and renumbers both halves", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-splice"
+            expect(collection.splice(1, 1).all()).toEqual({ 0: "a" });
+            expect(views(collection)).toEqual({
+                all: { 0: "c", 1: "b" },
+                values: ["c", "b"],
+                keys: [0, 1],
+            });
+
+            const fromStart = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-splice-two-from-start"
+            expect(fromStart.splice(0, 2).all()).toEqual({ 0: "c", 1: "a" });
+            expect(views(fromStart)).toEqual({
+                all: { 0: "b" },
+                values: ["b"],
+                keys: [0],
+            });
+        });
+
+        it("splice's one-argument form removes everything from the offset on", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-splice-to-end"
+            expect(collection.splice(1).all()).toEqual({ 0: "a", 1: "b" });
+            expect(views(collection)).toEqual({
+                all: { 0: "c" },
+                values: ["c"],
+                keys: [0],
+            });
+        });
+
+        it("splice counts a negative offset and a negative length from the end", () => {
+            const fromEnd = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-splice-negative-offset"
+            expect(fromEnd.splice(-2, 1).all()).toEqual({ 0: "a" });
+            expect(views(fromEnd)).toEqual({
+                all: { 0: "c", 1: "b" },
+                values: ["c", "b"],
+                keys: [0, 1],
+            });
+
+            const leaveOne = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-splice-negative-length"
+            expect(leaveOne.splice(1, -1).all()).toEqual({ 0: "a" });
+            expect(views(leaveOne)).toEqual({
+                all: { 0: "c", 1: "b" },
+                values: ["c", "b"],
+                keys: [0, 1],
+            });
+        });
+
+        it("splice inserts the replacement's values at the offset", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-splice-with-replacement"
+            expect(collection.splice(1, 1, ["z"]).all()).toEqual({ 0: "a" });
+            expect(views(collection)).toEqual({
+                all: { 0: "c", 1: "z", 2: "b" },
+                values: ["c", "z", "b"],
+                keys: [0, 1, 2],
+            });
+        });
+
+        it("pad pads in insertion order and leaves the source alone", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-pad"
+            expect(views(collection.pad(5, "z"))).toEqual({
+                all: { 0: "c", 1: "a", 2: "b", 3: "z", 4: "z" },
+                values: ["c", "a", "b", "z", "z"],
+                keys: [0, 1, 2, 3, 4],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-pad-negative"
+            expect(views(collection.pad(-5, "z"))).toEqual({
+                all: { 0: "z", 1: "z", 2: "c", 3: "a", 4: "b" },
+                values: ["z", "z", "c", "a", "b"],
+                keys: [0, 1, 2, 3, 4],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-pad-does-not-mutate"
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+
+        it("pad hands back the entries untouched when they are long enough", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-pad-no-padding"
+            expect(views(collection.pad(2, "z"))).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+
+        it("pad keeps a string key and renumbers the integers around it", () => {
+            const collection = collect(mixedOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-mixed-pad"
+            expect(views(collection.pad(5, "p"))).toEqual({
+                all: { 0: "c", 1: "b", 2: "p", 3: "p", x: "a" },
+                values: ["c", "a", "b", "p", "p"],
+                keys: [0, "x", 1, 2, 3],
+            });
+        });
+
+        it("forget drops its keys and leaves the rest in order", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-forget"
+            expect(views(collection.forget(0))).toEqual({
+                all: { 1: "b", 2: "c" },
+                values: ["c", "b"],
+                keys: [2, 1],
+            });
+
+            const many = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-forget-many"
+            expect(views(many.forget([0, 1]))).toEqual({
+                all: { 2: "c" },
+                values: ["c"],
+                keys: [2],
+            });
+        });
+
+        it("offsetUnset drops its key and leaves the rest in order", () => {
+            const collection = collect(outOfOrder());
+            collection.offsetUnset(0);
+
+            // docs/php-parity/task-26-collection-order.json, "order-offsetUnset"
+            expect(views(collection)).toEqual({
+                all: { 1: "b", 2: "c" },
+                values: ["c", "b"],
+                keys: [2, 1],
+            });
+        });
+
+        it("transform keeps every key and visits them in insertion order", () => {
+            const collection = collect(outOfOrder());
+            const visited: PropertyKey[] = [];
+
+            collection.transform((value, key) => {
+                visited.push(key);
+
+                return value.toUpperCase();
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-transform"
+            expect(views(collection)).toEqual({
+                all: { 0: "A", 1: "B", 2: "C" },
+                values: ["C", "A", "B"],
+                keys: [2, 0, 1],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-transform-callback-key-order"
+            expect(visited).toEqual([2, 0, 1]);
+        });
+
+        it("put appends a new key last and updates an existing one in place", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-put"
+            expect(views(collection.put("k", "z"))).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", k: "z" },
+                values: ["c", "a", "b", "z"],
+                keys: [2, 0, 1, "k"],
+            });
+
+            const existing = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-put-existing-key"
+            expect(views(existing.put(0, "z"))).toEqual({
+                all: { 0: "z", 1: "b", 2: "c" },
+                values: ["c", "z", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+
+        it("offsetSet with a null key appends last", () => {
+            const collection = collect(outOfOrder());
+            collection.offsetSet(null, "z");
+
+            // docs/php-parity/task-26-collection-order.json, "order-offsetSet-null-key"
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", 3: "z" },
+                values: ["c", "a", "b", "z"],
+                keys: [2, 0, 1, 3],
+            });
+        });
+
+        it("sort and sortKeys already answer in PHP's order", () => {
+            const collection = collect(outOfOrder());
+
+            // docs/php-parity/task-26-collection-order.json, "order-sort"
+            expect(views(collection.sort())).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["a", "b", "c"],
+                keys: [0, 1, 2],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-sortKeys"
+            expect(views(collection.sortKeys())).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["a", "b", "c"],
+                keys: [0, 1, 2],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-sort-does-not-mutate"
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["c", "a", "b"],
+                keys: [2, 0, 1],
+            });
+        });
+    });
+
     describe("newInstance subclass extensibility", () => {
         class TestCollectionWithExtraState<
             TValue = unknown,
