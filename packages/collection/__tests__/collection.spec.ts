@@ -8593,6 +8593,8 @@ describe("Collection", () => {
                 g: "name",
             });
             c.add("home");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
             expect(c.all()).toEqual({
                 a: 5,
                 b: 2,
@@ -8601,7 +8603,7 @@ describe("Collection", () => {
                 e: false,
                 f: [],
                 g: "name",
-                7: "home",
+                0: "home",
             });
         });
     });
@@ -8654,7 +8656,11 @@ describe("Collection", () => {
                 expect(c.get("b")).toBe("bar");
 
                 c.offsetSet(null, "qux");
-                expect(c.get(2)).toBe("qux");
+
+                // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
+                // The PHP case above is a list; this backing has no integer key at all, so the
+                // append lands on 0 — the count, 2, is not a key PHP's `$array[] =` would pick.
+                expect(c.get(0)).toBe("qux");
 
                 const d = collect(["foo", "foo"]);
 
@@ -12018,6 +12024,116 @@ describe("Collection", () => {
                 values: ["a", "b", "c"],
                 keys: [0, 1, 2],
             });
+        });
+    });
+
+    // `add` appended at the COUNT, which is not a free key: on `{x: 1, 3: 'b', y: 2}` the
+    // count is 3, so the append overwrote an entry that was already there.
+    describe("a null key appends where PHP's $array[] = does", () => {
+        /** The three views every probe row records, in one comparable object. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ) => ({
+            all: collection.all(),
+            values: collection.values().all(),
+            keys: collection.keys().all(),
+        });
+
+        it("add appends past the highest integer key, not at the count", () => {
+            const collection = collect({ 5: "a" });
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-past-the-highest-integer-key"
+            expect(views(collection)).toEqual({
+                all: { 5: "a", 6: "z" },
+                values: ["a", "z"],
+                keys: [5, 6],
+            });
+        });
+
+        it("add never overwrites the entry the count would have landed on", () => {
+            const collection = collect({ x: 1, 3: "b", y: 2 });
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-skips-an-occupied-slot"
+            expect(collection.all()).toEqual({ x: 1, 3: "b", y: 2, 4: "z" });
+
+            // JS-only: a plain object iterates its integer keys first, so the views read them first.
+            expect(collection.values().all()).toEqual(["b", "z", 1, 2]);
+            expect(collection.keys().all()).toEqual([3, 4, "x", "y"]);
+        });
+
+        it("a backing with no integer key appends at 0", () => {
+            const collection = collect({ a: 1 });
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
+            expect(collection.all()).toEqual({ a: 1, 0: "z" });
+        });
+
+        it("an empty object backing appends at 0", () => {
+            const collection = collect({});
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-on-an-empty-collection-is-zero"
+            expect(views(collection)).toEqual({
+                all: { 0: "z" },
+                values: ["z"],
+                keys: [0],
+            });
+        });
+
+        it("two appends keep counting up from the highest key", () => {
+            const collection = collect({ 5: "a" });
+            collection.add("y");
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-twice-keeps-counting-up"
+            expect(views(collection)).toEqual({
+                all: { 5: "a", 6: "y", 7: "z" },
+                values: ["a", "y", "z"],
+                keys: [5, 6, 7],
+            });
+        });
+
+        it("offsetSet with a null key picks the same slot as add", () => {
+            const collection = collect({ 5: "a" });
+            collection.offsetSet(null, "z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-offsetSet-null-matches-add"
+            expect(views(collection)).toEqual({
+                all: { 5: "a", 6: "z" },
+                values: ["a", "z"],
+                keys: [5, 6],
+            });
+        });
+
+        it("keeps the ordered view's append last", () => {
+            const collection = collect(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            );
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-on-the-out-of-order-base"
+            expect(views(collection)).toEqual({
+                all: { 0: "a", 1: "b", 2: "c", 3: "z" },
+                values: ["c", "a", "b", "z"],
+                keys: [2, 0, 1, 3],
+            });
+        });
+
+        it("floors the next key at 0 where PHP counts on from a negative one", () => {
+            const collection = collect({ "-3": "a" });
+            collection.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-after-a-negative-key" —
+            // PHP 8.3+ writes -2 there. A negative key is not integer-like to `isIntegerLikeKey`,
+            // so this floors at 0: a divergence, but never an overwrite, since 0 is not in use.
+            expect(collection.all()).toEqual({ "-3": "a", 0: "z" });
         });
     });
 

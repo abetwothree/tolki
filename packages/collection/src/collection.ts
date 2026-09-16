@@ -2524,16 +2524,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 (this.items as TValue[]).push(value as unknown as TValue);
             }
         } else {
-            // For objects, add with numeric keys
-            const keys = Object.keys(this.items);
-            let nextIndex = 0;
-
-            // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
-            for (const key of keys) {
-                if (isIntegerLikeKey(key) && Number(key) >= nextIndex) {
-                    nextIndex = Number(key) + 1;
-                }
-            }
+            let nextIndex = this.nextAppendKey();
 
             for (const value of values) {
                 defineKey(
@@ -4095,13 +4086,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Add an item to the collection.
      *
+     * A null key appends where PHP's `$array[] =` does: past the highest integer key.
+     *
      * @param item - The item to add to the collection
+     * @param key - The key to add the item under, or null to append
      * @returns The current collection with the item added
      *
      * @example
      *
      * new Collection([1, 2]).add(3); -> collection is now [1, 2, 3]
-     * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '2': 3}
+     * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '0': 3}
+     * new Collection({5: 'a'}).add('z'); -> collection is now {5: 'a', 6: 'z'}
      * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
      */
     add<T, K extends PropertyKey>(item: T, key: K | null = null) {
@@ -4123,7 +4118,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         defineKey(
             this.items as Record<string, TValue>,
-            isNull(key) ? Object.keys(this.items).length : key,
+            isNull(key) ? this.nextAppendKey() : key,
             item as unknown as TValue,
         );
 
@@ -4190,8 +4185,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * collection.offsetSet(1, 4); -> collection is now [1, 4, 3]
      *
      * const objCollection = new Collection({a: 1, b: 2});
-     * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '2': 3}
-     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '2': 3, c: 4}
+     * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '0': 3}
+     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
      */
     offsetSet(key: TKey | null, value: TValue | unknown) {
         this.add(value, key);
@@ -6018,6 +6013,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ],
             true,
         );
+    }
+
+    /**
+     * The key PHP's `$array[] =` writes next: one past the highest integer key an
+     * object backing holds, or 0 when it holds none.
+     *
+     * @returns The next free integer key
+     */
+    protected nextAppendKey(): number {
+        let next = 0;
+
+        // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
+        // `isIntegerLikeKey` rejects a negative one, so an all-negative backing appends at 0 where
+        // PHP 8.3+ counts on from the highest — a divergence, never an overwrite.
+        for (const key of Object.keys(this.items)) {
+            if (isIntegerLikeKey(key) && Number(key) >= next) {
+                next = Number(key) + 1;
+            }
+        }
+
+        return next;
     }
 
     /**
