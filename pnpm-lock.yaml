@@ -256,9 +256,6 @@ importers:
 
   packages/obj:
     dependencies:
-      "@tolki/arr":
-        specifier: workspace:^
-        version: link:../arr
       "@tolki/enum":
         specifier: workspace:^
         version: link:../enum
@@ -274,6 +271,10 @@ importers:
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
+    devDependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
 
   packages/path:
     dependencies:
@@ -3476,6 +3477,7 @@ packages:
         integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==,
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: "*"
