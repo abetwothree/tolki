@@ -43,13 +43,13 @@ describe("Data", () => {
             assertType<(number | string)[]>(result2);
         });
 
-        it("rejects readonly arrays at compile time", () => {
+        it("takes a readonly array, which the delegate copies before writing", () => {
+            // JS-only: arr.add spreads its input before writing, so a readonly
+            // backing is safe and the old compile-time rejection was unnecessary.
             const readonlyArray: readonly number[] = [1, 2, 3];
 
-            // This should cause a TypeScript error because readonly arrays
-            // cannot be passed to dataAdd (they cannot be mutated)
-            // @ts-expect-error - readonly arrays should not be accepted
-            Data.dataAdd(readonlyArray, 3, 4);
+            expect(Data.dataAdd(readonlyArray, 3, 4)).toEqual([1, 2, 3, 4]);
+            expect(readonlyArray).toEqual([1, 2, 3]);
         });
     });
 
@@ -5995,19 +5995,11 @@ describe("Data", () => {
         const strcasecmp = (a: unknown, b: unknown): boolean =>
             String(a).toLowerCase() === String(b).toLowerCase();
 
-        it.fails(
-            "dataAdd adds a key on a Map like the record it mirrors",
-            () => {
-                // Task C14 (writes family) converts this to dispatch().
-                expect(
-                    Data.dataAdd(
-                        asMap as unknown as Record<string, number>,
-                        "d",
-                        4,
-                    ),
-                ).toEqual(Data.dataAdd(asRecord, "d", 4));
-            },
-        );
+        it("dataAdd adds a key on a Map like the record it mirrors", () => {
+            expect(Data.dataAdd(asMap, "d", 4)).toEqual(
+                Data.dataAdd(asRecord, "d", 4),
+            );
+        });
 
         it("dataItem reads a nested value off a Map like the record it mirrors", () => {
             expect(Data.dataItem(nestedMap, "x")).toEqual(
@@ -6280,25 +6272,17 @@ describe("Data", () => {
             );
         });
 
-        it.fails(
-            "dataPrepend prepends onto a Map like the record it mirrors",
-            () => {
-                // Task C14 (writes family) converts this to dispatch().
-                expect(Data.dataPrepend(asMap, 99, "z")).toEqual(
-                    Data.dataPrepend(asRecord, 99, "z"),
-                );
-            },
-        );
+        it("dataPrepend prepends onto a Map like the record it mirrors", () => {
+            expect(Data.dataPrepend(asMap, 99, "z")).toEqual(
+                Data.dataPrepend(asRecord, 99, "z"),
+            );
+        });
 
-        it.fails(
-            "dataPull pulls a value off a Map like the record it mirrors",
-            () => {
-                // Task C14 (writes family) converts this to dispatch().
-                expect(Data.dataPull(asMap, "b", null).value).toBe(
-                    Data.dataPull(asRecord, "b", null).value,
-                );
-            },
-        );
+        it("dataPull pulls a value off a Map like the record it mirrors", () => {
+            expect(Data.dataPull(asMap, "b", null).value).toBe(
+                Data.dataPull(asRecord, "b", null).value,
+            );
+        });
 
         it("dataQuery builds a query string from a Map like the record it mirrors", () => {
             expect(Data.dataQuery(asMap)).toBe(Data.dataQuery(asRecord));
@@ -6337,25 +6321,17 @@ describe("Data", () => {
             expect(Data.dataShift(mapCopy)).toBe(Data.dataShift(recordCopy));
         });
 
-        it.fails(
-            "dataSet sets a value on a Map like the record it mirrors",
-            () => {
-                // Task C14 (writes family) converts this to dispatch().
-                expect(Data.dataSet(asMap, "d", 4)).toEqual(
-                    Data.dataSet(asRecord, "d", 4),
-                );
-            },
-        );
+        it("dataSet sets a value on a Map like the record it mirrors", () => {
+            expect(Data.dataSet(asMap, "d", 4)).toEqual(
+                Data.dataSet(asRecord, "d", 4),
+            );
+        });
 
-        it.fails(
-            "dataPush pushes onto a Map like the record it mirrors",
-            () => {
-                // Task C14 (writes family) converts this to dispatch().
-                expect(Data.dataPush(arrValuedMap, "a", 3)).toEqual(
-                    Data.dataPush(arrValuedRecord, "a", 3),
-                );
-            },
-        );
+        it("dataPush pushes onto a Map like the record it mirrors", () => {
+            expect(Data.dataPush(arrValuedMap, "a", 3)).toEqual(
+                Data.dataPush(arrValuedRecord, "a", 3),
+            );
+        });
 
         it("dataUnshift unshifts onto a Map like the record it mirrors", () => {
             const mapCopy = new Map(asMap);

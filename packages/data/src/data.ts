@@ -161,7 +161,7 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
-import type { AddToArray, AddToObject, DataItems, PathKey } from "@tolki/types";
+import type { DataItems } from "@tolki/types";
 import {
     entriesKeyValue,
     isArray,
@@ -176,6 +176,7 @@ import {
     dispatch,
     isKeyedData,
     toKeyedData,
+    toPositionalBacking,
     toPositionalData,
 } from "./dispatch";
 
@@ -205,48 +206,17 @@ function listWhenIndexed<TValue>(
 /**
  * Add an element to data.
  *
- * Note: This function does not accept readonly arrays as they cannot be mutated.
- *
- * TODO: AddToObject should be converted to match the way the "add" functions work
- *
  * @param data - The data to add to
  * @param key - The key to add at
  * @param value - The value to add
- * @returns New data with the element added
+ * @returns New data with the element added, matching the delegate's own result
  *
  * @example
  *
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-// Overload: object
-export function dataAdd<
-    TValue extends Record<PropertyKey, unknown>,
-    TKey extends PropertyKey,
-    TNewValue,
->(
-    data: TValue,
-    key: TKey,
-    value: TNewValue,
-): AddToObject<TValue, TKey, TNewValue>;
-// Overload: mutable array only (excludes readonly arrays)
-export function dataAdd<TValue, TNewValue>(
-    data: TValue[],
-    key: number,
-    value: TNewValue,
-): AddToArray<TValue[], TNewValue>;
-// Implementation
-export function dataAdd<TValue>(
-    data: DataItems<TValue, PropertyKey>,
-    key: PathKey,
-    value: unknown,
-) {
-    if (isObject(data)) {
-        return objAdd(data, key, value);
-    }
-
-    return arrAdd(arrWrap(data), key, value);
-}
+export const dataAdd = dispatch(arrAdd, objAdd);
 
 /**
  * Get an item from data or return default value.
@@ -898,6 +868,10 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
 /**
  * Prepend a value to data.
  *
+ * Stays hand-written rather than becoming a `dispatch` pair: given a key, `arr.prepend`
+ * unions through `unionValues` and hands back only the values, so a non-integer-like key's
+ * entry disappears where PHP's `+` keeps it. Task D7 (F-19) owns that arr fix.
+ *
  * @param data - The data to prepend to
  * @param value - The value to prepend
  * @param rest - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
@@ -914,20 +888,23 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue,
     ...rest: [key?: PropertyKey | null]
 ): DataItems<TValue, TKey> {
-    if (isObject(data)) {
+    // No dispatch pair serves this, so the Map and the iterable backings are normalized here.
+    if (isKeyedData(data)) {
         return objPrepend(
-            data as Record<TKey, TValue>,
+            toKeyedData<TKey, TValue>(data),
             value,
             ...rest,
         ) as DataItems<TValue, TKey>;
     }
 
+    const backing = toPositionalBacking(data) as TValue[];
+
     if (rest.length === 0) {
-        return arrPrepend(arrWrap(data), value) as DataItems<TValue>;
+        return arrPrepend(backing, value) as DataItems<TValue>;
     }
 
     // [$key => $value] + $list starts with the key, so it stays a list only when the key casts to 0.
-    const prepended = objPrepend({ ...arrWrap(data) }, value, ...rest);
+    const prepended = objPrepend({ ...backing }, value, ...rest);
 
     return (
         phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended
@@ -940,42 +917,14 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param data - The data to pull from
  * @param key - The key to pull
  * @param defaultValue - Default value if key doesn't exist
- * @returns Object with the pulled value and modified data
+ * @returns Object with the pulled value and modified data, matching the delegate's own result
  *
  * @example
  *
  * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
  * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
-export function dataPull<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TDefault = null,
->(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    defaultValue?: TDefault,
-): { value: TValue | TDefault | null; data: DataItems<TValue, TKey> } {
-    if (isObject(data)) {
-        const result = objPull(
-            data as Record<TKey, TValue>,
-            key as string,
-            defaultValue,
-        );
-
-        return {
-            value: result.value as TValue | TDefault | null,
-            data: result.data as DataItems<TValue, TKey>,
-        };
-    }
-
-    const result = arrPull(arrWrap(data), key as number, defaultValue);
-
-    return {
-        value: result.value as TValue | TDefault | null,
-        data: result.data as DataItems<TValue>,
-    };
-}
+export const dataPull = dispatch(arrPull, objPull);
 
 /**
  * Convert data to a query string.
@@ -1138,35 +1087,14 @@ export const dataShift = dispatch(arrShift, objShift);
  * @param data - The data to set value in
  * @param key - The key to set
  * @param value - The value to set
- * @returns Data with the value set
+ * @returns Data with the value set, matching the delegate's own result
  *
  * @example
  *
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export function dataSet<
-    TValue,
-    TKey extends PropertyKey = PropertyKey,
-    TSet = TValue,
->(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    value: TSet,
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objSet(
-            data as Record<string, TValue>,
-            key as string,
-            value,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    return arrSet(arrWrap(data), key as number, value) as DataItems<
-        TValue,
-        TKey
-    >;
-}
+export const dataSet = dispatch(arrSet, objSet);
 
 /**
  * Push values to data.
@@ -1174,30 +1102,14 @@ export function dataSet<
  * @param data - The data to push to
  * @param key - The key to push to (for objects)
  * @param values - The values to push
- * @returns Data with pushed values
+ * @returns Data with pushed values, matching the delegate's own result
  *
  * @example
  *
  * dataPush([1, 2], null, [3, 4]); -> [1, 2, 3, 4]
  * dataPush({a: [1, 2]}, 'a', [3, 4]); -> {a: [1, 2, 3, 4]}
  */
-export function dataPush<TValue, TKey extends PropertyKey, TNewValues>(
-    data: DataItems<TValue, TKey>,
-    key: PathKey,
-    ...values: TNewValues[]
-): DataItems<TValue, TKey> {
-    if (isObject(data)) {
-        return objPush(data, key as string, ...values) as DataItems<
-            TValue,
-            TKey
-        >;
-    }
-
-    return arrPush(arrWrap(data), key as number, ...values) as DataItems<
-        TValue,
-        TKey
-    >;
-}
+export const dataPush = dispatch(arrPush, objPush);
 
 /**
  * Prepend one or more items to the beginning of the data items, mutating
