@@ -19,6 +19,21 @@ const strcasecmp = (a: unknown, b: unknown) =>
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
 /**
+ * Build `["a", <hole>, "c"]`: a three-element list whose middle index is absent.
+ *
+ * Written by index because oxlint's `no-sparse-arrays` rejects the elision literal.
+ *
+ * @returns A list of length 3 with no own key at index 1
+ */
+const sparseList = (): string[] => {
+    const list: string[] = [];
+    list[0] = "a";
+    list[2] = "c";
+
+    return list;
+};
+
+/**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
 class Point {
@@ -2331,7 +2346,7 @@ describe("Data", () => {
         it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for.
-            const sparse = ["a", , "c"];
+            const sparse = sparseList();
             expect(Data.dataPrepend(sparse, "z", 0)).toStrictEqual([
                 "z",
                 undefined,
@@ -3622,7 +3637,7 @@ describe("Data", () => {
         it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for.
-            const sparse = ["a", , "c"];
+            const sparse = sparseList();
             expect(Data.dataReplace(sparse, { 0: "x" })).toStrictEqual([
                 "x",
                 undefined,
@@ -3707,7 +3722,7 @@ describe("Data", () => {
         it("keeps a sparse list backing's hole, as dataUnion already does (F-19)", () => {
             // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
             // a sparse backing must answer exactly like the dense list it stands for.
-            const sparse = ["a", , "c"];
+            const sparse = sparseList();
             expect(Data.dataReplaceRecursive(sparse, { 0: "x" })).toStrictEqual(
                 ["x", undefined, "c"],
             );
