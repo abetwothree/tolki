@@ -83,7 +83,9 @@ import {
     isTruthy,
     isUndefined,
     isUnsafeKey,
+    ItemNotFoundException,
     looseEqual,
+    MultipleItemsFoundException,
     objectToString,
     phpArrayKey,
     reindexIntegerKeys,
@@ -3052,6 +3054,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param operator - The operator to use for comparison, or null if key is a callback or null
      * @param value - The value to compare against, or null if key is a callback or null
      * @returns The single item in the collection
+     * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
      *
      * @example
      *
@@ -3086,11 +3089,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const count = items.count();
 
         if (count === 0) {
-            throw new Error("No items found in the collection.");
+            throw new ItemNotFoundException();
         }
 
         if (count > 1) {
-            throw new Error("Multiple items found in the collection.");
+            throw new MultipleItemsFoundException(count);
         }
 
         return items.first();
