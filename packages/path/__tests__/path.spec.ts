@@ -1390,12 +1390,14 @@ describe("Path Functions", () => {
         });
 
         it("setMixed handles paths with dots that create empty segments", () => {
-            // segment is empty string in loop (continue)
+            // docs/php-parity/task-24-data-release-readiness.json, "set-empty-middle-segment":
+            // an empty MIDDLE segment is the "" key, so the write lands under it.
             const arr: unknown[] = [];
-            // Path "0..1" has empty segment between dots
             const result = Path.setMixed(arr, "0..1", "value");
-            // Should handle gracefully
-            expect(result).toEqual(arr);
+
+            expect((result[0] as Record<string, unknown[]>)[""]?.[1]).toBe(
+                "value",
+            );
         });
 
         it("setMixed navigates through object properties", () => {
@@ -1437,18 +1439,24 @@ describe("Path Functions", () => {
         });
 
         it("handles empty segment in path", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "set-nested-record-key-cast", row "": the trailing segment is the "" key.
             const arr = ["a"];
             const result = Path.setMixed(arr, "0.", "value");
-            // Empty segment causes navigation to fail to set value
-            expect(result).toEqual([{}]);
+
+            expect(result).toEqual([{ "": "value" }]);
         });
 
         it("handles empty first segment with non-empty array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "set-list-key-cast", row "": PHP stores the "" key beside the indices.
             const arr = ["a"];
-            // Empty first segment
             const result = Path.setMixed(arr, "", "value");
-            // Should return unchanged
-            expect(result).toEqual(["a"]);
+
+            expect((result as unknown as Record<string, string>)[""]).toBe(
+                "value",
+            );
+            expect(result[0]).toBe("a");
         });
 
         it("creates object at path when next segment is string", () => {
@@ -2853,6 +2861,176 @@ describe("Path Functions", () => {
             expect(Object.getOwnPropertyNames(Array.prototype)).not.toContain(
                 "0",
             );
+        });
+    });
+
+    // F-12: PHP hands every dot segment straight to the array subscript, so PHP's
+    // own array-key cast decides what it names. parseInt()/Number() accepted
+    // leading zeros and other non-canonical forms, so "01" wrote index 1.
+    describe("PHP key semantics on the write path", () => {
+        describe("setMixed", () => {
+            it("keeps a non-canonical index a string key on a list", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-list-key-cast", row "01"
+                const result = Path.setMixed(["a", "b"], "01", "V");
+
+                expect(result[0]).toBe("a");
+                expect(result[1]).toBe("b");
+                expect(
+                    (result as unknown as Record<string, string>)["01"],
+                ).toBe("V");
+            });
+
+            it("keeps a non-canonical index a string key on a record", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-nested-record-key-cast", row "01"
+                expect(Path.setMixed([{ x: 1 }], "0.01", "V")).toEqual([
+                    { x: 1, "01": "V" },
+                ]);
+            });
+
+            it("keeps a non-canonical index a string key inside a nested list", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-nested-list-key-cast", row "01"
+                const result = Path.setMixed([["a", "b"]], "0.01", "V");
+                const inner = result[0] as unknown as Record<string, string>;
+
+                expect(inner[0]).toBe("a");
+                expect(inner[1]).toBe("b");
+                expect(inner["01"]).toBe("V");
+            });
+
+            it("writes a canonical index as an index, on both backings", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-list-key-cast" / "set-nested-record-key-cast", row "1"
+                expect(Path.setMixed(["a", "b"], "1", "V")).toEqual(["a", "V"]);
+                expect(Path.setMixed([{ x: 1 }], "0.1", "V")).toEqual([
+                    { x: 1, "1": "V" },
+                ]);
+            });
+
+            it("writes a negative index as a key, on both backings", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-list-key-cast" / "set-nested-record-key-cast", row "-1"
+                const list = Path.setMixed(["a", "b"], "-1", "V");
+
+                expect(list[1]).toBe("b");
+                expect((list as unknown as Record<string, string>)["-1"]).toBe(
+                    "V",
+                );
+                expect(Path.setMixed([{ x: 1 }], "0.-1", "V")).toEqual([
+                    { x: 1, "-1": "V" },
+                ]);
+            });
+
+            it("treats a dotted float as two segments, on both backings", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-list-key-cast" / "set-nested-record-key-cast", row "1.5":
+                // PHP stores key 5 of a fresh array at index 1.
+                // JS-only: a JS array cannot hold a gap, so indices 0-4 fill with undefined.
+                const list = Path.setMixed(["a", "b"], "1.5", "V");
+                const record = Path.setMixed([{ x: 1 }], "0.1.5", "V");
+
+                expect((list[1] as unknown as unknown[])[5]).toBe("V");
+                expect(
+                    (record[0] as unknown as Record<string, unknown[]>)[
+                        "1"
+                    ]?.[5],
+                ).toBe("V");
+            });
+
+            it("writes an empty segment as the empty key, on both backings", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-list-key-cast" / "set-nested-record-key-cast", row ""
+                const list = Path.setMixed(["a", "b"], "", "V");
+
+                expect(list[1]).toBe("b");
+                expect((list as unknown as Record<string, string>)[""]).toBe(
+                    "V",
+                );
+                expect(Path.setMixed([{ x: 1 }], "0.", "V")).toEqual([
+                    { x: 1, "": "V" },
+                ]);
+            });
+
+            it("reads back what it wrote under a non-canonical index", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-then-get-noncanonical-index-nested"
+                const result = Path.setMixed([{}], "0.01", 5);
+
+                expect(Path.getMixedValue(result, "0.01")).toBe(5);
+            });
+        });
+
+        describe("pushMixed", () => {
+            it("does not push at index 1 for a non-canonical index", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "push-list-key-cast", row "01": index 0 keeps ['a'] and nothing
+                // reaches index 1.
+                // JS-only: an array-only helper drops PHP's extra "01" string key.
+                const result = Path.pushMixed([["a"]], "01", "V");
+
+                expect(result[0]).toEqual(["a"]);
+                expect(result).toHaveLength(1);
+            });
+        });
+
+        describe("setImmutable", () => {
+            it("does not overwrite index 1 for a non-canonical index", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "set-list-key-cast", row "01": index 1 still holds 'b'.
+                // JS-only: an array-only helper drops PHP's extra "01" string key.
+                const result = Path.setImmutable(["a", "b"], "01", "V");
+
+                expect(result[0]).toBe("a");
+                expect(result[1]).toBe("b");
+            });
+        });
+
+        describe("forgetKeys", () => {
+            it("removes nothing for a non-canonical index, on both backings", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "forget-record-key-cast" / "forget-list-key-cast", row "01"
+                expect(
+                    Path.forgetKeysObject({ a: ["x", "y", "z"] }, "a.01"),
+                ).toEqual({ a: ["x", "y", "z"] });
+                expect(Path.forgetKeysArray([["x", "y", "z"]], "0.01")).toEqual(
+                    [["x", "y", "z"]],
+                );
+            });
+
+            it("removes nothing for a non-canonical index among several keys", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "forget-list-key-cast", row "01": only the canonical key removes
+                // an item, so '0.2' takes 'z' and '0.01' takes nothing.
+                // JS-only: PHP keeps the surviving items at keys 0 and 1; a JS list
+                // reindexes, which Task A2 documents as deliberate.
+                expect(
+                    Path.forgetKeysArray([["x", "y", "z"]], ["0.01", "0.2"]),
+                ).toEqual([["x", "y"]]);
+            });
+        });
+
+        describe("undotExpandArray", () => {
+            it("skips a non-canonical index rather than folding it into one", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "undot-noncanonical-index": PHP keeps "01" a string key.
+                // JS-only: a JS list holds only indices, so `arr.undot` throws for
+                // such a key and this builder drops it; `obj.undot` keeps it.
+                expect(Path.undotExpandArray({ "01": "a" })).toEqual([]);
+                expect(Path.undotExpandArray({ "0.01": "a" })).toEqual([]);
+            });
+        });
+
+        describe("getMixedValue", () => {
+            it("resolves the same casts the write path uses", () => {
+                // docs/php-parity/task-24-data-release-readiness.json,
+                // "get-write-path-key-cast"
+                expect(Path.getMixedValue([{ "": 1 }], "0.")).toBe(1);
+                expect(Path.getMixedValue([["a", "b"]], "0.01")).toBeNull();
+                expect(Path.getMixedValue([{ "01": "z" }], "0.01")).toBe("z");
+                expect(Path.getMixedValue(["a", "b"], "01")).toBeNull();
+            });
         });
     });
 });

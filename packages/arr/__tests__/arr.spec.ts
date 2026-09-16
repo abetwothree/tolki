@@ -1281,8 +1281,10 @@ describe("Arr", () => {
             expect(Arr.forget([], "0")).toEqual([]);
             expect(Arr.forget([], ["0", "1"])).toEqual([]);
 
-            // 8) Numeric-string with leading zeros acts numerically
-            expect(Arr.forget(base, "01")).toEqual(["products"]);
+            // 8) A numeric string with leading zeros is a string key no list holds
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "forget-top-level-key-cast", row "01"
+            expect(Arr.forget(base, "01")).toEqual(base);
 
             // 9) Mixed valid/invalid multi-keys only apply valid parts
             expect(Arr.forget(base, ["1.0", "foo", "1.a", "", ".."])).toEqual([
