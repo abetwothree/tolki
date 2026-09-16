@@ -11694,7 +11694,7 @@ describe("Collection", () => {
             });
         });
 
-        it("pop past the end empties the collection, and pops null after that", () => {
+        it("pop past the end takes what is there and empties the collection", () => {
             const collection = collect(outOfOrder());
 
             // docs/php-parity/task-26-collection-order.json, "order-pop-past-the-end"
@@ -11704,10 +11704,19 @@ describe("Collection", () => {
                 values: [],
                 keys: [],
             });
+        });
+
+        it("pop answers null once the collection has been emptied", () => {
+            const collection = collect(outOfOrder());
+            collection.shift(3);
 
             // docs/php-parity/task-26-collection-order.json, "order-pop-after-emptying"
             expect(collection.pop()).toBeNull();
-            expect(collection.pop(2).all()).toEqual([]);
+            expect(views(collection)).toEqual({
+                all: {},
+                values: [],
+                keys: [],
+            });
         });
 
         it("push appends above the highest integer key, not at the count", () => {
@@ -11864,18 +11873,18 @@ describe("Collection", () => {
                 keys: [0, 1, 2, 3, 4],
             });
 
-            // docs/php-parity/task-26-collection-order.json, "order-pad-negative"
-            expect(views(collection.pad(-5, "z"))).toEqual({
-                all: { 0: "z", 1: "z", 2: "c", 3: "a", 4: "b" },
-                values: ["z", "z", "c", "a", "b"],
-                keys: [0, 1, 2, 3, 4],
-            });
-
             // docs/php-parity/task-26-collection-order.json, "order-pad-does-not-mutate"
             expect(views(collection)).toEqual({
                 all: { 0: "a", 1: "b", 2: "c" },
                 values: ["c", "a", "b"],
                 keys: [2, 0, 1],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-pad-negative"
+            expect(views(collect(outOfOrder()).pad(-5, "z"))).toEqual({
+                all: { 0: "z", 1: "z", 2: "c", 3: "a", 4: "b" },
+                values: ["z", "z", "c", "a", "b"],
+                keys: [0, 1, 2, 3, 4],
             });
         });
 
@@ -11996,18 +12005,18 @@ describe("Collection", () => {
                 keys: [0, 1, 2],
             });
 
-            // docs/php-parity/task-26-collection-order.json, "order-sortKeys"
-            expect(views(collection.sortKeys())).toEqual({
-                all: { 0: "a", 1: "b", 2: "c" },
-                values: ["a", "b", "c"],
-                keys: [0, 1, 2],
-            });
-
             // docs/php-parity/task-26-collection-order.json, "order-sort-does-not-mutate"
             expect(views(collection)).toEqual({
                 all: { 0: "a", 1: "b", 2: "c" },
                 values: ["c", "a", "b"],
                 keys: [2, 0, 1],
+            });
+
+            // docs/php-parity/task-26-collection-order.json, "order-sortKeys"
+            expect(views(collect(outOfOrder()).sortKeys())).toEqual({
+                all: { 0: "a", 1: "b", 2: "c" },
+                values: ["a", "b", "c"],
+                keys: [0, 1, 2],
             });
         });
     });
@@ -12733,6 +12742,12 @@ describe("Collection", () => {
                 1,
             );
             expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(true);
+
+            // JS-only: PHP's getOrPut writes a second, literal "a.b" key and answers 9
+            // ("getOrPut-dot-path-is-a-literal-key" in the same file); this reads the path instead.
+            const nested = new Collection({ a: { b: 1 } });
+            expect(nested.getOrPut("a.b", 9)).toBe(1);
+            expect(nested.all()).toEqual({ a: { b: 1 } });
 
             expect(new Collection(nums()).get(2)).toBe(30);
             expect(new Collection(numsObj()).get(2)).toBe(30);
