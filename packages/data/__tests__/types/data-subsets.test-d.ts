@@ -149,13 +149,13 @@ describe("data subsets type tests", () => {
             );
         });
 
-        it("takes a read-only key list on a list backing, unpinned", () => {
-            // No delegate pin is expressible: `arr.has` declares `PathKeys`, whose
-            // `Array<PathKey>` is mutable, so `Arr.has(numberList, readonlyIndices)`
-            // does not compile. Both delegates answer boolean, so the row still holds.
+        it("takes a read-only key list on a list backing", () => {
+            // The obj pin below compiles but cannot discriminate: both delegates answer
+            // boolean, so it would hold whichever one ran. The `@ts-expect-error` is the
+            // real control — `arr.has` declares `PathKeys`, whose `Array<PathKey>` is mutable.
             expectTypeOf(
                 Data.dataHas(numberList, readonlyIndices),
-            ).toEqualTypeOf<boolean>();
+            ).toEqualTypeOf(Obj.has(numberList, readonlyIndices));
             // @ts-expect-error arr.has's PathKeys rejects a read-only index tuple
             Arr.has(numberList, readonlyIndices);
         });
@@ -168,16 +168,16 @@ describe("data subsets type tests", () => {
         it("types dataExcept from obj's array-rejecting row", () => {
             expectTypeOf(
                 Data.dataExcept(numberList, readonlyIndices),
-            ).toEqualTypeOf<Record<string, never>>();
+            ).toEqualTypeOf(Obj.except(numberList, readonlyIndices));
         });
 
         it("types dataOnly and dataForget the same way", () => {
             expectTypeOf(
                 Data.dataOnly(numberList, readonlyIndices),
-            ).toEqualTypeOf<Record<string, never>>();
+            ).toEqualTypeOf(Obj.only(numberList, readonlyIndices));
             expectTypeOf(
                 Data.dataForget(numberList, readonlyIndices),
-            ).toEqualTypeOf<Record<string, never>>();
+            ).toEqualTypeOf(Obj.forget(numberList, readonlyIndices));
         });
     });
 
