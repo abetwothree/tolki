@@ -3106,13 +3106,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param operator - The operator to use for comparison, or null if key is a callback
      * @param value - The value to compare against, or null if key is a callback
      * @returns The first matching item in the collection
+     * @throws ItemNotFoundException if no item matches.
      *
      * @example
      *
      * new Collection([1, 2, 3]).firstOrFail(); -> 1
      * new Collection([{id: 1}, {id: 2}]).firstOrFail('id', '==', 2); -> {id: 2}
      * new Collection([{id: 1}, {id: 2}]).firstOrFail(item => item.id === 1); -> {id: 1}
-     * new Collection([]).firstOrFail(); -> Error: No items found in the collection.
+     * new Collection([]).firstOrFail(); -> throws ItemNotFoundException
      */
     firstOrFail(
         key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
@@ -3141,7 +3142,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const item = this.first(filter, placeholder);
 
         if (item === placeholder) {
-            throw new Error("No items found in the collection.");
+            throw new ItemNotFoundException();
         }
 
         return item;

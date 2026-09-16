@@ -2,6 +2,10 @@ import * as Arr from "@tolki/arr";
 import { collect, Collection } from "@tolki/collection";
 import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
+import {
+    ItemNotFoundException,
+    MultipleItemsFoundException,
+} from "@tolki/utils";
 import { afterEach, assertType, describe, expect, it } from "vitest";
 
 import {
@@ -6582,14 +6586,17 @@ describe("Collection", () => {
                 expect(c.sole("name", "foo")).toEqual({ name: "foo" });
             });
 
+            // CollectionTest::testSoleThrowsExceptionIfNoItemsExist
             it("test sole throws exception if no items exist", () => {
                 const c = collect([{ name: "foo" }, { name: "bar" }]);
 
                 expect(() => {
                     c.where("name", "INVALID").sole();
-                }).toThrowError();
+                }).toThrowError(ItemNotFoundException);
             });
 
+            // CollectionTest::testSoleThrowsExceptionIfMoreThanOneItemExists,
+            // whose expectExceptionObject pins the count in the message too
             it("test sole throws exception if more than one item exists", () => {
                 const c = collect([
                     { name: "foo" },
@@ -6599,7 +6606,10 @@ describe("Collection", () => {
 
                 expect(() => {
                     c.where("name", "foo").sole();
-                }).toThrowError();
+                }).toThrowError(MultipleItemsFoundException);
+                expect(() => {
+                    c.where("name", "foo").sole();
+                }).toThrowError("2 items were found.");
             });
 
             it("test sole returns first item in collection if only one exists with callback", () => {
@@ -6647,12 +6657,13 @@ describe("Collection", () => {
                 expect(c.firstOrFail("name", "foo")).toEqual({ name: "foo" });
             });
 
+            // CollectionTest::testFirstOrFailThrowsExceptionIfNoItemsExist
             it("test first or fail throws exception if no items exist", () => {
                 const c = collect([{ name: "foo" }, { name: "bar" }]);
 
                 expect(() => {
                     c.where("name", "INVALID").firstOrFail();
-                }).toThrowError();
+                }).toThrowError(ItemNotFoundException);
             });
 
             it("test first or fail doesnt throw exception if more than one item exists", () => {
@@ -6675,6 +6686,7 @@ describe("Collection", () => {
                 expect(result).toBe("bar");
             });
 
+            // CollectionTest::testFirstOrFailThrowsExceptionIfNoItemsExistWithCallback
             it("test first or fail throws exception if no items exist with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
 
@@ -6682,7 +6694,22 @@ describe("Collection", () => {
                     data.firstOrFail((value) => {
                         return value === "invalid";
                     });
-                }).toThrowError();
+                }).toThrowError(ItemNotFoundException);
+            });
+
+            // ItemNotFoundException carries no message, as Laravel's does not:
+            // it extends RuntimeException without a constructor.
+            it("test first or fail throws an exception carrying no message", () => {
+                const data = collect(["foo"]);
+
+                expect(() => {
+                    data.firstOrFail((value) => value === "invalid");
+                }).toThrowError(
+                    expect.objectContaining({
+                        name: "ItemNotFoundException",
+                        message: "",
+                    }),
+                );
             });
 
             it("test first or fail doesn't throw exception if more than one item exists with callback", () => {
