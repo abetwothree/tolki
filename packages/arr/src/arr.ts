@@ -236,15 +236,31 @@ function copyAlongPath(
             return root;
         }
 
-        // Descriptors, not a spread: Arr::set stores a key that is no list index on the
-        // list itself, and a spread would copy only the indexed elements back out.
+        // The spread carries the elements and the length; Arr::set also stores non-index
+        // keys on the list itself, so each key it missed is replayed below.
         const clone: unknown[] | Record<string, unknown> = isArray(child)
-            ? []
+            ? [...child]
             : {};
-        Object.defineProperties(
-            clone,
-            Object.getOwnPropertyDescriptors(child) as PropertyDescriptorMap,
-        );
+        const source = child as Record<PropertyKey, unknown>;
+
+        for (const name of Reflect.ownKeys(child)) {
+            if (Object.hasOwn(clone, name)) {
+                continue;
+            }
+
+            // Normalised data, never the source descriptor: `writable: false` would break
+            // the very write this copy exists for, and a replayed accessor would leave the
+            // copy reading the caller's backing store.
+            Object.defineProperty(clone, name, {
+                value: source[name],
+                writable: true,
+                enumerable: Object.prototype.propertyIsEnumerable.call(
+                    child,
+                    name,
+                ),
+                configurable: true,
+            });
+        }
 
         defineKey(cursor, segment, clone);
         cursor = clone as Record<string, unknown>;

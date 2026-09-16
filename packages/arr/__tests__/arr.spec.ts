@@ -177,6 +177,43 @@ describe("Arr", () => {
             expect(first).not.toBe(inner);
         });
 
+        it("writes into a frozen nested container instead of throwing", () => {
+            // JS-only: PHP has no frozen array, and the copy step used to replay the
+            // source's own `writable: false` descriptors onto the copy it must write to.
+            const frozenList = Object.freeze(["a"]);
+
+            expect(Arr.add([frozenList], "0.1", "z")).toEqual([["a", "z"]]);
+            expect(frozenList).toEqual(["a"]);
+
+            const frozenRecord = Object.freeze({ desk: 100 });
+
+            expect(Arr.add([frozenRecord], "0.chair", 150)).toEqual([
+                { desk: 100, chair: 150 },
+            ]);
+            expect(frozenRecord).toEqual({ desk: 100 });
+        });
+
+        it("reads a nested accessor once instead of copying it live", () => {
+            // JS-only: PHP has no property accessor. Copying the getter itself left the
+            // returned copy reading the caller's backing store on every later access.
+            const backing = { value: 1 };
+            const inner: Record<string, unknown> = {};
+            Object.defineProperty(inner, "reading", {
+                get: () => backing.value,
+                enumerable: true,
+                configurable: true,
+            });
+
+            const [first] = Arr.add([inner], "0.unit", "kg") as unknown[];
+            backing.value = 999;
+
+            expect(first).not.toBe(inner);
+            expect(first).toEqual({ reading: 1, unit: "kg" });
+            expect(
+                Object.getOwnPropertyDescriptor(first as object, "reading")?.get,
+            ).toBeUndefined();
+        });
+
         it("leaves the caller's value alone when the key already exists", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "add-existing-key-is-a-no-op"
@@ -2193,6 +2230,15 @@ describe("Arr", () => {
                 ["01", "V"],
             ]);
             expect(first).not.toBe(inner);
+        });
+
+        it("writes into a frozen nested list instead of throwing", () => {
+            // JS-only: the push half. Array.prototype.push throws on a length-non-writable
+            // array in sloppy mode too, so the copy has to normalise every descriptor.
+            const frozenList = Object.freeze(["a"]);
+
+            expect(Arr.push([frozenList], "0", "z")).toEqual([["a", "z"]]);
+            expect(frozenList).toEqual(["a"]);
         });
 
         it("leaves the caller's list alone for a missing index", () => {
