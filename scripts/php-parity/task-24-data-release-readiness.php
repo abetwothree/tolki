@@ -756,4 +756,81 @@ probe('push-integer-key-mutates-the-caller-by-reference', "\$src = [['x']]; Arr:
     return ['source' => $src, 'result' => $result];
 });
 
+// ==== Task D6 Step 4b: what mapWithKeys does with a LIST return (the PHP equivalent of a
+// ==== JavaScript [key, value] tuple). Both wrap the same foreach over the returned array.
+probe('d6-map-with-keys-list-return', "Arr::mapWithKeys(['a' => 1, 'b' => 2], fn (\$v, \$k) => [\"key_\$k\", \$v * 2])", function () {
+    return [
+        'arr-assoc' => Arr::mapWithKeys(['a' => 1, 'b' => 2], fn ($v, $k) => ["key_$k", $v * 2]),
+        'collection-assoc' => (new Collection(['a' => 1, 'b' => 2]))->mapWithKeys(fn ($v, $k) => ["key_$k", $v * 2])->all(),
+        'collection-list' => (new Collection([1, 2]))->mapWithKeys(fn ($v, $k) => ["key_$k", $v * 2])->all(),
+        'arr-single-row' => Arr::mapWithKeys(['a' => 1], fn ($v, $k) => ["key_$k", $v * 2]),
+        'arr-pair-return' => Arr::mapWithKeys(['a' => 1, 'b' => 2], fn ($v, $k) => [$k => $v * 2]),
+    ];
+});
+
+// ==== Task D6 Step 2: the set operations neither @tolki/arr nor @tolki/obj ports yet.
+probe('d6-diff-keys', "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeys(['id' => 123, 'foo_bar' => 'Hello'])", function () {
+    return [
+        'assoc' => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeys(['id' => 123, 'foo_bar' => 'Hello'])->all(),
+        'assoc-value-ignored' => (new Collection(['a' => 1, 'b' => 2]))->diffKeys(['a' => 999])->all(),
+        'list' => (new Collection([1, 2, 3]))->diffKeys([9, 9])->all(),
+        'list-keyed-operand' => (new Collection([1, 2]))->diffKeys(['a' => 1, 1 => 5])->all(),
+        'nullish-operand' => (new Collection(['a' => 1]))->diffKeys(null)->all(),
+        'collection-operand' => (new Collection(['a' => 1, 'b' => 2]))->diffKeys(new Collection(['a' => 9]))->all(),
+    ];
+});
+probe('d6-diff-using', "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->diffUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')", function () {
+    return [
+        'assoc' => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->diffUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')->all(),
+        'list' => (new Collection(['green', 'brown', 'blue']))->diffUsing(['GREEN', 'yellow'], 'strcasecmp')->all(),
+        'nullish-operand' => (new Collection(['a' => 'green']))->diffUsing(null, 'strcasecmp')->all(),
+        'collection-operand' => (new Collection(['a' => 'green', 'b' => 'brown']))->diffUsing(new Collection(['GREEN']), 'strcasecmp')->all(),
+    ];
+});
+probe('d6-intersect-using', "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->intersectUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')", function () {
+    return [
+        'assoc' => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->intersectUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')->all(),
+        'list' => (new Collection(['green', 'brown', 'blue']))->intersectUsing(['GREEN', 'yellow'], 'strcasecmp')->all(),
+        'nullish-operand' => (new Collection(['a' => 'green']))->intersectUsing(null, 'strcasecmp')->all(),
+        'collection-operand' => (new Collection(['a' => 'green', 'b' => 'brown']))->intersectUsing(new Collection(['GREEN']), 'strcasecmp')->all(),
+    ];
+});
+probe('d6-diff-assoc-using-and-diff-keys-using-on-a-list', "(new Collection([1, 2, 3]))->diffAssocUsing([1, 9, 3], 'strcasecmp') / ->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')", function () {
+    return [
+        'diffAssocUsing-list' => (new Collection([1, 2, 3]))->diffAssocUsing([1, 9, 3], 'strcasecmp')->all(),
+        'diffKeysUsing-list' => (new Collection([1, 2]))->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')->all(),
+        'diffAssocUsing-assoc' => (new Collection(['a' => 'green', 'b' => 'brown']))->diffAssocUsing(['A' => 'green', 'c' => 'blue'], 'strcasecmp')->all(),
+        'diffKeysUsing-assoc' => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeysUsing(['ID' => 123, 'foo_bar' => 'Hello'], 'strcasecmp')->all(),
+    ];
+});
+
+// ==== Task D6 Step 3 (F-14): a Collection row is spread through its ITEMS, because
+// ==== `$chunk[] = $key` appends to the Collection and `...$chunk` walks the Traversable.
+probe('d6-map-spread-collection-row', "\$rows = [new Collection([1, 'a'])]; Arr::mapSpread(\$rows, fn (\$n, \$c, \$k) => \"\$n-\$c-\$k\")", function () {
+    $rows = [new Collection([1, 'a']), new Collection([2, 'b'])];
+    $listResult = Arr::mapSpread($rows, fn ($n, $c, $k) => "$n-$c-$k");
+    $assocRows = ['x' => new Collection([1, 'a']), 'y' => new Collection([2, 'b'])];
+    $assocResult = Arr::mapSpread($assocRows, fn ($n, $c, $k) => "$n-$c-$k");
+
+    return [
+        'list' => $listResult,
+        'assoc' => $assocResult,
+        'row-mutated-to' => $rows[0]->all(),
+        'collection-mapSpread' => (new Collection([new Collection([1, 'a']), new Collection([2, 'b'])]))
+            ->mapSpread(fn ($n, $c, $k) => "$n-$c-$k")->all(),
+    ];
+});
+
+// ==== Task D6 Step 4c: Arr::set descends by is_array too, so a nested object on the path
+// ==== is replaced wholesale rather than written into. The add twin is recorded above.
+probe('d6-set-assoc-nested-object-is-replaced-wholesale', "\$src = ['a' => new D4Point(1)]; Arr::set(\$src, 'a.y', 2)", function () {
+    $src = ['a' => new D4Point(1)];
+    Arr::set($src, 'a.y', 2);
+
+    return [
+        'result' => $src,
+        'result_type' => get_debug_type($src['a']),
+    ];
+});
+
 emit();

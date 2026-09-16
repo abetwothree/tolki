@@ -2305,6 +2305,145 @@
                     ]
                 ]
             }
+        },
+        {
+            "label": "d6-map-with-keys-list-return",
+            "php": "Arr::mapWithKeys(['a' => 1, 'b' => 2], fn ($v, $k) => [\"key_$k\", $v * 2])",
+            "value": {
+                "arr-assoc": [
+                    "key_b",
+                    4
+                ],
+                "collection-assoc": [
+                    "key_b",
+                    4
+                ],
+                "collection-list": [
+                    "key_1",
+                    4
+                ],
+                "arr-single-row": [
+                    "key_a",
+                    2
+                ],
+                "arr-pair-return": {
+                    "a": 2,
+                    "b": 4
+                }
+            }
+        },
+        {
+            "label": "d6-diff-keys",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeys(['id' => 123, 'foo_bar' => 'Hello'])",
+            "value": {
+                "assoc": {
+                    "first_word": "Hello"
+                },
+                "assoc-value-ignored": {
+                    "b": 2
+                },
+                "list": {
+                    "2": 3
+                },
+                "list-keyed-operand": [
+                    1
+                ],
+                "nullish-operand": {
+                    "a": 1
+                },
+                "collection-operand": {
+                    "b": 2
+                }
+            }
+        },
+        {
+            "label": "d6-diff-using",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->diffUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')",
+            "value": {
+                "assoc": {
+                    "b": "brown",
+                    "c": "blue"
+                },
+                "list": {
+                    "1": "brown",
+                    "2": "blue"
+                },
+                "nullish-operand": {
+                    "a": "green"
+                },
+                "collection-operand": {
+                    "b": "brown"
+                }
+            }
+        },
+        {
+            "label": "d6-intersect-using",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->intersectUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')",
+            "value": {
+                "assoc": {
+                    "a": "green"
+                },
+                "list": [
+                    "green"
+                ],
+                "nullish-operand": [],
+                "collection-operand": {
+                    "a": "green"
+                }
+            }
+        },
+        {
+            "label": "d6-diff-assoc-using-and-diff-keys-using-on-a-list",
+            "php": "(new Collection([1, 2, 3]))->diffAssocUsing([1, 9, 3], 'strcasecmp') / ->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')",
+            "value": {
+                "diffAssocUsing-list": {
+                    "1": 2
+                },
+                "diffKeysUsing-list": [
+                    1
+                ],
+                "diffAssocUsing-assoc": {
+                    "b": "brown"
+                },
+                "diffKeysUsing-assoc": {
+                    "first_word": "Hello"
+                }
+            }
+        },
+        {
+            "label": "d6-map-spread-collection-row",
+            "php": "$rows = [new Collection([1, 'a'])]; Arr::mapSpread($rows, fn ($n, $c, $k) => \"$n-$c-$k\")",
+            "value": {
+                "list": [
+                    "1-a-0",
+                    "2-b-1"
+                ],
+                "assoc": {
+                    "x": "1-a-x",
+                    "y": "2-b-y"
+                },
+                "row-mutated-to": [
+                    1,
+                    "a",
+                    0
+                ],
+                "collection-mapSpread": [
+                    "1-a-0",
+                    "2-b-1"
+                ]
+            }
+        },
+        {
+            "label": "d6-set-assoc-nested-object-is-replaced-wholesale",
+            "php": "$src = ['a' => new D4Point(1)]; Arr::set($src, 'a.y', 2)",
+            "value": {
+                "result": {
+                    "a": {
+                        "y": 2
+                    }
+                },
+                "result_type": "array"
+            }
         }
     ]
 }
