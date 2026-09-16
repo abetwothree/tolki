@@ -3096,13 +3096,18 @@ export function mapSpread<
     const result: Record<PropertyKey, TMapSpreadValue> = {};
 
     for (const [key, item] of Object.entries(obj)) {
+        // A Collection row carries its items behind all(): PHP's `...$chunk` walks the
+        // Traversable, where spreading the instance would hand over its own fields.
+        const row =
+            isObject(item) && isFunction(item["all"]) ? item["all"]() : item;
+
         // Arr::mapSpread spreads a list row; a plain-object row spreads its values and a scalar
         // passes whole, which PHP rejects but is kept as JS leniency.
-        const args = isArray(item)
-            ? item
-            : isObject(item)
-              ? Object.values(item)
-              : [item];
+        const args = isArray(row)
+            ? row
+            : isObject(row)
+              ? Object.values(row)
+              : [row];
 
         defineKey(
             result as Record<string, TMapSpreadValue>,

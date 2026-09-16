@@ -7448,6 +7448,32 @@ describe("Obj", () => {
             expect(Obj.mapSpread(null, () => "test")).toEqual({});
             expect(Obj.mapSpread([], () => "test")).toEqual({});
         });
+
+        it("spreads a Collection-like row's items, not its own fields", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-map-spread-collection-row"
+            const rows = {
+                x: collectionLike([1, "a"]),
+                y: collectionLike([2, "b"]),
+            };
+
+            expect(
+                Obj.mapSpread(
+                    rows,
+                    (n, c, k) => `${String(n)}-${String(c)}-${String(k)}`,
+                ),
+            ).toEqual({ x: "1-a-x", y: "2-b-y" });
+        });
+
+        it("leaves the row alone where PHP appends the key to it", () => {
+            // JS-only: the same row records `row-mutated-to` [1, "a", 0] — PHP's
+            // `$chunk[] = $key` writes through the Collection handle. Only pop, shift,
+            // splice and unshift mutate here, so the row is read, never written.
+            const items = [1, "a"];
+
+            Obj.mapSpread({ x: collectionLike(items) }, (n, c, k) => [n, c, k]);
+
+            expect(items).toEqual([1, "a"]);
+        });
     });
 
     describe("exceptValues", () => {

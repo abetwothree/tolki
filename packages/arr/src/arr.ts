@@ -2574,7 +2574,12 @@ export function mapSpread<TMapReturn>(
     const result: TMapReturn[] = [];
 
     for (let i = 0; i < values.length; i++) {
-        const chunk = values[i];
+        const row = values[i];
+        // A Collection row carries its items behind all(): `$chunk[] = $key` appends to the
+        // Collection itself and `...$chunk` then walks the Traversable, not its fields.
+        const chunk =
+            isObject(row) && isFunction(row["all"]) ? row["all"]() : row;
+
         if (isArray(chunk)) {
             // Spread the chunk elements and append the index
             result.push(callback(...chunk, i));
