@@ -69,6 +69,15 @@ describe("obj mapping type tests", () => {
             ).toEqualTypeOf<Record<"total", number>>();
         });
 
+        it("widens a literal mapped value, as a fresh record's values are writable", () => {
+            // The list row above infers its tuple from `readonly [...TMapped]`. Written
+            // with a `const` type parameter instead, that inference leaks across overload
+            // resolution and narrows THIS record's value to 1, which nothing may assign to.
+            expectTypeOf(Obj.mapWithKeys(abc, () => ({ x: 1 }))).toEqualTypeOf<
+                Record<"x", number>
+            >();
+        });
+
         it("files a list return under its own indexes, as the fold does", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "d6-map-with-keys-list-return": ['a'=>1,'b'=>2] with a ["key_$k", $v*2]
@@ -78,7 +87,7 @@ describe("obj mapping type tests", () => {
                     `key_${String(key)}`,
                     value * 2,
                 ]),
-            ).toEqualTypeOf<{ 0: `key_${string}`; 1: number }>();
+            ).toEqualTypeOf<{ 0: string; 1: number }>();
         });
 
         it("keeps an unbounded list return on its index signature", () => {

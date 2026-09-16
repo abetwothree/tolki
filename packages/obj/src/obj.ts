@@ -3077,12 +3077,18 @@ export function mapWithKeys(
 ): Record<string, never>;
 // A list return files its members under their own indexes, so it has to be read before the
 // record row, whose `Record<TMapKey, …>` would otherwise infer TMapKey as `keyof` the list.
+// `readonly [...TMapped]`, not `TMapped`: the variadic spread is what makes an array literal
+// infer as a tuple. A `const` modifier does that too, but it leaks across overload resolution
+// and narrows the RECORD row's values to their literal types (`{ x: 1 }` -> Record<"x", 1>).
 export function mapWithKeys<
     T extends object,
-    const TMapped extends readonly unknown[],
+    TMapped extends readonly unknown[],
 >(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => TMapped,
+    callback: (
+        value: ObjectValue<T>,
+        key: ObjectKey<T>,
+    ) => readonly [...TMapped],
 ): MapWithKeysList<TMapped>;
 export function mapWithKeys<
     T extends object,
