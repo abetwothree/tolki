@@ -2617,6 +2617,26 @@
             }
         },
         {
+            "label": "e3-set-noncanonical-index-nested-scalar-element",
+            "php": "$a = ['a','b']; Arr::set($a, '0.01', 5)",
+            "value": {
+                "written": [
+                    {
+                        "01": 5
+                    },
+                    "b"
+                ],
+                "keys": [
+                    "int:0",
+                    "int:1"
+                ],
+                "element 0 keys": [
+                    "string:01"
+                ],
+                "read back": 5
+            }
+        },
+        {
             "label": "r3-operator-table",
             "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for all eleven operators",
             "value": {

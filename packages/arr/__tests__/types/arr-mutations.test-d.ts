@@ -96,7 +96,7 @@ describe("arr mutations type tests", () => {
         it("rebuilds a record when the rest only looks like an index", () => {
             // The same canonical-spelling rule one segment deeper: "01" seeds a record,
             // not a list, so the element gains that key. docs/php-parity/
-            // task-24-data-release-readiness.json, "set-then-get-noncanonical-index-nested"
+            // task-24-data-release-readiness.json, "e3-set-noncanonical-index-nested-scalar-element"
             expectTypeOf(Arr.set(["a", "b"], "0.01", 5)).toEqualTypeOf<
                 (string | { "01": number })[]
             >();

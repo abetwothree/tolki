@@ -931,6 +931,20 @@ probe('r2-set-noncanonical-index-head-with-rest', "\$a = ['a','b']; Arr::set(\$a
     ];
 });
 
+// ==== E3: the exact call arr-mutations.test-d.ts asserts. The recorded nested row starts from
+// ==== [[]]; this one starts from a scalar element, which is what the type assertion widens.
+probe('e3-set-noncanonical-index-nested-scalar-element', "\$a = ['a','b']; Arr::set(\$a, '0.01', 5)", function () {
+    $a = ['a', 'b'];
+    Arr::set($a, '0.01', 5);
+
+    return [
+        'written' => $a,
+        'keys' => array_map(fn ($key) => get_debug_type($key) . ':' . $key, array_keys($a)),
+        'element 0 keys' => array_map(fn ($key) => get_debug_type($key) . ':' . $key, array_keys($a[0])),
+        'read back' => Arr::get($a, '0.01'),
+    ];
+});
+
 // ==== fix-round-3 Group A/E: the whole operatorForWhere operand table. "contains-three-args-
 // ==== operator" records only four of the eleven operators, and NO row anywhere in
 // ==== docs/php-parity/ records a relational operator against null, or NAN under `<=>`.
