@@ -116,11 +116,15 @@ type PathHead<TPath extends string> = TPath extends `${infer THead}.${string}`
 // ArraySetPath* (set): Arr::set replaces a non-record element with a fresh container before
 // writing, so only a record element is merged onto. A rest starting with an index seeds a
 // list instead, whose own member types this row deliberately approximates.
-type ArraySetPathTarget<TValue> = TValue extends readonly unknown[]
-    ? Record<never, never>
-    : TValue extends object
-      ? TValue
-      : Record<never, never>;
+// `object`, not `Record<never, never>`: an empty array's element type is `never`, and the
+// record seed's own index signatures rode that through into the public answer.
+type ArraySetPathTarget<TValue> = [TValue] extends [never]
+    ? object
+    : TValue extends readonly unknown[]
+      ? object
+      : TValue extends object
+        ? TValue
+        : object;
 type ArraySetPathElement<
     TValue,
     TRest extends string,
@@ -1978,13 +1982,14 @@ export function keyBy<TValue extends object>(
         | ((item: TValue, key: number) => string | number | null | undefined)
         | string,
 ): Record<string, TValue>;
-// Overload: untyped array or nullish fallback
+// Overload: untyped array or nullish fallback. `Record<string, unknown>`, not the
+// unresolved `TValue`: that row answered `Record<string, object>`, which permits no read.
 export function keyBy<TValue extends object>(
     data: readonly unknown[] | null | undefined,
     keyBy:
         | string
         | ((item: TValue, key: number) => string | number | null | undefined),
-): Record<string, TValue>;
+): Record<string, unknown>;
 // Implementation
 export function keyBy<TValue extends object>(
     data: ArrayItems<TValue> | unknown,
@@ -4221,6 +4226,8 @@ export function filter<TValue>(
  * wrap(null); -> []
  * wrap(undefined); -> [undefined]
  */
+// A bare literal makes this row specialized, so TypeScript tries it first — which is
+// where it belongs anyway. Deliberate, not the violation it keeps being read as.
 export function wrap(value: null): [];
 export function wrap<TValue>(value: TValue[]): TValue[];
 // Overload: readonly array → passed through unchanged (must sit above the

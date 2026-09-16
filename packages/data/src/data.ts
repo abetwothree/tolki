@@ -225,9 +225,9 @@ type NonObjectBacking =
  *   now a limit of the row shapes rather than a mutation risk; widening it needs its own task.
  * - a backing the compiler has **not narrowed** (`unknown`), which no typed row can claim.
  *
- * Relax these then, deliberately rather than by accident. Every other backing every sibling write
- * helper takes is accepted here: a Map, a Set, a list, a record, an interface, a class instance,
- * and a scalar, string or nullish value.
+ * Relaxing either is its own task, and has to be a deliberate widening of the rows rather than a
+ * side effect. Every other backing every sibling write helper takes is accepted here: a Map, a
+ * Set, a list, a record, an interface, a class instance, and a scalar, string or nullish value.
  */
 interface DataAdd {
     (

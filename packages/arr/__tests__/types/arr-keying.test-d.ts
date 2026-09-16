@@ -12,8 +12,18 @@ import {
     users,
 } from "./fixtures";
 
+declare const untypedRows: unknown[];
+
 describe("arr keying type tests", () => {
     describe("keyBy", () => {
+        it("answers a readable value type for an untyped array", () => {
+            // The row used to resolve its unfixed `TValue extends object` to `object`,
+            // which permits no read at all.
+            expectTypeOf(Arr.keyBy(untypedRows, "id")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+
         it("preserves the element type with a string key", () => {
             const result = Arr.keyBy(users, "id");
             expectTypeOf(result).toEqualTypeOf<

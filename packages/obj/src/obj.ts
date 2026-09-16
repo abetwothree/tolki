@@ -4885,6 +4885,8 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
  * wrap(null); -> {}
  * wrap(undefined); -> { 0: undefined }
  */
+// A bare literal makes this row specialized, so TypeScript tries it first — which is
+// where it belongs anyway. Deliberate, not the violation it keeps being read as.
 export function wrap(value: null): Record<string, never>;
 export function wrap<T>(value: T): WrapResult<T>;
 export function wrap<TValue>(

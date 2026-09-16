@@ -119,6 +119,14 @@ describe("arr mutations type tests", () => {
             expectTypeOf(Arr.set([], 0, "a")).toEqualTypeOf<string[]>();
         });
 
+        it("synthesizes just the written record for an empty array", () => {
+            // An empty array's element type is `never`, which used to carry the fresh
+            // container seed's own index signatures out into the public answer.
+            expectTypeOf(Arr.set([], "0.x", 5)).toEqualTypeOf<
+                { x: number }[]
+            >();
+        });
+
         it("does not duplicate a same-shaped object value into a union", () => {
             // Regression coverage: dropping the same-type overload (and
             // then reinstating it without `NoInfer`) let `TValue` and a
