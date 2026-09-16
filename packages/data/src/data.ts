@@ -1017,7 +1017,8 @@ export const dataRandom = dispatch(arrRandom, objRandom);
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
- * @returns The key of the found item or false
+ * @returns The key of the found item, the index when the backing is a list or a
+ * numeric-string-keyed record, or false
  */
 // Overload: list backing, whose key is the index
 export function dataSearch<TValue>(
@@ -1081,7 +1082,7 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
- * @returns The item before the found item or false
+ * @returns The item before the found item or null
  */
 // Overload: list backing, whose key is the index
 export function dataBefore<TValue>(
