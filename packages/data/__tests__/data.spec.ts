@@ -102,8 +102,8 @@ describe("Data", () => {
 
         it("descends into a nested list on both backings", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "d6-nested-list-is-descended-not-replaced": ['a' => ['q']] plus
-            // Arr::add($src, 'a.1', 'y') answers {"a": ["q", "y"]} and leaves the source.
+            // "d6-nested-list-in-a-list-is-descended" ([['q']], '0.1') and
+            // "d6-nested-list-is-descended-not-replaced" (['a' => ['q']], 'a.1').
             const listInner = ["q"];
             const recordInner = ["q"];
 

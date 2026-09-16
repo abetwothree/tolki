@@ -3606,18 +3606,26 @@ describe("Arr", () => {
         });
 
         it("ignores values entirely", () => {
-            // Same row, "assoc-value-ignored": diffKeys(['a'=>1,'b'=>2], ['a'=>999]) -> ['b'=>2].
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // "diffKeys-value-ignored": [1, 2] against [999] answers [1 => 2] — index 0
+            // is dropped although 999 is neither value.
             expect(Arr.diffKeys([1, 2], [999])).toEqual([2]);
         });
 
-        it("keeps everything for a nullish operand and nothing for nullish data", () => {
-            // Same row, "nullish-operand".
+        it("keeps everything for a nullish operand", () => {
+            // Same row, "diffKeys-nullish-operand": [1, 2] against null answers [1, 2].
             expect(Arr.diffKeys([1, 2], null)).toEqual([1, 2]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Arr.diffKeys(null, [1])).toEqual([]);
         });
 
         it("unwraps a Collection-like operand", () => {
-            // Same row, "collection-operand".
+            // Same row, "diffKeys-collection-operand": [1, 2] against Collection([9])
+            // answers [1 => 2].
             expect(Arr.diffKeys([1, 2], collectionLike([9]))).toEqual([2]);
         });
     });
@@ -3634,14 +3642,21 @@ describe("Arr", () => {
             ).toEqual(["brown", "blue"]);
         });
 
-        it("keeps everything for a nullish operand and nothing for nullish data", () => {
-            // Same row, "nullish-operand".
+        it("keeps everything for a nullish operand", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // "diffUsing-nullish-operand": ['green'] against null answers ['green'].
             expect(Arr.diffUsing(["green"], null, caseless)).toEqual(["green"]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Arr.diffUsing(null, ["green"], caseless)).toEqual([]);
         });
 
         it("unwraps a Collection-like operand", () => {
-            // Same row, "collection-operand": only 'brown' survives.
+            // Same row, "diffUsing-collection-operand": ['green', 'brown'] against
+            // Collection(['GREEN']) answers [1 => 'brown'].
             expect(
                 Arr.diffUsing(
                     ["green", "brown"],
@@ -3669,6 +3684,8 @@ describe("Arr", () => {
         });
 
         it("returns nothing for nullish data and everything for a nullish operand", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records the
+            // first; the second is `getArrayableItems(null)`, an empty operand.
             expect(Arr.diffAssocUsing(null, [1], sameKey)).toEqual([]);
             expect(Arr.diffAssocUsing([1, 2], null, sameKey)).toEqual([1, 2]);
         });
@@ -3691,6 +3708,8 @@ describe("Arr", () => {
         });
 
         it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Arr.diffKeysUsing(null, [1], sameKey)).toEqual([]);
         });
     });
@@ -3707,14 +3726,21 @@ describe("Arr", () => {
             ).toEqual(["green"]);
         });
 
-        it("keeps nothing for a nullish operand or nullish data", () => {
-            // Same row, "nullish-operand".
+        it("keeps nothing for a nullish operand", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // "intersectUsing-nullish-operand": ['green'] against null answers [].
             expect(Arr.intersectUsing(["green"], null, caseless)).toEqual([]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Arr.intersectUsing(null, ["green"], caseless)).toEqual([]);
         });
 
         it("unwraps a Collection-like operand", () => {
-            // Same row, "collection-operand".
+            // Same row, "intersectUsing-collection-operand": ['green', 'brown'] against
+            // Collection(['GREEN']) answers ['green'].
             expect(
                 Arr.intersectUsing(
                     ["green", "brown"],

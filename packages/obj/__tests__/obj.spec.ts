@@ -3257,9 +3257,14 @@ describe("Obj", () => {
             });
         });
 
-        it("keeps everything for a nullish operand and nothing for nullish data", () => {
-            // Same row, "nullish-operand".
+        it("keeps everything for a nullish operand", () => {
+            // Same row, "nullish-operand": (['a' => 1])->diffKeys(null) answers {a: 1}.
             expect(Obj.diffKeys({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Obj.diffKeys(null, { a: 1 })).toEqual({});
         });
 
@@ -3283,11 +3288,17 @@ describe("Obj", () => {
             ).toEqual({ b: "brown", c: "blue" });
         });
 
-        it("keeps everything for a nullish operand and nothing for nullish data", () => {
-            // Same row, "nullish-operand".
+        it("keeps everything for a nullish operand", () => {
+            // Same row, "nullish-operand": (['a' => 'green'])->diffUsing(null, …)
+            // answers {a: 'green'}.
             expect(Obj.diffUsing({ a: "green" }, null, caseless)).toEqual({
                 a: "green",
             });
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Obj.diffUsing(null, { a: "green" }, caseless)).toEqual({});
         });
 
@@ -3315,11 +3326,17 @@ describe("Obj", () => {
             ).toEqual({ a: "green" });
         });
 
-        it("keeps nothing for a nullish operand or nullish data", () => {
-            // Same row, "nullish-operand".
+        it("keeps nothing for a nullish operand", () => {
+            // Same row, "nullish-operand": (['a' => 'green'])->intersectUsing(null, …)
+            // answers [].
             expect(Obj.intersectUsing({ a: "green" }, null, caseless)).toEqual(
                 {},
             );
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
             expect(Obj.intersectUsing(null, { a: "green" }, caseless)).toEqual(
                 {},
             );
@@ -8268,13 +8285,25 @@ describe("F-17 residual limits: what the runtime answers where the type disagree
         y = 2;
     }
 
-    it("keeps a class instance whole in collapse, flatten and replaceRecursive", () => {
-        // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects":
-        // Arr::collapse([(object) ['b' => 2]]) answers [], and ['g1' => ['a' => 1],
-        // 'g2' => (object) ['b' => 2]] answers {"a": 1} — an object contributes nothing.
-        expect(Obj.collapse({ p: new Pt() })).toEqual({});
+    it("skips a class instance in collapse", () => {
+        // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects",
+        // "assoc-object-item": ['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]] answers
+        // {"a": 1}, and "only-object" answers [] — an object contributes nothing.
+        expect(Obj.collapse({ g1: { a: 1 }, g2: new Pt() })).toEqual({ a: 1 });
+        expect(Obj.collapse({ g2: new Pt() })).toEqual({});
+    });
+
+    it("keeps a class instance as one leaf in flatten", () => {
+        // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf",
+        // "map": Arr::flatten(['a' => $object, ...]) keeps $object itself as a leaf.
         expect(Obj.flatten({ a: new Sized() })).toEqual([new Sized()]);
         expect(Obj.flatten({ a: new Sized() })[0]).toBeInstanceOf(Sized);
+    });
+
+    it("replaces a class instance whole in replaceRecursive", () => {
+        // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-object-leaf",
+        // "p": ['p' => (object) ['x' => 1]] under ['p' => ['y' => 2]] answers {"y": 2} —
+        // PHP recurses into two arrays only, so the object is replaced, never merged.
         expect(
             Obj.replaceRecursive({ a: new Sized() }, { a: { x: 5 } }),
         ).toEqual({ a: { x: 5 } });

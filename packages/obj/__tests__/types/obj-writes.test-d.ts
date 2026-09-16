@@ -139,8 +139,9 @@ describe("obj write type tests", () => {
         });
 
         it("replaces an existing integer key without collapsing the record", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-existing-key-assoc"
-            // is the string-key twin; an integer key behaves the same, replacing only itself.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-prepend-existing-integer-key": Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)
+            // answers {"1": "z", "b": 2}, keys [1, "b"] — only key 1 is replaced.
             expectTypeOf(Obj.prepend({ 1: "a", b: 2 }, "z", 1)).toEqualTypeOf<{
                 1: string;
                 b: number;
