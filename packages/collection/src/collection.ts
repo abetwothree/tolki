@@ -1011,10 +1011,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.firstOrdered(ordered, callback, defaultValue);
         }
 
+        // The auto-forwarding chain ends here: `this.items` is the `DataItems` union, which
+        // always picks obj's widest row, so the delegate answers `unknown`. Restating the
+        // class's own generics is the only way to keep them; widening `items` is Part B work.
         return dataFirst(
             this.items,
-            // `this.items` is a union, so the call lands on obj's widest row, whose
-            // callback takes `unknown` and rejects a typed one (contravariance).
+            // The same union makes obj's row take an `unknown`-valued callback, which
+            // rejects a typed one (contravariance).
             callback as
                 | ((value: unknown, key: string | number) => boolean)
                 | null,
@@ -1902,9 +1905,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
+        // Same as `first`: the `DataItems` union picks obj's widest row, so both the
+        // `unknown`-valued callback and the restated return type are forced here.
         const result = dataLast(
             this.items,
-            // Same as `first`: obj's widest row takes an `unknown`-valued callback.
             callback as
                 | ((value: unknown, key: string | number) => boolean)
                 | null,
