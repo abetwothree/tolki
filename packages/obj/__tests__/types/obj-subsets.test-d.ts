@@ -13,6 +13,8 @@ import {
     user,
 } from "./fixtures";
 
+declare const nullableKey: string | null;
+
 describe("obj subset type tests", () => {
     describe("get", () => {
         it("resolves a literal key and a nested dot path", () => {
@@ -25,6 +27,22 @@ describe("obj subset type tests", () => {
                 Obj.get({} as Record<number, string>, 1),
             ).toEqualTypeOf<string | null>();
             expectTypeOf(Obj.get({ "a.b": 1 }, "a.b")).toEqualTypeOf<number>();
+        });
+
+        it("keeps the typed rows for a forwarded nullable key", () => {
+            // A null key answers the object itself, a string key the path, and a
+            // forwarded union used to drop both and answer `unknown`. `nullableKey`
+            // is declared, not initialized, so it is not narrowed back to `string`.
+            expectTypeOf(Obj.get(user, nullableKey)).toEqualTypeOf<
+                | typeof user
+                | string
+                | number
+                | { city: string; zip: number }
+                | null
+            >();
+            expectTypeOf(Obj.get(user, nullableKey, "fallback")).toEqualTypeOf<
+                typeof user | string | number | { city: string; zip: number }
+            >();
         });
 
         it("drops the default for a path the type guarantees", () => {

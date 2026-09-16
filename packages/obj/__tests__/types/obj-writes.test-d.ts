@@ -138,10 +138,36 @@ describe("obj write type tests", () => {
             ).toEqualTypeOf<{ b: string; a: number }>();
         });
 
-        it("types a float key as the integer key PHP truncates it to, which it can't name", () => {
+        it("replaces an existing integer key without collapsing the record", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-existing-key-assoc"
+            // is the string-key twin; an integer key behaves the same, replacing only itself.
+            expectTypeOf(Obj.prepend({ 1: "a", b: 2 }, "z", 1)).toEqualTypeOf<{
+                1: string;
+                b: number;
+            }>();
+            expectTypeOf(
+                Obj.prepend({ 1: "a", 2: "b", c: 3 }, "z", 2),
+            ).toEqualTypeOf<{ 2: string; 1: string; c: number }>();
+        });
+
+        it("types a float key as the integer key PHP truncates it to", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast":
+            // @Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5) -> {"1": "v", "a": 1}.
             expectTypeOf(
                 Obj.prepend({ a: 1, 1: "x" }, "v", 1.5),
-            ).toEqualTypeOf<{
+            ).toEqualTypeOf<{ 1: string; a: number }>();
+
+            // Same row, "negative-float": (['a' => 1], 'v', -2.7) -> {"-2": "v", "a": 1}.
+            expectTypeOf(Obj.prepend({ a: 1 }, "v", -2.7)).toEqualTypeOf<{
+                [-2]: string;
+                a: number;
+            }>();
+        });
+
+        it("keeps a float that truncates to minus zero on the wide-number row", () => {
+            // JS-only: PHP stores key "0" for -0.5, but "-0" names no TypeScript literal
+            // type, so the row stays as wide as it was before the truncation was modelled.
+            expectTypeOf(Obj.prepend({ a: 1 }, "v", -0.5)).toEqualTypeOf<{
                 [x: `${number}`]: string;
                 a: number;
             }>();

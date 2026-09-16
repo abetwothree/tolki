@@ -12,6 +12,8 @@ import {
     user,
 } from "./fixtures";
 
+declare const maybeCount: number | undefined;
+
 describe("obj slicing type tests", () => {
     describe("take and slice", () => {
         it("keep the per-key types as optional", () => {
@@ -178,6 +180,17 @@ describe("obj slicing type tests", () => {
             const preserve: boolean = Math.random() > 0.5;
 
             expectTypeOf(Obj.random(abc, 2, preserve)).toEqualTypeOf<
+                | Partial<{ a: number; b: number; c: number }>
+                | Record<number, number>
+            >();
+        });
+
+        it("keeps the typed rows for a forwarded nullable count", () => {
+            // A caller forwarding an optional count used to drop to the `unknown` row.
+            // `maybeCount` is declared, not initialized: a const with a literal
+            // initializer narrows back to `number` and would not exercise the row.
+            expectTypeOf(Obj.random(abc, maybeCount)).toEqualTypeOf<
+                | number
                 | Partial<{ a: number; b: number; c: number }>
                 | Record<number, number>
             >();

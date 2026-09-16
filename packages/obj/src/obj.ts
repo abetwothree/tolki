@@ -224,12 +224,14 @@ type BareObjectKey<T> =
 type KeyByResult<V, S extends symbol> = [S] extends [never]
     ? Record<string, V>
     : Record<string, V> & { [K in S]?: V };
-// prepend casts its key as PHP casts an array key: a float truncates to an integer the type can't name, so it may
-// replace any integer key, as a key of type number may.
+// prepend casts its key as PHP casts an array key: a float truncates toward zero, so 1.5 replaces key 1.
+// A float between -1 and 0 truncates to "-0", which names no literal type, so it stays on the wide-number row.
 type PrependKey<K extends string | number> = K extends number
     ? `${K}` extends `${bigint}`
         ? K
-        : number
+        : `${K}` extends `${infer I extends number}.${string}`
+          ? I
+          : number
     : K;
 // dot() and flattenDot() keep an undefined leaf, which ObjectPathValue (get()'s reach, where undefined means missing)
 // drops; a declared `| undefined` anywhere in T adds it back.
@@ -1986,6 +1988,17 @@ export function get<T extends object, P extends string | number>(
     data: T,
     key: P,
 ): ObjectResolvePath<T, P, null>;
+// A forwarded nullable key fits neither the null row nor the typed one, so these
+// answer the union of both rather than dropping to the `unknown` fallback.
+export function get<T extends object, P extends string | number, TDefault>(
+    data: T,
+    key: P | null | undefined,
+    defaultValue: Default<TDefault>,
+): T | ObjectResolvePath<T, P, TDefault>;
+export function get<T extends object, P extends string | number>(
+    data: T,
+    key: P | null | undefined,
+): T | ObjectResolvePath<T, P, null>;
 export function get(
     data: unknown,
     key: PathKey,
@@ -2763,6 +2776,25 @@ export function pluck<T extends object>(
     value: readonly (string | number)[],
     key?: null | undefined,
 ): unknown[];
+// A forwarded nullable key fits neither the keyed row nor the nullish one, so these
+// answer the union of both rather than dropping to the `unknown` fallback.
+export function pluck<T extends object, const P extends string>(
+    data: T,
+    value: P,
+    key: PluckKey<BareObjectValue<T>> | null | undefined,
+):
+    | Record<string | number, PluckValue<BareObjectValue<T>, P>>
+    | PluckValue<BareObjectValue<T>, P>[];
+export function pluck<T extends object, R>(
+    data: T,
+    value: (item: BareObjectValue<T>) => R,
+    key: PluckKey<BareObjectValue<T>> | null | undefined,
+): Record<string | number, R> | R[];
+export function pluck<T extends object>(
+    data: T,
+    value: null | undefined,
+    key: PluckKey<BareObjectValue<T>> | null | undefined,
+): Record<string | number, BareObjectValue<T>> | BareObjectValue<T>[];
 export function pluck(
     data: unknown,
     value:
@@ -2887,6 +2919,12 @@ export function pop<T extends object, const N extends number>(
 ): number extends N
     ? ObjectValue<T> | ObjectValue<T>[] | null
     : ObjectValue<T>[];
+// A forwarded `number | undefined` count fits neither row above, so this answers
+// the union of both rather than dropping to the `unknown` fallback.
+export function pop<T extends object>(
+    data: T,
+    count: number | undefined,
+): ObjectValue<T> | ObjectValue<T>[] | null;
 export function pop(data: unknown, count?: number): unknown;
 export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -3380,6 +3418,13 @@ export function random<T extends object>(
     number: number,
     preserveKeys: boolean,
 ): Partial<T> | Record<number, ObjectValue<T>>;
+// A forwarded nullable count fits none of the rows above, so this answers the
+// union of all of them rather than dropping to the `unknown` fallback.
+export function random<T extends object>(
+    data: T,
+    number: number | null | undefined,
+    preserveKeys?: boolean,
+): ObjectValue<T> | Partial<T> | Record<number, ObjectValue<T>>;
 export function random(
     data: unknown,
     number?: number | null,
@@ -3481,6 +3526,12 @@ export function shift<T extends object, const N extends number>(
 ): number extends N
     ? ObjectValue<T> | ObjectValue<T>[] | null
     : ObjectValue<T>[] | null;
+// A forwarded `number | undefined` count fits neither row above, so this answers
+// the union of both rather than dropping to the `unknown` fallback.
+export function shift<T extends object>(
+    data: T,
+    count: number | undefined,
+): ObjectValue<T> | ObjectValue<T>[] | null;
 export function shift(data: unknown, count?: number): unknown;
 export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,

@@ -9,6 +9,8 @@ import {
     unknownObject,
 } from "./fixtures";
 
+declare const nullableKey: string | null;
+
 describe("obj pluck type tests", () => {
     describe("pluck", () => {
         describe("literal string paths", () => {
@@ -101,6 +103,22 @@ describe("obj pluck type tests", () => {
                 expectTypeOf(Obj.pluck(rowsById, ["name"], null)).toEqualTypeOf<
                     unknown[]
                 >();
+            });
+        });
+
+        describe("forwarded nullable key", () => {
+            it("keeps the typed rows instead of dropping to the unknown fallback", () => {
+                // `nullableKey` is declared, not initialized: a const with a literal
+                // initializer narrows back to `string` and would not exercise the row.
+                expectTypeOf(
+                    Obj.pluck(rowsById, "name", nullableKey),
+                ).toEqualTypeOf<string[] | Record<string | number, string>>();
+                expectTypeOf(
+                    Obj.pluck(rowsById, (row) => row.id, nullableKey),
+                ).toEqualTypeOf<number[] | Record<string | number, number>>();
+                expectTypeOf(
+                    Obj.pluck(rowsById, null, nullableKey),
+                ).toEqualTypeOf<Row[] | Record<string | number, Row>>();
             });
         });
 

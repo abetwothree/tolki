@@ -10,6 +10,7 @@ import {
 } from "./fixtures";
 
 declare const nullableB: { b: number } | null;
+declare const maybeCount: number | undefined;
 
 describe("obj mutation type tests", () => {
     describe("pop and shift", () => {
@@ -38,6 +39,18 @@ describe("obj mutation type tests", () => {
         it("return null for non-object data", () => {
             expectTypeOf(Obj.shift(numberList, 2)).toEqualTypeOf<null>();
             expectTypeOf(Obj.pop(null)).toEqualTypeOf<null | never[]>();
+        });
+
+        it("keep the typed rows for a forwarded `number | undefined` count", () => {
+            // A caller forwarding an optional count used to drop to the `unknown` row.
+            // `maybeCount` is declared, not initialized: a const with a literal
+            // initializer narrows back to `number` and would not exercise the row.
+            expectTypeOf(Obj.pop(abc, maybeCount)).toEqualTypeOf<
+                number | number[] | null
+            >();
+            expectTypeOf(Obj.shift(abc, maybeCount)).toEqualTypeOf<
+                number | number[] | null
+            >();
         });
     });
 
