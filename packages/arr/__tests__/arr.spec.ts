@@ -2005,8 +2005,8 @@ describe("Arr", () => {
 
         it("descends into a nested list instead of replacing it", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "d6-nested-list-in-a-list-is-descended": [['q']] plus Arr::set($src, '0.1',
-            // 'y') descends, because `is_array` holds for the nested list.
+            // "r4-set-nested-list-in-a-list-is-descended": [['q']] plus Arr::set($src,
+            // '0.1', 'y') descends, because `is_array` holds for the nested list.
             const inner = ["q"];
             const result = Arr.set([inner], "0.1", "y");
 

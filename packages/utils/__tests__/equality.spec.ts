@@ -804,10 +804,11 @@ describe("Utils", () => {
         });
 
         it("answers PHP's spaceship truthiness, so only an equal pair is falsy", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
-            // "raw spaceship" and "4 vs \"4\"": `1 <=> "1"` is 0, and every NAN pair is 1.
-            // docs/php-parity/task-19-spaceship.json,
-            // "spaceship on an int and its numeric string".
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-operator-table-extras", "1 vs 2", "2 vs 1" and "1 vs 1", each row's
+            // "<=>" cell; and "r3-operator-table", "NAN vs 1", "1 vs NAN" and
+            // "NAN vs NAN", the same cell. docs/php-parity/task-19-spaceship.json,
+            // "spaceship on an int and its numeric string": `1 <=> "1"` is 0.
             expect(Utils.operatorMatch(1, "<=>", 2)).toBe(true);
             expect(Utils.operatorMatch(2, "<=>", 1)).toBe(true);
             expect(Utils.operatorMatch(1, "<=>", 1)).toBe(false);
@@ -820,7 +821,8 @@ describe("Utils", () => {
         });
 
         it("leaves a NaN operand unordered against a number", () => {
-            // Same row, "NAN vs 1": PHP answers false for <, >, <= and >= alike.
+            // Same file, "r3-operator-table", "NAN vs 1": PHP answers false for
+            // <, >, <= and >= alike.
             expect(Utils.operatorMatch(Number.NaN, "<", 1)).toBe(false);
             expect(Utils.operatorMatch(Number.NaN, ">", 1)).toBe(false);
             expect(Utils.operatorMatch(Number.NaN, "<=", 1)).toBe(false);
@@ -861,9 +863,10 @@ describe("Utils", () => {
         });
 
         it("orders a null operand the way PHP's comparison cast does", () => {
-            // Same row, "null vs 4", "1 vs null", "0 vs null", "null vs null",
-            // "-1 vs null" and "\"abc\" vs null": null casts to false against a
-            // number, so every truthy value sorts above it, and to "" against a string.
+            // Same file, "r3-operator-table", "null vs 4", "1 vs null", "0 vs null",
+            // "null vs null", "-1 vs null", "\"abc\" vs null" and "\"\" vs null": null
+            // casts to false against a number, so every truthy value sorts above it,
+            // and to "" against a string, which is why `"" > null` is false.
             expect(Utils.operatorMatch(null, "<", 4)).toBe(true);
             expect(Utils.operatorMatch(null, "<=", 4)).toBe(true);
             expect(Utils.operatorMatch(null, ">", 4)).toBe(false);
@@ -881,8 +884,9 @@ describe("Utils", () => {
         });
 
         it("compares two numeric strings numerically, not lexically", () => {
-            // docs/php-parity/task-19-spaceship.json,
-            // "spaceship on two numeric strings, wider on the left": "10" <=> "9" is 1.
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // "\"10\" vs \"9\"", its ">" and "<" cells: the recorded `contains` calls, not
+            // just task-19's raw `"10" <=> "9"`.
             expect(Utils.operatorMatch("10", ">", "9")).toBe(true);
             expect(Utils.operatorMatch("10", "<", "9")).toBe(false);
         });
@@ -910,7 +914,8 @@ describe("Utils", () => {
         });
 
         it("compares two plain objects under === by value, but a class instance by identity", () => {
-            // Same row, "['a'=>1,'b'=>2] vs the same pairs" and "... reordered": a plain
+            // Same row "r4-strict-operators", "['a'=>1,'b'=>2] vs the same pairs" and
+            // "['a'=>1,'b'=>2] vs the same pairs reordered": a plain
             // object models a PHP array, so key ORDER counts. "D4Point(1) vs another
             // D4Point(1)" / "vs itself" and "DateTimeImmutable@0 vs another" keep identity.
             class Point {
@@ -934,7 +939,8 @@ describe("Utils", () => {
             expect(Utils.operatorMatch(point, "===", point)).toBe(true);
             expect(Utils.operatorMatch(stamp, "===", new Date(0))).toBe(false);
             expect(Utils.operatorMatch(stamp, "!==", new Date(0))).toBe(true);
-            // Same row, "[1,2] vs 1": an array against a scalar is never identical.
+            // Same row "r4-strict-operators", "[1,2] vs 1": an array against a scalar is
+            // never identical.
             expect(Utils.operatorMatch([1, 2], "===", 1)).toBe(false);
             expect(Utils.operatorMatch([1, 2], "!==", 1)).toBe(true);
         });
@@ -948,7 +954,10 @@ describe("Utils", () => {
             expect(Utils.operatorMatch(stamp, "!==", 1)).toBe(true);
             expect(Utils.operatorMatch(stamp, "=", 1)).toBe(false);
             expect(Utils.operatorMatch(stamp, ">", 1)).toBe(false);
-            // Two objects, or an object against a string, fall through to the switch.
+            // Two plain objects, or one against a string, fall through to the switch.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-operator-table-extras", "assoc array vs the same pairs" and
+            // "assoc array vs \"x\"", each row's "'='" cell.
             expect(Utils.operatorMatch({ a: 1 }, "=", { a: 1 })).toBe(true);
             expect(Utils.operatorMatch({ a: 1 }, "=", "x")).toBe(false);
         });

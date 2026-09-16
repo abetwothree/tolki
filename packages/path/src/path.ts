@@ -1595,6 +1595,11 @@ export function pushMixed<TValue>(
  * Set a value in an array using mixed array/object dot notation (immutable version).
  * Supports both numeric array indices and object property names in paths.
  *
+ * The copy is deep through arrays and plain objects only. A class instance, a `Date` or a
+ * `Map` is aliased into the result rather than copied, because PHP holds an object by handle
+ * where it copies an array by value — copying one's entries flattened it into a plain object.
+ * Such a value is shared with the caller's input; the write path itself is never shared.
+ *
  * @param data - The data to set the value in.
  * @param key - The path where to set the value.
  * @param value - The value to set.
@@ -1620,7 +1625,9 @@ export function setMixedImmutable<TValue>(
         return [] as TValue[];
     }
 
-    // Create a deep copy for immutable operation
+    // Copy every array and plain object along the way, so the caller's value is never written
+    // through. A class instance, Date or Map is ALIASED into the result instead — deliberately:
+    // PHP holds an object by handle, and copying its entries flattened it into a plain object.
     const deepCopy = (obj: unknown): unknown => {
         // Return primitives and null/undefined as-is
         if (isNull(obj) || isUndefined(obj) || !isObjectAny(obj)) {

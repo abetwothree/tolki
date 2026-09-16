@@ -1197,4 +1197,56 @@ probe('r4-undot-backings', "(new Collection(5|'a.b'|new ArrayIterator(['a.b'])|n
     'list' => (new Collection([1, 2, 3]))->undot(),
 ]);
 
+// ==== fix-round-4 Group G1: "d6-nested-list-in-a-list-is-descended" records only the Arr::add
+// ==== call, yet arr.spec and data.spec assert the Arr::set twin against it.
+probe('r4-set-nested-list-in-a-list-is-descended', "\$src = [['q']]; Arr::set(\$src, '0.1', 'y')", function () {
+    $src = [['q']];
+    $result = Arr::set($src, '0.1', 'y');
+
+    return ['set' => $result, 'source-after-set' => $src];
+});
+
+// ==== fix-round-4 Group G4/G5: equality.spec asserts two plain integers under all eleven
+// ==== operators, and two whole-array `=` comparisons, that no row records.
+probe('r4-operator-table-extras', "(new Collection([['v' => \$retrieved]]))->contains('v', <op>, \$value) for two ints and two array pairs", function () {
+    $operators = ['=', '==', '!=', '<>', '<', '>', '<=', '>=', '===', '!==', '<=>'];
+    $pairs = [
+        '1 vs 2' => [1, 2],
+        '2 vs 1' => [2, 1],
+        '1 vs 1' => [1, 1],
+    ];
+
+    $table = [];
+
+    foreach ($pairs as $name => [$retrieved, $value]) {
+        foreach ($operators as $operator) {
+            $table[$name][$operator] = (new Collection([['v' => $retrieved]]))->contains('v', $operator, $value);
+        }
+    }
+
+    $table['raw spaceship'] = ['1 <=> 2' => 1 <=> 2, '2 <=> 1' => 2 <=> 1, '1 <=> 1' => 1 <=> 1];
+    // Two whole arrays under `=`, and an array against a non-numeric string.
+    $table['assoc array vs the same pairs'] = ["'='" => (new Collection([['v' => ['a' => 1]]]))->contains('v', '=', ['a' => 1])];
+    $table['assoc array vs "x"'] = ["'='" => (new Collection([['v' => ['a' => 1]]]))->contains('v', '=', 'x')];
+
+    return $table;
+});
+
+// ==== fix-round-4 Group G2: obj.spec's non-string-operator assertion is RECORD-backed, and
+// ==== "r3-contains-boolean-value" records only the list-backed call.
+probe('r4-assoc-backed-operator-forms', "(new Collection(['a'=>['v'=>5],'b'=>['v'=>6]]))->contains('v', 5, 6) and the data.spec twins", function () {
+    $assoc = ['a' => ['v' => 5], 'b' => ['v' => 6]];
+    $list = [['v' => 5], ['v' => 6]];
+    $flags = ['a' => ['active' => true], 'b' => ['active' => false]];
+
+    return [
+        'non-string-operator-assoc' => (new Collection($assoc))->contains('v', 5, 6),
+        'non-string-operator-list' => (new Collection($list))->contains('v', 5, 6),
+        'key-true-assoc' => (new Collection($flags))->contains('active', true),
+        'key-operator-true-assoc' => (new Collection($flags))->contains('active', '=', true),
+        'key-true-list' => (new Collection([['active' => true], ['active' => false]]))->contains('active', true),
+        'null-key-list' => (new Collection([1, 2]))->contains(null, '>', 1),
+    ];
+});
+
 emit();

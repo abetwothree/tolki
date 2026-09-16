@@ -3259,6 +3259,90 @@
                     3
                 ]
             }
+        },
+        {
+            "label": "r4-set-nested-list-in-a-list-is-descended",
+            "php": "$src = [['q']]; Arr::set($src, '0.1', 'y')",
+            "value": {
+                "set": [
+                    "q",
+                    "y"
+                ],
+                "source-after-set": [
+                    [
+                        "q",
+                        "y"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "r4-operator-table-extras",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for two ints and two array pairs",
+            "value": {
+                "1 vs 2": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "2 vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs 1": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "raw spaceship": {
+                    "1 <=> 2": -1,
+                    "2 <=> 1": 1,
+                    "1 <=> 1": 0
+                },
+                "assoc array vs the same pairs": {
+                    "'='": true
+                },
+                "assoc array vs \"x\"": {
+                    "'='": false
+                }
+            }
+        },
+        {
+            "label": "r4-assoc-backed-operator-forms",
+            "php": "(new Collection(['a'=>['v'=>5],'b'=>['v'=>6]]))->contains('v', 5, 6) and the data.spec twins",
+            "value": {
+                "non-string-operator-assoc": true,
+                "non-string-operator-list": true,
+                "key-true-assoc": true,
+                "key-operator-true-assoc": true,
+                "key-true-list": true,
+                "null-key-list": true
+            }
         }
     ]
 }

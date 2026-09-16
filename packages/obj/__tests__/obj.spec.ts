@@ -3097,8 +3097,9 @@ describe("Obj", () => {
 
         it("reads the entry itself for an undefined key and takes a non-string operator", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-contains-boolean-value", "null-key-operator" and "non-string-operator":
-            // a non-string operator misses every case arm and lands on PHP's `default:`.
+            // "r3-assoc-backed-contains", "null-key" (the same ['a'=>1,'b'=>2] data) and
+            // "r4-assoc-backed-operator-forms", "non-string-operator-assoc": a non-string
+            // operator misses every case arm and lands on PHP's `default:`.
             expect(Obj.contains({ a: 1, b: 2 }, undefined, ">", 1)).toBe(true);
             expect(Obj.contains({ a: 1, b: 2 }, undefined, ">", 9)).toBe(false);
             expect(Obj.contains({ a: { v: 5 }, b: { v: 6 } }, "v", 5, 6)).toBe(
@@ -3108,9 +3109,10 @@ describe("Obj", () => {
 
         it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
             // JS-only: docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-contains-boolean-value" records "key-true" as true. This port's third
-            // parameter is `strict` and takes the boolean first, so PHP's call is written
-            // with an explicit operator here — "key-operator-true", also true.
+            // "r4-assoc-backed-operator-forms" records "key-true-assoc" as true for this
+            // very data. This port's third parameter is `strict` and takes the boolean
+            // first, so PHP's call is written with an explicit operator here —
+            // "key-operator-true-assoc", also true.
             const rows = { a: { active: true }, b: { active: false } };
 
             expect(Obj.contains(rows, "active", true)).toBe(false);
@@ -3170,9 +3172,10 @@ describe("Obj", () => {
         });
 
         it("ignores a callback match holding null, as first() does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "D2 containsStrict callback matching a null value", "strict": the recorded
-            // call is (new Collection(['a' => null, 'b' => 1]))->containsStrict(...).
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "containsStrict-callback-null": task-23's
+            // "D2 containsStrict…" row records its own LABEL where its call belongs, so
+            // nothing can be verified against it; this row records the same call.
             expect(
                 Obj.containsStrict(
                     { a: null, b: 1 },

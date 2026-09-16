@@ -34,6 +34,22 @@ const sparseList = (): string[] => {
 };
 
 /**
+ * Build `["a", <hole>, <hole>]`: a three-element list whose last two indices are absent.
+ *
+ * A TRAILING hole declares no own key at all, so a helper that rebuilds from
+ * `Object.keys` shortens it, where an interior hole is still bracketed by one.
+ *
+ * @returns A list of length 3 with own keys at index 0 only
+ */
+const trailingHoleList = (): string[] => {
+    const list: string[] = [];
+    list[0] = "a";
+    list.length = 3;
+
+    return list;
+};
+
+/**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
 class Point {
@@ -1062,10 +1078,13 @@ describe("Data", () => {
         });
 
         it("wraps a scalar or string backing as a one item list, which then wins", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d7-union-scalar-backing"
+            // docs/php-parity/task-24-data-release-readiness.json, "d7-union-scalar-backing":
+            // both recorded values are LISTS, because PHP's wrap of a scalar is [5].
             expect(Data.dataUnion(5, [9])).toEqual([5]);
             expect(Data.dataUnion("x", [9])).toEqual(["x"]);
-            // The keyed mirror of the same backing: a one-key record also wins.
+            // JS-only: the keyed mirror. PHP's [0 => 5] IS that list, so the same row
+            // stands for both; this port's two backings each answer in their own shape,
+            // and only the shape differs — the one entry still wins.
             expect(Data.dataUnion({ 0: 5 }, [9])).toEqual({ 0: 5 });
         });
 
@@ -1084,6 +1103,40 @@ describe("Data", () => {
                 0: 1,
                 1: 2,
                 d: 4,
+            });
+        });
+
+        it("keeps a sparse list backing's hole, interior or trailing (F-19)", () => {
+            // JS-only: PHP has no array hole. `arr.union` fills one with `undefined`, so
+            // a sparse backing must answer exactly like the dense list it stands for —
+            // and a TRAILING hole declares no own key, so it needs materializing first.
+            expect(Data.dataUnion(sparseList(), {})).toStrictEqual([
+                "a",
+                undefined,
+                "c",
+            ]);
+            expect(Data.dataUnion(trailingHoleList(), {})).toStrictEqual([
+                "a",
+                undefined,
+                undefined,
+            ]);
+            expect(Data.dataUnion(trailingHoleList(), {})).toStrictEqual(
+                Data.dataUnion(["a", undefined, undefined], {}),
+            );
+            // The three siblings F-19 already fixed answer the same way for both shapes.
+            expect(
+                Data.dataPrepend(trailingHoleList(), "z", "k"),
+            ).toStrictEqual({ 0: "a", 1: undefined, 2: undefined, k: "z" });
+            expect(
+                Data.dataReplace(trailingHoleList(), { 0: "x" }),
+            ).toStrictEqual(["x", undefined, undefined]);
+            expect(
+                Data.dataReplaceRecursive(trailingHoleList(), { 0: "x" }),
+            ).toStrictEqual(["x", undefined, undefined]);
+            // The keyed backing has no hole to fill: a genuine gap stays a gap.
+            expect(Data.dataUnion({ 0: "a" }, { 9: "z" })).toStrictEqual({
+                0: "a",
+                9: "z",
             });
         });
 
@@ -2768,8 +2821,8 @@ describe("Data", () => {
 
         it("descends into a nested list on both backings", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "d6-nested-list-in-a-list-is-descended" ([['q']], '0.1') and
-            // "d6-nested-list-is-descended-not-replaced" (['a' => ['q']], 'a.1').
+            // "r4-set-nested-list-in-a-list-is-descended" ([['q']], '0.1') and
+            // "d6-nested-list-is-descended-not-replaced", "set" (['a' => ['q']], 'a.1').
             const listInner = ["q"];
             const recordInner = ["q"];
             const fromList = Data.dataSet([listInner], "0.1", "y");
@@ -4401,6 +4454,70 @@ describe("Data", () => {
             expect(
                 Data.dataContains([{ x: 1, y: 2 }], { y: 2, x: 1 }, true),
             ).toBe(false);
+        });
+
+        it("reads a boolean third argument as strict, where PHP reads it as the value, on both backings", () => {
+            // JS-only: docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-assoc-backed-operator-forms" records "key-true-assoc" and
+            // "key-true-list" as true. This port's third parameter is `strict` and takes
+            // the boolean first, so PHP's call is written with an explicit operator here.
+            const rows = { a: { active: true }, b: { active: false } };
+            const list = [{ active: true }, { active: false }];
+
+            expect(Data.dataContains(rows, "active", true)).toBe(false);
+            expect(Data.dataContains(list, "active", true)).toBe(false);
+            // "key-operator-true-assoc", also true, and its list twin.
+            expect(Data.dataContains(rows, "active", "=", true)).toBe(true);
+            expect(Data.dataContains(list, "active", "=", true)).toBe(true);
+        });
+
+        it("takes the key/operator/value form on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "operator" (the record backing) and
+            // "r3-operator-table", "4 vs 4"/"4 vs \"4\"" (the same operators).
+            const rows = {
+                a: { v: 1 },
+                b: { v: 3 },
+                c: { v: "4" },
+                d: { v: 5 },
+            };
+            const list = [{ v: 1 }, { v: 3 }, { v: "4" }, { v: 5 }];
+
+            expect(Data.dataContains(rows, "v", "=", 4)).toBe(true);
+            expect(Data.dataContains(list, "v", "=", 4)).toBe(true);
+            expect(Data.dataContains(rows, "v", "===", 4)).toBe(false);
+            expect(Data.dataContains(list, "v", "===", 4)).toBe(false);
+            expect(Data.dataContains(rows, "v", ">", 4)).toBe(true);
+            expect(Data.dataContains(list, "v", ">", 4)).toBe(true);
+        });
+
+        it("takes the key/value form and a null key on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "key-value" and "null-key";
+            // "r3-list-backed-contains", "key-value-no-match"; and
+            // "r4-assoc-backed-operator-forms", "null-key-list".
+            const three = { a: { v: 1 }, b: { v: 3 }, c: { v: 5 } };
+            const threeList = [{ v: 1 }, { v: 3 }, { v: 5 }];
+
+            expect(Data.dataContains(three, "v", 1)).toBe(true);
+            expect(Data.dataContains(threeList, "v", 1)).toBe(true);
+            expect(Data.dataContains(three, "v", 2)).toBe(false);
+            expect(Data.dataContains(threeList, "v", 2)).toBe(false);
+            expect(Data.dataContains({ a: 1, b: 2 }, null, ">", 1)).toBe(true);
+            expect(Data.dataContains([1, 2], null, ">", 1)).toBe(true);
+            expect(Data.dataContains({ a: 1, b: 2 }, null, ">", 9)).toBe(false);
+        });
+
+        it("shares PHP's `=` arm for a non-string operator on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-assoc-backed-operator-forms", "non-string-operator-assoc" and
+            // "non-string-operator-list": 5 names no case arm, so `default:` runs.
+            expect(
+                Data.dataContains({ a: { v: 5 }, b: { v: 6 } }, "v", 5, 6),
+            ).toBe(true);
+            expect(Data.dataContains([{ v: 5 }, { v: 6 }], "v", 5, 6)).toBe(
+                true,
+            );
         });
     });
 

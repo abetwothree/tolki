@@ -562,8 +562,11 @@ export function dataUnion<TValue>(
     ...items: (
         | TValue[]
         | Record<PropertyKey, TValue>
-        | ReadonlyMap<PropertyKey, TValue>
-        | Iterable<TValue>
+        // `unknown`, not `TValue`: a Map matches BOTH rows (it is an `Iterable<[K, V]>`),
+        // which left `TValue` ambiguous — tsc resolved it one way for the repo program and
+        // another for vitest's. Both are materialized before use, so neither types the result.
+        | ReadonlyMap<PropertyKey, unknown>
+        | Iterable<unknown>
         | NonObjectBacking
     )[]
 ) {
@@ -585,7 +588,10 @@ export function dataUnion<TValue>(
             // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
             return isArray(result) ? listWhenIndexed(merged) : merged;
         },
-        arrUnion(toPositionalBacking(backing) as TValue[]),
+        // Array.from, as toIndexedRecord uses for the other three list backings (F-19): a
+        // TRAILING hole declares no own key, so arr.union alone would shorten the answer
+        // where the dense list it stands for keeps its length.
+        arrUnion(Array.from(toPositionalBacking(backing) as ArrayLike<TValue>)),
     );
 }
 
