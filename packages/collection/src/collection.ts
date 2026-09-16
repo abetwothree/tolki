@@ -1103,6 +1103,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get an item from the collection by key.
      *
+     * Diverges from PHP, whose `Collection::get` is a literal `array_key_exists`: this
+     * resolves a dot path, so `get('a.b')` reads a nested value where PHP answers the
+     * default. `has` and `getOrPut` carry the same extension; the policy is not settled.
+     *
      * @param key - The key to get
      * @param defaultValue - The default value to return if key doesn't exist
      * @returns The value at the key or default value

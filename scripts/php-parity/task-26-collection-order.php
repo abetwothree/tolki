@@ -75,6 +75,17 @@ probe(
     fn () => collect(new D8Arrayable)->all(),
 );
 
+// ==== F-15: Collection's key lookups are a literal array_key_exists, never a dot path.
+// ==== Recorded so the JS extension is documented against ground truth, not settled here.
+probe('get-dot-path-is-a-literal-key', "collect(['a' => ['b' => 1]])->get('a.b', 'fallback')", fn () => collect(['a' => ['b' => 1]])->get('a.b', 'fallback'));
+probe('has-dot-path-is-a-literal-key', "collect(['a' => ['b' => 1]])->has('a.b')", fn () => collect(['a' => ['b' => 1]])->has('a.b'));
+probe('getOrPut-dot-path-is-a-literal-key', "\$c = collect(['a' => ['b' => 1]]); \$returned = \$c->getOrPut('a.b', 9)", function () {
+    $c = collect(['a' => ['b' => 1]]);
+    $returned = $c->getOrPut('a.b', 9);
+
+    return ['returned' => $returned, 'all' => $c->all()];
+});
+
 // ==== F-25: the order each mutator leaves on [2 => 'c', 0 => 'a', 1 => 'b'] ====
 probe('order-initial', "collect([2 => 'c', 0 => 'a', 1 => 'b'])", fn () => d8Views(collect(d8Base())));
 

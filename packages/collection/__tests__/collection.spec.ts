@@ -12726,6 +12726,14 @@ describe("Collection", () => {
         });
 
         it("get and has, either backing", () => {
+            // JS-only: both resolve a dot path, where PHP's are a literal array_key_exists
+            // ("get-dot-path-is-a-literal-key" / "has-dot-path-is-a-literal-key" in
+            // docs/php-parity/task-26-collection-order.json). Recorded, not settled: see get's docblock.
+            expect(new Collection({ a: { b: 1 } }).get("a.b", "fallback")).toBe(
+                1,
+            );
+            expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(true);
+
             expect(new Collection(nums()).get(2)).toBe(30);
             expect(new Collection(numsObj()).get(2)).toBe(30);
             expect(new Collection(nums()).get(99, "default")).toBe("default");

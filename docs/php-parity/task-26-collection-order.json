@@ -39,6 +39,29 @@
             ]
         },
         {
+            "label": "get-dot-path-is-a-literal-key",
+            "php": "collect(['a' => ['b' => 1]])->get('a.b', 'fallback')",
+            "value": "fallback"
+        },
+        {
+            "label": "has-dot-path-is-a-literal-key",
+            "php": "collect(['a' => ['b' => 1]])->has('a.b')",
+            "value": false
+        },
+        {
+            "label": "getOrPut-dot-path-is-a-literal-key",
+            "php": "$c = collect(['a' => ['b' => 1]]); $returned = $c->getOrPut('a.b', 9)",
+            "value": {
+                "returned": 9,
+                "all": {
+                    "a": {
+                        "b": 1
+                    },
+                    "a.b": 9
+                }
+            }
+        },
+        {
             "label": "order-initial",
             "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])",
             "value": {
