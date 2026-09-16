@@ -1051,6 +1051,28 @@ probe('r3-prepend-extra-keys', "Arr::prepend([1 => 'a', 2 => 'b', 'c' => 3], 'z'
     ];
 });
 
+// ==== fix-round-3 Group B/F: a BOOLEAN value in contains' key/value form, which this port's
+// ==== `strict` parameter occupies, plus the non-string operator and the null-key form.
+probe('r3-contains-boolean-value', "(new Collection([['active'=>true],['active'=>false]]))->contains('active', true) and the forms around it", function () {
+    $rows = [['active' => true], ['active' => false]];
+    $mixed = ['date', 'class', ['foo' => 50], ''];
+
+    return [
+        'key-true' => (new Collection($rows))->contains('active', true),
+        'key-false' => (new Collection($rows))->contains('active', false),
+        'key-true-no-match' => (new Collection([['active' => false]]))->contains('active', true),
+        'key-operator-true' => (new Collection($rows))->contains('active', '=', true),
+        // The reading that treats a member-less string key as a path: PHP does NOT take it
+        // for containsStrict, which is why CollectionTest asserts false here.
+        'containsStrict-key-of-a-row' => (new Collection($mixed))->containsStrict('foo'),
+        'contains-key-of-a-row' => (new Collection($mixed))->contains('foo'),
+        // A non-string operator misses every case arm and lands on `default:`, an `=`.
+        'non-string-operator' => (new Collection([['v' => 5], ['v' => 6]]))->contains('v', 5, 6),
+        'null-key-operator' => (new Collection([['v' => 1], ['v' => 3], ['v' => 5]]))->contains(null, '>', 1),
+        'diffKeysUsing-nullish-operand' => (new Collection([1, 2]))->diffKeysUsing(null, 'strcasecmp'),
+    ];
+});
+
 // ==== fix-round-3 Group C: no row records Arr::set descending a LIST backing into a nested
 // ==== object. "add-nested-object-is-replaced-wholesale" records only the Arr::add twin.
 probe('r3-set-list-nested-object-is-replaced-wholesale', "\$src = [new D4Point(1)]; Arr::set(\$src, '0.y', 2)", function () {

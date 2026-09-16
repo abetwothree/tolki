@@ -2877,6 +2877,24 @@
             }
         },
         {
+            "label": "r3-contains-boolean-value",
+            "php": "(new Collection([['active'=>true],['active'=>false]]))->contains('active', true) and the forms around it",
+            "value": {
+                "key-true": true,
+                "key-false": true,
+                "key-true-no-match": false,
+                "key-operator-true": true,
+                "containsStrict-key-of-a-row": false,
+                "contains-key-of-a-row": false,
+                "non-string-operator": true,
+                "null-key-operator": true,
+                "diffKeysUsing-nullish-operand": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
             "label": "r3-set-list-nested-object-is-replaced-wholesale",
             "php": "$src = [new D4Point(1)]; Arr::set($src, '0.y', 2)",
             "value": {
