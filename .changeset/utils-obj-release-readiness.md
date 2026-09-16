@@ -16,4 +16,6 @@ Add `isPhpAccessible(value)`: whether a value carries array entries rather than 
 
 Add `renumberPhpIntegerKeys(entries)`: renumber every key PHP stores as an integer to a fresh 0-based sequence, in the order given, as `array_shift`, `array_splice` and `array_unshift` do. Unlike `reindexIntegerKeys`, a negative key such as `"-1"` counts too.
 
+Deprecate `entriesKeyValue(key)` in favour of `phpArrayKey(key)`. Its `Number()`/`parseFloat` conversion is looser than PHP's: it turns `"01"` into `1`, `"1.5"` into `1.5` and `"0x10"` into `16`, keys PHP would all keep as strings, so a callback handed such a key was told the wrong one. It is still exported and still behaves the same.
+
 Add `arrayableItems(items)`: the keyed twin of `arrayableValues`. It normalizes an operand the way Laravel's `getArrayableItems()` does, returning its entries as a plain object: nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`, a Map, list or other iterable becomes an object, and a WeakMap or WeakSet, whose entries can't be read, becomes `{}`.

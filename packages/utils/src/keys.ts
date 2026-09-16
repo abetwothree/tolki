@@ -19,6 +19,11 @@ const PHP_INT_BOUND = 2 ** 63;
 /**
  * Figures out if the entry key should be a number or a string.
  *
+ * @deprecated Use `phpArrayKey` instead. This conversion is `Number()`/`parseFloat`, which is
+ * looser than PHP's: it turns `"01"` into `1`, `"1.5"` into `1.5` and `"0x10"` into `16`, keys
+ * PHP would all keep as strings. `phpArrayKey` converts only a canonical integer string, so a
+ * key handed to a callback is the key PHP stores. Kept because it is a published export.
+ *
  * @param value - The entry key value (number, string, or symbol)
  * @returns The entry key as a number if it can be converted, otherwise returns the original value
  */
