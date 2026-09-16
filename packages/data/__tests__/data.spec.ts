@@ -5792,7 +5792,8 @@ describe("Data", () => {
         });
 
         it("answers has() off a Set's own indices", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "has-traversable-backing"
+            // docs/php-parity/task-24-data-release-readiness.json, "has-traversable-backing",
+            // "has-traversable-backing-last-index", "has-traversable-backing-past-end"
             expect(Data.dataHas(asSet(), [0])).toBe(true);
             expect(Data.dataHas(asSet(), [2])).toBe(true);
             expect(Data.dataHas(asSet(), [3])).toBe(false);

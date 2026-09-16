@@ -436,6 +436,8 @@ probe('take-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3]))
 probe('random-traversable-backing-count', "count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all())", fn () => count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all()));
 probe('flatten-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->flatten()", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->flatten()->all());
 probe('has-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->has(0)", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->has(0));
+probe('has-traversable-backing-last-index', "(new Collection(new ArrayIterator([1, 2, 3])))->has(2)", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->has(2));
+probe('has-traversable-backing-past-end', "(new Collection(new ArrayIterator([1, 2, 3])))->has(3)", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->has(3));
 probe('values-traversable-backing', "(new Collection(new ArrayIterator([1, 2, 3])))->values()", fn () => (new Collection(new ArrayIterator([1, 2, 3])))->values()->all());
 probe('take-string-backing', "(new Collection('abc'))->take(2)", fn () => (new Collection('abc'))->take(2)->all());
 probe('flatten-string-backing', "(new Collection('abc'))->flatten()", fn () => (new Collection('abc'))->flatten()->all());

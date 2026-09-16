@@ -1251,6 +1251,16 @@
             "value": true
         },
         {
+            "label": "has-traversable-backing-last-index",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(2)",
+            "value": true
+        },
+        {
+            "label": "has-traversable-backing-past-end",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(3)",
+            "value": false
+        },
+        {
             "label": "values-traversable-backing",
             "php": "(new Collection(new ArrayIterator([1, 2, 3])))->values()",
             "value": [
