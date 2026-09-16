@@ -1294,6 +1294,29 @@
             "label": "integer-list-missing-index-with-default",
             "php": "Arr::integer([], 0, 5)",
             "value": 5
+        },
+        {
+            "label": "firstOrFail-stored-null-list",
+            "php": "(new Collection([null]))->firstOrFail()",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-assoc",
+            "php": "(new Collection(['a' => null]))->firstOrFail()",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-with-callback",
+            "php": "(new Collection([1, null]))->firstOrFail(fn ($v) => is_null($v))",
+            "value": null
+        },
+        {
+            "label": "reduce-empty-no-initial",
+            "php": "(new Collection([]))->reduce(fn ($c, $v) => $c + $v) and the assoc backing",
+            "value": {
+                "list": null,
+                "assoc": null
+            }
         }
     ]
 }
