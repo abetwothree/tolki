@@ -2781,7 +2781,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The key of the found item, or false if not found
+     * @returns The key of the found item, or false if not found. A list backing answers its
+     * index, which `TKey` need not cover, so the index is part of the answer
      *
      * @example
      *
@@ -2793,8 +2794,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     search(
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
-    ): TKey | false {
-        return dataSearch(this.items as Record<TKey, TValue>, value, strict);
+    ): TKey | number | false {
+        return dataSearch(this.items, value, strict);
     }
 
     /**
@@ -2816,7 +2817,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
     ): TValue | null {
-        return dataBefore(this.items as Record<TKey, TValue>, value, strict);
+        return dataBefore(this.items, value, strict);
     }
 
     /**
@@ -2838,7 +2839,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
     ): TValue | null {
-        return dataAfter(this.items as Record<TKey, TValue>, value, strict);
+        return dataAfter(this.items, value, strict);
     }
 
     /**
