@@ -2696,6 +2696,21 @@ describe("Data", () => {
             result = Data.dataUnshift(result, "Jonny from Laroe");
             expect(result).toEqual(expected);
         });
+        it("keeps an undefined item on both backings", () => {
+            // JS-only: undefined has no PHP analogue. arr.unshift used to drop it while
+            // obj.unshift kept it, so the two backings answered differently (F-9).
+            // Compared by element identity: an undefined element is not a missing one.
+            const list = Data.dataUnshift(["a"], undefined, "b");
+            const record = Data.dataUnshift({ x: "a" }, undefined, "b");
+
+            expect(list).toHaveLength(3);
+            expect(list[0]).toBeUndefined();
+            expect(list[1]).toBe("b");
+
+            expect(Object.keys(record)).toEqual(["0", "1", "x"]);
+            expect(record[0]).toBeUndefined();
+            expect(record[1]).toBe("b");
+        });
     });
 
     describe("dataShuffle", () => {

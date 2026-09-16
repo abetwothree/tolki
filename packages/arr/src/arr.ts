@@ -828,12 +828,9 @@ export function unshift<TValue>(
         return data;
     }
 
-    for (let i = items.length - 1; i >= 0; i--) {
-        const item = items[i];
-        if (!isUndefined(item)) {
-            data.unshift(item as TValue);
-        }
-    }
+    // array_unshift prepends every argument it is handed, and obj.unshift and both
+    // Collection.unshift backings keep an undefined one; only this row dropped it.
+    data.unshift(...(items as TValue[]));
 
     return data;
 }

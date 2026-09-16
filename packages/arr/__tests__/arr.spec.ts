@@ -2580,14 +2580,23 @@ describe("Arr", () => {
             expect(result).toEqual(expected);
         });
 
-        it("should skip undefined items", () => {
-            // Tests when item is undefined
-            expect(Arr.unshift(["a", "b"], undefined, "c")).toEqual([
-                "c",
-                "a",
-                "b",
-            ]);
-            expect(Arr.unshift(["a"], undefined, undefined)).toEqual(["a"]);
+        it("keeps undefined items", () => {
+            // JS-only: undefined has no PHP analogue, and array_unshift prepends every
+            // argument. obj.unshift and both Collection.unshift backings keep it too,
+            // so dataUnshift's two backings now agree. Compared by element identity:
+            // an undefined element is not a missing one.
+            const withHole = Arr.unshift(["a", "b"], undefined, "c");
+
+            expect(withHole).toHaveLength(4);
+            expect(withHole[0]).toBeUndefined();
+            expect(withHole.slice(1)).toEqual(["c", "a", "b"]);
+
+            const allHoles = Arr.unshift(["a"], undefined, undefined);
+
+            expect(allHoles).toHaveLength(3);
+            expect(allHoles[0]).toBeUndefined();
+            expect(allHoles[1]).toBeUndefined();
+            expect(allHoles[2]).toBe("a");
         });
     });
 
