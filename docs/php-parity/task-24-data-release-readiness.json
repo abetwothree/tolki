@@ -2467,6 +2467,20 @@
                     ]
                 }
             }
+        },
+        {
+            "label": "d6-combine-key-cast-minus-zero-and-1e19",
+            "php": "(new Collection([-0.0, 1e19]))->combine([1, 2]): the keys as PHP stores them",
+            "value": [
+                [
+                    "string",
+                    "-0"
+                ],
+                [
+                    "string",
+                    "1.0E+19"
+                ]
+            ]
         }
     ]
 }

@@ -844,4 +844,12 @@ probe('d6-nested-list-is-descended-not-replaced', "\$src = ['a' => ['q']]; Arr::
     return ['add' => $addResult, 'set' => $set, 'source-after-add' => $added];
 });
 
+// ==== Task D6 Step 5 (F-17): the two combine keys the type prints differently from PHP.
+probe('d6-combine-key-cast-minus-zero-and-1e19', "(new Collection([-0.0, 1e19]))->combine([1, 2]): the keys as PHP stores them", function () {
+    return array_map(
+        fn ($key) => [get_debug_type($key), (string) $key],
+        array_keys((new Collection([-0.0, 1e19]))->combine([1, 2])->all())
+    );
+});
+
 emit();
