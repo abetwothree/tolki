@@ -118,16 +118,29 @@ describe("data keying type tests", () => {
             );
         });
 
-        it("answers obj.undot's object row for a list, which obj's own call does not pick", () => {
-            // An instantiation expression resolves only the rows that take its type arguments,
-            // so the row answers obj's `<T extends object>` one; obj's own call for a list
-            // picks its earlier NonObjectItems row. objUndot runs either way.
-            expectTypeOf(Data.dataUndot(nestedList)).not.toEqualTypeOf(
-                Obj.undot(nestedList),
-            );
+        it("answers arr.undot for every positional backing, as the body does", () => {
+            // Before E3 these rows answered obj's `<T extends object>` one, which is unsound:
+            // the body runs `arrUndot(toPositionalBacking(data))` and a list is not a record.
             expectTypeOf(Data.dataUndot(nestedList)).toEqualTypeOf<
-                ReturnType<typeof Obj.undot<typeof nestedList>>
+                ReturnType<
+                    typeof Arr.undot<(typeof nestedList)[number], number>
+                >
             >();
+            expectTypeOf(Data.dataUndot(readonlyNumberList)).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(Data.dataUndot(new Set([1, 2]))).toEqualTypeOf<
+                number[]
+            >();
+        });
+
+        it("answers arr.undot for a scalar and for null, which wrap into a list", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "undot-noncanonical-index"
+            // is the keyed row; these two have no PHP analogue.
+            // JS-only: PHP has no scalar undot; `toPositionalBacking` wraps, so the answer
+            // is a list whose member type nothing narrows.
+            expectTypeOf(Data.dataUndot(5)).toEqualTypeOf<unknown[]>();
+            expectTypeOf(Data.dataUndot(null)).toEqualTypeOf<unknown[]>();
         });
 
         it("matches arr.undot once asArray picks the array-shaped rebuild", () => {

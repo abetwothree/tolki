@@ -394,6 +394,12 @@ type ObjCombineRow<TKeys, TValues> = ReturnType<
 type CombineKeysBacking = string | number | bigint | boolean | symbol | null;
 
 /**
+ * `dataUndot`'s positional backings — every shape `isKeyedData` sends to `Arr.undot`.
+ * `undefined` belongs here too: `toPositionalBacking` keeps it as a one-element list.
+ */
+type UndotPositionalBacking = CombineKeysBacking | undefined;
+
+/**
  * Combine two data sets: the first set's values become the keys, the second set's values the values.
  * Either set may be a list or an object, as `array_combine` takes any two arrays.
  *
@@ -518,6 +524,10 @@ export function dataUndot(
     data: ReadonlyMap<PropertyKey, unknown>,
     asArray?: false | undefined,
 ): ReturnType<typeof objUndot>;
+export function dataUndot<TValue>(
+    data: readonly TValue[] | Iterable<TValue> | UndotPositionalBacking,
+    asArray?: boolean,
+): ReturnType<typeof arrUndot<TValue, number>>;
 export function dataUndot<TData extends object>(
     data: TData,
     asArray?: false | undefined,
