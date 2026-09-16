@@ -8,7 +8,6 @@ import {
     dataCollapse,
     dataCombine,
     dataContains,
-    dataCount,
     dataCrossJoin,
     dataDiff,
     dataDiffAssoc,
@@ -87,6 +86,7 @@ import {
     looseEqual,
     MultipleItemsFoundException,
     objectToString,
+    operatorMatch,
     phpArrayKey,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
@@ -5509,81 +5509,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 ? item
                 : dataGet(item!, key as PathKey);
 
-            const strings = dataFilter([retrieved, value], function (value) {
-                if (isString(value)) {
-                    return true;
-                }
-
-                if (
-                    isObject(value) &&
-                    isFunction((value as { toString: unknown }).toString)
-                ) {
-                    return true;
-                }
-
-                return false;
-            });
-
-            if (
-                dataCount(strings) < 2 &&
-                dataCount(dataFilter([retrieved, value], isObject)) === 1
-            ) {
-                return ["!=", "<>", "!=="].includes(operator!);
-            }
-
-            switch (operator) {
-                default:
-                case "=":
-                case "==":
-                    return looseEqual(retrieved, value);
-                case "!=":
-                case "<>":
-                    return !looseEqual(retrieved, value);
-                case "<":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) <
-                            (value as number | string)
-                    );
-                case ">":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) >
-                            (value as number | string)
-                    );
-                case "<=":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) <=
-                            (value as number | string)
-                    );
-                case ">=":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) >=
-                            (value as number | string)
-                    );
-                case "===":
-                    return retrieved === value;
-                case "!==":
-                    return retrieved !== value;
-                case "<=>":
-                    return (
-                        (!isNull(retrieved) && !isNull(value)
-                            ? (retrieved as number | string) <
-                              (value as number | string)
-                                ? -1
-                                : (retrieved as number | string) >
-                                    (value as number | string)
-                                  ? 1
-                                  : 0
-                            : 0) !== 0
-                    );
-            }
+            // The switch this used to inline IS operatorMatch, which `contains`'s
+            // key/operator/value form in arr and obj already runs; sharing it is what
+            // keeps the three in step. An absent operator is PHP's `default:` arm.
+            return operatorMatch(retrieved, operator ?? "=", value);
         };
     }
 

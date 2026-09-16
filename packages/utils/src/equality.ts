@@ -648,7 +648,10 @@ export function strictEqual(a: unknown, b: unknown): boolean {
  *
  * An unrecognised operator falls through to `=`, as PHP's `switch` default does.
  * When exactly one side is an object and the pair holds fewer than two strings,
- * PHP cannot order them, so only the inequality operators answer true.
+ * PHP cannot order them, so only the inequality operators answer true. Every other
+ * relational operator orders through `compareValues`, PHP's own comparison rule, so
+ * `null` is ordered rather than refused; `NaN` orders with nothing but is still
+ * unequal under `<=>`, as PHP's `NAN <=> 1` answers 1.
  *
  * @param retrieved - The value read from the item
  * @param operator - The comparison operator (`=`, `==`, `!=`, `<>`, `<`, `>`, `<=`, `>=`, `===`, `!==`, `<=>`)
@@ -659,6 +662,7 @@ export function strictEqual(a: unknown, b: unknown): boolean {
  *
  * operatorMatch(3, '>', 2); -> true
  * operatorMatch('4', '===', 4); -> false
+ * operatorMatch(1, '>', null); -> true (PHP casts null to false and 1 to true)
  * operatorMatch(1, 'nonsense', '1'); -> true (unknown operators compare loosely)
  */
 export function operatorMatch(
@@ -678,33 +682,34 @@ export function operatorMatch(
         return ["!=", "<>", "!=="].includes(operator);
     }
 
-    // PHP's relational operators on null answer false either way, so a nullish
-    // operand short-circuits instead of coercing the way JavaScript's would.
-    const ordered = (compare: (a: number, b: number) => boolean): boolean =>
-        !isNullish(retrieved) &&
-        !isNullish(value) &&
-        compare(retrieved as number, value as number);
+    // NAN orders with nothing, yet `NAN <=> 1` is 1, not 0 (task-24, "raw spaceship").
+    const uncomparable = isNaNValue(retrieved) || isNaNValue(value);
+    // PHP orders with its own rules, not JavaScript's: null casts to a bool (or to "" against
+    // a string) and two numeric strings compare numerically, so `-1 > null` and `"10" > "9"`
+    // both hold there. compareValues is that rule (task-24, "r3-operator-table").
+    const ordered = (holds: (sign: number) => boolean): boolean =>
+        !uncomparable && holds(compareValues(retrieved, value));
 
     switch (operator) {
         case "!=":
         case "<>":
             return !looseEqual(retrieved, value);
         case "<":
-            return ordered((a, b) => a < b);
+            return ordered((sign) => sign < 0);
         case ">":
-            return ordered((a, b) => a > b);
+            return ordered((sign) => sign > 0);
         case "<=":
-            return ordered((a, b) => a <= b);
+            return ordered((sign) => sign <= 0);
         case ">=":
-            return ordered((a, b) => a >= b);
+            return ordered((sign) => sign >= 0);
         case "===":
             return retrieved === value;
         case "!==":
             return retrieved !== value;
-        // PHP's `<=>` is truthy for any non-zero result, so it holds when the pair
-        // orders either way; two values that neither compare are equal, not unequal.
+        // PHP's `<=>` is truthy for any non-zero result, so only an equal pair is
+        // falsy; an uncomparable one answers 1, not 0, and so counts as unequal.
         case "<=>":
-            return ordered((a, b) => a < b || a > b);
+            return uncomparable || compareValues(retrieved, value) !== 0;
         default:
             return looseEqual(retrieved, value);
     }

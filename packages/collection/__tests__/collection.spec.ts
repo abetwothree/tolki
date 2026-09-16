@@ -10560,13 +10560,13 @@ describe("Collection", () => {
             ).toEqual(["9", "10", null, 0]);
         });
 
-        // Known defect, NOT parity, outside B6's scope: whereBetween filters through
-        // `where(key, ">=", ...)`, a comparator compareValues never reached, so it
-        // disagrees with PHP ("whereBetween over the same items" is ["1", 5]). Unchanged.
-        it("disagrees with whereBetween, which uses a different comparator", () => {
+        // task-19-spaceship.json, "whereBetween over the same items" - whereBetween
+        // filters through `where(key, ">=", ...)`, which operatorMatch now orders with
+        // compareValues too, so the pair finally agrees with PHP and with each other.
+        it("agrees with whereBetween, which now shares the comparator", () => {
             expect(
                 collect(mixed).whereBetween("v", ["1", "5"]).pluck("v").all(),
-            ).toEqual(["10", "1", 5]);
+            ).toEqual(["1", 5]);
         });
     });
 
@@ -11435,13 +11435,13 @@ describe("Collection", () => {
         });
 
         it("handles <=> with null values", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // "null vs null" is false and "1 vs null" true: PHP casts null to false, so
+            // every truthy value orders above it and only the null row is filtered out.
             const c = collect([{ val: null }, { val: 2 }]);
-            // Spaceship: when comparing, null <=> null returns 0, and null <=> 2 returns 0
-            // Since both return 0 (falsy), neither passes the filter
             const result = c.filter(c["operatorForWhere"]("val", "<=>", null));
-            // null <=> null = 0 (falsy, filtered out)
-            // 2 <=> null = 0 (falsy, filtered out)
-            expect(result.values().all()).toEqual([]);
+
+            expect(result.values().all()).toEqual([{ val: 2 }]);
         });
     });
 

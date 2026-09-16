@@ -787,20 +787,64 @@ describe("Utils", () => {
             expect(Utils.operatorMatch(1, "nonsense", 2)).toBe(false);
         });
 
-        it("answers PHP's spaceship truthiness, so an incomparable pair is equal", () => {
-            // `$a <=> $b` is truthy only when the pair orders; NAN and 1 vs "1" order neither way.
+        it("answers PHP's spaceship truthiness, so only an equal pair is falsy", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // "raw spaceship" and "4 vs \"4\"": `1 <=> "1"` is 0, and every NAN pair is 1.
+            // docs/php-parity/task-19-spaceship.json,
+            // "spaceship on an int and its numeric string".
             expect(Utils.operatorMatch(1, "<=>", 2)).toBe(true);
             expect(Utils.operatorMatch(2, "<=>", 1)).toBe(true);
             expect(Utils.operatorMatch(1, "<=>", 1)).toBe(false);
             expect(Utils.operatorMatch(1, "<=>", "1")).toBe(false);
-            expect(Utils.operatorMatch(Number.NaN, "<=>", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, "<=>", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", Number.NaN)).toBe(
+                true,
+            );
         });
 
-        it("refuses to order a nullish operand, as PHP's relational operators do", () => {
-            expect(Utils.operatorMatch(null, "<", 1)).toBe(false);
-            expect(Utils.operatorMatch(1, ">", null)).toBe(false);
-            expect(Utils.operatorMatch(undefined, "<=", 1)).toBe(false);
-            expect(Utils.operatorMatch(1, ">=", undefined)).toBe(false);
+        it("leaves a NaN operand unordered under every relational operator", () => {
+            // Same row, "NAN vs 1": PHP answers false for <, >, <= and >= alike.
+            expect(Utils.operatorMatch(Number.NaN, "<", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, ">", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, ">=", 1)).toBe(false);
+        });
+
+        it("orders a null operand the way PHP's comparison cast does", () => {
+            // Same row, "null vs 4", "1 vs null", "0 vs null", "null vs null",
+            // "-1 vs null" and "\"abc\" vs null": null casts to false against a
+            // number, so every truthy value sorts above it, and to "" against a string.
+            expect(Utils.operatorMatch(null, "<", 4)).toBe(true);
+            expect(Utils.operatorMatch(null, "<=", 4)).toBe(true);
+            expect(Utils.operatorMatch(null, ">", 4)).toBe(false);
+            expect(Utils.operatorMatch(1, ">", null)).toBe(true);
+            expect(Utils.operatorMatch(1, ">=", null)).toBe(true);
+            expect(Utils.operatorMatch(1, "<", null)).toBe(false);
+            expect(Utils.operatorMatch(0, "<=", null)).toBe(true);
+            expect(Utils.operatorMatch(0, ">", null)).toBe(false);
+            expect(Utils.operatorMatch(null, "<=", null)).toBe(true);
+            expect(Utils.operatorMatch(null, "<", null)).toBe(false);
+            // The two JavaScript's own coercion answers the other way round.
+            expect(Utils.operatorMatch(-1, ">", null)).toBe(true);
+            expect(Utils.operatorMatch("abc", ">", null)).toBe(true);
+            expect(Utils.operatorMatch("", ">", null)).toBe(false);
+        });
+
+        it("compares two numeric strings numerically, not lexically", () => {
+            // docs/php-parity/task-19-spaceship.json,
+            // "spaceship on two numeric strings, wider on the left": "10" <=> "9" is 1.
+            expect(Utils.operatorMatch("10", ">", "9")).toBe(true);
+            expect(Utils.operatorMatch("10", "<", "9")).toBe(false);
+        });
+
+        it("orders an undefined operand exactly as it orders null", () => {
+            // JS-only: PHP has no undefined, so no row records it. compareValues reads
+            // it as PHP reads null, which is the value this port stores a missing path as.
+            expect(Utils.operatorMatch(undefined, "<", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, ">", undefined)).toBe(true);
+            expect(Utils.operatorMatch(undefined, "<=", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, ">=", undefined)).toBe(true);
         });
 
         it("answers only the inequality operators when one side alone is an object", () => {
