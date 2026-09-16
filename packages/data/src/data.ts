@@ -235,16 +235,15 @@ type NonObjectBacking =
 /**
  * `dataAdd`'s rows, each answering with its delegate's own return type.
  *
- * Two shapes are turned away, and both for the same reason — the only row that would admit them
- * takes `unknown`, which would admit a read-only list with them:
+ * One shape is turned away: a backing the compiler has **not narrowed** (`unknown`), which no
+ * typed row can claim. Relaxing that has to be a deliberate widening, not a side effect.
  *
- * - a **read-only list**. `arr.add` copies along the written path, so this is now a limit of the
- *   row shapes rather than a mutation risk; widening it needs its own task.
- * - a backing the compiler has **not narrowed** (`unknown`), which no typed row can claim.
+ * A read-only list is accepted, and answers `arr.add`'s own row: F-18 made `arr.add` copy along
+ * the written path instead of writing through, so the read-only rejection was only ever a shape
+ * of `MutableBacking`, which now guards the `unknown` row alone.
  *
- * Relaxing either is its own task, and has to be a deliberate widening of the rows rather than a
- * side effect. Every other backing every sibling write helper takes is accepted here: a Map, a
- * Set, a list, a record, an interface, a class instance, and a scalar, string or nullish value.
+ * Every other backing every sibling write helper takes is accepted here: a Map, a Set, a list, a
+ * record, an interface, a class instance, and a scalar, string or nullish value.
  */
 interface DataAdd {
     (
@@ -265,7 +264,7 @@ interface DataAdd {
         value: unknown,
     ): ReturnType<typeof objAdd>;
     <TValue, TAddValue>(
-        data: TValue[],
+        data: readonly TValue[],
         key: PathKey,
         value: TAddValue,
     ): ReturnType<typeof arrAdd<TValue, TAddValue>>;
@@ -279,7 +278,7 @@ interface DataAdd {
 /**
  * Add an element to data.
  *
- * @param data - The data to add to. A read-only list and an unnarrowed one are rejected; see `DataAdd`
+ * @param data - The data to add to. A backing the compiler has not narrowed is rejected; see `DataAdd`
  * @param key - The key to add at
  * @param value - The value to add
  * @returns New data with the element added, matching the delegate's own result
@@ -966,6 +965,9 @@ export const dataSelect = dispatch(arrSelect, objSelect);
 /**
  * Map data with keys using a callback.
  *
+ * Not a `dispatch` pair: the callback's tuple return has to be normalized to a single-pair
+ * record before either delegate folds it, and `dispatch` forwards its arguments untouched.
+ *
  * @param data - The data to map
  * @param callback - The mapping callback
  * @returns Mapped data with keys
@@ -1129,6 +1131,8 @@ export const dataRandom = dispatch(arrRandom, objRandom);
 /**
  * Search for a value in data and return its key.
  *
+ * No `Arr::`/`Collection::` counterpart and no delegate pair, so it is written out here.
+ *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
@@ -1197,6 +1201,8 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the item before a specified value in data.
  *
+ * No `Arr::`/`Collection::` counterpart and no delegate pair, so it is written out here.
+ *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
@@ -1249,6 +1255,8 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get the item after a specified value in data.
+ *
+ * No `Arr::`/`Collection::` counterpart and no delegate pair, so it is written out here.
  *
  * @param items - The data items to search
  * @param value - The value or callback to search for
