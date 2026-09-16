@@ -2615,6 +2615,278 @@
                     "string:01"
                 ]
             }
+        },
+        {
+            "label": "r3-operator-table",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for all eleven operators",
+            "value": {
+                "4 vs 4": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "4 vs \"4\"": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "null vs 4": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "0 vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "null vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "-1 vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"abc\" vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"\" vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"10\" vs \"9\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "raw spaceship": {
+                    "1 <=> null": 1,
+                    "null <=> 1": -1,
+                    "NAN <=> 1": 1,
+                    "1 <=> NAN": 1,
+                    "NAN <=> NAN": 1,
+                    "0 <=> null": 0,
+                    "-1 <=> null": 1
+                }
+            }
+        },
+        {
+            "label": "r3-assoc-backed-contains",
+            "php": "(new Collection(['a'=>['v'=>1],'b'=>['v'=>3],'c'=>['v'=>'4'],'d'=>['v'=>5]]))->contains(...) and the containsStrict twins",
+            "value": {
+                "operator": {
+                    "'='": true,
+                    "'=='": true,
+                    "'==='": false,
+                    "'>'": true
+                },
+                "key-value": {
+                    "1": true,
+                    "2": false
+                },
+                "null-key": {
+                    "> 1": true,
+                    "> 9": false
+                },
+                "containsStrict-numeric-string": {
+                    "'02'": true,
+                    "2": false
+                },
+                "containsStrict-two-args": {
+                    "array": true,
+                    "reordered": false,
+                    "null": true,
+                    "null-missing": true,
+                    "null-none": false
+                },
+                "containsStrict-callback-null": false
+            }
+        },
+        {
+            "label": "r3-assoc-backed-leaf-rules",
+            "php": "Arr::flatten(['a' => $o]), Arr::collapse(['g2' => $o]), array_replace_recursive(['a' => $o], ['a' => ['x' => 5]])",
+            "value": {
+                "flatten-single-object-entry": {
+                    "count": 1,
+                    "kept": true
+                },
+                "collapse-only-object-assoc": [],
+                "replaceRecursive-object-under-array": {
+                    "a": {
+                        "x": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "r3-prepend-extra-keys",
+            "php": "Arr::prepend([1 => 'a', 2 => 'b', 'c' => 3], 'z', 2) and @Arr::prepend(['a' => 1], 'v', -0.5)",
+            "value": {
+                "existing-integer-key-2": {
+                    "result": {
+                        "2": "z",
+                        "1": "a",
+                        "c": 3
+                    },
+                    "keys": [
+                        "int:2",
+                        "int:1",
+                        "string:c"
+                    ]
+                },
+                "negative-float-above-minus-one": {
+                    "result": {
+                        "0": "v",
+                        "a": 1
+                    },
+                    "keys": [
+                        "int:0",
+                        "string:a"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "r3-set-list-nested-object-is-replaced-wholesale",
+            "php": "$src = [new D4Point(1)]; Arr::set($src, '0.y', 2)",
+            "value": {
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
         }
     ]
 }

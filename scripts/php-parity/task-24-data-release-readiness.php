@@ -932,4 +932,135 @@ probe('r2-set-noncanonical-index-head-with-rest', "\$a = ['a','b']; Arr::set(\$a
     ];
 });
 
+// ==== fix-round-3 Group A/E: the whole operatorForWhere operand table. "contains-three-args-
+// ==== operator" records only four of the eleven operators, and NO row anywhere in
+// ==== docs/php-parity/ records a relational operator against null, or NAN under `<=>`.
+probe('r3-operator-table', "(new Collection([['v' => \$retrieved]]))->contains('v', <op>, \$value) for all eleven operators", function () {
+    $operators = ['=', '==', '!=', '<>', '<', '>', '<=', '>=', '===', '!==', '<=>'];
+    $pairs = [
+        '4 vs 4' => [4, 4],
+        '4 vs "4"' => [4, '4'],
+        'null vs 4' => [null, 4],
+        '1 vs null' => [1, null],
+        '0 vs null' => [0, null],
+        'null vs null' => [null, null],
+        '-1 vs null' => [-1, null],
+        '"abc" vs null' => ['abc', null],
+        '"" vs null' => ['', null],
+        '"10" vs "9"' => ['10', '9'],
+        'NAN vs 1' => [NAN, 1],
+        '1 vs NAN' => [1, NAN],
+        'NAN vs NAN' => [NAN, NAN],
+    ];
+
+    $table = [];
+
+    foreach ($pairs as $name => [$retrieved, $value]) {
+        foreach ($operators as $operator) {
+            $table[$name][$operator] = (new Collection([['v' => $retrieved]]))->contains('v', $operator, $value);
+        }
+    }
+
+    // The raw operators too: `contains` only reports the truthiness of `<=>`, and the
+    // int is what says an uncomparable pair answers 1 rather than 0.
+    $table['raw spaceship'] = [
+        '1 <=> null' => 1 <=> null,
+        'null <=> 1' => null <=> 1,
+        'NAN <=> 1' => NAN <=> 1,
+        '1 <=> NAN' => 1 <=> NAN,
+        'NAN <=> NAN' => NAN <=> NAN,
+        '0 <=> null' => 0 <=> null,
+        '-1 <=> null' => -1 <=> null,
+    ];
+
+    return $table;
+});
+
+// ==== fix-round-3 Group E: obj.spec's citations pointed at the list-backed rows above.
+// ==== PHP's array is both, so the same calls keyed by string record the record backing.
+probe('r3-assoc-backed-contains', "(new Collection(['a'=>['v'=>1],'b'=>['v'=>3],'c'=>['v'=>'4'],'d'=>['v'=>5]]))->contains(...) and the containsStrict twins", function () {
+    $rows = ['a' => ['v' => 1], 'b' => ['v' => 3], 'c' => ['v' => '4'], 'd' => ['v' => 5]];
+    $three = ['a' => ['v' => 1], 'b' => ['v' => 3], 'c' => ['v' => 5]];
+
+    return [
+        'operator' => [
+            "'='" => (new Collection($rows))->contains('v', '=', 4),
+            "'=='" => (new Collection($rows))->contains('v', '==', 4),
+            "'==='" => (new Collection($rows))->contains('v', '===', 4),
+            "'>'" => (new Collection($rows))->contains('v', '>', 4),
+        ],
+        'key-value' => [
+            '1' => (new Collection($three))->contains('v', 1),
+            '2' => (new Collection($three))->contains('v', 2),
+        ],
+        'null-key' => [
+            '> 1' => (new Collection(['a' => 1, 'b' => 2]))->contains(null, '>', 1),
+            '> 9' => (new Collection(['a' => 1, 'b' => 2]))->contains(null, '>', 9),
+        ],
+        'containsStrict-numeric-string' => [
+            "'02'" => (new Collection(['a' => 1, 'b' => 3, 'c' => 5, 'd' => '02']))->containsStrict('02'),
+            '2' => (new Collection(['a' => 1, 'b' => 3, 'c' => 5, 'd' => '02']))->containsStrict(2),
+        ],
+        'containsStrict-two-args' => [
+            'array' => (new Collection(['r' => ['tags' => ['a', 'b']]]))->containsStrict('tags', ['a', 'b']),
+            'reordered' => (new Collection(['r' => ['t' => ['x' => 1, 'y' => 2]]]))->containsStrict('t', ['y' => 2, 'x' => 1]),
+            'null' => (new Collection(['r' => ['name' => null], 's' => ['name' => 'x']]))->containsStrict('name', null),
+            'null-missing' => (new Collection(['r' => ['a' => 1]]))->containsStrict('name', null),
+            'null-none' => (new Collection(['r' => ['name' => 'x']]))->containsStrict('name', null),
+        ],
+        'containsStrict-callback-null' => (new Collection(['a' => null, 'b' => 1]))->containsStrict(fn ($value) => $value === null),
+    ];
+});
+
+// ==== fix-round-3 Group E: the record-backed twins of the three list rows obj.spec cites.
+probe('r3-assoc-backed-leaf-rules', "Arr::flatten(['a' => \$o]), Arr::collapse(['g2' => \$o]), array_replace_recursive(['a' => \$o], ['a' => ['x' => 5]])", function () {
+    $sized = new class
+    {
+        public $x = 1;
+
+        public $y = 2;
+    };
+
+    $flattened = Arr::flatten(['a' => $sized]);
+
+    return [
+        'flatten-single-object-entry' => [
+            'count' => count($flattened),
+            'kept' => $flattened[0] === $sized,
+        ],
+        'collapse-only-object-assoc' => Arr::collapse(['g2' => $sized]),
+        'replaceRecursive-object-under-array' => array_replace_recursive(['a' => $sized], ['a' => ['x' => 5]]),
+    ];
+});
+
+// ==== fix-round-3 Group E: obj-writes.test-d.ts:149 asserted a prepend call this row
+// ==== never recorded, and :169's `-0.5` note had no probe behind it at all.
+probe('r3-prepend-extra-keys', "Arr::prepend([1 => 'a', 2 => 'b', 'c' => 3], 'z', 2) and @Arr::prepend(['a' => 1], 'v', -0.5)", function () {
+    $middle = Arr::prepend([1 => 'a', 2 => 'b', 'c' => 3], 'z', 2);
+    $minusHalf = @Arr::prepend(['a' => 1], 'v', -0.5);
+
+    return [
+        'existing-integer-key-2' => [
+            'result' => $middle,
+            'keys' => array_map(fn ($key) => get_debug_type($key) . ':' . $key, array_keys($middle)),
+        ],
+        'negative-float-above-minus-one' => [
+            'result' => $minusHalf,
+            'keys' => array_map(fn ($key) => get_debug_type($key) . ':' . $key, array_keys($minusHalf)),
+        ],
+    ];
+});
+
+// ==== fix-round-3 Group C: no row records Arr::set descending a LIST backing into a nested
+// ==== object. "add-nested-object-is-replaced-wholesale" records only the Arr::add twin.
+probe('r3-set-list-nested-object-is-replaced-wholesale', "\$src = [new D4Point(1)]; Arr::set(\$src, '0.y', 2)", function () {
+    $src = [new D4Point(1)];
+    Arr::set($src, '0.y', 2);
+
+    return [
+        'result' => $src,
+        'result_type' => get_debug_type($src[0]),
+    ];
+});
+
 emit();
