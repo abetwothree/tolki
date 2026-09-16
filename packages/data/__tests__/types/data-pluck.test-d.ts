@@ -99,7 +99,7 @@ describe("data pluck type tests", () => {
         });
     });
 
-    describe("dataPluck, a null value path (F-23)", () => {
+    describe("dataPluck, a null value path", () => {
         // `Arr::pluck($data, null)` keeps each whole item. `dataPluck`'s hand-written
         // `value: string | callback` rejected `null` outright; both delegates take it.
 

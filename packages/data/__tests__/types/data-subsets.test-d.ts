@@ -89,7 +89,7 @@ describe("data subsets type tests", () => {
             );
         });
 
-        it("matches obj.only for a read-only key list (F-23)", () => {
+        it("matches obj.only for a read-only key list", () => {
             expectTypeOf(Data.dataOnly(abc, readonlyKeys)).toEqualTypeOf(
                 Obj.only(abc, readonlyKeys),
             );
@@ -109,7 +109,7 @@ describe("data subsets type tests", () => {
             );
         });
 
-        it("matches obj.except for a read-only key list (F-23)", () => {
+        it("matches obj.except for a read-only key list", () => {
             expectTypeOf(Data.dataExcept(abc, readonlyKeys)).toEqualTypeOf(
                 Obj.except(abc, readonlyKeys),
             );
@@ -135,7 +135,7 @@ describe("data subsets type tests", () => {
             );
         });
 
-        it("matches obj.forget for a read-only key list (F-23)", () => {
+        it("matches obj.forget for a read-only key list", () => {
             expectTypeOf(Data.dataForget(abc, readonlyKeys)).toEqualTypeOf(
                 Obj.forget(abc, readonlyKeys),
             );
