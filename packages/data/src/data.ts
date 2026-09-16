@@ -896,9 +896,9 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
 /**
  * Prepend a value to data.
  *
- * Stays hand-written rather than becoming a `dispatch` pair: given a key, `arr.prepend`
- * unions through `unionValues` and hands back only the values, so a non-integer-like key's
- * entry disappears where PHP's `+` keeps it. Task D7 (F-19) owns that arr fix.
+ * No `dispatch` pair is possible: `arr.prepend` takes `key?: number` and returns `TValue[]`,
+ * so it cannot express PHP's keyed answer at all. Only the non-integer-like key's entry
+ * disappearing, where PHP's `+` keeps it, is an arr defect; Task D5 owns arr.prepend.
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend

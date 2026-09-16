@@ -103,13 +103,13 @@ describe("data writes type tests", () => {
     });
 
     describe("dataPrepend, which stays hand-written", () => {
-        // Standing control: `dataPrepend` is NOT a `dispatch` pair. Given a key,
-        // `arr.prepend` unions through `unionValues` and returns only the values, so a
-        // non-integer-like key's entry disappears where PHP's `+` keeps it (F-19/D7).
+        // Standing control: no dispatch pair is possible while `arr.prepend` declares
+        // `key?: number` and returns `TValue[]`, which cannot express PHP's keyed answer at
+        // all. Only the non-integer key's entry vanishing is an arr defect; Task D5 owns it.
 
-        it("still has an arr delegate that drops the keyed entry", () => {
+        it("still has an arr delegate that answers a list for any key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
-            expectTypeOf(Arr.prepend(["b", "c"], "a")).toExtend<string[]>();
+            expectTypeOf(Arr.prepend(["b", "c"], "a", 0)).toExtend<string[]>();
             expectTypeOf(Data.dataPrepend(["b", "c"], "a", "k")).not.toExtend<
                 string[]
             >();
