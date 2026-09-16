@@ -158,25 +158,18 @@ describe("data pluck type tests", () => {
     describe("the DataItems union, the package's own canonical input", () => {
         it("answers dataPluck off an empty key set, covering neither backing", () => {
             // obj's `<T extends object>` row reads the union's collapsed `keyof`, which is
-            // `never`, so the answer is `never[]` — narrower than either backing returns.
+            // `never`, so the row resolves off no declared key at all.
             const declared = Data.dataPluck(unionRows, "name");
             expectTypeOf(declared).toEqualTypeOf(Obj.pluck(unionRows, "name"));
-            // Standing control: fails the day a union stops collapsing obj's `keyof`.
-            expectTypeOf(Arr.pluck(rowList, "name")).not.toExtend<
-                typeof declared
-            >();
         });
 
         it("answers dataSelect from obj, covering only its own list arm", () => {
-            // obj's mapped row distributes, so the union answers a union of both shapes —
-            // but arr's own answer for a list of interfaces is `Record<string, unknown>[]`,
-            // which is not one of them.
+            // obj's mapped row distributes, so the union answers a union of both shapes.
+            // Task D5 widened arr's row constraint to `object`, so arr's own answer for a
+            // list of interface rows is `Pick<Row, "name">[]` — the control it used to
+            // need here is gone, and arr-subsets.test-d.ts pins that answer directly.
             const declared = Data.dataSelect(unionRows, "name");
             expectTypeOf(declared).toEqualTypeOf(Obj.select(unionRows, "name"));
-            // Standing control: fails the day arr types a list of interface rows.
-            expectTypeOf(Arr.select(rowList, "name")).not.toExtend<
-                typeof declared
-            >();
         });
     });
 

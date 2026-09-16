@@ -11,6 +11,18 @@ import {
     unknownArray,
 } from "./fixtures";
 
+/** An interface-typed row: an interface has no implicit index signature (see E2). */
+interface InterfaceRow {
+    id: number;
+    name: string;
+}
+
+/** A list of interface-typed rows, the shape the row constraint used to reject. */
+const interfaceRows: InterfaceRow[] = [
+    { id: 1, name: "Ada" },
+    { id: 2, name: "Grace" },
+];
+
 describe("arr subsets type tests", () => {
     describe("only", () => {
         it("preserves string element type", () => {
@@ -360,6 +372,63 @@ describe("arr subsets type tests", () => {
                 expectTypeOf(index).toEqualTypeOf<number>();
                 return value > 1;
             });
+        });
+    });
+
+    // F-24 / Batch C6-C8: pluck, select and keyBy constrained their row type on
+    // `Record<string, unknown>`, which an interface does not satisfy — it has no
+    // implicit index signature — so interface-typed rows widened or failed outright.
+    describe("interface-typed rows", () => {
+        it("keys an interface-typed row list by its own row type", () => {
+            expectTypeOf(Arr.keyBy(interfaceRows, "id")).toEqualTypeOf<
+                Record<string, InterfaceRow>
+            >();
+        });
+
+        it("keys an interface-typed row list with a callback", () => {
+            expectTypeOf(
+                Arr.keyBy(interfaceRows, (row) => row.name),
+            ).toEqualTypeOf<Record<string, InterfaceRow>>();
+        });
+
+        it("plucks a literal path off interface-typed rows", () => {
+            expectTypeOf(Arr.pluck(interfaceRows, "name")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("plucks a closure off interface-typed rows", () => {
+            expectTypeOf(
+                Arr.pluck(interfaceRows, (row) => row.name),
+            ).toEqualTypeOf<string[]>();
+        });
+
+        it("plucks a keyed record off interface-typed rows", () => {
+            expectTypeOf(Arr.pluck(interfaceRows, "name", "id")).toEqualTypeOf<
+                Record<string | number, string>
+            >();
+        });
+
+        it("selects a literal key off interface-typed rows", () => {
+            expectTypeOf(Arr.select(interfaceRows, "name")).toEqualTypeOf<
+                Pick<InterfaceRow, "name">[]
+            >();
+        });
+
+        it("selects a literal key list off interface-typed rows", () => {
+            expectTypeOf(
+                Arr.select(interfaceRows, ["id", "name"]),
+            ).toEqualTypeOf<Pick<InterfaceRow, "id" | "name">[]>();
+        });
+
+        it("still turns away a backing the compiler has not narrowed", () => {
+            // Negative control: widening the row constraint must not widen the data row.
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.keyBy(unknownArray, "id");
+            // @ts-expect-error - same for pluck
+            Arr.pluck(unknownArray, "name");
+            // @ts-expect-error - and for select
+            Arr.select(unknownArray, "name");
         });
     });
 });
