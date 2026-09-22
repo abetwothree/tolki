@@ -73,6 +73,7 @@ import {
     isUndefined,
     isWeakMap,
     ItemNotFoundException,
+    keyedEntries,
     looseEqual,
     MultipleItemsFoundException,
     operatorMatch,
@@ -777,7 +778,8 @@ export function undot<TValue, TKey extends UndotArrayKey = number>(
     const containerMax = new Map<string, number>();
     let totalIndex = 0;
 
-    for (const key of Object.keys(map ?? {})) {
+    // A Map's keys are not its own properties, so they are read through its entries.
+    for (const [key] of keyedEntries(map ?? {})) {
         if (!isArrayIndexPath(key)) {
             throw new TypeError(
                 `Arr.undot cannot build an array from the key "${key}": every dot segment must be a canonical decimal integer (no leading zeros, sign, or exponent) from 0 up to ${MAX_UNDOT_INDEX}. Use Obj.undot for string keys.`,
@@ -2843,6 +2845,8 @@ export function query(data: unknown): string {
 /**
  * Get one or a specified number of random values from an array.
  *
+ * The picked items come back in the array's own order, as `Randomizer::pickArrayKeys` returns them.
+ *
  * @param data - The array to get random values from. Non-array-like input is treated as absent, not as an empty array.
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
@@ -2852,7 +2856,7 @@ export function query(data: unknown): string {
  * @example
  *
  * random([1, 2, 3]); -> 2 (single random item)
- * random([1, 2, 3], 2); -> [3, 1] (two random items)
+ * random([1, 2, 3], 2); -> [1, 3] (two random items, in the array's order)
  * random(['a', 'b', 'c'], 2, true); -> {1: 'b', 2: 'c'} (with original keys)
  * random([], 0); -> [] (explicitly requesting zero items)
  * random([]); -> throws Error (no items available)
@@ -2911,6 +2915,9 @@ export function random<TValue>(
         selectedIndices.push(availableIndices[randomIndex] as number);
         availableIndices.splice(randomIndex, 1);
     }
+
+    // Randomizer::pickArrayKeys returns the picked keys in the array's order, not the order drawn.
+    selectedIndices.sort((a, b) => a - b);
 
     // If only one item requested, return it directly
     if (!numberProvided) {

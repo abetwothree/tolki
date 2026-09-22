@@ -5213,6 +5213,27 @@ describe("Arr", () => {
                 "You requested 2 items, but there are only 0 items available.",
             );
         });
+
+        it("returns the picked values in the array's own order, not the order drawn", () => {
+            // docs/php-parity/task-30-map-order.json, "random-list-full-count"
+            expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([
+                "a",
+                "b",
+                "c",
+                "d",
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "random-list-partial-keeps-array-order"
+            const order = ["a", "b", "c", "d"];
+
+            for (let draw = 0; draw < 200; draw++) {
+                const positions = Arr.random(order, 2).map((value) =>
+                    order.indexOf(value),
+                );
+
+                expect(positions).toEqual([...positions].sort((x, y) => x - y));
+            }
+        });
     });
 
     describe("shift", () => {
