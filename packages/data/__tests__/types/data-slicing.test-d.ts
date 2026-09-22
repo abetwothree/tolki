@@ -394,9 +394,8 @@ describe("data slicing type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime, and a conditional over an overloaded delegate resolves only its
-        // last signature, so the answer is obj's widest row, not the record's exact one.
+        // JS-only: PHP has no Map. `dispatch`'s Map row is inferred from the last of obj's overloads,
+        // so a Map gets obj's widest row, not obj's own Map row.
 
         it("types a Map on dataTake from obj's widest row", () => {
             const widest = Obj.take(opaque, 2);
@@ -438,6 +437,23 @@ describe("data slicing type tests", () => {
             expectTypeOf(Data.dataRandom(numberMap, 2)).toEqualTypeOf<
                 typeof widest
             >();
+        });
+
+        it("types dataChunk(map, n, false) and dataRandom(map, n, true) from obj's own Map row", () => {
+            // Not obj's widest row: the checker tries a row with a bare literal parameter first, so obj.chunk's
+            // `false` and obj.random's `true` Map rows win over KeyedMapRow, with the narrower runtime answer.
+            expectTypeOf(Data.dataChunk(numberMap, 2, false)).toEqualTypeOf<
+                Record<number, Record<number, number>>
+            >();
+            expectTypeOf(Data.dataChunk(numberMap, 2, false)).toEqualTypeOf(
+                Obj.chunk(numberMap, 2, false),
+            );
+            expectTypeOf(Data.dataRandom(numberMap, 2, true)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Data.dataRandom(numberMap, 2, true)).toEqualTypeOf(
+                Obj.random(numberMap, 2, true),
+            );
         });
 
         it("types a Map on dataFlatten from obj's widest row", () => {

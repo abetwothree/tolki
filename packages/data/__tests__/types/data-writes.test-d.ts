@@ -159,6 +159,25 @@ describe("data writes type tests", () => {
             const recordOut = Data.dataPrepend(abc, 9, "z");
             expectTypeOf(Obj.prepend(abc, 9, "z")).toExtend<typeof recordOut>();
         });
+
+        it("types a Map as the record obj.prepend builds from it", () => {
+            // A Map always comes back as that plain record, keyed as PHP stores each key, not
+            // as a DataItems of the Map's own members, whose `size` and `get` it lacks.
+            expectTypeOf(Data.dataPrepend(numberMap, 9)).toEqualTypeOf(
+                Obj.prepend(numberMap, 9),
+            );
+            expectTypeOf(Data.dataPrepend(numberMap, "z", "k")).toEqualTypeOf<
+                Record<string, number | string>
+            >();
+            expectTypeOf(
+                Data.dataPrepend(
+                    new Map([[2, "c"]]) as
+                        | Map<number, string>
+                        | Map<string, boolean>,
+                    0,
+                ),
+            ).toEqualTypeOf<Record<string, string | boolean | number>>();
+        });
     });
 
     describe("dataPull", () => {

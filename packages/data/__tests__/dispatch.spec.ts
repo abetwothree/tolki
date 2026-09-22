@@ -3,6 +3,7 @@ import { collapse as objCollapse, first as objFirst } from "@tolki/obj";
 import { describe, expect, it } from "vitest";
 
 import {
+    copyKeyedData,
     dispatch,
     isKeyedData,
     keepKeyedData,
@@ -24,10 +25,31 @@ describe("dispatch", () => {
         expect(dCollapse(rec)).toEqual(objCollapse(rec));
     });
 
-    it("normalizes a Map to a record before delegating", () => {
+    it("hands a Map to the object helper as it arrived", () => {
         const map = new Map([["a", { x: 1 }]]);
+        const received: unknown[] = [];
+        const dSpy = dispatch(arrCollapse, (data: unknown) => {
+            received.push(data);
 
-        expect(dCollapse(map)).toEqual(objCollapse({ a: { x: 1 } }));
+            return data;
+        });
+
+        dSpy(map);
+
+        expect(received).toEqual([map]);
+        expect(received[0]).toBe(map);
+    });
+
+    it("converts a Map to a record for a helper that addresses keys by path", () => {
+        const map = new Map([["a", { x: 1 }]]);
+        const dCollapseRecord = dispatch(
+            arrCollapse,
+            objCollapse,
+            toPositionalBacking,
+            toKeyedData,
+        );
+
+        expect(dCollapseRecord(map)).toEqual(objCollapse({ a: { x: 1 } }));
     });
 
     it("wraps a scalar into a list", () => {
@@ -122,6 +144,29 @@ describe("toKeyedData", () => {
     });
 });
 
+describe("copyKeyedData", () => {
+    it("copies a Map, entries and order included, so a mutator leaves the caller's Map alone", () => {
+        const map = new Map([
+            [2, "c"],
+            [0, "a"],
+        ]);
+        const copy = copyKeyedData(map);
+
+        expect(copy).not.toBe(map);
+        expect(copy).toBeInstanceOf(Map);
+        expect([...(copy as Map<number, string>)]).toEqual([
+            [2, "c"],
+            [0, "a"],
+        ]);
+    });
+
+    it("hands a plain record on by reference, so a mutator writes through it", () => {
+        const rec = { a: 1 };
+
+        expect(copyKeyedData(rec)).toBe(rec);
+    });
+});
+
 describe("keepKeyedData", () => {
     it("hands a Map on by reference, so its insertion order survives", () => {
         const map = new Map([
@@ -131,21 +176,21 @@ describe("keepKeyedData", () => {
 
         expect(keepKeyedData(map)).toBe(map);
 
-        // The record the default normalizer builds cannot hold that order.
+        // The record toKeyedData builds cannot hold that order.
         expect(Object.keys(toKeyedData(map))).toEqual(["0", "2"]);
     });
 });
 
 describe("dispatch with a keyed normalizer", () => {
-    const dFirstKeeping = dispatch(
+    const dFirstKeeping = dispatch(arrFirst, objFirst, streamPositionalData);
+    const dFirstConverting = dispatch(
         arrFirst,
         objFirst,
         streamPositionalData,
-        keepKeyedData,
+        toKeyedData,
     );
-    const dFirstConverting = dispatch(arrFirst, objFirst, streamPositionalData);
 
-    it("lets the object helper read the Map's own order", () => {
+    it("lets the object helper read the Map's own order by default", () => {
         const map = new Map([
             [2, "c"],
             [0, "a"],

@@ -12,6 +12,15 @@ import {
 /** A record whose keys survive `phpArrayKey` differently: "10" becomes 10, "foo" does not. */
 const numericKeyedRecord = { "10": "x", foo: "y" };
 
+/** A Map whose keys PHP stores as integers, out of sequence. */
+const outOfOrderMap = new Map([
+    [2, "c"],
+    [0, "a"],
+]);
+
+/** Two differently typed Maps in one union, which the Map rows read as their members combined. */
+const mapUnion = outOfOrderMap as Map<number, string> | Map<boolean, number>;
+
 describe("data search type tests", () => {
     describe("dataSearch", () => {
         it("returns the index or false for a list", () => {
@@ -83,6 +92,23 @@ describe("data search type tests", () => {
                 return value.id > 1;
             });
         });
+
+        it("answers a Map with the key PHP stores, and hands its callback the Map's values", () => {
+            // JS-only: the key comes back cast, as a record's does, so 2 is a number.
+            expectTypeOf(Data.dataSearch(outOfOrderMap, "a")).toEqualTypeOf<
+                number | false
+            >();
+            Data.dataSearch(outOfOrderMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return value === "a";
+            });
+            // A boolean key is stored as 0 or 1.
+            expectTypeOf(Data.dataSearch(mapUnion, 1)).toEqualTypeOf<
+                number | false
+            >();
+        });
     });
 
     describe("dataBefore", () => {
@@ -118,6 +144,19 @@ describe("data search type tests", () => {
                 number | null
             >();
         });
+
+        it("answers a Map with its value type, and hands its callback the keys PHP stores", () => {
+            // JS-only: as above.
+            expectTypeOf(Data.dataBefore(outOfOrderMap, "a")).toEqualTypeOf<
+                string | null
+            >();
+            Data.dataBefore(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
     });
 
     describe("dataAfter", () => {
@@ -150,6 +189,19 @@ describe("data search type tests", () => {
             expectTypeOf(Data.dataAfter(rowsById, rowsById.r1)).toEqualTypeOf<
                 (typeof rowsById)["r1"] | null
             >();
+        });
+
+        it("answers a Map with its value type, and hands its callback the keys PHP stores", () => {
+            // JS-only: as above.
+            expectTypeOf(Data.dataAfter(outOfOrderMap, "c")).toEqualTypeOf<
+                string | null
+            >();
+            Data.dataAfter(outOfOrderMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return value === "c";
+            });
         });
     });
 

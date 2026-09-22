@@ -154,8 +154,7 @@ describe("data output type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime; obj's widest row answers `string` for all four.
+        // JS-only: PHP has no Map; obj's widest row answers `string` for all four.
 
         it("types a Map on every output function from obj's widest row", () => {
             const joined = Obj.join(opaque, ", ");

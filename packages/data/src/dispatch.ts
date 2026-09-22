@@ -11,16 +11,16 @@ import {
 type AnyFn = (...args: never[]) => unknown;
 
 /**
- * The row that tells the type system what `toKeyedData` does to a Map.
+ * The row that types a Map backing: `objFn`'s widest row, for a Map of any key type.
  *
- * A conditional over an overloaded function resolves its last overload only, so this
- * answers with `objFn`'s widest row — the one row guaranteed to hold for any record.
+ * A conditional over an overloaded function resolves its last overload only, the widest. It takes every Map, so one
+ * keyed by booleans or objects cannot fall through to a delegate row describing a result the helper never returns.
  */
 type KeyedMapRow<TObjFn extends AnyFn> = TObjFn extends (
     data: never,
     ...rest: infer TRest
 ) => infer TReturn
-    ? (data: ReadonlyMap<PropertyKey, unknown>, ...rest: TRest) => TReturn
+    ? (data: ReadonlyMap<unknown, unknown>, ...rest: TRest) => TReturn
     : never;
 
 /**
@@ -42,7 +42,10 @@ export function isKeyedData(data: unknown): boolean {
 }
 
 /**
- * Normalize keyed data into the plain object the object helpers walk.
+ * Normalize keyed data into the plain object an object helper addresses by key.
+ *
+ * A Map becomes the record `obj.from` builds, integer-like keys first, so only a by-path helper or one whose answer
+ * ignores entry order takes this. A `...Using` callback runs in the record's order; PHP's follows its sort anyway.
  *
  * @param data - The keyed data to normalize.
  * @returns The data itself when it is already a plain object, otherwise a record built from it.
@@ -50,24 +53,32 @@ export function isKeyedData(data: unknown): boolean {
 export function toKeyedData<TKey extends PropertyKey, TValue>(
     data: unknown,
 ): Record<TKey, TValue> {
-    // Most obj helpers walk with Object.entries, which yields nothing for a Map, so one has
-    // to become a record first. That record cannot hold an out-of-order integer key, so the
-    // four helpers that read a Map themselves take `keepKeyedData` instead.
     return (isMap(data) ? objFrom(data) : data) as Record<TKey, TValue>;
 }
 
 /**
- * Hand keyed data to the object helper exactly as it arrived.
+ * Hand keyed data to the object helper exactly as it arrived. This is dispatch's default.
  *
- * `obj.first`, `obj.last`, `obj.every` and `obj.some` read a Map's own entries, so they are
- * the only helpers that can see the insertion order a record loses: `{2: "c", 0: "a"}` always
- * iterates `0` first, while PHP's `[2 => 'c', 0 => 'a']` keeps the order it was written in.
+ * Only a Map keeps a PHP array's out-of-sequence integer keys in order: `{2: "c", 0: "a"}` iterates `0` first,
+ * while PHP's `[2 => 'c', 0 => 'a']` iterates as written.
  *
  * @param data - The keyed data to pass along.
  * @returns The data itself, converted by nothing.
  */
 export function keepKeyedData(data: unknown): unknown {
     return data;
+}
+
+/**
+ * Hand a mutating object helper a copy of a Map, so the caller's Map is left as it was.
+ *
+ * `pop`, `shift`, `splice` and `unshift` write through a list or record; a Map is copied, as a Set or generator is.
+ *
+ * @param data - The keyed data to pass along.
+ * @returns A new Map holding a Map's entries, otherwise the data itself.
+ */
+export function copyKeyedData(data: unknown): unknown {
+    return isMap(data) ? new Map(data) : data;
 }
 
 /**
@@ -132,16 +143,15 @@ export function toPositionalBacking(data: unknown): unknown {
  */
 // The Map row must stay FIRST in the intersection: TS tries constituents left to right, and
 // either delegate's own rows claim a Map before it, answering a type the runtime never returns.
-// Measured: moving it last fails 48 type assertions across 11 files in this package.
 export function dispatch<TArrFn extends AnyFn, TObjFn extends AnyFn>(
     arrFn: TArrFn,
     objFn: TObjFn,
     // A streaming helper must pass a Set or generator through UNREAD, so that an infinite
     // generator still works; those helpers override this with streamPositionalData.
     toPositional: (data: unknown) => unknown = toPositionalBacking,
-    // An objFn that reads a Map itself must be handed the Map, or the record it would be
-    // converted to re-sorts the integer keys; those helpers override this with keepKeyedData.
-    toKeyed: (data: unknown) => unknown = toKeyedData,
+    // An objFn reads a Map in insertion order, so it gets the Map; a by-path or order-blind helper overrides this
+    // with toKeyedData, and a mutator with copyKeyedData, so the caller's Map is never written.
+    toKeyed: (data: unknown) => unknown = keepKeyedData,
 ): KeyedMapRow<TObjFn> & TArrFn & TObjFn {
     const forward = (data: unknown, ...rest: readonly unknown[]): unknown => {
         const keyed = isKeyedData(data);

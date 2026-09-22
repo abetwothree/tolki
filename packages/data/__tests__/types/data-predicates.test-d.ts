@@ -330,8 +330,8 @@ describe("data predicates type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime; obj's widest row is what a Map resolves to.
+        // JS-only: PHP has no Map. A Map resolves to obj's widest row, unless that row cannot take
+        // the call's arguments (a `dataContains` callback, below).
 
         it("types a Map on every boolean predicate", () => {
             expectTypeOf(
@@ -361,6 +361,25 @@ describe("data predicates type tests", () => {
                 expectTypeOf(key).toEqualTypeOf<string | number>();
                 return Number(value) > 0;
             });
+        });
+
+        it("hands a Map callback on dataContains obj's own Map-row parameters", () => {
+            // Not the widest row's `unknown`: KeyedMapRow copies obj.contains' last row, whose required third
+            // argument cannot be a boolean, so a callback call falls through to obj.contains' own Map row.
+            Data.dataContains(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return value > 0;
+            });
+            Data.dataContains(
+                numberMap,
+                (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<string | number>();
+                    return value > 0;
+                },
+                true,
+            );
         });
 
         it("types a Map on dataSole from obj's widest row", () => {

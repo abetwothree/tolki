@@ -328,9 +328,8 @@ describe("data setops type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime, and a conditional over an overloaded delegate resolves only its
-        // last signature, so the answer is obj's widest row, not the record's exact one.
+        // JS-only: PHP has no Map. `dispatch`'s Map row is inferred from the last of obj's overloads,
+        // so a Map gets obj's widest row, not obj's own Map row.
 
         it("types a Map on dataDiff from obj's widest row", () => {
             const widest = Obj.diff(opaque, [2]);

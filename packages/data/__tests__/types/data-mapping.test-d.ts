@@ -230,6 +230,50 @@ describe("data mapping type tests", () => {
                 Obj.mapWithKeys(abc, (value, key) => [`k${key}`, value]),
             );
         });
+
+        it("hands a Map's callback its values and the keys PHP stores, and files a pair under its key", () => {
+            const byKey = Data.dataMapWithKeys(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                ]),
+                (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<string>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return [`k${key}`, value];
+                },
+            );
+
+            // data folds the pair as a key and its value; obj would file it under 0 and 1.
+            expectTypeOf(byKey).toEqualTypeOf<Record<`k${number}`, string>>();
+            expectTypeOf(
+                Data.dataMapWithKeys(numberMap, (value) => ["total", value]),
+            ).toEqualTypeOf<Record<"total", number>>();
+        });
+
+        it("answers a Map's record callback as obj.mapWithKeys does", () => {
+            const toRecord = (value: number, key: string | number) => ({
+                [`k${String(key)}`]: value,
+            });
+
+            expectTypeOf(
+                Data.dataMapWithKeys(numberMap, toRecord),
+            ).toEqualTypeOf(Obj.mapWithKeys(numberMap, toRecord));
+        });
+
+        it("hands a union of Maps' callback its members' values and keys", () => {
+            const maps = new Map([["a", 1]]) as
+                | Map<string, number>
+                | Map<boolean, string>;
+
+            Data.dataMapWithKeys(maps, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number | string>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return [String(key), value];
+            });
+        });
     });
 
     describe("the DataItems union, the package's own canonical input", () => {
@@ -257,9 +301,8 @@ describe("data mapping type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime, and a conditional over an overloaded delegate resolves only its
-        // last signature, so the answer is obj's widest row, not the record's exact one.
+        // JS-only: PHP has no Map. `dispatch`'s Map row is inferred from the last of obj's overloads,
+        // so a Map gets obj's widest row, not obj's own Map row.
 
         it("types a Map on dataMap from obj's widest row", () => {
             // The Map row resolves obj's last overload generically, so its mapped value

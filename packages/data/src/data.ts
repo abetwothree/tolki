@@ -162,21 +162,31 @@ import {
     where as objWhere,
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
-import type { DataItems, PathKey, UndotArrayKey } from "@tolki/types";
+import type {
+    DataItems,
+    MapData,
+    MapEntryKey,
+    MapEntryValue,
+    PathKey,
+    UndotArrayKey,
+    UndotValue,
+} from "@tolki/types";
 import {
     isArray,
     isFunction,
+    isMap,
     isNull,
     isUndefined,
+    keyedEntries,
     looseEqual,
     phpArrayKey,
     strictEqual,
 } from "@tolki/utils";
 
 import {
+    copyKeyedData,
     dispatch,
     isKeyedData,
-    keepKeyedData,
     streamPositionalData,
     toKeyedData,
     toPositionalBacking,
@@ -191,16 +201,35 @@ import {
  */
 
 /**
- * Hand back a result built from a list backing as a list while its keys are `0..n-1`, as PHP's
- * `array_is_list` would accept it, and otherwise as the object that holds PHP's keyed array.
+ * Hand back a list backing's result as a list while PHP's keys run `0..n-1` in order, otherwise as the object.
+ *
+ * PHP appends each key the operand adds in the operand's own order, so `['a'] + [2 => 'c', 1 => 'b']` is keyed
+ * although its keys are `0..2`: they run `0, 2, 1`.
  *
  * @param items - The result, keyed as obj's helpers key a list's copy.
- * @returns The result's values when its keys are `0..n-1`, otherwise the result itself.
+ * @param list - The list the operand was added to.
+ * @param operand - The operand added to it, as the caller passed it.
+ * @returns The result's values when PHP's keys run `0..n-1` in order, otherwise the result itself.
  */
 function listWhenIndexed<TValue>(
     items: Record<string, TValue>,
+    list: object,
+    operand: unknown,
 ): TValue[] | Record<string, TValue> {
-    return Object.keys(items).every((key, index) => key === String(index))
+    // A list or record operand adds integer keys ascending, as the result lists them; a Map adds them in its own order.
+    // Object.keys, not Object.hasOwn, which would count an array's "length" as a held key.
+    const listKeys = Object.keys(list);
+    const held = new Set(listKeys);
+    const keys = isMap(operand)
+        ? [
+              ...listKeys,
+              ...keyedEntries(operand)
+                  .map(([key]) => key)
+                  .filter((key) => !held.has(key)),
+          ]
+        : Object.keys(items);
+
+    return keys.every((key, index) => key === String(index))
         ? Object.values(items)
         : items;
 }
@@ -288,7 +317,12 @@ interface DataAdd {
  * dataAdd([1, 2], 2, 3); -> [1, 2, 3]
  * dataAdd({a: 1}, 'b', 2); -> {a: 1, b: 2}
  */
-export const dataAdd: DataAdd = dispatch(arrAdd, objAdd);
+export const dataAdd: DataAdd = dispatch(
+    arrAdd,
+    objAdd,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Get an item from data or return default value.
@@ -303,7 +337,12 @@ export const dataAdd: DataAdd = dispatch(arrAdd, objAdd);
  * dataItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * dataItem({items: {x: 1, y: 2}}, 'items'); -> {x: 1, y: 2}
  */
-export const dataItem = dispatch(arrayItem, objectItem);
+export const dataItem = dispatch(
+    arrayItem,
+    objectItem,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Get a boolean value from data.
@@ -318,10 +357,17 @@ export const dataItem = dispatch(arrayItem, objectItem);
  * dataBoolean([true, false], 0, false); -> true
  * dataBoolean({active: true}, 'active', false); -> true
  */
-export const dataBoolean = dispatch(arrBoolean, objBoolean);
+export const dataBoolean = dispatch(
+    arrBoolean,
+    objBoolean,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Chunk the data into chunks of the given size.
+ *
+ * A Map is chunked in its insertion order, so each chunk holds the entries PHP's would.
  *
  * @param data - The data to chunk
  * @param size - The size of each chunk
@@ -329,28 +375,39 @@ export const dataBoolean = dispatch(arrBoolean, objBoolean);
  *   The default follows the backing: `false` for a list, whose keys are already just indices,
  *   and `true` for a keyed backing, whose keys carry meaning.
  * @returns Chunked data
+ *
+ * @example
+ *
+ * dataChunk([1, 2, 3], 2); -> [[1, 2], [3]]
+ * dataChunk(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2, false); -> { 0: { 0: 'c', 1: 'a' }, 1: { 0: 'b' } }
  */
 export const dataChunk = dispatch(arrChunk, objChunk);
 
 /**
  * Chunk the data into chunks with a callback.
  *
+ * A Map is walked in its insertion order, so the callback sees its entries in PHP's order.
+ *
  * @param data - The data to chunk
  * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
  * @returns Chunked data
  *
- * @remarks A Map backing widens the callback's value parameter to `unknown`.
+ * @remarks A Map backing widens the callback's value parameter to `unknown`. Its chunk is a plain object, integer keys
+ * first, so `Object.values(chunk).at(-1)` is PHP's `$chunk->last()` only when the key added last is also listed last.
  *
  * @example
  *
  * dataChunkWhile([1, 1, 2], (value, index, chunk) => chunk.at(-1) === value); -> [[1, 1], [2]]
  * dataChunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
  * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ * dataChunkWhile(new Map([[2, 'c'], [0, 'a']]), () => false); -> { 0: { 2: 'c' }, 1: { 0: 'a' } }
  */
 export const dataChunkWhile = dispatch(arrChunkWhile, objChunkWhile);
 
 /**
  * Chunk the data into chunks by comparing adjacent values using the given key or callback.
+ *
+ * A Map is walked in its insertion order, so the items compared as adjacent are PHP's.
  *
  * @param data - The data to chunk
  * @param key - A path into each item, or a callback receiving the value and its key
@@ -360,11 +417,15 @@ export const dataChunkWhile = dispatch(arrChunkWhile, objChunkWhile);
  *
  * dataChunkBy([1, 1, 2], (value) => value); -> [[1, 1], [2]]
  * dataChunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ * dataChunkBy(new Map([[2, 1], [0, 1], [1, 2]]), (value) => value); -> { 0: { 0: 1, 2: 1 }, 1: { 1: 2 } }
  */
 export const dataChunkBy = dispatch(arrChunkBy, objChunkBy);
 
 /**
  * Collapse nested data into a single level.
+ *
+ * A Map's items are merged in its insertion order, so the integer keys are renumbered and
+ * the last string key wins as PHP's `array_merge` does. A Map among the items is skipped.
  *
  * @param data - The data to collapse
  * @returns Collapsed data
@@ -373,6 +434,7 @@ export const dataChunkBy = dispatch(arrChunkBy, objChunkBy);
  *
  * dataCollapse([[1, 2], [3, 4]]); -> [1, 2, 3, 4]
  * dataCollapse({a: {x: 1, y: 2}, b: {z: 3}}); -> {x: 1, y: 2, z: 3}
+ * dataCollapse(new Map([[2, ['c']], [0, ['a']]])); -> {0: 'c', 1: 'a'}
  */
 export const dataCollapse = dispatch(arrCollapse, objCollapse);
 
@@ -408,6 +470,11 @@ type UndotPositionalBacking = CombineKeysBacking | undefined;
  * @param itemsA - The first data set
  * @param itemsB - The second data set
  * @returns Combined data set
+ *
+ * @example
+ *
+ * dataCombine(['a', 'b'], [1, 2]); -> {a: 1, b: 2}
+ * dataCombine(new Map([[2, 'c'], [0, 'a']]), ['x', 'y']); -> {c: 'x', a: 'y'}
  */
 export function dataCombine<TKeys, TValues>(
     itemsA: ReadonlyMap<PropertyKey, TKeys>,
@@ -432,8 +499,9 @@ export function dataCombine<TKeys, TValues>(
     // No dispatch pair serves this, so the keys backing is normalized the way dispatch would.
     if (isKeyedData(itemsA)) {
         // Collection::combine keys by $this->all(), which never unwraps; handing obj a list keeps it from doing so.
+        // keyedEntries keeps a Map's insertion order, which the record toKeyedData builds would lose.
         return objCombine(
-            Object.values(toKeyedData<PropertyKey, TKeys>(itemsA)),
+            keyedEntries<TKeys>(itemsA as object).map(([, value]) => value),
             itemsB,
         );
     }
@@ -467,6 +535,10 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Cross join data with other data.
  *
+ * When `data` is keyed, every argument is read by key, a Map's keys as dimensions in its insertion order; each row
+ * keeps its keys where PHP's spread renumbers integer ones `0..n-1`. When `data` is a list, every argument is one
+ * dimension, so a later Map or record gives its values, not its keys.
+ *
  * @param data - The data to cross join
  * @param others - Other data to join with
  * @returns Cross joined data
@@ -474,6 +546,8 @@ export function dataCount<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * dataCrossJoin([1, 2], [3, 4]); -> [[1, 3], [1, 4], [2, 3], [2, 4]]
+ * dataCrossJoin(new Map([['b', [1, 2]]]), new Map([['a', ['x']]])); -> [{b: 1, a: 'x'}, {b: 2, a: 'x'}]
+ * dataCrossJoin([1, 2], new Map([['a', ['x', 'y']]])); -> [[1, ['x', 'y']], [2, ['x', 'y']]]
  */
 export const dataCrossJoin = dispatch(arrCrossJoin, objCrossJoin);
 
@@ -485,16 +559,21 @@ export const dataCrossJoin = dispatch(arrCrossJoin, objCrossJoin);
  *
  * @remarks JS-only: a JS object hoists integer-like keys ahead of string ones, so a mixed-key
  * record divides into a different PAIR ORDER than PHP's, though the key types still match.
+ * A Map keeps its insertion order, so it divides in PHP's order.
  *
  * @example
  *
  * dataDivide([1, 2, 3]); -> [[0, 1, 2], [1, 2, 3]]
  * dataDivide({a: 1, b: 2}); -> [['a', 'b'], [1, 2]]
+ * dataDivide(new Map([['x', 1], [0, 2]])); -> [['x', 0], [1, 2]]
  */
 export const dataDivide = dispatch(arrDivide, objDivide);
 
 /**
  * Convert data to dot notation.
+ *
+ * A Map is flattened in its insertion order, a nested Map kept whole as a value. The result is a plain object, so the
+ * integer-like keys an empty or all-digit prefix can leave are listed first, ascending, not in PHP's order.
  *
  * @param data - The data to convert
  * @param prepend - String to prepend to keys
@@ -504,11 +583,15 @@ export const dataDivide = dispatch(arrDivide, objDivide);
  * @example
  *
  * dataDot({a: {b: 1, c: 2}}); -> {'a.b': 1, 'a.c': 2}
+ * dataDot(new Map([[2, 'c'], [0, 'a']]), 'p.'); -> {'p.2': 'c', 'p.0': 'a'}
+ * dataDot(new Map([[2, 'c'], [0, 'a']]), '1'); -> {10: 'a', 12: 'c'} (PHP: [12 => 'c', 10 => 'a'])
  */
 export const dataDot = dispatch(arrDot, objDot);
 
 /**
  * Convert dot notation back to nested data.
+ *
+ * Read in insertion order, a Map's key written last wins; `asArray` skips a dotted key through an earlier scalar.
  *
  * @param data - The dot notation data object to convert
  * @param asArray - Force array-shaped rebuilding (`Arr.undot`) instead of the
@@ -520,11 +603,26 @@ export const dataDot = dispatch(arrDot, objDot);
  * @example
  *
  * dataUndot({'a.b': 1, 'a.c': 2}); -> {a: {b: 1, c: 2}}
+ * dataUndot(new Map<string | number, string>([['0.a', 'y'], [0, 'x']])); -> {0: 'x'}
+ * dataUndot(new Map([[1, 'p'], ['1.0', 'y']]), true); -> [, 'p'] (PHP: [1 => ['y']])
  */
 export function dataUndot(
-    data: ReadonlyMap<PropertyKey, unknown>,
+    data: ReadonlyMap<unknown, unknown>,
     asArray?: false | undefined,
 ): ReturnType<typeof objUndot>;
+// A number key holds no dot, so with asArray each of this Map's values lands whole in the list.
+export function dataUndot<TValue>(
+    data: ReadonlyMap<number, TValue>,
+    asArray: true,
+): TValue[];
+export function dataUndot<TMap>(
+    data: MapData<TMap>,
+    asArray: true,
+): UndotValue<MapEntryValue<TMap>>[];
+export function dataUndot<TMap>(
+    data: MapData<TMap>,
+    asArray: boolean,
+): ReturnType<typeof objUndot> | UndotValue<MapEntryValue<TMap>>[];
 export function dataUndot<TValue>(
     data: readonly TValue[] | Iterable<TValue> | UndotPositionalBacking,
     asArray?: boolean,
@@ -545,35 +643,35 @@ export function dataUndot<TValue, TKey extends PropertyKey>(
     data: DataItems<TValue, TKey> | unknown,
     asArray: boolean = false,
 ): unknown {
-    // No dispatch pair serves this, so the backing is normalized the way dispatch would:
-    // a Map becomes a record, and a scalar, string or Traversable becomes a list. isObject
-    // would send a Set or a generator down the keyed branch, which reads them as empty.
+    // No dispatch pair serves this, so the backing is normalized the way dispatch would: a Map or record goes on as it
+    // arrived, and a scalar, string or Traversable becomes a list. isObject would send a Set or a generator down the
+    // keyed branch, which reads them as empty.
     if (isKeyedData(data)) {
-        const keyed = toKeyedData<TKey, TValue>(data);
-
         // Widen: `asArray` routes object-backed data to `Arr.undot`, which rejects
         // non-numeric-first keys — `dataUndot`'s own contract is broader; `Arr.undot`'s
         // runtime guard is what catches a bad key instead.
         return asArray
-            ? arrUndot(keyed as Record<UndotArrayKey, TValue>)
-            : objUndot(keyed);
+            ? arrUndot(data as Record<UndotArrayKey, TValue>)
+            : objUndot(data as Record<TKey, TValue>);
     }
 
     return arrUndot(toPositionalBacking(data) as Record<UndotArrayKey, TValue>);
 }
 
 /**
- * Union multiple objects or arrays items into one, the way PHP's `+` does: the first
- * item that isn't nullish is the backing, and each other item may be a list or an object.
- * A list backing stays a list while every item extends its keys as `0..n-1`; once an item
- * adds a string key or leaves a gap, the result is an object, as PHP's keyed array is.
+ * Union multiple objects or arrays items into one, the way PHP's `+` does.
  *
- * Not a `dispatch` pair: `arr.union` drops a non-integer-like key and fills a gap with
- * `undefined` to keep its `unknown[]` return, which PHP's `+` does not, so obj serves the
- * list backing too. It is also variadic, so no single argument picks the backing.
+ * The first item that isn't nullish is the backing, and each other item may be a list or an object. A list backing
+ * stays a list while every item extends its keys as `0..n-1` in order, and otherwise becomes an object, as PHP's is.
+ * Not a `dispatch` pair: `arr.union` drops a non-integer-like key and fills a gap with `undefined`, which `+` does not.
  *
  * @param items - the data items to union
  * @return A new object or array containing all values
+ *
+ * @example
+ *
+ * dataUnion(['a'], new Map([[1, 'b'], [2, 'c']])); -> ['a', 'b', 'c']
+ * dataUnion(['a'], new Map([[2, 'c'], [1, 'b']])); -> {0: 'a', 1: 'b', 2: 'c'}
  */
 export function dataUnion<TValue>(
     ...items: (
@@ -592,8 +690,8 @@ export function dataUnion<TValue>(
         (item) => !isNull(item) && !isUndefined(item),
     ) as (TValue[] | Record<PropertyKey, TValue>)[];
 
-    // No dispatch pair serves this, so the backing is normalized the way dispatch would:
-    // a Map becomes a record, and a scalar, string or Traversable becomes a list.
+    // No dispatch pair serves this, so the backing is normalized here. A Map backing can become a record: `+` keeps
+    // the same value for a key in any order, and the result is a record either way.
     if (isKeyedData(backing)) {
         return objUnion(toKeyedData<PropertyKey, TValue>(backing), ...operands);
     }
@@ -602,8 +700,10 @@ export function dataUnion<TValue>(
         (result, operand) => {
             const merged = objUnion(result, operand);
 
-            // Keys PHP inserted out of order after a gap can't be a list, even once later operands fill it.
-            return isArray(result) ? listWhenIndexed(merged) : merged;
+            // Keys PHP inserted out of order or after a gap can't be a list, even once later operands fill it.
+            return isArray(result)
+                ? listWhenIndexed(merged, result, operand)
+                : merged;
         },
         // Array.from, as toIndexedRecord uses for the other three list backings: a
         // TRAILING hole declares no own key, so arr.union alone would shorten the answer
@@ -627,7 +727,12 @@ export function dataUnion<TValue>(
  * dataExcept([1, 2, 3, 4], [1, 3]); -> [1, 3] (indices 0 and 2)
  * dataExcept({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export const dataExcept = dispatch(arrExcept, objExcept);
+export const dataExcept = dispatch(
+    arrExcept,
+    objExcept,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Get all data except for specified values.
@@ -645,7 +750,12 @@ export const dataExcept = dispatch(arrExcept, objExcept);
  * dataExceptValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['bar']
  * dataExceptValues({name: 'taylor', age: 26}, [26]); -> {name: 'taylor'}
  */
-export const dataExceptValues = dispatch(arrExceptValues, objExceptValues);
+export const dataExceptValues = dispatch(
+    arrExceptValues,
+    objExceptValues,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Check if a key exists in data.
@@ -659,10 +769,17 @@ export const dataExceptValues = dispatch(arrExceptValues, objExceptValues);
  * dataExists([1, 2, 3], 1); -> true
  * dataExists({a: 1, b: 2}, 'c'); -> false
  */
-export const dataExists = dispatch(arrExists, objExists);
+export const dataExists = dispatch(
+    arrExists,
+    objExists,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Take a limited number of items from data.
+ *
+ * A Map is counted in its insertion order, so the items taken are the ones PHP's array takes.
  *
  * @param data - The data to take from
  * @param limit - Number of items to take
@@ -675,11 +792,14 @@ export const dataExists = dispatch(arrExists, objExists);
  *
  * dataTake([1, 2, 3, 4, 5], 3); -> [1, 2, 3]
  * dataTake({a: 1, b: 2, c: 3, d: 4}, 2); -> {a: 1, b: 2}
+ * dataTake(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> {2: 'c', 0: 'a'}
  */
 export const dataTake = dispatch(arrTake, objTake);
 
 /**
  * Flatten nested data to a specified depth.
+ *
+ * A Map's values are read in its insertion order; a Map nested inside is kept as a value.
  *
  * @param data - The data to flatten
  * @param depth - The depth to flatten to
@@ -689,14 +809,23 @@ export const dataTake = dispatch(arrTake, objTake);
  *
  * dataFlatten([[1, 2], [3, [4, 5]]], 1); -> [1, 2, 3, [4, 5]]
  * dataFlatten({a: {b: {c: 1}}}, 1); -> [{c: 1}]
+ * dataFlatten(new Map([[2, ['c']], [0, 'a']])); -> ['c', 'a']
  */
 export const dataFlatten = dispatch(arrFlatten, objFlatten);
 
 /**
  * Flip the keys and values of an object or array.
  *
+ * A Map is flipped in its insertion order, so when two keys hold the same value, the key
+ * PHP reaches last is the one kept.
+ *
  * @param data - The data of items to flip
  * @return - the data items flipped, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataFlip(['a', 'b']); -> {a: 0, b: 1}
+ * dataFlip(new Map([[2, 'v'], [0, 'v']])); -> {v: 0}
  */
 export const dataFlip = dispatch(arrFlip, objFlip);
 
@@ -713,7 +842,12 @@ export const dataFlip = dispatch(arrFlip, objFlip);
  * dataFloat([1.5, 2.7], 0, 0.0); -> 1.5
  * dataFloat({price: 9.99}, 'price', 0.0); -> 9.99
  */
-export const dataFloat = dispatch(arrFloat, objFloat);
+export const dataFloat = dispatch(
+    arrFloat,
+    objFloat,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Remove keys from data.
@@ -727,7 +861,12 @@ export const dataFloat = dispatch(arrFloat, objFloat);
  * dataForget([1, 2, 3, 4], [1, 3]); -> [1, 3] (removes indices 1 and 3)
  * dataForget({a: 1, b: 2, c: 3}, ['b']); -> {a: 1, c: 3}
  */
-export const dataForget = dispatch(arrForget, objForget);
+export const dataForget = dispatch(
+    arrForget,
+    objForget,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Create data from various item types.
@@ -744,7 +883,12 @@ export const dataForget = dispatch(arrForget, objForget);
  */
 // `arr.from` is itself the normalizer — it walks Maps, Sets and generators and rejects
 // scalars — so normalizing before it would swallow its own guard.
-export const dataFrom = dispatch(arrFrom, objFrom, (items) => items);
+export const dataFrom = dispatch(
+    arrFrom,
+    objFrom,
+    (items) => items,
+    toKeyedData,
+);
 
 /**
  * Get a value from data by key.
@@ -759,7 +903,12 @@ export const dataFrom = dispatch(arrFrom, objFrom, (items) => items);
  * dataGet([1, 2, 3], 1, 'default'); -> 2
  * dataGet({a: 1, b: 2}, 'c', 'default'); -> 'default'
  */
-export const dataGet = dispatch(arrGet, objGet);
+export const dataGet = dispatch(
+    arrGet,
+    objGet,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Check if data has specified keys.
@@ -773,7 +922,12 @@ export const dataGet = dispatch(arrGet, objGet);
  * dataHas([1, 2, 3], [0, 1]); -> true
  * dataHas({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export const dataHas = dispatch(arrHas, objHas);
+export const dataHas = dispatch(
+    arrHas,
+    objHas,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Check if data has all specified keys.
@@ -787,7 +941,12 @@ export const dataHas = dispatch(arrHas, objHas);
  * dataHasAll([1, 2, 3], [0, 1]); -> true
  * dataHasAll({a: 1, b: 2}, ['a', 'c']); -> false
  */
-export const dataHasAll = dispatch(arrHasAll, objHasAll);
+export const dataHasAll = dispatch(
+    arrHasAll,
+    objHasAll,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Check if data has any of the specified keys.
@@ -801,10 +960,17 @@ export const dataHasAll = dispatch(arrHasAll, objHasAll);
  * dataHasAny([1, 2, 3], [0, 5]); -> true
  * dataHasAny({a: 1, b: 2}, ['c', 'd']); -> false
  */
-export const dataHasAny = dispatch(arrHasAny, objHasAny);
+export const dataHasAny = dispatch(
+    arrHasAny,
+    objHasAny,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Test if every item in data passes a test.
+ *
+ * A Map's keys are cast as PHP casts an array key, so the keys PHP stores as one (`1` and `"1"`) are visited once.
  *
  * @param data - The data to test
  * @param callback - The test function
@@ -817,20 +983,17 @@ export const dataHasAny = dispatch(arrHasAny, objHasAny);
  * dataEvery([2, 4, 6], (value) => value % 2 === 0); -> true
  * dataEvery({a: 2, b: 4}, (value) => value % 2 === 0); -> true
  * dataEvery(new Map([['a', 2]]), (value) => value % 2 === 0); -> true
+ * dataEvery(new Map([['2', 'c'], ['0', 'a']]), (value, key) => typeof key === 'number'); -> true
  * dataEvery(new Set([2, 4]), (value) => value % 2 === 0); -> true
  */
 // A Set or generator must reach `arrEvery` UNREAD, so an infinite generator still answers;
-// this normalises with `streamPositionalData` rather than the materialising default, and hands
-// `objEvery` the Map itself, which it reads in insertion order.
-export const dataEvery = dispatch(
-    arrEvery,
-    objEvery,
-    streamPositionalData,
-    keepKeyedData,
-);
+// this normalises with `streamPositionalData` rather than the materialising default.
+export const dataEvery = dispatch(arrEvery, objEvery, streamPositionalData);
 
 /**
  * Test if some items in data pass a test.
+ *
+ * A Map's keys are cast as PHP casts them, so the keys PHP stores as one (`1` and `"1"`) are one item, the last value.
  *
  * @param data - The data to test
  * @param callback - The test function
@@ -843,17 +1006,12 @@ export const dataEvery = dispatch(
  * dataSome([1, 2, 3], (value) => value > 2); -> true
  * dataSome({a: 1, b: 2}, (value) => value > 2); -> false
  * dataSome(new Map([['a', 1], ['b', 3]]), (value) => value > 2); -> true
+ * dataSome(new Map([[1, 'a'], ['1', 'b']]), (value) => value === 'a'); -> false
  * dataSome(new Set([1, 3]), (value) => value > 2); -> true
  */
 // A Set or generator must reach `arrSome` UNREAD, so an infinite generator still answers;
-// this normalises with `streamPositionalData` rather than the materialising default, and hands
-// `objSome` the Map itself, which it reads in insertion order.
-export const dataSome = dispatch(
-    arrSome,
-    objSome,
-    streamPositionalData,
-    keepKeyedData,
-);
+// this normalises with `streamPositionalData` rather than the materialising default.
+export const dataSome = dispatch(arrSome, objSome, streamPositionalData);
 
 /**
  * Get an integer value from data.
@@ -868,10 +1026,18 @@ export const dataSome = dispatch(
  * dataInteger([1, 2, 3], 0, 0); -> 1
  * dataInteger({count: 42}, 'count', 0); -> 42
  */
-export const dataInteger = dispatch(arrInteger, objInteger);
+export const dataInteger = dispatch(
+    arrInteger,
+    objInteger,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Join data elements with a glue string.
+ *
+ * A Map is joined in its insertion order, the order PHP's array was written in, which a record
+ * loses once its integer keys are out of sequence.
  *
  * @param data - The data to join
  * @param glue - The glue string
@@ -882,11 +1048,15 @@ export const dataInteger = dispatch(arrInteger, objInteger);
  *
  * dataJoin([1, 2, 3], ', '); -> '1, 2, 3'
  * dataJoin(['a', 'b', 'c'], ', ', ' and '); -> 'a, b and c'
+ * dataJoin(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), ', ', ' and '); -> 'c, a and b'
  */
 export const dataJoin = dispatch(arrJoin, objJoin);
 
 /**
  * Key data by a given key or callback.
+ *
+ * A Map is walked in its insertion order, so the callback sees its items in PHP's order, and
+ * when two items resolve to the same key, the one PHP reaches last is the one kept.
  *
  * @param data - The data to key
  * @param keyBy - Key or callback to key by; the callback receives each item and its key (a list's index)
@@ -896,11 +1066,15 @@ export const dataJoin = dispatch(arrJoin, objJoin);
  *
  * dataKeyBy([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}], 'id');
  * -> {1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}}
+ * dataKeyBy(new Map([[2, {id: 'r'}], [0, {id: 'p'}]]), 'id'); -> {r: {id: 'r'}, p: {id: 'p'}}
  */
 export const dataKeyBy = dispatch(arrKeyBy, objKeyBy);
 
 /**
  * Prepend keys with a given prefix.
+ *
+ * A Map is walked in its insertion order. The result is a plain object, so the integer-like keys an empty prefix or
+ * one starting with a digit from 1 to 9 can leave are listed first, ascending, not in PHP's order.
  *
  * @param data - The data to prepend keys to
  * @param prependWith - The prefix to prepend
@@ -910,6 +1084,8 @@ export const dataKeyBy = dispatch(arrKeyBy, objKeyBy);
  *
  * dataPrependKeysWith({name: 'John', age: 30}, 'user_');
  * -> {user_name: 'John', user_age: 30}
+ * dataPrependKeysWith(new Map([[2, 'c'], [0, 'a']]), 'k'); -> {k2: 'c', k0: 'a'}
+ * dataPrependKeysWith(new Map([['x', 1], [2, 'c'], [0, 'a']]), '1'); -> {10: 'a', 12: 'c', '1x': 1}
  */
 export const dataPrependKeysWith = dispatch(
     arrPrependKeysWith,
@@ -918,6 +1094,8 @@ export const dataPrependKeysWith = dispatch(
 
 /**
  * Get only specified keys from data.
+ *
+ * A keyed backing's items come back in its own order (a Map's insertion order), not in the order of `keys`.
  *
  * @param data - The data to get from
  * @param keys - Keys to include
@@ -930,6 +1108,7 @@ export const dataPrependKeysWith = dispatch(
  *
  * dataOnly([1, 2, 3, 4], [0, 2]); -> [1, 3]
  * dataOnly({a: 1, b: 2, c: 3}, ['a', 'c']); -> {a: 1, c: 3}
+ * dataOnly(new Map([['b', 1], [0, 2], ['a', 3]]), ['a', 'b']); -> {b: 1, a: 3}
  */
 export const dataOnly = dispatch(arrOnly, objOnly);
 
@@ -949,7 +1128,12 @@ export const dataOnly = dispatch(arrOnly, objOnly);
  * dataOnlyValues(['foo', 'bar', 'baz'], ['foo', 'baz']); -> ['foo', 'baz']
  * dataOnlyValues({name: 'taylor', age: 26}, [26]); -> {age: 26}
  */
-export const dataOnlyValues = dispatch(arrOnlyValues, objOnlyValues);
+export const dataOnlyValues = dispatch(
+    arrOnlyValues,
+    objOnlyValues,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Select specific keys from data items.
@@ -962,13 +1146,20 @@ export const dataOnlyValues = dispatch(arrOnlyValues, objOnlyValues);
  *
  * dataSelect([{a: 1, b: 2, c: 3}], ['a', 'c']); -> [{a: 1, c: 3}]
  */
-export const dataSelect = dispatch(arrSelect, objSelect);
+export const dataSelect = dispatch(
+    arrSelect,
+    objSelect,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Map data with keys using a callback.
  *
  * Not a `dispatch` pair: the callback's tuple return has to be normalized to a single-pair
  * record before either delegate folds it, and `dispatch` forwards its arguments untouched.
+ *
+ * A Map is walked in its insertion order, which orders the string keys returned and decides who wins a shared key.
  *
  * @param data - The data to map
  * @param callback - The mapping callback
@@ -978,7 +1169,46 @@ export const dataSelect = dispatch(arrSelect, objSelect);
  *
  * dataMapWithKeys([1, 2], (value, index) => [`key_${String(index)}`, value * 2]);
  * -> {key_0: 2, key_1: 4}
+ * dataMapWithKeys(new Map([[2, 'c'], [0, 'a']]), (value, key) => [`k${key}`, value]); -> {k2: 'c', k0: 'a'}
  */
+// The tuple row comes first: one row taking `[K, V] | Record<K, V>` would read a tuple as a record
+// too, and infer V as the union of every member the array has.
+export function dataMapWithKeys<
+    TMap,
+    TMapWithKeysKey extends PropertyKey,
+    TMapWithKeysValue,
+>(
+    data: MapData<TMap>,
+    callback: (
+        value: MapEntryValue<TMap>,
+        key: MapEntryKey<TMap>,
+    ) => readonly [TMapWithKeysKey, TMapWithKeysValue],
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+export function dataMapWithKeys<
+    TMap,
+    TMapWithKeysKey extends PropertyKey,
+    TMapWithKeysValue,
+>(
+    data: MapData<TMap>,
+    callback: (
+        value: MapEntryValue<TMap>,
+        key: MapEntryKey<TMap>,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysValue,
+    TKey extends PropertyKey = PropertyKey,
+    TMapWithKeysKey extends PropertyKey = PropertyKey,
+>(
+    data: DataItems<TValue, TKey>,
+    callback: (
+        value: TValue,
+        key: TKey,
+    ) =>
+        | [TMapWithKeysKey, TMapWithKeysValue]
+        | Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
 export function dataMapWithKeys<
     TValue,
     TMapWithKeysValue,
@@ -1011,10 +1241,10 @@ export function dataMapWithKeys<
     };
 
     // isKeyedData, not isObject: a Set and a generator are objects but positional, and obj
-    // would read no entries off either. A Map is keyed and becomes a record here.
+    // would read no entries off either. A Map goes on as it arrived, for obj to read in insertion order.
     if (isKeyedData(data)) {
         return objMapWithKeys(
-            toKeyedData<string, TValue>(data),
+            data as Record<string, TValue>,
             // DataItems dispatch can't carry obj's per-shape type; the data type pass replaces this cast.
             normalizedCallback as (
                 value: TValue,
@@ -1033,6 +1263,8 @@ export function dataMapWithKeys<
 /**
  * Map data by spreading array items to callback.
  *
+ * A Map is walked in its insertion order, so the callback sees its rows in PHP's order.
+ *
  * @param data - The data to map
  * @param callback - The mapping callback
  * @returns Mapped data, matching the delegate's own result
@@ -1040,15 +1272,15 @@ export function dataMapWithKeys<
  * @example
  *
  * dataMapSpread([[1, 2], [3, 4]], (a, b) => a + b); -> [3, 7]
+ * dataMapSpread(new Map([[2, ['c', 1]], [0, ['a', 2]]]), (x) => x + ++calls); -> {2: 'c1', 0: 'a2'}
  */
 export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
 
 /**
  * Prepend a value to data.
  *
- * No `dispatch` pair is possible: `arr.prepend` takes `key?: number` and returns `TValue[]`,
- * so it cannot express PHP's keyed answer at all. Only the non-integer-like key's entry
- * disappearing, where PHP's `+` keeps it, is an arr defect, and it is arr.prepend's to fix.
+ * A Map is read in its insertion order, and without a key its integer keys are renumbered in that order, as
+ * `array_unshift` renumbers PHP's.
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
@@ -1060,16 +1292,29 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  *
  * dataPrepend([2, 3], 1); -> [1, 2, 3]
  * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
+ * dataPrepend(new Map([[2, 'c'], [0, 'a']]), 'z'); -> {0: 'z', 1: 'c', 2: 'a'}
  */
+// A Map always comes back as the plain record obj.prepend builds, keyed as PHP stores each key.
+export function dataPrepend<TMap, V>(
+    data: MapData<TMap>,
+    value: V,
+    ...rest: [key?: PropertyKey | null]
+): Record<string, MapEntryValue<TMap> | V>;
+export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: DataItems<TValue, TKey>,
+    value: TValue,
+    ...rest: [key?: PropertyKey | null]
+): DataItems<TValue, TKey>;
 export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
     data: DataItems<TValue, TKey>,
     value: TValue,
     ...rest: [key?: PropertyKey | null]
 ): DataItems<TValue, TKey> {
-    // No dispatch pair serves this, so the Map and the iterable backings are normalized here.
+    // Not a dispatch pair: `arr.prepend` takes `key?: number` and returns `TValue[]`, so it cannot express PHP's keyed
+    // answer.
     if (isKeyedData(data)) {
         return objPrepend(
-            toKeyedData<TKey, TValue>(data),
+            data as Record<TKey, TValue>,
             value,
             ...rest,
         ) as DataItems<TValue, TKey>;
@@ -1102,10 +1347,18 @@ export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
  * dataPull([1, 2, 3], 1, 'default'); -> {value: 2, data: [1, 3]}
  * dataPull({a: 1, b: 2}, 'b', 'default'); -> {value: 2, data: {a: 1}}
  */
-export const dataPull = dispatch(arrPull, objPull);
+export const dataPull = dispatch(
+    arrPull,
+    objPull,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Convert data to a query string.
+ *
+ * A Map is read in its insertion order, so its pairs come out in the order PHP's
+ * `http_build_query` writes them. A Map nested inside keyed data is read the same way.
  *
  * @param data - The data to convert
  * @returns Query string representation
@@ -1114,11 +1367,15 @@ export const dataPull = dispatch(arrPull, objPull);
  *
  * dataQuery({name: 'John', age: 30}); -> 'name=John&age=30'
  * dataQuery([1, 2, 3]); -> '0=1&1=2&2=3'
+ * dataQuery(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> '2=c&0=a&1=b'
  */
 export const dataQuery = dispatch(arrQuery, objQuery);
 
 /**
  * Get random elements from data.
+ *
+ * Which elements are picked is random, but they come back in the data's own order, as PHP's
+ * picks do. A Map's order is its insertion order.
  *
  * @param data - The data to get random elements from
  * @param number - Number of elements to get
@@ -1127,60 +1384,46 @@ export const dataQuery = dispatch(arrQuery, objQuery);
  *
  * @example
  *
- * dataRandom([1, 2, 3, 4], 2); -> [2, 4] (random selection)
+ * dataRandom([1, 2, 3, 4], 2); -> [2, 4] (random selection, in the list's order)
  * dataRandom({a: 1, b: 2, c: 3}, 1); -> {0: 2} (random, reindexed)
  * dataRandom({a: 1, b: 2, c: 3}, 1, true); -> {b: 2} (random, keys kept)
+ * dataRandom(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 3); -> {0: 'c', 1: 'a', 2: 'b'}
  */
 export const dataRandom = dispatch(arrRandom, objRandom);
 
 /**
- * Search for a value in data and return its key.
+ * Read the entries `dataSearch`, `dataBefore` and `dataAfter` walk, in the order PHP walks the array.
  *
- * No `Arr::`/`Collection::` counterpart and no delegate pair, so it is written out here.
+ * A Map keeps its insertion order, which a record cannot; the keys PHP stores as one (`1` and `"1"`) become one entry,
+ * where the first stood, holding the last value.
  *
- * @param items - The data items to search
- * @param value - The value or callback to search for
- * @param strict - Whether to use strict comparison
- * @returns The key of the found item, the index when the backing is a list or a
- * numeric-string-keyed record, or false
- *
- * @remarks Comparison follows PHP's `===`/`==` through `strictEqual`/`looseEqual`, so an
- * array or object needle matches by value, as `Collection::search` does.
+ * @param items - The data to read.
+ * @returns Its `[key, value]` pairs in order, each key a string as `Object.entries` reports one.
  */
-// Overload: list backing, whose key is the index
-export function dataSearch<TValue>(
-    items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
-    strict?: boolean,
-): number | false;
-// Overload: keyed backing, whose numeric-string key comes back as a number
-export function dataSearch<TValue, TKey extends PropertyKey>(
-    items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
-    strict?: boolean,
-): TKey | number | false;
-// Overload: the package's own canonical input, whose list half answers an index
-export function dataSearch<TValue, TKey extends PropertyKey>(
-    items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
-    strict?: boolean,
-): TKey | number | false;
-// Implementation
-export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
-    items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
-    strict: boolean = false,
-): TKey | number | false {
-    // No Arr/Collection delegate exists for this function, so a Map is normalized here directly.
-    const entries = isKeyedData(items)
-        ? Object.entries(toKeyedData<TKey, TValue>(items))
-        : Object.entries(toPositionalBacking(items) as unknown[]);
+function searchableEntries<TValue>(items: unknown): [string, TValue][] {
+    return isKeyedData(items)
+        ? keyedEntries<TValue>(items as object)
+        : Object.entries(toPositionalBacking(items) as TValue[]);
+}
 
+/**
+ * Find the key of the first entry that matches, the way `Collection::search` does.
+ *
+ * @param entries - The entries to walk, in order.
+ * @param value - The value or callback to search for.
+ * @param strict - Whether to use strict comparison.
+ * @returns The key PHP stores for the first match, or false.
+ */
+function searchEntries<TValue, TKey extends PropertyKey>(
+    entries: readonly [string, TValue][],
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict: boolean,
+): TKey | number | false {
     for (const [key, item] of entries) {
         const actualKey = phpArrayKey(key) as TKey;
 
         if (isFunction(value)) {
-            if (value(item as TValue, actualKey)) {
+            if (value(item, actualKey)) {
                 return actualKey;
             }
 
@@ -1206,15 +1449,91 @@ export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Get the item before a specified value in data.
+ * Search for a value in data and return its key.
  *
- * No `Arr::`/`Collection::` counterpart and no delegate pair, so it is written out here.
+ * No `Arr::` counterpart or delegate pair, so it is written out after `Collection::search`. A Map is searched in its
+ * insertion order, so the first match and the keys a callback is handed follow PHP's order.
  *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
- * @returns The item before the found item or null
+ * @returns The found item's key, the index for a list or a numeric-string-keyed record, or false
+ *
+ * @remarks Comparison follows PHP's `===`/`==`, so an array or object needle matches by value.
+ *
+ * @example
+ *
+ * dataSearch([1, 2, 3], 2); -> 1
+ * dataSearch({a: 1, b: 2}, 2); -> 'b'
+ * dataSearch(new Map([[2, 'x'], [0, 'x'], [1, 'y']]), 'x'); -> 2
+ * dataSearch(new Map<string | number, number>([['x', 1], [0, 2], ['y', 3]]), () => true); -> 'x'
  */
+// Overload: a Map, whose callback is handed its values and the keys PHP stores
+export function dataSearch<TMap>(
+    items: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | string
+        | number
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+    strict?: boolean,
+): MapEntryKey<TMap> | false;
+// Overload: list backing, whose key is the index
+export function dataSearch<TValue>(
+    items: readonly TValue[],
+    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    strict?: boolean,
+): number | false;
+// Overload: keyed backing, whose numeric-string key comes back as a number
+export function dataSearch<TValue, TKey extends PropertyKey>(
+    items: Record<TKey, TValue>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TKey | number | false;
+// Overload: the package's own canonical input, whose list half answers an index
+export function dataSearch<TValue, TKey extends PropertyKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict?: boolean,
+): TKey | number | false;
+// Implementation
+export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
+    items: DataItems<TValue, TKey>,
+    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    strict: boolean = false,
+): TKey | number | false {
+    return searchEntries(searchableEntries<TValue>(items), value, strict);
+}
+
+/**
+ * Get the item before a specified value in data.
+ *
+ * No `Arr::` counterpart or delegate pair, so it is written out after `Collection::before`. A Map is read in its
+ * insertion order, and the match's key is found with PHP's LOOSE `$keys->search($key)` whatever `strict` says, so
+ * an earlier key loosely equal to it (`'01'` and `1`) is the one whose neighbour is returned.
+ *
+ * @param items - The data items to search
+ * @param value - The value or callback to search for
+ * @param strict - Whether to use strict comparison
+ * @returns The item before the first key loosely equal to the found item's key, or null
+ *
+ * @example
+ *
+ * dataBefore([1, 2, 3], 2); -> 1
+ * dataBefore(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> 'c'
+ * dataBefore(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> null
+ * dataBefore(new Map([['01', 'a'], [1, 'b']]), 'b'); -> null
+ */
+// Overload: a Map, whose callback is handed its values and the keys PHP stores
+export function dataBefore<TMap>(
+    items: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | string
+        | number
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+    strict?: boolean,
+): MapEntryValue<TMap> | null;
 // Overload: list backing, whose key is the index
 export function dataBefore<TValue>(
     items: readonly TValue[],
@@ -1239,20 +1558,18 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    // No Arr/Collection delegate exists for this function, so the backing is normalized here —
-    // ONCE, because a generator is single-use and `dataSearch` would otherwise consume it.
-    const backing = isKeyedData(items)
-        ? toKeyedData<TKey, TValue>(items)
-        : (toPositionalBacking(items) as TValue[]);
-    const key = dataSearch(backing as DataItems<TValue, TKey>, value, strict);
+    // Read ONCE: a generator is single-use, and the search and the position lookup must walk the same entries.
+    const entries = searchableEntries<TValue>(items);
+    const key = searchEntries(entries, value, strict);
 
     if (key === false) {
         return null;
     }
 
-    const entries = Object.entries(backing);
-    const position = entries.findIndex(
-        ([entryKey]) => phpArrayKey(entryKey) === key,
+    // PHP finds that key's position with a LOOSE `$keys->search($key)`, whatever `$strict` says,
+    // so the key 1 is found at an earlier key '01' that `==` holds equal to it.
+    const position = entries.findIndex(([entryKey]) =>
+        looseEqual(phpArrayKey(entryKey), key),
     );
 
     if (position === 0) {
@@ -1265,13 +1582,32 @@ export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get the item after a specified value in data.
  *
- * No `Arr::`/`Collection::` counterpart and no delegate pair, so it is written out here.
+ * No `Arr::` counterpart or delegate pair, so it is written out after `Collection::after`. A Map is read in its
+ * insertion order, and the match's key is found with PHP's LOOSE `$keys->search($key)` whatever `strict` says, so
+ * an earlier key loosely equal to it (`'01'` and `1`) is the one whose neighbour is returned.
  *
  * @param items - The data items to search
  * @param value - The value or callback to search for
  * @param strict - Whether to use strict comparison
- * @returns The item after the found item or null
+ * @returns The item after the first key loosely equal to the found item's key, or null
+ *
+ * @example
+ *
+ * dataAfter([1, 2, 3], 2); -> 3
+ * dataAfter(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> 'a'
+ * dataAfter(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'b'); -> null
+ * dataAfter(new Map([['01', 'a'], [1, 'b']]), 'b'); -> 'b'
  */
+// Overload: a Map, whose callback is handed its values and the keys PHP stores
+export function dataAfter<TMap>(
+    items: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | string
+        | number
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+    strict?: boolean,
+): MapEntryValue<TMap> | null;
 // Overload: list backing, whose key is the index
 export function dataAfter<TValue>(
     items: readonly TValue[],
@@ -1296,20 +1632,18 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
     strict: boolean = false,
 ): TValue | null {
-    // No Arr/Collection delegate exists for this function, so the backing is normalized here —
-    // ONCE, because a generator is single-use and `dataSearch` would otherwise consume it.
-    const backing = isKeyedData(items)
-        ? toKeyedData<TKey, TValue>(items)
-        : (toPositionalBacking(items) as TValue[]);
-    const key = dataSearch(backing as DataItems<TValue, TKey>, value, strict);
+    // Read ONCE: a generator is single-use, and the search and the position lookup must walk the same entries.
+    const entries = searchableEntries<TValue>(items);
+    const key = searchEntries(entries, value, strict);
 
     if (key === false) {
         return null;
     }
 
-    const entries = Object.entries(backing);
-    const position = entries.findIndex(
-        ([entryKey]) => phpArrayKey(entryKey) === key,
+    // PHP finds that key's position with a LOOSE `$keys->search($key)`, whatever `$strict` says,
+    // so the key 1 is found at an earlier key '01' that `==` holds equal to it.
+    const position = entries.findIndex(([entryKey]) =>
+        looseEqual(phpArrayKey(entryKey), key),
     );
 
     if (position === entries.length - 1) {
@@ -1321,17 +1655,27 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Get and remove the first N items from the data, mutating it in place.
- * Delegates to arrShift/objShift, which agree on the mutation contract:
- * negative count throws, an empty source returns null for any count, a
- * count of zero returns an empty array, then items are shifted off.
  *
- * @param items - The data to shift from. Mutated in place for an array or record backing; a Set or
- * generator backing is materialized first, so the write lands on the copy and is discarded.
+ * An empty source returns null for any count, and otherwise a count of zero returns an empty array.
+ * A Map is shifted from the start of its insertion order.
+ *
+ * @param items - The data to shift from. Mutated in place for an array or record backing; a Map,
+ * Set or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param count - Number of items to shift
  * @returns The shifted item(s), or null if the source had nothing to shift.
  * @throws Error if count is negative.
+ *
+ * @example
+ *
+ * dataShift([1, 2, 3]); -> 1
+ * dataShift(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['c', 'a'], the Map left as it was
  */
-export const dataShift = dispatch(arrShift, objShift);
+export const dataShift = dispatch(
+    arrShift,
+    objShift,
+    toPositionalBacking,
+    copyKeyedData,
+);
 
 /**
  * Set a value in data by key.
@@ -1346,7 +1690,12 @@ export const dataShift = dispatch(arrShift, objShift);
  * dataSet([1, 2, 3], 1, 'new'); -> [1, 'new', 3]
  * dataSet({a: 1, b: 2}, 'c', 3); -> {a: 1, b: 2, c: 3}
  */
-export const dataSet = dispatch(arrSet, objSet);
+export const dataSet = dispatch(
+    arrSet,
+    objSet,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Push values to data.
@@ -1361,18 +1710,43 @@ export const dataSet = dispatch(arrSet, objSet);
  * dataPush([1, 2], null, 3, 4); -> [1, 2, 3, 4]
  * dataPush({a: [1, 2]}, 'a', 3, 4); -> {a: [1, 2, 3, 4]}
  */
-export const dataPush = dispatch(arrPush, objPush);
+export const dataPush = dispatch(
+    arrPush,
+    objPush,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+const unshiftBacking = dispatch(
+    arrUnshift,
+    objUnshift,
+    toPositionalBacking,
+    copyKeyedData,
+);
 
 /**
- * Prepend one or more items to the beginning of the data items, mutating
- * it in place. Delegates to arrUnshift/objUnshift, which both mutate.
+ * Prepend one or more items to the beginning of the data items, mutating it in place.
  *
- * @param data - The data to unshift to. Mutated in place for an array or record backing; a Set or
- * generator backing is materialized first, so the write lands on the copy and is discarded.
+ * A Map's integer keys are renumbered in its insertion order, so each value lands on the key PHP's unshift gives it.
+ *
+ * @param data - The data to unshift to. Mutated in place for an array or record backing; a Map,
+ * Set or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param items - The items to prepend
- * @returns The same data reference, mutated — or, for a Set or generator backing, the copy.
+ * @returns The same data reference, mutated; for a Set or generator the copy, and for a Map a record built from it.
+ *
+ * @example
+ *
+ * dataUnshift([2, 3], 1); -> [1, 2, 3]
+ * dataUnshift(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'U'); -> {0: 'U', 1: 'c', 2: 'a', 3: 'b'}
  */
-export const dataUnshift = dispatch(arrUnshift, objUnshift);
+export const dataUnshift = ((...args: readonly unknown[]): unknown => {
+    const result = (unshiftBacking as (...args: readonly unknown[]) => unknown)(
+        ...args,
+    );
+
+    // obj.unshift hands back the Map copy it rewrote; every other keyed answer here is a record.
+    return isMap(result) ? objFrom(result) : result;
+}) as typeof unshiftBacking;
 
 /**
  * Shuffle data randomly.
@@ -1385,20 +1759,35 @@ export const dataUnshift = dispatch(arrUnshift, objUnshift);
  * dataShuffle([1, 2, 3, 4]); -> [3, 1, 4, 2] (random order)
  * dataShuffle({a: 1, b: 2, c: 3}); -> {0: 3, 1: 1, 2: 2} (random order, reindexed 0..n-1)
  */
-export const dataShuffle = dispatch(arrShuffle, objShuffle);
+export const dataShuffle = dispatch(
+    arrShuffle,
+    objShuffle,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Slice the underlying data items
+ *
+ * A Map is sliced by its insertion order, so the offset and length count the items PHP's
+ * array holds in that order.
  *
  * @param data - The data to slice
  * @param offset - The starting index
  * @param length - The number of items to include
  * @returns Sliced data
+ *
+ * @example
+ *
+ * dataSlice([1, 2, 3, 4], 1, 2); -> [2, 3]
+ * dataSlice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> {0: 'a', 1: 'b'}
  */
 export const dataSlice = dispatch(arrSlice, objSlice);
 
 /**
  * Get the sole item that passes a test.
+ *
+ * A Map is read in its insertion order, and the keys PHP stores as one (`1` and `"1"`) count as one item.
  *
  * @param data - The data to search
  * @param callback - The test function
@@ -1412,11 +1801,16 @@ export const dataSlice = dispatch(arrSlice, objSlice);
  *
  * dataSole([1, 2, 3], (value) => value > 2); -> 3
  * dataSole({a: 1, b: 2, c: 3}, (value) => value === 2); -> 2
+ * dataSole(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), (value) => value === 'c'); -> 'c' (keys seen: 2, 0, 1)
+ * dataSole(new Map([[1, 'a'], ['1', 'b']])); -> 'b'
  */
 export const dataSole = dispatch(arrSole, objSole);
 
 /**
  * Sort data using a callback.
+ *
+ * A Map is read in its insertion order, so ties and the callback's keys follow PHP's order; its integer keys are then
+ * renumbered over the sorted sequence, as a record's are.
  *
  * @param data - The data to sort
  * @param callback - The value extractor callback or key to sort by
@@ -1426,11 +1820,16 @@ export const dataSole = dispatch(arrSole, objSole);
  *
  * dataSort([3, 1, 4, 2]); -> [1, 2, 3, 4]
  * dataSort({c: 3, a: 1, b: 2}); -> {a: 1, b: 2, c: 3}
+ * dataSort(new Map([[2, {n: 1, id: 'p'}], [0, {n: 1, id: 'q'}], [1, {n: 0, id: 'r'}]]), 'n');
+ * -> {0: {n: 0, id: 'r'}, 1: {n: 1, id: 'p'}, 2: {n: 1, id: 'q'}}
  */
 export const dataSort = dispatch(arrSort, objSort);
 
 /**
  * Sort data in descending order using a callback.
+ *
+ * A Map is read in its insertion order, so ties and the callback's keys follow PHP's order; its integer keys are then
+ * renumbered over the sorted sequence, as a record's are.
  *
  * @param data - The data to sort
  * @param callback - The comparison callback or key to sort by
@@ -1440,11 +1839,17 @@ export const dataSort = dispatch(arrSort, objSort);
  *
  * dataSortDesc([1, 3, 2, 4]); -> [4, 3, 2, 1]
  * dataSortDesc({a: 1, c: 3, b: 2}); -> {c: 3, b: 2, a: 1}
+ * dataSortDesc(new Map([[2, {n: 1, id: 'p'}], [0, {n: 1, id: 'q'}], [1, {n: 0, id: 'r'}]]), 'n');
+ * -> {0: {n: 1, id: 'p'}, 1: {n: 1, id: 'q'}, 2: {n: 0, id: 'r'}}
  */
 export const dataSortDesc = dispatch(arrSortDesc, objSortDesc);
 
 /**
  * Sort data recursively.
+ *
+ * A Map backing is read in its insertion order, the order `array_is_list` walks, so a Map keyed
+ * `1, 0` is not a list and is sorted by key, each key keeping its own value. A Map inside the
+ * data is a value like any other object that is not a plain one, and is kept as it is.
  *
  * @param data - The data to sort recursively
  * @param descending - Whether to sort in descending order
@@ -1453,21 +1858,25 @@ export const dataSortDesc = dispatch(arrSortDesc, objSortDesc);
  * @example
  *
  * dataSortRecursive({b: {y: 2, x: 1}, a: {z: 3, w: 4}}); -> {a: {w: 4, z: 3}, b: {x: 1, y: 2}}
+ * dataSortRecursive(new Map([[1, 'a'], [0, 'b']])); -> {0: 'b', 1: 'a'}
  */
 export const dataSortRecursive = dispatch(arrSortRecursive, objSortRecursive);
 
 /**
  * Sort data recursively in descending order.
  *
+ * A Map backing is read in its insertion order, so one keyed `2, 0, 1` is not a list and is sorted by key.
+ *
  * @param data - The data to sort recursively
  * @returns Recursively sorted data in descending order, matching the delegate's own result
  *
- * @remarks JS-only: a JS object hoists integer-like keys ahead of string ones whatever the sort
- * produced, so only the relative order WITHIN each key class matches PHP's.
+ * @remarks JS-only: a JS object lists integer-like keys first, ascending, whatever the sort produced, so only the
+ * string keys' relative order, and which value each key holds, match PHP's.
  *
  * @example
  *
  * dataSortRecursiveDesc({a: {w: 4, z: 3}, b: {x: 1, y: 2}}); -> {b: {y: 2, x: 1}, a: {z: 3, w: 4}}
+ * dataSortRecursiveDesc(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> {0: 'a', 1: 'b', 2: 'c'}
  */
 export const dataSortRecursiveDesc = dispatch(
     arrSortRecursiveDesc,
@@ -1475,19 +1884,29 @@ export const dataSortRecursiveDesc = dispatch(
 );
 
 /**
- * Splice a portion of the data items, mutating it in place. Delegates to
- * arrSplice/objSplice, which both mutate and return only what was removed —
- * obj keeps the removed entries' own keys, arr reindexes positionally.
+ * Splice a portion of the data items, mutating it in place, and return only what was removed.
  *
- * @param data - The data to splice. Mutated in place for an array or record backing; a Set or
- * generator backing is materialized first, so the write lands on the copy and is discarded.
+ * A Map is spliced in its insertion order. What is removed keeps its string keys and renumbers integer keys from 0.
+ *
+ * @param data - The data to splice. Mutated in place for an array or record backing; a Map, Set
+ * or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param offset - The starting index
  * @param length - The number of items to remove. Defaults to everything
  * from offset to the end.
  * @param replacement - The items to insert
  * @returns The removed items.
+ *
+ * @example
+ *
+ * dataSplice([1, 2, 3, 4], 1, 2); -> [2, 3]
+ * dataSplice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> {0: 'a', 1: 'b'}
  */
-export const dataSplice = dispatch(arrSplice, objSplice);
+export const dataSplice = dispatch(
+    arrSplice,
+    objSplice,
+    toPositionalBacking,
+    copyKeyedData,
+);
 
 /**
  * Get a string value from data.
@@ -1502,10 +1921,18 @@ export const dataSplice = dispatch(arrSplice, objSplice);
  * dataString(['hello', 'world'], 0, ''); -> 'hello'
  * dataString({name: 'John'}, 'name', ''); -> 'John'
  */
-export const dataString = dispatch(arrString, objString);
+export const dataString = dispatch(
+    arrString,
+    objString,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Convert data to CSS classes string.
+ *
+ * A Map is read in its insertion order, so its classes come out in the order PHP's array
+ * lists them, integer keys and string keys interleaved as they were written.
  *
  * @param data - The data to convert
  * @returns CSS classes string
@@ -1514,11 +1941,15 @@ export const dataString = dispatch(arrString, objString);
  *
  * dataToCssClasses(['btn', 'btn-primary']); -> 'btn btn-primary'
  * dataToCssClasses({btn: true, 'btn-primary': true, disabled: false}); -> 'btn btn-primary'
+ * dataToCssClasses(new Map([[2, 'c2'], ['x', true], [0, 'c0']])); -> 'c2 x c0'
  */
 export const dataToCssClasses = dispatch(arrToCssClasses, objToCssClasses);
 
 /**
  * Convert data to CSS styles string.
+ *
+ * A Map is read in its insertion order, so its styles come out in the order PHP's array
+ * lists them, integer keys and string keys interleaved as they were written.
  *
  * @param data - The data to convert
  * @returns CSS styles string
@@ -1527,11 +1958,14 @@ export const dataToCssClasses = dispatch(arrToCssClasses, objToCssClasses);
  *
  * dataToCssStyles(['color:red', 'font-size:14px']); -> 'color:red; font-size:14px;'
  * dataToCssStyles({'color:red': true, 'display:none': false}); -> 'color:red;'
+ * dataToCssStyles(new Map([['x:1', true], [0, 'z:0'], ['y:1', true]])); -> 'x:1; z:0; y:1;'
  */
 export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
 
 /**
  * Filter data where callback returns true.
+ *
+ * A Map is walked in its insertion order, so a callback that counts its calls keeps the items PHP keeps.
  *
  * @param data - The data to filter
  * @param callback - The test function
@@ -1544,24 +1978,25 @@ export const dataToCssStyles = dispatch(arrToCssStyles, objToCssStyles);
  *
  * dataWhere([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
  * dataWhere({a: 1, b: 2, c: 3}, (value) => value > 1); -> {b: 2, c: 3}
+ * dataWhere(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> {2: 'c', 0: 'a'}
  */
 export const dataWhere = dispatch(arrWhere, objWhere);
 
 /**
  * Replace the data items with the given items.
  *
- * `data`'s backing picks the helper, and `replacerData` may be a list or an object on either
- * backing, as `array_replace` takes any two arrays. A list backing stays a list while the result's
- * keys are `0..n-1`; a string key or a gap makes it an object, as PHP's result is keyed then.
- * A `null`/`undefined` `replacerData` is a no-op (`EnumeratesValues.php:1121`).
- *
- * Not a `dispatch(arrReplace, objReplace)` pair on purpose: `arr.replace` returns `TValue[]`, so
- * it drops a string key and fills a gap with `undefined`, where `array_replace` keeps both.
- * obj serves the list backing so both backings answer what PHP answers.
+ * `replacerData` may be a list or an object on either backing. A list backing stays a list while the result's keys run
+ * `0..n-1` in order; a string key, a gap or a Map adding `2` before `1` makes it an object, as PHP's result is keyed.
+ * Not a `dispatch` pair: `arr.replace` returns `TValue[]`, which drops a string key and fills a gap with `undefined`.
  *
  * @param data - The original data
  * @param replacerData - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataReplace(['a', 'b'], new Map([[2, 'c'], [3, 'd']])); -> ['a', 'b', 'c', 'd']
+ * dataReplace(['a', 'b'], new Map([[3, 'd'], [2, 'c']])); -> {0: 'a', 1: 'b', 2: 'c', 3: 'd'}
  */
 export function dataReplace<TValue, TReplacer extends object = object>(
     data: readonly TValue[],
@@ -1592,32 +2027,32 @@ export function dataReplace<
     data: DataItems<TValue, TKey> | unknown,
     replacerData: DataItems<TValue, TReplacerKey> | null | undefined | unknown,
 ): unknown {
+    // A Map backing can become a record: array_replace keeps the same value for a key in any order, and the
+    // result is a record either way.
     if (isKeyedData(data)) {
         return objReplace(toKeyedData<TKey, TValue>(data), replacerData);
     }
 
-    // array_replace keeps a list only while the replacer's keys extend it as 0..n-1; otherwise PHP's result is keyed.
-    return listWhenIndexed(
-        objReplace(
-            toIndexedRecord(toPositionalBacking(data) as unknown[]),
-            replacerData,
-        ),
-    );
+    const list = toIndexedRecord(toPositionalBacking(data) as unknown[]);
+
+    // array_replace keeps a list only while the replacer's keys extend it as 0..n-1 in order; otherwise it is keyed.
+    return listWhenIndexed(objReplace(list, replacerData), list, replacerData);
 }
 
 /**
  * Recursively replace the data items with the given items recursively.
  *
- * `data`'s backing picks the helper and `replacerData` may take either shape, and a list backing
- * becomes an object for a keyed result, as for `dataReplace` above. A `null`/`undefined`
- * `replacerData` is a no-op.
- *
- * Not a `dispatch` pair for the same reason as `dataReplace`: `arr.replaceRecursive` returns
- * `TValue[]`, which cannot hold the string key or the gap `array_replace_recursive` keeps.
+ * `replacerData` may take either shape, and a list backing becomes an object for a keyed result, as for `dataReplace`.
+ * Not a `dispatch` pair for the same reason: `arr.replaceRecursive` returns `TValue[]`, which cannot hold PHP's keys.
  *
  * @param data - The original data
  * @param replacerData - The items to replace with. `null`/`undefined` is a no-op.
  * @returns The replaced data, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataReplaceRecursive(['a'], new Map([[1, 'b'], [2, 'c']])); -> ['a', 'b', 'c']
+ * dataReplaceRecursive(['a'], new Map([[2, 'c'], [1, 'b']])); -> {0: 'a', 1: 'b', 2: 'c'}
  */
 export function dataReplaceRecursive<TValue, TReplacer extends object = object>(
     data: readonly TValue[],
@@ -1647,6 +2082,7 @@ export function dataReplaceRecursive<
     data: DataItems<TValue, TKey> | unknown,
     replacerData: DataItems<TValue, TKey> | null | undefined | unknown,
 ): unknown {
+    // A Map backing becomes a record, for the reason dataReplace gives.
     if (isKeyedData(data)) {
         return objReplaceRecursive(
             toKeyedData<TKey, TValue>(data),
@@ -1654,17 +2090,20 @@ export function dataReplaceRecursive<
         );
     }
 
-    // As in dataReplace, a replacer key that leaves the list's keys other than 0..n-1 makes PHP's result keyed.
+    const list = toIndexedRecord(toPositionalBacking(data) as unknown[]);
+
+    // As in dataReplace, a replacer key that leaves the keys other than 0..n-1 in order makes PHP's result keyed.
     return listWhenIndexed(
-        objReplaceRecursive(
-            toIndexedRecord(toPositionalBacking(data) as unknown[]),
-            replacerData,
-        ),
+        objReplaceRecursive(list, replacerData),
+        list,
+        replacerData,
     );
 }
 
 /**
  * Filter data where callback returns false.
+ *
+ * A Map is walked in its insertion order, so a callback that counts its calls drops the items PHP drops.
  *
  * @param data - The data to filter
  * @param callback - The test function
@@ -1677,32 +2116,50 @@ export function dataReplaceRecursive<
  *
  * dataReject([1, 2, 3, 4], (value) => value > 2); -> [1, 2]
  * dataReject({a: 1, b: 2, c: 3}, (value) => value > 1); -> {a: 1}
+ * dataReject(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> {0: 'a', 1: 'b'}
  */
 export const dataReject = dispatch(arrReject, objReject);
 
 /**
  * Reverse the data items.
  *
+ * A Map is reversed from its insertion order, so its values come out in the order PHP's reversed array holds them.
+ *
  * @param data - The data to reverse
  * @returns Reversed data
  *
  * @remarks JS-only: PHP keeps each value on its original integer key; a JS object cannot hold
  * a descending integer order, so an integer-keyed backing is reversed AND renumbered.
+ *
+ * @example
+ *
+ * dataReverse([1, 2, 3]); -> [3, 2, 1]
+ * dataReverse(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> {0: 'b', 1: 'a', 2: 'c'}
  */
 export const dataReverse = dispatch(arrReverse, objReverse);
 
 /**
  * Pad data to the specified length with a value.
  *
+ * A Map is read in its insertion order, so its integer keys are renumbered in that order and
+ * each value lands on the key PHP's padded array gives it.
+ *
  * @param data - The data to pad
  * @param size - The desired size
  * @param value - The value to pad with
  * @returns Padded data
+ *
+ * @example
+ *
+ * dataPad([1, 2], 4, 0); -> [1, 2, 0, 0]
+ * dataPad(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 4, 'P'); -> {0: 'c', 1: 'a', 2: 'b', 3: 'P'}
  */
 export const dataPad = dispatch(arrPad, objPad);
 
 /**
  * Partition data into two groups based on callback.
+ *
+ * A Map is walked in its insertion order, so a callback that counts its calls puts each item on PHP's side.
  *
  * @param data - The data to partition
  * @param callback - The test function
@@ -1715,11 +2172,14 @@ export const dataPad = dispatch(arrPad, objPad);
  *
  * dataPartition([1, 2, 3, 4], (value) => value > 2); -> [[3, 4], [1, 2]]
  * dataPartition({a: 1, b: 2, c: 3}, (value) => value > 1); -> [{b: 2, c: 3}, {a: 1}]
+ * dataPartition(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> [{2: 'c'}, {0: 'a', 1: 'b'}]
  */
 export const dataPartition = dispatch(arrPartition, objPartition);
 
 /**
  * Filter out null values from data.
+ *
+ * Of the Map keys PHP stores as one (`1` and `"1"`), only the last value is tested, so a `null` written last drops it.
  *
  * @param data - The data to filter
  * @returns Data with null values removed, matching the delegate's own result
@@ -1731,11 +2191,14 @@ export const dataPartition = dispatch(arrPartition, objPartition);
  *
  * dataWhereNotNull([1, null, 2, null, 3]); -> [1, 2, 3]
  * dataWhereNotNull({a: 1, b: null, c: 2}); -> {a: 1, c: 2}
+ * dataWhereNotNull(new Map([[1, 'a'], ['x', 'm'], ['1', null]])); -> {x: 'm'}
  */
 export const dataWhereNotNull = dispatch(arrWhereNotNull, objWhereNotNull);
 
 /**
  * Get all values from data (array or object).
+ *
+ * A Map's values come back in its insertion order, the order `array_values` lists them in.
  *
  * @param data - The data to get values from
  * @returns Array of all values, matching the delegate's own result
@@ -1744,11 +2207,15 @@ export const dataWhereNotNull = dispatch(arrWhereNotNull, objWhereNotNull);
  *
  * dataValues([1, 2, 3]); -> [1, 2, 3]
  * dataValues({a: 1, b: 2, c: 3}); -> [1, 2, 3]
+ * dataValues(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> ['c', 'a', 'b']
  */
 export const dataValues = dispatch(arrValues, objValues);
 
 /**
  * Get all keys from data (array or object).
+ *
+ * A Map's keys come back in its insertion order, each the key PHP stores for it, where a
+ * record would list its integer keys ascending.
  *
  * @param data - The data to get keys from
  * @returns Array of all keys, matching the delegate's own result
@@ -1757,11 +2224,14 @@ export const dataValues = dispatch(arrValues, objValues);
  *
  * dataKeys([1, 2, 3]); -> [0, 1, 2]
  * dataKeys({a: 1, b: 2, c: 3}); -> ['a', 'b', 'c']
+ * dataKeys(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> [2, 0, 1]
  */
 export const dataKeys = dispatch(arrKeys, objKeys);
 
 /**
  * Filter data using a callback function.
+ *
+ * A Map is walked in its insertion order, so a callback that counts its calls keeps the items PHP keeps.
  *
  * @param data - The data to filter
  * @param callback - The callback function to test each value
@@ -1771,11 +2241,14 @@ export const dataKeys = dispatch(arrKeys, objKeys);
  *
  * dataFilter([1, 2, 3, 4], (value) => value > 2); -> [3, 4]
  * dataFilter({a: 1, b: 2, c: 3, d: 4}, (value) => value > 2); -> {c: 3, d: 4}
+ * dataFilter(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> {2: 'c', 0: 'a'}
  */
 export const dataFilter = dispatch(arrFilter, objFilter);
 
 /**
  * Transform data using a callback function.
+ *
+ * A Map is walked in its insertion order, so the callback sees its items in PHP's order.
  *
  * @param data - The data to map
  * @param callback - The callback function to transform each value
@@ -1785,11 +2258,14 @@ export const dataFilter = dispatch(arrFilter, objFilter);
  *
  * dataMap([1, 2, 3], (value) => value * 2); -> [2, 4, 6]
  * dataMap({a: 1, b: 2}, (value) => value * 2); -> {a: 2, b: 4}
+ * dataMap(new Map([[2, 'c'], [0, 'a']]), (value) => value + ++calls); -> {2: 'c1', 0: 'a2'}
  */
 export const dataMap = dispatch(arrMap, objMap);
 
 /**
  * Get the first value from data that passes a test.
+ *
+ * A Map is read in its insertion order, and the keys PHP stores as one (`1` and `"1"`) are one item, the last value.
  *
  * @param data - The data to search
  * @param callback - The callback function to test each value
@@ -1803,19 +2279,18 @@ export const dataMap = dispatch(arrMap, objMap);
  * dataFirst([1, 2, 3, 4], (value) => value > 2); -> 3
  * dataFirst({a: 1, b: 2, c: 3}, (value) => value > 1); -> 2
  * dataFirst(new Map([['a', 1], ['b', 2]])); -> 1
+ * dataFirst(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> 'c'
+ * dataFirst(new Map([[1, 'a'], ['1', 'b']])); -> 'b'
  */
 // A Set or generator reaches `arrFirst` UNREAD via `streamPositionalData`, so a callback-less call
 // answers an infinite generator; given a callback `arrFirst` materialises, so that form still
-// needs a finite backing. `objFirst` is handed the Map itself, which it reads in insertion order.
-export const dataFirst = dispatch(
-    arrFirst,
-    objFirst,
-    streamPositionalData,
-    keepKeyedData,
-);
+// needs a finite backing.
+export const dataFirst = dispatch(arrFirst, objFirst, streamPositionalData);
 
 /**
  * Get the last value from data that passes a test.
+ *
+ * A Map is read in its insertion order, and a `"1"` after a `1` changes that item's value but not its place.
  *
  * @param data - The data to search
  * @param callback - The callback function to test each value
@@ -1829,19 +2304,19 @@ export const dataFirst = dispatch(
  * dataLast([1, 2, 3, 4], (value) => value < 4); -> 3
  * dataLast({a: 1, b: 2, c: 3}, (value) => value > 1); -> 3
  * dataLast(new Map([['a', 1], ['b', 2]])); -> 2
+ * dataLast(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> 'b'
+ * dataLast(new Map([[1, 'a'], [0, 'z'], ['1', 'b']])); -> 'z'
  */
 // A Set or generator reaches `arrLast` UNREAD via `streamPositionalData`, but `last` has to walk to
-// the end whatever it is handed, so the backing must still be finite. `objLast` is handed the
-// Map itself, which it reads in insertion order.
-export const dataLast = dispatch(
-    arrLast,
-    objLast,
-    streamPositionalData,
-    keepKeyedData,
-);
+// the end whatever it is handed, so the backing must still be finite.
+export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
 
 /**
  * Determine if data contains a value.
+ *
+ * A Map is read in its insertion order, so a callback is handed its keys in the order PHP
+ * walks the array. The order decides a strict callback search, whose first match must not be
+ * null, and the keys PHP stores as one (`1` and `"1"`) hold only the last value.
  *
  * @param data - The data to search
  * @param value - The value to search for or callback function
@@ -1851,6 +2326,8 @@ export const dataLast = dispatch(
  *
  * dataContains([1, 2, 3], 2); -> true
  * dataContains({a: 1, b: 2}, (value) => value > 1); -> true
+ * dataContains(new Map([[2, null], [0, 'a']]), () => true, true); -> false (the first match is null)
+ * dataContains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false
  */
 export const dataContains = dispatch(arrContains, objContains);
 
@@ -1869,7 +2346,12 @@ export const dataContains = dispatch(arrContains, objContains);
  *
  * dataDiff([1, 2, 3, 4], [2, 4]); -> [1, 3]
  */
-export const dataDiff = dispatch(arrDiff, objDiff);
+export const dataDiff = dispatch(
+    arrDiff,
+    objDiff,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Get the items whose key and value are not both present in the given other data.
@@ -1886,7 +2368,12 @@ export const dataDiff = dispatch(arrDiff, objDiff);
  *
  * dataDiffAssoc({a: 1, b: 2, c: 3}, {b: 2}); -> {a: 1, c: 3}
  */
-export const dataDiffAssoc = dispatch(arrDiffAssoc, objDiffAssoc);
+export const dataDiffAssoc = dispatch(
+    arrDiffAssoc,
+    objDiffAssoc,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Diff data with the given other data using a callback for key comparison.
@@ -1907,6 +2394,8 @@ export const dataDiffAssoc = dispatch(arrDiffAssoc, objDiffAssoc);
 export const dataDiffAssocUsing = dispatch(
     arrDiffAssocUsing,
     objDiffAssocUsing,
+    toPositionalBacking,
+    toKeyedData,
 );
 
 /**
@@ -1925,10 +2414,18 @@ export const dataDiffAssocUsing = dispatch(
  * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
  * dataDiffKeysUsing({id: 1, first_word: 'Hello'}, {ID: 123, foo_bar: 'Hello'}, strcasecmp); -> {first_word: 'Hello'}
  */
-export const dataDiffKeysUsing = dispatch(arrDiffKeysUsing, objDiffKeysUsing);
+export const dataDiffKeysUsing = dispatch(
+    arrDiffKeysUsing,
+    objDiffKeysUsing,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Pluck values from data by a key path.
+ *
+ * A Map is walked in its insertion order, so the list and both callbacks follow PHP's order, and of two items that
+ * resolve to one key the last is kept. A keyed result is still a plain object, whose integer keys list ascending.
  *
  * @param data - The data to pluck from
  * @param value - The key path to pluck
@@ -1939,20 +2436,31 @@ export const dataDiffKeysUsing = dispatch(arrDiffKeysUsing, objDiffKeysUsing);
  *
  * dataPluck([{name: 'John'}, {name: 'Jane'}], 'name'); -> ['John', 'Jane']
  * dataPluck({a: {name: 'John'}, b: {name: 'Jane'}}, 'name'); -> ['John', 'Jane']
+ * dataPluck(new Map([[2, {n: 'c'}], [0, {n: 'a'}], [1, {n: 'b'}]]), 'n'); -> ['c', 'a', 'b']
  */
 export const dataPluck = dispatch(arrPluck, objPluck);
 
 /**
  * Get and remove the last N items from the data, mutating it in place.
- * Delegates to arrPop/objPop, which both mutate and agree on returning the
- * popped item(s) in reverse order for a count greater than one.
  *
- * @param data - The data to pop from. Mutated in place for an array or record backing; a Set or
- * generator backing is materialized first, so the write lands on the copy and is discarded.
+ * A count above one returns the items in reverse order. A Map is popped from the end of its insertion order.
+ *
+ * @param data - The data to pop from. Mutated in place for an array or record backing; a Map, Set
+ * or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param count - The number of items to pop
  * @returns The popped item(s), or null if the source had nothing to pop.
+ *
+ * @example
+ *
+ * dataPop([1, 2, 3]); -> 3
+ * dataPop(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['b', 'a'], the Map left as it was
  */
-export const dataPop = dispatch(arrPop, objPop);
+export const dataPop = dispatch(
+    arrPop,
+    objPop,
+    toPositionalBacking,
+    copyKeyedData,
+);
 
 /**
  * Intersect the data with the given items.
@@ -1967,7 +2475,12 @@ export const dataPop = dispatch(arrPop, objPop);
  * @param callable - Optional comparison function
  * @returns The intersected data
  */
-export const dataIntersect = dispatch(arrIntersect, objIntersect);
+export const dataIntersect = dispatch(
+    arrIntersect,
+    objIntersect,
+    toPositionalBacking,
+    toKeyedData,
+);
 
 /**
  * Intersect the data with the given items with additional key check.
@@ -1988,6 +2501,8 @@ export const dataIntersect = dispatch(arrIntersect, objIntersect);
 export const dataIntersectAssoc = dispatch(
     arrIntersectAssoc,
     objIntersectAssoc,
+    toPositionalBacking,
+    toKeyedData,
 );
 
 /**
@@ -2008,6 +2523,8 @@ export const dataIntersectAssoc = dispatch(
 export const dataIntersectAssocUsing = dispatch(
     arrIntersectAssocUsing,
     objIntersectAssocUsing,
+    toPositionalBacking,
+    toKeyedData,
 );
 
 /**
@@ -2021,4 +2538,6 @@ export const dataIntersectAssocUsing = dispatch(
 export const dataIntersectByKeys = dispatch(
     arrIntersectByKeys,
     objIntersectByKeys,
+    toPositionalBacking,
+    toKeyedData,
 );

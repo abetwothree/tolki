@@ -1,6 +1,7 @@
 import * as Arr from "@tolki/arr";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
+import type { UndotValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 import {
@@ -155,6 +156,31 @@ describe("data keying type tests", () => {
                 ReturnType<typeof Obj.undot>
             >();
         });
+
+        it("rebuilds a Map with asArray as arr.undot rebuilds the record of its entries", () => {
+            // Arr.undot turns a Map away at the type level, so the Map is compared with the
+            // record it reads: a number key holds no dot, so each value lands whole.
+            const numberKeyed = new Map<number, string>([[1, "b"]]);
+
+            expectTypeOf(Data.dataUndot(numberKeyed, true)).toEqualTypeOf(
+                Arr.undot({} as Record<number, string>),
+            );
+            // A string key may be a dotted path, so a value may sit inside nested lists.
+            expectTypeOf(Data.dataUndot(numberMap, true)).toEqualTypeOf<
+                UndotValue<number>[]
+            >();
+            // Not a list of [key, value] tuples: the Iterable row does not claim a Map.
+            expectTypeOf(Data.dataUndot(numberMap, true)).not.toEqualTypeOf<
+                [string, number][]
+            >();
+        });
+
+        it("answers either rebuild for a Map with an unnarrowed asArray", () => {
+            const asArray = Date.now() > 0;
+            expectTypeOf(Data.dataUndot(numberMap, asArray)).toEqualTypeOf<
+                ReturnType<typeof Obj.undot> | UndotValue<number>[]
+            >();
+        });
     });
 
     describe("the DataItems union, the package's own canonical input", () => {
@@ -195,9 +221,8 @@ describe("data keying type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime, and a conditional over an overloaded delegate resolves only its
-        // last signature, so the answer is obj's widest row, not the record's exact one.
+        // JS-only: PHP has no Map. `dispatch`'s Map row is inferred from the last of obj's overloads,
+        // so a Map gets obj's widest row, not obj's own Map row.
 
         it("types a Map on dataFlip from obj's widest row", () => {
             const widest = Obj.flip(opaque);
@@ -241,14 +266,17 @@ describe("data keying type tests", () => {
         });
 
         it("types a Map on dataUndot from obj's widest row", () => {
-            // Without this row the Map fell to `<TData extends object>`, which computed
-            // its values from `ObjectValue<Map<...>>` rather than from the record
-            // `toKeyedData` builds — a type the body never returns.
+            // Without this row a Map would fall to `<TData extends object>`, typing its values from
+            // `ObjectValue<Map<...>>`, the Map's own members, rather than from its entries.
             const widest = Obj.undot(opaque);
             expectTypeOf(Data.dataUndot(numberMap)).toEqualTypeOf<
                 typeof widest
             >();
             expectTypeOf(Data.dataUndot(numberMapAsRecord)).toExtend<
+                typeof widest
+            >();
+            // A Map keyed by booleans is taken too, rather than read as a list of entries.
+            expectTypeOf(Data.dataUndot(new Map([[true, "t"]]))).toEqualTypeOf<
                 typeof widest
             >();
         });

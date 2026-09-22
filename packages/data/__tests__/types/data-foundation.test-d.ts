@@ -139,9 +139,8 @@ describe("data foundation type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime, and a conditional over an overloaded delegate resolves only its
-        // last signature, so the answer is obj's widest row, not the record's exact one.
+        // JS-only: PHP has no Map. `dispatch`'s Map row is inferred from the last of obj's overloads,
+        // so a Map gets obj's widest row, not obj's own Map row.
 
         it("types a Map on dataKeys from obj's widest row", () => {
             const widest = Obj.keys(opaque);
@@ -163,6 +162,28 @@ describe("data foundation type tests", () => {
             // Assignability again: `unknown[]` is wider than the record's `number[]`.
             expectTypeOf(Data.dataValues(numberMapAsRecord)).toExtend<
                 typeof widest
+            >();
+        });
+
+        it("types a boolean- or object-keyed Map on dataKeys and dataValues from obj's widest row", () => {
+            // KeyedMapRow claims a Map of any key type, so these skip obj's own Map rows, which would
+            // answer `(0 | 1)[]` and `string[]` for the boolean-keyed one.
+            const booleanKeyed = new Map<boolean, string>([[true, "a"]]);
+            const objectKeyed = new Map<object, string>([[{}, "a"]]);
+            const keys = Obj.keys(opaque);
+            const values = Obj.values(opaque);
+
+            expectTypeOf(Data.dataKeys(booleanKeyed)).toEqualTypeOf<
+                typeof keys
+            >();
+            expectTypeOf(Data.dataKeys(objectKeyed)).toEqualTypeOf<
+                typeof keys
+            >();
+            expectTypeOf(Data.dataValues(booleanKeyed)).toEqualTypeOf<
+                typeof values
+            >();
+            expectTypeOf(Data.dataValues(objectKeyed)).toEqualTypeOf<
+                typeof values
             >();
         });
 

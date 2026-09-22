@@ -240,9 +240,8 @@ describe("data mutations type tests", () => {
     });
 
     describe("Map backing agreement sweep, at the type level", () => {
-        // JS-only: PHP has no Map. `dispatch`'s Map row stands in for what `toKeyedData`
-        // does at runtime, and a conditional over an overloaded delegate resolves only its
-        // last signature, so the answer is obj's widest row, not the record's exact one.
+        // JS-only: PHP has no Map. `dispatch`'s Map row is inferred from the last of obj's overloads,
+        // so a Map gets obj's widest row, not obj's own Map row.
 
         it("types a Map on dataPop from obj's widest row", () => {
             const widest = Obj.pop(opaque);
@@ -275,6 +274,21 @@ describe("data mutations type tests", () => {
             >();
         });
 
+        it("types a Map of any key type on dataUnshift as the record it returns", () => {
+            // KeyedMapRow claims a Map of any key type ahead of obj.unshift's own Map row, which
+            // answers the Map that obj rewrites.
+            const widest = Obj.unshift(opaque, 0);
+            const booleanKeyed = new Map<boolean, string>([[true, "a"]]);
+            const objectKeyed = new Map<object, string>([[{}, "a"]]);
+
+            expectTypeOf(Data.dataUnshift(booleanKeyed, "U")).toEqualTypeOf<
+                typeof widest
+            >();
+            expectTypeOf(Data.dataUnshift(objectKeyed, "U")).toEqualTypeOf<
+                typeof widest
+            >();
+        });
+
         it("types a Map on dataSplice from obj's widest row", () => {
             const widest = Obj.splice(opaque, 1);
             expectTypeOf(Data.dataSplice(numberMap, 1)).toEqualTypeOf<
@@ -282,6 +296,34 @@ describe("data mutations type tests", () => {
             >();
             expectTypeOf(Data.dataSplice(numberMapAsRecord, 1)).toExtend<
                 typeof widest
+            >();
+        });
+
+        it("types a boolean- or object-keyed Map on dataShift, dataPop and dataSplice from obj's widest row", () => {
+            // KeyedMapRow claims a Map of any key type, so these skip obj's own Map rows too.
+            const booleanKeyed = new Map<boolean, string>([[true, "a"]]);
+            const objectKeyed = new Map<object, string>([[{}, "a"]]);
+            const shifted = Obj.shift(opaque);
+            const popped = Obj.pop(opaque);
+            const spliced = Obj.splice(opaque, 0, 1);
+
+            expectTypeOf(Data.dataShift(booleanKeyed)).toEqualTypeOf<
+                typeof shifted
+            >();
+            expectTypeOf(Data.dataShift(objectKeyed)).toEqualTypeOf<
+                typeof shifted
+            >();
+            expectTypeOf(Data.dataPop(booleanKeyed, 2)).toEqualTypeOf<
+                typeof popped
+            >();
+            expectTypeOf(Data.dataPop(objectKeyed)).toEqualTypeOf<
+                typeof popped
+            >();
+            expectTypeOf(Data.dataSplice(booleanKeyed, 0, 1)).toEqualTypeOf<
+                typeof spliced
+            >();
+            expectTypeOf(Data.dataSplice(objectKeyed, 0, 1)).toEqualTypeOf<
+                typeof spliced
             >();
         });
 

@@ -40,7 +40,7 @@ export class Box {
 /** An instance of `Box`. */
 export const box = new Box();
 
-/** A Map backing, which only `obj.from` accepts unnormalized. */
+/** A string-keyed Map backing: `numberMapAsRecord` as a Map. */
 export const numberMap = new Map([
     ["a", 1],
     ["b", 2],
@@ -49,7 +49,7 @@ export const numberMap = new Map([
 /** Data obj cannot narrow, which reaches the widest row of every obj overload set. */
 export const opaque: unknown = null;
 
-/** The record `numberMap` mirrors: the shape `toKeyedData` builds from it at runtime. */
+/** The record `numberMap` mirrors: the same keys and values as a plain object. */
 export const numberMapAsRecord: Record<string, number> = { a: 1, b: 2 };
 
 /** A list of booleans, for the typed accessors. */
@@ -123,13 +123,13 @@ export const wildcardRowsById: Record<"r1", WildcardRow> = {
     r1: { users: [{ first: "taylor" }, { first: "dayle" }] },
 };
 
-/** A Map of rows, which only `dispatch`'s Map row accepts. */
+/** A string-keyed Map of rows: `rowMapAsRecord` as a Map. */
 export const rowMap = new Map<string, Row>([
     ["r1", { id: 1, name: "Ada" }],
     ["r2", { id: 2, name: "Grace" }],
 ]);
 
-/** The record `rowMap` mirrors: the shape `toKeyedData` builds from it at runtime. */
+/** The record `rowMap` mirrors: the same keys and rows as a plain object. */
 export const rowMapAsRecord: Record<string, Row> = {
     r1: { id: 1, name: "Ada" },
     r2: { id: 2, name: "Grace" },
