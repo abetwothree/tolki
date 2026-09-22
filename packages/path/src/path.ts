@@ -1,4 +1,12 @@
-import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
+import type {
+    ArrayItems,
+    MapData,
+    MapEntryValue,
+    PathKey,
+    PathKeys,
+    UndotObjectValue,
+    UndotValue,
+} from "@tolki/types";
 import {
     arrayValueMessage,
     castableToArray,
@@ -16,6 +24,7 @@ import {
     isString,
     isUndefined,
     isUnsafeKey,
+    keyedEntries,
     phpArrayKey,
 } from "@tolki/utils";
 
@@ -796,7 +805,8 @@ export function pushWithPath<TValue>(
 /**
  * Flatten a nested structure into a flat object with dot notation keys.
  * Converts nested arrays and plain objects into a single-level object with path-based keys;
- * any other object (a class instance, Date or Map) is kept whole as a value.
+ * any other object (a class instance, Date or Map) is kept whole as a value. The root itself
+ * may be a Map, whose entries are flattened in its insertion order.
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -834,9 +844,10 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Flatten a nested object structure into a flat object with dot notation keys.
- * Converts nested objects into a single-level object with path-based keys.
+ * Converts nested objects into a single-level object with path-based keys. A Map root is
+ * read in its insertion order; a Map nested inside is kept whole as a value.
  *
- * @param data - The object to flatten.
+ * @param data - The object or Map to flatten.
  * @param prepend - Optional string to prepend to all keys.
  * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
@@ -869,7 +880,7 @@ export function dotFlattenObject<
         prefix: string,
         currentDepth: number,
     ): void => {
-        for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+        for (const [key, value] of keyedEntries<TValue>(obj)) {
             // Arr::dot builds `$prefix.$key`, so a caller's prepend is used exactly as given.
             const newKey = `${prefix}${String(key)}`;
 
@@ -970,17 +981,24 @@ export function dotFlattenArray<TValue>(
 /**
  * Expand a flat object with dot notation keys into a nested structure.
  *
- * Dispatches to {@link undotExpandObject} for the (always plain-object) `map`
- * input; nested consecutive-integer containers become real arrays, but the
- * root always stays an object — see {@link undotExpandObject}.
+ * Dispatches to {@link undotExpandObject} for a plain-object or Map `map`, a Map read in its insertion order;
+ * nested consecutive-integer containers become real arrays, but the root always stays an object.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A nested structure (array or object).
  *
  * @example
  *
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
+ * undotExpand(new Map([['a.b', 1]])); -> {a: {b: 1}}
  */
+// A Map takes the object branch, so it answers what undotExpandObject answers for one.
+export function undotExpand<TMap>(
+    map: MapData<TMap>,
+): Record<string, UndotObjectValue<MapEntryValue<TMap>>>;
+export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
+    map: Record<TKey, TValue>,
+): TValue[] | Record<TKey, TValue>;
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] | Record<TKey, TValue> {
@@ -988,7 +1006,8 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
         return undotExpandObject(map);
     }
 
-    return undotExpandArray(map);
+    // `map` narrows to `never` here, which the Map overload would claim, so the type arguments pick the record one.
+    return undotExpandArray<TValue, TKey>(map);
 }
 
 /**
@@ -1046,15 +1065,24 @@ function promoteConsecutiveIntegerContainers(
  *
  * Nested containers whose own keys are the consecutive integers `0..n-1` are
  * rebuilt as real arrays (see {@link promoteConsecutiveIntegerContainers}); the
- * root always stays a plain object.
+ * root always stays a plain object. A Map is read in its insertion order.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A nested object structure.
  *
  * @example
  *
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
+ * undotExpandObject(new Map([['a.b', 1], ['c', 2]])); -> {a: {b: 1}, c: 2}
  */
+// A Map's keys are only known at runtime, so it answers a string-keyed record, as obj.undot's Map row does.
+export function undotExpandObject<TMap>(
+    map: MapData<TMap>,
+): Record<string, UndotObjectValue<MapEntryValue<TMap>>>;
+export function undotExpandObject<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(map: Record<TKey, TValue>): Record<TKey, TValue>;
 export function undotExpandObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1062,8 +1090,9 @@ export function undotExpandObject<
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
     const containerPaths = new Set<string>();
 
-    // Object.entries returns string keys only (symbols are not enumerated)
-    for (const [key, value] of Object.entries(map) as [string, TValue][]) {
+    // A Map keeps its insertion order, so when a dotted key and a plain key name the same place,
+    // the later write wins, as in PHP.
+    for (const [key, value] of keyedEntries<TValue>(map)) {
         const result = setObjectValue(results, key, value);
         // Object.assign uses [[Set]], so a "__proto__" key setObjectValue
         // returns as its own data would reparent results instead of copying.
@@ -1105,9 +1134,10 @@ export function isCanonicalUndotIndex(segment: string): boolean {
 
 /**
  * Expand a flat object with dot notation keys into a nested array structure.
- * Converts a flattened object back into its original nested array form.
+ * Converts a flattened object back into its original nested array form. A Map is read
+ * in its insertion order.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A nested array structure.
  *
  * @example
@@ -1115,17 +1145,24 @@ export function isCanonicalUndotIndex(segment: string): boolean {
  * Expand flat object to nested arrays
  * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undotExpandArray({ '0.0.0': 'deep' }); -> [[['deep']]]
+ * undotExpandArray(new Map([['1', 'b'], ['0', 'a']])); -> ['a', 'b']
  */
+// A Map's string keys may be dotted index paths, so a value may sit inside nested lists.
+export function undotExpandArray<TMap>(
+    map: MapData<TMap>,
+): UndotValue<MapEntryValue<TMap>>[];
+export function undotExpandArray<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(map: Record<TKey, TValue>): TValue[];
 export function undotExpandArray<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
-    // Object.entries returns string keys only
-    for (const [rawKey, value] of Object.entries(map ?? {}) as [
-        string,
-        TValue,
-    ][]) {
+    // A Map keeps its insertion order, so the later of two writes to one place wins, as in PHP, except that a
+    // dotted key running through a scalar an earlier key wrote is skipped, where PHP's later write replaces it.
+    for (const [rawKey, value] of keyedEntries<TValue>(map ?? {})) {
         if (rawKey.length === 0) {
             continue;
         }
