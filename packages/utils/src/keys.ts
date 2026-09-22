@@ -1,10 +1,14 @@
 import {
     isBoolean,
+    isFunction,
     isInteger,
+    isMap,
     isNull,
     isNumber,
     isPrototypeObject,
     isString,
+    isSymbol,
+    isTruthyObject,
     isUndefined,
 } from "./guards";
 
@@ -132,6 +136,52 @@ export function phpArrayKey(key: unknown): string | number {
     }
 
     return String(key);
+}
+
+/**
+ * Get the entries of a plain object or a Map, each keyed by the string PHP stores for its key.
+ *
+ * A Map keeps its insertion order, which a plain object cannot hold for integer keys. Keys PHP
+ * stores as one (`1` and `"1"`) fold into the first one's place with the last one's value.
+ *
+ * @param data - The plain object or Map to read.
+ * @returns The `[key, value]` pairs in iteration order.
+ *
+ * @example
+ * keyedEntries({ b: 1, a: 2 }); -> [["b", 1], ["a", 2]]
+ * keyedEntries(new Map([[2, "c"], [0, "a"]])); -> [["2", "c"], ["0", "a"]]
+ * keyedEntries(new Map([[1, "a"], ["1", "b"]])); -> [["1", "b"]]
+ */
+export function keyedEntries<TValue = unknown>(
+    data: object,
+): [string, TValue][] {
+    if (!isMap<unknown, TValue>(data)) {
+        return Object.entries(data) as [string, TValue][];
+    }
+
+    // Map.set keeps a repeated key in its first place with its last value, as PHP does. PHP throws for an
+    // object or closure key and has no symbols, so each of those keeps its own entry rather than merging.
+    const byKey = new Map<unknown, [string, TValue]>();
+
+    for (const [key, value] of data) {
+        const phpKey = isPhpStorableKey(key)
+            ? String(phpArrayKey(key))
+            : undefined;
+
+        byKey.set(phpKey ?? key, [phpKey ?? String(key), value]);
+    }
+
+    return [...byKey.values()];
+}
+
+/**
+ * Determine whether PHP can store the given key as an array key, casting it if need be.
+ *
+ * @param key - The Map key to test.
+ * @returns True unless the key is an object, a function or a symbol.
+ */
+function isPhpStorableKey(key: unknown): boolean {
+    return !isTruthyObject(key) && !isFunction(key) && !isSymbol(key);
 }
 
 /**
