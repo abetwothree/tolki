@@ -101,3 +101,17 @@ export const numberList = [1, 2];
 
 /** A Map, which the object helpers either walk explicitly or route to their untyped result. */
 export const numberMap = new Map([["a", 1]]);
+
+/**
+ * Two differently typed Maps in one union. A `ReadonlyMap<TKey, TValue>` row infers one `TKey`
+ * and skips the union, so the Map rows read it through `MapEntryKey` and `MapEntryValue`.
+ */
+export const mapUnion = new Map([["a", 1]]) as
+    | Map<string, number>
+    | Map<number, string>;
+
+/** A Map that may be missing: neither the Map row nor the empty-result row matches it. */
+export const maybeMap = new Map([[2, "c"]]) as Map<number, string> | undefined;
+
+/** A Map or a list: the Map's entries are walked and the list is read as empty. */
+export const mapOrList = new Map([[2, "c"]]) as Map<number, string> | string[];

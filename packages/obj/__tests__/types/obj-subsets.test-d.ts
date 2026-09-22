@@ -4,6 +4,9 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
     abc,
     constRecord,
+    mapOrList,
+    mapUnion,
+    maybeMap,
     numberList,
     numberMap,
     profile,
@@ -148,19 +151,44 @@ describe("obj subset type tests", () => {
             >();
         });
 
-        it("empties a list or a Map for a readonly keys constant, and still picks typed data's keys", () => {
+        it("empties a list for a readonly keys constant, reads a Map's values, and still picks typed data's keys", () => {
             const indexes = [0] as const;
             const names = ["name"] as const;
 
             expectTypeOf(Obj.only(numberList, indexes)).toEqualTypeOf<
                 Record<string, never>
             >();
+            // obj.only reads a Map's own entries, so the values it keeps are the Map's.
             expectTypeOf(Obj.only(numberMap, names)).toEqualTypeOf<
-                Record<string, never>
+                Record<string, number>
             >();
             expectTypeOf(Obj.only(user, names)).toEqualTypeOf<{
                 name: string;
             }>();
+        });
+
+        it("keeps a Map's values under string keys, whatever its key type", () => {
+            expectTypeOf(Obj.only(new Map([[2, "c"]]), [2, 0])).toEqualTypeOf<
+                Record<string, string>
+            >();
+            expectTypeOf(Obj.only(numberMap, "a")).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.only(numberMap, null)).toEqualTypeOf<
+                Record<string, number>
+            >();
+        });
+
+        it("keeps a union of Maps' values, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.only(mapUnion, ["a", 2])).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.only(maybeMap, [2])).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.only(mapOrList, [2])).toEqualTypeOf<
+                Record<string, unknown>
+            >();
         });
 
         it("accepts a readonly key list it cannot verify", () => {

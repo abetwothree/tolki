@@ -131,22 +131,4 @@ describe("obj residual type-soundness limits", () => {
             ).toEqualTypeOf<{ t: [2, 1] }>();
         });
     });
-
-    describe("unshift on a Map and on a Set", () => {
-        it("declares a fresh record for a Map, which is mutated and returned instead", () => {
-            // Runtime: the same Map, with "0" set as an own key. A Map is
-            // object-accessible, so unshift writes through it.
-            expectTypeOf(Obj.unshift(new Map([["a", 1]]), "x")).toEqualTypeOf<
-                Record<number, string>
-            >();
-        });
-
-        it("declares and answers a fresh record for a Set", () => {
-            // Runtime: { 0: "x", 1: "y" } — a Set is not object-accessible, so this
-            // row is sound; it is kept beside the Map one so the pair stays visible.
-            expectTypeOf(Obj.unshift(new Set([1]), "x", "y")).toEqualTypeOf<
-                Record<number, string>
-            >();
-        });
-    });
 });

@@ -4,8 +4,12 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
     abc,
     integerKeyed,
+    mapOrList,
+    mapUnion,
+    maybeMap,
     nullableValues,
     numberList,
+    numberMap,
     profile,
     type Row,
     rowsById,
@@ -45,6 +49,70 @@ describe("obj mapping type tests", () => {
             ).toEqualTypeOf<Record<string, unknown>>();
             expectTypeOf(Obj.map(numberList, (value) => value)).toEqualTypeOf<
                 Record<string, never>
+            >();
+        });
+
+        it("maps a Map's values, handing the callback each key PHP stores", () => {
+            const result = Obj.map(new Map([[2, "c"]]), (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return value.length;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+            // A Map<string, …> key "2" reaches the callback as 2, as PHP casts it.
+            Obj.map(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return value;
+            });
+        });
+
+        it("maps a union of Maps, handing the callback each Map's values and keys", () => {
+            const result = Obj.map(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return String(value);
+            });
+
+            expectTypeOf(result).toEqualTypeOf<Record<string, string>>();
+        });
+
+        it("reads a Map typed by a type parameter through its constraint, as before", () => {
+            // The ReadonlyMap<TKey, TValue> row does this; the MapData row cannot tell such an M from any.
+            const addOne = <M extends Map<string, number>>(map: M) =>
+                Obj.map(map, (value) => value + 1);
+
+            expectTypeOf(addOne).returns.toEqualTypeOf<
+                Record<string, number>
+            >();
+        });
+
+        it("still hands an any argument's callback any, from the per-key row", () => {
+            // JSON.parse is typed as returning any; MapData turns it away from the Map rows.
+            Obj.map(JSON.parse("{}"), (value) => {
+                expectTypeOf(value).toBeAny();
+
+                return value;
+            });
+        });
+
+        it("answers the widest row, not an empty one, for a Map that may be missing or a list", () => {
+            // The Map member is mapped, so `Record<string, never>` would be false for it.
+            expectTypeOf(Obj.map(maybeMap, (value) => value)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            Obj.map(mapOrList, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return value;
+            });
+            expectTypeOf(Obj.map(mapOrList, () => 1)).toEqualTypeOf<
+                Record<string, number>
             >();
         });
     });
@@ -97,6 +165,45 @@ describe("obj mapping type tests", () => {
             expectTypeOf(Obj.mapWithKeys(abc, () => names)).toEqualTypeOf<
                 Record<number, string>
             >();
+        });
+
+        it("maps a Map's items to the keys the callback returns", () => {
+            const result = Obj.mapWithKeys(
+                new Map([[2, "c"]]),
+                (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<string>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return { [`k${String(key)}`]: value };
+                },
+            );
+
+            expectTypeOf(result).toEqualTypeOf<
+                Record<string | number, string>
+            >();
+            expectTypeOf(
+                Obj.mapWithKeys(numberMap, (value) => ({ total: value })),
+            ).toEqualTypeOf<Record<"total", number>>();
+        });
+
+        it("files a Map's list return under its own indexes", () => {
+            expectTypeOf(
+                Obj.mapWithKeys(numberMap, (value, key) => [key, value]),
+            ).toEqualTypeOf<{ 0: string | number; 1: number }>();
+        });
+
+        it("maps a union of Maps, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(
+                Obj.mapWithKeys(mapUnion, (value, key) => ({
+                    [`k${String(key)}`]: value,
+                })),
+            ).toEqualTypeOf<Record<string | number, string | number>>();
+            expectTypeOf(
+                Obj.mapWithKeys(mapOrList, (value) => ({ total: value })),
+            ).toEqualTypeOf<Record<"total", unknown>>();
+            expectTypeOf(
+                Obj.mapWithKeys(maybeMap, (value) => ({ total: value })),
+            ).toEqualTypeOf<Record<"total", unknown>>();
         });
     });
 
@@ -170,6 +277,37 @@ describe("obj mapping type tests", () => {
                 Obj.mapSpread(unknownObject, (...args) => args.length),
             ).toEqualTypeOf<Record<string, number>>();
         });
+
+        it("spreads a Map's tuple rows and appends the key PHP stores", () => {
+            const rows = new Map<number, [number, string]>([[2, [1, "a"]]]);
+            const result = Obj.mapSpread(rows, (count, label, key) => {
+                expectTypeOf(count).toEqualTypeOf<number>();
+                expectTypeOf(label).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return `${count}-${label}`;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<Record<string, string>>();
+        });
+
+        it("spreads a union of Maps' rows, and answers the widest row for a Map in any other union", () => {
+            const rows = new Map([[2, [1, "a"]]]) as
+                | Map<number, [number, string]>
+                | Map<string, [number, string]>;
+            const result = Obj.mapSpread(rows, (count, label, key) => {
+                expectTypeOf(count).toEqualTypeOf<number>();
+                expectTypeOf(label).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return label;
+            });
+
+            expectTypeOf(result).toEqualTypeOf<Record<string, string>>();
+            expectTypeOf(
+                Obj.mapSpread(mapOrList, (...args) => args.length),
+            ).toEqualTypeOf<Record<string, number>>();
+        });
     });
 
     describe("filter", () => {
@@ -198,6 +336,46 @@ describe("obj mapping type tests", () => {
                 Record<string, unknown>
             >();
         });
+
+        it("drops a Map's PHP-falsy value types without a callback", () => {
+            const flags = new Map<string, string | 0 | null>([["a", "x"]]);
+
+            expectTypeOf(Obj.filter(flags)).toEqualTypeOf<
+                Record<string, string>
+            >();
+            expectTypeOf(Obj.filter(flags, null)).toEqualTypeOf<
+                Record<string, string>
+            >();
+        });
+
+        it("keeps a Map's value type with a callback", () => {
+            expectTypeOf(
+                Obj.filter(numberMap, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                    return value > 1;
+                }),
+            ).toEqualTypeOf<Record<string, number>>();
+        });
+
+        it("filters a union of Maps, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.filter(mapUnion)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            // The empty-result row takes null and undefined but no Map, so neither union lands on it.
+            expectTypeOf(Obj.filter(maybeMap)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(
+                Obj.filter(mapOrList, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<unknown>();
+                    expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                    return true;
+                }),
+            ).toEqualTypeOf<Record<string, unknown>>();
+        });
     });
 
     describe("where and reject", () => {
@@ -216,6 +394,42 @@ describe("obj mapping type tests", () => {
 
                 return true;
             });
+        });
+
+        it("keep a Map's value type, handing the callback each key PHP stores", () => {
+            const rows = new Map([[2, "c"]]);
+
+            expectTypeOf(
+                Obj.where(rows, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<string>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return true;
+                }),
+            ).toEqualTypeOf<Record<string, string>>();
+            expectTypeOf(
+                Obj.reject(numberMap, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                    return false;
+                }),
+            ).toEqualTypeOf<Record<string, number>>();
+        });
+
+        it("keep a union of Maps' values, and answer the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.where(mapUnion, () => true)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.reject(mapUnion, () => false)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.where(maybeMap, () => true)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.reject(mapOrList, () => false)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
         });
     });
 
@@ -237,6 +451,29 @@ describe("obj mapping type tests", () => {
                 [x: string]: string | undefined;
             }>();
         });
+
+        it("drops only null from a Map's value type", () => {
+            // JS-only: PHP has one null, so an undefined value survives, as it does in a record.
+            const values = new Map<string, string | null | undefined>([
+                ["a", "x"],
+            ]);
+
+            expectTypeOf(Obj.whereNotNull(values)).toEqualTypeOf<
+                Record<string, string | undefined>
+            >();
+        });
+
+        it("reads a union of Maps, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.whereNotNull(mapUnion)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.whereNotNull(maybeMap)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.whereNotNull(mapOrList)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
     });
 
     describe("partition", () => {
@@ -252,6 +489,33 @@ describe("obj mapping type tests", () => {
             >();
             expectTypeOf(failed).toEqualTypeOf<
                 Partial<{ a: number; b: number; c: number }>
+            >();
+        });
+
+        it("splits a Map into two records of its value type", () => {
+            const [passed, failed] = Obj.partition(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return value > 1;
+            });
+
+            expectTypeOf(passed).toEqualTypeOf<Record<string, number>>();
+            expectTypeOf(failed).toEqualTypeOf<Record<string, number>>();
+        });
+
+        it("splits a union of Maps, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.partition(mapUnion, () => true)).toEqualTypeOf<
+                [
+                    Record<string, string | number>,
+                    Record<string, string | number>,
+                ]
+            >();
+            expectTypeOf(Obj.partition(maybeMap, () => true)).toEqualTypeOf<
+                [Record<string, unknown>, Record<string, unknown>]
+            >();
+            expectTypeOf(Obj.partition(mapOrList, () => true)).toEqualTypeOf<
+                [Record<string, unknown>, Record<string, unknown>]
             >();
         });
     });

@@ -262,6 +262,19 @@ describe("obj set-operation type tests", () => {
                 Record<string, never>[]
             >();
         });
+
+        it("keys a Map argument's dimensions by string, walking each one's values", () => {
+            // A Map's keys are only known at runtime, so its rows gain an index signature.
+            expectTypeOf(
+                Obj.crossJoin(new Map([[2, ["c1", "c2"]]])),
+            ).toEqualTypeOf<{ [x: string]: string }[]>();
+            // A later Map may hold the key "a" too, and would overwrite it.
+            expectTypeOf(
+                Obj.crossJoin({ a: [1] }, new Map([["b", new Set([true])]])),
+            ).toEqualTypeOf<
+                { [x: string]: number | boolean; a: number | boolean }[]
+            >();
+        });
     });
 
     describe("collapse", () => {
@@ -314,6 +327,16 @@ describe("obj set-operation type tests", () => {
             expectTypeOf(Obj.collapse([{ a: 1 }, { a: 2 }])).toEqualTypeOf<{
                 a?: number;
             }>();
+        });
+
+        it("collapses a Map's items, none of whose keys is certain", () => {
+            // A Map may hold no item at all, so no merged key is sure to be there.
+            expectTypeOf(
+                Obj.collapse(new Map([[1, { k: 1, j: "s" }]])),
+            ).toEqualTypeOf<{ k?: number; j?: string }>();
+            expectTypeOf(Obj.collapse(new Map([[0, [1, 2]]]))).toEqualTypeOf<
+                Record<string | number, unknown>
+            >();
         });
     });
 });

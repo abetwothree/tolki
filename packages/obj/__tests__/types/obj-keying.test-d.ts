@@ -7,6 +7,7 @@ import {
     bareObject,
     integerKeyed,
     numberList,
+    numberMap,
     type Row,
     rowsById,
     unknownObject,
@@ -63,6 +64,45 @@ describe("obj keying type tests", () => {
                 Record<string, unknown>
             >();
         });
+
+        it("keys a Map's items, handing the callback each key PHP stores", () => {
+            const rows = new Map([[2, { id: "r" }]]);
+
+            expectTypeOf(Obj.keyBy(rows, "id")).toEqualTypeOf<
+                Record<string, { id: string }>
+            >();
+            Obj.keyBy(rows, (row, key) => {
+                expectTypeOf(row).toEqualTypeOf<{ id: string }>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return row.id;
+            });
+            // A Map<string, …> key "2" reaches the callback as 2, as PHP casts it.
+            Obj.keyBy(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return key;
+            });
+            Obj.keyBy(
+                new Map<"10" | "x", { id: number }>([["10", { id: 1 }]]),
+                (_row, key) => {
+                    expectTypeOf(key).toEqualTypeOf<10 | "x">();
+
+                    return key;
+                },
+            );
+        });
+
+        it("keeps a symbol a callback returns for a Map as a key", () => {
+            const sym = Symbol("k");
+
+            expectTypeOf(
+                Obj.keyBy(new Map([["a", { id: 1 }]]), () => sym),
+            ).toEqualTypeOf<
+                Record<string, { id: number }> & { [sym]?: { id: number } }
+            >();
+        });
     });
 
     describe("prependKeysWith", () => {
@@ -86,6 +126,12 @@ describe("obj keying type tests", () => {
                 [x: `${string}a`]: number;
             }>();
         });
+
+        it("keeps a Map's values under the string keys it builds", () => {
+            expectTypeOf(
+                Obj.prependKeysWith(new Map([[2, "c"]]), "k"),
+            ).toEqualTypeOf<Record<string, string>>();
+        });
     });
 
     describe("flip", () => {
@@ -105,6 +151,15 @@ describe("obj keying type tests", () => {
             expectTypeOf(Obj.flip({ 0: "zero" } as const)).toEqualTypeOf<{
                 zero: 0;
             }>();
+        });
+
+        it("hands a Map's keys back as the keys PHP stores", () => {
+            expectTypeOf(Obj.flip(new Map([[2, "c"]]))).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.flip(new Map([["a", "x"]]))).toEqualTypeOf<
+                Record<string, string | number>
+            >();
         });
     });
 
@@ -129,6 +184,15 @@ describe("obj keying type tests", () => {
             >();
         });
 
+        it("keys a Map's reachable values by their dot paths", () => {
+            expectTypeOf(
+                Obj.dot(new Map([[2, { city: "NYC" }]])),
+            ).toEqualTypeOf<Record<string, string | { city: string }>>();
+            expectTypeOf(Obj.dot(new Map([["a", 1]]), "p", 1)).toEqualTypeOf<
+                Record<string, number>
+            >();
+        });
+
         it("empties a list and falls back for unknown data", () => {
             expectTypeOf(Obj.dot(numberList)).toEqualTypeOf<
                 Record<string, never>
@@ -149,6 +213,12 @@ describe("obj keying type tests", () => {
         it("types a list's entries under their indexes", () => {
             expectTypeOf(Obj.undot(numberList)).toEqualTypeOf<
                 Record<number, unknown>
+            >();
+        });
+
+        it("nests a Map's values as it nests a record's", () => {
+            expectTypeOf(Obj.undot(new Map([["a.b", 1]]))).toEqualTypeOf<
+                Record<string, UndotObjectValue<number>>
             >();
         });
     });

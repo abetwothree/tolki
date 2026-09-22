@@ -3,6 +3,7 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import {
     accounts,
+    mapOrList,
     numberList,
     type Row,
     rowsById,
@@ -119,6 +120,91 @@ describe("obj pluck type tests", () => {
                 expectTypeOf(
                     Obj.pluck(rowsById, null, nullableKey),
                 ).toEqualTypeOf<Row[] | Record<string | number, Row>>();
+            });
+        });
+
+        describe("Map data", () => {
+            const rowMap = new Map<number, Row>([[2, { id: 2, name: "c" }]]);
+
+            it("resolves a literal path against the Map's items", () => {
+                expectTypeOf(Obj.pluck(rowMap, "name")).toEqualTypeOf<
+                    string[]
+                >();
+                expectTypeOf(Obj.pluck(rowMap, "name", "id")).toEqualTypeOf<
+                    Record<string | number, string>
+                >();
+                expectTypeOf(Obj.pluck(rowMap, "name", null)).toEqualTypeOf<
+                    string[]
+                >();
+            });
+
+            it("hands both callbacks the Map's item", () => {
+                const result = Obj.pluck(
+                    rowMap,
+                    (row) => {
+                        expectTypeOf(row).toEqualTypeOf<Row>();
+
+                        return row.id;
+                    },
+                    (row) => {
+                        expectTypeOf(row).toEqualTypeOf<Row>();
+
+                        return row.name;
+                    },
+                );
+
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string | number, number>
+                >();
+                expectTypeOf(Obj.pluck(rowMap, (row) => row.id)).toEqualTypeOf<
+                    number[]
+                >();
+            });
+
+            it("keeps whole items for a null value path and widens an array path", () => {
+                expectTypeOf(Obj.pluck(rowMap, null)).toEqualTypeOf<Row[]>();
+                expectTypeOf(
+                    Obj.pluck(rowMap, undefined, "name"),
+                ).toEqualTypeOf<Record<string | number, Row>>();
+                expectTypeOf(Obj.pluck(rowMap, ["name"])).toEqualTypeOf<
+                    unknown[]
+                >();
+                expectTypeOf(Obj.pluck(rowMap, ["name"], "id")).toEqualTypeOf<
+                    Record<string | number, unknown>
+                >();
+            });
+
+            it("resolves a path against a union of Maps' items, and answers the widest row for a Map in any other union", () => {
+                const rowUnion = rowMap as
+                    | Map<number, Row>
+                    | Map<string, { id: string; name: number }>;
+                const maybeRows = rowMap as Map<number, Row> | undefined;
+
+                expectTypeOf(Obj.pluck(rowUnion, "name")).toEqualTypeOf<
+                    (string | number)[]
+                >();
+                expectTypeOf(Obj.pluck(rowUnion, "name", "id")).toEqualTypeOf<
+                    Record<string | number, string | number>
+                >();
+                // Not the non-object row's `never[]`: the Map member's items are plucked.
+                expectTypeOf(Obj.pluck(maybeRows, "name")).toEqualTypeOf<
+                    unknown[] | Record<string | number, unknown>
+                >();
+                expectTypeOf(Obj.pluck(mapOrList, "name")).toEqualTypeOf<
+                    unknown[] | Record<string | number, unknown>
+                >();
+            });
+
+            it("answers both shapes for a forwarded nullable key", () => {
+                expectTypeOf(
+                    Obj.pluck(rowMap, "name", nullableKey),
+                ).toEqualTypeOf<Record<string | number, string> | string[]>();
+                expectTypeOf(
+                    Obj.pluck(rowMap, (row) => row.id, nullableKey),
+                ).toEqualTypeOf<Record<string | number, number> | number[]>();
+                expectTypeOf(
+                    Obj.pluck(rowMap, null, nullableKey),
+                ).toEqualTypeOf<Record<string | number, Row> | Row[]>();
             });
         });
 

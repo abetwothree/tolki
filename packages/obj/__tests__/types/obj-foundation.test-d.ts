@@ -5,6 +5,9 @@ import {
     abc,
     constRecord,
     integerKeyed,
+    mapOrList,
+    mapUnion,
+    maybeMap,
     numberList,
     numberMap,
     type Profile,
@@ -63,6 +66,15 @@ describe("obj foundation type tests", () => {
         it("keys a Map by its value type", () => {
             expectTypeOf(Obj.from(numberMap)).toEqualTypeOf<
                 Record<string, number>
+            >();
+        });
+
+        it("keys a union of Maps by its members' values, and a Map or list by unknown", () => {
+            expectTypeOf(Obj.from(mapUnion)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.from(mapOrList)).toEqualTypeOf<
+                Record<string, unknown>
             >();
         });
 
@@ -150,6 +162,49 @@ describe("obj foundation type tests", () => {
                 (string | number)[]
             >();
         });
+
+        it("reports a Map's keys as the keys PHP stores", () => {
+            // A Map<string, …> key "2" is stored as 2, as PHP casts it.
+            expectTypeOf(Obj.keys(numberMap)).toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf(
+                Obj.keys(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ),
+            ).toEqualTypeOf<number[]>();
+            expectTypeOf(Obj.keys(new Map([[true, "t"]]))).toEqualTypeOf<
+                (0 | 1)[]
+            >();
+            expectTypeOf(Obj.keys(new Map([[null, "n"]]))).toEqualTypeOf<
+                ""[]
+            >();
+        });
+
+        it("reports a union of Maps' keys, each as PHP stores it", () => {
+            const flagsOrTwo = new Map([[true, "t"]]) as
+                | Map<boolean, string>
+                | Map<2, number>;
+
+            expectTypeOf(Obj.keys(flagsOrTwo)).toEqualTypeOf<(0 | 1 | 2)[]>();
+            expectTypeOf(Obj.keys(mapUnion)).toEqualTypeOf<
+                (string | number)[]
+            >();
+        });
+
+        it("answers the widest row, not an empty tuple, for a Map that may be missing or a list", () => {
+            // The empty-result row takes no Map, so the Map member's keys are not declared away.
+            expectTypeOf(Obj.keys(maybeMap)).toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf(Obj.keys(mapOrList)).toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf(Obj.keys(mapOrList)).not.toEqualTypeOf<[]>();
+        });
     });
 
     describe("values", () => {
@@ -178,6 +233,26 @@ describe("obj foundation type tests", () => {
         it("falls back for unknown", () => {
             expectTypeOf(Obj.values(unknownObject)).toEqualTypeOf<unknown[]>();
         });
+
+        it("lists a Map's values", () => {
+            expectTypeOf(Obj.values(numberMap)).toEqualTypeOf<number[]>();
+            expectTypeOf(
+                Obj.values(
+                    new Map<string | number, string | boolean>([
+                        [2, "c"],
+                        ["x", true],
+                    ]),
+                ),
+            ).toEqualTypeOf<(string | boolean)[]>();
+        });
+
+        it("lists a union of Maps' values, and unknown values for a Map in any other union", () => {
+            expectTypeOf(Obj.values(mapUnion)).toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf(Obj.values(maybeMap)).toEqualTypeOf<unknown[]>();
+            expectTypeOf(Obj.values(mapOrList)).toEqualTypeOf<unknown[]>();
+        });
     });
 
     describe("divide", () => {
@@ -192,6 +267,25 @@ describe("obj foundation type tests", () => {
 
             expectTypeOf(keys).toEqualTypeOf<(0 | 1 | "name")[]>();
             expectTypeOf(values).toEqualTypeOf<string[]>();
+        });
+
+        it("splits a Map into the keys PHP stores and its values", () => {
+            // A Map<string, …> key "2" is stored as 2, as PHP casts it.
+            expectTypeOf(Obj.divide(numberMap)).toEqualTypeOf<
+                [(string | number)[], number[]]
+            >();
+            expectTypeOf(Obj.divide(new Map([[2, "c"]]))).toEqualTypeOf<
+                [number[], string[]]
+            >();
+            expectTypeOf(Obj.divide(new Map([[true, "t"]]))).toEqualTypeOf<
+                [(0 | 1)[], string[]]
+            >();
+        });
+
+        it("splits a union of Maps into its members' keys and values", () => {
+            expectTypeOf(Obj.divide(mapUnion)).toEqualTypeOf<
+                [(string | number)[], (string | number)[]]
+            >();
         });
 
         it("falls back for unknown", () => {

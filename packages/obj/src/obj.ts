@@ -18,7 +18,12 @@ import type {
     EnsureObject,
     FlipObject,
     IsBareObject,
+    MapArrayKey,
+    MapData,
+    MapEntryKey,
+    MapEntryValue,
     MergeObjects,
+    NonKeyedItems,
     NonNullableObject,
     NonObjectItems,
     ObjectDeepPartial,
@@ -74,6 +79,7 @@ import {
     isUndefined,
     isWeakMap,
     ItemNotFoundException,
+    keyedEntries,
     looseEqual,
     MultipleItemsFoundException,
     operatorMatch,
@@ -128,6 +134,12 @@ type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
  * Mutation contract: pop, shift, splice and unshift mutate their first
  * argument; every other function returns a new value. arr and obj agree
  * on this — re-read Collection.php before "aligning" one to the other.
+ */
+
+/**
+ * Map rows: a helper whose result carries a Map's keys or values declares first a `ReadonlyMap<TKey, TValue>` row,
+ * which also reads a Map typed by a type parameter, then a `MapData<TMap>` row, which reads a union of Maps; then an
+ * empty-result `NonKeyedItems` row and a `NonObjectItems` row, the widest result, for a union like `Map | string[]`.
  */
 
 // Mirrors mapSpread's runtime: a list spreads its items, an object its values, and anything else (a function
@@ -236,6 +248,8 @@ type BareObjectKey<T> =
 type MapWithKeysList<T extends readonly unknown[]> = number extends T["length"]
     ? Record<number, T[number]>
     : { [I in keyof T & `${number}`]: T[I] };
+// filter without a callback keeps a Map's non-falsy values, narrowed as TruthyObject narrows a record's per key.
+type TruthyValue<V> = Exclude<V, null | undefined | false | 0 | "">;
 // A symbol key is optional: keyBy stores one only when some row resolves to it.
 type KeyByResult<V, S extends symbol> = [S] extends [never]
     ? Record<string, V>
@@ -369,17 +383,20 @@ type ForeachValue<V> = unknown extends V
                   ? unknown
                   : ObjectValue<V>
               : never;
-// crossJoin reads each argument through Object.entries: a list's rows gain index keys, a symbol key is skipped,
+// crossJoin reads each argument through keyedEntries: a list's rows gain index keys, a symbol key is skipped,
 // and a key whose dimension walks to no value (a scalar, or a class's prototype method) never reaches a row.
+// A Map's keys are its entries', which a type cannot list, so its rows gain string keys.
 type CrossJoinEntries<T> = T extends readonly unknown[]
     ? Record<number, ForeachValue<T[number]>>
-    : {
-          [K in keyof T as K extends symbol
-              ? never
-              : [ForeachValue<T[K]>] extends [never]
+    : T extends ReadonlyMap<unknown, infer V>
+      ? Record<string, ForeachValue<V>>
+      : {
+            [K in keyof T as K extends symbol
                 ? never
-                : K]: ForeachValue<T[K]>;
-      };
+                : [ForeachValue<T[K]>] extends [never]
+                  ? never
+                  : K]: ForeachValue<T[K]>;
+        };
 // Each argument's entries overwrite the row built so far, as the runtime's copy-then-defineKey does.
 // A spread of unknown length may hold no argument at all, so its keys are optional.
 type CrossJoinRow<
@@ -433,26 +450,55 @@ export function accessible(value: unknown): value is object {
 }
 
 /**
- * Get the key/value pairs of an object or a Map.
+ * Get the key/value pairs of an object or a Map, each key the one PHP stores.
  *
- * A Map is the JavaScript equivalent of a PHP iterable with non numeric keys,
- * so it is read through its own entries instead of its instance properties.
+ * A Map stands for a PHP array whose integer keys may be out of sequence, so it is read in its insertion order; every
+ * key goes through `phpArrayKey`, so a callback is handed `2` for a Map key `"2"` just as for a record key.
  *
  * @param data - The object or Map to read the entries from.
  * @returns The key/value pairs in iteration order.
  */
-// entriesOf: plain-object keys go through phpArrayKey; Map keys pass as they are.
 function entriesOf<TValue, TKey extends PropertyKey = PropertyKey>(
     data: object,
 ): [TKey, TValue][] {
-    if (isMap<TKey, TValue>(data)) {
-        return [...data.entries()];
+    return keyedEntries<TValue>(data).map(([key, value]) => [
+        phpArrayKey(key) as TKey,
+        value,
+    ]);
+}
+
+/**
+ * Rewrite a mutator's record or Map in place so it holds exactly `entries`, in order.
+ *
+ * Clearing a Map, rather than deleting from it, also drops a `"1"` that `keyedEntries` folded into a `1`; each key is
+ * set as PHP stores it (`0`, not `"0"`). A record is refilled through `defineKey`, so `__proto__` stays an own key.
+ *
+ * @param data - The record or Map to rewrite.
+ * @param entries - What it holds afterwards, each key the string `keyedEntries` reports.
+ */
+function rewriteEntries<TValue>(
+    data: object,
+    entries: readonly [string, TValue][],
+): void {
+    if (isMap<unknown, TValue>(data)) {
+        data.clear();
+
+        for (const [key, value] of entries) {
+            data.set(phpArrayKey(key), value);
+        }
+
+        return;
     }
 
-    return Object.entries(data).map(([key, value]) => [
-        phpArrayKey(key) as TKey,
-        value as TValue,
-    ]);
+    const target = data as Record<string, TValue>;
+
+    for (const key of Object.keys(target)) {
+        delete target[key];
+    }
+
+    for (const [key, value] of entries) {
+        defineKey(target, key, value);
+    }
 }
 
 /**
@@ -622,19 +668,52 @@ export function boolean<
 /**
  * Chunk the object into chunks of the given size.
  *
+ * A Map is chunked in its insertion order, so each chunk holds the entries PHP's would.
+ * A chunk is a plain object, so the integer keys inside one still enumerate ascending.
+ *
  * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
  *      Wraps `array_chunk`; `preserveKeys` defaults to `true`.
  *
- * @param data - The record to chunk
+ * @param data - The record or Map to chunk
  * @param size - The size of each chunk
  * @param preserveKeys - Whether to preserve the original keys, defaults to true
  * @returns Chunked record
+ *
+ * @example
+ *
+ * chunk({ a: 1, b: 2, c: 3 }, 2); -> { 0: { a: 1, b: 2 }, 1: { c: 3 } }
+ * chunk(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2, false); -> { 0: { 0: 'c', 1: 'a' }, 1: { 0: 'b' } }
  */
+export function chunk<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    size: number,
+    preserveKeys: false,
+): Record<number, Record<number, TValue>>;
+export function chunk<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    size: number,
+    preserveKeys?: boolean,
+): Record<number, Record<string, TValue>>;
+export function chunk<TMap>(
+    data: MapData<TMap>,
+    size: number,
+    preserveKeys: false,
+): Record<number, Record<number, MapEntryValue<TMap>>>;
+export function chunk<TMap>(
+    data: MapData<TMap>,
+    size: number,
+    preserveKeys?: boolean,
+): Record<number, Record<string, MapEntryValue<TMap>>>;
+export function chunk(
+    data: NonKeyedItems,
+    size: number,
+    preserveKeys?: boolean,
+): Record<number, never>;
 export function chunk(
     data: NonObjectItems,
     size: number,
     preserveKeys?: boolean,
-): Record<number, never>;
+): Record<number, Record<string, unknown>>;
 export function chunk<T extends object>(
     data: T,
     size: number,
@@ -672,7 +751,7 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<PropertyKey, never>;
     }
 
-    const entries = Object.entries(data as Record<TKey, TValue>);
+    const entries = keyedEntries<TValue>(data);
     const chunks:
         | Record<number, Record<TKey, TValue>>
         | Record<number, Record<number, TValue>> = {};
@@ -710,10 +789,13 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Chunk the object into chunks with a callback.
  *
+ * A Map is walked in its insertion order, but the chunk the callback gets is a plain object that lists integer keys
+ * first, ascending, so `Object.values(chunk).at(-1)` is the item added last only when its key is listed last.
+ *
  * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which runs
  *      `LazyCollection::chunkWhile`. Keys are preserved inside each chunk.
  *
- * @param data - The record to chunk
+ * @param data - The record or Map to chunk
  * @param callback - Receives the value, its key and the chunk built so far; return true to keep appending
  * @returns Chunked record
  *
@@ -721,7 +803,32 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * chunkWhile({ a: 1, b: 1, c: 2 }, (value, key, chunk) => Object.values(chunk).at(-1) === value);
  * -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ * chunkWhile(new Map([[2, 'c'], [0, 'a']]), () => false); -> { 0: { 2: 'c' }, 1: { 0: 'a' } }
  */
+export function chunkWhile<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: MapArrayKey<TKey>,
+        chunk: Record<string, TValue>,
+    ) => boolean,
+): Record<number, Record<string, TValue>>;
+export function chunkWhile<TMap>(
+    data: MapData<TMap>,
+    callback: (
+        value: MapEntryValue<TMap>,
+        key: MapEntryKey<TMap>,
+        chunk: Record<string, MapEntryValue<TMap>>,
+    ) => boolean,
+): Record<number, Record<string, MapEntryValue<TMap>>>;
+export function chunkWhile(
+    data: NonKeyedItems,
+    callback: (
+        value: unknown,
+        key: string | number,
+        chunk: Record<string, unknown>,
+    ) => boolean,
+): Record<number, never>;
 export function chunkWhile(
     data: NonObjectItems,
     callback: (
@@ -729,7 +836,7 @@ export function chunkWhile(
         key: string | number,
         chunk: Record<string, unknown>,
     ) => boolean,
-): Record<number, never>;
+): Record<number, Record<string, unknown>>;
 export function chunkWhile<T extends object>(
     data: T,
     callback: (
@@ -764,7 +871,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     let size = 0;
     let chunkIndex = 0;
 
-    for (const [rawKey, value] of Object.entries(data) as [string, TValue][]) {
+    for (const [rawKey, value] of keyedEntries<TValue>(data)) {
         const key = phpArrayKey(rawKey) as TKey;
 
         if (size > 0 && !callback(value, key, chunk)) {
@@ -788,21 +895,38 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Chunk the object into chunks by comparing adjacent values using the given key or callback.
  *
+ * A Map is walked in its insertion order, so the items compared as adjacent are the ones PHP compares.
+ *
  * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
  *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
  *
- * @param data - The record to chunk
+ * @param data - The record or Map to chunk
  * @param key - A path into each item, or a callback receiving the value and its key
  * @returns Chunked record
  *
  * @example
  *
  * chunkBy({ a: 1, b: 1, c: 2 }, (value) => value); -> { 0: { a: 1, b: 1 }, 1: { c: 2 } }
+ * chunkBy(new Map([[2, 1], [0, 1], [1, 2]]), (value) => value); -> { 0: { 0: 1, 2: 1 }, 1: { 1: 2 } }
  */
+export function chunkBy<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    key: PathKey | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<number, Record<string, TValue>>;
+export function chunkBy<TMap>(
+    data: MapData<TMap>,
+    key:
+        | PathKey
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<number, Record<string, MapEntryValue<TMap>>>;
+export function chunkBy(
+    data: NonKeyedItems,
+    key: PathKey | ((value: unknown, key: string | number) => unknown),
+): Record<number, never>;
 export function chunkBy(
     data: NonObjectItems,
     key: PathKey | ((value: unknown, key: string | number) => unknown),
-): Record<number, never>;
+): Record<number, Record<string, unknown>>;
 export function chunkBy<T extends object>(
     data: T,
     key: PathKey | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
@@ -858,15 +982,13 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Collapse an object of objects or lists into a single object; integer keys
- * are renumbered, as `array_merge` does. A Collection-like item unwraps
- * through its `all()` method, and any other item that isn't a plain object or a list is skipped,
- * as `Arr::collapse` skips a PHP object: a `Date`, a `Map` or a class instance.
+ * Collapse an object of objects or lists into a single object, renumbering integer keys as `array_merge` does.
  *
- * Declared-type limits, pinned in `obj-residuals.test-d.ts`: a class instance's own keys are typed as
- * copied, and an OPTIONAL `all?()` is not unwrapped, where the runtime skips the first and reads the second.
+ * A Map is merged in its insertion order. A Collection-like item unwraps through `all()`, and any other item that
+ * isn't a plain object or a list (a `Date`, a `Map`, a class instance) is skipped. Declared types, pinned in
+ * `obj-residuals.test-d.ts`, still copy a class instance's keys and leave an OPTIONAL `all?()` item unwrapped.
  *
- * @param object - The object of objects or lists to collapse.
+ * @param object - The object or Map of objects or lists to collapse.
  * @returns A new flattened object.
  *
  * @example
@@ -874,12 +996,22 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
  * collapse({ a: { x: 1 }, b: { y: 2 }, c: { z: 3 } }); -> { x: 1, y: 2, z: 3 }
  * collapse({ users: { john: { age: 30 } }, admins: { jane: { role: 'admin' } } }); -> { john: { age: 30 }, jane: { role: 'admin' } }
  * collapse([[1, 2], [3, 4]]); -> { 0: 1, 1: 2, 2: 3, 3: 4 }
+ * collapse(new Map([[1, { k: 1 }], [0, { k: 2 }]])); -> { k: 2 }
  */
 // A list's items collapse the way an object's values do, so it comes before the rejects-first row.
 export function collapse<T extends readonly unknown[]>(
     data: T,
 ): CollapseResult<Record<number, T[number]>>;
-export function collapse(data: NonObjectItems): Record<string, never>;
+export function collapse<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): CollapseResult<Record<string, TValue>>;
+export function collapse<TMap>(
+    data: MapData<TMap>,
+): CollapseResult<Record<string, MapEntryValue<TMap>>>;
+export function collapse(data: NonKeyedItems): Record<string, never>;
+export function collapse(
+    data: NonObjectItems,
+): Record<string | number, unknown>;
 export function collapse<T extends object>(data: T): CollapseResult<T>;
 export function collapse(data: unknown): Record<string | number, unknown>;
 export function collapse<
@@ -897,7 +1029,7 @@ export function collapse<
 
     let nextIndex = 0;
 
-    for (const group of Object.values(object)) {
+    for (const [, group] of keyedEntries<TValue[keyof TValue]>(object)) {
         // Arr::collapse merges a Collection item's items, never the Collection's own fields.
         const item =
             isObject(group) && isFunction(group["all"])
@@ -988,10 +1120,11 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
 
 /**
  * Cross join the given objects, returning all possible permutations.
- * Each key is one dimension, walked like PHP's `foreach`: an array, a plain object,
- * a Map or a Set gives its values, and a scalar gives none.
+ * Each key is one dimension, walked like PHP's `foreach`: an array, a plain object, a Map or a Set gives its values,
+ * and a scalar gives none. A Map argument's keys are dimensions in its insertion order, so its first varies slowest,
+ * as in PHP, but each row keeps the Map's keys where PHP's spread renumbers integer keys `0..n-1`.
  *
- * @param objects - The objects to cross join.
+ * @param objects - The objects or Maps to cross join.
  * @returns A new array with all combinations of the input object values.
  *
  * @example
@@ -999,6 +1132,8 @@ export function combine<TKeys, TValues, TCombineValue = TValues>(
  * crossJoin({ a: [1] }, { b: ["x"] }); -> [{ a: 1, b: "x" }]
  * crossJoin({ size: ['S', 'M'] }, { color: ['red', 'blue'] }); -> [{ size: 'S', color: 'red' }, { size: 'S', color: 'blue' }, { size: 'M', color: 'red' }, { size: 'M', color: 'blue' }]
  * crossJoin({ a: [1], b: { k: "x", j: "y" } }); -> [{ a: 1, b: "x" }, { a: 1, b: "y" }]
+ * crossJoin(new Map([[1, ['a', 'b']], [0, ['x', 'y']]]));
+ * -> [{ 0: 'x', 1: 'a' }, { 0: 'y', 1: 'a' }, { 0: 'x', 1: 'b' }, { 0: 'y', 1: 'b' }]
  */
 export function crossJoin(): Record<string, never>[];
 export function crossJoin<T extends readonly object[]>(
@@ -1011,7 +1146,7 @@ export function crossJoin<TValues, TCombineValue = TValues>(
 
     for (const obj of objects) {
         // Each key is its own dimension, as with Arr::crossJoin over a string-keyed spread.
-        for (const [key, dimension] of Object.entries(obj)) {
+        for (const [key, dimension] of keyedEntries(obj)) {
             const values = foreachValues(dimension);
 
             if (values.length === 0) {
@@ -1066,13 +1201,23 @@ function foreachValues(value: unknown): unknown[] {
 /**
  * Divide an object into two objects. One with keys and the other with values.
  *
- * @param object - The object to divide; `null` or `undefined` gives two empty lists.
+ * A Map is divided in its insertion order, each key the one PHP stores for it.
+ *
+ * @param object - The object or Map to divide; `null` or `undefined` gives two empty lists.
  * @returns A tuple with an array of keys and an array of values.
  *
  * @example
  *
  * divide({ name: "John", age: 30, city: "NYC" }); -> [['name', 'age', 'city'], ['John', 30, 'NYC']]
+ * divide(new Map([[2, 'c'], [0, 'a']])); -> [[2, 0], ['c', 'a']]
  */
+export function divide<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): [MapArrayKey<TKey>[], TValue[]];
+export function divide<TMap>(
+    data: MapData<TMap>,
+): [MapEntryKey<TMap>[], MapEntryValue<TMap>[]];
+export function divide(data: NonKeyedItems): [(string | number)[], unknown[]];
 export function divide(data: NonObjectItems): [(string | number)[], unknown[]];
 export function divide<T extends object>(
     data: T,
@@ -1085,16 +1230,21 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
         return [[], []];
     }
 
+    const entries = keyedEntries<TValue>(object);
+
     return [
-        Object.keys(object).map(phpArrayKey) as TKey[],
-        Object.values(object) as TValue[],
+        entries.map(([key]) => phpArrayKey(key) as TKey),
+        entries.map(([, value]) => value),
     ];
 }
 
 /**
  * Flatten a multi-dimensional object with "dot" notation.
  *
- * @param data - The object to flatten.
+ * A Map is flattened in its insertion order, and a Map nested inside is kept whole as a value. The result is a plain
+ * object, so a key that reads as an integer (possible with an empty or all-digit prefix) is listed first, ascending.
+ *
+ * @param data - The object or Map to flatten.
  * @param prepend - An optional string to prepend to each key.
  * @param depth - Maximum depth to flatten. Defaults to Infinity.
  * @returns A new object with dot-notated keys.
@@ -1102,12 +1252,37 @@ export function divide<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * dot({ name: 'John', address: { city: 'NYC', zip: '10001' } }); -> { name: 'John', 'address.city': 'NYC', 'address.zip': '10001' }
+ * dot(new Map([[2, { z: 1 }], [0, { y: 2 }]])); -> { '2.z': 1, '0.y': 2 }
+ * dot(new Map([[2, 'c'], [0, 'a']]), '1'); -> { 10: 'a', 12: 'c' }, where PHP keeps 12 first
  */
+export function dot<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    prepend?: string,
+    depth?: number,
+): Record<
+    string,
+    | ObjectPathValue<Record<string, TValue>>
+    | DotUndefined<Record<string, TValue>>
+>;
+export function dot<TMap>(
+    data: MapData<TMap>,
+    prepend?: string,
+    depth?: number,
+): Record<
+    string,
+    | ObjectPathValue<Record<string, MapEntryValue<TMap>>>
+    | DotUndefined<Record<string, MapEntryValue<TMap>>>
+>;
+export function dot(
+    data: NonKeyedItems,
+    prepend?: string,
+    depth?: number,
+): Record<string, never>;
 export function dot(
     data: NonObjectItems,
     prepend?: string,
     depth?: number,
-): Record<string, never>;
+): Record<string, unknown>;
 export function dot<T extends object>(
     data: T,
     prepend?: string,
@@ -1133,14 +1308,26 @@ export function dot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Convert a flatten "dot" notation object into an expanded object.
  *
- * A nested container with consecutive integer keys `0..n-1` becomes a real array;
- * out-of-order numeric keys still promote to a list here (JS always enumerates
- * integer-like keys ascending), unlike PHP's insertion-order-sensitive `array_is_list`.
+ * A nested container with consecutive integer keys `0..n-1` becomes a real array, even when they were written out of
+ * order (JS lists integer-like keys ascending), unlike PHP's `array_is_list`. A Map is written in its insertion order,
+ * so when a dotted key and a plain key name the same place, the one PHP writes last wins.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A new multi-dimensional object.
+ *
+ * @example
+ *
+ * undot({ 'a.b': 1, 'a.c': 2 }); -> { a: { b: 1, c: 2 } }
+ * undot(new Map([['0.a', 'y'], [0, 'x']])); -> { 0: 'x' }
  */
-export function undot(data: NonObjectItems): Record<number, unknown>;
+export function undot<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): Record<string, UndotObjectValue<TValue>>;
+export function undot<TMap>(
+    data: MapData<TMap>,
+): Record<string, UndotObjectValue<MapEntryValue<TMap>>>;
+export function undot(data: NonKeyedItems): Record<number, unknown>;
+export function undot(data: NonObjectItems): Record<string, unknown>;
 export function undot<T extends object>(
     data: T,
 ): Record<string, UndotObjectValue<ObjectValue<T>>>;
@@ -1195,26 +1382,43 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Prepend one or more items to the beginning of the object, mutating it in
- * place, like PHP's array_unshift.
+ * Prepend one or more items to the beginning of the object, mutating it in place, like PHP's array_unshift.
  *
  * Each item, including an object or `null`, is prepended as one element under the next integer key. Existing
  * integer keys are renumbered after the items, even when there are none, as `array_unshift` does.
+ * A Map is renumbered in its insertion order and rewritten in place, integer keys as numbers, even a `ReadonlyMap`.
  *
  * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`. Wraps `array_unshift`; mutates.
  *
- * Declared-type limit, pinned in `obj-residuals.test-d.ts`: a `Map` is object-accessible, so it is
- * mutated and returned as itself with the items as own keys, where the row declares a plain record. A `Set`
- * is not accessible, so it already answers the fresh record the row declares.
+ * @param items - The items to prepend; the first is the target object or Map, mutated in place when object-accessible.
+ * @returns The same object or Map reference, mutated (or a new object when the first item isn't object-accessible).
  *
- * @param items - The items to prepend. The first item is the target object, mutated in place when object-accessible.
- * @returns The same object reference, mutated (or a new object when the first item isn't object-accessible).
+ * @example
+ *
+ * unshift({ x: 1, 0: 'a' }, 'U'); -> { 0: 'U', 1: 'a', x: 1 }
+ * unshift(new Map([[2, 'c'], [0, 'a']]), 'U'); -> the same Map, now holding [[0, 'U'], [1, 'c'], [2, 'a']]
  */
 export function unshift(): Record<string, never>;
+// The Map itself is returned: every integer key it held, and each item, is a renumbered number key.
+export function unshift<TValue, TKey, TItems extends readonly unknown[]>(
+    data: ReadonlyMap<TKey, TValue>,
+    ...items: TItems
+): Map<Exclude<MapArrayKey<TKey>, number> | number, TValue | TItems[number]>;
+export function unshift<TMap, TItems extends readonly unknown[]>(
+    data: MapData<TMap>,
+    ...items: TItems
+): Map<
+    Exclude<MapEntryKey<TMap>, number> | number,
+    MapEntryValue<TMap> | TItems[number]
+>;
+export function unshift<TItems extends readonly unknown[]>(
+    data: NonKeyedItems | null | undefined,
+    ...items: TItems
+): Record<number, TItems[number]>;
 export function unshift<TItems extends readonly unknown[]>(
     data: NonObjectItems | null | undefined,
     ...items: TItems
-): Record<number, TItems[number]>;
+): Map<string | number, unknown> | Record<number, TItems[number]>;
 // array_unshift renumbers integer keys even with no items, so only a T without them comes back unchanged.
 export function unshift<T extends object>(
     data: T,
@@ -1248,29 +1452,15 @@ export function unshift<TValue, TKey extends PropertyKey = PropertyKey>(
         return data as Record<TKey, TValue>;
     }
 
-    const target = data as Record<string, unknown>;
-    const originalEntries = Object.entries(target);
-
-    for (const key of Object.keys(target)) {
-        delete target[key];
-    }
-
-    // array_unshift prepends each argument as one element, then renumbers every integer key, negative ones included.
-    let nextIndex = 0;
-
-    for (const value of values) {
-        defineKey(target, nextIndex, value);
-        nextIndex++;
-    }
-
-    for (const [key, value] of originalEntries) {
-        if (isNumber(phpArrayKey(key))) {
-            defineKey(target, nextIndex, value);
-            nextIndex++;
-        } else {
-            defineKey(target, key, value);
-        }
-    }
+    // array_unshift prepends each argument as one element, then renumbers every integer key, negative ones
+    // included; each item's placeholder key "0" is an integer key, so it takes the next number in turn.
+    rewriteEntries(
+        data,
+        renumberPhpIntegerKeys([
+            ...values.map((value): [string, unknown] => ["0", value]),
+            ...keyedEntries(data),
+        ]),
+    );
 
     return data as Record<TKey, TValue>;
 }
@@ -1419,14 +1609,26 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  */
 export function first<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => boolean) | null,
     defaultValue?: Default<TDefault>,
 ): TValue | TDefault;
+export function first<TMap, TDefault = null>(
+    data: MapData<TMap>,
+    callback?:
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean)
+        | null,
+    defaultValue?: Default<TDefault>,
+): MapEntryValue<TMap> | TDefault;
+export function first<TDefault = null>(
+    data: NonKeyedItems,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): TDefault;
 export function first<TDefault = null>(
     data: NonObjectItems,
     callback?: ((value: unknown, key: string | number) => boolean) | null,
     defaultValue?: Default<TDefault>,
-): TDefault;
+): unknown;
 export function first<T extends object, TDefault = null>(
     data: T,
     callback?:
@@ -1502,14 +1704,26 @@ export function first<
  */
 export function last<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => boolean) | null,
     defaultValue?: Default<TDefault>,
 ): TValue | TDefault;
+export function last<TMap, TDefault = null>(
+    data: MapData<TMap>,
+    callback?:
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean)
+        | null,
+    defaultValue?: Default<TDefault>,
+): MapEntryValue<TMap> | TDefault;
+export function last<TDefault = null>(
+    data: NonKeyedItems,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    defaultValue?: Default<TDefault>,
+): TDefault;
 export function last<TDefault = null>(
     data: NonObjectItems,
     callback?: ((value: unknown, key: string | number) => boolean) | null,
     defaultValue?: Default<TDefault>,
-): TDefault;
+): unknown;
 export function last<T extends object, TDefault = null>(
     data: T,
     callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean) | null,
@@ -1576,7 +1790,9 @@ export function last<
  * Positive limit => first `limit` items.
  * Negative limit => last `abs(limit)` items.
  *
- * @param data The object to take items from.
+ * A Map is counted in its insertion order; each item keeps its key, and a plain object lists integer keys ascending.
+ *
+ * @param data The object or Map to take items from.
  * @param limit The number of items to take. Positive for first N, negative for last N.
  * @returns A new object containing the taken items.
  *
@@ -1585,11 +1801,21 @@ export function last<
  * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, 2); -> { a: 1, b: 2 }
  * take({ a: 1, b: 2, c: 3, d: 4, e: 5 }, -2); -> { d: 4, e: 5 }
  * take({ a: 1, b: 2, c: 3 }, 5); -> { a: 1, b: 2, c: 3 }
+ * take(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> { 2: 'c', 0: 'a' }
  */
+export function take<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    limit: number,
+): Record<string, TValue>;
+export function take<TMap>(
+    data: MapData<TMap>,
+    limit: number,
+): Record<string, MapEntryValue<TMap>>;
+export function take(data: NonKeyedItems, limit: number): Record<string, never>;
 export function take(
     data: NonObjectItems,
     limit: number,
-): Record<string, never>;
+): Record<string, unknown>;
 export function take<T extends object>(data: T, limit: number): Partial<T>;
 export function take(data: unknown, limit: number): Record<string, unknown>;
 export function take<TValue extends Record<PropertyKey, unknown>>(
@@ -1600,8 +1826,7 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
         return {};
     }
 
-    const obj = data as Record<string, unknown>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries(data);
     const length = entries.length;
 
     if (length === 0) {
@@ -1638,24 +1863,36 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Flatten a multi-dimensional object into a single-level array.
  *
- * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
- * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
- *
- * Declared-type limits, pinned in `obj-residuals.test-d.ts`: a class instance and a typed array are
- * walked, and an OPTIONAL `all?()` is not unwrapped, where the runtime keeps the first two whole and reads
- * the third. A type cannot tell a class instance from a plain object, nor prove an optional method is there.
+ * Arrays, plain objects, a root Map's values (in its insertion order) and a Collection-like item's `all()` items are
+ * flattened; any other object, a nested `Map`, `Date` or class instance included, is kept as a value. Declared types,
+ * pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an OPTIONAL `all?()`.
  *
  * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
  *
- * @param data - The object (or value) to flatten.
- * @param depth - Maximum depth to flatten. Defaults to Infinity (Arr.php:368); depth 1 stops
- *   after one level (Arr.php:378).
+ * @param data - The object, Map (or value) to flatten.
+ * @param depth - Maximum depth to flatten, Infinity by default; depth 1 stops after one level.
  * @returns A new flattened array of values.
  *
  * @example
  *
  * flatten({ a: 1, b: { c: 2, d: { e: 3 } } }); -> [1, 2, 3]
+ * flatten(new Map([[2, ['c']], [0, 'a']])); -> ['c', 'a']
  */
+export function flatten<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): ObjectFlatValue<TValue>[];
+export function flatten<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    depth: number,
+): FlattenReach<TValue>[];
+export function flatten<TMap>(
+    data: MapData<TMap>,
+): ObjectFlatValue<MapEntryValue<TMap>>[];
+export function flatten<TMap>(
+    data: MapData<TMap>,
+    depth: number,
+): FlattenReach<MapEntryValue<TMap>>[];
+export function flatten(data: NonKeyedItems, depth?: number): unknown[];
 export function flatten(data: NonObjectItems, depth?: number): unknown[];
 export function flatten<T extends object>(
     data: T,
@@ -1676,8 +1913,11 @@ export function flatten<TValue>(
     const result: unknown[] = [];
 
     const flattenRecursive = (items: unknown, currentDepth: number) => {
-        // items is always array or object when called recursively
-        const values = isArray(items) ? items : Object.values(items as object);
+        // items is always array or object when called recursively; only the root can be a Map,
+        // since a nested one is kept as a value.
+        const values = isArray(items)
+            ? items
+            : keyedEntries(items as object).map(([, value]) => value);
 
         for (const value of values) {
             // Arr::flatten flattens a Collection item's items, and only an array otherwise.
@@ -1791,16 +2031,27 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Flip the keys and values of an object.
  *
+ * A Map is flipped in its insertion order, so when two keys hold the same value, the key
+ * PHP reaches last is the one kept, and each key is the one PHP stores for it.
+ *
  * @see Collection::flip — `packages/collection/stubs/Collection.php:463`.
  *
- * @param data - The object of items to flip
+ * @param data - The object or Map of items to flip
  * @returns The data items flipped
  *
  * @example
  * flip({name: 'taylor'}); -> {taylor: 'name'}
  * flip({string: 'taylor', integer: 1, null: null, float: 1.5}); -> {taylor: 'string', 1: 'integer'}
+ * flip(new Map([[2, 'v'], [0, 'v']])); -> {v: 0}
  */
-export function flip(data: NonObjectItems): Record<string, never>;
+export function flip<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): Record<string, MapArrayKey<TKey>>;
+export function flip<TMap>(
+    data: MapData<TMap>,
+): Record<string, MapEntryKey<TMap>>;
+export function flip(data: NonKeyedItems): Record<string, never>;
+export function flip(data: NonObjectItems): Record<string, string | number>;
 export function flip<T extends object>(data: T): FlipObject<T>;
 export function flip(data: unknown): Record<string, string | number>;
 export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -1815,7 +2066,7 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
     // e.g {name: 'taylor'} -> {taylor: 'name'}
     const result: Record<string, string | number> = {};
 
-    for (const [key, value] of Object.entries(data)) {
+    for (const [key, value] of keyedEntries(data)) {
         if (isPhpArrayKey(value)) {
             defineKey(result, String(value), phpArrayKey(key));
         }
@@ -1930,10 +2181,17 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
  *
  * from({ foo: 'bar' }); -> { foo: 'bar' }
  * from(new Map([['foo', 'bar']])); -> { foo: 'bar' }
+ * from(new Map([[1, 'a'], ['1', 'b']])); -> { 1: 'b' }
+ *
+ * @remarks A Map's keys are cast as PHP casts an array key. The record lists out-of-sequence integer keys ascending,
+ * so the helpers that walk a Map in its insertion order read the Map itself, not this record.
  *
  * @throws Error if items cannot be converted to an object.
  */
 export function from<V>(items: ReadonlyMap<unknown, V>): Record<string, V>;
+export function from<TMap>(
+    items: MapData<TMap>,
+): Record<string, MapEntryValue<TMap>>;
 export function from(items: WeakMap<object, unknown>): never;
 export function from<T extends readonly unknown[]>(
     items: T,
@@ -1952,14 +2210,15 @@ export function from(
         | undefined
         | ((...args: never[]) => unknown),
 ): never;
+export function from(items: NonObjectItems): Record<string, unknown>;
 export function from<T extends object>(items: T): SpreadItems<T>;
 export function from(items: unknown): Record<string, unknown>;
 export function from(items: unknown): Record<string, unknown> {
     if (isMap(items)) {
         const out: Record<string, unknown> = {};
 
-        for (const [k, v] of items as Map<PropertyKey, unknown>) {
-            defineKey(out, String(k), v);
+        for (const [key, value] of keyedEntries(items)) {
+            defineKey(out, key, value);
         }
 
         return out;
@@ -2248,7 +2507,15 @@ export function hasAny<TValue extends Record<PropertyKey, unknown>>(
  */
 export function every<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): boolean;
+export function every<TMap>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): boolean;
+export function every(
+    data: NonKeyedItems,
+    callback: (value: unknown, key: string | number) => boolean,
 ): boolean;
 export function every(
     data: NonObjectItems,
@@ -2297,7 +2564,15 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function some<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): boolean;
+export function some<TMap>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): boolean;
+export function some(
+    data: NonKeyedItems,
+    callback: (value: unknown, key: string | number) => boolean,
 ): boolean;
 export function some(
     data: NonObjectItems,
@@ -2373,19 +2648,28 @@ export function integer<
 /**
  * Join all items using a string. The final items can use a separate glue string.
  *
- * @param  data - The object to join.
+ * A Map is joined in its insertion order, which a record loses once its integer keys are out of sequence. Of Map keys
+ * PHP stores as one, such as `1` and `"1"`, the last value is joined, where the first of them stood.
+ *
+ * @param  data - The object or Map to join.
  * @param  glue - The string to join all but the last item.
  * @param  finalGlue - The string to join the last item.
  *
  * @example
  *
- * join({ a: 'a', b: 'b', c: 'c' }, ', ') => 'a, b, c'
- * join({ a: 'a', b: 'b', c: 'c' }, ', ', ' and ') => 'a, b and c'
+ * join({ a: 'a', b: 'b', c: 'c' }, ', '); -> 'a, b, c'
+ * join({ a: 'a', b: 'b', c: 'c' }, ', ', ' and '); -> 'a, b and c'
+ * join(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), ', ', ' and '); -> 'c, a and b'
  */
+export function join(
+    data: ReadonlyMap<unknown, unknown>,
+    glue: string,
+    finalGlue?: string,
+): string;
 export function join(data: unknown, glue: string, finalGlue?: string): string;
 
-export function join<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
+export function join(
+    data: unknown,
     glue: string,
     finalGlue: string = "",
 ): string {
@@ -2393,8 +2677,7 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
         return "";
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const items = Object.values(obj).map((v) => String(v));
+    const items = keyedEntries(data).map(([, value]) => String(value));
 
     if (finalGlue === "") {
         return items.join(glue);
@@ -2420,7 +2703,9 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
  * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
  * and a float truncated toward zero.
  *
- * @param data - The object to key.
+ * A Map is walked in its insertion order, so of two items that resolve to the same key, the one PHP reaches last wins.
+ *
+ * @param data - The object or Map to key.
  * @param keyBy - The field name to key by, or a callback function.
  * @returns A new object keyed by the specified field or callback result.
  *
@@ -2428,7 +2713,35 @@ export function join<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * keyBy({ user1: { id: 1, name: 'John' }, user2: { id: 2, name: 'Jane' } }, 'name'); -> { John: { id: 1, name: 'John' }, Jane: { id: 2, name: 'Jane' } }
  * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
+ * keyBy(new Map([[2, { id: 'x', n: 'c' }], [0, { id: 'x', n: 'a' }]]), 'id'); -> { x: { id: 'x', n: 'a' } }
  */
+export function keyBy<
+    TValue,
+    TKey,
+    R extends PropertyKey | boolean | null | undefined = never,
+>(
+    data: ReadonlyMap<TKey, TValue>,
+    keyBy: PathKey | ((item: TValue, key: MapArrayKey<TKey>) => R),
+): KeyByResult<TValue, Extract<R | ObjectPathValue<TValue>, symbol>>;
+export function keyBy<
+    TMap,
+    R extends PropertyKey | boolean | null | undefined = never,
+>(
+    data: MapData<TMap>,
+    keyBy: PathKey | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R),
+): KeyByResult<
+    MapEntryValue<TMap>,
+    Extract<R | ObjectPathValue<MapEntryValue<TMap>>, symbol>
+>;
+export function keyBy(
+    data: NonKeyedItems,
+    keyBy:
+        | PathKey
+        | ((
+              item: unknown,
+              key: string | number,
+          ) => PropertyKey | boolean | null | undefined),
+): Record<string, never>;
 export function keyBy(
     data: NonObjectItems,
     keyBy:
@@ -2437,7 +2750,7 @@ export function keyBy(
               item: unknown,
               key: string | number,
           ) => PropertyKey | boolean | null | undefined),
-): Record<string, never>;
+): Record<string, unknown>;
 // The runtime keeps a symbol the callback returns, or a path reaches, as a key, and casts a bool or float key the
 // way PHP does.
 export function keyBy<
@@ -2472,10 +2785,9 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
         return {};
     }
 
-    const obj = data as Record<PropertyKey, TValue>;
     const results: Record<PropertyKey, TValue> = {};
 
-    for (const [itemKey, item] of Object.entries(obj)) {
+    for (const [itemKey, item] of keyedEntries<TValue>(data)) {
         const key = isFunction(keyBy)
             ? keyBy(item, phpArrayKey(itemKey))
             : getObjectValue(item, keyBy as PathKey);
@@ -2493,18 +2805,35 @@ export function keyBy<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Prepend the key names of an object.
  *
- * @param data - The object to process.
+ * A Map is walked in its insertion order. The result is a plain object, so a prefix that can leave integer-like keys
+ * (an empty one, or one starting with a digit from 1 to 9) has them listed first, ascending.
+ *
+ * @param data - The object or Map to process.
  * @param prependWith - The string to prepend to each key.
  * @returns A new object with prepended keys.
  *
  * @example
  *
  * prependKeysWith({ a: 1, b: 2, c: 3 }, 'item_'); -> { item_a: 1, item_b: 2, item_c: 3 }
+ * prependKeysWith(new Map([[2, 'c'], [0, 'a']]), 'k'); -> { k2: 'c', k0: 'a' }
+ * prependKeysWith(new Map([[2, 'c'], [0, 'a']]), '1'); -> { 10: 'a', 12: 'c' }, where PHP keeps 12 first
  */
+export function prependKeysWith<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    prependWith: string,
+): Record<string, TValue>;
+export function prependKeysWith<TMap>(
+    data: MapData<TMap>,
+    prependWith: string,
+): Record<string, MapEntryValue<TMap>>;
+export function prependKeysWith(
+    data: NonKeyedItems,
+    prependWith: string,
+): Record<string, never>;
 export function prependKeysWith(
     data: NonObjectItems,
     prependWith: string,
-): Record<string, never>;
+): Record<string, unknown>;
 export function prependKeysWith<T extends object, const P extends string>(
     data: T,
     prependWith: P,
@@ -2521,14 +2850,9 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
-    for (const [key, value] of Object.entries(obj)) {
-        defineKey(
-            result as Record<string, TValue>,
-            prependWith + key,
-            value as TValue,
-        );
+    for (const [key, value] of keyedEntries<TValue>(data)) {
+        defineKey(result as Record<string, TValue>, prependWith + key, value);
     }
 
     return result;
@@ -2540,18 +2864,34 @@ export function prependKeysWith<TValue, TKey extends PropertyKey = PropertyKey>(
  * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
  * no keys, a bare string becomes a single-key selection.
  *
- * @param data - The object to get items from.
+ * Items keep the data's order, not the order of `keys`, as with `array_intersect_key`; a Map's is its insertion order.
+ *
+ * @param data - The object or Map to get items from.
  * @param keys - The key, keys, or null to select.
  * @returns A new object with only the specified keys.
  *
  * @example
  *
  * only({ a: 1, b: 2, c: 3, d: 4 }, ['a', 'c']); -> { a: 1, c: 3 }
+ * only({ b: 1, a: 2 }, ['a', 'b']); -> { b: 1, a: 2 }
+ * only(new Map([['b', 1], [0, 2], ['a', 3]]), ['a', 'b']); -> { b: 1, a: 3 }
  */
+export function only<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    keys: PathKeys,
+): Record<string, TValue>;
+export function only<TMap>(
+    data: MapData<TMap>,
+    keys: PathKeys,
+): Record<string, MapEntryValue<TMap>>;
+export function only(
+    data: NonKeyedItems,
+    keys: PathKeys,
+): Record<string, never>;
 export function only(
     data: NonObjectItems,
     keys: PathKeys,
-): Record<string, never>;
+): Record<string, unknown>;
 export function only<T extends object>(
     data: T,
     keys: null | undefined,
@@ -2574,20 +2914,30 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
         return {};
     }
 
-    const obj = data as Record<PropertyKey, TValue>;
     const result: Record<PropertyKey, TValue> = {};
     const keyList = (isNull(keys)
         ? []
         : isArray(keys)
           ? keys
           : [keys]) as readonly PathKey[] as PropertyKey[];
+    // A key names an entry the way a property key does, so 0 and "0" select the same one. A
+    // symbol is left out: String() would let it match a key spelled "Symbol(...)".
+    const wanted = new Set(keyList.filter((key) => !isSymbol(key)).map(String));
 
+    for (const [key, value] of keyedEntries<TValue>(data)) {
+        if (wanted.has(key)) {
+            defineKey(result as Record<string, TValue>, key, value);
+        }
+    }
+
+    // JS-only: PHP has no symbol keys, and the walk above reads string keys only, so a
+    // symbol in the list is looked up on the data itself.
     for (const key of keyList) {
-        if (Object.hasOwn(obj, key)) {
+        if (isSymbol(key) && Object.hasOwn(data, key)) {
             defineKey(
                 result as Record<string, TValue>,
                 key,
-                obj[key] as TValue,
+                (data as Record<symbol, TValue>)[key] as TValue,
             );
         }
     }
@@ -2730,7 +3080,10 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
 /**
  * Pluck an array of values from an object.
  *
- * @param data - The object to pluck from.
+ * A Map is walked in its insertion order, so the list keeps PHP's order and the last item wins a shared key, though a
+ * keyed result is a plain object listing integer keys ascending. A path into a Map plucks `null`, a `*` into one `[]`.
+ *
+ * @param data - The object or Map to pluck from.
  * @param value - The key path to pluck (dot-notated string, array of segments, or a
  *   `*` wildcard path), a callback, or `null`/`undefined` to keep each whole item.
  * @param key - Optional key path (string, array of segments, or callback) to use as keys in the result.
@@ -2739,9 +3092,124 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
  * @example
  *
  * pluck({ user1: { name: 'John' }, user2: { name: 'Jane' } }, 'name'); -> ['John', 'Jane']
+ * pluck(new Map([[2, { n: 'c' }], [0, { n: 'a' }], [1, { n: 'b' }]]), 'n'); -> ['c', 'a', 'b']
+ * pluck(new Map([[2, { n: 'c', k: 'x' }], [0, { n: 'a', k: 'x' }]]), 'n', 'k'); -> { x: 'a' }
  */
+export function pluck<TValue, TKey, const P extends string>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: P,
+    key: PluckKey<TValue>,
+): Record<string | number, PluckValue<TValue, P>>;
+export function pluck<TValue, TKey, const P extends string>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: P,
+    key?: null | undefined,
+): PluckValue<TValue, P>[];
+export function pluck<TValue, TKey, R>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: (item: TValue) => R,
+    key: PluckKey<TValue>,
+): Record<string | number, R>;
+export function pluck<TValue, TKey, R>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: (item: TValue) => R,
+    key?: null | undefined,
+): R[];
+export function pluck<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: null | undefined,
+    key: PluckKey<TValue>,
+): Record<string | number, TValue>;
+export function pluck<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: null | undefined,
+    key?: null | undefined,
+): TValue[];
+export function pluck<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: readonly (string | number)[],
+    key: PluckKey<TValue>,
+): Record<string | number, unknown>;
+export function pluck<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: readonly (string | number)[],
+    key?: null | undefined,
+): unknown[];
+export function pluck<TValue, TKey, const P extends string>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: P,
+    key: PluckKey<TValue> | null | undefined,
+): Record<string | number, PluckValue<TValue, P>> | PluckValue<TValue, P>[];
+export function pluck<TValue, TKey, R>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: (item: TValue) => R,
+    key: PluckKey<TValue> | null | undefined,
+): Record<string | number, R> | R[];
+export function pluck<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: null | undefined,
+    key: PluckKey<TValue> | null | undefined,
+): Record<string | number, TValue> | TValue[];
+export function pluck<TMap, const P extends string>(
+    data: MapData<TMap>,
+    value: P,
+    key: PluckKey<MapEntryValue<TMap>>,
+): Record<string | number, PluckValue<MapEntryValue<TMap>, P>>;
+export function pluck<TMap, const P extends string>(
+    data: MapData<TMap>,
+    value: P,
+    key?: null | undefined,
+): PluckValue<MapEntryValue<TMap>, P>[];
+export function pluck<TMap, R>(
+    data: MapData<TMap>,
+    value: (item: MapEntryValue<TMap>) => R,
+    key: PluckKey<MapEntryValue<TMap>>,
+): Record<string | number, R>;
+export function pluck<TMap, R>(
+    data: MapData<TMap>,
+    value: (item: MapEntryValue<TMap>) => R,
+    key?: null | undefined,
+): R[];
+export function pluck<TMap>(
+    data: MapData<TMap>,
+    value: null | undefined,
+    key: PluckKey<MapEntryValue<TMap>>,
+): Record<string | number, MapEntryValue<TMap>>;
+export function pluck<TMap>(
+    data: MapData<TMap>,
+    value: null | undefined,
+    key?: null | undefined,
+): MapEntryValue<TMap>[];
+export function pluck<TMap>(
+    data: MapData<TMap>,
+    value: readonly (string | number)[],
+    key: PluckKey<MapEntryValue<TMap>>,
+): Record<string | number, unknown>;
+export function pluck<TMap>(
+    data: MapData<TMap>,
+    value: readonly (string | number)[],
+    key?: null | undefined,
+): unknown[];
+// A forwarded nullable key answers the union of the keyed row and the nullish one, as for a record.
+export function pluck<TMap, const P extends string>(
+    data: MapData<TMap>,
+    value: P,
+    key: PluckKey<MapEntryValue<TMap>> | null | undefined,
+):
+    | Record<string | number, PluckValue<MapEntryValue<TMap>, P>>
+    | PluckValue<MapEntryValue<TMap>, P>[];
+export function pluck<TMap, R>(
+    data: MapData<TMap>,
+    value: (item: MapEntryValue<TMap>) => R,
+    key: PluckKey<MapEntryValue<TMap>> | null | undefined,
+): Record<string | number, R> | R[];
+export function pluck<TMap>(
+    data: MapData<TMap>,
+    value: null | undefined,
+    key: PluckKey<MapEntryValue<TMap>> | null | undefined,
+): Record<string | number, MapEntryValue<TMap>> | MapEntryValue<TMap>[];
 export function pluck(
-    data: NonObjectItems,
+    data: NonKeyedItems,
     value:
         | string
         | readonly (string | number)[]
@@ -2753,7 +3221,7 @@ export function pluck(
 // An explicit null/undefined third arg stays on the never[] row: the runtime
 // keys by array, not object, whenever key is nullish (see the body below).
 export function pluck(
-    data: NonObjectItems,
+    data: NonKeyedItems,
     value:
         | string
         | readonly (string | number)[]
@@ -2763,7 +3231,7 @@ export function pluck(
     key: null | undefined,
 ): never[];
 export function pluck(
-    data: NonObjectItems,
+    data: NonKeyedItems,
     value:
         | string
         | readonly (string | number)[]
@@ -2771,6 +3239,16 @@ export function pluck(
         | null
         | undefined,
 ): never[];
+export function pluck(
+    data: NonObjectItems,
+    value:
+        | string
+        | readonly (string | number)[]
+        | ((item: unknown) => unknown)
+        | null
+        | undefined,
+    key?: PluckKey<unknown> | null,
+): unknown[] | Record<string | number, unknown>;
 export function pluck<T extends object, const P extends string>(
     data: T,
     value: P,
@@ -2861,13 +3339,12 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
         return isNull(key) || isUndefined(key) ? [] : {};
     }
 
-    const obj = data as Record<string, TValue>;
     // Same predicate as the write branch below — JS truthiness would send
     // key = "" down the array path while the write branch does keyed writes.
     const results: unknown[] | Record<PropertyKey, unknown> =
         isNull(key) || isUndefined(key) ? [] : {};
 
-    for (const [, item] of Object.entries(obj)) {
+    for (const [, item] of keyedEntries<TValue>(data)) {
         let itemValue: unknown;
         let itemKey: string | number | undefined;
 
@@ -2933,17 +3410,55 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get and remove the last N items from the collection.
  *
+ * A Map is popped from the end of its insertion order and rewritten in place, its survivors keeping their keys
+ * (integer keys as numbers), even if typed `ReadonlyMap`.
+ *
  * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
- * @param data - The object to pop items from.
+ * @param data - The object or Map to pop items from. Mutated in place.
  * @param count - The number of items to pop. Defaults to 1.
  * @returns The popped item(s) or null/empty array if none.
+ *
+ * @example
+ *
+ * pop({ a: 1, b: 2 }); -> 2
+ * pop(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 2); -> ['b', 'a'], leaving the Map holding [[2, 'c']]
  */
+export function pop<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    count?: 1 | undefined,
+): TValue | null;
+export function pop<TValue, TKey, const N extends number>(
+    data: ReadonlyMap<TKey, TValue>,
+    count: N,
+): number extends N ? TValue | TValue[] | null : TValue[];
+export function pop<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    count: number | undefined,
+): TValue | TValue[] | null;
+export function pop<TMap>(
+    data: MapData<TMap>,
+    count?: 1 | undefined,
+): MapEntryValue<TMap> | null;
+export function pop<TMap, const N extends number>(
+    data: MapData<TMap>,
+    count: N,
+): number extends N
+    ? MapEntryValue<TMap> | MapEntryValue<TMap>[] | null
+    : MapEntryValue<TMap>[];
+export function pop<TMap>(
+    data: MapData<TMap>,
+    count: number | undefined,
+): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
+export function pop(
+    data: NonKeyedItems | null | undefined,
+    count?: number,
+): null | never[];
 export function pop(
     data: NonObjectItems | null | undefined,
     count?: number,
-): null | never[];
+): unknown;
 export function pop<T extends object>(
     data: T,
     count?: 1 | undefined,
@@ -2972,7 +3487,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const obj = data as Record<string, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
 
     if (entries.length === 0) {
         return count === 1 ? null : [];
@@ -2981,7 +3496,14 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
     if (count === 1) {
         // Always defined: entries.length > 0 checked above.
         const [key, value] = entries[entries.length - 1] as [string, TValue];
-        delete obj[key];
+
+        if (isMap(data)) {
+            // One entry may stand for several Map keys (1 and "1"), so the Map is rebuilt, not deleted from.
+            rewriteEntries(data, entries.slice(0, -1));
+        } else {
+            delete obj[key];
+        }
+
         return value;
     }
 
@@ -2994,9 +3516,17 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
             string,
             TValue,
         ];
-        delete obj[key];
+
+        if (!isMap(data)) {
+            delete obj[key];
+        }
 
         poppedValues.push(value);
+    }
+
+    // A count below 1 pops nothing, so it leaves a Map exactly as it was.
+    if (isMap(data) && actualCount > 0) {
+        rewriteEntries(data, entries.slice(0, entries.length - actualCount));
     }
 
     return poppedValues;
@@ -3005,7 +3535,9 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Run a map over each of the items in the object.
  *
- * @param data - The object to map over.
+ * A Map is walked in its insertion order, so the callback sees its items in PHP's order.
+ *
+ * @param data - The object or Map to map over.
  * @param callback - The function to call for each item (value, key) => newValue.
  * @returns A new object with transformed values.
  *
@@ -3013,11 +3545,25 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * map({ a: 1, b: 2, c: 3 }, (value) => value * 2); -> { a: 2, b: 4, c: 6 }
  * map({ name: 'john', email: 'JOHN@EXAMPLE.COM' }, (value, key) => key === 'name' ? value.toUpperCase() : value.toLowerCase()); -> { name: 'JOHN', email: 'john@example.com' }
+ * map(new Map([[2, 'c'], [0, 'a']]), (value, key) => `${value}!${key}`);
+ * -> { 2: 'c!2', 0: 'a!0' }, calling back for key 2 first
  */
+export function map<TValue, TKey, R>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => R,
+): Record<string, R>;
+export function map<TMap, R>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R,
+): Record<string, R>;
+export function map<R>(
+    data: NonKeyedItems,
+    callback: (value: unknown, key: string | number) => R,
+): Record<string, never>;
 export function map<R>(
     data: NonObjectItems,
     callback: (value: unknown, key: string | number) => R,
-): Record<string, never>;
+): Record<string, R>;
 export function map<T extends object, R>(
     data: T,
     callback: (value: ObjectValue<T>, key: ObjectKey<T>) => R,
@@ -3038,14 +3584,13 @@ export function map<
         return {} as Record<TKey, TMapValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
     const result: Record<PropertyKey, TMapValue> = {};
 
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of keyedEntries<TValue>(data)) {
         defineKey(
             result as Record<string, TMapValue>,
             key,
-            callback(value as TValue, phpArrayKey(key) as TKey),
+            callback(value, phpArrayKey(key) as TKey),
         );
     }
 
@@ -3053,13 +3598,14 @@ export function map<
 }
 
 /**
- * Run an associative map over each of the items.
- * The callback should return an object with key/value pairs.
+ * Run an associative map over each of the items; the callback should return an object with key/value pairs.
  *
  * Always returns a plain object, even when every mapped key is numeric-like —
  * there's no PHP `Map` concept to preserve here (Arr.php:880).
  *
- * @param data - The object to map.
+ * A Map is walked in its insertion order, which orders the string keys returned and decides which item wins a key.
+ *
+ * @param data - The object or Map to map.
  * @param callback - Function that returns an object with key/value pairs.
  * @returns A new object with all mapped key/value pairs.
  *
@@ -3067,14 +3613,58 @@ export function map<
  *
  * mapWithKeys({ user1: { id: 1, name: 'John' } }, (item) => ({ [item.name]: item.id })); -> { John: 1 }
  * mapWithKeys({ a: 'x', b: 'y' }, (value, key) => ({ [value]: key })); -> { x: 'a', y: 'b' }
+ * mapWithKeys(new Map([[2, 'c'], [0, 'a']]), (value, key) => ({ [`k${key}`]: value })); -> { k2: 'c', k0: 'a' }
+ * mapWithKeys(new Map([[2, 'c'], [0, 'a']]), (value) => ({ same: value })); -> { same: 'a' }
  */
+// A Map's list return is read before its record return for the reason the record rows below give.
+export function mapWithKeys<TValue, TKey, TMapped extends readonly unknown[]>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => readonly [...TMapped],
+): MapWithKeysList<TMapped>;
+export function mapWithKeys<
+    TValue,
+    TKey,
+    TMapKey extends PropertyKey,
+    TMapValue,
+>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: MapArrayKey<TKey>,
+    ) => Record<TMapKey, TMapValue>,
+): Record<TMapKey, TMapValue>;
+export function mapWithKeys<TMap, TMapped extends readonly unknown[]>(
+    data: MapData<TMap>,
+    callback: (
+        value: MapEntryValue<TMap>,
+        key: MapEntryKey<TMap>,
+    ) => readonly [...TMapped],
+): MapWithKeysList<TMapped>;
+export function mapWithKeys<TMap, TMapKey extends PropertyKey, TMapValue>(
+    data: MapData<TMap>,
+    callback: (
+        value: MapEntryValue<TMap>,
+        key: MapEntryKey<TMap>,
+    ) => Record<TMapKey, TMapValue>,
+): Record<TMapKey, TMapValue>;
 export function mapWithKeys(
-    data: NonObjectItems,
+    data: NonKeyedItems,
     callback: (
         value: unknown,
         key: string | number,
     ) => Record<PropertyKey, unknown>,
 ): Record<string, never>;
+export function mapWithKeys<TMapped extends readonly unknown[]>(
+    data: NonObjectItems,
+    callback: (value: unknown, key: string | number) => readonly [...TMapped],
+): MapWithKeysList<TMapped>;
+export function mapWithKeys<TMapKey extends PropertyKey, TMapValue>(
+    data: NonObjectItems,
+    callback: (
+        value: unknown,
+        key: string | number,
+    ) => Record<TMapKey, TMapValue>,
+): Record<TMapKey, TMapValue>;
 // A list return files its members under their own indexes, so it has to be read before the
 // record row, whose `Record<TMapKey, …>` would otherwise infer TMapKey as `keyof` the list.
 // `readonly [...TMapped]`, not `TMapped`: the variadic spread is what makes an array literal
@@ -3124,13 +3714,12 @@ export function mapWithKeys<
         return {} as Record<TMapWithKeysKey, TMapWithKeysValue>;
     }
 
-    const obj = data as Record<string, TValue>;
     const result: Record<TMapWithKeysKey, TMapWithKeysValue> = {} as Record<
         TMapWithKeysKey,
         TMapWithKeysValue
     >;
 
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of keyedEntries<TValue>(data)) {
         const mappedObject = callback(value, phpArrayKey(key) as TKey);
 
         for (const [mapKey, mapValue] of Object.entries(mappedObject)) {
@@ -3148,7 +3737,9 @@ export function mapWithKeys<
 /**
  * Run a map over each row, spreading a list row (or an object row's values) as arguments, followed by the key.
  *
- * @param data - The object to map over.
+ * A Map is walked in its insertion order, so the callback sees its rows in PHP's order.
+ *
+ * @param data - The object or Map to map over.
  * @param callback - The callback function that receives spread object values and the key.
  * @returns A new object with mapped values.
  *
@@ -3156,11 +3747,27 @@ export function mapWithKeys<
  *
  * mapSpread({ x: [1, 'a'], y: [2, 'b'] }, (n, c) => `${n}-${c}`); -> { x: '1-a', y: '2-b' }
  * mapSpread({ x: [1, 'a'], y: [2, 'b'] }, (n, c, key) => `${n}-${c}-${key}`); -> { x: '1-a-x', y: '2-b-y' }
+ * mapSpread(new Map([[2, ['c', 1]], [0, ['a', 2]]]), (x, y, key) => `${x}${y}${key}`);
+ * -> { 2: 'c12', 0: 'a20' }, calling back for key 2 first
  */
+export function mapSpread<TValue, TKey, R>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (...args: SpreadArgs<TValue, MapArrayKey<TKey>>) => R,
+): Record<string, R>;
+export function mapSpread<TMap, R>(
+    data: MapData<TMap>,
+    callback: (
+        ...args: SpreadArgs<MapEntryValue<TMap>, MapEntryKey<TMap>>
+    ) => R,
+): Record<string, R>;
+export function mapSpread<R>(
+    data: NonKeyedItems,
+    callback: (...args: unknown[]) => R,
+): Record<string, never>;
 export function mapSpread<R>(
     data: NonObjectItems,
     callback: (...args: unknown[]) => R,
-): Record<string, never>;
+): Record<string, R>;
 export function mapSpread<T extends object, R>(
     data: T,
     callback: (...args: SpreadArgs<ObjectValue<T>, ObjectKey<T>>) => R,
@@ -3180,10 +3787,9 @@ export function mapSpread<
         return {} as Record<PropertyKey, TMapSpreadValue>;
     }
 
-    const obj = data as Record<PropertyKey, TValue>;
     const result: Record<PropertyKey, TMapSpreadValue> = {};
 
-    for (const [key, item] of Object.entries(obj)) {
+    for (const [key, item] of keyedEntries<TValue>(data)) {
         // A Collection row carries its items behind all(): PHP's `...$chunk` walks the
         // Traversable, where spreading the instance would hand over its own fields.
         const row =
@@ -3210,7 +3816,10 @@ export function mapSpread<
 /**
  * Push an item onto the beginning of an object (as first entry).
  *
- * @param data - The object to prepend to.
+ * A Map is read in its insertion order. Without a key, its integer keys are renumbered in that
+ * order, as `array_unshift` renumbers PHP's, so each value lands where PHP puts it.
+ *
+ * @param data - The object or Map to prepend to.
  * @param value - The value to prepend.
  * @param key - The key for the prepended value, cast as PHP casts an array key (a float truncates, a boolean
  * becomes 0 or 1, null becomes ""); omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
@@ -3220,7 +3829,23 @@ export function mapSpread<
  *
  * prepend({ b: 2, c: 3 }, 1, 'a'); -> { a: 1, b: 2, c: 3 }
  * prepend({ x: 1, y: 2 }, 0, 'z'); -> { z: 0, x: 1, y: 2 }
+ * prepend(new Map([[2, 'c'], [0, 'a']]), 'z'); -> { 0: 'z', 1: 'c', 2: 'a' }
  */
+export function prepend<TValue, TKey, V>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: V,
+    key?: PropertyKey | null,
+): Record<string, TValue | V>;
+export function prepend<TMap, V>(
+    data: MapData<TMap>,
+    value: V,
+    key?: PropertyKey | null,
+): Record<string, MapEntryValue<TMap> | V>;
+export function prepend(
+    data: NonKeyedItems,
+    value: unknown,
+    key?: PropertyKey | null,
+): Record<string | number, unknown>;
 export function prepend(
     data: NonObjectItems,
     value: unknown,
@@ -3257,6 +3882,10 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
 ): Record<TKey, TValue> {
     // Arr::prepend with two arguments is array_unshift: the value takes key 0 and integer keys renumber.
     if (rest.length === 0) {
+        if (isMap(data)) {
+            return unshiftMap(data, value) as Record<TKey, TValue>;
+        }
+
         return unshift({ ...(accessible(data) ? data : {}) }, value) as Record<
             TKey,
             TValue
@@ -3270,15 +3899,45 @@ export function prepend<TValue, TKey extends PropertyKey = PropertyKey>(
     defineKey(result, isSymbol(key) ? key : phpArrayKey(key), value);
 
     if (accessible(data)) {
-        for (const [existingKey, existingValue] of Object.entries(data)) {
+        for (const [existingKey, existingValue] of keyedEntries<TValue>(data)) {
             // The prepended entry wins its key.
             if (!Object.hasOwn(result, existingKey)) {
-                defineKey(result, existingKey, existingValue as TValue);
+                defineKey(result, existingKey, existingValue);
             }
         }
     }
 
     return result as Record<TKey, TValue>;
+}
+
+/**
+ * Put a value under key 0 ahead of a Map's entries, the way `array_unshift` does.
+ *
+ * Copying a Map into a record would sort its integer keys, so they are renumbered here in its insertion order.
+ *
+ * @param data - The Map to read; never changed.
+ * @param value - The value to put first.
+ * @returns A new object holding the value under 0, then the Map's entries, integer keys renumbered.
+ */
+function unshiftMap(
+    data: ReadonlyMap<unknown, unknown>,
+    value: unknown,
+): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    let nextIndex = 0;
+
+    defineKey(result, nextIndex++, value);
+
+    for (const [key, existing] of keyedEntries(data)) {
+        // array_unshift renumbers every integer key, a negative one included.
+        defineKey(
+            result,
+            isNumber(phpArrayKey(key)) ? nextIndex++ : key,
+            existing,
+        );
+    }
+
+    return result;
 }
 
 /**
@@ -3352,17 +4011,23 @@ export function pull<
 /**
  * Convert the object into a query string.
  *
- * @param data - The object to convert to a query string.
+ * A Map, at any depth, is read as the PHP array it stands for, in its insertion order, so its pairs come out in the
+ * order `http_build_query` writes them.
+ *
+ * @param data - The object or Map to convert to a query string.
  * @returns A URL-encoded query string.
  *
  * @example
  *
  * query({ name: 'John', age: 30 }); -> 'name=John&age=30'
- * query({ user: { name: 'John', age: 30 } }); -> 'user[name]=John&user[age]=30'
+ * query({ user: { name: 'John', age: 30 } }); -> 'user%5Bname%5D=John&user%5Bage%5D=30'
  * query({ tags: ['php', 'js'] }); -> 'tags%5B0%5D=php&tags%5B1%5D=js'
  * query({ foo: 'bar', bar: true }); -> 'foo=bar&bar=1' (booleans cast like PHP's http_build_query)
  * query({ foo: 'bar', bar: false }); -> 'foo=bar&bar=0'
+ * query(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> '2=c&0=a&1=b'
+ * query({ u: new Map([[1, 'p'], [0, 'q']]), v: 1 }); -> 'u%5B1%5D=p&u%5B0%5D=q&v=1'
  */
+export function query(data: ReadonlyMap<unknown, unknown>): string;
 export function query(data: unknown): string;
 
 export function query(data: unknown): string {
@@ -3409,7 +4074,8 @@ export function query(data: unknown): string {
                 }
             }
         } else if (isObject(obj) && !isNull(obj)) {
-            for (const [objKey, value] of Object.entries(obj)) {
+            // keyedEntries reads a Map, top-level or nested, which Object.entries would see as empty.
+            for (const [objKey, value] of keyedEntries(obj)) {
                 const key = prefix ? `${prefix}[${objKey}]` : objKey;
 
                 if (!isNull(value) && !isUndefined(value)) {
@@ -3441,17 +4107,83 @@ export function query(data: unknown): string {
 /**
  * Get one or a specified number of random values from an object.
  *
- * @param data - The object to get random values from.
+ * Which items are picked is random, but they come back in the object's order, a Map's being its insertion order, as
+ * `Randomizer::pickArrayKeys` returns the picked keys in the array's order.
+ *
+ * @param data - The object or Map to get random values from.
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
  * @throws Error if more items are requested than available, even against an empty object (Arr.php:977).
+ *
+ * @example
+ *
+ * random({ a: 1, b: 2, c: 3 }); -> 2 (random)
+ * random({ a: 1, b: 2, c: 3 }, 2); -> { 0: 1, 1: 3 } (random picks, in the object's order)
+ * random(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 3); -> { 0: 'c', 1: 'a', 2: 'b' }
  */
+export function random<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    number?: null | undefined,
+): TValue;
+export function random<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    number: number,
+    preserveKeys?: false | undefined,
+): Record<number, TValue>;
+export function random<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    number: number,
+    preserveKeys: true,
+): Record<string, TValue>;
+export function random<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    number: number,
+    preserveKeys: boolean,
+): Record<string, TValue> | Record<number, TValue>;
+export function random<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    number: number | null | undefined,
+    preserveKeys?: boolean,
+): TValue | Record<string, TValue> | Record<number, TValue>;
+export function random<TMap>(
+    data: MapData<TMap>,
+    number?: null | undefined,
+): MapEntryValue<TMap>;
+export function random<TMap>(
+    data: MapData<TMap>,
+    number: number,
+    preserveKeys?: false | undefined,
+): Record<number, MapEntryValue<TMap>>;
+export function random<TMap>(
+    data: MapData<TMap>,
+    number: number,
+    preserveKeys: true,
+): Record<string, MapEntryValue<TMap>>;
+export function random<TMap>(
+    data: MapData<TMap>,
+    number: number,
+    preserveKeys: boolean,
+): Record<string, MapEntryValue<TMap>> | Record<number, MapEntryValue<TMap>>;
+// A forwarded nullable count fits none of the Map rows above, so this answers their union.
+export function random<TMap>(
+    data: MapData<TMap>,
+    number: number | null | undefined,
+    preserveKeys?: boolean,
+):
+    | MapEntryValue<TMap>
+    | Record<string, MapEntryValue<TMap>>
+    | Record<number, MapEntryValue<TMap>>;
+export function random(
+    data: NonKeyedItems,
+    number?: number | null,
+    preserveKeys?: boolean,
+): null | Record<string, never>;
 export function random(
     data: NonObjectItems,
     number?: number | null,
     preserveKeys?: boolean,
-): null | Record<string, never>;
+): unknown;
 export function random<T extends object>(
     data: T,
     number?: null | undefined,
@@ -3488,16 +4220,13 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     number?: number | null,
     preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
-    // A Map is accessible but keeps its entries off its own keys, so the draw below
-    // would read nothing; it joins the NonObjectItems row instead of throwing.
-    if (!accessible(data) || isMap(data)) {
+    if (!accessible(data)) {
         return isNull(number) || isUndefined(number)
             ? null
             : ({} as Record<TKey, TValue>);
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
     const count = entries.length;
     const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
@@ -3523,6 +4252,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
         selectedIndices.push(availableIndices[randomIndex] as number);
         availableIndices.splice(randomIndex, 1);
     }
+
+    // Randomizer::pickArrayKeys returns the picks in the array's order, not the order drawn.
+    selectedIndices.sort((a, b) => a - b);
 
     // If only one item requested, return it directly
     if (isNull(number) || isUndefined(number)) {
@@ -3552,23 +4284,58 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Get and remove the first N items from the object, mutating it in place,
- * like PHP's array_shift.
+ * Get and remove the first N items from the object, mutating it in place, like PHP's array_shift.
  *
- * Survivors' integer keys, negative ones included, are renumbered from 0, matching `array_shift`;
- * string keys keep theirs.
+ * Survivors' integer keys, negative ones included, are renumbered from 0, matching `array_shift`; string keys keep
+ * theirs. A Map is shifted and renumbered in its insertion order and rewritten in place, integer keys as numbers,
+ * even if typed `ReadonlyMap`.
  *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`. Mirrors `array_shift`; mutates.
  *
- * @param data - The object to shift items from. Mutated in place.
+ * @param data - The object or Map to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s), or null if the object had nothing to shift.
  * @throws Error if count is negative.
+ *
+ * @example
+ *
+ * shift({ a: 1, b: 2 }); -> 1
+ * shift(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> 'c', leaving the Map holding [[0, 'a'], [1, 'b']]
  */
+export function shift<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    count?: 1 | undefined,
+): TValue | null;
+export function shift<TValue, TKey, const N extends number>(
+    data: ReadonlyMap<TKey, TValue>,
+    count: N,
+): number extends N ? TValue | TValue[] | null : TValue[] | null;
+export function shift<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    count: number | undefined,
+): TValue | TValue[] | null;
+export function shift<TMap>(
+    data: MapData<TMap>,
+    count?: 1 | undefined,
+): MapEntryValue<TMap> | null;
+export function shift<TMap, const N extends number>(
+    data: MapData<TMap>,
+    count: N,
+): number extends N
+    ? MapEntryValue<TMap> | MapEntryValue<TMap>[] | null
+    : MapEntryValue<TMap>[] | null;
+export function shift<TMap>(
+    data: MapData<TMap>,
+    count: number | undefined,
+): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
+export function shift(
+    data: NonKeyedItems | null | undefined,
+    count?: number,
+): null;
 export function shift(
     data: NonObjectItems | null | undefined,
     count?: number,
-): null;
+): unknown;
 export function shift<T extends object>(
     data: T,
     count?: 1 | undefined,
@@ -3600,8 +4367,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         return null;
     }
 
-    const obj = data as Record<string, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
 
     if (entries.length === 0) {
         return null;
@@ -3617,15 +4383,7 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         .slice(0, actualCount)
         .map(([, value]) => value);
 
-    for (const key of Object.keys(obj)) {
-        delete obj[key];
-    }
-
-    for (const [key, value] of renumberPhpIntegerKeys(
-        entries.slice(actualCount),
-    )) {
-        defineKey(obj, key, value);
-    }
+    rewriteEntries(data, renumberPhpIntegerKeys(entries.slice(actualCount)));
 
     if (count === 1) {
         // Always defined: entries.length > 0 checked above.
@@ -3826,10 +4584,12 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
  * Slice the underlying object items, preserving keys — `array_slice($items,
  * $offset, $length, true)` (`Collection.php:1369`).
  *
+ * A Map is sliced by its insertion order, so the offset and length count the items as PHP's array holds them.
+ *
  * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
  *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
  *
- * @param data - The object to slice
+ * @param data - The object or Map to slice
  * @param offset - The starting index
  * @param length - The number of items to include
  * @returns Sliced object
@@ -3837,12 +4597,28 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
  * @example
  *
  * slice({ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8 }, -2, 5); -> { g: 7, h: 8 }
+ * slice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1); -> { 0: 'a', 1: 'b' }
  */
+export function slice<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    offset: number,
+    length?: number | null,
+): Record<string, TValue>;
+export function slice<TMap>(
+    data: MapData<TMap>,
+    offset: number,
+    length?: number | null,
+): Record<string, MapEntryValue<TMap>>;
+export function slice(
+    data: NonKeyedItems | null | undefined,
+    offset: number,
+    length?: number | null,
+): Record<string, never>;
 export function slice(
     data: NonObjectItems | null | undefined,
     offset: number,
     length?: number | null,
-): Record<string, never>;
+): Record<string, unknown>;
 export function slice<T extends object>(
     data: T,
     offset: number,
@@ -3862,8 +4638,7 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
     const { start, end } = resolveSliceRange(entries.length, offset, length);
 
     const slicedEntries = entries.slice(start, end);
@@ -3885,7 +4660,10 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * Throws Laravel's own exceptions: `ItemNotFoundException` with no message, `MultipleItemsFoundException` with the count.
  *
- * @param data - The object to check.
+ * A Map is read in its insertion order, so the callback is handed its keys in the order PHP
+ * walks the array, and keys PHP stores as one (`1` and `"1"`) count as one item.
+ *
+ * @param data - The object or Map to check.
  * @param callback - Optional callback to filter items.
  * @returns The single item in the object.
  * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
@@ -3897,11 +4675,24 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
  * sole({}); -> throws ItemNotFoundException
  * sole({ a: 1, b: 2 }); -> throws MultipleItemsFoundException: 2 items were found.
  * sole({ a: 1, b: 2, c: 3 }, (value) => value > 1); -> throws MultipleItemsFoundException: 2 items were found.
+ * sole(new Map([[1, 'a'], ['1', 'b']])); -> 'b'
  */
+export function sole<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): TValue;
+export function sole<TMap>(
+    data: MapData<TMap>,
+    callback?: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): MapEntryValue<TMap>;
+export function sole(
+    data: NonKeyedItems,
+    callback?: (value: unknown, key: string | number) => boolean,
+): never;
 export function sole(
     data: NonObjectItems,
     callback?: (value: unknown, key: string | number) => boolean,
-): never;
+): unknown;
 export function sole<T extends object>(
     data: T,
     callback?: (value: BareObjectValue<T>, key: BareObjectKey<T>) => boolean,
@@ -3918,26 +4709,25 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
         throw new ItemNotFoundException();
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
 
     if (entries.length === 0) {
         throw new ItemNotFoundException();
     }
 
-    let filteredEntries: [TKey, TValue][];
+    let filteredEntries: [string, TValue][];
 
     if (callback) {
         // Filter using the callback
         filteredEntries = [];
         for (const [key, value] of entries) {
-            if (callback(value as TValue, phpArrayKey(key) as TKey)) {
-                filteredEntries.push([key as TKey, value as TValue]);
+            if (callback(value, phpArrayKey(key) as TKey)) {
+                filteredEntries.push([key, value]);
             }
         }
     } else {
         // Use all entries
-        filteredEntries = entries as [TKey, TValue][];
+        filteredEntries = entries;
     }
 
     const count = filteredEntries.length;
@@ -3954,18 +4744,49 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
- * Sort the object using the given callback, "dot" notation, or an array of
- * sort descriptors for multi-key sorting.
+ * Sort the object using the given callback, "dot" notation, or an array of sort descriptors for multi-key sorting.
  *
  * Values are ordered by `compareValues`, never by falsiness (PHP's `asort` puts
  * `-1` before `0`). Integer-like keys are renumbered over the sorted sequence.
  *
+ * A Map's ties keep its insertion order, and keys PHP stores as one (`1` and `"1"`) are one item, with the last value.
+ *
  * @see Arr::sort — `packages/arr/stubs/Arr.php:1114`. Delegates to `Collection::sortBy`.
  *
- * @param data - The object to sort.
+ * @param data - The object or Map to sort.
  * @param callback - The sorting callback, field name, an array of sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries.
+ *
+ * @example
+ *
+ * sort({ c: 3, a: 1, b: 2 }); -> { a: 1, b: 2, c: 3 }
+ * sort(new Map([[2, { n: 1, id: 'p' }], [0, { n: 1, id: 'q' }], [1, { n: 0, id: 'r' }]]), 'n');
+ * -> { 0: { n: 0, id: 'r' }, 1: { n: 1, id: 'p' }, 2: { n: 1, id: 'q' } }
  */
+export function sort<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?:
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
+): Record<string, TValue>;
+export function sort<TMap>(
+    data: MapData<TMap>,
+    callback?:
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown)
+        | string
+        | readonly SortSpec<MapEntryValue<TMap>>[]
+        | null,
+): Record<string, MapEntryValue<TMap>>;
+export function sort(
+    data: NonKeyedItems,
+    callback?:
+        | ((value: unknown, key: string | number) => unknown)
+        | string
+        | readonly SortSpec<unknown>[]
+        | null,
+): Record<string, never>;
 export function sort(
     data: NonObjectItems,
     callback?:
@@ -3973,7 +4794,7 @@ export function sort(
         | string
         | readonly SortSpec<unknown>[]
         | null,
-): Record<string, never>;
+): Record<string, unknown>;
 export function sort<T extends object>(
     data: T,
     callback?: SortCallback<T>,
@@ -3998,8 +4819,8 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    let entries = Object.entries(obj);
+    // Every branch below sorts stably, so a tie keeps the order read here: a Map's own order.
+    let entries = keyedEntries(data);
 
     if (isArray(callback)) {
         // Multi-key sorting - mirrors Collection::sortByMany (Collection.php:1627);
@@ -4059,12 +4880,44 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * Integer-like keys are renumbered over the sorted sequence.
  *
+ * A Map's ties keep its insertion order, and keys PHP stores as one (`1` and `"1"`) are one item, with the last value.
+ *
  * @see Arr::sortDesc — `packages/arr/stubs/Arr.php:1129`. Delegates to `Collection::sortByDesc`.
  *
- * @param data - The object to sort.
+ * @param data - The object or Map to sort.
  * @param callback - The value extractor callback, field name, sort descriptors, or null for natural sorting.
  * @returns A new object with sorted entries in descending order.
+ *
+ * @example
+ *
+ * sortDesc({ a: 1, c: 3, b: 2 }); -> { c: 3, b: 2, a: 1 }
+ * sortDesc(new Map([[2, { n: 1, id: 'p' }], [0, { n: 1, id: 'q' }], [1, { n: 0, id: 'r' }]]), 'n');
+ * -> { 0: { n: 1, id: 'p' }, 1: { n: 1, id: 'q' }, 2: { n: 0, id: 'r' } }
  */
+export function sortDesc<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?:
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown)
+        | string
+        | readonly SortSpec<TValue>[]
+        | null,
+): Record<string, TValue>;
+export function sortDesc<TMap>(
+    data: MapData<TMap>,
+    callback?:
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown)
+        | string
+        | readonly SortSpec<MapEntryValue<TMap>>[]
+        | null,
+): Record<string, MapEntryValue<TMap>>;
+export function sortDesc(
+    data: NonKeyedItems,
+    callback?:
+        | ((value: unknown, key: string | number) => unknown)
+        | string
+        | readonly SortSpec<unknown>[]
+        | null,
+): Record<string, never>;
 export function sortDesc(
     data: NonObjectItems,
     callback?:
@@ -4072,7 +4925,7 @@ export function sortDesc(
         | string
         | readonly SortSpec<unknown>[]
         | null,
-): Record<string, never>;
+): Record<string, unknown>;
 export function sortDesc<T extends object>(
     data: T,
     callback?: SortCallback<T>,
@@ -4097,8 +4950,8 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    let entries = Object.entries(obj);
+    // Every branch below sorts stably, so a tie keeps the order read here: a Map's own order.
+    let entries = keyedEntries(data);
 
     if (isArray(callback)) {
         // Multi-key sorting - mirrors Collection::sortByDesc: every
@@ -4156,10 +5009,10 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  * Recursively sort an object by keys and values.
  * Only arrays and plain objects are sorted; any other object value (a class instance, Date or Map) is kept as it is.
  *
- * Declared-type limits, pinned in `obj-residuals.test-d.ts`: top-level `Date` data types as `Date`
- * where the runtime answers `{}`, and a tuple value keeps its declared order where the runtime sorts it.
+ * A Map passed as the data is read in its insertion order, so `[1 => 'a', 0 => 'b']` is not a list and sorts by key.
+ * Declared types, pinned in `obj-residuals.test-d.ts`, keep a top-level `Date` (runtime `{}`) and a tuple unsorted.
  *
- * @param data - The object to sort recursively.
+ * @param data - The object or Map to sort recursively.
  * @param descending - Whether to sort in descending order.
  * @returns A new recursively sorted object.
  *
@@ -4167,11 +5020,24 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * sortRecursive({ b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }); -> { a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }
  * sortRecursive({ user1: { name: 'john', age: 30 }, user2: { name: 'jane', age: 25 } }); -> sorted objects with sorted keys
+ * sortRecursive(new Map([[1, 'a'], [0, 'b']])); -> { 0: 'b', 1: 'a' }
  */
+export function sortRecursive<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    descending?: CaseValue<typeof SortDirection> | boolean,
+): Record<string, TValue>;
+export function sortRecursive<TMap>(
+    data: MapData<TMap>,
+    descending?: CaseValue<typeof SortDirection> | boolean,
+): Record<string, MapEntryValue<TMap>>;
+export function sortRecursive(
+    data: NonKeyedItems,
+    descending?: CaseValue<typeof SortDirection> | boolean,
+): Record<string, never>;
 export function sortRecursive(
     data: NonObjectItems,
     descending?: CaseValue<typeof SortDirection> | boolean,
-): Record<string, never>;
+): Record<string, unknown>;
 export function sortRecursive<T extends object>(
     data: T,
     descending?: CaseValue<typeof SortDirection> | boolean,
@@ -4204,12 +5070,11 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
         return isPlainObject(value) ? sortRecursive(value, isDesc) : value;
     };
 
-    const entries = Object.entries(data as T).map(
+    const entries = keyedEntries(data).map(
         ([key, value]) => [key, sortNested(value)] as [string, unknown],
     );
-    // array_is_list: keys exactly 0..n-1 is the record spelling of a PHP LIST, and
-    // Arr::sortRecursive sorts a list by VALUE and reindexes. JS enumerates integer
-    // keys ascending, so this reads the same order PHP's array_is_list walks.
+    // array_is_list: keys exactly 0..n-1, in that order, which Arr::sortRecursive sorts by VALUE and reindexes. A
+    // record always lists integer keys ascending; a Map keeps its own order, so a Map keyed 1, 0 is not a list.
     const isList = entries.every(([key], index) => key === String(index));
     const result: Record<string, unknown> = {};
 
@@ -4237,15 +5102,27 @@ export function sortRecursive<T extends Record<PropertyKey, unknown>>(
 /**
  * Recursively sort an object by keys and values in descending order.
  *
- * @param data - The object to sort recursively in descending order.
- * @param options - Sort options (currently unused, for PHP compatibility).
+ * A Map passed as the data is read in its insertion order, as `sortRecursive` reads it, so `[2 => 'c', 0 => 'a',
+ * 1 => 'b']` is not a list and is sorted by key; a Map inside the data is kept as it is.
+ *
+ * @param data - The object or Map to sort recursively in descending order.
  * @returns A new recursively sorted object in descending order.
  *
  * @example
  *
  * sortRecursiveDesc({ a: { e: 3, f: 4 }, b: { c: 1, d: 2 } }); -> { b: { d: 2, c: 1 }, a: { f: 4, e: 3 } }
+ * sortRecursiveDesc(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> { 0: 'a', 1: 'b', 2: 'c' }
  */
-export function sortRecursiveDesc(data: NonObjectItems): Record<string, never>;
+export function sortRecursiveDesc<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): Record<string, TValue>;
+export function sortRecursiveDesc<TMap>(
+    data: MapData<TMap>,
+): Record<string, MapEntryValue<TMap>>;
+export function sortRecursiveDesc(data: NonKeyedItems): Record<string, never>;
+export function sortRecursiveDesc(
+    data: NonObjectItems,
+): Record<string, unknown>;
 export function sortRecursiveDesc<T extends object>(data: T): T;
 export function sortRecursiveDesc(data: unknown): Record<string, unknown>;
 export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
@@ -4255,25 +5132,51 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 }
 
 /**
- * Splice a portion of the underlying object, mutating it in place, like PHP's
- * `array_splice()`. String keys keep theirs; integer keys, negative ones included, reindex from 0.
- * Writes go through `defineKey` so a `__proto__` entry becomes a real own key
- * (see `isUnsafeKey`, AGENTS.md:189).
+ * Splice a portion of the underlying object, mutating it in place, like PHP's `array_splice()`.
+ *
+ * String keys keep theirs; integer keys, negative ones included, reindex from 0. Writes go through `defineKey` so a
+ * `__proto__` entry becomes a real own key. A Map, like a Map replacement, is spliced by its insertion order, and it
+ * is rewritten in place, integer keys as numbers, even if typed `ReadonlyMap`.
  *
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`. Wraps `array_splice`; mutates.
  *
- * @param data - The object to splice. Mutated in place.
+ * @param data - The object or Map to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key)
  * @param length - The number of entries to remove. Defaults to everything from offset to the end.
  * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
- * @returns The removed entries, keyed the same way they were in `data`.
+ * @returns The removed entries, as `array_splice` returns them: string keys kept, integer keys renumbered from 0.
+ *
+ * @example
+ *
+ * splice({ a: 1, b: 2, c: 3 }, 1, 1); -> { b: 2 }
+ * splice({ 5: 'e', s: 'S' }, 0, 1); -> { 0: 'e' }
+ * splice(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 1, 1, ['R']); -> { 0: 'a' },
+ * leaving the Map holding [[0, 'c'], [1, 'R'], [2, 'b']]
  */
+export function splice<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    offset: number,
+    length?: number,
+    ...replacement: unknown[]
+): Record<string, TValue>;
+export function splice<TMap>(
+    data: MapData<TMap>,
+    offset: number,
+    length?: number,
+    ...replacement: unknown[]
+): Record<string, MapEntryValue<TMap>>;
+export function splice(
+    data: NonKeyedItems | null | undefined,
+    offset: number,
+    length?: number,
+    ...replacement: unknown[]
+): Record<string, never>;
 export function splice(
     data: NonObjectItems | null | undefined,
     offset: number,
     length?: number,
     ...replacement: unknown[]
-): Record<string, never>;
+): Record<string, unknown>;
 export function splice<T extends object>(
     data: T,
     offset: number,
@@ -4297,8 +5200,7 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<string, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
     const len = entries.length;
 
     const start =
@@ -4318,10 +5220,9 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     const replacementEntries: [string, TValue][] = [];
     for (const repObj of replacement) {
         if (accessible(repObj) || isArray(repObj)) {
-            for (const value of Object.values(
-                repObj as Record<string, TValue>,
-            )) {
-                replacementEntries.push(["0", value as TValue]);
+            // array_splice takes the replacement's values in its own order, a Map's in its insertion order.
+            for (const [, value] of keyedEntries<TValue>(repObj)) {
+                replacementEntries.push(["0", value]);
             }
 
             continue;
@@ -4332,19 +5233,14 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
         replacementEntries.push(["0", repObj as unknown as TValue]);
     }
 
-    for (const key of Object.keys(obj)) {
-        delete obj[key];
-    }
-
-    const remainderEntries = renumberPhpIntegerKeys([
-        ...beforeEntries,
-        ...replacementEntries,
-        ...afterEntries,
-    ]);
-
-    for (const [key, value] of remainderEntries) {
-        defineKey(obj, key, value);
-    }
+    rewriteEntries(
+        data,
+        renumberPhpIntegerKeys([
+            ...beforeEntries,
+            ...replacementEntries,
+            ...afterEntries,
+        ]),
+    );
 
     const removed: Record<string, TValue> = {};
     for (const [key, value] of renumberPhpIntegerKeys(removedEntries)) {
@@ -4398,7 +5294,9 @@ export function string<
 /**
  * Conditionally compile CSS classes from an object into a CSS class list.
  *
- * @param data - The object to convert to CSS classes.
+ * A Map is read in its insertion order, so integer and string keys stay interleaved as they were written.
+ *
+ * @param data - The object or Map to convert to CSS classes.
  * @returns A string of CSS classes separated by spaces.
  *
  * @example
@@ -4407,20 +5305,19 @@ export function string<
  * toCssClasses({ 'font-bold': true, 'text-red': false, 'ml-2': true }); -> 'font-bold ml-2'
  * toCssClasses({ primary: true, secondary: false }); -> 'primary'
  * toCssClasses({ 0: 'font-bold', 1: 'mt-4', 'ml-2': true, 'mr-2': false }); -> 'font-bold mt-4 ml-2'
+ * toCssClasses(new Map([[2, 'c2'], ['x', true], [0, 'c0']])); -> 'c2 x c0'
  */
+export function toCssClasses(data: ReadonlyMap<unknown, unknown>): string;
 export function toCssClasses(data: unknown): string;
 
-export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-): string {
+export function toCssClasses(data: unknown): string {
     if (!accessible(data)) {
         return "";
     }
 
-    const obj = data as Record<TKey, TValue>;
     const classes: string[] = [];
 
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of keyedEntries(data)) {
         // Numeric-like keys (Arr.php:1214's is_numeric($class)) push the value as
         // the class name; other keys push the key when truthy. isPhpNumeric, not
         // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
@@ -4439,7 +5336,9 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Conditionally compile CSS styles from an object into a CSS style list.
  *
- * @param data - The object to convert to CSS styles.
+ * A Map is read in its insertion order, so integer and string keys stay interleaved as they were written.
+ *
+ * @param data - The object or Map to convert to CSS styles.
  * @returns A string of CSS styles separated by spaces, each ending with semicolon.
  *
  * @example
@@ -4447,20 +5346,19 @@ export function toCssClasses<TValue, TKey extends PropertyKey = PropertyKey>(
  * toCssStyles({ 'font-weight: bold': true, 'margin-top: 4px': true }); -> 'font-weight: bold; margin-top: 4px;'
  * toCssStyles({ 'font-weight: bold': true, 'color: red': false, 'margin-left: 2px': true }); -> 'font-weight: bold; margin-left: 2px;'
  * toCssStyles({ 0: 'font-weight: bold', 'margin-left: 2px;': true }); -> 'font-weight: bold; margin-left: 2px;'
+ * toCssStyles(new Map([['x:1', true], [0, 'z:0'], ['y:1', true]])); -> 'x:1; z:0; y:1;'
  */
+export function toCssStyles(data: ReadonlyMap<unknown, unknown>): string;
 export function toCssStyles(data: unknown): string;
 
-export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-): string {
+export function toCssStyles(data: unknown): string {
     if (!accessible(data)) {
         return "";
     }
 
-    const obj = data as Record<TKey, TValue>;
     const styles: string[] = [];
 
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of keyedEntries(data)) {
         // Numeric-like keys (Arr.php:1237's is_numeric($class)) push the value as
         // the style; other keys push the key when truthy. isPhpNumeric, not
         // Number()/isNaN: hex, "", " ", and "Infinity" parse under Number() but aren't PHP-numeric.
@@ -4479,7 +5377,9 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Filter the object using the given callback.
  *
- * @param data - The object to filter.
+ * A Map is walked in its insertion order, so the callback sees its items in PHP's order.
+ *
+ * @param data - The object or Map to filter.
  * @param callback - The function to call for each item (value, key) => boolean.
  * @returns A new filtered object.
  *
@@ -4487,11 +5387,24 @@ export function toCssStyles<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * where({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { c: 3, d: 4 }
  * where({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
+ * where(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> { 2: 'c' }
  */
+export function where<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): Record<string, TValue>;
+export function where<TMap>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): Record<string, MapEntryValue<TMap>>;
+export function where(
+    data: NonKeyedItems,
+    callback: (value: unknown, key: string | number) => boolean,
+): Record<string, never>;
 export function where(
     data: NonObjectItems,
     callback: (value: unknown, key: string | number) => boolean,
-): Record<string, never>;
+): Record<string, unknown>;
 export function where<T extends object>(
     data: T,
     callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
@@ -4508,12 +5421,11 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(obj)) {
-        if (callback(value as TValue, phpArrayKey(key) as TKey)) {
-            defineKey(result as Record<string, TValue>, key, value as TValue);
+    for (const [key, value] of keyedEntries<TValue>(data)) {
+        if (callback(value, phpArrayKey(key) as TKey)) {
+            defineKey(result as Record<string, TValue>, key, value);
         }
     }
 
@@ -4523,7 +5435,9 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Filter the object using the negation of the given callback.
  *
- * @param data - The object to filter.
+ * A Map is walked in its insertion order, as `where` walks it.
+ *
+ * @param data - The object or Map to filter.
  * @param callback - The function to call for each item (value, key) => boolean.
  * @returns A new filtered object with items that fail the test.
  *
@@ -4531,11 +5445,24 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * reject({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> { a: 1, b: 2 }
  * reject({ name: 'John', age: null, city: 'NYC' }, (value) => value === null); -> { name: 'John', city: 'NYC' }
+ * reject(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> { 0: 'a', 1: 'b' }
  */
+export function reject<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): Record<string, TValue>;
+export function reject<TMap>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): Record<string, MapEntryValue<TMap>>;
+export function reject(
+    data: NonKeyedItems,
+    callback: (value: unknown, key: string | number) => boolean,
+): Record<string, never>;
 export function reject(
     data: NonObjectItems,
     callback: (value: unknown, key: string | number) => boolean,
-): Record<string, never>;
+): Record<string, unknown>;
 export function reject<T extends object>(
     data: T,
     callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
@@ -4701,12 +5628,26 @@ function mergeRecursive(
  * String keys keep theirs; integer-like keys are renumbered over the reversed
  * sequence, since JS always re-sorts them ascending on write (ECMA-262).
  *
+ * A Map is reversed from its insertion order, and its integer keys are renumbered over that reversed order.
+ *
  * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`. Wraps `array_reverse($items, true)`.
  *
- * @param data - The object to reverse.
+ * @param data - The object or Map to reverse.
  * @returns A new object with reversed entries.
+ *
+ * @example
+ *
+ * reverse({ a: 1, b: 2, c: 3 }); -> { c: 3, b: 2, a: 1 }
+ * reverse(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> { 0: 'b', 1: 'a', 2: 'c' }
  */
-export function reverse(data: NonObjectItems): Record<string, never>;
+export function reverse<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): Record<string, TValue>;
+export function reverse<TMap>(
+    data: MapData<TMap>,
+): Record<string, MapEntryValue<TMap>>;
+export function reverse(data: NonKeyedItems): Record<string, never>;
+export function reverse(data: NonObjectItems): Record<string, unknown>;
 export function reverse<T extends object>(data: T): ReindexedObject<T>;
 export function reverse(data: unknown): Record<string, unknown>;
 export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -4716,14 +5657,13 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
 
     entries.reverse();
 
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     for (const [key, value] of reindexIntegerKeys(entries)) {
-        defineKey(result as Record<string, TValue>, key, value as TValue);
+        defineKey(result as Record<string, TValue>, key, value);
     }
 
     return result;
@@ -4732,22 +5672,42 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Pad object to the specified length with a value.
  *
- * Pad slots join the integer-key sequence rather than restarting it, matching
- * `array_pad`'s numbering, which renumbers negative keys too; string keys keep theirs.
- * Only iteration order of a mixed-key object can differ, since JS enumerates integer-like keys first (ECMA-262).
+ * Pad slots join the integer-key sequence, as `array_pad` numbers them, renumbering negative keys too; string keys
+ * keep theirs, though JS lists integer-like keys first. A Map's integer keys are renumbered in its insertion order,
+ * and a Map that needs no padding comes back as a record of its entries, keys unchanged.
  *
  * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`. Wraps `array_pad`.
  *
- * @param data - The object to pad.
+ * @param data - The object or Map to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
  * @param value - The value to use for padding.
  * @returns A new padded object.
+ *
+ * @example
+ *
+ * pad({ a: 1, b: 2 }, 4, 0); -> { 0: 0, 1: 0, a: 1, b: 2 }
+ * pad(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 4, 'P'); -> { 0: 'c', 1: 'a', 2: 'b', 3: 'P' }
  */
+export function pad<TValue, TKey, P>(
+    data: ReadonlyMap<TKey, TValue>,
+    size: number,
+    value: P,
+): Record<string, TValue | P>;
+export function pad<TMap, P>(
+    data: MapData<TMap>,
+    size: number,
+    value: P,
+): Record<string, MapEntryValue<TMap> | P>;
+export function pad<P>(
+    data: NonKeyedItems,
+    size: number,
+    value: P,
+): Record<number, P>;
 export function pad<P>(
     data: NonObjectItems,
     size: number,
     value: P,
-): Record<number, P>;
+): Record<string | number, unknown>;
 export function pad<T extends object, P>(
     data: T,
     size: number,
@@ -4767,12 +5727,15 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue | TPadValue>;
     }
 
-    const obj = data as Record<string, TValue>;
-    const entries = Object.entries(obj);
+    const entries = keyedEntries<TValue>(data);
     const currentLength = entries.length;
 
+    // A spread cannot see a Map's entries, so a Map goes through `from` to become the record array_pad hands back.
     if (Math.abs(size) <= currentLength) {
-        return { ...obj } as Record<TKey, TValue | TPadValue>;
+        return (isMap(data) ? from(data) : { ...data }) as Record<
+            TKey,
+            TValue | TPadValue
+        >;
     }
 
     const padCount = Math.abs(size) - currentLength;
@@ -4798,7 +5761,9 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Partition the object into two objects using the given callback.
  *
- * @param data - The object to partition.
+ * A Map is walked in its insertion order, so the callback sees its items in PHP's order.
+ *
+ * @param data - The object or Map to partition.
  * @param callback - The function to call for each item (value, key) => boolean.
  * @returns A tuple containing [passed, failed] objects.
  *
@@ -4806,11 +5771,24 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * partition({ a: 1, b: 2, c: 3, d: 4 }, (value) => value > 2); -> [{ c: 3, d: 4 }, { a: 1, b: 2 }]
  * partition({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> [{ name: 'John', city: 'NYC' }, { age: null }]
+ * partition(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 1); -> [{ 2: 'c' }, { 0: 'a', 1: 'b' }]
  */
+export function partition<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): [Record<string, TValue>, Record<string, TValue>];
+export function partition<TMap>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): [Record<string, MapEntryValue<TMap>>, Record<string, MapEntryValue<TMap>>];
+export function partition(
+    data: NonKeyedItems,
+    callback: (value: unknown, key: string | number) => boolean,
+): [Record<string, never>, Record<string, never>];
 export function partition(
     data: NonObjectItems,
     callback: (value: unknown, key: string | number) => boolean,
-): [Record<string, never>, Record<string, never>];
+): [Record<string, unknown>, Record<string, unknown>];
 export function partition<T extends object>(
     data: T,
     callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
@@ -4827,15 +5805,14 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
         return [{}, {}];
     }
 
-    const obj = data as Record<TKey, TValue>;
     const passed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
     const failed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(obj)) {
-        if (callback(value as TValue, phpArrayKey(key) as TKey)) {
-            defineKey(passed as Record<string, TValue>, key, value as TValue);
+    for (const [key, value] of keyedEntries<TValue>(data)) {
+        if (callback(value, phpArrayKey(key) as TKey)) {
+            defineKey(passed as Record<string, TValue>, key, value);
         } else {
-            defineKey(failed as Record<string, TValue>, key, value as TValue);
+            defineKey(failed as Record<string, TValue>, key, value);
         }
     }
 
@@ -4845,15 +5822,26 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Filter items where the value is not null.
  *
- * @param data - The object to filter.
+ * A Map is walked in its insertion order, as `where` walks it. Of the Map keys PHP stores as
+ * one, such as `1` and `"1"`, only the last value is tested, so a `null` written last drops the key.
+ *
+ * @param data - The object or Map to filter.
  * @returns A new object with null values removed.
  *
  * @example
  *
  * whereNotNull({ a: 1, b: null, c: 2, d: undefined, e: 3 }); -> { a: 1, c: 2, d: undefined, e: 3 }
  * whereNotNull({ name: 'John', age: null, city: 'NYC' }); -> { name: 'John', city: 'NYC' }
+ * whereNotNull(new Map([[1, 'a'], ['x', 'm'], ['1', null]])); -> { x: 'm' }
  */
-export function whereNotNull(data: NonObjectItems): Record<string, never>;
+export function whereNotNull<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): Record<string, Exclude<TValue, null>>;
+export function whereNotNull<TMap>(
+    data: MapData<TMap>,
+): Record<string, Exclude<MapEntryValue<TMap>, null>>;
+export function whereNotNull(data: NonKeyedItems): Record<string, never>;
+export function whereNotNull(data: NonObjectItems): Record<string, unknown>;
 export function whereNotNull<T extends object>(data: T): NonNullableObject<T>;
 export function whereNotNull(data: unknown): Record<string, unknown>;
 export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -4868,27 +5856,16 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Determine if an object contains a given value, a matching entry, or a matching key path.
  *
- * A third argument that is a boolean or absent is this port's `strict` flag, so PHP's
- * key/value form `contains($key, $flag)` is written with an explicit operator here.
- * Otherwise a third argument is the key/value form's value, and a fourth makes the
- * third the operator. A null or undefined key compares the entry itself, and a callable
- * key is the predicate, as `operatorForWhere` treats one.
- *
- * The key/value row therefore declares `NonBooleanValue`, and four third-argument shapes
- * pay for it — each rejected, each written as `contains(data, key, "=", value)` instead:
- * an `unknown` value; a union holding `boolean` (`string | boolean`, `null | boolean`);
- * an unconstrained type parameter, which could be instantiated with `boolean`; and a type
- * parameter whose constraint holds `boolean`. A plain `boolean` is NOT among them: it
- * matches the earlier `strict` row, which is what the runtime does with it.
+ * With no fourth argument, a boolean or absent third is the `strict` flag and any other is the key/value form's value;
+ * a fourth makes the third the operator. So a value that may be `boolean` (`unknown`, or a union or type parameter
+ * holding it) is written `contains(data, key, "=", value)`. A Map is read in its insertion order.
  *
  * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
- *      Value/callback/key-operator-value search; has no `Arr.php` counterpart at all.
  *
- * @param data - The object to search in.
+ * @param data - The object or Map to search in.
  * @param value - The value to search for, or the key path when a third argument follows.
  * @param key - The dot path read from each entry, a predicate, or null for the entry itself.
- * @param operator - One of PHP's `where()` operators when a fourth argument follows; any
- *                   other value shares the `=` arm, as PHP's `switch` default does.
+ * @param operator - One of PHP's `where()` operators when a fourth argument follows; any other shares the `=` arm.
  * @param strict - Whether to use strict comparison.
  * @returns True if the value is found, false otherwise.
  *
@@ -4900,7 +5877,34 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * contains({ a: { age: 30 } }, 'age', 30); -> true (key/value)
  * contains({ a: { age: 30 } }, 'age', '>', 25); -> true (key/operator/value)
  * contains({ a: { on: true } }, 'on', '=', true); -> true (a boolean value needs the operator)
+ * contains(new Map([[2, null], [0, 'a']]), () => true, true); -> false (the first match is null)
+ * contains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false (PHP keeps only 'b')
  */
+export function contains<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    strict?: boolean,
+): boolean;
+export function contains<TMap>(
+    data: MapData<TMap>,
+    value: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    strict?: boolean,
+): boolean;
+export function contains(
+    data: ReadonlyMap<unknown, unknown>,
+    value: unknown,
+    strict?: boolean,
+): boolean;
+export function contains(
+    data: NonKeyedItems,
+    value: unknown,
+    strict?: boolean,
+): boolean;
+export function contains(
+    data: NonObjectItems,
+    value: (value: unknown, key: string | number) => boolean,
+    strict?: boolean,
+): boolean;
 export function contains(
     data: NonObjectItems,
     value: unknown,
@@ -4965,11 +5969,11 @@ export function contains<TValue>(
         return false;
     }
 
+    const entries = keyedEntries<TValue>(data);
+
     if (isFunction(value)) {
-        for (const [key, val] of Object.entries(
-            data as Record<PropertyKey, TValue>,
-        )) {
-            if (value(val as TValue, phpArrayKey(key))) {
+        for (const [key, val] of entries) {
+            if (value(val, phpArrayKey(key))) {
                 // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
                 return strict ? !isNull(val) : true;
             }
@@ -4979,14 +5983,11 @@ export function contains<TValue>(
     }
 
     if (strict) {
-        return Object.values(data as Record<PropertyKey, TValue>).some((val) =>
-            strictEqual(val, value),
-        );
+        return entries.some(([, val]) => strictEqual(val, value));
     }
 
     // Use PHP-like loose comparison
-    const obj = data as Record<PropertyKey, TValue>;
-    for (const val of Object.values(obj)) {
+    for (const [, val] of entries) {
         if (looseEqual(val, value)) {
             return true;
         }
@@ -5054,6 +6055,21 @@ function operatorPredicate<TValue>(
  * containsStrict({ a: 1, b: '02' }, 2); -> false
  * containsStrict({ row: { tags: ['a', 'b'] } }, 'tags', ['a', 'b']); -> true
  */
+export function containsStrict<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    key: TValue | ((value: TValue, key: MapArrayKey<TKey>) => boolean),
+): boolean;
+export function containsStrict<TMap>(
+    data: MapData<TMap>,
+    key:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+): boolean;
+export function containsStrict(data: NonKeyedItems, key: unknown): boolean;
+export function containsStrict(
+    data: NonObjectItems,
+    key: (value: unknown, key: string | number) => boolean,
+): boolean;
 export function containsStrict(data: NonObjectItems, key: unknown): boolean;
 export function containsStrict<T extends object>(
     data: T,
@@ -5084,10 +6100,12 @@ export function containsStrict<TValue>(
 /**
  * Filter the object using the given callback.
  *
+ * A Map is walked in its insertion order, so the callback sees its items in PHP's order.
+ *
  * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
  *      With a callback, delegates to `Arr::where()`; without one, wraps `array_filter`.
  *
- * @param data - The object to filter.
+ * @param data - The object or Map to filter.
  * @param callback - The function to call for each item (value, key) => boolean.
  * @returns A new filtered object.
  *
@@ -5097,11 +6115,32 @@ export function containsStrict<TValue>(
  * filter({ name: 'John', age: null, city: 'NYC' }, (value) => value !== null); -> { name: 'John', city: 'NYC' }
  * filter({ a: "0", b: "", c: 0, d: "x" }); -> { d: "x" }
  * filter({ a: "00", b: "0.0" }); -> { a: "00", b: "0.0" }
+ * filter(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), () => ++calls <= 2); -> { 2: 'c', 0: 'a' }
  */
+export function filter<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback?: null | undefined,
+): Record<string, TruthyValue<TValue>>;
+export function filter<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+): Record<string, TValue>;
+export function filter<TMap>(
+    data: MapData<TMap>,
+    callback?: null | undefined,
+): Record<string, TruthyValue<MapEntryValue<TMap>>>;
+export function filter<TMap>(
+    data: MapData<TMap>,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+): Record<string, MapEntryValue<TMap>>;
+export function filter(
+    data: NonKeyedItems | null | undefined,
+    callback?: ((value: unknown, key: string | number) => boolean) | null,
+): Record<string, never>;
 export function filter(
     data: NonObjectItems | null | undefined,
     callback?: ((value: unknown, key: string | number) => boolean) | null,
-): Record<string, never>;
+): Record<string, unknown>;
 export function filter<T extends object>(
     data: T,
     callback?: null | undefined,
@@ -5122,20 +6161,19 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    const obj = data as Record<TKey, TValue>;
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
-    for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+    for (const [key, value] of keyedEntries<TValue>(data)) {
         // If no callback, filter out PHP-falsy values by default
         const shouldInclude = isFunction(callback)
-            ? callback(value, phpArrayKey(String(key)) as TKey)
+            ? callback(value, phpArrayKey(key) as TKey)
             : !isPhpFalsy(value);
 
         if (shouldInclude) {
             // Writes go through `defineKey` so a `__proto__` key in `data`
             // becomes a real own key instead of reparenting `result` through
             // the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
-            defineKey(result as Record<string, TValue>, String(key), value);
+            defineKey(result as Record<string, TValue>, key, value);
         }
     }
 
@@ -5178,52 +6216,71 @@ export function wrap<TValue>(
 /**
  * Get all keys from an object.
  *
- * Uses `Object.keys()` — own enumerable string keys only — so its length always
- * matches `values()`'s, which walks the same enumerable-own-string-keys set.
+ * Reads a record's own enumerable string keys, as `Object.keys()` does, so its length always matches `values()`'s.
+ * A Map's keys come back in its insertion order, each the key PHP stores for it, and keys PHP stores as one, such as
+ * `1` and `"1"`, are reported once, where the first of them stood.
  *
  * @see Collection::keys — `packages/collection/stubs/Collection.php:790`. Wraps `array_keys`.
  *
- * @param data - The object to get keys from.
+ * @param data - The object or Map to get keys from.
  * @returns An array of all keys.
+ *
+ * @example
+ *
+ * keys({ name: 'John', 1: 'one' }); -> [1, 'name']
+ * keys(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> [2, 0, 1]
  */
-export function keys(data: NonObjectItems): [];
+export function keys<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+): MapArrayKey<TKey>[];
+export function keys<TMap>(data: MapData<TMap>): MapEntryKey<TMap>[];
+export function keys(data: NonKeyedItems): [];
+export function keys(data: NonObjectItems): (string | number)[];
 export function keys<T extends object>(data: T): BareObjectKey<T>[];
 export function keys(data: unknown): (string | number)[];
-export function keys<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-): (string | number)[] {
+export function keys(data: unknown): (string | number)[] {
     if (!accessible(data)) {
         return [];
     }
 
-    return Object.keys(data as Record<TKey, TValue>).map(phpArrayKey);
+    // A record's keys come from Object.keys, which never runs a getter, as reading its entries would.
+    const keyList = isMap(data)
+        ? keyedEntries(data).map(([key]) => key)
+        : Object.keys(data);
+
+    return keyList.map(phpArrayKey);
 }
 
 /**
  * Get all values from an object.
  *
+ * A Map's values come back in its insertion order, as `array_values` lists the PHP array it stands for; of Map keys
+ * PHP stores as one, such as `1` and `"1"`, only the last value is listed, where the first of them stood.
+ *
  * @see Collection::values — `packages/collection/stubs/Collection.php:1870`.
  *      Wraps `array_values`.
  *
- * @param data - The object to get values from.
+ * @param data - The object or Map to get values from.
  * @returns An array of all values.
  *
  * @example
  *
  * values({ name: 'John', age: 30, city: 'NYC' }); -> ['John', 30, 'NYC']
  * values({}); -> []
+ * values(new Map([[2, 'c'], [0, 'a'], [1, 'b']])); -> ['c', 'a', 'b']
  */
-export function values(data: NonObjectItems): [];
+export function values<TValue, TKey>(data: ReadonlyMap<TKey, TValue>): TValue[];
+export function values<TMap>(data: MapData<TMap>): MapEntryValue<TMap>[];
+export function values(data: NonKeyedItems): [];
+export function values(data: NonObjectItems): unknown[];
 export function values<T extends object>(data: T): BareObjectValue<T>[];
 export function values(data: unknown): unknown[];
-export function values<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue> | unknown,
-): TValue[] {
+export function values<TValue>(data: unknown): TValue[] {
     if (!accessible(data)) {
         return [];
     }
 
-    return Object.values(data as Record<TKey, TValue>);
+    return keyedEntries<TValue>(data).map(([, value]) => value);
 }
 
 /**

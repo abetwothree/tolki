@@ -4,6 +4,9 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
     abc,
     integerKeyed,
+    mapOrList,
+    mapUnion,
+    maybeMap,
     numberList,
     numberMap,
     profile,
@@ -80,10 +83,11 @@ describe("obj predicate type tests", () => {
             });
         });
 
-        it("infers the key and value from a Map", () => {
+        it("infers the value from a Map and casts its key as PHP would", () => {
+            // A Map<string, …> key "2" reaches the callback as 2, as PHP casts it.
             Obj.every(numberMap, (value, key) => {
                 expectTypeOf(value).toEqualTypeOf<number>();
-                expectTypeOf(key).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
 
                 return true;
             });
@@ -92,6 +96,21 @@ describe("obj predicate type tests", () => {
         it("hands a list's callback unknown values", () => {
             Obj.every(numberList, (value) => {
                 expectTypeOf(value).toEqualTypeOf<unknown>();
+
+                return true;
+            });
+        });
+
+        it("hands a union of Maps' callback its members' values and keys", () => {
+            Obj.every(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+            Obj.every(mapOrList, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
 
                 return true;
             });
@@ -128,6 +147,54 @@ describe("obj predicate type tests", () => {
         it("accepts any needle, because loose comparison may match across types", () => {
             expectTypeOf(Obj.contains(abc, "1")).toEqualTypeOf<boolean>();
             expectTypeOf(Obj.contains(abc, 1, true)).toEqualTypeOf<boolean>();
+        });
+
+        it("types a Map callback's value, and its key as PHP casts it", () => {
+            expectTypeOf(
+                Obj.contains(
+                    new Map([[1, "a"]]),
+                    (value, key) => {
+                        expectTypeOf(value).toEqualTypeOf<string>();
+                        expectTypeOf(key).toEqualTypeOf<number>();
+
+                        return value === "a";
+                    },
+                    true,
+                ),
+            ).toEqualTypeOf<boolean>();
+            // A Map<string, …> key "2" reaches the callback as 2, as PHP casts it.
+            Obj.contains(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+        });
+
+        it("accepts any needle for a Map, and every other form a Map reaches", () => {
+            expectTypeOf(Obj.contains(numberMap, "1")).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Obj.contains(numberMap, 1, true),
+            ).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Obj.contains(numberMap, null, ">", 0),
+            ).toEqualTypeOf<boolean>();
+        });
+
+        it("types a union of Maps' callback, and a Map-or-list callback as the widest row does", () => {
+            Obj.contains(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+            Obj.contains(mapOrList, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+            expectTypeOf(Obj.contains(maybeMap, "c")).toEqualTypeOf<boolean>();
         });
 
         it("keeps the key/value row off every third argument the runtime cannot serve", () => {
@@ -170,6 +237,50 @@ describe("obj predicate type tests", () => {
         });
     });
 
+    describe("containsStrict", () => {
+        it("types a record callback's value and key", () => {
+            Obj.containsStrict(abc, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<"a" | "b" | "c">();
+
+                return value > 1;
+            });
+        });
+
+        it("types a Map callback's value, and its key as PHP casts it", () => {
+            // It walks a Map through contains, so it declares its own Map row, not the untyped one.
+            expectTypeOf(
+                Obj.containsStrict(new Map([[1, "a"]]), (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<string>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return value === "a";
+                }),
+            ).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Obj.containsStrict(numberMap, 1),
+            ).toEqualTypeOf<boolean>();
+        });
+
+        it("types a union of Maps' callback, and a Map-or-list callback as the widest row does", () => {
+            Obj.containsStrict(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+            Obj.containsStrict(mapOrList, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+            expectTypeOf(
+                Obj.containsStrict(numberList, 1),
+            ).toEqualTypeOf<boolean>();
+        });
+    });
+
     describe("sole", () => {
         it("returns the value type", () => {
             expectTypeOf(Obj.sole(abc)).toEqualTypeOf<number>();
@@ -188,6 +299,19 @@ describe("obj predicate type tests", () => {
         it("is never for a list, which always throws, and unknown for unknown data", () => {
             expectTypeOf(Obj.sole(numberList)).toEqualTypeOf<never>();
             expectTypeOf(Obj.sole(unknownObject)).toEqualTypeOf<unknown>();
+        });
+
+        it("returns a Map's value type and types its callback's key as PHP casts it", () => {
+            expectTypeOf(Obj.sole(numberMap)).toEqualTypeOf<number>();
+            expectTypeOf(
+                Obj.sole(new Map([[true, "a"]]), (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<string>();
+                    // PHP stores a true key as 1.
+                    expectTypeOf(key).toEqualTypeOf<1 | 0>();
+
+                    return value === "a";
+                }),
+            ).toEqualTypeOf<string>();
         });
     });
 });

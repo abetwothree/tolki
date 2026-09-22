@@ -1,7 +1,13 @@
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
 
-import { abc, booleanFlags, profile, unknownObject } from "./fixtures";
+import {
+    abc,
+    booleanFlags,
+    numberMap,
+    profile,
+    unknownObject,
+} from "./fixtures";
 
 describe("obj output type tests", () => {
     describe("join", () => {
@@ -11,6 +17,14 @@ describe("obj output type tests", () => {
                 Obj.join(profile, ", ", " and "),
             ).toEqualTypeOf<string>();
             expectTypeOf(Obj.join(unknownObject, ",")).toEqualTypeOf<string>();
+        });
+
+        it("still returns string for a Map", () => {
+            // A control, not a guard: the Map row and the unknown row both answer `string`.
+            expectTypeOf(
+                Obj.join(new Map([[2, "c"]]), ", ", " and "),
+            ).toEqualTypeOf<string>();
+            expectTypeOf(Obj.join(numberMap, ",")).toEqualTypeOf<string>();
         });
     });
 
@@ -27,6 +41,17 @@ describe("obj output type tests", () => {
                 Obj.toCssStyles(unknownObject),
             ).toEqualTypeOf<string>();
         });
+
+        it("still return string for a Map of mixed keys", () => {
+            // A control, not a guard: the Map row and the unknown row both answer `string`.
+            const flags = new Map<string | number, string | boolean>([
+                [2, "c2"],
+                ["x", true],
+            ]);
+
+            expectTypeOf(Obj.toCssClasses(flags)).toEqualTypeOf<string>();
+            expectTypeOf(Obj.toCssStyles(flags)).toEqualTypeOf<string>();
+        });
     });
 
     describe("query", () => {
@@ -35,6 +60,16 @@ describe("obj output type tests", () => {
                 Obj.query({ foo: "bar", bar: true }),
             ).toEqualTypeOf<string>();
             expectTypeOf(Obj.query(unknownObject)).toEqualTypeOf<string>();
+        });
+
+        it("still returns string for a Map and for a record holding one", () => {
+            // A control, not a guard: the Map row and the unknown row both answer `string`.
+            expectTypeOf(
+                Obj.query(new Map([[2, "c"]])),
+            ).toEqualTypeOf<string>();
+            expectTypeOf(
+                Obj.query({ u: new Map([[1, "p"]]), v: 1 }),
+            ).toEqualTypeOf<string>();
         });
     });
 });

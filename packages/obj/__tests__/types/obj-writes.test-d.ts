@@ -189,6 +189,20 @@ describe("obj write type tests", () => {
                 { one: number } & Record<number, number>
             >();
         });
+
+        it("holds a Map's values and the prepended one, with or without a key", () => {
+            const map = new Map([[2, "c"]]);
+
+            expectTypeOf(Obj.prepend(map, 0)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.prepend(map, true, "k")).toEqualTypeOf<
+                Record<string, string | boolean>
+            >();
+            expectTypeOf(Obj.prepend(map, "z", null)).toEqualTypeOf<
+                Record<string, string>
+            >();
+        });
     });
 
     describe("pull", () => {

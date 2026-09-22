@@ -5,6 +5,9 @@ import {
     abc,
     integerKeyed,
     listsByKey,
+    mapOrList,
+    mapUnion,
+    maybeMap,
     numberList,
     numberMap,
     profile,
@@ -31,6 +34,45 @@ describe("obj slicing type tests", () => {
             >();
             expectTypeOf(Obj.slice(numberList, 0)).toEqualTypeOf<
                 Record<string, never>
+            >();
+        });
+
+        it("read a Map's values under string keys", () => {
+            // A Map's keys are only known at runtime, so the kept keys are a string-keyed record.
+            expectTypeOf(Obj.take(numberMap, 1)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.slice(numberMap, 0, 1)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.take(numberMap, 1)).not.toEqualTypeOf<
+                Record<string, never>
+            >();
+        });
+
+        it("read a union of Maps as its members' values combined", () => {
+            expectTypeOf(Obj.take(mapUnion, 1)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.slice(mapUnion, 1)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+        });
+
+        it("answer the widest row, not an empty one, for a Map that may be missing or a list", () => {
+            // Neither the Map row nor the empty-result row takes `Map | undefined` or `Map | list`;
+            // the widest row's result is the one that holds for the Map's entries.
+            expectTypeOf(Obj.take(maybeMap, 1)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.slice(maybeMap, 1)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.take(mapOrList, 1)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.slice(mapOrList, 1)).toEqualTypeOf<
+                Record<string, unknown>
             >();
         });
     });
@@ -63,6 +105,34 @@ describe("obj slicing type tests", () => {
         it("returns no chunks for a list", () => {
             expectTypeOf(Obj.chunk(numberList, 2)).toEqualTypeOf<
                 Record<number, never>
+            >();
+        });
+
+        it("chunks a Map's values under string keys, or renumbered ones", () => {
+            // A Map's keys are only known at runtime, so a kept-key chunk is a string-keyed record.
+            expectTypeOf(Obj.chunk(numberMap, 2)).toEqualTypeOf<
+                Record<number, Record<string, number>>
+            >();
+            expectTypeOf(Obj.chunk(numberMap, 2, true)).toEqualTypeOf<
+                Record<number, Record<string, number>>
+            >();
+            expectTypeOf(Obj.chunk(numberMap, 2, false)).toEqualTypeOf<
+                Record<number, Record<number, number>>
+            >();
+        });
+
+        it("chunks a union of Maps, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.chunk(mapUnion, 2)).toEqualTypeOf<
+                Record<number, Record<string, string | number>>
+            >();
+            expectTypeOf(Obj.chunk(mapUnion, 2, false)).toEqualTypeOf<
+                Record<number, Record<number, string | number>>
+            >();
+            expectTypeOf(Obj.chunk(maybeMap, 2)).toEqualTypeOf<
+                Record<number, Record<string, unknown>>
+            >();
+            expectTypeOf(Obj.chunk(mapOrList, 2)).toEqualTypeOf<
+                Record<number, Record<string, unknown>>
             >();
         });
     });
@@ -107,6 +177,30 @@ describe("obj slicing type tests", () => {
 
                 return true;
             });
+        });
+
+        it("walk a Map, casting its key as PHP would", () => {
+            // A Map<string, …> key "2" reaches the callback as 2, as PHP casts it.
+            expectTypeOf(
+                Obj.chunkWhile(numberMap, (value, key, chunk) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<string | number>();
+                    expectTypeOf(chunk).toEqualTypeOf<Record<string, number>>();
+
+                    return true;
+                }),
+            ).toEqualTypeOf<Record<number, Record<string, number>>>();
+            expectTypeOf(
+                Obj.chunkBy(new Map([[2, { p: 1 }]]), (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<{ p: number }>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return value.p;
+                }),
+            ).toEqualTypeOf<Record<number, Record<string, { p: number }>>>();
+            expectTypeOf(Obj.chunkBy(numberMap, "p")).toEqualTypeOf<
+                Record<number, Record<string, number>>
+            >();
         });
     });
 
@@ -154,6 +248,21 @@ describe("obj slicing type tests", () => {
             ).toEqualTypeOf<string>();
         });
 
+        it("walk a union of Maps, and answer unknown for a Map in any other union", () => {
+            expectTypeOf(Obj.first(mapUnion)).toEqualTypeOf<
+                string | number | null
+            >();
+            Obj.last(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+            // Not null: the Map's first value comes back.
+            expectTypeOf(Obj.first(maybeMap)).toEqualTypeOf<unknown>();
+            expectTypeOf(Obj.last(mapOrList)).toEqualTypeOf<unknown>();
+        });
+
         it("fall back to unknown for unknown data", () => {
             expectTypeOf(Obj.first(unknownObject)).toEqualTypeOf<unknown>();
         });
@@ -195,6 +304,43 @@ describe("obj slicing type tests", () => {
                 | Record<number, number>
             >();
         });
+
+        it("picks a Map's values instead of answering the NonObjectItems row", () => {
+            expectTypeOf(Obj.random(numberMap)).toEqualTypeOf<number>();
+            expectTypeOf(Obj.random(numberMap, 1)).toEqualTypeOf<
+                Record<number, number>
+            >();
+            expectTypeOf(Obj.random(numberMap, 1, false)).toEqualTypeOf<
+                Record<number, number>
+            >();
+            expectTypeOf(Obj.random(numberMap, 1, true)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(
+                Obj.random(numberMap, 1),
+            ).not.toEqualTypeOf<null | Record<string, never>>();
+        });
+
+        it("covers a Map's shapes for a boolean variable or a forwarded nullable count", () => {
+            const preserve: boolean = Math.random() > 0.5;
+
+            expectTypeOf(Obj.random(numberMap, 1, preserve)).toEqualTypeOf<
+                Record<string, number> | Record<number, number>
+            >();
+            expectTypeOf(Obj.random(numberMap, maybeCount)).toEqualTypeOf<
+                number | Record<string, number> | Record<number, number>
+            >();
+        });
+
+        it("picks from a union of Maps, and answers unknown for a Map in any other union", () => {
+            expectTypeOf(Obj.random(mapUnion)).toEqualTypeOf<string | number>();
+            expectTypeOf(Obj.random(mapUnion, 2)).toEqualTypeOf<
+                Record<number, string | number>
+            >();
+            // Not `null | Record<string, never>`: the Map's values are picked.
+            expectTypeOf(Obj.random(maybeMap)).toEqualTypeOf<unknown>();
+            expectTypeOf(Obj.random(mapOrList, 2)).toEqualTypeOf<unknown>();
+        });
     });
 
     describe("shuffle and reverse", () => {
@@ -212,6 +358,24 @@ describe("obj slicing type tests", () => {
             }>();
             expectTypeOf(Obj.reverse(integerKeyed)).toEqualTypeOf<
                 Record<string | number, string>
+            >();
+        });
+
+        it("reverse reads a Map's values under string keys", () => {
+            expectTypeOf(Obj.reverse(numberMap)).toEqualTypeOf<
+                Record<string, number>
+            >();
+        });
+
+        it("reverse reads a union of Maps, and answers the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.reverse(mapUnion)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.reverse(maybeMap)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.reverse(mapOrList)).toEqualTypeOf<
+                Record<string, unknown>
             >();
         });
     });
@@ -239,6 +403,15 @@ describe("obj slicing type tests", () => {
             ).toEqualTypeOf<
                 ({ all: () => number[][] } | number[] | number)[]
             >();
+        });
+
+        it("reads a Map's values as it reads a record's", () => {
+            expectTypeOf(Obj.flatten(new Map([["a", [1, 2]]]))).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(
+                Obj.flatten(new Map([["a", [1, 2]]]), 1),
+            ).toEqualTypeOf<(number[] | number)[]>();
         });
 
         it("falls back for unknown data", () => {
