@@ -40,7 +40,7 @@ public function __construct(
 
 `typeImports` and `valueImports` are both `import path => list<name>` maps. `typeImports` holds the `import type` lines the property types reference; `valueImports` holds the enum consts an `AsEnum<typeof X>` wrapper reads, so it is the one map you emit as a plain `import`, never an `import type`. Two classes that land on the same import path merge into one entry instead of one overwriting the other.
 
-The three fields agree with each other, which is the whole point of the DTO. Same-basename classes are aliased apart — two classes both named `User` come back as separate aliases, and the property types spell those aliases rather than the bare name. An `EnumResource::make()` property arrives already wrapped as `AsEnum<typeof X>` beside the value import that wrapper needs. And nothing is imported that no property type names. Render all three verbatim and the module compiles.
+The three fields agree with each other, which is the whole point of the DTO. Same-basename classes are aliased apart — two classes both named `User` come back as separate aliases, and the property types spell those aliases rather than the bare name. An `EnumResource::make()` property arrives already wrapped as `AsEnum<typeof X>` beside the value import that wrapper needs. And nothing is imported that no property type names. A name counts wherever its token appears, so a type that spells an imported name only inside a string literal, such as a method-level `#[TsCasts]` of `"'User' | 'Admin'"`, keeps that import, unused. Render all three verbatim and the module compiles.
 
 ## Resources Get Resource Semantics
 
@@ -50,7 +50,7 @@ Call `analyze()` with a `JsonResource` subclass and leave `$modelClass` null, an
 $result = resolve(AstEngine::class)->analyze(App\Http\Resources\PostResource::class);
 ```
 
-Every pattern documented in [API Resources](./api-resources.md) resolves identically here — the `when()` conditional-method family, `EnumResource::make()`, nested and collection resources, `merge()` / `mergeWhen()`, and relation filters (`$this->author->only([...])`) all produce the same properties, imports, and optionality a full publish would. The two exceptions — a `morphTo` union and a `$wrap = null` collection — are [below](#what-it-cannot-do).
+Every pattern documented in [API Resources](./api-resources.md) resolves identically here — the `when()` conditional-method family, `EnumResource::make()`, nested and collection resources, `merge()` / `mergeWhen()`, and relation filters (`$this->author->only([...])`) all produce the same properties, imports, and optionality a full publish would. The three exceptions — a `morphTo` union, a `$wrap = null` collection, and an interpolated key's filled index signature — are [below](#what-it-cannot-do).
 
 Two other class kinds are worth calling out:
 
@@ -71,6 +71,8 @@ Two other class kinds are worth calling out:
 **A `morphTo` union is a publish-run product.** Its targets are normally found in reverse, by scanning every other model for a `morphOne` / `morphMany` pointing back — a map `ts:publish` builds up front and a direct call never does. Outside a publish the relation contributes nothing: it is dropped from a model's delegated shape, and comes back `unknown` where a `toArray()` names it explicitly. A [`@return MorphTo<A|B, $this>` generic](./models.md#typing-morphto-relations) on the relation method is read straight off the docblock and resolves either way.
 
 **A `$wrap = null` collection has nowhere to land.** A `ResourceCollection` with no extra keys beyond its wrapped items collapses to a flat `export type X = Y[]` alias rather than an interface, and an alias has no property list or import set for `AnalysisResult` to carry — so all three fields come back empty. `ts:publish` writes that alias; `analyze()` has no answer for the shape.
+
+**An index signature's `@return` fill is checked only against the keys the method returns.** `ts:publish` also checks it against a resource's or broadcast event's class-level `#[TsCasts]` keys and its extends clause, and puts the fill back to `unknown | undefined` wherever they could conflict — always, under an extends clause (see [API Resources § Interpolated Keys](./api-resources.md#interpolated-keys)). `analyze()` applies neither, so on a `#[TsExtends]` resource it returns ``[key: `${string}_tag`]: string | undefined`` where the published interface reads `unknown | undefined`.
 
 **`unknown` is an honest floor, not a bug.** Every pattern this page documents is one the analyzer specifically recognizes; anything else — an expression it can't trace, a reassigned local, an unresolvable closure default — degrades to `unknown` rather than guessing. See [API Resources § Local Variables and Narrowing](./api-resources.md#local-variables-and-narrowing) for what that looks like from the resource side.
 

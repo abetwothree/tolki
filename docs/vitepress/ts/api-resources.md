@@ -95,6 +95,25 @@ export interface ServiceReturnResource {
 
 The limit: the body fallback carries no import channel, so a body whose shape names an enum or a model is discarded whole and the vague declaration stands — give the method a native return type or a `@return array{...}` docblock when you need that token. `Model::toArray()` is declined on any receiver, since which relations are loaded is runtime state no declaration describes; use the [Model `toArray()` Spread](#model-toarray-spread) form instead.
 
+An `only()`/`except()` filter in that body is the exception: there it publishes an answer that names no class, so the shape survives. A literal key list gives its inline shape, with a member typed by an enum or a model left `unknown`; a runtime key list gives `Record<string, unknown>`; a to-many relation gives `unknown[]`. The same holds when the body reads an accessor whose type comes from a getter body that filters.
+
+```php
+// On Comment, read from a resource as 'summary' => $this->relationSummary()
+public function relationSummary(): array
+{
+    return [
+        'id' => $this->id,
+        'author' => $this->user->only(['id', 'name']),
+        'author_role' => $this->user?->only(['id', 'role']),
+        'replies' => $this->replies->only([1, 2]),
+    ];
+}
+```
+
+```typescript
+summary: { id: number; author: { id: number; name: string }; author_role: { id: number; role: unknown } | null; replies: unknown[] };
+```
+
 ### Local Variables and Narrowing
 
 A variable assigned once from a model property and returned directly carries that type into the generated interface — you don't need to inline the property access:
@@ -128,7 +147,7 @@ If you see a property come out as `unknown` when it looks like it should resolve
 
 #### Narrowing with `instanceof`
 
-An early-exit guard narrows a variable for every statement after it, so a `morphTo` union resolves to the one class the guard proves:
+An early-exit guard narrows a variable for every statement after it, so a read through it on a `morphTo` union (`$parent->title`) resolves against the one class the guard proves, though the variable's own value (`'parent' => $parent`) keeps its un-narrowed type:
 
 ```php
 'parent' => $this->whenLoaded('attachable', function () {
@@ -156,7 +175,18 @@ export interface NarrowedParentResource {
 
 An `instanceof` ternary narrows its true arm the same way. A ternary testing `$this->resource` goes one further and narrows the *backing model* for that arm, so a relation only the subclass declares resolves there — `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null` on a `Team`-backed resource.
 
-The limit: the statement form and the ternary form of the *same* positive test disagree. A positive `if ($parent instanceof Post) { … }` body binds nothing — only the negated early-exit `if` narrows the statements that follow — while the positive ternary above does narrow its true arm. The early-exit form also binds only a variable the method writes once whose own guard body doesn't read it.
+A variable bound to an `instanceof` ternary carries the narrowing into every read made through it, and the test can be an `||` chain of `instanceof` checks on the true arm's own expression. Here `imageable` is a `morphTo` whose targets include a string-keyed model:
+
+```php
+$either = $this->imageable instanceof Post || $this->imageable instanceof User ? $this->imageable : null;
+
+return [
+    'either_id' => $either?->getKey(),          // number | null
+    'open_id' => $this->imageable?->getKey(),   // number | string | null
+];
+```
+
+The limit: the statement form and the ternary form of the *same* positive test disagree. A positive `if ($parent instanceof Post) { … }` body binds nothing — only the negated early-exit `if` narrows the statements that follow — while the positive ternary above does narrow its true arm. The early-exit form also binds only a variable the method writes once whose own guard body doesn't read it. A ternary narrows reads — inside its true arm when it tests a variable or `$this->resource`, or through a variable bound to it — and never its own value, so a bare `$either` is not narrowed. A variable bound to it narrows only when the test reads the true arm's exact expression: `&&`, a negation, or a test on another spelling of the same value (`$this->resource->imageable` against a `$this->imageable` arm) leaves the arm as it was.
 
 ### Conditional Methods
 
@@ -252,7 +282,7 @@ depends on what the generator could resolve, and two cases can't be widened:
   default.
 
 A closure default that declares a required parameter goes a step further than merely unresolvable: Laravel
-invokes every conditional default via `value($default)`, calling it with zero arguments, so a closure
+invokes every conditional default but `transform()`'s via `value($default)`, calling it with zero arguments, so a closure
 requiring a parameter would throw if it ever ran. The generator treats that arm as unreachable and never
 lets it widen the type:
 
@@ -261,7 +291,11 @@ lets it widen the type:
 ```
 
 A parameter with its own default (`fn ($notes = '') => strlen($notes)`) still runs cleanly with zero
-arguments, so that arm keeps widening the type as usual.
+arguments, so that arm keeps widening the type as usual, and the parameter holds its default's type.
+
+`transform()` is the exception: it calls its default with the blank value, so a one-parameter default does run,
+and its parameter holds the value's full type, `null` included —
+`$this->transform($this->rating, fn ($r) => 'x', fn ($r) => $r)` publishes `string | number | null`.
 
 #### `whenHas()`, `whenAppended()` and `whenExistsLoaded()` type from the value you pass
 
@@ -483,6 +517,7 @@ export interface CollectionPipelineResource {
 - A trailing `->all()` is identity on the published type, since a `Collection<X>` and the `array<X>` behind it both render `X[]`, and `->values()` restores sequential keys. An op that breaks `0..n-1` keys (`filter`, `sortBy`, `keyBy`, …) adds the `Record<string, X>` arm that `json_encode()` really emits.
 - A `collect()` root takes its element type from its argument and binds the `map()` parameter to that value, which is why `$word` above is `string`.
 - `data_get($target, 'a.b')` is the nullsafe chain `$target?->a?->b`. A default unions its own type in rather than removing the `null` arm, because `data_get()` returns the default only when the key is **missing**, never when a present value is null.
+- A `map()` closure parameter's model type hint binds for every read through it, multi-step and nullsafe chains included, wherever the collection came from. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`.
 
 The limit: `concat($source)` is identity **only** when `$source` resolves to exactly the receiver's own collection type. Anything else declines the whole chain, since a concat of `Comment[]` and `Tag[]` is a different collection rather than a longer one. A `data_get()` key containing a `*` segment declines too.
 
@@ -738,7 +773,19 @@ export interface PermissionsSpreadResource {
 
 The value type carries `| undefined` rather than the signature carrying a `?`, since `[key: T]?:` is a TypeScript syntax error and a key matching the pattern isn't guaranteed present.
 
-The limit: a purely dynamic key (`$data[$name]`) or a purely literal one is left to the ordinary handling — the shape needs both a literal and a dynamic segment. A literal segment containing a backtick declines the whole key, since an escaped backtick couldn't be read back.
+When the body can't type the value, the method's `@return array<string, V>` does, as it does for a named key. A third method on the same resource, `gatherOpaqueTags()`, is declared `@return array<string, string>` and assigns `$data["{$name}_tag"] = $this->opaque()`:
+
+```typescript
+[key: `${string}_tag`]: string | undefined;
+```
+
+TypeScript checks a signature against every named key its pattern matches, and against any signature whose pattern contains its own, so the generator reconciles each signature with the keys that will be published beside it, `#[TsCasts]` keys included. A named key the pattern matches joins the signature's value as a union, and so does another signature with the same pattern: beside `price_tag: number`, the `_tag` signature publishes `string | number | undefined`. A value the docblock filled, or a union, goes back to the value the body gives it (`unknown | undefined` where only the docblock typed it) when:
+
+- a key the pattern matches can't join, because its type has a top-level `unknown` arm, names a class or any type name other than a primitive, `Record` or `Date`, is a template literal type, or holds a string literal with a backslash;
+- another signature's pattern may overlap its own;
+- the interface has an extends clause, from `#[TsExtends]` or a `ts_extends` config entry, whose keys the generator can't see.
+
+The limit: a purely dynamic key (`$data[$name]`) or a purely literal one is left to the ordinary handling — the shape needs both a literal and a dynamic segment. A literal segment containing a backtick declines the whole key, since an escaped backtick couldn't be read back. A value the body typed itself stands even beside a key it can't take in, so ``[key: `${string}_tag`]: string | undefined`` beside `main_tag: PostResource` still fails `tsc` with TS2411 — type the key, or rename it out of the pattern.
 
 ### Model `toArray()` Spread
 
@@ -871,12 +918,14 @@ public function toArray(Request $request): array
 
 Both methods delegate to the backing model's full database schema and filter by the listed keys. Properties retain their original types from the model.
 
+`$this->resource->only([...])` and `$this->resource->except([...])` are the same calls, so they publish exactly what `$this->only([...])` and `$this->except([...])` do, spread or not. The same holds for every relation filter below: `$this->resource->author->only([...])` publishes what `$this->author->only([...])` does.
+
 > [!NOTE]
 > Currently only `only` and `except` are supported as attribute filter methods. Other collection-style methods are not analyzed. If you find you need additional methods, open an issue, or better yet, submit a PR with the added functionality! See [`FiltersModelAttributes`](https://github.com/abetwothree/laravel-ts-publish/blob/main/src/Analyzers/Concerns/FiltersModelAttributes.php).
 
 ### Relation Filters
 
-The same two methods work on a **related** model — `$this->author->only([...])`, `$this->post?->except([...])` — and are typed one of two ways.
+The same two methods work on a **related** model — `$this->author->only([...])`, `$this->post?->except([...])` — and are typed one of two ways. A to-many relation and a collection-holding member filter differently — see [To-Many Relations and Collection Members](#to-many-relations-and-collection-members).
 
 Two conditions have to hold for that reference form, not one: the relation must resolve to a **single** model, _and_ every filtered key must be a real database column. When both hold, the property references the related model's own generated interface with `Pick<>` — `only()` picks the keys you named, `except()` picks their **complement**, every other column on the model:
 
@@ -956,6 +1005,26 @@ If you relied on one of those arriving through an `except()`-filtered relation, 
 Switch the property to `only([...])`, or add the key as its own entry in `toArray()`. TypeScript
 will point at every site that reads a now-missing key.
 :::
+
+#### To-Many Relations and Collection Members
+
+A **to-many** relation's filter selects models, not attributes. `Eloquent\Collection::only()` and `except()` keep the models whose **primary key** is listed and return them whole, so the property publishes the relation's own type, whatever the key list holds:
+
+```php
+'replies' => $this->comments->only([1, 2]),
+'kept' => $this->comments?->except($request->input('ids')),
+```
+
+```typescript
+replies: Comment[];
+kept: Comment[] | null;
+```
+
+An accessor returning an `Eloquent\Collection` of models filters the same way and publishes a list of those models.
+
+A member holding an `Illuminate\Support\Collection` — a `'collection'`, `'encrypted:collection'`, `AsCollection` or `AsEncryptedCollection` column, or an accessor, cast getter or method returning a `Collection` — keeps the entries whose **keys** are listed, so its filter publishes `Record<string, unknown>` whatever the collection holds. Three members stay `unknown`: an `AsEnumCollection` column, a collection-cast column read through a relation (`$this->relation->column->only([...])`), and any member other than the accessor above whose collection class overrides `only()`/`except()`, such as a method returning an `Eloquent\Collection`.
+
+A single relation's filter with a runtime key list, `$this->author->only($request->input('fields'))`, names nothing to pick, so it publishes `Record<string, unknown>`.
 
 #### Attribute Filters on Any Model
 
