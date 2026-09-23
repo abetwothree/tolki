@@ -125,7 +125,7 @@ export interface DocblockShapedEvent {
 }
 ```
 
-The body still wins wherever it resolves something. The docblock only fills a key the analyzer left `unknown`, so a stale `@return` can't overwrite a type the body already established.
+The body still wins wherever it resolves something. The docblock only fills a key the analyzer left `unknown`, so a stale `@return` can't overwrite a type the body already established. An interpolated key's index signature, which a spread helper's body leaves `unknown | undefined`, is filled the same way from that helper's `@return array<string, V>`, then checked against the event's `#[TsCasts]` and extends clause as [API Resources § Interpolated Keys](./api-resources.md#interpolated-keys) describes.
 
 When `broadcastWith()` exists it is the only source of the payload; the public properties are not consulted at all. A key it renames, computes, or drops is reflected exactly, so `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }` with no `teamId` in sight.
 
