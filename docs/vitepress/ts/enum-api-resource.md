@@ -138,7 +138,7 @@ See [Type Reference](./enums.md#type-reference) in the Enums docs for the full `
 
 ## Auto-Generated `{Model}Resource` Interfaces
 
-When `enums.use_tolki_package` is enabled (the default), any model with enum-cast columns automatically gets a `{Model}Resource` companion set of interfaces. These replace each enum-backed property with `AsEnum<typeof EnumName>`, so you don't have to hand-compose `Omit<>` + `AsEnum<>` yourself whenever a property has been resolved to a full enum instance — whether via `Status::from($user->status)` in your own code, or because an API response already serialized it with `EnumResource`.
+When `enums.use_tolki_package` is enabled (the default), any model with enum-cast columns automatically gets a `{Model}Resource` companion set of interfaces. These replace each property typed as a single enum, or a list of one, optionally `| null`, with `AsEnum<typeof EnumName>` (a mutator typed as a shape, or as a union with other arms, keeps its own type), so you don't have to hand-compose `Omit<>` + `AsEnum<>` yourself whenever a property has been resolved to a full enum instance — whether via `Status::from($user->status)` in your own code, or because an API response already serialized it with `EnumResource`.
 
 For a `Post` model that casts the database columns `status`, `visibility`, and `priority` to enums:
 
