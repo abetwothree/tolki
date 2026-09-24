@@ -1620,7 +1620,7 @@
         },
         {
             "label": "C1 values resets int keys",
-            "php": "C1 values resets int keys",
+            "php": "(new Collection([1 => 'a', 2 => 'b', 3 => 'c']))->values()->all()",
             "value": [
                 "a",
                 "b",
@@ -1629,14 +1629,14 @@
         },
         {
             "label": "C2 flip one",
-            "php": "C2 flip one",
+            "php": "(new Collection(['name' => 'taylor']))->flip()->all()",
             "value": {
                 "taylor": "name"
             }
         },
         {
             "label": "C3 flip two",
-            "php": "C3 flip two",
+            "php": "(new Collection(['name' => 'taylor', 'framework' => 'laravel']))->flip()->all()",
             "value": {
                 "taylor": "name",
                 "laravel": "framework"
@@ -1644,12 +1644,12 @@
         },
         {
             "label": "C4 flip empty",
-            "php": "C4 flip empty",
+            "php": "(new Collection)->flip()->all()",
             "value": []
         },
         {
             "label": "C5 reverse assoc",
-            "php": "C5 reverse assoc",
+            "php": "(new Collection(['name' => 'taylor', 'framework' => 'laravel']))->reverse()->all()",
             "value": {
                 "framework": "laravel",
                 "name": "taylor"
@@ -1657,7 +1657,7 @@
         },
         {
             "label": "C6 diffAssoc testDiffAssoc",
-            "php": "C6 diffAssoc testDiffAssoc",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello', 'not_affected' => 'value']))->diffAssoc(new Collection(['id' => 123, 'foo_bar' => 'Hello', 'not_affected' => 'value']))->all()",
             "value": {
                 "id": 1,
                 "first_word": "Hello"
@@ -1665,7 +1665,7 @@
         },
         {
             "label": "C7 diffAssoc case keys",
-            "php": "C7 diffAssoc case keys",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssoc(new Collection(['A' => 'green', 'yellow', 'red']))->all()",
             "value": {
                 "a": "green",
                 "b": "brown",
@@ -1675,7 +1675,7 @@
         },
         {
             "label": "C8 diffAssocUsing strcasecmp",
-            "php": "C8 diffAssocUsing strcasecmp",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssocUsing(new Collection(['A' => 'green', 'yellow', 'red']), 'strcasecmp')->all()",
             "value": {
                 "b": "brown",
                 "c": "blue",
@@ -1684,14 +1684,14 @@
         },
         {
             "label": "C9 intersectAssocUsing strcasecmp",
-            "php": "C9 intersectAssocUsing strcasecmp",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssocUsing(new Collection(['a' => 'GREEN', 'B' => 'brown', 'yellow', 'red']), 'strcasecmp')->all()",
             "value": {
                 "b": "brown"
             }
         },
         {
             "label": "C10 combine list keys, offset values",
-            "php": "C10 combine list keys, offset values",
+            "php": "(new Collection(['name', 'family']))->combine([1 => 'taylor', 2 => 'otwell'])->toArray()",
             "value": {
                 "name": "taylor",
                 "family": "otwell"
@@ -1699,7 +1699,7 @@
         },
         {
             "label": "C11 combine offset keys, list values",
-            "php": "C11 combine offset keys, list values",
+            "php": "(new Collection([1 => 'name', 2 => 'family']))->combine(['taylor', 'otwell'])->toArray()",
             "value": {
                 "name": "taylor",
                 "family": "otwell"
@@ -1707,7 +1707,7 @@
         },
         {
             "label": "C12 combine offset both",
-            "php": "C12 combine offset both",
+            "php": "(new Collection([1 => 'name', 2 => 'family']))->combine([2 => 'taylor', 3 => 'otwell'])->toArray()",
             "value": {
                 "name": "taylor",
                 "family": "otwell"
@@ -1715,7 +1715,7 @@
         },
         {
             "label": "C13 combine lists -> int keys",
-            "php": "C13 combine lists -> int keys",
+            "php": "(new Collection([1, 2, 3]))->combine([4, 5, 6])->toArray()",
             "value": {
                 "1": 4,
                 "2": 5,
@@ -1724,7 +1724,7 @@
         },
         {
             "label": "C14 filter by key",
-            "php": "C14 filter by key",
+            "php": "(new Collection(['id' => 1, 'first' => 'Hello', 'second' => 'World']))->filter(fn ($item, $key) => $key !== 'id')->all()",
             "value": {
                 "first": "Hello",
                 "second": "World"
@@ -1732,7 +1732,7 @@
         },
         {
             "label": "C15 keys assoc",
-            "php": "C15 keys assoc",
+            "php": "(new Collection(['name' => 'taylor', 'framework' => 'laravel']))->keys()->all()",
             "value": [
                 "name",
                 "framework"
@@ -1740,7 +1740,7 @@
         },
         {
             "label": "C16 replace assoc",
-            "php": "C16 replace assoc",
+            "php": "(new Collection(['name' => 'amir', 'family' => 'otwell']))->replace(['name' => 'taylor', 'age' => 26])->all()",
             "value": {
                 "name": "taylor",
                 "family": "otwell",
@@ -1749,7 +1749,7 @@
         },
         {
             "label": "C17 union array",
-            "php": "C17 union array",
+            "php": "(new Collection(['name' => 'Hello']))->union(['id' => 1])->all()",
             "value": {
                 "name": "Hello",
                 "id": 1
@@ -1757,7 +1757,7 @@
         },
         {
             "label": "C18 union collection",
-            "php": "C18 union collection",
+            "php": "(new Collection(['name' => 'Hello']))->union(new Collection(['name' => 'World', 'id' => 1]))->all()",
             "value": {
                 "name": "Hello",
                 "id": 1
@@ -1773,7 +1773,7 @@
         },
         {
             "label": "C19 intersectByKeys 2",
-            "php": "C19 intersectByKeys 2",
+            "php": "(new Collection(['name' => 'taylor', 'family' => 'otwell', 'age' => 26]))->intersectByKeys(new Collection(['height' => 180, 'name' => 'amir', 'family' => 'moharami']))->all()",
             "value": {
                 "name": "taylor",
                 "family": "otwell"
@@ -1781,7 +1781,7 @@
         },
         {
             "label": "C20 intersectByKeys 1",
-            "php": "C20 intersectByKeys 1",
+            "php": "(new Collection(['name' => 'Mateus', 'age' => 18]))->intersectByKeys(new Collection(['name' => 'Mateus', 'surname' => 'Guimaraes']))->all()",
             "value": {
                 "name": "Mateus"
             }
@@ -1795,21 +1795,21 @@
         },
         {
             "label": "C21 diff collection",
-            "php": "C21 diff collection",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diff(new Collection(['first_word' => 'Hello', 'last_word' => 'World']))->all()",
             "value": {
                 "id": 1
             }
         },
         {
             "label": "C22 diffKeysUsing",
-            "php": "C22 diffKeysUsing",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeysUsing(new Collection(['ID' => 123, 'foo_bar' => 'Hello']), 'strcasecmp')->all()",
             "value": {
                 "first_word": "Hello"
             }
         },
         {
             "label": "C23 replace int-keyed replacer on int-keyed",
-            "php": "C23 replace int-keyed replacer on int-keyed",
+            "php": "(new Collection(['a', 'b', 'c']))->replace([1 => 'd', 2 => 'e', 3 => 'f', 4 => 'g'])->all()",
             "value": [
                 "a",
                 "d",
@@ -1820,7 +1820,7 @@
         },
         {
             "label": "C24 replaceRecursive list fixture",
-            "php": "C24 replaceRecursive list fixture",
+            "php": "(new Collection(['a', 'b', ['c', 'd']]))->replaceRecursive(['z', 2 => [1 => 'e'], 'f'])->all()",
             "value": [
                 "z",
                 "b",
@@ -1833,7 +1833,7 @@
         },
         {
             "label": "L1 slice(3) assoc",
-            "php": "L1 slice(3) assoc",
+            "php": "(new Collection($eight))->slice(3)->all()",
             "value": {
                 "d": 4,
                 "e": 5,
@@ -1844,7 +1844,7 @@
         },
         {
             "label": "L2 slice(-3) assoc",
-            "php": "L2 slice(-3) assoc",
+            "php": "(new Collection($eight))->slice(-3)->all()",
             "value": {
                 "f": 6,
                 "g": 7,
@@ -1853,7 +1853,7 @@
         },
         {
             "label": "L3 slice(3,3) assoc",
-            "php": "L3 slice(3,3) assoc",
+            "php": "(new Collection($eight))->slice(3, 3)->all()",
             "value": {
                 "d": 4,
                 "e": 5,
@@ -1862,7 +1862,7 @@
         },
         {
             "label": "L4 slice(3,-1) assoc",
-            "php": "L4 slice(3,-1) assoc",
+            "php": "(new Collection($eight))->slice(3, -1)->all()",
             "value": {
                 "d": 4,
                 "e": 5,
@@ -1872,7 +1872,7 @@
         },
         {
             "label": "L5 slice(-5,3) assoc",
-            "php": "L5 slice(-5,3) assoc",
+            "php": "(new Collection($eight))->slice(-5, 3)->all()",
             "value": {
                 "d": 4,
                 "e": 5,
@@ -1881,7 +1881,7 @@
         },
         {
             "label": "L6 slice(-6,-2) assoc",
-            "php": "L6 slice(-6,-2) assoc",
+            "php": "(new Collection($eight))->slice(-6, -2)->all()",
             "value": {
                 "c": 3,
                 "d": 4,
@@ -1891,7 +1891,7 @@
         },
         {
             "label": "L7 chunkBy single item assoc",
-            "php": "L7 chunkBy single item assoc",
+            "php": "(new Collection(['x' => ['key' => 'a']]))->chunkBy('key')->map->all()->all()",
             "value": [
                 {
                     "x": {
@@ -1902,7 +1902,7 @@
         },
         {
             "label": "L8 contains loose (assoc)",
-            "php": "L8 contains loose (assoc)",
+            "php": "contains() over (new Collection(['a'=>1,'b'=>3,'c'=>5])) with 1,'1',2,'2'; then ['a'=>'1'] with '1',1; ['a'=>null] with false,null,[],0,''; ['a'=>0] with 0,'0',false,null,fn($v)=>$v<5,fn($v)=>$v>5; ['a'=>'date','b'=>'class','c'=>(object)['foo'=>50]] with 'date','class','foo'; ['a'=>null,'b'=>1,'c'=>2] with fn($v)=>is_null($v)",
             "value": {
                 "135": [
                     true,
@@ -1941,7 +1941,7 @@
         },
         {
             "label": "L9 containsStrict (assoc)",
-            "php": "L9 containsStrict (assoc)",
+            "php": "containsStrict() over (new Collection(['a'=>1,'b'=>3,'c'=>5,'d'=>'02'])) with 1,'1',2,'02',true,fn($v)=>$v<5,fn($v)=>$v>5; then ['a'=>0] with 0,'0',false,null; ['a'=>1,'b'=>null] with null,0,false; ['a'=>'date','b'=>'class','c'=>(object)['foo'=>50],'d'=>''] with 'date','class','foo',null,''",
             "value": {
                 "mixed": [
                     true,
@@ -1974,7 +1974,7 @@
         },
         {
             "label": "D1 unshift assoc item onto assoc",
-            "php": "D1 unshift assoc item onto assoc",
+            "php": "$c = new Collection(['b' => 2]); $c->unshift(['a' => 1]); $c->all()",
             "value": {
                 "0": {
                     "a": 1
@@ -1984,7 +1984,7 @@
         },
         {
             "label": "D1b unshift two assoc items onto assoc",
-            "php": "D1b unshift two assoc items onto assoc",
+            "php": "$c = new Collection(['b' => 2]); $c->unshift(['a' => 1], ['d' => 'house']); $c->all()",
             "value": {
                 "0": {
                     "a": 1
@@ -1997,7 +1997,7 @@
         },
         {
             "label": "D1c testUnshiftWithOneItem sequence on assoc",
-            "php": "D1c testUnshiftWithOneItem sequence on assoc",
+            "php": "$c = new Collection(['x' => 4]); $c->unshift(['a', 'b', 'c']); $c->unshift(['who' => 'Jonny', 'preposition' => 'from', 'where' => 'Laroe']); $c->unshift('Jonny from Laroe')->toArray()",
             "value": {
                 "0": "Jonny from Laroe",
                 "1": {
@@ -2015,13 +2015,13 @@
         },
         {
             "label": "D1d unshift spread string-keyed",
-            "php": "D1d unshift spread string-keyed",
+            "php": "$c = new Collection(['b' => 2]); $c->unshift(...['a' => 1]); $c->all()",
             "threw": "ArgumentCountError",
             "message": "array_unshift() does not accept unknown named parameters"
         },
         {
             "label": "D1e unshift int-keyed item overlapping",
-            "php": "D1e unshift int-keyed item overlapping",
+            "php": "$c = new Collection(['z' => 3]); $c->unshift([0 => 'zero'], 9); $c->all()",
             "value": {
                 "0": [
                     "zero"
@@ -2032,7 +2032,7 @@
         },
         {
             "label": "D1f unshift with no items on assoc",
-            "php": "D1f unshift with no items on assoc",
+            "php": "(new Collection([5 => 'a', 'x' => 'b']))->unshift()->all()",
             "value": {
                 "0": "a",
                 "x": "b"
@@ -2040,7 +2040,7 @@
         },
         {
             "label": "D2 containsStrict callback matching a null value",
-            "php": "D2 containsStrict callback matching a null value",
+            "php": "['strict' => (new Collection(['a' => null, 'b' => 1]))->containsStrict(fn ($v) => is_null($v)), 'loose' => (new Collection(['a' => null, 'b' => 1]))->contains(fn ($v) => is_null($v))]",
             "value": {
                 "strict": false,
                 "loose": true
@@ -2048,7 +2048,7 @@
         },
         {
             "label": "D3 containsStrict NAN",
-            "php": "D3 containsStrict NAN",
+            "php": "['strict' => (new Collection(['a' => NAN]))->containsStrict(NAN), 'loose' => (new Collection(['a' => NAN]))->contains(NAN)]",
             "value": {
                 "strict": false,
                 "loose": false
@@ -2056,7 +2056,7 @@
         },
         {
             "label": "D4 containsStrict array by value",
-            "php": "D4 containsStrict array by value",
+            "php": "['strict_list' => (new Collection(['a' => [1]]))->containsStrict([1]), 'strict_assoc' => (new Collection(['a' => ['x' => 1]]))->containsStrict(['x' => 1]), 'loose_assoc' => (new Collection(['a' => ['x' => 1]]))->contains(['x' => '1'])]",
             "value": {
                 "strict_list": true,
                 "strict_assoc": true,
@@ -2065,7 +2065,7 @@
         },
         {
             "label": "D5 combine null/bool/float keys",
-            "php": "D5 combine null/bool/float keys",
+            "php": "(new Collection(['k' => null|true|false|1.5|'7']))->combine([1])->all(), keyed 'null','true','false','float','numstr'",
             "value": {
                 "null": {
                     "": 1
@@ -2086,7 +2086,7 @@
         },
         {
             "label": "D6 shift/pop on collect(null)",
-            "php": "D6 shift/pop on collect(null)",
+            "php": "['shift2' => (new Collection(null))->shift(2), 'shift1' => (new Collection(null))->shift(), 'pop3' => (new Collection(null))->pop(3)->all()]",
             "value": {
                 "shift2": null,
                 "shift1": null,
@@ -2095,7 +2095,7 @@
         },
         {
             "label": "D7 replaceRecursive nested list replaced by offset map",
-            "php": "D7 replaceRecursive nested list replaced by offset map",
+            "php": "(new Collection(['k' => ['c', 'd']]))->replaceRecursive(['k' => [1 => 'e']])->all()",
             "value": {
                 "k": [
                     "c",
@@ -2105,7 +2105,7 @@
         },
         {
             "label": "D8 pop(2) on assoc returns list",
-            "php": "D8 pop(2) on assoc returns list",
+            "php": "$c = new Collection(['a' => 1, 'b' => 2, 'c' => 3]); ['returned' => $c->pop(2)->all(), 'remaining' => $c->all()]",
             "value": {
                 "returned": [
                     3,
@@ -2118,7 +2118,7 @@
         },
         {
             "label": "D9 flip numeric-string value",
-            "php": "D9 flip numeric-string value",
+            "php": "(new Collection(['a' => '1', 'b' => '01', 'c' => '-0']))->flip()->all()",
             "value": {
                 "1": "a",
                 "01": "b",
@@ -2127,14 +2127,14 @@
         },
         {
             "label": "D10 contains strict vs loose -0/0",
-            "php": "D10 contains strict vs loose -0/0",
+            "php": "['s' => (new Collection(['a' => -0.0]))->containsStrict(0.0)]",
             "value": {
                 "s": true
             }
         },
         {
             "label": "K1 keys of numeric-looking string keys",
-            "php": "K1 keys of numeric-looking string keys",
+            "php": "array_map(fn ($k) => [gettype($k), $k], (new Collection(['1.5' => 'a', 'Infinity' => 'b', '-1' => 'c', '01' => 'd', '1e3' => 'e', '10' => 'f', '1e+21' => 'g']))->keys()->all())",
             "value": [
                 [
                     "string",
@@ -2168,7 +2168,7 @@
         },
         {
             "label": "K2 chunkWhile callback key types",
-            "php": "K2 chunkWhile callback key types",
+            "php": "(new Collection(['a' => 0, '01' => 'd', '1.5' => 'x', '1e3' => 'e', ' 1' => 'g', '-1' => 'c', '10' => 'f']))->chunkWhile(fn ($v, $k) => true), recording [gettype($k), $k] per call",
             "value": [
                 [
                     "string",
@@ -2198,7 +2198,7 @@
         },
         {
             "label": "R1 replaceRecursive nested map replaced by list",
-            "php": "R1 replaceRecursive nested map replaced by list",
+            "php": "(new Collection(['k' => [0 => 'c', 1 => 'd']]))->replaceRecursive(['k' => ['x']])->all()",
             "value": {
                 "k": [
                     "x",
@@ -2218,7 +2218,7 @@
         },
         {
             "label": "S1 splice on assoc with scalar replacement mid",
-            "php": "S1 splice on assoc with scalar replacement mid",
+            "php": "$c = new Collection(['a' => 1, 'b' => 2, 'c' => 3]); ['removed' => $c->splice(1, 1, 'bar')->all(), 'after' => $c->all()]",
             "value": {
                 "removed": {
                     "b": 2
@@ -2232,7 +2232,7 @@
         },
         {
             "label": "S2 splice assoc insert scalar, length 0",
-            "php": "S2 splice assoc insert scalar, length 0",
+            "php": "$c = new Collection(['foo' => 'f', 'baz' => 'z']); ['removed' => $c->splice(1, 0, 'bar')->all(), 'after' => $c->all()]",
             "value": {
                 "removed": [],
                 "after": {
@@ -2244,7 +2244,7 @@
         },
         {
             "label": "S3 splice assoc insert array",
-            "php": "S3 splice assoc insert array",
+            "php": "$c = new Collection(['foo' => 'f', 'baz' => 'z']); $c->splice(1, 0, ['bar']); $c->all()",
             "value": {
                 "foo": "f",
                 "0": "bar",
@@ -2253,7 +2253,7 @@
         },
         {
             "label": "S4 splice assoc (1,1) no replacement",
-            "php": "S4 splice assoc (1,1) no replacement",
+            "php": "$c = new Collection(['foo' => 'f', 'baz' => 'z']); ['removed' => $c->splice(1, 1)->all(), 'after' => $c->all()]",
             "value": {
                 "removed": {
                     "baz": "z"
@@ -2265,7 +2265,7 @@
         },
         {
             "label": "P1 pop on assoc",
-            "php": "P1 pop on assoc",
+            "php": "$c = new Collection(['foo' => 'f', 'bar' => 'b']); ['popped' => $c->pop(), 'first' => $c->first(), 'all' => $c->all()]",
             "value": {
                 "popped": "b",
                 "first": "f",
@@ -2276,7 +2276,7 @@
         },
         {
             "label": "P2 pop(2)/pop(6) on assoc",
-            "php": "P2 pop(2)/pop(6) on assoc",
+            "php": "$c = new Collection(['foo' => 'f', 'bar' => 'b', 'baz' => 'z']); ['two' => $c->pop(2)->all(), 'first' => $c->first(), 'six' => (new Collection(['foo' => 'f', 'bar' => 'b', 'baz' => 'z']))->pop(6)->all()]",
             "value": {
                 "two": [
                     "z",
@@ -2292,7 +2292,7 @@
         },
         {
             "label": "SH1 shift sequence on assoc",
-            "php": "SH1 shift sequence on assoc",
+            "php": "$c = new Collection(['first' => 'Taylor', 'last' => 'Otwell']); [$c->shift(), $c->first(), $c->shift(), $c->first()]",
             "value": [
                 "Taylor",
                 "Otwell",
@@ -2302,7 +2302,7 @@
         },
         {
             "label": "SH2 shift(2), shift(6), shift(0) on assoc",
-            "php": "SH2 shift(2), shift(6), shift(0) on assoc",
+            "php": "$c = new Collection(['a' => 'foo', 'b' => 'bar', 'c' => 'baz']); ['two' => $c->shift(2)->all(), 'first' => $c->first(), 'rem' => $c->all(), 'six' => (new Collection(['a' => 'foo', 'b' => 'bar', 'c' => 'baz']))->shift(6)->all(), 'zero' => $c0->shift(0)->all(), 'after0' => $c0->all()]",
             "value": {
                 "two": [
                     "foo",
@@ -2327,13 +2327,13 @@
         },
         {
             "label": "SH3 shift(-2) throws",
-            "php": "SH3 shift(-2) throws",
+            "php": "(new Collection(['a' => 1]))->shift(-2)",
             "threw": "InvalidArgumentException",
             "message": "Number of shifted items may not be less than zero."
         },
         {
             "label": "PAD1 pad on assoc (list fixture shapes)",
-            "php": "PAD1 pad on assoc (list fixture shapes)",
+            "php": "['p4' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->pad(4, 0)->all(), 'p4big' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5]))->pad(4, 0)->all(), 'n4' => ...->pad(-4, 0)->all(), 'n4big' => ...->pad(-4, 0)->all()]",
             "value": {
                 "p4": {
                     "a": 1,
@@ -2365,7 +2365,7 @@
         },
         {
             "label": "U1 unshift(null) onto assoc",
-            "php": "U1 unshift(null) onto assoc",
+            "php": "$c = new Collection(['a' => 1]); $c->unshift(null); $c->all()",
             "value": {
                 "0": null,
                 "a": 1
@@ -2373,7 +2373,7 @@
         },
         {
             "label": "F1 filter callback key type for int key",
-            "php": "F1 filter callback key type for int key",
+            "php": "['result' => (new Collection([1 => 'a', 'x' => 'b']))->filter(fn ($v, $k) => $k === 1)->all(), 'seen' => [gettype($k), $k] per call]",
             "value": {
                 "result": {
                     "1": "a"
@@ -2392,7 +2392,7 @@
         },
         {
             "label": "F2 contains callback key type for int key",
-            "php": "F2 contains callback key type for int key",
+            "php": "['result' => (new Collection([1 => 'a', 'x' => 'b']))->contains(fn ($v, $k) => $k === 1), 'seen' => [gettype($k), $k] per call]",
             "value": {
                 "result": true,
                 "seen": [

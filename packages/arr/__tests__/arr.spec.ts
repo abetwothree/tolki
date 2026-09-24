@@ -3,7 +3,11 @@ import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
-import { isArray } from "@tolki/utils";
+import {
+    isArray,
+    ItemNotFoundException,
+    MultipleItemsFoundException,
+} from "@tolki/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -14,12 +18,37 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  */
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
+/** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
+const caseless = (a: unknown, b: unknown): boolean =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
+/** A key comparator that matches PHP's `strcasecmp` over two array keys. */
+const sameKey = (a: string | number, b: string | number): boolean =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
+/**
+ * Route a keyed value into an arr helper whose rows are array-only.
+ *
+ * The shape-agnostic helpers (query, toCssClasses, toCssStyles) still walk a
+ * plain object at runtime, but their rows are array-shaped so `data`'s dispatch
+ * can hand keyed data to obj; these parity cases keep the runtime pinned.
+ *
+ * @param data - The keyed value under test.
+ * @returns The same value, typed as the array shape the rows accept.
+ */
+const keyed = (data: object): unknown[] => data as unknown as unknown[];
+
 /**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
 class Point {
     x = 1;
     y = 2;
+}
+
+/** The single-field instance the write-path probes use, so a citation names the same call. */
+class D4Point {
+    x = 1;
 }
 
 describe("Arr", () => {
@@ -56,6 +85,18 @@ describe("Arr", () => {
     });
 
     describe("add", () => {
+        it("writes over a key already holding null, as Arr::add does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "add-over-null-list-value",
+            // "add-over-null-nested-list", "add-leaves-false-alone".
+            // Arr::add asks `is_null(Arr::get(...))`, not whether the key exists.
+            expect(Arr.add([null], 0, 9)).toEqual([9]);
+            expect(Arr.add([{ b: null }], "0.b", 9)).toEqual([{ b: 9 }]);
+            // `undefined` is what this port stores for a path PHP reads as null.
+            expect(Arr.add([undefined], 0, 9)).toEqual([9]);
+            expect(Arr.add([false], 0, 9)).toEqual([false]);
+            expect(Arr.add([0], 0, 9)).toEqual([0]);
+        });
+
         it("add", () => {
             // Test adding to array when key doesn't exist
             expect(Arr.add(["Desk"], 1, 100)).toEqual(["Desk", 100]);
@@ -101,6 +142,105 @@ describe("Arr", () => {
             expect(() => Arr.add(["a", "b"], "length", "X")).toThrow(
                 RangeError,
             );
+        });
+
+        it("leaves the caller's nested value alone, on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-leaves-the-caller-value-untouched" and
+            // "add-list-leaves-the-caller-value-untouched": Arr::add takes the
+            // array by value, and a PHP array is a value all the way down.
+            const record = { desk: 100 };
+
+            expect(Arr.add([record], "0.chair", 150)).toEqual([
+                { desk: 100, chair: 150 },
+            ]);
+            expect(record).toEqual({ desk: 100 });
+
+            const list = [100];
+
+            expect(Arr.add([list], "0.1", 150)).toEqual([[100, 150]]);
+            expect(list).toEqual([100]);
+        });
+
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-nested-object-is-replaced-wholesale": Arr::set descends by is_array,
+            // so the write lands on a fresh container and the instance is left whole.
+            const point = new Point();
+            const [first] = Arr.add([point], "0.z", 3) as unknown[];
+
+            expect(first).toEqual({ z: 3 });
+            expect(first).not.toBe(point);
+            expect(first).not.toBeInstanceOf(Point);
+            expect(Object.entries(point)).toEqual([
+                ["x", 1],
+                ["y", 2],
+            ]);
+        });
+
+        it("keeps a descended list's own non-index key", () => {
+            // JS-only: PHP holds "" as a real array key, so no Arr::add call can record
+            // this; the port stores it as the list's own property and the copy step used
+            // to spread it away. docs/php-parity/task-24-..., "get-write-path-key-cast"
+            const inner = Arr.set(["a", "b"], "", "V");
+            const [first] = Arr.add([inner], "0.2", "c") as unknown[];
+
+            expect(Object.entries(first as object)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "c"],
+                ["", "V"],
+            ]);
+            expect(first).not.toBe(inner);
+        });
+
+        it("writes into a frozen nested container instead of throwing", () => {
+            // JS-only: PHP has no frozen array, and the copy step used to replay the
+            // source's own `writable: false` descriptors onto the copy it must write to.
+            const frozenList = Object.freeze(["a"]);
+
+            expect(Arr.add([frozenList], "0.1", "z")).toEqual([["a", "z"]]);
+            expect(frozenList).toEqual(["a"]);
+
+            const frozenRecord = Object.freeze({ desk: 100 });
+
+            expect(Arr.add([frozenRecord], "0.chair", 150)).toEqual([
+                { desk: 100, chair: 150 },
+            ]);
+            expect(frozenRecord).toEqual({ desk: 100 });
+        });
+
+        it("reads a nested accessor once instead of copying it live", () => {
+            // JS-only: PHP has no property accessor. Copying the getter itself left the
+            // returned copy reading the caller's backing store on every later access.
+            const backing = { value: 1 };
+            const inner: Record<string, unknown> = {};
+            Object.defineProperty(inner, "reading", {
+                get: () => backing.value,
+                enumerable: true,
+                configurable: true,
+            });
+
+            const [first] = Arr.add([inner], "0.unit", "kg") as unknown[];
+            backing.value = 999;
+
+            expect(first).not.toBe(inner);
+            expect(first).toEqual({ reading: 1, unit: "kg" });
+            expect(
+                Object.getOwnPropertyDescriptor(first as object, "reading")
+                    ?.get,
+            ).toBeUndefined();
+        });
+
+        it("leaves the caller's value alone when the key already exists", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "add-existing-key-is-a-no-op"
+            const record = { desk: 100 };
+            const source = [record];
+
+            expect(Arr.add(source, "0.desk", 150)).toEqual([{ desk: 100 }]);
+            expect(record).toEqual({ desk: 100 });
+            expect(Arr.add(source, "0.desk", 150)).not.toBe(source);
         });
 
         // add's shallow `[...data]` copy exposes an item's own aliased
@@ -212,10 +352,22 @@ describe("Arr", () => {
             expect(Arr.chunk(baseData, 0)).toEqual([]);
             expect(Arr.chunk(baseData, -1)).toEqual([]);
         });
+
+        it("keys each chunk by its source offset when preserveKeys is true", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-chunk-last-chunk-keys"
+            const result = Arr.chunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, true);
+
+            expect(result).toEqual([
+                { 0: 1, 1: 2, 2: 3 },
+                { 3: 4, 4: 5, 5: 6 },
+                { 6: 7, 7: 8, 8: 9 },
+                { 9: 10 },
+            ]);
+        });
     });
 
     describe("chunkWhile", () => {
-        // docs/php-parity/task-21-chunk-while-by.json — array chunks are reindexed (plan D2)
+        // docs/php-parity/task-21-chunk-while-by.json — array chunks are reindexed
         it("chunks equal adjacent elements", () => {
             const result = Arr.chunkWhile(
                 ["A", "A", "B", "B", "C", "C", "C"],
@@ -640,22 +792,28 @@ describe("Arr", () => {
                 [2, "y"],
             ];
 
-            expect(Arr.crossJoin([1, 2], { a: "x", b: "y" })).toEqual(rows);
+            expect(Arr.crossJoin([1, 2], keyed({ a: "x", b: "y" }))).toEqual(
+                rows,
+            );
             expect(
                 Arr.crossJoin(
                     [1, 2],
-                    new Map([
-                        ["a", "x"],
-                        ["b", "y"],
-                    ]),
+                    keyed(
+                        new Map([
+                            ["a", "x"],
+                            ["b", "y"],
+                        ]),
+                    ),
                 ),
             ).toEqual(rows);
-            expect(Arr.crossJoin([1, 2], new Set(["x", "y"]))).toEqual(rows);
+            expect(Arr.crossJoin([1, 2], keyed(new Set(["x", "y"])))).toEqual(
+                rows,
+            );
         });
 
         it("returns no rows for a Date argument, where PHP's foreach visits nothing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
-            expect(Arr.crossJoin([1], new Date(0))).toEqual([]);
+            expect(Arr.crossJoin([1], keyed(new Date(0)))).toEqual([]);
         });
     });
 
@@ -818,14 +976,14 @@ describe("Arr", () => {
             // Test with object being passed (from() will return an object for objects with callback)
             const objectData = { a: 5, b: 15, c: 25 };
             const objectResult = Arr.first(
-                objectData,
+                keyed(objectData),
                 (value: number) => value === 15,
             );
             expect(objectResult).toBe(15);
 
             // Test with object and no match - should return default
             const noMatchResult = Arr.first(
-                objectData,
+                keyed(objectData),
                 (value: number) => value > 100,
                 "default",
             );
@@ -858,11 +1016,11 @@ describe("Arr", () => {
         it("first walks plain objects through their values", () => {
             // Mirrors the Arr::from() normalization Laravel performs, so the
             // callback and no-callback paths agree instead of one of them throwing
-            expect(Arr.first({ a: 1, b: 2 })).toBe(1);
+            expect(Arr.first(keyed({ a: 1, b: 2 }))).toBe(1);
             expect(
-                Arr.first({ a: 1, b: 2 }, (value: number) => value > 1),
+                Arr.first(keyed({ a: 1, b: 2 }), (value: number) => value > 1),
             ).toBe(2);
-            expect(Arr.first({}, null, "default")).toBe("default");
+            expect(Arr.first(keyed({}), null, "default")).toBe("default");
             expect(Arr.first(undefined, null, "default")).toBe("default");
             expect(Arr.first(undefined)).toBeNull();
         });
@@ -981,11 +1139,14 @@ describe("Arr", () => {
 
         it("last walks plain objects through their values", () => {
             // Laravel's Arr::last() now normalizes with Arr::from() before walking
-            expect(Arr.last({ a: 1, b: 2 })).toBe(2);
+            expect(Arr.last(keyed({ a: 1, b: 2 }))).toBe(2);
             expect(
-                Arr.last({ a: 1, b: 2, c: 3 }, (value: number) => value < 3),
+                Arr.last(
+                    keyed({ a: 1, b: 2, c: 3 }),
+                    (value: number) => value < 3,
+                ),
             ).toBe(2);
-            expect(Arr.last({}, null, "default")).toBe("default");
+            expect(Arr.last(keyed({}), null, "default")).toBe("default");
             expect(Arr.last(undefined, null, "default")).toBe("default");
             expect(Arr.last(undefined)).toBeNull();
         });
@@ -1123,7 +1284,9 @@ describe("Arr", () => {
                 cherry: 2,
             });
 
-            expect(Arr.flip({ apple: 0, banana: 1, cherry: 2 })).toEqual({});
+            // Non-accessible data
+            expect(Arr.flip(null)).toEqual({});
+            expect(Arr.flip(undefined)).toEqual({});
 
             // values that are not valid PHP array keys are skipped
             expect(Arr.flip(["a", 1, null, false, true, 1.5, [], {}])).toEqual({
@@ -1242,8 +1405,10 @@ describe("Arr", () => {
             expect(Arr.forget([], "0")).toEqual([]);
             expect(Arr.forget([], ["0", "1"])).toEqual([]);
 
-            // 8) Numeric-string with leading zeros acts numerically
-            expect(Arr.forget(base, "01")).toEqual(["products"]);
+            // 8) A numeric string with leading zeros is a string key no list holds
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "forget-top-level-key-cast", row "01"
+            expect(Arr.forget(base, "01")).toEqual(base);
 
             // 9) Mixed valid/invalid multi-keys only apply valid parts
             expect(Arr.forget(base, ["1.0", "foo", "1.a", "", ".."])).toEqual([
@@ -1285,8 +1450,8 @@ describe("Arr", () => {
 
     describe("from", () => {
         it("from", () => {
-            expect(Arr.from({ foo: "bar" })).toEqual({ foo: "bar" });
-            expect(Arr.from(new Object({ foo: "bar" }))).toEqual({
+            expect(Arr.from(keyed({ foo: "bar" }))).toEqual({ foo: "bar" });
+            expect(Arr.from(keyed(new Object({ foo: "bar" })))).toEqual({
                 foo: "bar",
             });
             expect(Arr.from(new Map([["foo", "bar"]]))).toEqual({ foo: "bar" });
@@ -1298,7 +1463,7 @@ describe("Arr", () => {
             const temp = {};
             const weakMap = new WeakMap();
             weakMap.set(temp, "bar");
-            expect(() => Arr.from(weakMap)).toThrow(Error);
+            expect(() => Arr.from(keyed(weakMap))).toThrow(Error);
 
             expect(() => Arr.from(123)).toThrow(Error);
             expect(() => Arr.from("string")).toThrow(Error);
@@ -1387,11 +1552,15 @@ describe("Arr", () => {
         it("returns the default when the subject is not an array, with or without a null key", () => {
             // Test $array not an array
             expect(Arr.get(null, "foo", "default")).toBe("default");
-            expect(Arr.get("false", "foo", "default")).toBe("default");
+            expect(
+                Arr.get("false" as unknown as unknown[], "foo", "default"),
+            ).toBe("default");
 
             // Test $array not an array and key is null
             expect(Arr.get(null, null, "default")).toBe("default");
-            expect(Arr.get("false", null, "default")).toBe("default");
+            expect(
+                Arr.get("false" as unknown as unknown[], null, "default"),
+            ).toBe("default");
         });
 
         it("returns the array itself when it is empty and the key is null", () => {
@@ -1506,7 +1675,7 @@ describe("Arr", () => {
             expect(Arr.has(data5, 1)).toBe(true);
 
             expect(Arr.has(null, 0)).toBe(false);
-            expect(Arr.has(false, 0)).toBe(false);
+            expect(Arr.has(false as unknown as unknown[], 0)).toBe(false);
 
             expect(Arr.has(null, null)).toBe(false);
             expect(Arr.has([], null)).toBe(false);
@@ -1656,7 +1825,9 @@ describe("Arr", () => {
             expect(Arr.every([1, 2], (_value, key) => key >= 0)).toBe(true);
             expect(Arr.every([1, 2], (_value, key) => key > 0)).toBe(false);
 
-            expect(Arr.every(5, () => true)).toBe(false);
+            expect(Arr.every(5 as unknown as unknown[], () => true)).toBe(
+                false,
+            );
         });
 
         it("every accepts iterables", () => {
@@ -1682,10 +1853,16 @@ describe("Arr", () => {
 
             // Plain objects are walked through their values, like PHP's foreach
             expect(
-                Arr.every({ a: 2, b: 4 }, (value: number) => value % 2 === 0),
+                Arr.every(
+                    keyed({ a: 2, b: 4 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(true);
             expect(
-                Arr.every({ a: 2, b: 3 }, (value: number) => value % 2 === 0),
+                Arr.every(
+                    keyed({ a: 2, b: 3 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(false);
         });
     });
@@ -1711,7 +1888,7 @@ describe("Arr", () => {
             expect(Arr.some([1, 2], (_value, key) => key >= 1)).toBe(true);
             expect(Arr.some([1, 2], (_value, key) => key > 1)).toBe(false);
 
-            expect(Arr.some(5, () => true)).toBe(false);
+            expect(Arr.some(5 as unknown as unknown[], () => true)).toBe(false);
         });
 
         it("some accepts iterables", () => {
@@ -1737,10 +1914,16 @@ describe("Arr", () => {
 
             // Plain objects are walked through their values, like PHP's foreach
             expect(
-                Arr.some({ a: 1, b: 2 }, (value: number) => value % 2 === 0),
+                Arr.some(
+                    keyed({ a: 1, b: 2 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(true);
             expect(
-                Arr.some({ a: 1, b: 3 }, (value: number) => value % 2 === 0),
+                Arr.some(
+                    keyed({ a: 1, b: 3 }),
+                    (value: number) => value % 2 === 0,
+                ),
             ).toBe(false);
         });
     });
@@ -1819,9 +2002,49 @@ describe("Arr", () => {
             expect(JSON.stringify(subject)).toBe(snap);
         });
 
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-set-list-nested-object-is-replaced-wholesale": [new D4Point(1)] plus
+            // Arr::set($src, '0.y', 2) answers [{"y": 2}], recorded type `array`.
+            const point = new D4Point();
+            const result = Arr.set([point], "0.y", 2);
+
+            expect(result).toEqual([{ y: 2 }]);
+            expect(result[0]).not.toBe(point);
+            expect(result[0]).not.toBeInstanceOf(D4Point);
+            expect(Object.entries(point)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list instead of replacing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-set-nested-list-in-a-list-is-descended": [['q']] plus Arr::set($src,
+            // '0.1', 'y') descends, because `is_array` holds for the nested list.
+            const inner = ["q"];
+            const result = Arr.set([inner], "0.1", "y");
+
+            expect(result).toEqual([["q", "y"]]);
+            expect(result[0]).not.toBe(inner);
+            expect(inner).toEqual(["q"]);
+        });
+
+        it("keeps a nested Date or Map whole instead of copying its entries", () => {
+            // JS-only: PHP has neither, and it holds an object by handle where an array is
+            // copied by value. Copying a Date's entries left an empty object behind.
+            const when = new Date(0);
+            const result = Arr.set([{ when, tag: "x" }], "0.n", 1);
+
+            expect(result[0]).toEqual({ when, tag: "x", n: 1 });
+            expect((result[0] as { when: Date }).when).toBe(when);
+            expect(Arr.set([{ m: new Map([["k", 1]]) }], "0.m.y", 2)).toEqual([
+                { m: { y: 2 } },
+            ]);
+        });
+
         it("treats a non-array subject and a null key the same as the general set behaviour", () => {
             // Test setImmutable with non-accessible data
-            expect(Arr.set("not-array", 0, "value")).toEqual([]);
+            expect(
+                Arr.set("not-array" as unknown as unknown[], 0, "value"),
+            ).toEqual([]);
 
             // Test setImmutable with null key (replacement)
             expect(Arr.set([1, 2, 3], null, "replaced")).toEqual("replaced");
@@ -1829,6 +2052,12 @@ describe("Arr", () => {
 
         it("sets the next available index", () => {
             expect(Arr.set([1, 2, 3], 3, "new")).toEqual([1, 2, 3, "new"]);
+        });
+
+        it("rebuilds a scalar element as a record for a dot path under its index", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "set-dot-path-under-a-list-index"
+            expect(Arr.set(["a", "b"], "0.x", 5)).toEqual([{ x: 5 }, "b"]);
         });
 
         it("stores a key that is no array index as an own property", () => {
@@ -1845,6 +2074,71 @@ describe("Arr", () => {
             ]);
         });
 
+        it("stores a non-canonical index the read path cannot find again", () => {
+            // JS-only: the write stores "01" as the list's own property (path.spec.ts,
+            // "keeps a non-canonical index a string key on a list") and the read misses it
+            // ("resolves the same casts the write path uses"). PHP round-trips it:
+            // docs/php-parity/task-24-data-release-readiness.json, "own-key-channel-round-trip"
+            const written = Arr.set(["a", "b"], "01", "V");
+
+            expect(Object.entries(written)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["01", "V"],
+            ]);
+            expect(Arr.get(written, "01")).toBeNull();
+            expect(Arr.has(written, "01")).toBe(false);
+        });
+
+        it("nests a record instead of storing an own key when the list is empty", () => {
+            // JS-only: an EMPTY list root takes a third shape, neither PHP's nor the own-key
+            // channel above — PHP answers ['01' => 'V'] either way
+            // (docs/php-parity/task-24-data-release-readiness.json, "e3-own-key-channel-empty-root").
+            const written = Arr.set([], "01", "V");
+
+            expect(Object.entries(written)).toEqual([["0", { "01": "V" }]]);
+            expect(Arr.get(written, "01")).toBeNull();
+            expect(Arr.get(written, "0.01")).toBe("V");
+        });
+
+        it("answers has but not get for a stored negative index", () => {
+            // JS-only: the same asymmetry is NOT uniform — "-1" is found by has() and
+            // missed by get(), where "01" and "" are missed by both. PHP finds it with
+            // either (task-24-data-release-readiness.json,
+            // "own-key-channel-negative-index-round-trip").
+            const written = Arr.set(["a", "b"], "-1", "V");
+
+            expect(Object.entries(written)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["-1", "V"],
+            ]);
+            expect(Arr.has(written, "-1")).toBe(true);
+            expect(Arr.get(written, "-1")).toBeNull();
+        });
+
+        it("drops a stored non-index key through except, add and a later set", () => {
+            // JS-only: the own-property channel's limits, measured against PHP keeping the
+            // key through all three (task-24-data-release-readiness.json,
+            // "own-key-channel-survives-other-helpers"). only and forget do agree with PHP.
+            const base = () => Arr.set(["a", "b"], "01", "V");
+
+            expect(Object.entries(Arr.except(base(), ["zzz"]))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+            ]);
+            expect(Object.entries(Arr.add(base(), "2", "c"))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "c"],
+            ]);
+            expect(Object.entries(Arr.set(base(), "2", "c"))).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "c"],
+            ]);
+        });
+
         it("sets a value at index 0 of an empty array", () => {
             // Test indices
             expect(Arr.set([], 0, "far")).toHaveLength(1);
@@ -1857,7 +2151,7 @@ describe("Arr", () => {
 
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
-        describe("with a hostile __proto__ key (B8)", () => {
+        describe("with a hostile __proto__ key", () => {
             afterEach(() => {
                 expect(
                     ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
@@ -1963,6 +2257,84 @@ describe("Arr", () => {
             expect(Arr.push([1, 2], undefined, 3)).toEqual([1, 2, 3]);
         });
 
+        it("leaves the caller's list and its nested value alone", () => {
+            // JS-only: Arr::push takes the array BY REFERENCE and does mutate it
+            // (task-24-data-release-readiness.json, "push-mutates-the-caller-by-
+            // reference"); this port's settled contract keeps push non-mutating.
+            const inner = ["a"];
+            const source = [inner];
+            const result = Arr.push(source, "0", "b");
+
+            expect(result).toEqual([["a", "b"]]);
+            expect(result).not.toBe(source);
+            expect(source).toEqual([["a"]]);
+            expect(inner).toEqual(["a"]);
+        });
+
+        it("leaves the caller's nested value alone for an integer key too", () => {
+            // JS-only: same contract, integer key. PHP mutates through the reference
+            // (task-24-data-release-readiness.json, "push-integer-key-mutates-the-
+            // caller-by-reference"); the copy step used to skip a non-string key.
+            const inner = ["x"];
+            const result = Arr.push([inner], 0, "y");
+
+            expect(result).toEqual([["x", "y"]]);
+            expect(inner).toEqual(["x"]);
+            expect(result[0]).not.toBe(inner);
+        });
+
+        it("keeps a descended list's own non-index key", () => {
+            // JS-only: the push half of the same case. "01" is no array index, so the
+            // write stored it as the list's own property (path.spec pins that write) and
+            // the copy step has to carry it down with the elements.
+            const inner = Arr.set(["a", "b"], "01", "V");
+            const [first] = Arr.push([inner], "0", "z") as unknown[];
+
+            expect(Object.entries(first as object)).toEqual([
+                ["0", "a"],
+                ["1", "b"],
+                ["2", "z"],
+                ["01", "V"],
+            ]);
+            expect(first).not.toBe(inner);
+        });
+
+        it("writes into a frozen nested list instead of throwing", () => {
+            // JS-only: the push half. Array.prototype.push throws on a length-non-writable
+            // array in sloppy mode too, so the copy has to normalise every descriptor.
+            const frozenList = Object.freeze(["a"]);
+
+            expect(Arr.push([frozenList], "0", "z")).toEqual([["a", "z"]]);
+            expect(frozenList).toEqual(["a"]);
+        });
+
+        it("leaves the caller's list alone for a missing index", () => {
+            // JS-only: the same contract for the top-level form. PHP stores a gapped
+            // key 4 (task-24-data-release-readiness.json, "push-missing-index-stores-
+            // an-empty-array"); the port clamps that to an append, as its docblock says.
+            const source: unknown[] = [1, 2, 3];
+            const result = Arr.push(source, 4);
+
+            expect(result).toEqual([1, 2, 3, []]);
+            expect(source).toEqual([1, 2, 3]);
+        });
+
+        it("leaves the caller's list alone for a null key", () => {
+            // JS-only: the same contract for the root-append form.
+            const source = ["a"];
+            const result = Arr.push(source, null, "b");
+
+            expect(result).toEqual(["a", "b"]);
+            expect(source).toEqual(["a"]);
+        });
+
+        it("stands a non-accessible backing in for an empty array", () => {
+            // JS-only: Arr::push takes ArrayAccess|array, so no PHP call records a
+            // nullish backing; there is nothing of the caller's to copy either.
+            expect(Arr.push(null, "0", "value")).toEqual([["value"]]);
+            expect(Arr.push(undefined, null, "value")).toEqual(["value"]);
+        });
+
         it("creates nested structure for deep paths and appends when a path segment does not exist", () => {
             // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
             // into the array AT the key, never beside it").
@@ -2002,7 +2374,7 @@ describe("Arr", () => {
             // Try to create structure that would cause type conflicts
             try {
                 // This attempts to push to a path where intermediate value conflicts
-                const data: unknown = [];
+                const data: unknown[] = [];
                 Arr.push(data, "0.prop", "value"); // Should work, creates nested structure
                 expect(isArray(data)).toBe(true);
             } catch (error) {
@@ -2094,7 +2466,7 @@ describe("Arr", () => {
 
         it("pull with non-accessible data", () => {
             // Should handle non-arrays gracefully
-            const result = Arr.pull("not-array", 0);
+            const result = Arr.pull("not-array" as unknown as unknown[], 0);
             expect(result.value).toBe(null);
             expect(result.data).toEqual([]);
         });
@@ -2121,7 +2493,7 @@ describe("Arr", () => {
             expect(Arr.join(["a", "b"], ", ", " and ")).toBe("a and b");
             expect(Arr.join(["a"], ", ", " and ")).toBe("a");
             expect(Arr.join([], ", ", " and ")).toBe("");
-            expect(Arr.join("test", "")).toBe("");
+            expect(Arr.join("test" as unknown as unknown[], "")).toBe("");
             expect(Arr.join(null, "")).toBe("");
             expect(Arr.join(undefined, "")).toBe("");
         });
@@ -2399,30 +2771,28 @@ describe("Arr", () => {
 
         it("reads a keyed or Collection-like operand by key, as PHP's + does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand"
-            expect(Arr.union([1, 2], { 2: "z" })).toEqual([1, 2, "z"]);
-            expect(Arr.union([1], { 3: "d" }, [9, 8, 7, 6])).toEqual([
+            expect(Arr.union([1, 2], keyed({ 2: "z" }))).toEqual([1, 2, "z"]);
+            expect(Arr.union([1], keyed({ 3: "d" }), [9, 8, 7, 6])).toEqual([
                 1,
                 8,
                 7,
                 "d",
             ]);
-            expect(Arr.union([1, 2], { all: () => ({ 2: "z" }) })).toEqual([
-                1,
-                2,
-                "z",
-            ]);
+            expect(
+                Arr.union([1, 2], keyed({ all: () => ({ 2: "z" }) })),
+            ).toEqual([1, 2, "z"]);
         });
 
         it("holds undefined at an index no operand fills, and has no place for a string key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand": PHP's "gap" and
             // "string-key" results aren't lists; a list fills the gap with undefined, as replace does, and drops "a".
-            expect(Arr.union([1], { 3: "d" })).toEqual([
+            expect(Arr.union([1], keyed({ 3: "d" }))).toEqual([
                 1,
                 undefined,
                 undefined,
                 "d",
             ]);
-            expect(Arr.union([1, 2], { a: 5 })).toEqual([1, 2]);
+            expect(Arr.union([1, 2], keyed({ a: 5 }))).toEqual([1, 2]);
         });
     });
 
@@ -2451,14 +2821,23 @@ describe("Arr", () => {
             expect(result).toEqual(expected);
         });
 
-        it("should skip undefined items", () => {
-            // Tests when item is undefined
-            expect(Arr.unshift(["a", "b"], undefined, "c")).toEqual([
-                "c",
-                "a",
-                "b",
-            ]);
-            expect(Arr.unshift(["a"], undefined, undefined)).toEqual(["a"]);
+        it("keeps undefined items", () => {
+            // JS-only: undefined has no PHP analogue, and array_unshift prepends every
+            // argument. obj.unshift and both Collection.unshift backings keep it too,
+            // so dataUnshift's two backings now agree. Compared by element identity:
+            // an undefined element is not a missing one.
+            const withHole = Arr.unshift(["a", "b"], undefined, "c");
+
+            expect(withHole).toHaveLength(4);
+            expect(withHole[0]).toBeUndefined();
+            expect(withHole.slice(1)).toEqual(["c", "a", "b"]);
+
+            const allHoles = Arr.unshift(["a"], undefined, undefined);
+
+            expect(allHoles).toHaveLength(3);
+            expect(allHoles[0]).toBeUndefined();
+            expect(allHoles[1]).toBeUndefined();
+            expect(allHoles[2]).toBe("a");
         });
     });
 
@@ -2491,8 +2870,12 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.where(null, () => true)).toEqual([]);
-            expect(Arr.where("abc", () => true)).toEqual([]);
-            expect(Arr.where(123, () => true)).toEqual([]);
+            expect(
+                Arr.where("abc" as unknown as unknown[], () => true),
+            ).toEqual([]);
+            expect(Arr.where(123 as unknown as unknown[], () => true)).toEqual(
+                [],
+            );
         });
     });
 
@@ -2513,7 +2896,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.whereNotNull(null)).toEqual([]);
-            expect(Arr.whereNotNull("abc")).toEqual([]);
+            expect(Arr.whereNotNull("abc" as unknown as unknown[])).toEqual([]);
         });
     });
 
@@ -2622,7 +3005,6 @@ describe("Arr", () => {
 
             expect(Arr.contains(null, "house")).toBe(false);
             expect(Arr.contains(undefined, "house")).toBe(false);
-            expect(Arr.contains({ house: true }, "house")).toBe(false);
 
             const data10 = ["1"];
             expect(Arr.contains(data10, 1)).toBe(true);
@@ -2654,6 +3036,107 @@ describe("Arr", () => {
                 false,
             );
         });
+
+        it("compares a key path with an operator when a fourth argument follows", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
+            const rows = [{ v: 1 }, { v: 3 }, { v: "4" }, { v: 5 }];
+
+            expect(Arr.contains(rows, "v", "=", 4)).toBe(true);
+            expect(Arr.contains(rows, "v", "==", 4)).toBe(true);
+            expect(Arr.contains(rows, "v", "===", 4)).toBe(false);
+            expect(Arr.contains(rows, "v", ">", 4)).toBe(true);
+        });
+
+        it("compares a key path loosely in the three-argument form", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "contains-two-args-key-value" for the match, and "r3-list-backed-contains",
+            // "key-value-no-match", for the miss the first row never recorded.
+            expect(Arr.contains([{ v: 1 }, { v: 3 }, { v: 5 }], "v", 1)).toBe(
+                true,
+            );
+            expect(Arr.contains([{ v: 1 }, { v: 3 }, { v: 5 }], "v", 2)).toBe(
+                false,
+            );
+            // JS-only: an omitted third argument is the port's `strict` default, so
+            // PHP's `contains($k, null)` is written with an explicit null, not undefined.
+            expect(Arr.contains([{ v: 1 }], "v", undefined)).toBe(false);
+        });
+
+        it("reads the item itself for a null key and takes a callable key whole", () => {
+            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // `data_get($item, null)` answers the item.
+            expect(Arr.contains([1, 2, 3], null, ">", 2)).toBe(true);
+            expect(Arr.contains([1, 2, 3], null, ">", 9)).toBe(false);
+            expect(
+                Arr.contains([1, 2, 3], (item: number) => item === 2, "=", 1),
+            ).toBe(true);
+        });
+
+        it("reads the item itself for an undefined key and takes a non-string operator", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value", "null-key-operator" and "non-string-operator":
+            // a non-string operator misses every case arm and lands on PHP's `default:`.
+            expect(Arr.contains([1, 2, 3], undefined, ">", 2)).toBe(true);
+            expect(Arr.contains([1, 2, 3], undefined, ">", 9)).toBe(false);
+            expect(Arr.contains([{ v: 5 }, { v: 6 }], "v", 5, 6)).toBe(true);
+        });
+
+        it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
+            // JS-only: docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value" records "key-true" as true. This port's third
+            // parameter is `strict` and takes the boolean first, so PHP's call is written
+            // with an explicit operator here — "key-operator-true", also true.
+            const rows = [{ active: true }, { active: false }];
+
+            expect(Arr.contains(rows, "active", true)).toBe(false);
+            expect(Arr.contains(rows, "active", "=", true)).toBe(true);
+            // Same row, "containsStrict-key-of-a-row": routing a boolean by whether the
+            // key is a member of the data would flip THIS to true, and Laravel says false.
+            expect(
+                Arr.containsStrict(["date", "class", { foo: 50 }, ""], "foo"),
+            ).toBe(false);
+        });
+    });
+
+    describe("containsStrict", () => {
+        it("compares by value with PHP's ===", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            expect(Arr.containsStrict([1, 3, 5, "02"], "02")).toBe(true);
+            expect(Arr.containsStrict([1, 3, 5, "02"], 2)).toBe(false);
+        });
+
+        it("compares a key path strictly when a second argument is given", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            expect(
+                Arr.containsStrict([{ tags: ["a", "b"] }], "tags", ["a", "b"]),
+            ).toBe(true);
+            expect(
+                Arr.containsStrict([{ t: { x: 1, y: 2 } }], "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                Arr.containsStrict(
+                    [{ name: null }, { name: "x" }],
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            expect(Arr.containsStrict([{ a: 1 }], "name", null)).toBe(true);
+            expect(Arr.containsStrict([{ name: "x" }], "name", null)).toBe(
+                false,
+            );
+        });
+
+        it("ignores a callback match holding null, as first() does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-list-backed-contains", "containsStrict-callback-null": the list-backed
+            // twin. task-23's row of that name is backed by ['a' => null, 'b' => 1].
+            expect(
+                Arr.containsStrict([null, 1], (value) => value === null),
+            ).toBe(false);
+        });
     });
 
     describe("filter", () => {
@@ -2683,7 +3166,6 @@ describe("Arr", () => {
 
             expect(Arr.filter(null, () => true)).toEqual([]);
             expect(Arr.filter(undefined, () => true)).toEqual([]);
-            expect(Arr.filter({}, () => true)).toEqual([]);
         });
 
         // array_filter's falsy set is narrower than Boolean: it drops "0", "", 0, [],
@@ -2736,7 +3218,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.reject(null, () => true)).toEqual([]);
-            expect(Arr.reject("abc", () => true)).toEqual([]);
+            expect(
+                Arr.reject("abc" as unknown as unknown[], () => true),
+            ).toEqual([]);
         });
     });
 
@@ -3039,7 +3523,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.partition(null, () => true)).toEqual([[], []]);
-            expect(Arr.partition("abc", () => true)).toEqual([[], []]);
+            expect(
+                Arr.partition("abc" as unknown as unknown[], () => true),
+            ).toEqual([[], []]);
         });
     });
 
@@ -3071,7 +3557,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.select(null, "a")).toEqual([]);
-            expect(Arr.select("abc", "a")).toEqual([]);
+            expect(Arr.select("abc" as unknown as unknown[], "a")).toEqual([]);
 
             // Mixed object types
             const mixed = [
@@ -3141,21 +3627,19 @@ describe("Arr", () => {
         it("keys", () => {
             // Basic key extraction
             expect(Arr.keys(["a", "b", "c"])).toEqual([0, 1, 2]);
-            expect(Arr.keys({ x: 10, y: 20 })).toEqual([]);
 
             // Empty array
             expect(Arr.keys([])).toEqual([]);
 
             // Non-accessible data
             expect(Arr.keys(null)).toEqual([]);
-            expect(Arr.keys("abc")).toEqual([]);
+            expect(Arr.keys("abc" as unknown as unknown[])).toEqual([]);
         });
     });
 
     describe("values", () => {
         it("values", () => {
             // Basic value extraction
-            expect(Arr.values({ a: 1, b: 2, c: 3 })).toEqual([]);
             expect(Arr.values(["x", "y", "z"])).toEqual(["x", "y", "z"]);
 
             // Empty array
@@ -3163,7 +3647,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.values(null)).toEqual([]);
-            expect(Arr.values("abc")).toEqual([]);
+            expect(Arr.values("abc" as unknown as unknown[])).toEqual([]);
         });
     });
 
@@ -3225,7 +3709,9 @@ describe("Arr", () => {
 
         it("should return empty array for non-accessible data", () => {
             expect(Arr.diffAssoc(null, [1, 2])).toEqual([]);
-            expect(Arr.diffAssoc("not array", [1, 2])).toEqual([]);
+            expect(
+                Arr.diffAssoc("not array" as unknown as unknown[], [1, 2]),
+            ).toEqual([]);
         });
 
         it("should return copy of data for non-accessible other", () => {
@@ -3250,6 +3736,163 @@ describe("Arr", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
             expect(Arr.diffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
             expect(Arr.diffAssoc(["a", "b"], { 1: "b" })).toEqual(["a"]);
+        });
+    });
+
+    describe("diffKeys", () => {
+        it("keeps the items whose index no key of other carries", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys",
+            // "list" ([1,2,3] against [9,9] -> [2 => 3]) and "list-keyed-operand"
+            // ([1,2] against ['a' => 1, 1 => 5] -> [1]).
+            expect(Arr.diffKeys([1, 2, 3], [9, 9])).toEqual([3]);
+            expect(Arr.diffKeys([1, 2], { a: 1, 1: 5 })).toEqual([1]);
+        });
+
+        it("ignores values entirely", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // "diffKeys-value-ignored": [1, 2] against [999] answers [1 => 2] — index 0
+            // is dropped although 999 is neither value.
+            expect(Arr.diffKeys([1, 2], [999])).toEqual([2]);
+        });
+
+        it("keeps everything for a nullish operand", () => {
+            // Same row, "diffKeys-nullish-operand": [1, 2] against null answers [1, 2].
+            expect(Arr.diffKeys([1, 2], null)).toEqual([1, 2]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
+            expect(Arr.diffKeys(null, [1])).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "diffKeys-collection-operand": [1, 2] against Collection([9])
+            // answers [1 => 2].
+            expect(Arr.diffKeys([1, 2], collectionLike([9]))).toEqual([2]);
+        });
+    });
+
+    describe("diffUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", "list"
+        it("drops the items the callback calls equal to some value of other", () => {
+            expect(
+                Arr.diffUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    caseless,
+                ),
+            ).toEqual(["brown", "blue"]);
+        });
+
+        it("keeps everything for a nullish operand", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // "diffUsing-nullish-operand": ['green'] against null answers ['green'].
+            expect(Arr.diffUsing(["green"], null, caseless)).toEqual(["green"]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
+            expect(Arr.diffUsing(null, ["green"], caseless)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "diffUsing-collection-operand": ['green', 'brown'] against
+            // Collection(['GREEN']) answers [1 => 'brown'].
+            expect(
+                Arr.diffUsing(
+                    ["green", "brown"],
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual(["brown"]);
+        });
+    });
+
+    describe("diffAssocUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list", "diffAssocUsing-list"
+        it("compares indexes with the callback and values by PHP's string cast", () => {
+            expect(Arr.diffAssocUsing([1, 2, 3], [1, 9, 3], sameKey)).toEqual([
+                2,
+            ]);
+        });
+
+        it("matches a numeric-string value the way array_diff_uassoc does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-string-cast"
+            expect(Arr.diffAssocUsing([1, 2], ["1", "3"], sameKey)).toEqual([
+                2,
+            ]);
+        });
+
+        it("returns nothing for nullish data and everything for a nullish operand", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records the
+            // first; the second is `getArrayableItems(null)`, an empty operand.
+            expect(Arr.diffAssocUsing(null, [1], sameKey)).toEqual([]);
+            expect(Arr.diffAssocUsing([1, 2], null, sameKey)).toEqual([1, 2]);
+        });
+    });
+
+    describe("diffKeysUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "d6-diff-assoc-using-and-diff-keys-using-on-a-list", "diffKeysUsing-list"
+        it("compares indexes with the callback and ignores values", () => {
+            expect(Arr.diffKeysUsing([1, 2], { a: 1, 1: 5 }, sameKey)).toEqual([
+                1,
+            ]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
+            expect(
+                Arr.diffKeysUsing([1, 2, 3], collectionLike([9, 9]), sameKey),
+            ).toEqual([3]);
+        });
+
+        it("returns nothing for nullish data and everything for a nullish operand", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records the first.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-contains-boolean-value", "diffKeysUsing-nullish-operand", for the second.
+            expect(Arr.diffKeysUsing(null, [1], sameKey)).toEqual([]);
+            expect(Arr.diffKeysUsing([1, 2], null, sameKey)).toEqual([1, 2]);
+        });
+    });
+
+    describe("intersectUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using", "list"
+        it("keeps the items the callback calls equal to some value of other", () => {
+            expect(
+                Arr.intersectUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    caseless,
+                ),
+            ).toEqual(["green"]);
+        });
+
+        it("keeps nothing for a nullish operand", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // "intersectUsing-nullish-operand": ['green'] against null answers [].
+            expect(Arr.intersectUsing(["green"], null, caseless)).toEqual([]);
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
+            expect(Arr.intersectUsing(null, ["green"], caseless)).toEqual([]);
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "intersectUsing-collection-operand": ['green', 'brown'] against
+            // Collection(['GREEN']) answers ['green'].
+            expect(
+                Arr.intersectUsing(
+                    ["green", "brown"],
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual(["green"]);
         });
     });
 
@@ -3375,7 +4018,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.only(null, [0, 1])).toEqual([]);
-            expect(Arr.only("abc", [0, 1])).toEqual([]);
+            expect(Arr.only("abc" as unknown as unknown[], [0, 1])).toEqual([]);
         });
 
         it("casts a bare index and null the way Arr::only's (array) cast does", () => {
@@ -3397,7 +4040,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.prepend(null, "first")).toEqual(["first"]);
-            expect(Arr.prepend("abc", "first")).toEqual(["first"]);
+            expect(Arr.prepend("abc" as unknown as unknown[], "first")).toEqual(
+                ["first"],
+            );
         });
 
         it("treats an array value as a single opaque element", () => {
@@ -3444,7 +4089,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.prependKeysWith(null, "prefix_")).toEqual({});
-            expect(Arr.prependKeysWith("abc", "prefix_")).toEqual({});
+            expect(
+                Arr.prependKeysWith("abc" as unknown as unknown[], "prefix_"),
+            ).toEqual({});
         });
     });
 
@@ -3476,7 +4123,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.map(null, (value) => value)).toEqual([]);
-            expect(Arr.map("abc", (value) => value)).toEqual([]);
+            expect(
+                Arr.map("abc" as unknown as unknown[], (value) => value),
+            ).toEqual([]);
 
             // Complex transformation
             const objects = [{ a: 1 }, { a: 2 }, { a: 3 }];
@@ -3537,7 +4186,9 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.pluck(null, "name")).toEqual([]);
-            expect(Arr.pluck("abc", "name")).toEqual([]);
+            expect(Arr.pluck("abc" as unknown as unknown[], "name")).toEqual(
+                [],
+            );
         });
 
         it("keeps the whole item when the value path is null", () => {
@@ -3896,7 +4547,7 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.keyBy(null, "id")).toEqual({});
-            expect(Arr.keyBy("abc", "id")).toEqual({});
+            expect(Arr.keyBy("abc" as unknown as unknown[], "id")).toEqual({});
 
             // Missing key is keyed under an empty string key,
             // mirroring PHP's (string) null cast
@@ -4039,7 +4690,9 @@ describe("Arr", () => {
                 Arr.mapWithKeys(null, (value) => ({ [String(value)]: value })),
             ).toEqual({});
             expect(
-                Arr.mapWithKeys("abc", (value) => ({ [String(value)]: value })),
+                Arr.mapWithKeys("abc" as unknown as unknown[], (value) => ({
+                    [String(value)]: value,
+                })),
             ).toEqual({});
         });
 
@@ -4118,22 +4771,27 @@ describe("Arr", () => {
             ).toBe("apple");
 
             // Should throw for empty arrays
-            expect(() => Arr.sole([])).toThrow("No items found");
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback";
+            // task-23-obj-release-readiness.json, "sole-none" - the message is empty in Laravel too.
+            expect(() => Arr.sole([])).toThrow(ItemNotFoundException);
             expect(() => Arr.sole([1, 2, 3], (value) => value > 5)).toThrow(
-                "No items found",
+                ItemNotFoundException,
             );
 
             // Should throw for multiple items
-            expect(() => Arr.sole([1, 2])).toThrow(
-                "Multiple items found (2 items)",
-            );
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback";
+            // task-23-obj-release-readiness.json, "sole-multi-list"
+            expect(() => Arr.sole([1, 2])).toThrow(MultipleItemsFoundException);
+            expect(() => Arr.sole([1, 2])).toThrow("2 items were found.");
             expect(() => Arr.sole([1, 2, 3], (value) => value > 1)).toThrow(
-                "Multiple items found (2 items)",
+                "2 items were found.",
             );
 
             // Should throw for non-accessible data
-            expect(() => Arr.sole(null)).toThrow("No items found");
-            expect(() => Arr.sole("not array")).toThrow("No items found");
+            expect(() => Arr.sole(null)).toThrow(ItemNotFoundException);
+            expect(() => Arr.sole("not array" as unknown as unknown[])).toThrow(
+                ItemNotFoundException,
+            );
         });
     });
 
@@ -4186,14 +4844,56 @@ describe("Arr", () => {
 
             // Non-accessible data
             expect(Arr.mapSpread(null, (a) => a)).toEqual([]);
-            expect(Arr.mapSpread("not array", (a) => a)).toEqual([]);
+            expect(
+                Arr.mapSpread("not array" as unknown as unknown[], (a) => a),
+            ).toEqual([]);
+        });
+
+        it("spreads a Collection-like row's items, not its own fields", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-spread-collection-row", "list"
+            const rows = [collectionLike([1, "a"]), collectionLike([2, "b"])];
+
+            expect(
+                Arr.mapSpread(
+                    rows,
+                    (n, c, k) => `${String(n)}-${String(c)}-${String(k)}`,
+                ),
+            ).toEqual(["1-a-0", "2-b-1"]);
+        });
+
+        it("leaves the row alone where PHP appends the key to it", () => {
+            // JS-only: the same row records `row-mutated-to` [1, "a", 0] — PHP's
+            // `$chunk[] = $key` writes through the Collection handle. Only pop, shift,
+            // splice and unshift mutate here, so the row is read, never written.
+            const items = [1, "a"];
+
+            Arr.mapSpread([collectionLike(items)], (n, c, k) => [n, c, k]);
+
+            expect(items).toEqual([1, "a"]);
         });
     });
 
     describe("query", () => {
+        it("percent-encodes brackets, as PHP_QUERY_RFC3986 does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "query-nested-key-brackets",
+            // "query-list-value-brackets", "query-bracket-inside-a-key",
+            // "query-rfc3986-sub-delimiters". Arr::query is
+            // http_build_query(..., PHP_QUERY_RFC3986), which encodes [ and ] and the five
+            // sub-delimiters encodeURIComponent leaves alone.
+            expect(Arr.query(keyed({ a: { b: 1 } }))).toBe("a%5Bb%5D=1");
+            expect(Arr.query(keyed({ a: [1, 2] }))).toBe(
+                "a%5B0%5D=1&a%5B1%5D=2",
+            );
+            expect(Arr.query(keyed({ "a[b]": 1 }))).toBe("a%5Bb%5D=1");
+            expect(Arr.query(keyed({ "k!'()*~-._": "v!'()*~-._" }))).toBe(
+                "k%21%27%28%29%2A~-._=v%21%27%28%29%2A~-._",
+            );
+        });
+
         it("query", () => {
             // Basic object
-            expect(Arr.query({ name: "John", age: 30 })).toBe(
+            expect(Arr.query(keyed({ name: "John", age: 30 }))).toBe(
                 "name=John&age=30",
             );
 
@@ -4201,22 +4901,24 @@ describe("Arr", () => {
             expect(Arr.query(["a", "b", "c"])).toBe("0=a&1=b&2=c");
 
             // Nested object
-            expect(Arr.query({ user: { name: "John", age: 30 } })).toBe(
-                "user[name]=John&user[age]=30",
+            expect(Arr.query(keyed({ user: { name: "John", age: 30 } }))).toBe(
+                "user%5Bname%5D=John&user%5Bage%5D=30",
             );
 
             // Array with nested arrays
-            expect(Arr.query({ tags: ["php", "js"] })).toBe(
-                "tags[0]=php&tags[1]=js",
+            expect(Arr.query(keyed({ tags: ["php", "js"] }))).toBe(
+                "tags%5B0%5D=php&tags%5B1%5D=js",
             );
 
             // Empty values are skipped
             expect(
-                Arr.query({ name: "John", empty: null, undefined: undefined }),
+                Arr.query(
+                    keyed({ name: "John", empty: null, undefined: undefined }),
+                ),
             ).toBe("name=John");
 
             // Empty object/array
-            expect(Arr.query({})).toBe("");
+            expect(Arr.query(keyed({}))).toBe("");
             expect(Arr.query([])).toBe("");
 
             // Null/undefined input
@@ -4224,25 +4926,29 @@ describe("Arr", () => {
             expect(Arr.query(undefined)).toBe("");
 
             // Special characters are encoded
-            expect(Arr.query({ "special chars": "hello world & more" })).toBe(
-                "special%20chars=hello%20world%20%26%20more",
-            );
+            expect(
+                Arr.query(keyed({ "special chars": "hello world & more" })),
+            ).toBe("special%20chars=hello%20world%20%26%20more");
 
             // Scalar value
-            expect(Arr.query("scalar")).toBe("0=scalar");
-            expect(Arr.query(42)).toBe("0=42");
+            expect(Arr.query("scalar" as unknown as unknown[])).toBe(
+                "0=scalar",
+            );
+            expect(Arr.query(42 as unknown as unknown[])).toBe("0=42");
 
             // Complex nested structure
             expect(
-                Arr.query({
-                    simple: "value",
-                    nested: {
-                        array: [1, 2],
-                        deep: { value: "test" },
-                    },
-                }),
+                Arr.query(
+                    keyed({
+                        simple: "value",
+                        nested: {
+                            array: [1, 2],
+                            deep: { value: "test" },
+                        },
+                    }),
+                ),
             ).toBe(
-                "simple=value&nested[array][0]=1&nested[array][1]=2&nested[deep][value]=test",
+                "simple=value&nested%5Barray%5D%5B0%5D=1&nested%5Barray%5D%5B1%5D=2&nested%5Bdeep%5D%5Bvalue%5D=test",
             );
         });
 
@@ -4263,9 +4969,9 @@ describe("Arr", () => {
                 },
             };
 
-            const result = Arr.query(data);
-            expect(result).toContain("user[name]=John");
-            expect(result).toContain("user[meta][age]=30");
+            const result = Arr.query(keyed(data));
+            expect(result).toContain("user%5Bname%5D=John");
+            expect(result).toContain("user%5Bmeta%5D%5Bage%5D=30");
         });
 
         it("recurses into array elements that are themselves objects", () => {
@@ -4276,30 +4982,36 @@ describe("Arr", () => {
                 { nested: { deep: "value" } },
             ];
             const queryResult = Arr.query(arrayWithObjects);
-            expect(queryResult).toContain("0[name]=John");
-            expect(queryResult).toContain("0[age]=30");
+            expect(queryResult).toContain("0%5Bname%5D=John");
+            expect(queryResult).toContain("0%5Bage%5D=30");
             expect(queryResult).toContain("1=simpleString");
-            expect(queryResult).toContain("2[nested][deep]=value");
+            expect(queryResult).toContain("2%5Bnested%5D%5Bdeep%5D=value");
         });
 
         it("casts booleans, drops null, and keeps empty strings like Laravel's http_build_query", () => {
             // Ported from Laravel's testQuery
             expect(Arr.query([])).toBe("");
-            expect(Arr.query({ foo: "bar" })).toBe("foo=bar");
-            expect(Arr.query({ foo: "bar", bar: "baz" })).toBe(
+            expect(Arr.query(keyed({ foo: "bar" }))).toBe("foo=bar");
+            expect(Arr.query(keyed({ foo: "bar", bar: "baz" }))).toBe(
                 "foo=bar&bar=baz",
             );
 
             // PHP's http_build_query casts true to "1" and false to "0", captured in
             // docs/php-parity/task-08-arr-parity.json.
-            expect(Arr.query({ foo: "bar", bar: true })).toBe("foo=bar&bar=1");
-            expect(Arr.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=0");
+            expect(Arr.query(keyed({ foo: "bar", bar: true }))).toBe(
+                "foo=bar&bar=1",
+            );
+            expect(Arr.query(keyed({ foo: "bar", bar: false }))).toBe(
+                "foo=bar&bar=0",
+            );
 
             // null values are dropped entirely, not rendered as "bar="
-            expect(Arr.query({ foo: "bar", bar: null })).toBe("foo=bar");
+            expect(Arr.query(keyed({ foo: "bar", bar: null }))).toBe("foo=bar");
 
             // empty strings are retained as an empty value
-            expect(Arr.query({ foo: "bar", bar: "" })).toBe("foo=bar&bar=");
+            expect(Arr.query(keyed({ foo: "bar", bar: "" }))).toBe(
+                "foo=bar&bar=",
+            );
         });
     });
 
@@ -4325,7 +5037,7 @@ describe("Arr", () => {
             // Test with non-accessible data
             expect(Arr.shuffle(null)).toEqual([]);
             expect(Arr.shuffle(undefined)).toEqual([]);
-            expect(Arr.shuffle("string")).toEqual([]);
+            expect(Arr.shuffle("string" as unknown as unknown[])).toEqual([]);
 
             // Test with single element
             expect(Arr.shuffle([42])).toEqual([42]);
@@ -4391,7 +5103,6 @@ describe("Arr", () => {
             expect(Arr.slice(data, -5, 3)).toEqual([4, 5, 6]);
             expect(Arr.slice(data, -6, -2)).toEqual([3, 4, 5, 6]);
 
-            expect(Arr.slice({}, -6, -2)).toEqual([]);
             expect(Arr.slice(null, -6, -2)).toEqual([]);
             expect(Arr.slice(undefined, -6, -2)).toEqual([]);
         });
@@ -4502,6 +5213,27 @@ describe("Arr", () => {
                 "You requested 2 items, but there are only 0 items available.",
             );
         });
+
+        it("returns the picked values in the array's own order, not the order drawn", () => {
+            // docs/php-parity/task-30-map-order.json, "random-list-full-count"
+            expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([
+                "a",
+                "b",
+                "c",
+                "d",
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "random-list-partial-keeps-array-order"
+            const order = ["a", "b", "c", "d"];
+
+            for (let draw = 0; draw < 200; draw++) {
+                const positions = Arr.random(order, 2).map((value) =>
+                    order.indexOf(value),
+                );
+
+                expect(positions).toEqual([...positions].sort((x, y) => x - y));
+            }
+        });
     });
 
     describe("shift", () => {
@@ -4525,7 +5257,7 @@ describe("Arr", () => {
             expect(data).toEqual(["Otwell"]);
 
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
-            expect(Arr.shift({}, 2)).toBeNull();
+            expect(Arr.shift(null, 2)).toBeNull();
 
             expect(Arr.shift(null)).toBeNull();
             expect(Arr.shift(undefined)).toBeNull();
@@ -5147,52 +5879,60 @@ describe("Arr", () => {
 
             // Mixed array with conditional classes
             expect(
-                Arr.toCssClasses({
-                    "font-bold": true,
-                    "mt-4": true,
-                    "ml-2": true,
-                    "mr-2": false,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": true,
+                        "mt-4": true,
+                        "ml-2": true,
+                        "mr-2": false,
+                    }),
+                ),
             ).toBe("font-bold mt-4 ml-2");
 
             // Object-only with conditional keys
             expect(
-                Arr.toCssClasses({
-                    "font-bold": true,
-                    "mt-4": true,
-                    "ml-2": true,
-                    "mr-2": false,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": true,
+                        "mt-4": true,
+                        "ml-2": true,
+                        "mr-2": false,
+                    }),
+                ),
             ).toBe("font-bold mt-4 ml-2");
 
             // Empty cases
             expect(Arr.toCssClasses([])).toBe("");
-            expect(Arr.toCssClasses({})).toBe("");
+            expect(Arr.toCssClasses(keyed({}))).toBe("");
             expect(Arr.toCssClasses(null)).toBe("");
             expect(Arr.toCssClasses(undefined)).toBe("");
 
             // Object with all false values
             expect(
-                Arr.toCssClasses({
-                    "font-bold": false,
-                    "mt-4": false,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": false,
+                        "mt-4": false,
+                    }),
+                ),
             ).toBe("");
 
             // Complex nested object (should be flattened by wrap)
             expect(
-                Arr.toCssClasses({
-                    "font-bold": true,
-                    "text-red": false,
-                    "bg-blue": true,
-                }),
+                Arr.toCssClasses(
+                    keyed({
+                        "font-bold": true,
+                        "text-red": false,
+                        "bg-blue": true,
+                    }),
+                ),
             ).toBe("font-bold bg-blue");
         });
 
         it("should handle plain object input", () => {
             // Tests isObject branch
             const obj = { "font-bold": true, "text-red": false };
-            expect(Arr.toCssClasses(obj)).toBe("font-bold");
+            expect(Arr.toCssClasses(keyed(obj))).toBe("font-bold");
         });
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
@@ -5227,11 +5967,13 @@ describe("Arr", () => {
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
             // Captured: docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
             // with is_numeric edge-case keys").
-            expect(Arr.toCssClasses({ "": "foo" })).toBe("");
-            expect(Arr.toCssClasses({ " ": "foo" })).toBe(" ");
-            expect(Arr.toCssClasses({ "0x10": "foo" })).toBe("0x10");
-            expect(Arr.toCssClasses({ "1e3": "foo" })).toBe("foo");
-            expect(Arr.toCssClasses({ Infinity: "foo" })).toBe("Infinity");
+            expect(Arr.toCssClasses(keyed({ "": "foo" }))).toBe("");
+            expect(Arr.toCssClasses(keyed({ " ": "foo" }))).toBe(" ");
+            expect(Arr.toCssClasses(keyed({ "0x10": "foo" }))).toBe("0x10");
+            expect(Arr.toCssClasses(keyed({ "1e3": "foo" }))).toBe("foo");
+            expect(Arr.toCssClasses(keyed({ Infinity: "foo" }))).toBe(
+                "Infinity",
+            );
         });
 
         it.each([
@@ -5241,14 +5983,14 @@ describe("Arr", () => {
         ])("applies PHP truthiness to the value %s", (value, expected) => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssClasses({ foo: value })).toBe(expected);
+            expect(Arr.toCssClasses(keyed({ foo: value }))).toBe(expected);
         });
 
         it("drops an empty container value", () => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssClasses({ foo: [] })).toBe("");
-            expect(Arr.toCssClasses({ foo: {} })).toBe("");
+            expect(Arr.toCssClasses(keyed({ foo: [] }))).toBe("");
+            expect(Arr.toCssClasses(keyed({ foo: {} }))).toBe("");
         });
     });
 
@@ -5266,26 +6008,30 @@ describe("Arr", () => {
 
             // Mixed array with conditional styles
             expect(
-                Arr.toCssStyles({
-                    "font-weight: bold": true,
-                    "margin-top: 4px": true,
-                    "margin-left: 2px": true,
-                    "margin-right: 2px": false,
-                }),
+                Arr.toCssStyles(
+                    keyed({
+                        "font-weight: bold": true,
+                        "margin-top: 4px": true,
+                        "margin-left: 2px": true,
+                        "margin-right: 2px": false,
+                    }),
+                ),
             ).toBe("font-weight: bold; margin-top: 4px; margin-left: 2px;");
 
             // Empty cases
             expect(Arr.toCssStyles([])).toBe("");
-            expect(Arr.toCssStyles({})).toBe("");
+            expect(Arr.toCssStyles(keyed({}))).toBe("");
             expect(Arr.toCssStyles(null)).toBe("");
             expect(Arr.toCssStyles(undefined)).toBe("");
 
             // Object with all false values
             expect(
-                Arr.toCssStyles({
-                    "font-weight: bold": false,
-                    "margin-top: 4px": false,
-                }),
+                Arr.toCssStyles(
+                    keyed({
+                        "font-weight: bold": false,
+                        "margin-top: 4px": false,
+                    }),
+                ),
             ).toBe("");
 
             // Styles already ending with semicolon should not get double semicolons
@@ -5300,7 +6046,7 @@ describe("Arr", () => {
                 "font-weight: bold": true,
                 "color: red": false,
             };
-            expect(Arr.toCssStyles(obj)).toBe("font-weight: bold;");
+            expect(Arr.toCssStyles(keyed(obj))).toBe("font-weight: bold;");
         });
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
@@ -5337,11 +6083,13 @@ describe("Arr", () => {
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
             // docs/php-parity/task-08-arr-parity.json
             // ("Arr::toCssStyles with is_numeric edge-case keys").
-            expect(Arr.toCssStyles({ "": "foo" })).toBe(";");
-            expect(Arr.toCssStyles({ " ": "foo" })).toBe(" ;");
-            expect(Arr.toCssStyles({ "0x10": "foo" })).toBe("0x10;");
-            expect(Arr.toCssStyles({ "1e3": "foo" })).toBe("foo;");
-            expect(Arr.toCssStyles({ Infinity: "foo" })).toBe("Infinity;");
+            expect(Arr.toCssStyles(keyed({ "": "foo" }))).toBe(";");
+            expect(Arr.toCssStyles(keyed({ " ": "foo" }))).toBe(" ;");
+            expect(Arr.toCssStyles(keyed({ "0x10": "foo" }))).toBe("0x10;");
+            expect(Arr.toCssStyles(keyed({ "1e3": "foo" }))).toBe("foo;");
+            expect(Arr.toCssStyles(keyed({ Infinity: "foo" }))).toBe(
+                "Infinity;",
+            );
         });
 
         it.each([
@@ -5351,18 +6099,41 @@ describe("Arr", () => {
         ])("applies PHP truthiness to the value %s", (value, expected) => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssStyles({ foo: value })).toBe(expected);
+            expect(Arr.toCssStyles(keyed({ foo: value }))).toBe(expected);
         });
 
         it("drops an empty container value", () => {
             // Captured: docs/php-parity/task-08-arr-parity.json
             // ("CSS helpers use PHP truthiness for the value").
-            expect(Arr.toCssStyles({ foo: [] })).toBe("");
-            expect(Arr.toCssStyles({ foo: {} })).toBe("");
+            expect(Arr.toCssStyles(keyed({ foo: [] }))).toBe("");
+            expect(Arr.toCssStyles(keyed({ foo: {} }))).toBe("");
         });
     });
 
     describe("sortRecursive", () => {
+        it("sorts a zero-keyed record by value, as array_is_list does", () => {
+            // docs/php-parity/task-29-final-behaviour.json,
+            // "sortRecursive-explicit-zero-based-keys",
+            // "sortRecursiveDesc-explicit-zero-based-keys",
+            // "sortRecursive-gapped-int-keys-stay-ksorted".
+            // Arr::sortRecursive sorts a LIST by value; a record keyed 0..n-1 is one.
+            expect(Arr.sortRecursive(keyed({ 0: 3, 1: 1, 2: 2 }))).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+            });
+            expect(Arr.sortRecursiveDesc(keyed({ 0: 3, 1: 1, 2: 2 }))).toEqual({
+                0: 3,
+                1: 2,
+                2: 1,
+            });
+            // A gap breaks array_is_list, so the keys are sorted instead.
+            expect(Arr.sortRecursive(keyed({ 0: 3, 2: 1 }))).toEqual({
+                0: 3,
+                2: 1,
+            });
+        });
+
         it("sortRecursive", () => {
             // Basic nested array sorting
             const basic = {
@@ -5373,7 +6144,7 @@ describe("Arr", () => {
                 a: { c: 1, d: 2 },
                 b: [1, 2, 3],
             };
-            expect(Arr.sortRecursive(basic)).toEqual(basicExpected);
+            expect(Arr.sortRecursive(keyed(basic))).toEqual(basicExpected);
 
             // Complex nested structure from PHP tests
             const complex = {
@@ -5397,12 +6168,15 @@ describe("Arr", () => {
                 },
             };
 
+            // docs/php-parity/task-29-final-behaviour.json, "sortRecursive-literal-js-spelling".
+            // ArrTest writes `30 => [2=>'a',1=>'b',0=>'c']`, which no JS object can hold: a plain
+            // object enumerates integer keys ascending, so it IS a list and sorts by value.
             const complexExpected = {
                 20: [0, 1, 2],
                 30: {
-                    0: "c",
+                    0: "a",
                     1: "b",
-                    2: "a",
+                    2: "c",
                 },
                 repositories: [{ id: 0 }, { id: 1 }],
                 users: [
@@ -5418,11 +6192,11 @@ describe("Arr", () => {
                 ],
             };
 
-            expect(Arr.sortRecursive(complex)).toEqual(complexExpected);
+            expect(Arr.sortRecursive(keyed(complex))).toEqual(complexExpected);
 
             // Empty cases
             expect(Arr.sortRecursive([])).toEqual([]);
-            expect(Arr.sortRecursive({})).toEqual({});
+            expect(Arr.sortRecursive(keyed({}))).toEqual({});
             expect(Arr.sortRecursive(null)).toEqual(null);
             expect(Arr.sortRecursive(undefined)).toEqual(undefined);
 
@@ -5430,7 +6204,7 @@ describe("Arr", () => {
             expect(Arr.sortRecursive([3, 1, 2])).toEqual([1, 2, 3]);
 
             // Simple object
-            expect(Arr.sortRecursive({ c: 3, a: 1, b: 2 })).toEqual({
+            expect(Arr.sortRecursive(keyed({ c: 3, a: 1, b: 2 }))).toEqual({
                 a: 1,
                 b: 2,
                 c: 3,
@@ -5438,7 +6212,9 @@ describe("Arr", () => {
 
             // Test descending parameter
             expect(Arr.sortRecursive([3, 1, 2], true)).toEqual([3, 2, 1]);
-            expect(Arr.sortRecursive({ c: 3, a: 1, b: 2 }, true)).toEqual({
+            expect(
+                Arr.sortRecursive(keyed({ c: 3, a: 1, b: 2 }), true),
+            ).toEqual({
                 c: 3,
                 b: 2,
                 a: 1,
@@ -5450,7 +6226,7 @@ describe("Arr", () => {
             ).toEqual([3, 2, 1]);
             expect(
                 Arr.sortRecursive(
-                    { c: 3, a: 1, b: 2 },
+                    keyed({ c: 3, a: 1, b: 2 }),
                     SortDirection.Descending,
                 ),
             ).toEqual({
@@ -5462,10 +6238,16 @@ describe("Arr", () => {
 
         it("should return primitive values unchanged", () => {
             // Tests else branch returning data unchanged
-            expect(Arr.sortRecursive(42)).toEqual(42);
-            expect(Arr.sortRecursive("string")).toEqual("string");
-            expect(Arr.sortRecursive(true)).toEqual(true);
-            expect(Arr.sortRecursive(false)).toEqual(false);
+            expect(Arr.sortRecursive(42 as unknown as unknown[])).toEqual(42);
+            expect(Arr.sortRecursive("string" as unknown as unknown[])).toEqual(
+                "string",
+            );
+            expect(Arr.sortRecursive(true as unknown as unknown[])).toEqual(
+                true,
+            );
+            expect(Arr.sortRecursive(false as unknown as unknown[])).toEqual(
+                false,
+            );
         });
 
         it("does not reparent the result via a __proto__ entry (object input)", () => {
@@ -5493,7 +6275,7 @@ describe("Arr", () => {
             // "sortRecursive-list-object-leaf", "sortRecursive-object-leaf"
             const date = new Date(0);
             const point = new Point();
-            const map = Arr.sortRecursive({ d: date, a: 1 });
+            const map = Arr.sortRecursive(keyed({ d: date, a: 1 }));
 
             expect(Arr.sortRecursive([[date]])[0]?.[0]).toBe(date);
             expect(Arr.sortRecursive([point])[0]).toBe(point);
@@ -5514,7 +6296,7 @@ describe("Arr", () => {
                 b: { d: 2, c: 1 },
                 a: [3, 2, 1],
             };
-            expect(Arr.sortRecursiveDesc(basic)).toEqual(basicExpected);
+            expect(Arr.sortRecursiveDesc(keyed(basic))).toEqual(basicExpected);
 
             // Complex nested structure from PHP tests
             const complex = {
@@ -5567,11 +6349,13 @@ describe("Arr", () => {
                 empty: [],
             };
 
-            expect(Arr.sortRecursiveDesc(complex)).toEqual(complexExpected);
+            expect(Arr.sortRecursiveDesc(keyed(complex))).toEqual(
+                complexExpected,
+            );
 
             // Empty cases
             expect(Arr.sortRecursiveDesc([])).toEqual([]);
-            expect(Arr.sortRecursiveDesc({})).toEqual({});
+            expect(Arr.sortRecursiveDesc(keyed({}))).toEqual({});
             expect(Arr.sortRecursiveDesc(null)).toEqual(null);
             expect(Arr.sortRecursiveDesc(undefined)).toEqual(undefined);
 
@@ -5579,7 +6363,7 @@ describe("Arr", () => {
             expect(Arr.sortRecursiveDesc([1, 2, 3])).toEqual([3, 2, 1]);
 
             // Simple object
-            expect(Arr.sortRecursiveDesc({ a: 1, b: 2, c: 3 })).toEqual({
+            expect(Arr.sortRecursiveDesc(keyed({ a: 1, b: 2, c: 3 }))).toEqual({
                 c: 3,
                 b: 2,
                 a: 1,
@@ -5691,28 +6475,31 @@ describe("Arr", () => {
         it("should call default function when key is null and data is not array", () => {
             // Tests defaultValue as function when key is null and data is not array
             const defaultFn = () => "default";
-            expect(Arr.get("not-array", null, defaultFn)).toBe("default");
-            expect(Arr.get({ a: 1 }, null, defaultFn)).toBe("default");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], null, defaultFn),
+            ).toBe("default");
         });
 
         it("should return non-function default when key is null and data is not array", () => {
             // Tests defaultValue as non-function when key is null and data is not array
-            expect(Arr.get("not-array", null, "default")).toBe("default");
-            expect(Arr.get({ a: 1 }, null, "default-value")).toBe(
-                "default-value",
-            );
+            expect(
+                Arr.get("not-array" as unknown as unknown[], null, "default"),
+            ).toBe("default");
         });
 
         it("should call default function when data is not an array with non-null key", () => {
             // Tests defaultValue function called when key is not null and data is not array
             const defaultFn = () => "default-from-fn";
-            expect(Arr.get("not-array", 0, defaultFn)).toBe("default-from-fn");
-            expect(Arr.get({ a: 1 }, "key", defaultFn)).toBe("default-from-fn");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], 0, defaultFn),
+            ).toBe("default-from-fn");
         });
 
         it("should return non-function default when data is not an array with non-null key", () => {
             // Tests non-function default returned when key is not null and data is not array
-            expect(Arr.get("not-array", 0, "default")).toBe("default");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], 0, "default"),
+            ).toBe("default");
             expect(Arr.get(null, 0, "default")).toBe("default");
         });
 
@@ -5761,8 +6548,9 @@ describe("Arr", () => {
             expect(Arr.get([{}], "0.nonexistent", "default")).toBe("default");
 
             // Test getMixedValue edge cases
-            expect(Arr.get("not-array", "0", "default")).toBe("default");
-            expect(Arr.get({}, "0", "default")).toBe("default");
+            expect(
+                Arr.get("not-array" as unknown as unknown[], "0", "default"),
+            ).toBe("default");
 
             // Test array bounds with mixed notation
             expect(Arr.get([{ data: [1, 2, 3] }], "0.data.10", "default")).toBe(
@@ -5885,7 +6673,9 @@ describe("Arr", () => {
         it("should handle non-accessible data", () => {
             expect(Arr.intersectAssoc(null, [1, 2])).toEqual([]);
             expect(Arr.intersectAssoc([1, 2], null)).toEqual([]);
-            expect(Arr.intersectAssoc("not array", [1, 2])).toEqual([]);
+            expect(
+                Arr.intersectAssoc("not array" as unknown as unknown[], [1, 2]),
+            ).toEqual([]);
             expect(Arr.intersectAssoc([1, 2], "not array")).toEqual([]);
         });
 
@@ -5938,9 +6728,13 @@ describe("Arr", () => {
             const cb = (a: number, b: number) => a === b;
             expect(Arr.intersectAssocUsing(null, [1, 2], cb)).toEqual([]);
             expect(Arr.intersectAssocUsing([1, 2], null, cb)).toEqual([]);
-            expect(Arr.intersectAssocUsing("not array", [1, 2], cb)).toEqual(
-                [],
-            );
+            expect(
+                Arr.intersectAssocUsing(
+                    "not array" as unknown as unknown[],
+                    [1, 2],
+                    cb,
+                ),
+            ).toEqual([]);
             expect(Arr.intersectAssocUsing([1, 2], "not array", cb)).toEqual(
                 [],
             );
@@ -6054,6 +6848,56 @@ describe("Arr", () => {
             Arr.unshift(Array.prototype, 1);
 
             unpolluted();
+        });
+
+        it("splice never inserts into Array.prototype", () => {
+            // JS-only: the one mutator that writes with no element to remove first.
+            expect(Arr.splice(Array.prototype, 0, 0, "PWNED")).toEqual([]);
+
+            unpolluted();
+        });
+
+        it("pop, shift and splice never remove from Array.prototype", () => {
+            // JS-only: these three took the seeded element off the shared global. The
+            // afterEach above clears index "0" and the length again either way.
+            Array.prototype.push("PWNED");
+
+            expect(Arr.pop(Array.prototype)).toBeNull();
+            expect(Arr.shift(Array.prototype)).toBeNull();
+            expect(Arr.splice(Array.prototype, 0, 1)).toEqual([]);
+            expect(Array.prototype.length).toBe(1);
+            expect(Array.prototype[0]).toBe("PWNED");
+        });
+
+        it("refuses an array-shaped prototype object with its own __proto__ key", () => {
+            // JS-only: defineProperty is the only way to give an ARRAY an own enumerable
+            // "__proto__" key; a literal `{ __proto__: ... }` sets the link instead. No
+            // global is touched, so the identity guard is the only thing under test.
+            const hostile: unknown[] = ["kept"];
+            Object.defineProperty(hostile, "__proto__", {
+                value: { polluted: true },
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+            const Hostile = function () {} as unknown as { prototype: unknown };
+            Hostile.prototype = hostile;
+            Object.defineProperty(hostile, "constructor", {
+                value: Hostile,
+                enumerable: false,
+                configurable: true,
+                writable: true,
+            });
+
+            expect(Arr.pop(hostile)).toBeNull();
+            expect(Arr.pop(hostile, 2)).toEqual([]);
+            expect(Arr.shift(hostile)).toBeNull();
+            expect(Arr.splice(hostile, 0, 1, "X")).toEqual([]);
+            expect(Object.entries(hostile)).toEqual([
+                ["0", "kept"],
+                ["__proto__", { polluted: true }],
+            ]);
+            expect(hostile.length).toBe(1);
         });
     });
 });

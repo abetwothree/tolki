@@ -5,7 +5,11 @@ import { describe, expectTypeOf, it } from "vitest";
 
 import {
     integerKeyed,
+    mapOrList,
+    mapUnion,
+    maybeMap,
     numberList,
+    numberMap,
     type Profile,
     profile,
     type Row,
@@ -66,6 +70,83 @@ describe("obj sorting type tests", () => {
                 Record<string, unknown>
             >();
         });
+
+        it("sort a Map's values under string keys instead of answering the NonObjectItems row", () => {
+            // A Map's keys are only known at runtime, and integer ones are renumbered, so the
+            // sorted result is a string-keyed record of the Map's values.
+            expectTypeOf(Obj.sort(numberMap)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.sortDesc(numberMap)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.sort(new Map([[2, { n: 1 }]]), "n")).toEqualTypeOf<
+                Record<string, { n: number }>
+            >();
+            expectTypeOf(Obj.sort(numberMap)).not.toEqualTypeOf<
+                Record<string, never>
+            >();
+        });
+
+        it("sort a union of Maps, and answer the widest row for a Map in any other union", () => {
+            expectTypeOf(Obj.sort(mapUnion)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            Obj.sortDesc(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return value;
+            });
+            expectTypeOf(Obj.sort(maybeMap)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.sortDesc(mapOrList)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+
+        it("hand a Map's callback its value and its key as PHP casts it", () => {
+            const rows = new Map([[2, { n: 1, id: "p" }]]);
+
+            expectTypeOf(
+                Obj.sort(rows, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<{
+                        n: number;
+                        id: string;
+                    }>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return value.n;
+                }),
+            ).toEqualTypeOf<Record<string, { n: number; id: string }>>();
+            // A Map<string, …> key "2" reaches the callback as 2, as PHP casts it.
+            Obj.sortDesc(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return value;
+            });
+        });
+
+        it("type a Map's multi-key descriptors by its values", () => {
+            const rows = new Map([[2, { n: 1, id: "p" }]]);
+
+            expectTypeOf(
+                Obj.sortDesc(rows, [
+                    "n",
+                    ["id", "asc"],
+                    (a, b) => {
+                        expectTypeOf(a).toEqualTypeOf<{
+                            n: number;
+                            id: string;
+                        }>();
+
+                        return a.n - b.n;
+                    },
+                ]),
+            ).toEqualTypeOf<Record<string, { n: number; id: string }>>();
+        });
     });
 
     describe("sortRecursive and sortRecursiveDesc", () => {
@@ -85,6 +166,29 @@ describe("obj sorting type tests", () => {
             expectTypeOf(
                 Obj.sortRecursiveDesc(profile),
             ).toEqualTypeOf<Profile>();
+        });
+
+        it("sort a Map into a string-keyed record of its values", () => {
+            // A Map's keys are only known at runtime; each value keeps its type, as a nested
+            // list or record is sorted in place of itself and a nested Map is kept as it is.
+            expectTypeOf(Obj.sortRecursive(numberMap)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(
+                Obj.sortRecursive(numberMap, SortDirection.Descending),
+            ).toEqualTypeOf<Record<string, number>>();
+            expectTypeOf(Obj.sortRecursive(numberMap, true)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(Obj.sortRecursiveDesc(numberMap)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(
+                Obj.sortRecursiveDesc(new Map([[1, { b: 2, a: 1 }]])),
+            ).toEqualTypeOf<Record<string, { b: number; a: number }>>();
+            expectTypeOf(Obj.sortRecursiveDesc(numberMap)).not.toEqualTypeOf<
+                Record<string, never>
+            >();
         });
     });
 

@@ -1,0 +1,116 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "search-array-needle-strict",
+            "php": "collect([[1,2],[3]])->search([1,2], true)",
+            "value": 0
+        },
+        {
+            "label": "search-array-needle-loose",
+            "php": "collect([[1,2],[3]])->search([1,2], false)",
+            "value": 0
+        },
+        {
+            "label": "search-array-needle-wrong-order-strict",
+            "php": "collect([[1,2]])->search([2,1], true)",
+            "value": false
+        },
+        {
+            "label": "search-empty-array-needle-loose",
+            "php": "collect([[]])->search([], false)",
+            "value": 0
+        },
+        {
+            "label": "search-keyed-needle-strict",
+            "php": "collect(['x'=>['a'=>1]])->search(['a'=>1], true)",
+            "value": "x"
+        },
+        {
+            "label": "search-keyed-needle-loose",
+            "php": "collect(['x'=>['a'=>1]])->search(['a'=>1], false)",
+            "value": "x"
+        },
+        {
+            "label": "search-reordered-keys-strict",
+            "php": "collect([['b'=>2,'a'=>1]])->search(['a'=>1,'b'=>2], true)",
+            "value": false
+        },
+        {
+            "label": "search-reordered-keys-loose",
+            "php": "collect([['b'=>2,'a'=>1]])->search(['a'=>1,'b'=>2], false)",
+            "value": 0
+        },
+        {
+            "label": "search-numeric-string-element-strict",
+            "php": "collect([[1,2]])->search([1,'2'], true)",
+            "value": false
+        },
+        {
+            "label": "search-numeric-string-element-loose",
+            "php": "collect([[1,2]])->search([1,'2'], false)",
+            "value": 0
+        },
+        {
+            "label": "search-int-needle-on-numeric-string-strict",
+            "php": "collect(['1',2])->search(1, true)",
+            "value": false
+        },
+        {
+            "label": "search-int-needle-on-numeric-string-loose",
+            "php": "collect(['1',2])->search(1, false)",
+            "value": 0
+        },
+        {
+            "label": "search-string-needle-strict",
+            "php": "collect([0,'a'])->search('a', true)",
+            "value": 1
+        },
+        {
+            "label": "search-string-needle-loose",
+            "php": "collect([0,'a'])->search('a', false)",
+            "value": 1
+        },
+        {
+            "label": "search-null-needle-on-zero-strict",
+            "php": "collect([0])->search(null, true)",
+            "value": false
+        },
+        {
+            "label": "search-null-needle-on-zero-loose",
+            "php": "collect([0])->search(null, false)",
+            "value": 0
+        },
+        {
+            "label": "before-array-needle",
+            "php": "collect([[0],[1,2]])->before([1,2])",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "after-array-needle",
+            "php": "collect([[1,2],[9]])->after([1,2])",
+            "value": [
+                9
+            ]
+        },
+        {
+            "label": "before-keyed-needle",
+            "php": "collect(['a'=>['k'=>0],'b'=>['k'=>1]])->before(['k'=>1])",
+            "value": {
+                "k": 0
+            }
+        },
+        {
+            "label": "after-keyed-needle",
+            "php": "collect(['a'=>['k'=>0],'b'=>['k'=>1]])->after(['k'=>0])",
+            "value": {
+                "k": 1
+            }
+        }
+    ]
+}

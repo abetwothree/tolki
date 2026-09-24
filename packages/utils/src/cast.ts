@@ -11,7 +11,7 @@ import {
     isWeakMap,
     isWeakSet,
 } from "./guards";
-import { defineKey, isPhpArrayKey } from "./keys";
+import { defineKey, isPhpArrayKey, keyedEntries } from "./keys";
 
 /** PHP's default `precision` ini setting: the significant digits its `(string)` cast prints for a float. */
 const PHP_FLOAT_PRECISION = 14;
@@ -292,10 +292,9 @@ export function arrayableValues<T>(items: unknown): T[] {
     }
 
     if (isObject(unwrapped)) {
-        // A Map's default iterator yields [key, value] pairs; PHP's foreach over a
-        // Traversable yields values only, so unwrap via values() instead of spreading.
+        // A Map stands for a PHP array, so keys PHP stores as one (1 and "1") give one value.
         if (isMap(unwrapped)) {
-            return [...unwrapped.values()] as T[];
+            return keyedEntries<T>(unwrapped).map(([, value]) => value);
         }
 
         if (isIterable(unwrapped)) {
@@ -312,13 +311,14 @@ export function arrayableValues<T>(items: unknown): T[] {
  * Normalize a keyed operand the way Laravel's `getArrayableItems()` does:
  * nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`,
  * a Map or other iterable becomes an object, a list becomes an index-keyed object, and a WeakMap or
- * WeakSet, whose entries can't be read, becomes `{}`.
+ * WeakSet, whose entries can't be read, becomes `{}`. A Map's keys are cast as PHP casts an array key.
  *
  * @param items - The operand to normalize
  * @returns The operand's entries as a plain object
  *
  * @example
  * arrayableItems({ all: () => ({ a: 1 }) }); -> { a: 1 }
+ * arrayableItems(new Map([[1, "a"], ["1", "b"]])); -> { 1: "b" }
  */
 export function arrayableItems(items: unknown): Record<string, unknown> {
     const unwrapped = unwrapArrayable(items);
@@ -335,8 +335,8 @@ export function arrayableItems(items: unknown): Record<string, unknown> {
         if (isMap(unwrapped)) {
             const out: Record<string, unknown> = {};
 
-            for (const [key, value] of unwrapped) {
-                defineKey(out, String(key), value);
+            for (const [key, value] of keyedEntries(unwrapped)) {
+                defineKey(out, key, value);
             }
 
             return out;

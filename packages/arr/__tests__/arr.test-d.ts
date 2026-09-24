@@ -1000,9 +1000,11 @@ describe("arr type tests", () => {
         });
 
         describe("Falls back to unknown[] when data is untyped or unknown", () => {
-            it("returns unknown[] when data is typed as unknown", () => {
+            it("rejects unknown data and returns unknown[] once narrowed", () => {
                 const data: unknown = [["a", "b"]];
-                const result = Arr.arrayItem(data, 0);
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.arrayItem(data, 0);
+                const result = Arr.arrayItem(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
@@ -1095,7 +1097,7 @@ describe("arr type tests", () => {
 
             it("generic fallback overload returns unknown[] for untyped calls", () => {
                 const data: unknown = [];
-                const result = Arr.arrayItem(data, 0);
+                const result = Arr.arrayItem(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<unknown[]>();
             });
         });
@@ -1361,21 +1363,23 @@ describe("arr type tests", () => {
         });
 
         describe("unknown and untyped data", () => {
-            it("returns boolean from unknown data", () => {
+            it("rejects unknown data and returns boolean once narrowed", () => {
                 const data: unknown = [true, false];
-                const result = Arr.boolean(data, 0);
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.boolean(data, 0);
+                const result = Arr.boolean(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
-            it("returns boolean from unknown data with default", () => {
+            it("returns boolean from narrowed unknown data with default", () => {
                 const data: unknown = [true];
-                const result = Arr.boolean(data, 5, true);
+                const result = Arr.boolean(data as unknown[], 5, true);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
-            it("returns boolean from unknown data with closure default", () => {
+            it("returns boolean from narrowed unknown data with closure default", () => {
                 const data: unknown = [true];
-                const result = Arr.boolean(data, 5, () => false);
+                const result = Arr.boolean(data as unknown[], 5, () => false);
                 expectTypeOf(result).toEqualTypeOf<boolean>();
             });
 
@@ -1697,12 +1701,6 @@ describe("arr type tests", () => {
         });
 
         describe("function signature", () => {
-            it("has correct parameter types", () => {
-                expectTypeOf(Arr.chunk).parameters.toExtend<
-                    [readonly unknown[], number]
-                >();
-            });
-
             it("first parameter accepts arrays", () => {
                 expectTypeOf(Arr.chunk)
                     .parameter(0)
@@ -1713,8 +1711,16 @@ describe("arr type tests", () => {
                 expectTypeOf(Arr.chunk).parameter(1).toEqualTypeOf<number>();
             });
 
-            it("return type extends unknown[][]", () => {
-                expectTypeOf(Arr.chunk).returns.toExtend<unknown[][]>();
+            it("third parameter is an optional boolean", () => {
+                expectTypeOf(Arr.chunk)
+                    .parameter(2)
+                    .toExtend<boolean | undefined>();
+            });
+
+            it("return type extends unknown[][] or a preserved-keys chunk", () => {
+                expectTypeOf(Arr.chunk).returns.toExtend<
+                    unknown[][] | Record<number, unknown>[]
+                >();
             });
         });
     });
@@ -2360,12 +2366,14 @@ describe("arr type tests", () => {
             });
         });
 
-        describe("a plain object, Map or Set argument (variadic fallback)", () => {
-            it("falls back to unknown[][]", () => {
-                const fromObject = Arr.crossJoin([1, 2], { a: "x", b: "y" });
-                const fromSet = Arr.crossJoin([1], new Set(["x"]));
-                expectTypeOf(fromObject).toEqualTypeOf<unknown[][]>();
-                expectTypeOf(fromSet).toEqualTypeOf<unknown[][]>();
+        describe("a non-array dimension", () => {
+            it("rejects a plain object, Map or Set dimension", () => {
+                // @ts-expect-error - keyed dimensions belong to Obj.crossJoin
+                Arr.crossJoin([1, 2], { a: "x", b: "y" });
+                // @ts-expect-error - a Map dimension belongs to Obj.crossJoin
+                Arr.crossJoin([1], new Map([["a", "x"]]));
+                // @ts-expect-error - a Set dimension belongs to Obj.crossJoin
+                Arr.crossJoin([1], new Set(["x"]));
             });
 
             it("still rejects a scalar argument", () => {
@@ -3549,6 +3557,18 @@ describe("arr type tests", () => {
 
             it("return type always extends unknown[]", () => {
                 expectTypeOf(Arr.union).returns.toExtend<unknown[]>();
+            });
+        });
+
+        describe("a keyed operand is left to Obj.union", () => {
+            it("rejects a record as the first operand", () => {
+                // @ts-expect-error - keyed data belongs to Obj.union
+                Arr.union({ a: 1 }, { b: 2 });
+            });
+
+            it("rejects a record as a later operand", () => {
+                // @ts-expect-error - a keyed operand belongs to Obj.union
+                Arr.union([1, 2], { 2: "z" });
             });
         });
     });
@@ -6173,13 +6193,10 @@ describe("arr type tests", () => {
         });
 
         describe("unknown and non-array input", () => {
-            it("returns Record<string, number> for non-array object", () => {
-                const result = Arr.flip({
-                    apple: 0,
-                    banana: 1,
-                    cherry: 2,
-                });
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+            it("rejects a non-array object, which belongs to obj/data", () => {
+                const fruit = { apple: 0, banana: 1, cherry: 2 };
+                // @ts-expect-error - arr's rows are array-shaped so dispatch can route keyed data to obj.
+                Arr.flip(fruit);
             });
 
             it("returns Record<string, number> for null", () => {
@@ -6522,21 +6539,23 @@ describe("arr type tests", () => {
         });
 
         describe("unknown and untyped data", () => {
-            it("returns number from unknown data", () => {
+            it("rejects unknown data and returns number once narrowed", () => {
                 const data: unknown = [1.5, 2.5];
-                const result = Arr.float(data, 0);
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.float(data, 0);
+                const result = Arr.float(data as unknown[], 0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
 
-            it("returns number from unknown data with default", () => {
+            it("returns number from narrowed unknown data with default", () => {
                 const data: unknown = [1.5];
-                const result = Arr.float(data, 5, 0.0);
+                const result = Arr.float(data as unknown[], 5, 0.0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
 
-            it("returns number from unknown data with closure default", () => {
+            it("returns number from narrowed unknown data with closure default", () => {
                 const data: unknown = [1.5];
-                const result = Arr.float(data, 5, () => 0.0);
+                const result = Arr.float(data as unknown[], 5, () => 0.0);
                 expectTypeOf(result).toEqualTypeOf<number>();
             });
 
@@ -6968,6 +6987,8 @@ describe("arr type tests", () => {
             });
 
             it("accepts PathKeys as second parameter", () => {
+                // `PathKeys`' array half is `readonly PathKey[]`, so an `as const`
+                // tuple of keys reaches this row too.
                 expectTypeOf(Arr.forget)
                     .parameter(1)
                     .toExtend<
@@ -6975,7 +6996,7 @@ describe("arr type tests", () => {
                         | string
                         | null
                         | undefined
-                        | Array<number | string | null | undefined>
+                        | readonly (number | string | null | undefined)[]
                     >();
             });
 
@@ -7237,29 +7258,29 @@ describe("arr type tests", () => {
             });
         });
 
-        describe("object input returns Record<string, unknown>", () => {
-            it("returns Record<string, unknown> for plain object literal", () => {
-                const result = Arr.from({ foo: "bar" });
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+        describe("a non-iterable object is left to Obj.from", () => {
+            it("rejects a plain object literal", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from({ foo: "bar" });
             });
 
-            it("returns Record<string, unknown> for constructed Object", () => {
-                const result = Arr.from(new Object({ foo: "bar" }));
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects a constructed Object", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(new Object({ foo: "bar" }));
             });
 
-            it("returns Record<string, unknown> for object with mixed value types", () => {
+            it("rejects an object with mixed value types", () => {
                 const obj = {
                     name: "Alice",
                     age: 30,
                     active: true,
                     scores: [95, 88],
                 };
-                const result = Arr.from(obj);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(obj);
             });
 
-            it("returns Record<string, unknown> for deeply nested object", () => {
+            it("rejects a deeply nested object", () => {
                 const obj = {
                     level1: {
                         level2: {
@@ -7269,33 +7290,33 @@ describe("arr type tests", () => {
                         },
                     },
                 };
-                const result = Arr.from(obj);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(obj);
             });
 
-            it("returns Record<string, unknown> for class instance", () => {
+            it("rejects a class instance", () => {
                 class User {
                     name = "Alice";
                     age = 30;
                 }
-                const result = Arr.from(new User());
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(new User());
             });
 
-            it("returns Record<string, unknown> for Date object", () => {
-                const result = Arr.from(new Date());
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects a Date object", () => {
+                // @ts-expect-error - a Date has no values to walk
+                Arr.from(new Date());
             });
 
-            it("returns Record<string, unknown> for RegExp object", () => {
-                const result = Arr.from(/test/);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects a RegExp object", () => {
+                // @ts-expect-error - a RegExp has no values to walk
+                Arr.from(/test/);
             });
 
-            it("returns Record<string, unknown> for WeakMap", () => {
+            it("rejects a WeakMap, which cannot be enumerated", () => {
                 const weakMap = new WeakMap();
-                const result = Arr.from(weakMap);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - a WeakMap is neither array- nor iterable-shaped
+                Arr.from(weakMap);
             });
 
             it("returns the values as an array for Set", () => {
@@ -7313,15 +7334,15 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<number[]>();
             });
 
-            it("returns Record<string, unknown> for empty plain object", () => {
-                const result = Arr.from({});
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+            it("rejects an empty plain object", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from({});
             });
 
-            it("returns Record<string, unknown> for object typed as Record", () => {
+            it("rejects an object typed as Record", () => {
                 const obj: Record<string, number> = { a: 1, b: 2 };
-                const result = Arr.from(obj);
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from(obj);
             });
         });
 
@@ -7477,12 +7498,12 @@ describe("arr type tests", () => {
                 >();
             });
 
-            it("returns Record<string, unknown> for generic object wrapper", () => {
+            it("rejects a generic object wrapper", () => {
                 function fromObjWrapper(items: object) {
+                    // @ts-expect-error - `object` covers keyed data, which is Obj.from's
                     return Arr.from(items);
                 }
-                const result = fromObjWrapper({ a: 1 });
-                expectTypeOf(result).toEqualTypeOf<Record<string, unknown>>();
+                expectTypeOf(fromObjWrapper).toBeCallableWith({ a: 1 });
             });
 
             it("handles array of Date objects", () => {
@@ -7537,9 +7558,9 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toExtend<Record<PropertyKey, unknown>>();
             });
 
-            it("object overload result extends Record<string, unknown>", () => {
-                const result = Arr.from({ a: 1 });
-                expectTypeOf(result).toExtend<Record<string, unknown>>();
+            it("has no object overload left for Obj.from's shape", () => {
+                // @ts-expect-error - keyed data belongs to Obj.from
+                Arr.from({ a: 1 });
             });
 
             it("scalar overloads result is assignable to never", () => {
@@ -8172,17 +8193,18 @@ describe("arr type tests", () => {
                 const data = ["names", { developer: "taylor" }];
                 // "1.developer" on (string | { developer: string })[] union
                 // Path resolves through each union member separately:
-                // string → undefined, { developer: string } → string
-                // Result union: string | undefined
+                // string → the default, { developer: string } → string
+                // Runtime answers "taylor"; the default is a string too, so the union is string
                 const result = Arr.get(data, "1.developer", "dayle");
-                expectTypeOf(result).toEqualTypeOf<string | undefined>();
+                expectTypeOf(result).toEqualTypeOf<string>();
             });
 
             it("handles mixed array/object data with non-existing property", () => {
                 const data = ["names", { developer: "taylor" }];
-                // "1.5" resolves through union: string[5] → string, obj → undefined
+                // "1.5" resolves through union: string[5] → string, obj → the default
+                // Runtime answers "dayle", the default, which is a string as well
                 const result = Arr.get(data, "1.5", "dayle");
-                expectTypeOf(result).toEqualTypeOf<string | undefined>();
+                expectTypeOf(result).toEqualTypeOf<string>();
             });
 
             it("returns element union for literal index on complex functional test data", () => {

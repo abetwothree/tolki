@@ -20,15 +20,160 @@ describe("Utils", () => {
         expect(Utils.compareValues(undefined, undefined)).toBe(0);
         expect(Utils.compareValues(undefined, 1)).toBe(-1);
         expect(Utils.compareValues(1, undefined)).toBe(1);
+    });
 
-        // Object comparisons
-        expect(Utils.compareValues({ x: 1 }, { x: 1 })).toBe(0);
-        expect(Utils.compareValues({ x: 1 }, { x: 2 })).toBe(-1);
-        expect(Utils.compareValues({ x: 2 }, { x: 1 })).toBe(1);
+    describe("compareValues follows PHP's array comparison rule", () => {
+        // docs/php-parity/task-25-spaceship-arrays.json, "spaceship on arrays of
+        // different length, shorter on the left", "... longer on the left",
+        // "spaceship where the longer array holds the smaller elements" and
+        // "spaceship on an empty array and a one-element array"
+        it("orders two arrays by entry count before it looks at an element", () => {
+            expect(Utils.compareValues([1], [1, 2])).toBe(-1);
+            expect(Utils.compareValues([1, 2], [1])).toBe(1);
+            expect(Utils.compareValues([9, 9], [10])).toBe(1);
+            expect(Utils.compareValues([], [1])).toBe(-1);
+        });
 
-        // Mixed type comparisons
-        expect(Utils.compareValues({}, [])).toBe(1); // "{}" > "[]"
-        expect(Utils.compareValues([], {})).toBe(-1); // "[]" < "{}"
+        // task-25-spaceship-arrays.json, "spaceship on two empty arrays". A plain
+        // object and an array both model a PHP array here, so an empty one of
+        // either shape holds no entries and the pair ties.
+        it("ties two empty containers, whichever shape they carry", () => {
+            expect(Utils.compareValues([], [])).toBe(0);
+            expect(Utils.compareValues({}, {})).toBe(0);
+            expect(Utils.compareValues({}, [])).toBe(0);
+            expect(Utils.compareValues([], {})).toBe(0);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on equal-length arrays
+        // differing in the last element", "... in the first element",
+        // "spaceship on identical arrays" and "spaceship on arrays of numeric strings"
+        it("compares two equal-length arrays element-wise", () => {
+            expect(Utils.compareValues([1, 2], [1, 3])).toBe(-1);
+            expect(Utils.compareValues([2, 1], [1, 9])).toBe(1);
+            expect(Utils.compareValues([1, 2], [1, 2])).toBe(0);
+            expect(Utils.compareValues(["9"], ["10"])).toBe(-1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on keyed arrays sharing their
+        // keys", "... holding the same pairs in another order", and the stdClass
+        // rows "spaceship on stdClass objects sharing a property" / "... with equal properties"
+        it("compares two keyed objects by key, in whatever order they carry", () => {
+            expect(Utils.compareValues({ x: 1 }, { x: 2 })).toBe(-1);
+            expect(Utils.compareValues({ x: 2 }, { x: 1 })).toBe(1);
+            expect(Utils.compareValues({ x: 1 }, { x: 1 })).toBe(0);
+            expect(Utils.compareValues({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(0);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on keyed arrays with disjoint
+        // keys" and its reversed twin, "spaceship on a keyed array and a list of
+        // the same length", "spaceship on stdClass objects with disjoint properties"
+        it("answers 1 for a pair PHP calls uncomparable, from either side", () => {
+            expect(Utils.compareValues({ a: 1 }, { b: 1 })).toBe(1);
+            expect(Utils.compareValues({ b: 1 }, { a: 1 })).toBe(1);
+            expect(Utils.compareValues({ a: 1 }, [1])).toBe(1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship walks the left operand keys in
+        // their own order" - the empty-string key decides nothing here because the
+        // left operand reaches "z" first.
+        it("walks the left operand's own key order, not a sorted one", () => {
+            expect(Utils.compareValues({ z: 1, "": 9 }, { z: 2, "": 8 })).toBe(
+                -1,
+            );
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on nested arrays differing one
+        // level down" and "... differing in an inner count"
+        it("recurses, so an inner count outranks an inner element", () => {
+            expect(Utils.compareValues([[1], [2]], [[1], [3]])).toBe(-1);
+            expect(Utils.compareValues([[1]], [[1, 2]])).toBe(-1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on nested arrays differing one
+        // level down". The same row twice on the left is the point: a pair that
+        // tied must still be compared against the next right-hand operand.
+        it("compares a repeated operand again for each right-hand side", () => {
+            const row = { m: 1 };
+
+            expect(Utils.compareValues([row, row], [{ m: 1 }, { m: 2 }])).toBe(
+                -1,
+            );
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on two DateTime objects,
+        // earlier on the left", "... later on the left", "... of the same
+        // instant" - a DateTime's state is not a property table, so PHP does
+        // not take the array rule for it.
+        it("orders two dates chronologically, not by their empty key sets", () => {
+            expect(
+                Utils.compareValues(
+                    new Date("2020-01-01"),
+                    new Date("2021-01-01"),
+                ),
+            ).toBe(-1);
+            expect(
+                Utils.compareValues(
+                    new Date("2021-01-01"),
+                    new Date("2020-01-01"),
+                ),
+            ).toBe(1);
+            expect(
+                Utils.compareValues(
+                    new Date("2020-01-01"),
+                    new Date("2020-01-01"),
+                ),
+            ).toBe(0);
+        });
+
+        // task-25-spaceship-arrays.json, "usort orders two DateTime objects
+        // chronologically". Compared by identity, not by a serialised form.
+        it("sorts a list of dates chronologically through the comparator", () => {
+            const earlier = new Date("2020-01-01");
+            const later = new Date("2021-01-01");
+
+            const sorted = [later, earlier].sort(Utils.compareValues);
+
+            expect(sorted[0]).toBe(earlier);
+            expect(sorted[1]).toBe(later);
+        });
+
+        // JS-only: a Map, a Set and a RegExp have no PHP analogue at all, so
+        // there is no rule to port - each keeps its state off its own
+        // enumerable keys, and any two of them tie on the entry count.
+        it("ties two Maps, two Sets or two RegExps", () => {
+            expect(Utils.compareValues(new Map([["a", 1]]), new Map())).toBe(0);
+            expect(Utils.compareValues(new Set([1, 2]), new Set())).toBe(0);
+            expect(Utils.compareValues(/a/, /b/)).toBe(0);
+        });
+
+        // Recorded divergence, not parity: task-25-spaceship-arrays.json, "spaceship on a
+        // DateTime and a stdClass", its reverse and "... and an empty array" are 1, while
+        // "spaceship on an empty array and a DateTime" is -1. This port ties on entry count.
+        it("leaves a date against a plain object or an array to the entry count", () => {
+            expect(Utils.compareValues(new Date(0), {})).toBe(0);
+            expect(Utils.compareValues({}, new Date(0))).toBe(0);
+            expect(Utils.compareValues(new Date(0), [])).toBe(0);
+            expect(Utils.compareValues(new Date(0), { x: 1 })).toBe(-1);
+        });
+
+        // task-25-spaceship-arrays.json, "spaceship on two self-referencing arrays"
+        // and "... stdClass objects": PHP throws a catchable Error for both, where
+        // this port ties the repeated pair so a sort over cyclic rows finishes.
+        it("ties a cyclic pair instead of throwing", () => {
+            const left: unknown[] = [1];
+            left.push(left);
+            const right: unknown[] = [1];
+            right.push(right);
+
+            expect(Utils.compareValues(left, right)).toBe(0);
+
+            const leftObject: Record<string, unknown> = { x: 1 };
+            leftObject["self"] = leftObject;
+            const rightObject: Record<string, unknown> = { x: 1 };
+            rightObject["self"] = rightObject;
+
+            expect(Utils.compareValues(leftObject, rightObject)).toBe(0);
+        });
     });
 
     describe("compareValues follows PHP 8's comparison rules", () => {
@@ -166,6 +311,15 @@ describe("Utils", () => {
             expect(Utils.compareValues([1], 5)).toBe(-1);
             expect(Utils.compareValues([1], 0)).toBe(1);
             expect(Utils.compareValues([5], 5)).toBe(0);
+        });
+
+        // The same recorded divergence, against the rows that probed for it:
+        // task-25-spaceship-arrays.json, "spaceship on an empty array and zero",
+        // "... and its only element as a string", "... and a numeric string" are all 1.
+        it("leaves an array against a string to JS coercion too", () => {
+            expect(Utils.compareValues([], 0)).toBe(0);
+            expect(Utils.compareValues(["a"], "a")).toBe(0);
+            expect(Utils.compareValues([1], "1")).toBe(0);
         });
     });
 
@@ -608,6 +762,256 @@ describe("Utils", () => {
         it("should return false for different types of objects", () => {
             expect(Utils.strictEqual({ a: 1 }, [1])).toBe(false);
             expect(Utils.strictEqual([], {})).toBe(false);
+        });
+    });
+
+    describe("operatorMatch", () => {
+        it("compares two equal numbers with each of PHP's eleven operators", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // "4 vs 4": the whole row, one assertion per recorded operator.
+            expect(Utils.operatorMatch(4, "=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "==", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "!=", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<>", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, ">", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, ">=", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "===", 4)).toBe(true);
+            expect(Utils.operatorMatch(4, "!==", 4)).toBe(false);
+            expect(Utils.operatorMatch(4, "<=>", 4)).toBe(false);
+        });
+
+        it("compares a number with its numeric string across the same eleven", () => {
+            // Same row, "4 vs \"4\"": only `===` and `!==` tell the two spellings apart.
+            expect(Utils.operatorMatch(4, "=", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "==", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "!=", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "<>", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "<", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, ">", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "<=", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, ">=", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "===", "4")).toBe(false);
+            expect(Utils.operatorMatch(4, "!==", "4")).toBe(true);
+            expect(Utils.operatorMatch(4, "<=>", "4")).toBe(false);
+        });
+
+        it("treats an unrecognised operator as PHP's switch default does", () => {
+            // EnumeratesValues.php:1170-1173 — `default:` shares the `=` arm.
+            expect(Utils.operatorMatch(1, "nonsense", "1")).toBe(true);
+            expect(Utils.operatorMatch(1, "nonsense", 2)).toBe(false);
+        });
+
+        it("answers PHP's spaceship truthiness, so only an equal pair is falsy", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-operator-table-extras", "1 vs 2", "2 vs 1" and "1 vs 1", each row's
+            // "<=>" cell; and "r3-operator-table", "NAN vs 1", "1 vs NAN" and
+            // "NAN vs NAN", the same cell. docs/php-parity/task-19-spaceship.json,
+            // "spaceship on an int and its numeric string": `1 <=> "1"` is 0.
+            expect(Utils.operatorMatch(1, "<=>", 2)).toBe(true);
+            expect(Utils.operatorMatch(2, "<=>", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, "<=>", 1)).toBe(false);
+            expect(Utils.operatorMatch(1, "<=>", "1")).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, "<=>", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", Number.NaN)).toBe(
+                true,
+            );
+        });
+
+        it("leaves a NaN operand unordered against a number", () => {
+            // Same file, "r3-operator-table", "NAN vs 1": PHP answers false for
+            // <, >, <= and >= alike.
+            expect(Utils.operatorMatch(Number.NaN, "<", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, ">", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=", 1)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, ">=", 1)).toBe(false);
+        });
+
+        it("orders a NaN operand against a bool, which PHP casts both sides for", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-nan-bool-null-table", "NAN vs true" and "true vs NAN": NAN casts to
+            // true, so the pair ties and `<=`/`>=` hold while `<=>` is falsy.
+            expect(Utils.operatorMatch(Number.NaN, "<=", true)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, ">=", true)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<", true)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, ">", true)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", true)).toBe(false);
+            expect(Utils.operatorMatch(true, "<=", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(true, ">=", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(true, "<=>", Number.NaN)).toBe(false);
+            // Same row, "NAN vs false" and "false vs NAN": a truthy NAN sorts above false.
+            expect(Utils.operatorMatch(Number.NaN, ">", false)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, ">=", false)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<", false)).toBe(false);
+            expect(Utils.operatorMatch(false, "<", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(false, "<=", Number.NaN)).toBe(true);
+        });
+
+        it("orders a NaN operand against null the same way", () => {
+            // Same row, "NAN vs null" and "null vs NAN": null casts to false, NAN to
+            // true, so NAN sorts above it and `<=>` answers 1 for the real difference.
+            expect(Utils.operatorMatch(Number.NaN, ">", null)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, ">=", null)).toBe(true);
+            expect(Utils.operatorMatch(Number.NaN, "<", null)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=", null)).toBe(false);
+            expect(Utils.operatorMatch(Number.NaN, "<=>", null)).toBe(true);
+            expect(Utils.operatorMatch(null, "<", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(null, "<=", Number.NaN)).toBe(true);
+            expect(Utils.operatorMatch(null, ">=", Number.NaN)).toBe(false);
+        });
+
+        it("orders a null operand the way PHP's comparison cast does", () => {
+            // Same file, "r3-operator-table", "null vs 4", "1 vs null", "0 vs null",
+            // "null vs null", "-1 vs null", "\"abc\" vs null" and "\"\" vs null": null
+            // casts to false against a number, so every truthy value sorts above it,
+            // and to "" against a string, which is why `"" > null` is false.
+            expect(Utils.operatorMatch(null, "<", 4)).toBe(true);
+            expect(Utils.operatorMatch(null, "<=", 4)).toBe(true);
+            expect(Utils.operatorMatch(null, ">", 4)).toBe(false);
+            expect(Utils.operatorMatch(1, ">", null)).toBe(true);
+            expect(Utils.operatorMatch(1, ">=", null)).toBe(true);
+            expect(Utils.operatorMatch(1, "<", null)).toBe(false);
+            expect(Utils.operatorMatch(0, "<=", null)).toBe(true);
+            expect(Utils.operatorMatch(0, ">", null)).toBe(false);
+            expect(Utils.operatorMatch(null, "<=", null)).toBe(true);
+            expect(Utils.operatorMatch(null, "<", null)).toBe(false);
+            // The two JavaScript's own coercion answers the other way round.
+            expect(Utils.operatorMatch(-1, ">", null)).toBe(true);
+            expect(Utils.operatorMatch("abc", ">", null)).toBe(true);
+            expect(Utils.operatorMatch("", ">", null)).toBe(false);
+        });
+
+        it("compares two numeric strings numerically, not lexically", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // "\"10\" vs \"9\"", its ">" and "<" cells: the recorded `contains` calls, not
+            // just task-19's raw `"10" <=> "9"`.
+            expect(Utils.operatorMatch("10", ">", "9")).toBe(true);
+            expect(Utils.operatorMatch("10", "<", "9")).toBe(false);
+        });
+
+        it("orders an undefined operand exactly as it orders null", () => {
+            // JS-only: PHP has no undefined, so no row records it. compareValues reads
+            // it as PHP reads null, which is the value this port stores a missing path as.
+            expect(Utils.operatorMatch(undefined, "<", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, ">", undefined)).toBe(true);
+            expect(Utils.operatorMatch(undefined, "<=", 1)).toBe(true);
+            expect(Utils.operatorMatch(1, ">=", undefined)).toBe(true);
+        });
+
+        it("compares two arrays under === by value, as PHP's === does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "r4-strict-operators",
+            // "[1,2] vs [1,2]", "[] vs []", "[[1]] vs [[1]]", "[1,2] vs [1,\"2\"]" and
+            // "[1,2] vs [2,1]": same keys, same order and same types, recursing.
+            expect(Utils.operatorMatch([1, 2], "===", [1, 2])).toBe(true);
+            expect(Utils.operatorMatch([1, 2], "!==", [1, 2])).toBe(false);
+            expect(Utils.operatorMatch([], "===", [])).toBe(true);
+            expect(Utils.operatorMatch([[1]], "===", [[1]])).toBe(true);
+            expect(Utils.operatorMatch([1, 2], "===", [1, "2"])).toBe(false);
+            expect(Utils.operatorMatch([1, 2], "!==", [1, "2"])).toBe(true);
+            expect(Utils.operatorMatch([1, 2], "===", [2, 1])).toBe(false);
+        });
+
+        it("compares two plain objects under === by value, but a class instance by identity", () => {
+            // Same row "r4-strict-operators", "['a'=>1,'b'=>2] vs the same pairs" and
+            // "['a'=>1,'b'=>2] vs the same pairs reordered": a plain
+            // object models a PHP array, so key ORDER counts. "D4Point(1) vs another
+            // D4Point(1)" / "vs itself" and "DateTimeImmutable@0 vs another" keep identity.
+            class Point {
+                constructor(public x: number) {}
+            }
+
+            const point = new Point(1);
+            const stamp = new Date(0);
+
+            expect(
+                Utils.operatorMatch({ a: 1, b: 2 }, "===", { a: 1, b: 2 }),
+            ).toBe(true);
+            expect(
+                Utils.operatorMatch({ a: 1, b: 2 }, "===", { b: 2, a: 1 }),
+            ).toBe(false);
+            expect(
+                Utils.operatorMatch({ a: 1, b: 2 }, "!==", { b: 2, a: 1 }),
+            ).toBe(true);
+            expect(Utils.operatorMatch(point, "===", new Point(1))).toBe(false);
+            expect(Utils.operatorMatch(point, "!==", new Point(1))).toBe(true);
+            expect(Utils.operatorMatch(point, "===", point)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "===", new Date(0))).toBe(false);
+            expect(Utils.operatorMatch(stamp, "!==", new Date(0))).toBe(true);
+            // Same row "r4-strict-operators", "[1,2] vs 1": an array against a scalar is
+            // never identical.
+            expect(Utils.operatorMatch([1, 2], "===", 1)).toBe(false);
+            expect(Utils.operatorMatch([1, 2], "!==", 1)).toBe(true);
+        });
+
+        it("answers only the inequality operators when one side alone is an object", () => {
+            // EnumeratesValues.php:1166-1168 — Laravel's guard ahead of the switch; raw PHP
+            // would order the pair after a "could not be converted to int" notice.
+            const stamp = new Date(0);
+
+            expect(Utils.operatorMatch(stamp, "!=", 1)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "<>", 1)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "!==", 1)).toBe(true);
+            expect(Utils.operatorMatch(stamp, "=", 1)).toBe(false);
+            expect(Utils.operatorMatch(stamp, ">", 1)).toBe(false);
+            // Two plain objects, or one against a string, fall through to the switch.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-operator-table-extras", "assoc array vs the same pairs" and
+            // "assoc array vs \"x\"", each row's "'='" cell.
+            expect(Utils.operatorMatch({ a: 1 }, "=", { a: 1 })).toBe(true);
+            expect(Utils.operatorMatch({ a: 1 }, "=", "x")).toBe(false);
+        });
+
+        it("refuses to order a class instance against a string, as PHP's guard does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-object-scalar-guard", "stdClass vs \"\"", "\"\" vs stdClass",
+            // "\"abc\" vs stdClass" and "stdClass vs true": a class instance is what
+            // `is_object` counts, and it carries no `__toString`, so no string casting.
+            class Point {
+                constructor(public x: number) {}
+            }
+
+            const point = new Point(1);
+
+            expect(Utils.operatorMatch(point, ">", "")).toBe(false);
+            expect(Utils.operatorMatch(point, ">=", "")).toBe(false);
+            expect(Utils.operatorMatch("", "<", point)).toBe(false);
+            expect(Utils.operatorMatch("", "<=", point)).toBe(false);
+            expect(Utils.operatorMatch("abc", ">", point)).toBe(false);
+            expect(Utils.operatorMatch(point, "<", "abc")).toBe(false);
+            expect(Utils.operatorMatch(point, "<=>", "abc")).toBe(false);
+            expect(Utils.operatorMatch(point, "=", true)).toBe(false);
+            expect(Utils.operatorMatch(point, "!=", true)).toBe(true);
+        });
+
+        it("keeps a plain object off that guard, because it models a PHP array", () => {
+            // Same row, "assoc array vs true" and "empty array vs null": PHP's guard
+            // never sees an array, so `['x' => 1] == true` and `[] == null` both hold.
+            expect(Utils.operatorMatch({ x: 1 }, "=", true)).toBe(true);
+            expect(Utils.operatorMatch({ x: 1 }, "!=", true)).toBe(false);
+            expect(Utils.operatorMatch({ x: 1 }, "<=", true)).toBe(true);
+            expect(Utils.operatorMatch({ x: 1 }, ">=", true)).toBe(true);
+            expect(Utils.operatorMatch({ x: 1 }, "<", true)).toBe(false);
+            expect(Utils.operatorMatch({ x: 1 }, "<=>", true)).toBe(false);
+            expect(Utils.operatorMatch({}, "=", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "==", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "!=", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "===", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "!==", null)).toBe(true);
+        });
+
+        it("keeps compareValues' array-vs-scalar divergence on a plain object too", () => {
+            // Same row, "assoc array vs \"abc\"", "\"abc\" vs assoc array" and
+            // "empty array vs null": PHP sorts every array above every scalar and calls
+            // `[] <=> null` 0; compareValues keeps JS coercion, a documented divergence.
+            expect(Utils.operatorMatch({ x: 1 }, ">", "abc")).toBe(false);
+            expect(Utils.operatorMatch({ x: 1 }, "<", "abc")).toBe(true);
+            expect(Utils.operatorMatch("abc", "<", { x: 1 })).toBe(false);
+            expect(Utils.operatorMatch("abc", ">", { x: 1 })).toBe(true);
+            expect(Utils.operatorMatch({}, ">", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "<=", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "<=>", null)).toBe(true);
         });
     });
 });

@@ -1,0 +1,4036 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "chunk-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunk(2)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ],
+                    [
+                        0,
+                        "a"
+                    ]
+                ],
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunk-out-of-order-renumbered",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunk(2, false)",
+            "value": [
+                [
+                    "c",
+                    "a"
+                ],
+                [
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "chunk-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->chunk(2)",
+            "value": [
+                [
+                    [
+                        "x",
+                        1
+                    ],
+                    [
+                        0,
+                        2
+                    ]
+                ],
+                [
+                    [
+                        "y",
+                        3
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunk-mixed-renumbered",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->chunk(2, false)",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "chunk-collision-renumbered",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->chunk(2, false)",
+            "value": [
+                [
+                    "c",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-never",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkWhile(fn () => false)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                [
+                    "a"
+                ],
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkWhile(fn ($v, $k, $chunk) => false) => [key, chunk] seen",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            2,
+                            "c"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        "a"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-growing-chunk-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkWhile(fn ($v, $k, $chunk) => true) => [key, chunk] seen",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            2,
+                            "c"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            2,
+                            "c"
+                        ],
+                        [
+                            0,
+                            "a"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->chunkWhile(fn ($v, $k, $chunk) => false) => [key, chunk] seen",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "x",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    "y",
+                    [
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkWhile-out-of-order-last-equal",
+            "php": "(new Collection([2 => 1, 0 => 1, 1 => 2]))->chunkWhile(fn ($v, $k, $chunk) => $chunk->last() === $v)",
+            "value": [
+                [
+                    [
+                        2,
+                        1
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                [
+                    [
+                        1,
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkBy-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->chunkBy(fn ($v, $k) => $v)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                [
+                    "a"
+                ],
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkBy-out-of-order-runs",
+            "php": "(new Collection([2 => 1, 0 => 1, 1 => 2]))->chunkBy(fn ($v, $k) => $v)",
+            "value": [
+                [
+                    [
+                        2,
+                        1
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                [
+                    [
+                        1,
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "chunkBy-out-of-order-runs-callback-order",
+            "php": "(new Collection([2 => 1, 0 => 1, 1 => 2]))->chunkBy(fn ($v, $k) => $v) => keys seen",
+            "value": [
+                0,
+                2,
+                1,
+                0
+            ]
+        },
+        {
+            "label": "chunkBy-mixed-runs-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 1, 'y' => 2]))->chunkBy(fn ($v, $k) => $v) => keys seen",
+            "value": [
+                0,
+                "x",
+                "y",
+                0
+            ]
+        },
+        {
+            "label": "chunkBy-mixed-runs",
+            "php": "(new Collection(['x' => 1, 0 => 1, 'y' => 2]))->chunkBy(fn ($v, $k) => $v)",
+            "value": [
+                [
+                    [
+                        "x",
+                        1
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                [
+                    [
+                        "y",
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "collapse-out-of-order-lists",
+            "php": "Arr::collapse([2 => ['c'], 0 => ['a'], 1 => ['b']])",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "collapse-out-of-order-string-keys",
+            "php": "Arr::collapse([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]])",
+            "value": [
+                [
+                    "c",
+                    1
+                ],
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "collapse-out-of-order-collision",
+            "php": "Arr::collapse([1 => ['k' => 1], 0 => ['k' => 2]])",
+            "value": [
+                [
+                    "k",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "collapse-mixed",
+            "php": "Arr::collapse(['x' => ['p' => 1], 0 => [5], 'y' => ['q' => 2]])",
+            "value": [
+                [
+                    "p",
+                    1
+                ],
+                [
+                    0,
+                    5
+                ],
+                [
+                    "q",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "combine-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->combine(['x', 'y', 'z'])",
+            "value": [
+                [
+                    "c",
+                    "x"
+                ],
+                [
+                    "a",
+                    "y"
+                ],
+                [
+                    "b",
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "combine-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->combine(['p', 'q', 'r'])",
+            "value": [
+                [
+                    1,
+                    "p"
+                ],
+                [
+                    2,
+                    "q"
+                ],
+                [
+                    3,
+                    "r"
+                ]
+            ]
+        },
+        {
+            "label": "combine-out-of-order-values-operand",
+            "php": "(new Collection(['p', 'q', 'r']))->combine([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    "p",
+                    "c"
+                ],
+                [
+                    "q",
+                    "a"
+                ],
+                [
+                    "r",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "combine-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->combine(['p', 'q'])",
+            "value": [
+                [
+                    "c",
+                    "p"
+                ],
+                [
+                    "b",
+                    "q"
+                ]
+            ]
+        },
+        {
+            "label": "crossJoin-out-of-order-spread",
+            "php": "Arr::crossJoin(...[2 => ['c1', 'c2'], 0 => ['a1'], 1 => ['b1', 'b2']])",
+            "value": [
+                [
+                    "c1",
+                    "a1",
+                    "b1"
+                ],
+                [
+                    "c1",
+                    "a1",
+                    "b2"
+                ],
+                [
+                    "c2",
+                    "a1",
+                    "b1"
+                ],
+                [
+                    "c2",
+                    "a1",
+                    "b2"
+                ]
+            ]
+        },
+        {
+            "label": "crossJoin-mixed-spread",
+            "php": "Arr::crossJoin(...['x' => ['x1', 'x2'], 0 => ['z1'], 'y' => ['y1']])",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
+            "label": "crossJoin-string-keys-spread",
+            "php": "Arr::crossJoin(...['b' => ['b1', 'b2'], 'a' => ['a1', 'a2']])",
+            "value": [
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "crossJoin-string-keys-two-spreads",
+            "php": "Arr::crossJoin(...['b' => ['b1', 'b2']], ...['a' => ['a1', 'a2']])",
+            "value": [
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b1"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a1"
+                    ]
+                ],
+                [
+                    [
+                        "b",
+                        "b2"
+                    ],
+                    [
+                        "a",
+                        "a2"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "divide-out-of-order",
+            "php": "Arr::divide([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    0,
+                    1
+                ],
+                [
+                    "c",
+                    "a",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "divide-mixed",
+            "php": "Arr::divide(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": [
+                [
+                    "x",
+                    0,
+                    "y"
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "divide-collision",
+            "php": "Arr::divide([1 => 'a', 'x' => 'b', '1' => 'c'])",
+            "value": [
+                [
+                    1,
+                    "x"
+                ],
+                [
+                    "c",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "dot-out-of-order",
+            "php": "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "dot-out-of-order-prefixed",
+            "php": "Arr::dot([2 => 'c', 0 => 'a', 1 => 'b'], 'p.')",
+            "value": [
+                [
+                    "p.2",
+                    "c"
+                ],
+                [
+                    "p.0",
+                    "a"
+                ],
+                [
+                    "p.1",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "dot-mixed-prefixed",
+            "php": "Arr::dot(['x' => 1, 0 => 2, 'y' => 3], 'p')",
+            "value": [
+                [
+                    "px",
+                    1
+                ],
+                [
+                    "p0",
+                    2
+                ],
+                [
+                    "py",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "dot-out-of-order-nested",
+            "php": "Arr::dot([2 => ['z' => 1], 0 => ['y' => 2], 1 => ['x' => 3]])",
+            "value": [
+                [
+                    "2.z",
+                    1
+                ],
+                [
+                    "0.y",
+                    2
+                ],
+                [
+                    "1.x",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "dot-mixed-nested",
+            "php": "Arr::dot(['x' => ['k' => 1], 0 => ['k' => 2], 'y' => ['k' => 3]])",
+            "value": [
+                [
+                    "x.k",
+                    1
+                ],
+                [
+                    "0.k",
+                    2
+                ],
+                [
+                    "y.k",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "undot-out-of-order",
+            "php": "Arr::undot([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "undot-dotted-first-collision",
+            "php": "Arr::undot(['0.a' => 'y', 0 => 'x'])",
+            "value": [
+                "x"
+            ]
+        },
+        {
+            "label": "undot-plain-first-collision",
+            "php": "Arr::undot([0 => 'x', '0.a' => 'y'])",
+            "value": [
+                [
+                    [
+                        "a",
+                        "y"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "undot-mixed-dotted-first-collision",
+            "php": "Arr::undot(['1.a' => 'y', 1 => 'x', 'b' => 'z'])",
+            "value": [
+                [
+                    1,
+                    "x"
+                ],
+                [
+                    "b",
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "undot-list-dotted-first-collision",
+            "php": "Arr::undot(['1.0' => 'y', 1 => ['z']])",
+            "value": [
+                [
+                    1,
+                    [
+                        "z"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "undot-list-plain-first-collision",
+            "php": "Arr::undot([1 => ['z'], '1.0' => 'y'])",
+            "value": [
+                [
+                    1,
+                    [
+                        "y"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "flatten-out-of-order",
+            "php": "Arr::flatten([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-mixed",
+            "php": "Arr::flatten(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "flatten-out-of-order-nested",
+            "php": "Arr::flatten([2 => ['c', ['d']], 0 => 'a', 1 => ['k' => 'b']])",
+            "value": [
+                "c",
+                "d",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-out-of-order-nested-depth-1",
+            "php": "Arr::flatten([2 => ['c', ['d']], 0 => 'a', 1 => ['k' => 'b']], 1)",
+            "value": [
+                "c",
+                [
+                    "d"
+                ],
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "flatten-collision",
+            "php": "Arr::flatten([1 => 'a', 'x' => 'b', '1' => 'c'])",
+            "value": [
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "flip-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->flip()",
+            "value": [
+                [
+                    "c",
+                    2
+                ],
+                [
+                    "a",
+                    0
+                ],
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "flip-out-of-order-duplicate-values",
+            "php": "(new Collection([2 => 'v', 0 => 'v']))->flip()",
+            "value": [
+                [
+                    "v",
+                    0
+                ]
+            ]
+        },
+        {
+            "label": "flip-mixed-duplicate-values",
+            "php": "(new Collection(['x' => 'v', 0 => 'v']))->flip()",
+            "value": [
+                [
+                    "v",
+                    0
+                ]
+            ]
+        },
+        {
+            "label": "flip-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->flip()",
+            "value": [
+                [
+                    "c",
+                    1
+                ],
+                [
+                    "b",
+                    "x"
+                ]
+            ]
+        },
+        {
+            "label": "only-out-of-order",
+            "php": "Arr::only([2 => 'c', 0 => 'a', 1 => 'b'], [0, 2])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "only-mixed",
+            "php": "Arr::only(['x' => 1, 0 => 2, 'y' => 3], ['y', 'x', 0])",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "only-string-keys-reordered-selector",
+            "php": "Arr::only(['b' => 1, 'a' => 2], ['a', 'b'])",
+            "value": [
+                [
+                    "b",
+                    1
+                ],
+                [
+                    "a",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "only-collision",
+            "php": "Arr::only([1 => 'a', 'x' => 'b', '1' => 'c'], [1])",
+            "value": [
+                [
+                    1,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "prepend-out-of-order",
+            "php": "Arr::prepend([2 => 'c', 0 => 'a', 1 => 'b'], 'z')",
+            "value": [
+                "z",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "prepend-mixed",
+            "php": "Arr::prepend(['x' => 1, 0 => 2, 'y' => 3], 'z')",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    "x",
+                    1
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "prepend-out-of-order-string-key",
+            "php": "Arr::prepend([2 => 'c', 0 => 'a', 1 => 'b'], 'z', 'k')",
+            "value": [
+                [
+                    "k",
+                    "z"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prepend-out-of-order-existing-int-key",
+            "php": "Arr::prepend([2 => 'c', 0 => 'a', 1 => 'b'], 'z', 0)",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prepend-negative-key-first",
+            "php": "Arr::prepend([-1 => 'm', 5 => 'f'], 'z')",
+            "value": [
+                "z",
+                "m",
+                "f"
+            ]
+        },
+        {
+            "label": "prepend-collision",
+            "php": "Arr::prepend([1 => 'a', 'x' => 'b', '1' => 'c'], 'z')",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    1,
+                    "c"
+                ],
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prependKeysWith-out-of-order",
+            "php": "Arr::prependKeysWith([2 => 'c', 0 => 'a', 1 => 'b'], 'k')",
+            "value": [
+                [
+                    "k2",
+                    "c"
+                ],
+                [
+                    "k0",
+                    "a"
+                ],
+                [
+                    "k1",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "prependKeysWith-mixed",
+            "php": "Arr::prependKeysWith(['x' => 1, 0 => 2, 'y' => 3], 'p')",
+            "value": [
+                [
+                    "px",
+                    1
+                ],
+                [
+                    "p0",
+                    2
+                ],
+                [
+                    "py",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "prependKeysWith-collision",
+            "php": "Arr::prependKeysWith([1 => 'a', 'x' => 'b', '1' => 'c'], 'k')",
+            "value": [
+                [
+                    "k1",
+                    "c"
+                ],
+                [
+                    "kx",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-out-of-order-rows",
+            "php": "Arr::keyBy([2 => ['id' => 'r'], 0 => ['id' => 'p'], 1 => ['id' => 'q']], 'id')",
+            "value": [
+                [
+                    "r",
+                    [
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    "p",
+                    [
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    "q",
+                    [
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-out-of-order-rows-collision",
+            "php": "Arr::keyBy([2 => ['id' => 'x', 'n' => 'c'], 0 => ['id' => 'x', 'n' => 'a'], 1 => ['id' => 'y', 'n' => 'b']], 'id')",
+            "value": [
+                [
+                    "x",
+                    [
+                        [
+                            "id",
+                            "x"
+                        ],
+                        [
+                            "n",
+                            "a"
+                        ]
+                    ]
+                ],
+                [
+                    "y",
+                    [
+                        [
+                            "id",
+                            "y"
+                        ],
+                        [
+                            "n",
+                            "b"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-out-of-order-rows-callback-order",
+            "php": "Arr::keyBy([2 => ['id' => 'r'], 0 => ['id' => 'p'], 1 => ['id' => 'q']], fn ($item, $key) => $item['id']) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "keyBy-mixed-callback",
+            "php": "Arr::keyBy(['x' => 1, 0 => 2, 'y' => 3], fn ($item, $key) => 'k' . $item)",
+            "value": [
+                [
+                    "k1",
+                    1
+                ],
+                [
+                    "k2",
+                    2
+                ],
+                [
+                    "k3",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "keyBy-mixed-callback-order",
+            "php": "Arr::keyBy(['x' => 1, 0 => 2, 'y' => 3], fn ($item, $key) => 'k' . $item) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "union-list-out-of-order-operand",
+            "php": "(new Collection(['a']))->union([2 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "union-list-in-order-operand",
+            "php": "(new Collection(['a']))->union([1 => 'b', 2 => 'c'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "union-list-length-key-operand",
+            "php": "(new Collection(['a']))->union(['length' => 5])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    "length",
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "union-list-length-key-then-int-operand",
+            "php": "(new Collection(['a']))->union(['length' => 5])->union([1 => 'x'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    "length",
+                    5
+                ],
+                [
+                    1,
+                    "x"
+                ]
+            ]
+        },
+        {
+            "label": "replace-list-out-of-order-operand",
+            "php": "(new Collection(['a']))->replace([2 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "replace-list-in-order-operand",
+            "php": "(new Collection(['a']))->replace([1 => 'b', 2 => 'c'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "replaceRecursive-list-out-of-order-operand",
+            "php": "(new Collection(['a']))->replaceRecursive([2 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "replaceRecursive-list-in-order-operand",
+            "php": "(new Collection(['a']))->replaceRecursive([1 => 'b', 2 => 'c'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "replace-two-item-list-out-of-order-operand",
+            "php": "(new Collection(['a', 'b']))->replace([3 => 'd', 2 => 'c'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "replace-two-item-list-in-order-operand",
+            "php": "(new Collection(['a', 'b']))->replace([2 => 'c', 3 => 'd'])",
+            "value": [
+                "a",
+                "b",
+                "c",
+                "d"
+            ]
+        },
+        {
+            "label": "replace-two-item-list-out-of-order-existing-keys",
+            "php": "(new Collection(['a', 'b']))->replace([1 => 'B', 0 => 'A'])",
+            "value": [
+                "A",
+                "B"
+            ]
+        },
+        {
+            "label": "union-list-two-operands-out-of-order",
+            "php": "(new Collection(['a']))->union([1 => 'b'])->union([3 => 'd', 2 => 'c'])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "union-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->union([3 => 'd', 'k' => 'e'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ],
+                [
+                    "k",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "replace-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->replace([1 => 'B', 5 => 'f'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "B"
+                ],
+                [
+                    5,
+                    "f"
+                ]
+            ]
+        },
+        {
+            "label": "take-out-of-order",
+            "php": "Arr::take([2 => 'c', 0 => 'a', 1 => 'b'], 2)",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "take-out-of-order-negative",
+            "php": "Arr::take([2 => 'c', 0 => 'a', 1 => 'b'], -1)",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "take-mixed",
+            "php": "Arr::take(['x' => 1, 0 => 2, 'y' => 3], 2)",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "take-mixed-negative",
+            "php": "Arr::take(['x' => 1, 0 => 2, 'y' => 3], -2)",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "take-out-of-order-collection",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->take(2)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "take-out-of-order-negative-collection",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->take(-1)",
+            "value": [
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "take-collision-negative",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->take(-1)",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "slice-out-of-order-offset",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->slice(1)",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "slice-out-of-order-offset-length",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->slice(0, 2)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "slice-out-of-order-negative-offset-length",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->slice(-2, 1)",
+            "value": [
+                "a"
+            ]
+        },
+        {
+            "label": "slice-mixed-offset",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->slice(1)",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "slice-mixed-offset-length",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->slice(0, 1)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "slice-collision-offset",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->slice(1)",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1)",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1); $c->all()",
+            "value": [
+                "c"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-length-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(0, 1)",
+            "value": [
+                "c"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-offset-length-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(0, 1); $c->all()",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, ['R'])",
+            "value": [
+                "a"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, ['R']); $c->all()",
+            "value": [
+                "c",
+                "R",
+                "b"
+            ]
+        },
+        {
+            "label": "splice-mixed-offset-length-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(0, 1)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "splice-mixed-offset-length-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(0, 1); $c->all()",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "splice-mixed-replacement-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(1, 1, ['R'])",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "splice-mixed-replacement-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->splice(1, 1, ['R']); $c->all()",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    "R"
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "splice-string-keys-out-of-order-replacement-returns",
+            "php": "$c = new Collection(['k' => 'K', 'j' => 'J']); $c->splice(0, 1, [2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    "k",
+                    "K"
+                ]
+            ]
+        },
+        {
+            "label": "splice-string-keys-out-of-order-replacement-remaining",
+            "php": "$c = new Collection(['k' => 'K', 'j' => 'J']); $c->splice(0, 1, [2 => 'c', 0 => 'a', 1 => 'b']); $c->all()",
+            "value": [
+                [
+                    0,
+                    "c"
+                ],
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    2,
+                    "b"
+                ],
+                [
+                    "j",
+                    "J"
+                ]
+            ]
+        },
+        {
+            "label": "splice-collision-offset-length-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->splice(0, 1)",
+            "value": [
+                "c"
+            ]
+        },
+        {
+            "label": "splice-collision-offset-length-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->splice(0, 1); $c->all()",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-collision-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r'])",
+            "value": [
+                "a"
+            ]
+        },
+        {
+            "label": "splice-out-of-order-replacement-collision-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r']); $c->all()",
+            "value": [
+                "c",
+                "r",
+                "q",
+                "b"
+            ]
+        },
+        {
+            "label": "shift-out-of-order-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift()",
+            "value": "c"
+        },
+        {
+            "label": "shift-out-of-order-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift(); $c->all()",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "shift-out-of-order-count-2-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift(2)",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "shift-out-of-order-count-2-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->shift(2); $c->all()",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "shift-mixed-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift()",
+            "value": 1
+        },
+        {
+            "label": "shift-mixed-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift(); $c->all()",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "shift-mixed-count-2-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "shift-mixed-count-2-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->shift(2); $c->all()",
+            "value": [
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "shift-collision-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->shift()",
+            "value": "c"
+        },
+        {
+            "label": "shift-collision-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->shift(); $c->all()",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "shift-out-of-order-count-0-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a']); $c->shift(0)",
+            "value": []
+        },
+        {
+            "label": "shift-out-of-order-count-0-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a']); $c->shift(0); $c->all()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "pop-out-of-order-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop()",
+            "value": "b"
+        },
+        {
+            "label": "pop-out-of-order-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop(); $c->all()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "pop-out-of-order-count-2-returns",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop(2)",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "pop-out-of-order-count-2-remaining",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->pop(2); $c->all()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "pop-mixed-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop()",
+            "value": 3
+        },
+        {
+            "label": "pop-mixed-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop(); $c->all()",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "pop-mixed-count-2-returns",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop(2)",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "pop-mixed-count-2-remaining",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->pop(2); $c->all()",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "pop-collision-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->pop()",
+            "value": "b"
+        },
+        {
+            "label": "pop-collision-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->pop(); $c->all()",
+            "value": [
+                [
+                    1,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "pop-collision-three-times-returns",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); [$c->pop(), $c->pop(), $c->pop()]",
+            "value": [
+                "b",
+                "c",
+                null
+            ]
+        },
+        {
+            "label": "pop-collision-three-times-remaining",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); [$c->pop(), $c->pop(), $c->pop()]; $c->all()",
+            "value": []
+        },
+        {
+            "label": "unshift-out-of-order-returns-same-instance",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->unshift('U') === $c",
+            "value": true
+        },
+        {
+            "label": "unshift-out-of-order-after",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->unshift('U'); $c->all()",
+            "value": [
+                "U",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "unshift-out-of-order-two-values-after",
+            "php": "$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); $c->unshift('U', 'V'); $c->all()",
+            "value": [
+                "U",
+                "V",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "unshift-mixed-after",
+            "php": "$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); $c->unshift('U'); $c->all()",
+            "value": [
+                [
+                    0,
+                    "U"
+                ],
+                [
+                    "x",
+                    1
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "unshift-collision-after",
+            "php": "$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); $c->unshift('U'); $c->all()",
+            "value": [
+                [
+                    0,
+                    "U"
+                ],
+                [
+                    1,
+                    "c"
+                ],
+                [
+                    "x",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pad-out-of-order-grow-right",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->pad(6, 'P')",
+            "value": [
+                "c",
+                "a",
+                "b",
+                "P",
+                "P",
+                "P"
+            ]
+        },
+        {
+            "label": "pad-out-of-order-grow-left",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->pad(-6, 'P')",
+            "value": [
+                "P",
+                "P",
+                "P",
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "pad-out-of-order-no-op",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->pad(2, 'P')",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pad-mixed-grow-right",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->pad(5, 'P')",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ],
+                [
+                    1,
+                    "P"
+                ],
+                [
+                    2,
+                    "P"
+                ]
+            ]
+        },
+        {
+            "label": "pad-mixed-grow-left",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->pad(-5, 'P')",
+            "value": [
+                [
+                    0,
+                    "P"
+                ],
+                [
+                    1,
+                    "P"
+                ],
+                [
+                    "x",
+                    1
+                ],
+                [
+                    2,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "pad-collision-grow-right",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->pad(3, 'P')",
+            "value": [
+                [
+                    0,
+                    "c"
+                ],
+                [
+                    "x",
+                    "b"
+                ],
+                [
+                    1,
+                    "P"
+                ]
+            ]
+        },
+        {
+            "label": "reverse-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->reverse()",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "reverse-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->reverse()",
+            "value": [
+                [
+                    "y",
+                    3
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "reverse-string-keys-then-descending-int-keys",
+            "php": "(new Collection(['y' => 'Y', 'x' => 'X', 1 => 'o', 0 => 'z']))->reverse()",
+            "value": [
+                [
+                    0,
+                    "z"
+                ],
+                [
+                    1,
+                    "o"
+                ],
+                [
+                    "x",
+                    "X"
+                ],
+                [
+                    "y",
+                    "Y"
+                ]
+            ]
+        },
+        {
+            "label": "reverse-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->reverse()",
+            "value": [
+                [
+                    "x",
+                    "b"
+                ],
+                [
+                    1,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "random-out-of-order-full-count",
+            "php": "Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 3) (50 draws, all equal)",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "random-out-of-order-full-count-preserve-keys",
+            "php": "Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 3, true) (50 draws, all equal)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "random-mixed-full-count",
+            "php": "Arr::random(['x' => 1, 0 => 2, 'y' => 3], 3) (50 draws, all equal)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "random-mixed-full-count-preserve-keys",
+            "php": "Arr::random(['x' => 1, 0 => 2, 'y' => 3], 3, true) (50 draws, all equal)",
+            "value": [
+                [
+                    "x",
+                    1
+                ],
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "random-out-of-order-partial-keeps-array-order",
+            "php": "every one of 200 draws of Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 2, true) lists its keys in the array's own order",
+            "value": true
+        },
+        {
+            "label": "random-mixed-partial-keeps-array-order",
+            "php": "every one of 200 draws of Arr::random(['x' => 1, 0 => 2, 'y' => 3], 2) lists its values in the array's own order",
+            "value": true
+        },
+        {
+            "label": "random-out-of-order-partial-values-keep-array-order",
+            "php": "every one of 200 draws of Arr::random([2 => 'c', 0 => 'a', 1 => 'b'], 2) lists two values in the array's own order",
+            "value": true
+        },
+        {
+            "label": "random-collision-full-count",
+            "php": "Arr::random([1 => 'a', 'x' => 'b', '1' => 'c'], 2) (50 draws, all equal)",
+            "value": [
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "random-list-full-count",
+            "php": "Arr::random(['a', 'b', 'c', 'd'], 4) (50 draws, all equal)",
+            "value": [
+                "a",
+                "b",
+                "c",
+                "d"
+            ]
+        },
+        {
+            "label": "random-list-partial-keeps-array-order",
+            "php": "every one of 200 draws of Arr::random(['a', 'b', 'c', 'd'], 2) lists its values in the array's own order",
+            "value": true
+        },
+        {
+            "label": "shuffle-true-key-collision-values",
+            "php": "$v = Arr::shuffle([1 => 'a', true => 'b', 0 => 'z']); sort($v)",
+            "value": [
+                "b",
+                "z"
+            ]
+        },
+        {
+            "label": "from-true-key-collision",
+            "php": "Arr::from([1 => 'a', true => 'b'])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "search-out-of-order-duplicate-value",
+            "php": "(new Collection([2 => 'x', 0 => 'x', 1 => 'y']))->search('x')",
+            "value": 2
+        },
+        {
+            "label": "search-mixed-duplicate-value",
+            "php": "(new Collection(['x' => 'v', 0 => 'v', 'y' => 'w']))->search('v')",
+            "value": "x"
+        },
+        {
+            "label": "search-out-of-order-callback",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->search(fn () => true)",
+            "value": 2
+        },
+        {
+            "label": "search-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->search(fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "search-out-of-order-early-exit-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->search(fn ($v, $k) => $v === 'a') => keys seen",
+            "value": [
+                2,
+                0
+            ]
+        },
+        {
+            "label": "search-mixed-callback",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->search(fn () => true)",
+            "value": "x"
+        },
+        {
+            "label": "search-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->search(fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "before-out-of-order-first-item",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before('c')",
+            "value": null
+        },
+        {
+            "label": "before-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before('a')",
+            "value": "c"
+        },
+        {
+            "label": "before-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->before(2)",
+            "value": 1
+        },
+        {
+            "label": "before-out-of-order-callback",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before(fn ($v, $k) => $v === 'b')",
+            "value": "a"
+        },
+        {
+            "label": "before-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->before(fn ($v, $k) => $v === 'b') => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "after-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after('c')",
+            "value": "a"
+        },
+        {
+            "label": "after-out-of-order-last-item",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after('b')",
+            "value": null
+        },
+        {
+            "label": "after-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->after(1)",
+            "value": 2
+        },
+        {
+            "label": "after-out-of-order-callback",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after(fn ($v, $k) => $v === 'c')",
+            "value": "a"
+        },
+        {
+            "label": "after-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->after(fn ($v, $k) => $v === 'c') => keys seen",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "first-out-of-order",
+            "php": "Arr::first([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "c"
+        },
+        {
+            "label": "first-mixed",
+            "php": "Arr::first(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": 1
+        },
+        {
+            "label": "first-out-of-order-callback",
+            "php": "Arr::first([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v !== 'a')",
+            "value": "c"
+        },
+        {
+            "label": "first-out-of-order-callback-order",
+            "php": "Arr::first([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "last-out-of-order",
+            "php": "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "last-mixed",
+            "php": "Arr::last(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": 3
+        },
+        {
+            "label": "last-out-of-order-callback",
+            "php": "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v !== 'b')",
+            "value": "a"
+        },
+        {
+            "label": "last-out-of-order-callback-order",
+            "php": "Arr::last([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                1,
+                0,
+                2
+            ]
+        },
+        {
+            "label": "every-out-of-order-callback-order",
+            "php": "Arr::every([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "every-out-of-order-early-exit-callback-order",
+            "php": "Arr::every([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "every-mixed-callback-order",
+            "php": "Arr::every(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "some-out-of-order-callback-order",
+            "php": "Arr::some([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "some-out-of-order-early-exit-callback-order",
+            "php": "Arr::some([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "some-mixed-callback-order",
+            "php": "Arr::some(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "contains-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->contains(fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "contains-out-of-order-early-exit-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->contains(fn ($v, $k) => $v === 'a') => keys seen",
+            "value": [
+                2,
+                0
+            ]
+        },
+        {
+            "label": "contains-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->contains(fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "containsStrict-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->containsStrict(fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "containsStrict-out-of-order-null-first-callback",
+            "php": "(new Collection([2 => null, 0 => 'a']))->containsStrict(fn () => true)",
+            "value": false
+        },
+        {
+            "label": "containsStrict-mixed-null-first-callback",
+            "php": "(new Collection(['x' => null, 0 => 'a']))->containsStrict(fn () => true)",
+            "value": false
+        },
+        {
+            "label": "containsStrict-out-of-order-non-null-first-callback",
+            "php": "(new Collection([2 => 'a', 0 => null]))->containsStrict(fn () => true)",
+            "value": true
+        },
+        {
+            "label": "contains-out-of-order-operator-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->contains(fn ($v, $k) => false, '=', 'q') => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sole-out-of-order-callback",
+            "php": "Arr::sole([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v === 'c')",
+            "value": "c"
+        },
+        {
+            "label": "sole-out-of-order-callback-order",
+            "php": "Arr::sole([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => $v === 'c') => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sole-out-of-order-first-call-only",
+            "php": "Arr::sole([2 => 'c', 0 => 'a', 1 => 'b'], a callback true only on its first call)",
+            "value": "c"
+        },
+        {
+            "label": "sole-mixed-callback-order",
+            "php": "Arr::sole(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v === 2) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "first-collision",
+            "php": "Arr::first([1 => 'a', '1' => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "first-true-key-collision",
+            "php": "Arr::first([1 => 'a', true => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "last-collision",
+            "php": "Arr::last([1 => 'a', 0 => 'z', '1' => 'b'])",
+            "value": "z"
+        },
+        {
+            "label": "some-collision",
+            "php": "Arr::some([1 => 'a', '1' => 'b'], fn ($v) => $v === 'a')",
+            "value": false
+        },
+        {
+            "label": "every-numeric-string-keys-callback-order",
+            "php": "Arr::every(['2' => 'c', '0' => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    2,
+                    0
+                ],
+                "deprecations": []
+            }
+        },
+        {
+            "label": "every-true-key-callback-order",
+            "php": "Arr::every([true => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    1
+                ],
+                "deprecations": []
+            }
+        },
+        {
+            "label": "every-null-key-callback-order",
+            "php": "Arr::every([null => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    ""
+                ],
+                "deprecations": [
+                    "Using null as an array offset is deprecated, use an empty string instead"
+                ]
+            }
+        },
+        {
+            "label": "every-float-key-callback-order",
+            "php": "Arr::every([1.5 => 'a'], fn ($v, $k) => true) => keys seen, with deprecations",
+            "value": {
+                "result": [
+                    1
+                ],
+                "deprecations": [
+                    "Implicit conversion from float 1.5 to int loses precision"
+                ]
+            }
+        },
+        {
+            "label": "every-collision-callback-pairs",
+            "php": "Arr::every([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v, $k) => true) => [key, value] seen",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "search-collision",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->search('a')",
+            "value": false
+        },
+        {
+            "label": "search-collision-callback-order",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->search(fn ($v, $k) => false) => keys seen",
+            "value": [
+                5,
+                0
+            ]
+        },
+        {
+            "label": "before-collision",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->before('b')",
+            "value": "c"
+        },
+        {
+            "label": "after-collision",
+            "php": "(new Collection([5 => 'a', 0 => 'b', '5' => 'c']))->after('c')",
+            "value": "b"
+        },
+        {
+            "label": "before-loose-key-position",
+            "php": "(new Collection(['01' => 'a', 1 => 'b']))->before('b')",
+            "value": null
+        },
+        {
+            "label": "after-loose-key-position",
+            "php": "(new Collection(['01' => 'a', 1 => 'b']))->after('b')",
+            "value": "b"
+        },
+        {
+            "label": "before-loose-key-position-record-order",
+            "php": "(new Collection([1 => 'b', '01' => 'a']))->before('a')",
+            "value": null
+        },
+        {
+            "label": "after-loose-key-position-record-order",
+            "php": "(new Collection([1 => 'b', '01' => 'a']))->after('a')",
+            "value": "a"
+        },
+        {
+            "label": "before-loose-key-position-strict-search",
+            "php": "(new Collection(['01' => 'a', 1 => 'b']))->before('b', true)",
+            "value": null
+        },
+        {
+            "label": "contains-collision",
+            "php": "(new Collection([1 => 'a', '1' => 'b']))->contains('a')",
+            "value": false
+        },
+        {
+            "label": "containsStrict-collision",
+            "php": "(new Collection([1 => 'a', '1' => 'b']))->containsStrict('a')",
+            "value": false
+        },
+        {
+            "label": "sole-collision",
+            "php": "Arr::sole([1 => 'a', '1' => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "sole-true-key-collision",
+            "php": "Arr::sole([1 => 'a', true => 'b'])",
+            "value": "b"
+        },
+        {
+            "label": "map-out-of-order",
+            "php": "Arr::map([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => $v . '!' . $k)",
+            "value": [
+                [
+                    2,
+                    "c!2"
+                ],
+                [
+                    0,
+                    "a!0"
+                ],
+                [
+                    1,
+                    "b!1"
+                ]
+            ]
+        },
+        {
+            "label": "map-out-of-order-callback-order",
+            "php": "Arr::map([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "map-mixed-callback-order",
+            "php": "Arr::map(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "map-out-of-order-visit-count",
+            "php": "Arr::map([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => $v . ++$calls)",
+            "value": [
+                [
+                    2,
+                    "c1"
+                ],
+                [
+                    0,
+                    "a2"
+                ],
+                [
+                    1,
+                    "b3"
+                ]
+            ]
+        },
+        {
+            "label": "map-collision-visit-count",
+            "php": "Arr::map([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v . ++$calls)",
+            "value": [
+                [
+                    1,
+                    "b1"
+                ],
+                [
+                    0,
+                    "z2"
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => ['k' . $k => $v])",
+            "value": [
+                [
+                    "k2",
+                    "c"
+                ],
+                [
+                    "k0",
+                    "a"
+                ],
+                [
+                    "k1",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-mixed",
+            "php": "Arr::mapWithKeys(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => ['k' . $k => $v])",
+            "value": [
+                [
+                    "kx",
+                    1
+                ],
+                [
+                    "k0",
+                    2
+                ],
+                [
+                    "ky",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order-collision",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => ['same' => $v])",
+            "value": [
+                [
+                    "same",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order-int-collision",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v) => [0 => $v])",
+            "value": [
+                "b"
+            ]
+        },
+        {
+            "label": "mapWithKeys-out-of-order-callback-order",
+            "php": "Arr::mapWithKeys([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => []) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "mapWithKeys-mixed-callback-order",
+            "php": "Arr::mapWithKeys(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => []) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "mapWithKeys-collision",
+            "php": "Arr::mapWithKeys([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v, $k) => [$v => $k])",
+            "value": [
+                [
+                    "b",
+                    1
+                ],
+                [
+                    "z",
+                    0
+                ]
+            ]
+        },
+        {
+            "label": "mapSpread-out-of-order",
+            "php": "Arr::mapSpread([2 => ['c', 1], 0 => ['a', 2], 1 => ['b', 3]], fn ($x, $y, $k) => $x . $y . $k)",
+            "value": [
+                [
+                    2,
+                    "c12"
+                ],
+                [
+                    0,
+                    "a20"
+                ],
+                [
+                    1,
+                    "b31"
+                ]
+            ]
+        },
+        {
+            "label": "mapSpread-out-of-order-callback-order",
+            "php": "Arr::mapSpread([2 => ['c', 1], 0 => ['a', 2], 1 => ['b', 3]], fn ($x, $y, $k) => null) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "mapSpread-mixed-callback-order",
+            "php": "Arr::mapSpread(['x' => [1, 'p'], 0 => [2, 'q'], 'y' => [3, 'r']], fn ($x, $y, $k) => null) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "mapSpread-collision-visit-count",
+            "php": "Arr::mapSpread([1 => ['a', 1], 0 => ['z', 2], '1' => ['b', 3]], fn ($x, $y, $k) => $x . $y . $k . '#' . ++$calls)",
+            "value": [
+                [
+                    1,
+                    "b31#1"
+                ],
+                [
+                    0,
+                    "z20#2"
+                ]
+            ]
+        },
+        {
+            "label": "filter-out-of-order-callback-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->filter(fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "filter-mixed-callback-order",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->filter(fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "filter-out-of-order-first-two-visits",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->filter(a callback true for its first two calls)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "filter-mixed-first-visit",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->filter(a callback true for its first call)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "filter-mixed-no-callback",
+            "php": "(new Collection(['x' => 0, 2 => 'c', 'y' => 'y', 0 => '', 1 => 'b']))->filter()",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    "y",
+                    "y"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "filter-collision",
+            "php": "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->filter(fn ($v) => $v === 'a')",
+            "value": []
+        },
+        {
+            "label": "where-out-of-order-callback-order",
+            "php": "Arr::where([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "where-mixed-callback-order",
+            "php": "Arr::where(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "where-out-of-order-first-two-visits",
+            "php": "Arr::where([2 => 'c', 0 => 'a', 1 => 'b'], a callback true for its first two calls)",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "where-mixed-first-visit",
+            "php": "Arr::where(['x' => 1, 0 => 2, 'y' => 3], a callback true for its first call)",
+            "value": [
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "where-collision",
+            "php": "Arr::where([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v === 'a')",
+            "value": []
+        },
+        {
+            "label": "reject-out-of-order-callback-order",
+            "php": "Arr::reject([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => false) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "reject-mixed-callback-order",
+            "php": "Arr::reject(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => false) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "reject-out-of-order-first-visit",
+            "php": "Arr::reject([2 => 'c', 0 => 'a', 1 => 'b'], a callback true for its first call)",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "reject-mixed-first-visit",
+            "php": "Arr::reject(['x' => 1, 0 => 2, 'y' => 3], a callback true for its first call)",
+            "value": [
+                [
+                    0,
+                    2
+                ],
+                [
+                    "y",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "reject-collision",
+            "php": "Arr::reject([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v === 'b')",
+            "value": [
+                "z"
+            ]
+        },
+        {
+            "label": "partition-out-of-order-callback-order",
+            "php": "Arr::partition([2 => 'c', 0 => 'a', 1 => 'b'], fn ($v, $k) => true) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "partition-mixed-callback-order",
+            "php": "Arr::partition(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => true) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "partition-out-of-order-first-visit",
+            "php": "Arr::partition([2 => 'c', 0 => 'a', 1 => 'b'], a callback true for its first call)",
+            "value": [
+                [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                [
+                    "a",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "partition-mixed-first-visit",
+            "php": "Arr::partition(['x' => 1, 0 => 2, 'y' => 3], a callback true for its first call)",
+            "value": [
+                [
+                    [
+                        "x",
+                        1
+                    ]
+                ],
+                [
+                    [
+                        0,
+                        2
+                    ],
+                    [
+                        "y",
+                        3
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "partition-collision",
+            "php": "Arr::partition([1 => 'a', 0 => 'z', '1' => 'b'], fn ($v) => $v === 'b')",
+            "value": [
+                [
+                    [
+                        1,
+                        "b"
+                    ]
+                ],
+                [
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "join-out-of-order",
+            "php": "Arr::join([2 => 'c', 0 => 'a', 1 => 'b'], ', ', ' and ')",
+            "value": "c, a and b"
+        },
+        {
+            "label": "join-out-of-order-no-final-glue",
+            "php": "Arr::join([2 => 'c', 0 => 'a', 1 => 'b'], ', ')",
+            "value": "c, a, b"
+        },
+        {
+            "label": "join-mixed",
+            "php": "Arr::join(['x' => 1, 0 => 2, 'y' => 3], ', ', ' and ')",
+            "value": "1, 2 and 3"
+        },
+        {
+            "label": "join-collision",
+            "php": "Arr::join([1 => 'a', 0 => 'z', '1' => 'b'], ',')",
+            "value": "b,z"
+        },
+        {
+            "label": "query-out-of-order",
+            "php": "Arr::query([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "2=c&0=a&1=b"
+        },
+        {
+            "label": "query-mixed",
+            "php": "Arr::query(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": "x=1&0=2&y=3"
+        },
+        {
+            "label": "query-out-of-order-nested",
+            "php": "Arr::query(['u' => [1 => 'p', 0 => 'q'], 'v' => 1])",
+            "value": "u%5B1%5D=p&u%5B0%5D=q&v=1"
+        },
+        {
+            "label": "query-out-of-order-nested-in-list",
+            "php": "Arr::query(['l' => [[1 => 'p', 0 => 'q'], 'x']])",
+            "value": "l%5B0%5D%5B1%5D=p&l%5B0%5D%5B0%5D=q&l%5B1%5D=x"
+        },
+        {
+            "label": "query-out-of-order-nested-twice",
+            "php": "Arr::query(['a' => ['b' => [1 => 'p', 0 => 'q']], 1 => 'one', 0 => 'zero'])",
+            "value": "a%5Bb%5D%5B1%5D=p&a%5Bb%5D%5B0%5D=q&1=one&0=zero"
+        },
+        {
+            "label": "query-collision",
+            "php": "Arr::query([1 => 'a', 0 => 'z', '1' => 'b'])",
+            "value": "1=b&0=z"
+        },
+        {
+            "label": "toCssClasses-out-of-order",
+            "php": "Arr::toCssClasses([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": "c a b"
+        },
+        {
+            "label": "toCssClasses-mixed",
+            "php": "Arr::toCssClasses(['x' => 1, 0 => 2, 'y' => 3])",
+            "value": "x 2 y"
+        },
+        {
+            "label": "toCssClasses-out-of-order-booleans",
+            "php": "Arr::toCssClasses([2 => 'c2', 'x' => true, 0 => 'c0', 'off' => false, 1 => 'c1'])",
+            "value": "c2 x c0 c1"
+        },
+        {
+            "label": "toCssClasses-collision",
+            "php": "Arr::toCssClasses([1 => 'a', 0 => 'z', '1' => 'b'])",
+            "value": "b z"
+        },
+        {
+            "label": "toCssStyles-out-of-order",
+            "php": "Arr::toCssStyles([2 => 'c:2', 0 => 'a:0', 1 => 'b:1'])",
+            "value": "c:2; a:0; b:1;"
+        },
+        {
+            "label": "toCssStyles-mixed-booleans",
+            "php": "Arr::toCssStyles(['x:1' => true, 0 => 'z:0', 'off:1' => false, 'y:1' => true])",
+            "value": "x:1; z:0; y:1;"
+        },
+        {
+            "label": "toCssStyles-collision",
+            "php": "Arr::toCssStyles([1 => 'a:1', 0 => 'z:0', '1' => 'b:1'])",
+            "value": "b:1; z:0;"
+        },
+        {
+            "label": "values-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->values()",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "values-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->values()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "keys-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->keys()",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "keys-mixed",
+            "php": "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->keys()",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "values-collision",
+            "php": "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->values()",
+            "value": [
+                "b",
+                "z"
+            ]
+        },
+        {
+            "label": "keys-collision",
+            "php": "(new Collection([1 => 'a', 0 => 'z', '1' => 'b']))->keys()",
+            "value": [
+                1,
+                0
+            ]
+        },
+        {
+            "label": "keys-out-of-order-key-types",
+            "php": "(new Collection([-1 => 'a', 'x' => 'X', 0 => 'b', '01' => 's']))->keys()",
+            "value": [
+                -1,
+                "x",
+                0,
+                "01"
+            ]
+        },
+        {
+            "label": "pluck-out-of-order",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], 'n')",
+            "value": [
+                "c",
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-keyed",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], 'n', 'k')",
+            "value": [
+                [
+                    "kc",
+                    "c"
+                ],
+                [
+                    "ka",
+                    "a"
+                ],
+                [
+                    "kb",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-keyed-collision",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'same'], 0 => ['n' => 'a', 'k' => 'same'], 1 => ['n' => 'b', 'k' => 'other']], 'n', 'k')",
+            "value": [
+                [
+                    "same",
+                    "a"
+                ],
+                [
+                    "other",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "pluck-mixed",
+            "php": "Arr::pluck(['x' => ['n' => 'X'], 0 => ['n' => 'Z'], 'y' => ['n' => 'Y']], 'n')",
+            "value": [
+                "X",
+                "Z",
+                "Y"
+            ]
+        },
+        {
+            "label": "pluck-collision",
+            "php": "Arr::pluck([1 => ['n' => 'a'], 0 => ['n' => 'z'], '1' => ['n' => 'b']], 'n')",
+            "value": [
+                "b",
+                "z"
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-whole-items-keyed",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], null, 'k')",
+            "value": [
+                [
+                    "kc",
+                    [
+                        [
+                            "n",
+                            "c"
+                        ],
+                        [
+                            "k",
+                            "kc"
+                        ]
+                    ]
+                ],
+                [
+                    "ka",
+                    [
+                        [
+                            "n",
+                            "a"
+                        ],
+                        [
+                            "k",
+                            "ka"
+                        ]
+                    ]
+                ],
+                [
+                    "kb",
+                    [
+                        [
+                            "n",
+                            "b"
+                        ],
+                        [
+                            "k",
+                            "kb"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "pluck-out-of-order-callback-order",
+            "php": "Arr::pluck([2 => ['n' => 'c', 'k' => 'kc'], 0 => ['n' => 'a', 'k' => 'ka'], 1 => ['n' => 'b', 'k' => 'kb']], fn ($item) => $item['n'], fn ($item) => $item['k']) => 'v:' . $item['n'] per value call, 'k:' . $item['n'] per key call",
+            "value": [
+                "v:c",
+                "k:c",
+                "v:a",
+                "k:a",
+                "v:b",
+                "k:b"
+            ]
+        },
+        {
+            "label": "sort-out-of-order",
+            "php": "Arr::sort([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], 'n')",
+            "value": [
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties-callback",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], fn ($v, $k) => $v['n'])",
+            "value": [
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties-callback-order",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], fn ($v, $k) => $v['n']) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sort-out-of-order-ties-descriptor",
+            "php": "Arr::sort([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], [['n', 'asc']])",
+            "value": [
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-mixed-callback-order",
+            "php": "Arr::sort(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "sort-out-of-order-loose-ties",
+            "php": "Arr::sort([2 => '1', 0 => 1, 1 => '01'])",
+            "value": [
+                [
+                    2,
+                    "1"
+                ],
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    "01"
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-ties",
+            "php": "Arr::sortDesc([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], 'n')",
+            "value": [
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-ties-callback-order",
+            "php": "Arr::sortDesc([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], fn ($v, $k) => $v['n']) => keys seen",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "sortDesc-mixed-callback-order",
+            "php": "Arr::sortDesc(['x' => 1, 0 => 2, 'y' => 3], fn ($v, $k) => $v) => keys seen",
+            "value": [
+                "x",
+                0,
+                "y"
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-loose-ties",
+            "php": "Arr::sortDesc([2 => '1', 0 => 1, 1 => '01'])",
+            "value": [
+                [
+                    2,
+                    "1"
+                ],
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    "01"
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-ties-descriptor",
+            "php": "Arr::sortDesc([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']], [['n', 'asc']])",
+            "value": [
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "p"
+                        ]
+                    ]
+                ],
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ],
+                        [
+                            "id",
+                            "q"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "n",
+                            0
+                        ],
+                        [
+                            "id",
+                            "r"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-collision-loose-ties",
+            "php": "Arr::sort([1 => '1', 0 => 1, '1' => '01'])",
+            "value": [
+                [
+                    1,
+                    "01"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-collision-loose-ties",
+            "php": "Arr::sortDesc([1 => '1', 0 => 1, '1' => '01'])",
+            "value": [
+                [
+                    1,
+                    "01"
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-rows-by-path",
+            "php": "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], 'n')",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sort-out-of-order-rows-by-descriptor",
+            "php": "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], [['n', 'asc']])",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-rows-by-path",
+            "php": "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], 'n')",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortDesc-out-of-order-rows-by-descriptor",
+            "php": "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], [['n', 'asc']])",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "n",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            "n",
+                            0
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-descending-int-keys",
+            "php": "Arr::sortRecursive([1 => 'a', 0 => 'b'])",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortRecursive-out-of-order",
+            "php": "Arr::sortRecursive([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sortRecursive-out-of-order-key-and-value-sorts-disagree",
+            "php": "Arr::sortRecursive([2 => 'a', 0 => 'c', 1 => 'b'])",
+            "value": [
+                "c",
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-descending-int-keys",
+            "php": "Arr::sortRecursiveDesc([1 => 'a', 0 => 'b'])",
+            "value": [
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    0,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-out-of-order",
+            "php": "Arr::sortRecursiveDesc([2 => 'c', 0 => 'a', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-out-of-order-key-and-value-sorts-disagree",
+            "php": "Arr::sortRecursiveDesc([2 => 'a', 0 => 'c', 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "a"
+                ],
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-out-of-order-nested",
+            "php": "Arr::sortRecursive([1 => ['b' => 2, 'a' => 1], 0 => 'z'])",
+            "value": [
+                "z",
+                [
+                    [
+                        "a",
+                        1
+                    ],
+                    [
+                        "b",
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-collision",
+            "php": "Arr::sortRecursive([1 => 'a', 0 => 'c', '1' => 'b'])",
+            "value": [
+                "c",
+                "b"
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-collision",
+            "php": "Arr::sortRecursiveDesc([1 => 'a', 0 => 'c', '1' => 'b'])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-collision-out-of-order",
+            "php": "Arr::sortRecursiveDesc([1 => 'c', 0 => 'a', '1' => 'b'])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursive-collision-makes-list",
+            "php": "Arr::sortRecursive([0 => 'b', 1 => 'a', '0' => 'c'])",
+            "value": [
+                "a",
+                "c"
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-collision-makes-list",
+            "php": "Arr::sortRecursiveDesc([0 => 'z', 1 => 'b', '0' => 'a'])",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "get-out-of-order-int-key",
+            "php": "Arr::get([2 => 'c', 0 => 'a', 1 => 'b'], 2)",
+            "value": "c"
+        },
+        {
+            "label": "get-mixed-string-key",
+            "php": "Arr::get(['x' => 1, 0 => 2, 'y' => 3], 'y')",
+            "value": 3
+        },
+        {
+            "label": "has-out-of-order",
+            "php": "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 2])",
+            "value": true
+        },
+        {
+            "label": "has-out-of-order-missing",
+            "php": "Arr::has([2 => 'c', 0 => 'a', 1 => 'b'], [0, 5])",
+            "value": false
+        },
+        {
+            "label": "count-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->count()",
+            "value": 3
+        },
+        {
+            "label": "count-collision",
+            "php": "(new Collection([1 => 'a', 'x' => 'q', '1' => 'b']))->count()",
+            "value": 2
+        },
+        {
+            "label": "except-out-of-order",
+            "php": "Arr::except([2 => 'c', 0 => 'a', 1 => 'b'], [0])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "diff-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->diff(['a'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "intersectByKeys-out-of-order",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->intersectByKeys([0 => 'z', 2 => 'z'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    0,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "whereNotNull-out-of-order",
+            "php": "Arr::whereNotNull([2 => 'c', 0 => null, 1 => 'b'])",
+            "value": [
+                [
+                    2,
+                    "c"
+                ],
+                [
+                    1,
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "whereNotNull-collision-null-last",
+            "php": "Arr::whereNotNull([1 => 'a', 'x' => 'm', '1' => null])",
+            "value": [
+                [
+                    "x",
+                    "m"
+                ]
+            ]
+        }
+    ]
+}

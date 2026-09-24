@@ -231,6 +231,144 @@ describe("Utils", () => {
         });
     });
 
+    describe("keyedEntries", () => {
+        it("answers a plain object exactly as Object.entries does", () => {
+            const record = { b: 1, 2: "c", a: 2, 0: "a" };
+
+            expect(Utils.keyedEntries(record)).toEqual(Object.entries(record));
+        });
+
+        it("reads a Map in its own insertion order, which a plain object cannot hold", () => {
+            // docs/php-parity/task-30-map-order.json, "join-out-of-order"
+            // PHP walks [2 => 'c', 0 => 'a', 1 => 'b'] from key 2, where a record re-sorts to 0, 1, 2.
+            expect(
+                Utils.keyedEntries(
+                    new Map<unknown, string>([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([
+                ["2", "c"],
+                ["0", "a"],
+                ["1", "b"],
+            ]);
+            expect(
+                Utils.keyedEntries(
+                    new Map<unknown, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual([
+                ["x", 1],
+                ["0", 2],
+                ["y", 3],
+            ]);
+        });
+
+        it("folds Map keys PHP stores as one into the first one's place, holding the last value", () => {
+            // docs/php-parity/task-30-map-order.json, "first-collision", "last-collision"
+            // PHP's [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so last() is 'z'.
+            expect(
+                Utils.keyedEntries(
+                    new Map<unknown, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toEqual([
+                ["1", "b"],
+                ["0", "z"],
+            ]);
+        });
+
+        it("casts every Map key the way PHP casts an array key", () => {
+            // docs/php-parity/task-30-map-order.json, "every-numeric-string-keys-callback-order",
+            // "every-true-key-callback-order", "every-null-key-callback-order", "every-float-key-callback-order"
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            // PHP hands a callback 2, 1, "" and 1 for the "2", true, null and 1.5 keys; "01" stays a string.
+            expect(
+                Utils.keyedEntries(
+                    new Map<unknown, string>([
+                        ["2", "numeric string"],
+                        ["01", "padded string"],
+                        [true, "bool"],
+                        [null, "null"],
+                        [1.5, "float"],
+                        [-1, "negative"],
+                    ]),
+                ),
+            ).toEqual([
+                ["2", "numeric string"],
+                ["01", "padded string"],
+                ["1", "float"],
+                ["", "null"],
+                ["-1", "negative"],
+            ]);
+        });
+
+        it("keeps a __proto__ Map key as an ordinary entry", () => {
+            // JS-only: in PHP `__proto__` is an ordinary key; here it must stay data, not reparent anything.
+            const entries = Utils.keyedEntries(
+                new Map<string, unknown>([
+                    ["a", 1],
+                    ["__proto__", { polluted: true }],
+                ]),
+            );
+
+            expect(entries).toEqual([
+                ["a", 1],
+                ["__proto__", { polluted: true }],
+            ]);
+            expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+        });
+
+        it("keeps each Map key PHP cannot store as its own entry, under its string form", () => {
+            // JS-only: PHP throws for an object key and has no symbols, so there is nothing to fold these into.
+            const first = { id: 1 };
+            const second = { id: 2 };
+            const symbol = Symbol("s");
+
+            expect(
+                Utils.keyedEntries(
+                    new Map<unknown, string>([
+                        [first, "first"],
+                        [second, "second"],
+                        [symbol, "symbol"],
+                        [Symbol("s"), "other symbol"],
+                        [first, "first again"],
+                    ]),
+                ),
+            ).toEqual([
+                ["[object Object]", "first again"],
+                ["[object Object]", "second"],
+                ["Symbol(s)", "symbol"],
+                ["Symbol(s)", "other symbol"],
+            ]);
+        });
+
+        it("casts a bigint Map key as PHP casts its integer", () => {
+            // JS-only: PHP has no bigint; one holding an integer is stored as that integer.
+            expect(
+                Utils.keyedEntries(
+                    new Map<unknown, string>([
+                        [2n, "bigint"],
+                        [2, "number"],
+                    ]),
+                ),
+            ).toEqual([["2", "number"]]);
+        });
+
+        it("answers an empty Map with no entries", () => {
+            // JS-only: an empty Map stands for PHP's [].
+            expect(Utils.keyedEntries(new Map())).toEqual([]);
+        });
+    });
+
     describe("renumberPhpIntegerKeys", () => {
         it("renumbers every key PHP stores as an integer, in order", () => {
             // docs/php-parity/task-23-obj-release-readiness.json,

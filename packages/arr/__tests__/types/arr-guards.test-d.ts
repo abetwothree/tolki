@@ -53,9 +53,13 @@ describe("arr key-guard and typed-getter type tests", () => {
             expectTypeOf(Arr.has(data, 0)).toEqualTypeOf<boolean>();
         });
 
-        it("accepts unknown data without a cast", () => {
+        it("rejects unknown data and returns boolean once narrowed", () => {
             const data: unknown = [1, 2, 3];
-            expectTypeOf(Arr.has(data, 0)).toEqualTypeOf<boolean>();
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.has(data, 0);
+            expectTypeOf(
+                Arr.has(data as unknown[], 0),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("accepts a union element array without a cast", () => {
@@ -96,9 +100,11 @@ describe("arr key-guard and typed-getter type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
-        it("accepts unknown data without a cast", () => {
+        it("rejects unknown data and returns boolean once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.hasAll(unknownArray, [0]);
             expectTypeOf(
-                Arr.hasAll(unknownArray, [0]),
+                Arr.hasAll(unknownArray as unknown[], [0]),
             ).toEqualTypeOf<boolean>();
         });
     });
@@ -132,9 +138,11 @@ describe("arr key-guard and typed-getter type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
-        it("accepts unknown data without a cast", () => {
+        it("rejects unknown data and returns boolean once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.hasAny(unknownArray, [0]);
             expectTypeOf(
-                Arr.hasAny(unknownArray, [0]),
+                Arr.hasAny(unknownArray as unknown[], [0]),
             ).toEqualTypeOf<boolean>();
         });
     });
@@ -230,9 +238,13 @@ describe("arr key-guard and typed-getter type tests", () => {
                 expectTypeOf(Arr.integer(data, 0)).toEqualTypeOf<number>();
             });
 
-            it("accepts unknown data", () => {
+            it("rejects unknown data and returns number once narrowed", () => {
                 const data: unknown = [1];
-                expectTypeOf(Arr.integer(data, 0)).toEqualTypeOf<number>();
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.integer(data, 0);
+                expectTypeOf(
+                    Arr.integer(data as unknown[], 0),
+                ).toEqualTypeOf<number>();
             });
 
             it("accepts an empty array", () => {
@@ -336,9 +348,11 @@ describe("arr key-guard and typed-getter type tests", () => {
                 ).toEqualTypeOf<string>();
             });
 
-            it("accepts unknown data", () => {
+            it("rejects unknown data and returns string once narrowed", () => {
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.string(unknownArray, 0);
                 expectTypeOf(
-                    Arr.string(unknownArray, 0),
+                    Arr.string(unknownArray as unknown[], 0),
                 ).toEqualTypeOf<string>();
             });
         });
@@ -397,9 +411,11 @@ describe("arr key-guard and typed-getter type tests", () => {
                 ).toEqualTypeOf<string>();
             });
 
-            it("accepts unknown data", () => {
+            it("rejects unknown data and returns string once narrowed", () => {
+                // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+                Arr.join(unknownArray, ", ");
                 expectTypeOf(
-                    Arr.join(unknownArray, ", "),
+                    Arr.join(unknownArray as unknown[], ", "),
                 ).toEqualTypeOf<string>();
             });
 

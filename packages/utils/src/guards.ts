@@ -650,6 +650,31 @@ export function isAccessibleData(data: unknown): boolean {
 }
 
 /**
+ * Check whether a value is one PHP's `Arr::accessible` would walk: a value that
+ * carries array entries rather than object state.
+ *
+ * An array and a plain object both model a PHP array; a `Map` is the JavaScript
+ * shape for a PHP array with non-string keys. A `Date`, a `Set`, a class instance
+ * or any other exotic object keeps its state somewhere other than its own
+ * enumerable keys, so walking it reads nothing — PHP rejects a `DateTime` the
+ * same way, because it does not implement `ArrayAccess`.
+ *
+ * @param value - The value to check
+ * @returns True if the value's own entries are its data
+ *
+ * @example
+ *
+ * isPhpAccessible({ a: 1 }); -> true
+ * isPhpAccessible([1, 2]); -> true
+ * isPhpAccessible(new Map()); -> true
+ * isPhpAccessible(new Date()); -> false
+ * isPhpAccessible(new Set()); -> false
+ */
+export function isPhpAccessible(value: unknown): value is object {
+    return isArray(value) || isPlainObject(value) || isMap(value);
+}
+
+/**
  * Cast a value the way PHP's `(string)` operator does, but only for types that
  * have a real PHP scalar analogue. Returns `null` (the "no cast" sentinel) for
  * anything else, including NaN/Infinity and floats `String()` would render in

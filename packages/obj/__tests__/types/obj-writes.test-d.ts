@@ -138,10 +138,40 @@ describe("obj write type tests", () => {
             ).toEqualTypeOf<{ b: string; a: number }>();
         });
 
-        it("types a float key as the integer key PHP truncates it to, which it can't name", () => {
+        it("replaces an existing integer key without collapsing the record", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-prepend-existing-integer-key" (key 1) and "r3-prepend-extra-keys",
+            // "existing-integer-key-2" (key 2). PHP lists the prepended key first; JS
+            // enumerates an integer-like key in ascending order, so only the values move.
+            expectTypeOf(Obj.prepend({ 1: "a", b: 2 }, "z", 1)).toEqualTypeOf<{
+                1: string;
+                b: number;
+            }>();
+            expectTypeOf(
+                Obj.prepend({ 1: "a", 2: "b", c: 3 }, "z", 2),
+            ).toEqualTypeOf<{ 2: string; 1: string; c: number }>();
+        });
+
+        it("types a float key as the integer key PHP truncates it to", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast":
+            // @Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5) -> {"1": "v", "a": 1}.
             expectTypeOf(
                 Obj.prepend({ a: 1, 1: "x" }, "v", 1.5),
-            ).toEqualTypeOf<{
+            ).toEqualTypeOf<{ 1: string; a: number }>();
+
+            // Same row, "negative-float": (['a' => 1], 'v', -2.7) -> {"-2": "v", "a": 1}.
+            expectTypeOf(Obj.prepend({ a: 1 }, "v", -2.7)).toEqualTypeOf<{
+                [-2]: string;
+                a: number;
+            }>();
+        });
+
+        it("keeps a float that truncates to minus zero on the wide-number row", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-prepend-extra-keys", "negative-float-above-minus-one": PHP stores key
+            // int:0 for -0.5. JS-only from there on: "-0" names no TypeScript literal
+            // type, so the row stays as wide as it was before truncation was modelled.
+            expectTypeOf(Obj.prepend({ a: 1 }, "v", -0.5)).toEqualTypeOf<{
                 [x: `${number}`]: string;
                 a: number;
             }>();
@@ -157,6 +187,20 @@ describe("obj write type tests", () => {
         it("unshifts under integer keys when no key is given", () => {
             expectTypeOf(Obj.prepend({ one: 1 }, 0)).toEqualTypeOf<
                 { one: number } & Record<number, number>
+            >();
+        });
+
+        it("holds a Map's values and the prepended one, with or without a key", () => {
+            const map = new Map([[2, "c"]]);
+
+            expectTypeOf(Obj.prepend(map, 0)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            expectTypeOf(Obj.prepend(map, true, "k")).toEqualTypeOf<
+                Record<string, string | boolean>
+            >();
+            expectTypeOf(Obj.prepend(map, "z", null)).toEqualTypeOf<
+                Record<string, string>
             >();
         });
     });

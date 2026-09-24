@@ -3,8 +3,14 @@ import type {
     DeepMergeObjects,
     EnsureObject,
     FlipObject,
+    MapArrayKey,
+    MapData,
+    MapEntryKey,
+    MapEntryValue,
     MergeObjects,
+    NonKeyedItems,
     NonNullableObject,
+    NonObjectItems,
     ObjectFlatValue,
     ObjectKey,
     ObjectPathValue,
@@ -45,6 +51,156 @@ describe("object helper types", () => {
             expectTypeOf<PhpArrayKey<string>>().toEqualTypeOf<
                 string | number
             >();
+        });
+    });
+
+    describe("MapArrayKey", () => {
+        it("casts a string key as PhpArrayKey does", () => {
+            expectTypeOf<MapArrayKey<"10">>().toEqualTypeOf<10>();
+            expectTypeOf<MapArrayKey<"01">>().toEqualTypeOf<"01">();
+            expectTypeOf<MapArrayKey<string>>().toEqualTypeOf<
+                string | number
+            >();
+        });
+
+        it("keeps an integer key and widens a float one, which PHP truncates", () => {
+            expectTypeOf<MapArrayKey<2>>().toEqualTypeOf<2>();
+            expectTypeOf<MapArrayKey<-1>>().toEqualTypeOf<-1>();
+            expectTypeOf<MapArrayKey<1.5>>().toEqualTypeOf<number>();
+            expectTypeOf<MapArrayKey<number>>().toEqualTypeOf<number>();
+        });
+
+        it("still says number for an integer key past 2^53, which arrives as its digit string", () => {
+            // A documented limit: at runtime `keys(new Map([[2 ** 53, "x"]]))` returns ["9007199254740992"],
+            // as a key outside the safe integer range stays a digit string. PhpArrayKey shares the limit.
+            expectTypeOf<
+                MapArrayKey<9007199254740992>
+            >().toEqualTypeOf<9007199254740992>();
+            expectTypeOf<
+                PhpArrayKey<"9007199254740992">
+            >().toEqualTypeOf<9007199254740992>();
+        });
+
+        it("casts a boolean, null or undefined key as PHP casts an array offset", () => {
+            expectTypeOf<MapArrayKey<true>>().toEqualTypeOf<1>();
+            expectTypeOf<MapArrayKey<false>>().toEqualTypeOf<0>();
+            expectTypeOf<MapArrayKey<boolean>>().toEqualTypeOf<0 | 1>();
+            expectTypeOf<MapArrayKey<null>>().toEqualTypeOf<"">();
+            expectTypeOf<MapArrayKey<undefined>>().toEqualTypeOf<"">();
+        });
+
+        it("widens any other key to what its string form may cast to", () => {
+            expectTypeOf<MapArrayKey<object>>().toEqualTypeOf<
+                string | number
+            >();
+            expectTypeOf<MapArrayKey<symbol>>().toEqualTypeOf<
+                string | number
+            >();
+        });
+
+        it("distributes over a union of keys", () => {
+            expectTypeOf<MapArrayKey<"a" | "7" | 3>>().toEqualTypeOf<
+                "a" | 7 | 3
+            >();
+        });
+    });
+
+    describe("MapEntryKey and MapEntryValue", () => {
+        it("read a Map's keys as MapArrayKey and its values as they are", () => {
+            expectTypeOf<MapEntryKey<Map<"1" | "a", string>>>().toEqualTypeOf<
+                1 | "a"
+            >();
+            expectTypeOf<
+                MapEntryValue<ReadonlyMap<string, boolean>>
+            >().toEqualTypeOf<boolean>();
+        });
+
+        it("combine the keys and values of a union of Maps", () => {
+            type TwoMaps = Map<string, number> | Map<number, string>;
+            expectTypeOf<MapEntryKey<TwoMaps>>().toEqualTypeOf<
+                string | number
+            >();
+            expectTypeOf<MapEntryValue<TwoMaps>>().toEqualTypeOf<
+                string | number
+            >();
+            expectTypeOf<
+                MapEntryKey<Map<boolean, string> | Map<2, string>>
+            >().toEqualTypeOf<0 | 1 | 2>();
+        });
+
+        it("ignore a union member that is not a Map", () => {
+            expectTypeOf<
+                MapEntryKey<Map<number, string> | undefined>
+            >().toEqualTypeOf<number>();
+            expectTypeOf<
+                MapEntryValue<Map<number, string> | string[] | null>
+            >().toEqualTypeOf<string>();
+            expectTypeOf<MapEntryValue<string[]>>().toEqualTypeOf<never>();
+        });
+    });
+
+    describe("MapData", () => {
+        function rowFor<TMap>(data: MapData<TMap>): MapEntryValue<TMap>;
+        function rowFor(data: unknown): "no Map row";
+        function rowFor(data: unknown): unknown {
+            return data;
+        }
+
+        it("takes a Map, or a union of Maps, as it arrived", () => {
+            expectTypeOf(rowFor(new Map([[2, "c"]]))).toEqualTypeOf<string>();
+            expectTypeOf(
+                rowFor(
+                    new Map([[2, "c"]]) as
+                        | Map<number, string>
+                        | Map<string, boolean>,
+                ),
+            ).toEqualTypeOf<string | boolean>();
+        });
+
+        it("turns away any, and anything that is not a Map", () => {
+            // JSON.parse is typed as returning any.
+            expectTypeOf(
+                rowFor(JSON.parse("{}")),
+            ).toEqualTypeOf<"no Map row">();
+            expectTypeOf(rowFor({ a: 1 })).toEqualTypeOf<"no Map row">();
+            expectTypeOf(
+                rowFor(new Map() as Map<number, string> | string[]),
+            ).toEqualTypeOf<"no Map row">();
+        });
+
+        it("turns away a Map typed by a type parameter, which it cannot tell from any", () => {
+            const generic = <M extends Map<string, number>>(map: M) =>
+                rowFor(map);
+
+            expectTypeOf(generic).returns.toEqualTypeOf<"no Map row">();
+        });
+    });
+
+    describe("NonKeyedItems", () => {
+        it("takes every NonObjectItems member except a Map", () => {
+            expectTypeOf<number[]>().toExtend<NonKeyedItems>();
+            expectTypeOf<ReadonlySet<string>>().toExtend<NonKeyedItems>();
+            expectTypeOf<WeakMap<object, number>>().toExtend<NonKeyedItems>();
+            expectTypeOf<WeakSet<object>>().toExtend<NonKeyedItems>();
+            expectTypeOf<() => void>().toExtend<NonKeyedItems>();
+            expectTypeOf<NonKeyedItems>().toExtend<NonObjectItems>();
+        });
+
+        it("does not take a Map keyed by PHP array keys, or a ReadonlyMap", () => {
+            expectTypeOf<Map<string, number>>().not.toExtend<NonKeyedItems>();
+            expectTypeOf<
+                Map<number | boolean, number>
+            >().not.toExtend<NonKeyedItems>();
+            expectTypeOf<
+                ReadonlyMap<unknown, unknown>
+            >().not.toExtend<NonKeyedItems>();
+        });
+
+        it("still takes a Map keyed by objects or unknown, through the WeakMap member", () => {
+            // The documented limit: such a Map has every member a WeakMap declares. On its own it
+            // is claimed by each helper's Map row first; only inside a union does it reach this.
+            expectTypeOf<Map<object, string>>().toExtend<NonKeyedItems>();
+            expectTypeOf<Map<unknown, string>>().toExtend<NonKeyedItems>();
         });
     });
 

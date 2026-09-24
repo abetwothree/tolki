@@ -1,0 +1,326 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "concat-list-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->concat(['z']); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "concat-list-result",
+            "php": "collect([1, 2, 3])->concat(['z'])",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3,
+                    "z"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    "z"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "concat-keyed-leaves-the-receiver-alone",
+            "php": "$c = collect(['a' => 1, 'b' => 2]); $c->concat(['z']); $c",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2
+                },
+                "values": [
+                    1,
+                    2
+                ],
+                "keys": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "concat-keyed-result",
+            "php": "collect(['a' => 1, 'b' => 2])->concat(['z'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2,
+                    "0": "z"
+                },
+                "values": [
+                    1,
+                    2,
+                    "z"
+                ],
+                "keys": [
+                    "a",
+                    "b",
+                    0
+                ]
+            }
+        },
+        {
+            "label": "concat-out-of-order-leaves-the-receiver-alone",
+            "php": "$c = collect(base); $c->concat(['z']); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "concat-out-of-order-result",
+            "php": "collect(base)->concat(['z'])",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b",
+                    "3": "z"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "z"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "concat-collection-operand-result",
+            "php": "collect([1, 2])->concat(collect(['x' => 'z']))",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    "z"
+                ],
+                "values": [
+                    1,
+                    2,
+                    "z"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "join-list-leaves-the-receiver-alone",
+            "php": "$c = collect([1, 2, 3]); $c->join(', ', ' and '); $c",
+            "value": {
+                "all": [
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "join-keyed-leaves-the-receiver-alone",
+            "php": "$c = collect(['a' => 1, 'b' => 2]); $c->join(', ', ' and '); $c",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2
+                },
+                "values": [
+                    1,
+                    2
+                ],
+                "keys": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "join-out-of-order-leaves-the-receiver-alone",
+            "php": "$c = collect(base); $c->join(', ', ' and '); $c",
+            "value": {
+                "all": {
+                    "2": "c",
+                    "0": "a",
+                    "1": "b"
+                },
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    2,
+                    0,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "join-list-result",
+            "php": "collect([1, 2, 3])->join(', ', ' and ')",
+            "value": "1, 2 and 3"
+        },
+        {
+            "label": "join-keyed-result",
+            "php": "collect(['a' => 1, 'b' => 2])->join(', ', ' and ')",
+            "value": "1 and 2"
+        },
+        {
+            "label": "join-single-entry-result",
+            "php": "collect(['a' => 1])->join(', ', ' and ')",
+            "value": 1
+        },
+        {
+            "label": "join-empty-result",
+            "php": "collect([])->join(', ', ' and ')",
+            "value": ""
+        },
+        {
+            "label": "join-out-of-order-result",
+            "php": "collect(base)->join(', ', ' and ')",
+            "value": "c, a and b"
+        },
+        {
+            "label": "join-out-of-order-no-final-glue",
+            "php": "collect(base)->join(', ')",
+            "value": "c, a, b"
+        },
+        {
+            "label": "implode-out-of-order",
+            "php": "collect(base)->implode('-')",
+            "value": "c-a-b"
+        },
+        {
+            "label": "implode-out-of-order-pluck",
+            "php": "collect([2 => ['n' => 'c'], 0 => ['n' => 'a']])->implode('n', '-')",
+            "value": "c-a"
+        },
+        {
+            "label": "implode-out-of-order-callback",
+            "php": "collect(base)->implode(fn ($v) => strtoupper($v), '-')",
+            "value": "C-A-B"
+        },
+        {
+            "label": "arr-first-out-of-order",
+            "php": "Arr::first([2 => \"c\", 0 => \"a\", 1 => \"b\"])",
+            "value": "c"
+        },
+        {
+            "label": "arr-last-out-of-order",
+            "php": "Arr::last([2 => \"c\", 0 => \"a\", 1 => \"b\"])",
+            "value": "b"
+        },
+        {
+            "label": "arr-first-out-of-order-callback",
+            "php": "Arr::first(base, fn ($v) => $v !== 'c')",
+            "value": "a"
+        },
+        {
+            "label": "arr-last-out-of-order-callback",
+            "php": "Arr::last(base, fn ($v) => $v !== 'b')",
+            "value": "a"
+        },
+        {
+            "label": "arr-first-out-of-order-key-order",
+            "php": "$keys seen by Arr::first(base, $cb returning false)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "arr-last-out-of-order-key-order",
+            "php": "$keys seen by Arr::last(base, $cb returning false)",
+            "value": [
+                1,
+                0,
+                2
+            ]
+        },
+        {
+            "label": "every-out-of-order-key-order",
+            "php": "$keys seen by collect(base)->every($cb returning true)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "contains-out-of-order-key-order",
+            "php": "$keys seen by collect(base)->contains($cb returning false)",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "contains-out-of-order-first-match",
+            "php": "collect(base)->contains(fn ($v, $k) => true) stops at the first entry",
+            "value": [
+                2
+            ]
+        }
+    ]
+}

@@ -131,6 +131,21 @@ describe("Utils", () => {
             expect(Utils.arrayableValues(new Map([["a", 10]]))).toEqual([10]);
         });
 
+        it("reads a Map as the PHP array it stands for: in order, one value per PHP key", () => {
+            // docs/php-parity/task-30-map-order.json, "values-out-of-order", "first-collision"
+            // PHP keeps [2 => 'c', 0 => 'a'] in that order, and [1 => 'a', '1' => 'b'] is the one entry [1 => 'b'].
+            expect(
+                Utils.arrayableValues(
+                    new Map<unknown, string>([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "a2"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toEqual(["c", "a", "b"]);
+        });
+
         it("unwraps an object exposing toJSON(), like JsonSerializable", () => {
             const jsonable = { toJSON: () => ({ b: 20 }) };
             expect(Utils.arrayableValues(jsonable)).toEqual([20]);
@@ -175,6 +190,21 @@ describe("Utils", () => {
             });
             expect(Utils.arrayableItems([5, 6])).toEqual({ 0: 5, 1: 6 });
             expect(Utils.arrayableItems(new Set(["x"]))).toEqual({ 0: "x" });
+        });
+
+        it("keys a Map as PHP casts an array key, so 1 and '1' land on one key", () => {
+            // docs/php-parity/task-30-map-order.json, "first-true-key-collision", "every-null-key-callback-order"
+            // PHP stores true under 1, keeping the last value, and null under "".
+            expect(
+                Utils.arrayableItems(
+                    new Map<unknown, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                        [true, "c"],
+                        [null, "d"],
+                    ]),
+                ),
+            ).toEqual({ 1: "c", "": "d" });
         });
 
         it("empties a WeakMap or a WeakSet, whose entries can't be read", () => {

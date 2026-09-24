@@ -43,9 +43,91 @@ describe("arr mutations type tests", () => {
             >();
         });
 
+        it("keeps the list element type even when the write widens it", () => {
+            // KNOWN-UNSOUND: the runtime answers [["a"], [5]], so the true type is
+            // (string | number)[][]. The index-rest row keeps TValue[] when the element
+            // is already a list, so a value written under it reads back at the wrong type.
+            expectTypeOf(Arr.set([["a"], ["b"]], "1.0", 5)).toEqualTypeOf<
+                string[][]
+            >();
+        });
+
         it("preserves object element type via a dot path", () => {
             expectTypeOf(Arr.set(idObjects, "0.id", 2)).toEqualTypeOf<
                 { id: number }[]
+            >();
+        });
+
+        it("adds the record a dot path writes at a list index", () => {
+            // The dot-path row once declared the element type unchanged, so this read as
+            // `string[]` while the runtime returns `[{ x: 5 }, "b"]`.
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "set-dot-path-under-a-list-index"
+            expectTypeOf(Arr.set(["a", "b"], "0.x", 5)).toEqualTypeOf<
+                (string | { x: number })[]
+            >();
+        });
+
+        it("rebuilds no element for a head that only looks like an index", () => {
+            // Only an integer's canonical spelling is an array key, so "01" is stored as
+            // the list's own property. docs/php-parity/task-24-data-release-readiness.json,
+            // "r2-set-noncanonical-index-head-with-rest"
+            expectTypeOf(Arr.set(["a", "b"], "01.x", 5)).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("rebuilds no element for a negative head", () => {
+            // A negative index addresses no slot of a JS list, so the write lands on the
+            // list's own "-1" property instead of rebuilding element 0.
+            expectTypeOf(Arr.set(["a", "b"], "-1.x", 5)).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("widens a scalar element the rest rebuilds as a list", () => {
+            // The rest starts with an index, so element 0 becomes a fresh list; its own
+            // member types are deliberately approximated rather than spelled out.
+            expectTypeOf(Arr.set(["a", "b"], "0.1", 5)).toEqualTypeOf<
+                (string | unknown[])[]
+            >();
+        });
+
+        it("rebuilds a record when the rest only looks like an index", () => {
+            // The same canonical-spelling rule one segment deeper: "01" seeds a record,
+            // not a list, so the element gains that key. docs/php-parity/
+            // task-24-data-release-readiness.json, "e3-set-noncanonical-index-nested-scalar-element"
+            expectTypeOf(Arr.set(["a", "b"], "0.01", 5)).toEqualTypeOf<
+                (string | { "01": number })[]
+            >();
+        });
+
+        it("nests the record a deeper dot path writes at a list index", () => {
+            expectTypeOf(Arr.set(["a", "b"], "0.x.y", 5)).toEqualTypeOf<
+                (string | { x: { y: number } })[]
+            >();
+        });
+
+        it("admits no padding for an out-of-range canonical head", () => {
+            // KNOWN-UNSOUND: the runtime answers ["a", undefined, undefined, undefined,
+            // undefined, { x: 1 }] — the head is past the end, so the write pads the gap.
+            // The row names neither `undefined` nor the pad, so a read of one is mistyped.
+            expectTypeOf(Arr.set(["a"], "5.x", 1)).toEqualTypeOf<
+                (string | { x: number })[]
+            >();
+        });
+
+        it("merges the write onto a record element already there", () => {
+            expectTypeOf(Arr.set(idObjects, "0.name", "Ada")).toEqualTypeOf<
+                ({ id: number } | { id: number; name: string })[]
+            >();
+        });
+
+        it("leaves the element type alone for a path under a non-index key", () => {
+            // A non-index head is a string key stored on the array itself, so no element
+            // is rebuilt: Arr.set(["a"], "user.name", "x") -> ["a"] with a `user` property.
+            expectTypeOf(Arr.set(["a"], "user.name", "x")).toEqualTypeOf<
+                string[]
             >();
         });
 
@@ -54,6 +136,14 @@ describe("arr mutations type tests", () => {
             // fixture can stand in for "no elements" without losing the
             // point of the assertion.
             expectTypeOf(Arr.set([], 0, "a")).toEqualTypeOf<string[]>();
+        });
+
+        it("synthesizes just the written record for an empty array", () => {
+            // An empty array's element type is `never`, which used to carry the fresh
+            // container seed's own index signatures out into the public answer.
+            expectTypeOf(Arr.set([], "0.x", 5)).toEqualTypeOf<
+                { x: number }[]
+            >();
         });
 
         it("does not duplicate a same-shaped object value into a union", () => {
@@ -90,12 +180,14 @@ describe("arr mutations type tests", () => {
             expectTypeOf(Arr.set([1, 2], maybeKey, "x")).toEqualTypeOf<
                 (number | string)[] | string
             >();
-            expectTypeOf(Arr.set(unknownArray, maybeKey, 5)).toEqualTypeOf<
-                unknown[] | number
-            >();
-            expectTypeOf(Arr.set(unknownArray, "a", 5)).toEqualTypeOf<
-                unknown[]
-            >();
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.set(unknownArray, maybeKey, 5);
+            expectTypeOf(
+                Arr.set(unknownArray as unknown[], maybeKey, 5),
+            ).toEqualTypeOf<unknown[] | number>();
+            expectTypeOf(
+                Arr.set(unknownArray as unknown[], "a", 5),
+            ).toEqualTypeOf<unknown[]>();
         });
     });
 
@@ -233,11 +325,18 @@ describe("arr mutations type tests", () => {
             Arr.pop(readonlyNumbers);
         });
 
-        it("rejects unknown-typed data — the fallback overload only serves TValue[] | Record<PropertyKey, unknown> | null | undefined, not a blanket `unknown`, so mutation safety isn't silently bypassed", () => {
+        it("rejects unknown-typed data — the fallback overload only serves TValue[] | null | undefined, not a blanket `unknown`, so mutation safety isn't silently bypassed", () => {
             // @ts-expect-error -- a value whose static type is `unknown`
             // provides no proof it's actually a mutable array; narrow it
             // before calling a mutating function
             Arr.pop(unknownArray);
+        });
+
+        it("rejects a plain record — keyed data belongs to Obj.pop", () => {
+            // @ts-expect-error - keyed data belongs to Obj.pop
+            Arr.pop({ a: 1, b: 2 });
+            // @ts-expect-error - keyed data belongs to Obj.pop
+            Arr.pop({ a: 1, b: 2 }, 2);
         });
     });
 
@@ -263,6 +362,13 @@ describe("arr mutations type tests", () => {
         it("rejects a readonly array — shift mutates, so the source must be a known-mutable array", () => {
             // @ts-expect-error -- readonly arrays cannot be mutated by shift
             Arr.shift(readonlyStrings);
+        });
+
+        it("rejects a plain record — keyed data belongs to Obj.shift", () => {
+            // @ts-expect-error - keyed data belongs to Obj.shift
+            Arr.shift({ a: 1, b: 2 });
+            // @ts-expect-error - keyed data belongs to Obj.shift
+            Arr.shift({ a: 1, b: 2 }, 2);
         });
     });
 

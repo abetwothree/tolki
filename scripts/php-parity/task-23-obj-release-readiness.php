@@ -353,43 +353,43 @@ probe('sortRecursive-list-strings-case', "Arr::sortRecursive(['l'=>['b','B','a']
 
 // ==== CollectionTest parity
 // ---- literal ports (assoc / int-keyed non-list)
-probe('C1 values resets int keys', 'C1 values resets int keys', fn () => (new Collection([1 => 'a', 2 => 'b', 3 => 'c']))->values()->all());
-probe('C2 flip one', 'C2 flip one', fn () => (new Collection(['name' => 'taylor']))->flip()->all());
-probe('C3 flip two', 'C3 flip two', fn () => (new Collection(['name' => 'taylor', 'framework' => 'laravel']))->flip()->all());
-probe('C4 flip empty', 'C4 flip empty', fn () => (new Collection)->flip()->all());
-probe('C5 reverse assoc', 'C5 reverse assoc', fn () => (new Collection(['name' => 'taylor', 'framework' => 'laravel']))->reverse()->all());
-probe('C6 diffAssoc testDiffAssoc', 'C6 diffAssoc testDiffAssoc', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello', 'not_affected' => 'value']))->diffAssoc(new Collection(['id' => 123, 'foo_bar' => 'Hello', 'not_affected' => 'value']))->all());
-probe('C7 diffAssoc case keys', 'C7 diffAssoc case keys', fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssoc(new Collection(['A' => 'green', 'yellow', 'red']))->all());
-probe('C8 diffAssocUsing strcasecmp', 'C8 diffAssocUsing strcasecmp', fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssocUsing(new Collection(['A' => 'green', 'yellow', 'red']), 'strcasecmp')->all());
-probe('C9 intersectAssocUsing strcasecmp', 'C9 intersectAssocUsing strcasecmp', fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssocUsing(new Collection(['a' => 'GREEN', 'B' => 'brown', 'yellow', 'red']), 'strcasecmp')->all());
-probe('C10 combine list keys, offset values', 'C10 combine list keys, offset values', fn () => (new Collection(['name', 'family']))->combine([1 => 'taylor', 2 => 'otwell'])->toArray());
-probe('C11 combine offset keys, list values', 'C11 combine offset keys, list values', fn () => (new Collection([1 => 'name', 2 => 'family']))->combine(['taylor', 'otwell'])->toArray());
-probe('C12 combine offset both', 'C12 combine offset both', fn () => (new Collection([1 => 'name', 2 => 'family']))->combine([2 => 'taylor', 3 => 'otwell'])->toArray());
-probe('C13 combine lists -> int keys', 'C13 combine lists -> int keys', fn () => (new Collection([1, 2, 3]))->combine([4, 5, 6])->toArray());
-probe('C14 filter by key', 'C14 filter by key', fn () => (new Collection(['id' => 1, 'first' => 'Hello', 'second' => 'World']))->filter(fn ($item, $key) => $key !== 'id')->all());
-probe('C15 keys assoc', 'C15 keys assoc', fn () => (new Collection(['name' => 'taylor', 'framework' => 'laravel']))->keys()->all());
-probe('C16 replace assoc', 'C16 replace assoc', fn () => (new Collection(['name' => 'amir', 'family' => 'otwell']))->replace(['name' => 'taylor', 'age' => 26])->all());
-probe('C17 union array', 'C17 union array', fn () => (new Collection(['name' => 'Hello']))->union(['id' => 1])->all());
-probe('C18 union collection', 'C18 union collection', fn () => (new Collection(['name' => 'Hello']))->union(new Collection(['name' => 'World', 'id' => 1]))->all());
+probe('C1 values resets int keys', '(new Collection([1 => \'a\', 2 => \'b\', 3 => \'c\']))->values()->all()', fn () => (new Collection([1 => 'a', 2 => 'b', 3 => 'c']))->values()->all());
+probe('C2 flip one', '(new Collection([\'name\' => \'taylor\']))->flip()->all()', fn () => (new Collection(['name' => 'taylor']))->flip()->all());
+probe('C3 flip two', '(new Collection([\'name\' => \'taylor\', \'framework\' => \'laravel\']))->flip()->all()', fn () => (new Collection(['name' => 'taylor', 'framework' => 'laravel']))->flip()->all());
+probe('C4 flip empty', '(new Collection)->flip()->all()', fn () => (new Collection)->flip()->all());
+probe('C5 reverse assoc', '(new Collection([\'name\' => \'taylor\', \'framework\' => \'laravel\']))->reverse()->all()', fn () => (new Collection(['name' => 'taylor', 'framework' => 'laravel']))->reverse()->all());
+probe('C6 diffAssoc testDiffAssoc', '(new Collection([\'id\' => 1, \'first_word\' => \'Hello\', \'not_affected\' => \'value\']))->diffAssoc(new Collection([\'id\' => 123, \'foo_bar\' => \'Hello\', \'not_affected\' => \'value\']))->all()', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello', 'not_affected' => 'value']))->diffAssoc(new Collection(['id' => 123, 'foo_bar' => 'Hello', 'not_affected' => 'value']))->all());
+probe('C7 diffAssoc case keys', '(new Collection([\'a\' => \'green\', \'b\' => \'brown\', \'c\' => \'blue\', \'red\']))->diffAssoc(new Collection([\'A\' => \'green\', \'yellow\', \'red\']))->all()', fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssoc(new Collection(['A' => 'green', 'yellow', 'red']))->all());
+probe('C8 diffAssocUsing strcasecmp', '(new Collection([\'a\' => \'green\', \'b\' => \'brown\', \'c\' => \'blue\', \'red\']))->diffAssocUsing(new Collection([\'A\' => \'green\', \'yellow\', \'red\']), \'strcasecmp\')->all()', fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->diffAssocUsing(new Collection(['A' => 'green', 'yellow', 'red']), 'strcasecmp')->all());
+probe('C9 intersectAssocUsing strcasecmp', '(new Collection([\'a\' => \'green\', \'b\' => \'brown\', \'c\' => \'blue\', \'red\']))->intersectAssocUsing(new Collection([\'a\' => \'GREEN\', \'B\' => \'brown\', \'yellow\', \'red\']), \'strcasecmp\')->all()', fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssocUsing(new Collection(['a' => 'GREEN', 'B' => 'brown', 'yellow', 'red']), 'strcasecmp')->all());
+probe('C10 combine list keys, offset values', '(new Collection([\'name\', \'family\']))->combine([1 => \'taylor\', 2 => \'otwell\'])->toArray()', fn () => (new Collection(['name', 'family']))->combine([1 => 'taylor', 2 => 'otwell'])->toArray());
+probe('C11 combine offset keys, list values', '(new Collection([1 => \'name\', 2 => \'family\']))->combine([\'taylor\', \'otwell\'])->toArray()', fn () => (new Collection([1 => 'name', 2 => 'family']))->combine(['taylor', 'otwell'])->toArray());
+probe('C12 combine offset both', '(new Collection([1 => \'name\', 2 => \'family\']))->combine([2 => \'taylor\', 3 => \'otwell\'])->toArray()', fn () => (new Collection([1 => 'name', 2 => 'family']))->combine([2 => 'taylor', 3 => 'otwell'])->toArray());
+probe('C13 combine lists -> int keys', '(new Collection([1, 2, 3]))->combine([4, 5, 6])->toArray()', fn () => (new Collection([1, 2, 3]))->combine([4, 5, 6])->toArray());
+probe('C14 filter by key', '(new Collection([\'id\' => 1, \'first\' => \'Hello\', \'second\' => \'World\']))->filter(fn ($item, $key) => $key !== \'id\')->all()', fn () => (new Collection(['id' => 1, 'first' => 'Hello', 'second' => 'World']))->filter(fn ($item, $key) => $key !== 'id')->all());
+probe('C15 keys assoc', '(new Collection([\'name\' => \'taylor\', \'framework\' => \'laravel\']))->keys()->all()', fn () => (new Collection(['name' => 'taylor', 'framework' => 'laravel']))->keys()->all());
+probe('C16 replace assoc', '(new Collection([\'name\' => \'amir\', \'family\' => \'otwell\']))->replace([\'name\' => \'taylor\', \'age\' => 26])->all()', fn () => (new Collection(['name' => 'amir', 'family' => 'otwell']))->replace(['name' => 'taylor', 'age' => 26])->all());
+probe('C17 union array', '(new Collection([\'name\' => \'Hello\']))->union([\'id\' => 1])->all()', fn () => (new Collection(['name' => 'Hello']))->union(['id' => 1])->all());
+probe('C18 union collection', '(new Collection([\'name\' => \'Hello\']))->union(new Collection([\'name\' => \'World\', \'id\' => 1]))->all()', fn () => (new Collection(['name' => 'Hello']))->union(new Collection(['name' => 'World', 'id' => 1]))->all());
 probe('union-list-operand', "(new Collection(['a' => 1]))->union([5])", fn () => (new Collection(['a' => 1]))->union([5])->all());
-probe('C19 intersectByKeys 2', 'C19 intersectByKeys 2', fn () => (new Collection(['name' => 'taylor', 'family' => 'otwell', 'age' => 26]))->intersectByKeys(new Collection(['height' => 180, 'name' => 'amir', 'family' => 'moharami']))->all());
-probe('C20 intersectByKeys 1', 'C20 intersectByKeys 1', fn () => (new Collection(['name' => 'Mateus', 'age' => 18]))->intersectByKeys(new Collection(['name' => 'Mateus', 'surname' => 'Guimaraes']))->all());
+probe('C19 intersectByKeys 2', '(new Collection([\'name\' => \'taylor\', \'family\' => \'otwell\', \'age\' => 26]))->intersectByKeys(new Collection([\'height\' => 180, \'name\' => \'amir\', \'family\' => \'moharami\']))->all()', fn () => (new Collection(['name' => 'taylor', 'family' => 'otwell', 'age' => 26]))->intersectByKeys(new Collection(['height' => 180, 'name' => 'amir', 'family' => 'moharami']))->all());
+probe('C20 intersectByKeys 1', '(new Collection([\'name\' => \'Mateus\', \'age\' => 18]))->intersectByKeys(new Collection([\'name\' => \'Mateus\', \'surname\' => \'Guimaraes\']))->all()', fn () => (new Collection(['name' => 'Mateus', 'age' => 18]))->intersectByKeys(new Collection(['name' => 'Mateus', 'surname' => 'Guimaraes']))->all());
 probe('intersectAssoc-collection', "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssoc(new Collection(['a' => 'green', 'b' => 'yellow', 'blue', 'red']))", fn () => (new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red']))->intersectAssoc(new Collection(['a' => 'green', 'b' => 'yellow', 'blue', 'red']))->all());
-probe('C21 diff collection', 'C21 diff collection', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diff(new Collection(['first_word' => 'Hello', 'last_word' => 'World']))->all());
-probe('C22 diffKeysUsing', 'C22 diffKeysUsing', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeysUsing(new Collection(['ID' => 123, 'foo_bar' => 'Hello']), 'strcasecmp')->all());
-probe('C23 replace int-keyed replacer on int-keyed', 'C23 replace int-keyed replacer on int-keyed', fn () => (new Collection(['a', 'b', 'c']))->replace([1 => 'd', 2 => 'e', 3 => 'f', 4 => 'g'])->all());
-probe('C24 replaceRecursive list fixture', 'C24 replaceRecursive list fixture', fn () => (new Collection(['a', 'b', ['c', 'd']]))->replaceRecursive(['z', 2 => [1 => 'e'], 'f'])->all());
+probe('C21 diff collection', '(new Collection([\'id\' => 1, \'first_word\' => \'Hello\']))->diff(new Collection([\'first_word\' => \'Hello\', \'last_word\' => \'World\']))->all()', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diff(new Collection(['first_word' => 'Hello', 'last_word' => 'World']))->all());
+probe('C22 diffKeysUsing', '(new Collection([\'id\' => 1, \'first_word\' => \'Hello\']))->diffKeysUsing(new Collection([\'ID\' => 123, \'foo_bar\' => \'Hello\']), \'strcasecmp\')->all()', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeysUsing(new Collection(['ID' => 123, 'foo_bar' => 'Hello']), 'strcasecmp')->all());
+probe('C23 replace int-keyed replacer on int-keyed', '(new Collection([\'a\', \'b\', \'c\']))->replace([1 => \'d\', 2 => \'e\', 3 => \'f\', 4 => \'g\'])->all()', fn () => (new Collection(['a', 'b', 'c']))->replace([1 => 'd', 2 => 'e', 3 => 'f', 4 => 'g'])->all());
+probe('C24 replaceRecursive list fixture', '(new Collection([\'a\', \'b\', [\'c\', \'d\']]))->replaceRecursive([\'z\', 2 => [1 => \'e\'], \'f\'])->all()', fn () => (new Collection(['a', 'b', ['c', 'd']]))->replaceRecursive(['z', 2 => [1 => 'e'], 'f'])->all());
 
 // ---- LIST-derived shapes on assoc keys
 $eight = ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5, 'f' => 6, 'g' => 7, 'h' => 8];
-probe('L1 slice(3) assoc', 'L1 slice(3) assoc', fn () => (new Collection($eight))->slice(3)->all());
-probe('L2 slice(-3) assoc', 'L2 slice(-3) assoc', fn () => (new Collection($eight))->slice(-3)->all());
-probe('L3 slice(3,3) assoc', 'L3 slice(3,3) assoc', fn () => (new Collection($eight))->slice(3, 3)->all());
-probe('L4 slice(3,-1) assoc', 'L4 slice(3,-1) assoc', fn () => (new Collection($eight))->slice(3, -1)->all());
-probe('L5 slice(-5,3) assoc', 'L5 slice(-5,3) assoc', fn () => (new Collection($eight))->slice(-5, 3)->all());
-probe('L6 slice(-6,-2) assoc', 'L6 slice(-6,-2) assoc', fn () => (new Collection($eight))->slice(-6, -2)->all());
-probe('L7 chunkBy single item assoc', 'L7 chunkBy single item assoc', fn () => (new Collection(['x' => ['key' => 'a']]))->chunkBy('key')->map->all()->all());
-probe('L8 contains loose (assoc)', 'L8 contains loose (assoc)', function () {
+probe('L1 slice(3) assoc', '(new Collection($eight))->slice(3)->all()', fn () => (new Collection($eight))->slice(3)->all());
+probe('L2 slice(-3) assoc', '(new Collection($eight))->slice(-3)->all()', fn () => (new Collection($eight))->slice(-3)->all());
+probe('L3 slice(3,3) assoc', '(new Collection($eight))->slice(3, 3)->all()', fn () => (new Collection($eight))->slice(3, 3)->all());
+probe('L4 slice(3,-1) assoc', '(new Collection($eight))->slice(3, -1)->all()', fn () => (new Collection($eight))->slice(3, -1)->all());
+probe('L5 slice(-5,3) assoc', '(new Collection($eight))->slice(-5, 3)->all()', fn () => (new Collection($eight))->slice(-5, 3)->all());
+probe('L6 slice(-6,-2) assoc', '(new Collection($eight))->slice(-6, -2)->all()', fn () => (new Collection($eight))->slice(-6, -2)->all());
+probe('L7 chunkBy single item assoc', '(new Collection([\'x\' => [\'key\' => \'a\']]))->chunkBy(\'key\')->map->all()->all()', fn () => (new Collection(['x' => ['key' => 'a']]))->chunkBy('key')->map->all()->all());
+probe('L8 contains loose (assoc)', 'contains() over (new Collection([\'a\'=>1,\'b\'=>3,\'c\'=>5])) with 1,\'1\',2,\'2\'; then [\'a\'=>\'1\'] with \'1\',1; [\'a\'=>null] with false,null,[],0,\'\'; [\'a\'=>0] with 0,\'0\',false,null,fn($v)=>$v<5,fn($v)=>$v>5; [\'a\'=>\'date\',\'b\'=>\'class\',\'c\'=>(object)[\'foo\'=>50]] with \'date\',\'class\',\'foo\'; [\'a\'=>null,\'b\'=>1,\'c\'=>2] with fn($v)=>is_null($v)', function () {
     $r = [];
     $c = new Collection(['a' => 1, 'b' => 3, 'c' => 5]);
     $r['135'] = [$c->contains(1), $c->contains('1'), $c->contains(2), $c->contains('2')];
@@ -405,7 +405,7 @@ probe('L8 contains loose (assoc)', 'L8 contains loose (assoc)', function () {
     $r['cbnull'] = [$c->contains(fn ($v) => is_null($v))];
     return $r;
 });
-probe('L9 containsStrict (assoc)', 'L9 containsStrict (assoc)', function () {
+probe('L9 containsStrict (assoc)', 'containsStrict() over (new Collection([\'a\'=>1,\'b\'=>3,\'c\'=>5,\'d\'=>\'02\'])) with 1,\'1\',2,\'02\',true,fn($v)=>$v<5,fn($v)=>$v>5; then [\'a\'=>0] with 0,\'0\',false,null; [\'a\'=>1,\'b\'=>null] with null,0,false; [\'a\'=>\'date\',\'b\'=>\'class\',\'c\'=>(object)[\'foo\'=>50],\'d\'=>\'\'] with \'date\',\'class\',\'foo\',null,\'\'', function () {
     $r = [];
     $c = new Collection(['a' => 1, 'b' => 3, 'c' => 5, 'd' => '02']);
     $r['mixed'] = [$c->containsStrict(1), $c->containsStrict('1'), $c->containsStrict(2), $c->containsStrict('02'), $c->containsStrict(true), $c->containsStrict(fn ($v) => $v < 5), $c->containsStrict(fn ($v) => $v > 5)];
@@ -419,121 +419,121 @@ probe('L9 containsStrict (assoc)', 'L9 containsStrict (assoc)', function () {
 });
 
 // ---- divergences
-probe('D1 unshift assoc item onto assoc', 'D1 unshift assoc item onto assoc', function () {
+probe('D1 unshift assoc item onto assoc', '$c = new Collection([\'b\' => 2]); $c->unshift([\'a\' => 1]); $c->all()', function () {
     $c = new Collection(['b' => 2]);
     $c->unshift(['a' => 1]);
     return $c->all();
 });
-probe('D1b unshift two assoc items onto assoc', 'D1b unshift two assoc items onto assoc', function () {
+probe('D1b unshift two assoc items onto assoc', '$c = new Collection([\'b\' => 2]); $c->unshift([\'a\' => 1], [\'d\' => \'house\']); $c->all()', function () {
     $c = new Collection(['b' => 2]);
     $c->unshift(['a' => 1], ['d' => 'house']);
     return $c->all();
 });
-probe('D1c testUnshiftWithOneItem sequence on assoc', 'D1c testUnshiftWithOneItem sequence on assoc', function () {
+probe('D1c testUnshiftWithOneItem sequence on assoc', '$c = new Collection([\'x\' => 4]); $c->unshift([\'a\', \'b\', \'c\']); $c->unshift([\'who\' => \'Jonny\', \'preposition\' => \'from\', \'where\' => \'Laroe\']); $c->unshift(\'Jonny from Laroe\')->toArray()', function () {
     $c = new Collection(['x' => 4]);
     $c->unshift(['a', 'b', 'c']);
     $c->unshift(['who' => 'Jonny', 'preposition' => 'from', 'where' => 'Laroe']);
     return $c->unshift('Jonny from Laroe')->toArray();
 });
-probe('D1d unshift spread string-keyed', 'D1d unshift spread string-keyed', function () {
+probe('D1d unshift spread string-keyed', '$c = new Collection([\'b\' => 2]); $c->unshift(...[\'a\' => 1]); $c->all()', function () {
     $c = new Collection(['b' => 2]);
     $c->unshift(...['a' => 1]);
     return $c->all();
 });
-probe('D1e unshift int-keyed item overlapping', 'D1e unshift int-keyed item overlapping', function () {
+probe('D1e unshift int-keyed item overlapping', '$c = new Collection([\'z\' => 3]); $c->unshift([0 => \'zero\'], 9); $c->all()', function () {
     $c = new Collection(['z' => 3]);
     $c->unshift([0 => 'zero'], 9);
     return $c->all();
 });
-probe('D1f unshift with no items on assoc', 'D1f unshift with no items on assoc', function () {
+probe('D1f unshift with no items on assoc', '(new Collection([5 => \'a\', \'x\' => \'b\']))->unshift()->all()', function () {
     $c = new Collection([5 => 'a', 'x' => 'b']);
     return $c->unshift()->all();
 });
-probe('D2 containsStrict callback matching a null value', 'D2 containsStrict callback matching a null value', fn () => [
+probe('D2 containsStrict callback matching a null value', '[\'strict\' => (new Collection([\'a\' => null, \'b\' => 1]))->containsStrict(fn ($v) => is_null($v)), \'loose\' => (new Collection([\'a\' => null, \'b\' => 1]))->contains(fn ($v) => is_null($v))]', fn () => [
     'strict' => (new Collection(['a' => null, 'b' => 1]))->containsStrict(fn ($v) => is_null($v)),
     'loose' => (new Collection(['a' => null, 'b' => 1]))->contains(fn ($v) => is_null($v)),
 ]);
-probe('D3 containsStrict NAN', 'D3 containsStrict NAN', fn () => [
+probe('D3 containsStrict NAN', '[\'strict\' => (new Collection([\'a\' => NAN]))->containsStrict(NAN), \'loose\' => (new Collection([\'a\' => NAN]))->contains(NAN)]', fn () => [
     'strict' => (new Collection(['a' => NAN]))->containsStrict(NAN),
     'loose' => (new Collection(['a' => NAN]))->contains(NAN),
 ]);
-probe('D4 containsStrict array by value', 'D4 containsStrict array by value', fn () => [
+probe('D4 containsStrict array by value', '[\'strict_list\' => (new Collection([\'a\' => [1]]))->containsStrict([1]), \'strict_assoc\' => (new Collection([\'a\' => [\'x\' => 1]]))->containsStrict([\'x\' => 1]), \'loose_assoc\' => (new Collection([\'a\' => [\'x\' => 1]]))->contains([\'x\' => \'1\'])]', fn () => [
     'strict_list' => (new Collection(['a' => [1]]))->containsStrict([1]),
     'strict_assoc' => (new Collection(['a' => ['x' => 1]]))->containsStrict(['x' => 1]),
     'loose_assoc' => (new Collection(['a' => ['x' => 1]]))->contains(['x' => '1']),
 ]);
-probe('D5 combine null/bool/float keys', 'D5 combine null/bool/float keys', fn () => [
+probe('D5 combine null/bool/float keys', '(new Collection([\'k\' => null|true|false|1.5|\'7\']))->combine([1])->all(), keyed \'null\',\'true\',\'false\',\'float\',\'numstr\'', fn () => [
     'null' => (new Collection(['k' => null]))->combine([1])->all(),
     'true' => (new Collection(['k' => true]))->combine([1])->all(),
     'false' => (new Collection(['k' => false]))->combine([1])->all(),
     'float' => (new Collection(['k' => 1.5]))->combine([1])->all(),
     'numstr' => (new Collection(['k' => '7']))->combine([1])->all(),
 ]);
-probe('D6 shift/pop on collect(null)', 'D6 shift/pop on collect(null)', fn () => [
+probe('D6 shift/pop on collect(null)', '[\'shift2\' => (new Collection(null))->shift(2), \'shift1\' => (new Collection(null))->shift(), \'pop3\' => (new Collection(null))->pop(3)->all()]', fn () => [
     'shift2' => (new Collection(null))->shift(2),
     'shift1' => (new Collection(null))->shift(),
     'pop3' => (new Collection(null))->pop(3)->all(),
 ]);
-probe('D7 replaceRecursive nested list replaced by offset map', 'D7 replaceRecursive nested list replaced by offset map', fn () => (new Collection(['k' => ['c', 'd']]))->replaceRecursive(['k' => [1 => 'e']])->all());
-probe('D8 pop(2) on assoc returns list', 'D8 pop(2) on assoc returns list', function () {
+probe('D7 replaceRecursive nested list replaced by offset map', '(new Collection([\'k\' => [\'c\', \'d\']]))->replaceRecursive([\'k\' => [1 => \'e\']])->all()', fn () => (new Collection(['k' => ['c', 'd']]))->replaceRecursive(['k' => [1 => 'e']])->all());
+probe('D8 pop(2) on assoc returns list', '$c = new Collection([\'a\' => 1, \'b\' => 2, \'c\' => 3]); [\'returned\' => $c->pop(2)->all(), \'remaining\' => $c->all()]', function () {
     $c = new Collection(['a' => 1, 'b' => 2, 'c' => 3]);
     return ['returned' => $c->pop(2)->all(), 'remaining' => $c->all()];
 });
-probe('D9 flip numeric-string value', 'D9 flip numeric-string value', fn () => (new Collection(['a' => '1', 'b' => '01', 'c' => '-0']))->flip()->all());
-probe('D10 contains strict vs loose -0/0', 'D10 contains strict vs loose -0/0', fn () => [
+probe('D9 flip numeric-string value', '(new Collection([\'a\' => \'1\', \'b\' => \'01\', \'c\' => \'-0\']))->flip()->all()', fn () => (new Collection(['a' => '1', 'b' => '01', 'c' => '-0']))->flip()->all());
+probe('D10 contains strict vs loose -0/0', '[\'s\' => (new Collection([\'a\' => -0.0]))->containsStrict(0.0)]', fn () => [
     's' => (new Collection(['a' => -0.0]))->containsStrict(0.0),
 ]);
 
 // ==== CollectionTest parity: keys, splice, pop, shift, pad
-probe('K1 keys of numeric-looking string keys', 'K1 keys of numeric-looking string keys', function () {
+probe('K1 keys of numeric-looking string keys', 'array_map(fn ($k) => [gettype($k), $k], (new Collection([\'1.5\' => \'a\', \'Infinity\' => \'b\', \'-1\' => \'c\', \'01\' => \'d\', \'1e3\' => \'e\', \'10\' => \'f\', \'1e+21\' => \'g\']))->keys()->all())', function () {
     $keys = (new Collection(['1.5' => 'a', 'Infinity' => 'b', '-1' => 'c', '01' => 'd', '1e3' => 'e', '10' => 'f', '1e+21' => 'g']))->keys()->all();
     return array_map(fn ($k) => [gettype($k), $k], $keys);
 });
-probe('K2 chunkWhile callback key types', 'K2 chunkWhile callback key types', function () {
+probe('K2 chunkWhile callback key types', '(new Collection([\'a\' => 0, \'01\' => \'d\', \'1.5\' => \'x\', \'1e3\' => \'e\', \' 1\' => \'g\', \'-1\' => \'c\', \'10\' => \'f\']))->chunkWhile(fn ($v, $k) => true), recording [gettype($k), $k] per call', function () {
     $seen = [];
     (new Collection(['a' => 0, '01' => 'd', '1.5' => 'x', '1e3' => 'e', ' 1' => 'g', '-1' => 'c', '10' => 'f']))
         ->chunkWhile(function ($v, $k) use (&$seen) { $seen[] = [gettype($k), $k]; return true; });
     return $seen;
 });
-probe('R1 replaceRecursive nested map replaced by list', 'R1 replaceRecursive nested map replaced by list', fn () => (new Collection(['k' => [0 => 'c', 1 => 'd']]))->replaceRecursive(['k' => ['x']])->all());
+probe('R1 replaceRecursive nested map replaced by list', '(new Collection([\'k\' => [0 => \'c\', 1 => \'d\']]))->replaceRecursive([\'k\' => [\'x\']])->all()', fn () => (new Collection(['k' => [0 => 'c', 1 => 'd']]))->replaceRecursive(['k' => ['x']])->all());
 probe('replaceRecursive-list-with-assoc', "(new Collection(['k' => ['c']]))->replaceRecursive(['k' => ['x' => 1]])", fn () => (new Collection(['k' => ['c']]))->replaceRecursive(['k' => ['x' => 1]])->all());
-probe('S1 splice on assoc with scalar replacement mid', 'S1 splice on assoc with scalar replacement mid', function () {
+probe('S1 splice on assoc with scalar replacement mid', '$c = new Collection([\'a\' => 1, \'b\' => 2, \'c\' => 3]); [\'removed\' => $c->splice(1, 1, \'bar\')->all(), \'after\' => $c->all()]', function () {
     $c = new Collection(['a' => 1, 'b' => 2, 'c' => 3]);
     $removed = $c->splice(1, 1, 'bar');
     return ['removed' => $removed->all(), 'after' => $c->all()];
 });
-probe('S2 splice assoc insert scalar, length 0', 'S2 splice assoc insert scalar, length 0', function () {
+probe('S2 splice assoc insert scalar, length 0', '$c = new Collection([\'foo\' => \'f\', \'baz\' => \'z\']); [\'removed\' => $c->splice(1, 0, \'bar\')->all(), \'after\' => $c->all()]', function () {
     $c = new Collection(['foo' => 'f', 'baz' => 'z']);
     $removed = $c->splice(1, 0, 'bar');
     return ['removed' => $removed->all(), 'after' => $c->all()];
 });
-probe('S3 splice assoc insert array', 'S3 splice assoc insert array', function () {
+probe('S3 splice assoc insert array', '$c = new Collection([\'foo\' => \'f\', \'baz\' => \'z\']); $c->splice(1, 0, [\'bar\']); $c->all()', function () {
     $c = new Collection(['foo' => 'f', 'baz' => 'z']);
     $c->splice(1, 0, ['bar']);
     return $c->all();
 });
-probe('S4 splice assoc (1,1) no replacement', 'S4 splice assoc (1,1) no replacement', function () {
+probe('S4 splice assoc (1,1) no replacement', '$c = new Collection([\'foo\' => \'f\', \'baz\' => \'z\']); [\'removed\' => $c->splice(1, 1)->all(), \'after\' => $c->all()]', function () {
     $c = new Collection(['foo' => 'f', 'baz' => 'z']);
     $removed = $c->splice(1, 1);
     return ['removed' => $removed->all(), 'after' => $c->all()];
 });
-probe('P1 pop on assoc', 'P1 pop on assoc', function () {
+probe('P1 pop on assoc', '$c = new Collection([\'foo\' => \'f\', \'bar\' => \'b\']); [\'popped\' => $c->pop(), \'first\' => $c->first(), \'all\' => $c->all()]', function () {
     $c = new Collection(['foo' => 'f', 'bar' => 'b']);
     return ['popped' => $c->pop(), 'first' => $c->first(), 'all' => $c->all()];
 });
-probe('P2 pop(2)/pop(6) on assoc', 'P2 pop(2)/pop(6) on assoc', function () {
+probe('P2 pop(2)/pop(6) on assoc', '$c = new Collection([\'foo\' => \'f\', \'bar\' => \'b\', \'baz\' => \'z\']); [\'two\' => $c->pop(2)->all(), \'first\' => $c->first(), \'six\' => (new Collection([\'foo\' => \'f\', \'bar\' => \'b\', \'baz\' => \'z\']))->pop(6)->all()]', function () {
     $c = new Collection(['foo' => 'f', 'bar' => 'b', 'baz' => 'z']);
     $two = $c->pop(2)->all();
     $first = $c->first();
     $six = (new Collection(['foo' => 'f', 'bar' => 'b', 'baz' => 'z']))->pop(6)->all();
     return ['two' => $two, 'first' => $first, 'six' => $six];
 });
-probe('SH1 shift sequence on assoc', 'SH1 shift sequence on assoc', function () {
+probe('SH1 shift sequence on assoc', '$c = new Collection([\'first\' => \'Taylor\', \'last\' => \'Otwell\']); [$c->shift(), $c->first(), $c->shift(), $c->first()]', function () {
     $c = new Collection(['first' => 'Taylor', 'last' => 'Otwell']);
     $a = $c->shift(); $f1 = $c->first(); $b = $c->shift(); $f2 = $c->first();
     return [$a, $f1, $b, $f2];
 });
-probe('SH2 shift(2), shift(6), shift(0) on assoc', 'SH2 shift(2), shift(6), shift(0) on assoc', function () {
+probe('SH2 shift(2), shift(6), shift(0) on assoc', '$c = new Collection([\'a\' => \'foo\', \'b\' => \'bar\', \'c\' => \'baz\']); [\'two\' => $c->shift(2)->all(), \'first\' => $c->first(), \'rem\' => $c->all(), \'six\' => (new Collection([\'a\' => \'foo\', \'b\' => \'bar\', \'c\' => \'baz\']))->shift(6)->all(), \'zero\' => $c0->shift(0)->all(), \'after0\' => $c0->all()]', function () {
     $c = new Collection(['a' => 'foo', 'b' => 'bar', 'c' => 'baz']);
     $two = $c->shift(2)->all(); $first = $c->first(); $rem = $c->all();
     $six = (new Collection(['a' => 'foo', 'b' => 'bar', 'c' => 'baz']))->shift(6)->all();
@@ -541,8 +541,8 @@ probe('SH2 shift(2), shift(6), shift(0) on assoc', 'SH2 shift(2), shift(6), shif
     $zero = $c0->shift(0)->all();
     return ['two' => $two, 'first' => $first, 'rem' => $rem, 'six' => $six, 'zero' => $zero, 'after0' => $c0->all()];
 });
-probe('SH3 shift(-2) throws', 'SH3 shift(-2) throws', fn () => (new Collection(['a' => 1]))->shift(-2));
-probe('PAD1 pad on assoc (list fixture shapes)', 'PAD1 pad on assoc (list fixture shapes)', fn () => [
+probe('SH3 shift(-2) throws', '(new Collection([\'a\' => 1]))->shift(-2)', fn () => (new Collection(['a' => 1]))->shift(-2));
+probe('PAD1 pad on assoc (list fixture shapes)', '[\'p4\' => (new Collection([\'a\' => 1, \'b\' => 2, \'c\' => 3]))->pad(4, 0)->all(), \'p4big\' => (new Collection([\'a\' => 1, \'b\' => 2, \'c\' => 3, \'d\' => 4, \'e\' => 5]))->pad(4, 0)->all(), \'n4\' => ...->pad(-4, 0)->all(), \'n4big\' => ...->pad(-4, 0)->all()]', fn () => [
     'p4' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->pad(4, 0)->all(),
     'p4big' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5]))->pad(4, 0)->all(),
     'n4' => (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->pad(-4, 0)->all(),
@@ -550,13 +550,13 @@ probe('PAD1 pad on assoc (list fixture shapes)', 'PAD1 pad on assoc (list fixtur
 ]);
 
 // ==== CollectionTest parity: unshift(null) and callback key types
-probe('U1 unshift(null) onto assoc', 'U1 unshift(null) onto assoc', function () { $c = new Collection(['a' => 1]); $c->unshift(null); return $c->all(); });
-probe('F1 filter callback key type for int key', 'F1 filter callback key type for int key', function () {
+probe('U1 unshift(null) onto assoc', '$c = new Collection([\'a\' => 1]); $c->unshift(null); $c->all()', function () { $c = new Collection(['a' => 1]); $c->unshift(null); return $c->all(); });
+probe('F1 filter callback key type for int key', '[\'result\' => (new Collection([1 => \'a\', \'x\' => \'b\']))->filter(fn ($v, $k) => $k === 1)->all(), \'seen\' => [gettype($k), $k] per call]', function () {
     $seen = [];
     $r = (new Collection([1 => 'a', 'x' => 'b']))->filter(function ($v, $k) use (&$seen) { $seen[] = [gettype($k), $k]; return $k === 1; })->all();
     return ['result' => $r, 'seen' => $seen];
 });
-probe('F2 contains callback key type for int key', 'F2 contains callback key type for int key', function () {
+probe('F2 contains callback key type for int key', '[\'result\' => (new Collection([1 => \'a\', \'x\' => \'b\']))->contains(fn ($v, $k) => $k === 1), \'seen\' => [gettype($k), $k] per call]', function () {
     $seen = [];
     $r = (new Collection([1 => 'a', 'x' => 'b']))->contains(function ($v, $k) use (&$seen) { $seen[] = [gettype($k), $k]; return $k === 1; });
     return ['result' => $r, 'seen' => $seen];

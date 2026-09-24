@@ -158,6 +158,8 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isArray(variable)` - checks if the variable is an array
   - `toArrayable(variable)` - converts the variable is an object with the `toArray` method
   - `isObject(variable)` - checks if the variable is a non-null non-array object
+  - `isPlainObject(variable)` - checks if the variable is a plain object, one whose prototype is `Object.prototype` or `null`; an array, a class instance and a built-in such as `Date` or `Map` are not
+  - `isPhpAccessible(variable)` - checks if the variable carries array entries rather than object state, the question PHP's `Arr::accessible` asks: an array, a plain object and a `Map` do, a `Date`, a `Set` or a class instance does not
   - `isObjectAny(variable)` - checks if the variable is a object (including arrays, null)
   - `isTruthyObject(variable)` - checks if the variable is a non-null non-undefined object (including arrays)
   - `isPrototypeObject(variable)` - checks if the variable is a prototype object (`Object.prototype`, `Array.prototype`, a class's `prototype`), which no caller-supplied path may write into
@@ -215,6 +217,7 @@ if (condition) {
     - The files are named like `Arr-Function-List.txt` for the `Arr.php` stub and are located in the `fn-lists` in the same folder root.
 - Functions should be written in the same order as in the Laravel stub for easier reference.
 - Functions should be defined with named exports, e.g. `export function functionName() {}` instead of `export const functionName = () => {}` for easier reference and consistency.
+  - **Exception — `@tolki/data` only, and only for the helpers built by `dispatch`.** A `data*` helper that forwards to an `@tolki/arr` delegate and an `@tolki/obj` delegate is written `export const dataX = dispatch(arrX, objX)`. The whole value of `dispatch` is its return type, an intersection of the two delegates' types: TypeScript re-runs overload resolution against an intersection at every call site, so `data` inherits `arr`'s and `obj`'s return types automatically and never restates them. A `function` declaration cannot carry that type, because `ReturnType<typeof f>` on an overloaded `f` resolves only its **last** overload, which would collapse every other row. The 11 `data*` helpers that have no delegate pair are still `export function`, and **no other package may use the `export const` form for a function.**
 
 ## Comments
 

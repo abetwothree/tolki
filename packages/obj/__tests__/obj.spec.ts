@@ -1,7 +1,11 @@
 import * as Arr from "@tolki/arr";
 import { SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
-import { isString } from "@tolki/utils";
+import {
+    isString,
+    ItemNotFoundException,
+    MultipleItemsFoundException,
+} from "@tolki/utils";
 import { afterEach, assertType, describe, expect, it, vi } from "vitest";
 
 /**
@@ -12,12 +16,21 @@ import { afterEach, assertType, describe, expect, it, vi } from "vitest";
  */
 const collectionLike = <T>(items: T) => ({ all: () => items });
 
+/** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
+const caseless = (a: unknown, b: unknown): boolean =>
+    String(a).toLowerCase() === String(b).toLowerCase();
+
 /**
  * A class instance with own fields, which PHP's array helpers keep whole instead of walking.
  */
 class Point {
     x = 1;
     y = 2;
+}
+
+/** The single-field instance the write-path probes use, so a citation names the same call. */
+class D4Point {
+    x = 1;
 }
 
 describe("Obj", () => {
@@ -43,11 +56,13 @@ describe("Obj", () => {
             expect(Obj.accessible(() => null)).toBe(false);
         });
 
-        it("returns true for a Date or class instance, which PHP rejects", () => {
-            // JS-only: obj's analogue of a PHP array is any object that isn't a list, even a Date or class instance;
-            // PHP rejects a DateTime (docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime").
-            expect(Obj.accessible(new Date(0))).toBe(true);
-            expect(Obj.accessible(new Point())).toBe(true);
+        it("rejects a Date or class instance but keeps a Map", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime".
+            // A Map is JS's shape for a PHP array with non-string keys, so it stays accessible.
+            expect(Obj.accessible(new Date(0))).toBe(false);
+            expect(Obj.accessible(new Point())).toBe(false);
+            expect(Obj.accessible(new Set([1]))).toBe(false);
+            expect(Obj.accessible(new Map([["a", 1]]))).toBe(true);
         });
     });
 
@@ -73,15 +88,28 @@ describe("Obj", () => {
             expect(Obj.objectifiable(() => null)).toBe(false);
         });
 
-        it("returns true for a Date or class instance, which PHP rejects", () => {
-            // JS-only: obj's analogue of a PHP array is any object that isn't a list, even a Date or class instance;
-            // PHP rejects a DateTime (docs/php-parity/task-23-obj-release-readiness.json, "arrayable-datetime").
-            expect(Obj.objectifiable(new Date(0))).toBe(true);
-            expect(Obj.objectifiable(new Point())).toBe(true);
+        it("rejects a Date or class instance but keeps a Map", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "arrayable-datetime".
+            // A Map is JS's shape for a PHP array with non-string keys, so it stays objectifiable.
+            expect(Obj.objectifiable(new Date(0))).toBe(false);
+            expect(Obj.objectifiable(new Point())).toBe(false);
+            expect(Obj.objectifiable(new Set([1]))).toBe(false);
+            expect(Obj.objectifiable(new Map([["a", 1]]))).toBe(true);
         });
     });
 
     describe("add", () => {
+        it("writes over a key already holding null, as Arr::add does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "add-over-null-keyed-value",
+            // "add-over-null-nested-keyed", "add-leaves-zero-alone"
+            expect(Obj.add({ a: null }, "a", 9)).toEqual({ a: 9 });
+            expect(Obj.add({ a: { b: null } }, "a.b", 9)).toEqual({
+                a: { b: 9 },
+            });
+            expect(Obj.add({ a: 0 }, "a", 9)).toEqual({ a: 0 });
+            expect(Obj.add({ a: false }, "a", 9)).toEqual({ a: false });
+        });
+
         it("should add a value if key doesn't exist", () => {
             const obj = { name: "John" };
             const result = Obj.add(obj, "age", 30);
@@ -109,6 +137,31 @@ describe("Obj", () => {
             const result = Obj.add(obj, "name", "John");
             expect(result).toEqual({ name: "John" });
             assertType<{ name: string }>(result);
+        });
+
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "add-assoc-nested-
+            // object-is-replaced-wholesale": ['a' => new D4Point(1)] plus
+            // Arr::add($src, 'a.y', 2) answers {"a": {"y": 2}}, a plain array.
+            const point = new D4Point();
+            const result = Obj.add({ a: point }, "a.y", 2);
+
+            expect(result).toEqual({ a: { y: 2 } });
+            expect(result.a).not.toBe(point);
+            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(Object.entries(point)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list instead of replacing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-is-descended-not-replaced": ['a' => ['q']] plus
+            // Arr::add($src, 'a.1', 'y') answers {"a": ["q", "y"]} and leaves the source.
+            const inner = ["q"];
+            const result = Obj.add({ a: inner }, "a.1", "y");
+
+            expect(result).toEqual({ a: ["q", "y"] });
+            expect(result.a).not.toBe(inner);
+            expect(inner).toEqual(["q"]);
         });
 
         it("should preserve type when nested key exists", () => {
@@ -273,6 +326,70 @@ describe("Obj", () => {
             expect(Obj.chunk("", 5)).toEqual({});
             expect(Obj.chunk(false, 2)).toEqual({});
         });
+
+        it("chunks a Map in its insertion order, which a record cannot hold", () => {
+            // docs/php-parity/task-30-map-order.json, "chunk-out-of-order-renumbered"
+            expect(
+                Obj.chunk(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    2,
+                    false,
+                ),
+            ).toEqual({ 0: { 0: "c", 1: "a" }, 1: { 0: "b" } });
+
+            // docs/php-parity/task-30-map-order.json, "chunk-out-of-order": the first chunk
+            // holds keys 2 and 0. JS-only: a chunk is a record, so it enumerates 0 before 2.
+            expect(
+                Obj.chunk(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    2,
+                ),
+            ).toEqual({ 0: { 2: "c", 0: "a" }, 1: { 1: "b" } });
+        });
+
+        it("chunks a Map mixing string and integer keys in its insertion order", () => {
+            const mixed = () =>
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "chunk-mixed-renumbered"
+            expect(Obj.chunk(mixed(), 2, false)).toEqual({
+                0: { 0: 1, 1: 2 },
+                1: { 0: 3 },
+            });
+            // docs/php-parity/task-30-map-order.json, "chunk-mixed"
+            expect(Obj.chunk(mixed(), 2)).toEqual({
+                0: { x: 1, 0: 2 },
+                1: { y: 3 },
+            });
+        });
+
+        it("chunks the Map keys PHP stores as one as a single entry", () => {
+            // docs/php-parity/task-30-map-order.json, "chunk-collision-renumbered": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'], one chunk of two.
+            expect(
+                Obj.chunk(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                    2,
+                    false,
+                ),
+            ).toEqual({ 0: { 0: "c", 1: "b" } });
+        });
     });
 
     describe("chunkWhile", () => {
@@ -343,9 +460,9 @@ describe("Obj", () => {
         });
 
         it("keeps non-canonical numeric keys distinct instead of colliding them", () => {
-            // entriesKeyValue's Number()/parseFloat conversion (used for the key handed to the
-            // callback) is lossy for "01": Number("01") === Number("1") === 1. Writing that
-            // converted key back would collapse two entries into one; the raw key must survive.
+            // A Number()/parseFloat conversion of the key handed to the callback is lossy for
+            // "01": Number("01") === Number("1") === 1. Writing that converted key back would
+            // collapse two entries into one, so phpArrayKey leaves "01" a string and it survives.
             const result = Obj.chunkWhile({ 1: "a", "01": "b" }, () => true);
 
             expect(result).toEqual({ 0: { 1: "a", "01": "b" } });
@@ -411,6 +528,105 @@ describe("Obj", () => {
 
             // The first entry never reaches the callback; JS hoists "10" to the front.
             expect(seen).toEqual(["a", "01", "1.5", "1e3", " 1", -1]);
+        });
+
+        it("walks a Map in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "chunkWhile-out-of-order-never"
+            expect(
+                Obj.chunkWhile(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    () => false,
+                ),
+            ).toEqual({ 0: { 2: "c" }, 1: { 0: "a" }, 2: { 1: "b" } });
+        });
+
+        it("hands the callback a Map's keys, and the chunk so far, in PHP's order", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const seen = (
+                data: Map<string | number, unknown>,
+                answer: boolean,
+            ) => {
+                const calls: unknown[] = [];
+
+                Obj.chunkWhile(data, (_value, key, chunk) => {
+                    calls.push([key, { ...chunk }]);
+
+                    return answer;
+                });
+
+                return calls;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "chunkWhile-out-of-order-callback-order"
+            expect(seen(outOfOrder(), false)).toEqual([
+                [0, { 2: "c" }],
+                [1, { 0: "a" }],
+            ]);
+            // docs/php-parity/task-30-map-order.json,
+            // "chunkWhile-out-of-order-growing-chunk-callback-order"
+            expect(seen(outOfOrder(), true)).toEqual([
+                [0, { 2: "c" }],
+                [1, { 2: "c", 0: "a" }],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "chunkWhile-mixed-callback-order"
+            expect(
+                seen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    false,
+                ),
+            ).toEqual([
+                [0, { x: 1 }],
+                ["y", { 0: 2 }],
+            ]);
+        });
+
+        it("groups a Map's adjacent values in PHP's order", () => {
+            // docs/php-parity/task-30-map-order.json, "chunkWhile-out-of-order-last-equal"
+            expect(
+                Obj.chunkWhile(
+                    new Map([
+                        [2, 1],
+                        [0, 1],
+                        [1, 2],
+                    ]),
+                    (value, _key, chunk) =>
+                        Object.values(chunk).at(-1) === value,
+                ),
+            ).toEqual({ 0: { 2: 1, 0: 1 }, 1: { 1: 2 } });
+        });
+
+        it("hands the callback a record chunk, whose integer keys enumerate ascending", () => {
+            // JS-only: PHP hands a Collection, whose last() is "y", the item added last. A record chunk
+            // enumerates integer keys ascending, so its last value is "x", under the highest key 2.
+            const lastSeen: unknown[] = [];
+
+            Obj.chunkWhile(
+                new Map([
+                    [2, "x"],
+                    [0, "y"],
+                    [1, "z"],
+                ]),
+                (_value, _key, chunk) => {
+                    lastSeen.push(Object.values(chunk).at(-1));
+
+                    return true;
+                },
+            );
+
+            expect(lastSeen).toEqual(["x", "x"]);
         });
     });
 
@@ -547,6 +763,78 @@ describe("Obj", () => {
                 0: { x: { key: "a" } },
             });
         });
+
+        it("chunks a Map's adjacent values in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "chunkBy-out-of-order"
+            expect(
+                Obj.chunkBy(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    (value) => value,
+                ),
+            ).toEqual({ 0: { 2: "c" }, 1: { 0: "a" }, 2: { 1: "b" } });
+            // docs/php-parity/task-30-map-order.json, "chunkBy-out-of-order-runs"
+            expect(
+                Obj.chunkBy(
+                    new Map([
+                        [2, 1],
+                        [0, 1],
+                        [1, 2],
+                    ]),
+                    (value) => value,
+                ),
+            ).toEqual({ 0: { 2: 1, 0: 1 }, 1: { 1: 2 } });
+            // docs/php-parity/task-30-map-order.json, "chunkBy-mixed-runs"
+            expect(
+                Obj.chunkBy(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 1],
+                        ["y", 2],
+                    ]),
+                    (value) => value,
+                ),
+            ).toEqual({ 0: { x: 1, 0: 1 }, 1: { y: 2 } });
+        });
+
+        it("hands the retriever a Map's keys in PHP's order", () => {
+            const keysSeen = (data: Map<string | number, number>) => {
+                const seen: unknown[] = [];
+
+                Obj.chunkBy(data, (value, key) => {
+                    seen.push(key);
+
+                    return value;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "chunkBy-out-of-order-runs-callback-order":
+            // each call reads the current item, then the one before it.
+            expect(
+                keysSeen(
+                    new Map([
+                        [2, 1],
+                        [0, 1],
+                        [1, 2],
+                    ]),
+                ),
+            ).toEqual([0, 2, 1, 0]);
+            // docs/php-parity/task-30-map-order.json, "chunkBy-mixed-runs-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 1],
+                        ["y", 2],
+                    ]),
+                ),
+            ).toEqual([0, "x", "y", 0]);
+        });
     });
 
     describe("combine", () => {
@@ -665,6 +953,54 @@ describe("Obj", () => {
             // arrayableValues treats a nullish operand as empty, unlike Object.values.
             expect(Obj.combine({}, null as never)).toEqual({});
         });
+
+        it("reads a Map operand's values in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "combine-out-of-order"
+            expect(
+                Object.entries(
+                    Obj.combine(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                        ["x", "y", "z"],
+                    ),
+                ),
+            ).toEqual([
+                ["c", "x"],
+                ["a", "y"],
+                ["b", "z"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "combine-out-of-order-values-operand"
+            expect(
+                Obj.combine(
+                    ["p", "q", "r"],
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual({ p: "c", q: "a", r: "b" });
+            // docs/php-parity/task-30-map-order.json, "combine-collision": the Map keys PHP
+            // stores as one give one value, so two keys meet two values.
+            expect(
+                Object.entries(
+                    Obj.combine(
+                        new Map<string | number, string>([
+                            [1, "a"],
+                            ["x", "b"],
+                            ["1", "c"],
+                        ]),
+                        ["p", "q"],
+                    ),
+                ),
+            ).toEqual([
+                ["c", "p"],
+                ["b", "q"],
+            ]);
+        });
     });
 
     describe("collapse", () => {
@@ -743,6 +1079,49 @@ describe("Obj", () => {
             expect(Obj.collapse(null)).toEqual({});
             // JS-only: PHP has no undefined; collapse treats it like null.
             expect(Obj.collapse(undefined)).toEqual({});
+        });
+
+        it("merges a Map's items in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "collapse-out-of-order-lists"
+            expect(
+                Obj.collapse(
+                    new Map([
+                        [2, ["c"]],
+                        [0, ["a"]],
+                        [1, ["b"]],
+                    ]),
+                ),
+            ).toEqual({ 0: "c", 1: "a", 2: "b" });
+            // docs/php-parity/task-30-map-order.json, "collapse-out-of-order-string-keys"
+            expect(
+                Object.keys(
+                    Obj.collapse(
+                        new Map([
+                            [2, { c: 1 }],
+                            [0, { a: 1 }],
+                            [1, { b: 1 }],
+                        ]),
+                    ),
+                ),
+            ).toEqual(["c", "a", "b"]);
+            // docs/php-parity/task-30-map-order.json, "collapse-out-of-order-collision": the
+            // item PHP merges last is the one under key 0, so its "k" wins.
+            expect(
+                Obj.collapse(
+                    new Map([
+                        [1, { k: 1 }],
+                        [0, { k: 2 }],
+                    ]),
+                ),
+            ).toEqual({ k: 2 });
+            // docs/php-parity/task-30-map-order.json, "collapse-mixed"
+            const mixed = new Map<string | number, object>([
+                ["x", { p: 1 }],
+                [0, [5]],
+                ["y", { q: 2 }],
+            ]);
+
+            expect(Obj.collapse(mixed)).toEqual({ p: 1, 0: 5, q: 2 });
         });
     });
 
@@ -848,6 +1227,46 @@ describe("Obj", () => {
             expect(Obj.crossJoin({ a: [1], b: "x" })).toEqual([]);
             expect(Obj.crossJoin({ a: [1], b: new Date(0) })).toEqual([]);
         });
+
+        it("walks a Map argument's dimensions in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "crossJoin-out-of-order-spread": the dimension
+            // under key 2 varies slowest. PHP renumbers each row's keys; a row here keeps the Map's.
+            const rows = Obj.crossJoin(
+                new Map([
+                    [2, ["c1", "c2"]],
+                    [0, ["a1"]],
+                    [1, ["b1", "b2"]],
+                ]),
+            );
+
+            expect(rows.map((row) => [row[2], row[0], row[1]])).toEqual([
+                ["c1", "a1", "b1"],
+                ["c1", "a1", "b2"],
+                ["c2", "a1", "b1"],
+                ["c2", "a1", "b2"],
+            ]);
+        });
+
+        it("reads a later Map argument rather than dropping it", () => {
+            // docs/php-parity/task-30-map-order.json, "crossJoin-string-keys-two-spreads"
+            const rows = Obj.crossJoin(
+                new Map([["b", ["b1", "b2"]]]),
+                new Map([["a", ["a1", "a2"]]]),
+            );
+
+            expect(rows).toEqual([
+                { b: "b1", a: "a1" },
+                { b: "b1", a: "a2" },
+                { b: "b2", a: "a1" },
+                { b: "b2", a: "a2" },
+            ]);
+            expect(rows.map((row) => Object.keys(row))).toEqual([
+                ["b", "a"],
+                ["b", "a"],
+                ["b", "a"],
+                ["b", "a"],
+            ]);
+        });
     });
 
     describe("divide", () => {
@@ -876,6 +1295,51 @@ describe("Obj", () => {
         it("returns two empty lists for non-object data", () => {
             // JS-only: Arr::divide(null) is a TypeError in PHP; obj returns empty halves like its other helpers.
             expect(Obj.divide(null)).toEqual([[], []]);
+        });
+
+        it("divides a Map in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "divide-out-of-order"
+            expect(
+                Obj.divide(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([
+                [2, 0, 1],
+                ["c", "a", "b"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "divide-mixed"
+            expect(
+                Obj.divide(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual([
+                ["x", 0, "y"],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("divides the Map keys PHP stores as one as a single entry", () => {
+            // docs/php-parity/task-30-map-order.json, "divide-collision"
+            expect(
+                Obj.divide(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                ),
+            ).toEqual([
+                [1, "x"],
+                ["c", "b"],
+            ]);
         });
     });
 
@@ -1008,7 +1472,7 @@ describe("Obj", () => {
 
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
-        describe("with a hostile __proto__ key (B8)", () => {
+        describe("with a hostile __proto__ key", () => {
             afterEach(() => {
                 expect(
                     ({} as { polluted?: unknown; isAdmin?: unknown }).polluted,
@@ -1101,6 +1565,92 @@ describe("Obj", () => {
                 { "prefix.user.name": "Taylor" },
             );
         });
+
+        it("flattens a Map in its insertion order", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "dot-out-of-order-prefixed"
+            expect(Object.entries(Obj.dot(outOfOrder(), "p."))).toEqual([
+                ["p.2", "c"],
+                ["p.0", "a"],
+                ["p.1", "b"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "dot-out-of-order-nested"
+            expect(
+                Object.entries(
+                    Obj.dot(
+                        new Map([
+                            [2, { z: 1 }],
+                            [0, { y: 2 }],
+                            [1, { x: 3 }],
+                        ]),
+                    ),
+                ),
+            ).toEqual([
+                ["2.z", 1],
+                ["0.y", 2],
+                ["1.x", 3],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "dot-out-of-order". JS-only: a bare
+            // integer key is still a record key, which enumerates ascending.
+            expect(Obj.dot(outOfOrder())).toEqual({ 2: "c", 0: "a", 1: "b" });
+        });
+
+        it("flattens a Map mixing string and integer keys in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "dot-mixed-prefixed"
+            expect(
+                Object.entries(
+                    Obj.dot(
+                        new Map<string | number, number>([
+                            ["x", 1],
+                            [0, 2],
+                            ["y", 3],
+                        ]),
+                        "p",
+                    ),
+                ),
+            ).toEqual([
+                ["px", 1],
+                ["p0", 2],
+                ["py", 3],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "dot-mixed-nested"
+            expect(
+                Object.entries(
+                    Obj.dot(
+                        new Map<string | number, { k: number }>([
+                            ["x", { k: 1 }],
+                            [0, { k: 2 }],
+                            ["y", { k: 3 }],
+                        ]),
+                    ),
+                ),
+            ).toEqual([
+                ["x.k", 1],
+                ["0.k", 2],
+                ["y.k", 3],
+            ]);
+        });
+
+        it("keeps a Map nested inside a Map whole, as a value", () => {
+            // JS-only: only the Map at the root is walked; a nested Map is a leaf, as a nested
+            // Date or class instance is.
+            const inner = new Map([["x", 1]]);
+            const result = Obj.dot(
+                new Map<string, unknown>([
+                    ["a", inner],
+                    ["b", { y: 2 }],
+                ]),
+            );
+
+            expect(Object.keys(result)).toEqual(["a", "b.y"]);
+            expect(result["a"]).toBe(inner);
+        });
     });
 
     describe("undot", () => {
@@ -1179,6 +1729,51 @@ describe("Obj", () => {
             expect(Obj.undot({ "a.0": "x", "a.1": "y" })).toStrictEqual({
                 a: ["x", "y"],
             });
+        });
+
+        it("lets the later of a Map's dotted and plain keys win, as PHP does", () => {
+            // docs/php-parity/task-30-map-order.json, "undot-dotted-first-collision"
+            expect(
+                Obj.undot(
+                    new Map<string | number, string>([
+                        ["0.a", "y"],
+                        [0, "x"],
+                    ]),
+                ),
+            ).toEqual({ 0: "x" });
+            // docs/php-parity/task-30-map-order.json, "undot-plain-first-collision"
+            expect(
+                Obj.undot(
+                    new Map<string | number, string>([
+                        [0, "x"],
+                        ["0.a", "y"],
+                    ]),
+                ),
+            ).toEqual({ 0: { a: "y" } });
+            // docs/php-parity/task-30-map-order.json, "undot-mixed-dotted-first-collision"
+            expect(
+                Obj.undot(
+                    new Map<string | number, string>([
+                        ["1.a", "y"],
+                        [1, "x"],
+                        ["b", "z"],
+                    ]),
+                ),
+            ).toEqual({ 1: "x", b: "z" });
+        });
+
+        it("keeps a Map's integer keys in a record, which enumerates them ascending", () => {
+            // docs/php-parity/task-30-map-order.json, "undot-out-of-order". JS-only: the root is
+            // a record, so it holds PHP's keys and values but not their order.
+            expect(
+                Obj.undot(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual({ 2: "c", 0: "a", 1: "b" });
         });
     });
 
@@ -1430,6 +2025,95 @@ describe("Obj", () => {
 
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
         });
+
+        it("renumbers a Map's integer keys in its insertion order, rewriting that same Map", () => {
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const one = outOfOrder();
+            const two = outOfOrder();
+
+            // docs/php-parity/task-30-map-order.json, "unshift-out-of-order-returns-same-instance"
+            expect(Obj.unshift(one, "U")).toBe(one);
+            // docs/php-parity/task-30-map-order.json, "unshift-out-of-order-after": each key is a
+            // number, the integer key PHP stores, not the string a record would hold.
+            expect([...one]).toEqual([
+                [0, "U"],
+                [1, "c"],
+                [2, "a"],
+                [3, "b"],
+            ]);
+
+            Obj.unshift(two, "U", "V");
+
+            // docs/php-parity/task-30-map-order.json, "unshift-out-of-order-two-values-after"
+            expect([...two]).toEqual([
+                [0, "U"],
+                [1, "V"],
+                [2, "c"],
+                [3, "a"],
+                [4, "b"],
+            ]);
+        });
+
+        it("keeps a Map's string keys where they stand among its renumbered integer keys", () => {
+            const data = new Map<string | number, number | string>([
+                ["x", 1],
+                [0, 2],
+                ["y", 3],
+            ]);
+
+            Obj.unshift(data, "U");
+
+            // docs/php-parity/task-30-map-order.json, "unshift-mixed-after"
+            expect([...data]).toEqual([
+                [0, "U"],
+                ["x", 1],
+                [1, 2],
+                ["y", 3],
+            ]);
+        });
+
+        it("writes the Map keys PHP stores as one back as a single entry", () => {
+            const data = new Map<string | number, string>([
+                [1, "a"],
+                ["x", "b"],
+                ["1", "c"],
+            ]);
+
+            Obj.unshift(data, "U");
+
+            // docs/php-parity/task-30-map-order.json, "unshift-collision-after": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'].
+            expect([...data]).toEqual([
+                [0, "U"],
+                [1, "c"],
+                ["x", "b"],
+            ]);
+        });
+
+        it("rewrites a Map's entries instead of setting own properties on it, and copies a Set", () => {
+            // JS-only: PHP has neither. A Set is not object-accessible, so it takes the fresh-record branch.
+            const map = new Map([["a", 1]]);
+            const mapResult = Obj.unshift(map, "x");
+
+            expect(mapResult).toBe(map);
+            expect(Object.keys(map)).toEqual([]);
+            expect([...map]).toEqual([
+                [0, "x"],
+                ["a", 1],
+            ]);
+
+            const set = new Set([1]);
+            const setResult = Obj.unshift(set, "x", "y");
+
+            expect(setResult).not.toBe(set);
+            expect(setResult).toEqual({ 0: "x", 1: "y" });
+            expect([...set.values()]).toEqual([1]);
+        });
     });
 
     describe("except", () => {
@@ -1680,6 +2364,19 @@ describe("Obj", () => {
             });
         });
 
+        it("folds the Map keys PHP stores as one into one entry holding the last value", () => {
+            // docs/php-parity/task-30-map-order.json, "from-true-key-collision": true is stored
+            // as the key 1, so its value replaces the one written under 1.
+            expect(
+                Obj.from(
+                    new Map<number | boolean, string>([
+                        [1, "a"],
+                        [true, "b"],
+                    ]),
+                ),
+            ).toStrictEqual({ 1: "b" });
+        });
+
         it("throws error on WeakMap input", () => {
             const weakMap = new WeakMap();
             weakMap.set({}, "value");
@@ -1865,6 +2562,61 @@ describe("Obj", () => {
                 Obj.first({ a: 0, b: 10, c: 20 }, (value) => value === 0),
             ).toBe(0);
         });
+
+        it("reads a Map from its first-inserted entry, which a record cannot hold", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const seen: unknown[] = [];
+
+            // docs/php-parity/task-30-map-order.json, "first-out-of-order"
+            expect(Obj.first(outOfOrder())).toBe("c");
+            // docs/php-parity/task-30-map-order.json, "first-out-of-order-callback"
+            expect(Obj.first(outOfOrder(), (value) => value !== "a")).toBe("c");
+            // docs/php-parity/task-30-map-order.json, "first-mixed"
+            expect(
+                Obj.first(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toBe(1);
+
+            Obj.first(outOfOrder(), (_value, key) => {
+                seen.push(key);
+
+                return false;
+            });
+
+            // docs/php-parity/task-30-map-order.json, "first-out-of-order-callback-order"
+            expect(seen).toEqual([2, 0, 1]);
+        });
+
+        it("reads the Map keys PHP stores as one as a single entry holding the last value", () => {
+            // docs/php-parity/task-30-map-order.json, "first-collision"
+            expect(
+                Obj.first(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("b");
+            // docs/php-parity/task-30-map-order.json, "first-true-key-collision": PHP stores true as 1.
+            expect(
+                Obj.first(
+                    new Map<number | boolean, string>([
+                        [1, "a"],
+                        [true, "b"],
+                    ]),
+                ),
+            ).toBe("b");
+        });
     });
 
     describe("last", () => {
@@ -1939,6 +2691,54 @@ describe("Obj", () => {
             });
 
             expect(seen).toEqual(["string", "number"]);
+        });
+
+        it("reads a Map from its last-inserted entry, which a record cannot hold", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const seen: unknown[] = [];
+
+            // docs/php-parity/task-30-map-order.json, "last-out-of-order"
+            expect(Obj.last(outOfOrder())).toBe("b");
+            // docs/php-parity/task-30-map-order.json, "last-out-of-order-callback"
+            expect(Obj.last(outOfOrder(), (value) => value !== "b")).toBe("a");
+            // docs/php-parity/task-30-map-order.json, "last-mixed"
+            expect(
+                Obj.last(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toBe(3);
+
+            Obj.last(outOfOrder(), (_value, key) => {
+                seen.push(key);
+
+                return false;
+            });
+
+            // docs/php-parity/task-30-map-order.json, "last-out-of-order-callback-order"
+            expect(seen).toEqual([1, 0, 2]);
+        });
+
+        it("keeps a Map key PHP stores as one where it first stood", () => {
+            // docs/php-parity/task-30-map-order.json, "last-collision": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so 'z' is last.
+            expect(
+                Obj.last(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("z");
         });
     });
 
@@ -2425,6 +3225,18 @@ describe("Obj", () => {
             expect(Obj.keys(obj)).toEqual(["a", "b"]);
         });
 
+        it("reads a record's keys without running any getter", () => {
+            // JS-only: PHP arrays have no getters; keys() must not read a value to list its key.
+            const record = {
+                a: 1,
+                get boom(): never {
+                    throw new Error("getter ran");
+                },
+            };
+
+            expect(Obj.keys(record)).toEqual(["a", "boom"]);
+        });
+
         it("should convert numeric string keys back to numbers", () => {
             const obj = { "1": "a", "2": "b", foo: "c" };
             const keys = Obj.keys(obj);
@@ -2461,6 +3273,53 @@ describe("Obj", () => {
                 }),
             ).toEqual([10, "1.5", "Infinity", -1, "01", "1e3", "1e+21"]);
         });
+
+        it("lists a Map's keys in its insertion order, each the key PHP stores", () => {
+            // docs/php-parity/task-30-map-order.json, "keys-out-of-order"
+            expect(
+                Obj.keys(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "keys-mixed"
+            expect(
+                Obj.keys(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual(["x", 0, "y"]);
+            // docs/php-parity/task-30-map-order.json, "keys-out-of-order-key-types"
+            expect(
+                Obj.keys(
+                    new Map<string | number, string>([
+                        [-1, "a"],
+                        ["x", "X"],
+                        [0, "b"],
+                        ["01", "s"],
+                    ]),
+                ),
+            ).toEqual([-1, "x", 0, "01"]);
+        });
+
+        it("lists the Map keys PHP stores as one once, where the first of them stood", () => {
+            // docs/php-parity/task-30-map-order.json, "keys-collision"
+            expect(
+                Obj.keys(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toEqual([1, 0]);
+        });
     });
 
     describe("values", () => {
@@ -2485,6 +3344,42 @@ describe("Obj", () => {
                 "b",
                 "c",
             ]);
+        });
+
+        it("lists a Map's values in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "values-out-of-order"
+            expect(
+                Obj.values(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual(["c", "a", "b"]);
+            // docs/php-parity/task-30-map-order.json, "values-mixed"
+            expect(
+                Obj.values(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it("lists the last value of the Map keys PHP stores as one, where the first stood", () => {
+            // docs/php-parity/task-30-map-order.json, "values-collision"
+            expect(
+                Obj.values(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toEqual(["b", "z"]);
         });
     });
 
@@ -2539,6 +3434,81 @@ describe("Obj", () => {
                 first: "first-taylor",
                 last: "last-",
             });
+        });
+
+        it("walks a Map in its insertion order, which a record cannot hold", () => {
+            const seen: unknown[] = [];
+            const result = Obj.map(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+                (value, key) => {
+                    seen.push(key);
+
+                    return `${value}!${String(key)}`;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "map-out-of-order-callback-order"
+            expect(seen).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "map-out-of-order". JS-only: the
+            // result is a record, so it enumerates its integer keys ascending.
+            expect(result).toEqual({ 2: "c!2", 0: "a!0", 1: "b!1" });
+        });
+
+        it("hands the callback a Map's mixed keys in its insertion order", () => {
+            const seen: unknown[] = [];
+
+            Obj.map(
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]),
+                (value, key) => {
+                    seen.push(key);
+
+                    return value;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "map-mixed-callback-order"
+            expect(seen).toEqual(["x", 0, "y"]);
+        });
+
+        it("numbers a Map's items in PHP's order for a callback that counts its calls", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "map-out-of-order-visit-count"
+            expect(
+                Obj.map(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    (value) => `${value}${String(++calls)}`,
+                ),
+            ).toEqual({ 2: "c1", 0: "a2", 1: "b3" });
+        });
+
+        it("calls back once for the Map keys PHP stores as one, with the last value", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "map-collision-visit-count": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so 'a' is never mapped.
+            expect(
+                Obj.map(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                    (value) => `${value}${String(++calls)}`,
+                ),
+            ).toEqual({ 1: "b1", 0: "z2" });
         });
     });
 
@@ -2645,9 +3615,118 @@ describe("Obj", () => {
                 Obj.filter({ 1: "a", x: "b" }, (_value, key) => key === 1),
             ).toEqual({ 1: "a" });
         });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (data: Map<string | number, unknown>) => {
+                const seen: unknown[] = [];
+
+                Obj.filter(data, (_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "filter-out-of-order-callback-order"
+            expect(
+                keysSeen(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "filter-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("keeps the items PHP keeps for a callback that counts its calls", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "filter-out-of-order-first-two-visits"
+            expect(
+                Obj.filter(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    () => ++calls <= 2,
+                ),
+            ).toEqual({ 2: "c", 0: "a" });
+
+            calls = 0;
+            // docs/php-parity/task-30-map-order.json, "filter-mixed-first-visit"
+            expect(
+                Obj.filter(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toEqual({ x: 1 });
+        });
+
+        it("drops a Map's PHP-falsy values without a callback", () => {
+            // docs/php-parity/task-30-map-order.json, "filter-mixed-no-callback". JS-only: the
+            // result is a record, so its integer keys enumerate ahead of "y".
+            expect(
+                Obj.filter(
+                    new Map<string | number, string | number>([
+                        ["x", 0],
+                        [2, "c"],
+                        ["y", "y"],
+                        [0, ""],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual({ 2: "c", y: "y", 1: "b" });
+        });
+
+        it("tests only the last value of Map keys PHP stores as one", () => {
+            // docs/php-parity/task-30-map-order.json, "filter-collision": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so no item is 'a'.
+            expect(
+                Obj.filter(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                    (value) => value === "a",
+                ),
+            ).toEqual({});
+        });
     });
 
     describe("set", () => {
+        it("writes an empty dot segment as the array key PHP writes", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "set-interior-empty-segment",
+            // "set-leading-empty-segment", "set-trailing-empty-segment",
+            // "set-only-empty-segments", "set-empty-key", "get-through-empty-segment".
+            // Arr::set explodes on ".", so "" is a real key; skipping it wrote the wrong
+            // path or dropped the value outright.
+            expect(Obj.set({}, "a..b", 9)).toEqual({ a: { "": { b: 9 } } });
+            expect(Obj.set({}, ".a", 9)).toEqual({ "": { a: 9 } });
+            expect(Obj.set({}, "a.", 9)).toEqual({ a: { "": 9 } });
+            expect(Obj.set({}, "..", 9)).toEqual({ "": { "": { "": 9 } } });
+            expect(Obj.set({}, "", 9)).toEqual({ "": 9 });
+            expect(Obj.get({ a: { "": { b: 7 } } }, "a..b")).toBe(7);
+        });
+
         it("should set simple values", () => {
             const obj = { name: "John" };
             const result = Obj.set(obj, "age", 30);
@@ -2659,6 +3738,42 @@ describe("Obj", () => {
             const obj = { user: { name: "John" } };
             const result = Obj.set(obj, "user.age", 30);
             expect(result).toEqual({ user: { name: "John", age: 30 } });
+        });
+
+        it("replaces a nested class instance instead of writing into it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-set-assoc-nested-
+            // object-is-replaced-wholesale": ['a' => new D4Point(1)] plus
+            // Arr::set($src, 'a.y', 2) answers {"a": {"y": 2}}, recorded type `array`.
+            const point = new D4Point();
+            const result = Obj.set({ a: point }, "a.y", 2);
+
+            expect(result).toEqual({ a: { y: 2 } });
+            expect(result.a).not.toBe(point);
+            expect(result.a).not.toBeInstanceOf(D4Point);
+            expect(Object.entries(point)).toEqual([["x", 1]]);
+        });
+
+        it("descends into a nested list instead of replacing it", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-nested-list-is-descended-not-replaced": ['a' => ['q']] plus
+            // Arr::set($src, 'a.1', 'y') answers {"a": ["q", "y"]}.
+            const inner = ["q"];
+            const result = Obj.set({ a: inner }, "a.1", "y");
+
+            expect(result).toEqual({ a: ["q", "y"] });
+            expect(result.a).not.toBe(inner);
+            expect(inner).toEqual(["q"]);
+        });
+
+        it("replaces a nested Date or Map, which carry no array entries", () => {
+            // JS-only: PHP has neither, but Arr::set's is_array test replaces every
+            // non-array, and both fail isPlainObject here for the same reason.
+            expect(Obj.set({ a: new Date(0) }, "a.y", 2)).toEqual({
+                a: { y: 2 },
+            });
+            expect(Obj.set({ a: new Map() }, "a.y", 2)).toEqual({
+                a: { y: 2 },
+            });
         });
 
         it("should replace entire object when key is null", () => {
@@ -2971,6 +4086,295 @@ describe("Obj", () => {
             expect(Obj.contains({ a: NaN }, NaN)).toBe(false);
             expect(Obj.contains({ a: { x: 1 } }, { x: "1" })).toBe(true);
         });
+
+        it("compares a key path with an operator when a fourth argument follows", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "operator": the record-backed twin of the
+            // list-backed "contains-three-args-operator" row.
+            const rows = {
+                a: { v: 1 },
+                b: { v: 3 },
+                c: { v: "4" },
+                d: { v: 5 },
+            };
+
+            expect(Obj.contains(rows, "v", "=", 4)).toBe(true);
+            expect(Obj.contains(rows, "v", "==", 4)).toBe(true);
+            expect(Obj.contains(rows, "v", "===", 4)).toBe(false);
+            expect(Obj.contains(rows, "v", ">", 4)).toBe(true);
+        });
+
+        it("compares a key path loosely in the three-argument form", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "key-value": the record-backed twin, which
+            // records the non-matching value too.
+            const rows = { a: { v: 1 }, b: { v: 3 }, c: { v: 5 } };
+
+            expect(Obj.contains(rows, "v", 1)).toBe(true);
+            expect(Obj.contains(rows, "v", 2)).toBe(false);
+            // JS-only: an omitted third argument is the port's `strict` default, so
+            // PHP's `contains($k, null)` is written with an explicit null, not undefined.
+            expect(Obj.contains(rows, "v", undefined)).toBe(false);
+        });
+
+        it("reads the entry itself for a null key and takes a callable key whole", () => {
+            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // `data_get($item, null)` answers the item.
+            expect(Obj.contains({ a: 1, b: 2 }, null, ">", 1)).toBe(true);
+            expect(Obj.contains({ a: 1, b: 2 }, null, ">", 9)).toBe(false);
+            expect(
+                Obj.contains(
+                    { a: 1, b: 2 },
+                    (item: number) => item === 2,
+                    "=",
+                    1,
+                ),
+            ).toBe(true);
+        });
+
+        it("reads the entry itself for an undefined key and takes a non-string operator", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "null-key" (the same ['a'=>1,'b'=>2] data) and
+            // "r4-assoc-backed-operator-forms", "non-string-operator-assoc": a non-string
+            // operator misses every case arm and lands on PHP's `default:`.
+            expect(Obj.contains({ a: 1, b: 2 }, undefined, ">", 1)).toBe(true);
+            expect(Obj.contains({ a: 1, b: 2 }, undefined, ">", 9)).toBe(false);
+            expect(Obj.contains({ a: { v: 5 }, b: { v: 6 } }, "v", 5, 6)).toBe(
+                true,
+            );
+        });
+
+        it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
+            // JS-only: docs/php-parity/task-24-data-release-readiness.json,
+            // "r4-assoc-backed-operator-forms" records "key-true-assoc" as true for this
+            // very data. This port's third parameter is `strict` and takes the boolean
+            // first, so PHP's call is written with an explicit operator here —
+            // "key-operator-true-assoc", also true.
+            const rows = { a: { active: true }, b: { active: false } };
+
+            expect(Obj.contains(rows, "active", true)).toBe(false);
+            expect(Obj.contains(rows, "active", "=", true)).toBe(true);
+            // Same row, "containsStrict-key-of-a-row": routing a boolean by whether the
+            // key is a member of the data would flip THIS to true, and Laravel says false.
+            expect(
+                Obj.containsStrict(
+                    { a: "date", b: "class", c: { foo: 50 }, d: "" },
+                    "foo",
+                ),
+            ).toBe(false);
+        });
+
+        it("hands a callback a Map's keys in its insertion order", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const keysSeen = (
+                run: (
+                    callback: (value: unknown, key: unknown) => boolean,
+                ) => unknown,
+                answer: (value: unknown) => boolean,
+            ) => {
+                const seen: unknown[] = [];
+
+                run((value, key) => {
+                    seen.push(key);
+
+                    return answer(value);
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "contains-out-of-order-callback-order"
+            expect(
+                keysSeen(
+                    (cb) => Obj.contains(outOfOrder(), cb),
+                    () => false,
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "contains-out-of-order-early-exit-callback-order"
+            expect(
+                keysSeen(
+                    (cb) => Obj.contains(outOfOrder(), cb),
+                    (value) => value === "a",
+                ),
+            ).toEqual([2, 0]);
+            // docs/php-parity/task-30-map-order.json, "contains-mixed-callback-order"
+            expect(
+                keysSeen(
+                    (cb) =>
+                        Obj.contains(
+                            new Map<string | number, number>([
+                                ["x", 1],
+                                [0, 2],
+                                ["y", 3],
+                            ]),
+                            cb,
+                        ),
+                    () => false,
+                ),
+            ).toEqual(["x", 0, "y"]);
+            // docs/php-parity/task-30-map-order.json, "contains-out-of-order-operator-callback-order":
+            // a callable key is the predicate, and the Map reaches it unconverted.
+            expect(
+                keysSeen(
+                    (cb) => Obj.contains(outOfOrder(), cb, "=", "q"),
+                    () => false,
+                ),
+            ).toEqual([2, 0, 1]);
+        });
+
+        it("answers a strict callback search from a Map's first match in insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
+            // and "containsStrict-mixed-null-first-callback": the first match holds null, so it
+            // does not count.
+            expect(
+                Obj.contains(
+                    new Map([
+                        [2, null],
+                        [0, "a"],
+                    ]),
+                    () => true,
+                    true,
+                ),
+            ).toBe(false);
+            expect(
+                Obj.contains(
+                    new Map<string | number, string | null>([
+                        ["x", null],
+                        [0, "a"],
+                    ]),
+                    () => true,
+                    true,
+                ),
+            ).toBe(false);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-non-null-first-callback":
+            // the first match in insertion order holds 'a', so it counts; a record would walk key 0's null first.
+            expect(
+                Obj.contains(
+                    new Map([
+                        [2, "a"],
+                        [0, null],
+                    ]),
+                    () => true,
+                    true,
+                ),
+            ).toBe(true);
+            // JS-only: a record enumerates integer keys ascending (ECMA-262
+            // OrdinaryOwnPropertyKeys), so it walks key 0 first and finds 'a'.
+            expect(Obj.contains({ 2: null, 0: "a" }, () => true, true)).toBe(
+                true,
+            );
+        });
+
+        it("finds a value in a Map, but only the last value of keys PHP stores as one", () => {
+            const collision = new Map<string | number, string>([
+                [1, "a"],
+                ["1", "b"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "contains-collision", "containsStrict-collision" and
+            // "first-collision": PHP's [1 => 'a', '1' => 'b'] is [1 => 'b'], so 'a' is gone and 'b' is found.
+            expect(Obj.contains(collision, "a")).toBe(false);
+            expect(Obj.contains(collision, "a", true)).toBe(false);
+            expect(Obj.contains(collision, "b")).toBe(true);
+            expect(Obj.contains(collision, "b", true)).toBe(true);
+        });
+    });
+
+    describe("containsStrict", () => {
+        it("compares by value with PHP's ===", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "containsStrict-numeric-string".
+            expect(
+                Obj.containsStrict({ a: 1, b: 3, c: 5, d: "02" }, "02"),
+            ).toBe(true);
+            expect(Obj.containsStrict({ a: 1, b: 3, c: 5, d: "02" }, 2)).toBe(
+                false,
+            );
+        });
+
+        it("compares a key path strictly when a second argument is given", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "containsStrict-two-args": the task-23 row of
+            // that name records the same five calls over a LIST-backed Collection.
+            expect(
+                Obj.containsStrict({ r: { tags: ["a", "b"] } }, "tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                Obj.containsStrict({ r: { t: { x: 1, y: 2 } } }, "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                Obj.containsStrict(
+                    { r: { name: null }, s: { name: "x" } },
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            expect(Obj.containsStrict({ r: { a: 1 } }, "name", null)).toBe(
+                true,
+            );
+            expect(Obj.containsStrict({ r: { name: "x" } }, "name", null)).toBe(
+                false,
+            );
+        });
+
+        it("ignores a callback match holding null, as first() does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "r3-assoc-backed-contains", "containsStrict-callback-null": task-23's
+            // "D2 containsStrict…" row records its own LABEL where its call belongs, so
+            // nothing can be verified against it; this row records the same call.
+            expect(
+                Obj.containsStrict(
+                    { a: null, b: 1 },
+                    (value) => value === null,
+                ),
+            ).toBe(false);
+        });
+
+        it("returns false for non-object data", () => {
+            expect(Obj.containsStrict(null, "x")).toBe(false);
+            expect(Obj.containsStrict([], "x")).toBe(false);
+        });
+
+        it("reads a Map in its insertion order, through contains", () => {
+            const seen: unknown[] = [];
+
+            Obj.containsStrict(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+                (_value: unknown, key: unknown) => {
+                    seen.push(key);
+
+                    return false;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-callback-order"
+            expect(seen).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
+            expect(
+                Obj.containsStrict(
+                    new Map([
+                        [2, null],
+                        [0, "a"],
+                    ]),
+                    () => true,
+                ),
+            ).toBe(false);
+        });
     });
 
     describe("diff", () => {
@@ -3055,6 +4459,126 @@ describe("Obj", () => {
             expect(Obj.diff({ a: 10, b: 20 }, new Set([20]))).toEqual({
                 a: 10,
             });
+        });
+    });
+
+    describe("diffKeys", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys", "assoc"
+        it("keeps the entries whose key other does not carry", () => {
+            expect(
+                Obj.diffKeys(
+                    { id: 1, first_word: "Hello" },
+                    { id: 123, foo_bar: "Hello" },
+                ),
+            ).toEqual({ first_word: "Hello" });
+        });
+
+        it("ignores values entirely", () => {
+            // Same row, "assoc-value-ignored".
+            expect(Obj.diffKeys({ a: 1, b: 2 }, { a: 999 })).toEqual({ b: 2 });
+        });
+
+        it("keeps a matching key's own integer index out of the result", () => {
+            // Same row, "list": diffKeys([1,2,3], [9,9]) -> [2 => 3].
+            expect(Obj.diffKeys({ 0: 1, 1: 2, 2: 3 }, { 0: 9, 1: 9 })).toEqual({
+                2: 3,
+            });
+        });
+
+        it("keeps everything for a nullish operand", () => {
+            // Same row, "nullish-operand": (['a' => 1])->diffKeys(null) answers {a: 1}.
+            expect(Obj.diffKeys({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
+            expect(Obj.diffKeys(null, { a: 1 })).toEqual({});
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Obj.diffKeys({ a: 1, b: 2 }, collectionLike({ a: 9 })),
+            ).toEqual({ b: 2 });
+        });
+    });
+
+    describe("diffUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", "assoc"
+        it("drops the entries the callback calls equal to some value of other", () => {
+            expect(
+                Obj.diffUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    caseless,
+                ),
+            ).toEqual({ b: "brown", c: "blue" });
+        });
+
+        it("keeps everything for a nullish operand", () => {
+            // Same row, "nullish-operand": (['a' => 'green'])->diffUsing(null, …)
+            // answers {a: 'green'}.
+            expect(Obj.diffUsing({ a: "green" }, null, caseless)).toEqual({
+                a: "green",
+            });
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
+            expect(Obj.diffUsing(null, { a: "green" }, caseless)).toEqual({});
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Obj.diffUsing(
+                    { a: "green", b: "brown" },
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual({ b: "brown" });
+        });
+    });
+
+    describe("intersectUsing", () => {
+        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using", "assoc"
+        it("keeps the entries the callback calls equal to some value of other", () => {
+            expect(
+                Obj.intersectUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    caseless,
+                ),
+            ).toEqual({ a: "green" });
+        });
+
+        it("keeps nothing for a nullish operand", () => {
+            // Same row, "nullish-operand": (['a' => 'green'])->intersectUsing(null, …)
+            // answers [].
+            expect(Obj.intersectUsing({ a: "green" }, null, caseless)).toEqual(
+                {},
+            );
+        });
+
+        it("returns nothing for nullish data", () => {
+            // JS-only: PHP's Collection has no null backing, so no call records this;
+            // it is the `accessible` guard every helper here shares.
+            expect(Obj.intersectUsing(null, { a: "green" }, caseless)).toEqual(
+                {},
+            );
+        });
+
+        it("unwraps a Collection-like operand", () => {
+            // Same row, "collection-operand".
+            expect(
+                Obj.intersectUsing(
+                    { a: "green", b: "brown" },
+                    collectionLike(["GREEN"]),
+                    caseless,
+                ),
+            ).toEqual({ a: "green" });
         });
     });
 
@@ -3254,7 +4778,7 @@ describe("Obj", () => {
         });
     });
 
-    describe("intersect family nullish data guard (C6)", () => {
+    describe("intersect family nullish data guard", () => {
         type IntersectFamilyFn = (
             data: unknown,
             other: unknown,
@@ -3555,6 +5079,121 @@ describe("Obj", () => {
                 dayle: "bar",
             });
         });
+
+        describe("a Map", () => {
+            const rows = () =>
+                new Map([
+                    [2, { n: "c", k: "kc" }],
+                    [0, { n: "a", k: "ka" }],
+                    [1, { n: "b", k: "kb" }],
+                ]);
+
+            it("plucks in its insertion order", () => {
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order"
+                expect(Obj.pluck(rows(), "n")).toEqual(["c", "a", "b"]);
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-keyed"
+                expect(Object.entries(Obj.pluck(rows(), "n", "k"))).toEqual([
+                    ["kc", "c"],
+                    ["ka", "a"],
+                    ["kb", "b"],
+                ]);
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-whole-items-keyed"
+                expect(Object.entries(Obj.pluck(rows(), null, "k"))).toEqual([
+                    ["kc", { n: "c", k: "kc" }],
+                    ["ka", { n: "a", k: "ka" }],
+                    ["kb", { n: "b", k: "kb" }],
+                ]);
+                // docs/php-parity/task-30-map-order.json, "pluck-mixed"
+                expect(
+                    Obj.pluck(
+                        new Map<string | number, { n: string }>([
+                            ["x", { n: "X" }],
+                            [0, { n: "Z" }],
+                            ["y", { n: "Y" }],
+                        ]),
+                        "n",
+                    ),
+                ).toEqual(["X", "Z", "Y"]);
+            });
+
+            it("keeps the item PHP reaches last when two items resolve to the same key", () => {
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-keyed-collision":
+                // key 0 comes after key 2, so its "a" is the value "same" keeps.
+                expect(
+                    Object.entries(
+                        Obj.pluck(
+                            new Map([
+                                [2, { n: "c", k: "same" }],
+                                [0, { n: "a", k: "same" }],
+                                [1, { n: "b", k: "other" }],
+                            ]),
+                            "n",
+                            "k",
+                        ),
+                    ),
+                ).toEqual([
+                    ["same", "a"],
+                    ["other", "b"],
+                ]);
+            });
+
+            it("plucks the last item of the Map keys PHP stores as one, where the first stood", () => {
+                // docs/php-parity/task-30-map-order.json, "pluck-collision"
+                expect(
+                    Obj.pluck(
+                        new Map<string | number, { n: string }>([
+                            [1, { n: "a" }],
+                            [0, { n: "z" }],
+                            ["1", { n: "b" }],
+                        ]),
+                        "n",
+                    ),
+                ).toEqual(["b", "z"]);
+            });
+
+            it("hands both callbacks its items in its insertion order", () => {
+                const seen: string[] = [];
+
+                const result = Obj.pluck(
+                    rows(),
+                    (item) => {
+                        seen.push(`v:${item.n}`);
+
+                        return item.n;
+                    },
+                    (item) => {
+                        seen.push(`k:${item.n}`);
+
+                        return item.k;
+                    },
+                );
+
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-callback-order"
+                expect(seen).toEqual([
+                    "v:c",
+                    "k:c",
+                    "v:a",
+                    "k:a",
+                    "v:b",
+                    "k:b",
+                ]);
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-keyed"
+                expect(Object.entries(result)).toEqual([
+                    ["kc", "c"],
+                    ["ka", "a"],
+                    ["kb", "b"],
+                ]);
+            });
+
+            it("cannot read a path into a Map among its items", () => {
+                // JS-only: a nested Map is a leaf that a path cannot address, so each path into one
+                // plucks null and a wildcard []. PHP's nested array would give 1 and [1].
+                const items = new Map([[0, new Map([["n", 1]])]]);
+
+                expect(Obj.pluck(items, "n")).toEqual([null]);
+                expect(Obj.pluck(items, "*")).toEqual([[]]);
+            });
+        });
     });
 
     describe("pop", () => {
@@ -3594,6 +5233,128 @@ describe("Obj", () => {
 
             expect(Obj.pop(null, 3)).toEqual([]);
             expect(Obj.pop([], 3)).toEqual([]);
+        });
+
+        it("leaves a prototype object untouched instead of deleting from it", () => {
+            // JS-only: a PHP array has no prototype; a delete on one is a write every inheritor sees.
+            class Holder {}
+            Object.defineProperty(Holder.prototype, "kept", {
+                value: "str",
+                enumerable: true,
+                configurable: true,
+                writable: true,
+            });
+
+            expect(Obj.pop(Holder.prototype)).toBeNull();
+            expect(Obj.pop(Holder.prototype, 2)).toEqual([]);
+            expect(Object.entries(Holder.prototype)).toEqual([["kept", "str"]]);
+        });
+
+        it("refuses a hostile prototype object carrying its own __proto__ key", () => {
+            // JS-only: Object.create(null) is the only way to give a prototype object an own
+            // enumerable "__proto__" key; a literal `{ __proto__: ... }` sets the link instead.
+            const hostile = Object.create(null) as Record<string, unknown>;
+            hostile["__proto__"] = { polluted: true };
+            hostile["kept"] = "str";
+            const Hostile = function () {} as unknown as { prototype: unknown };
+            Hostile.prototype = hostile;
+            hostile["constructor"] = Hostile;
+
+            expect(Obj.pop(hostile)).toBeNull();
+            expect(Obj.pop(hostile, 3)).toEqual([]);
+            expect(Object.keys(hostile)).toEqual([
+                "__proto__",
+                "kept",
+                "constructor",
+            ]);
+        });
+
+        it("pops a Map from the end of its insertion order, leaving the survivors' keys", () => {
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const one = outOfOrder();
+            const two = outOfOrder();
+
+            // docs/php-parity/task-30-map-order.json, "pop-out-of-order-returns"
+            expect(Obj.pop(one)).toBe("b");
+            // docs/php-parity/task-30-map-order.json, "pop-out-of-order-remaining"
+            expect([...one]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "pop-out-of-order-count-2-returns"
+            expect(Obj.pop(two, 2)).toEqual(["b", "a"]);
+            // docs/php-parity/task-30-map-order.json, "pop-out-of-order-count-2-remaining"
+            expect([...two]).toEqual([[2, "c"]]);
+        });
+
+        it("pops a Map mixing string and integer keys in its insertion order", () => {
+            const mixed = () =>
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+            const one = mixed();
+            const two = mixed();
+
+            // docs/php-parity/task-30-map-order.json, "pop-mixed-returns"
+            expect(Obj.pop(one)).toBe(3);
+            // docs/php-parity/task-30-map-order.json, "pop-mixed-remaining"
+            expect([...one]).toEqual([
+                ["x", 1],
+                [0, 2],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "pop-mixed-count-2-returns"
+            expect(Obj.pop(two, 2)).toEqual([3, 2]);
+            // docs/php-parity/task-30-map-order.json, "pop-mixed-count-2-remaining"
+            expect([...two]).toEqual([["x", 1]]);
+        });
+
+        it("pops the Map keys PHP stores as one as a single item, however often it pops", () => {
+            const colliding = () =>
+                new Map<string | number, string>([
+                    [1, "a"],
+                    ["x", "b"],
+                    ["1", "c"],
+                ]);
+            const one = colliding();
+            const three = colliding();
+
+            // docs/php-parity/task-30-map-order.json, "pop-collision-returns": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'].
+            expect(Obj.pop(one)).toBe("b");
+            // docs/php-parity/task-30-map-order.json, "pop-collision-remaining": 1 and "1"
+            // leave as one entry, under the integer key PHP stores.
+            expect([...one]).toEqual([[1, "c"]]);
+            // docs/php-parity/task-30-map-order.json, "pop-collision-three-times-returns"
+            expect([Obj.pop(three), Obj.pop(three), Obj.pop(three)]).toEqual([
+                "b",
+                "c",
+                null,
+            ]);
+            // docs/php-parity/task-30-map-order.json, "pop-collision-three-times-remaining"
+            expect([...three]).toEqual([]);
+        });
+
+        it("leaves a Map exactly as it was when the count pops nothing", () => {
+            // docs/php-parity/task-02-mutation.json, "pop(0) — count < 1": the items stay as
+            // they were, so the Map is not rewritten and its string key "2" stays a string.
+            const data = new Map<string | number, string>([
+                ["2", "c"],
+                [0, "a"],
+            ]);
+
+            expect(Obj.pop(data, 0)).toEqual([]);
+            expect(Obj.pop(data, -1)).toEqual([]);
+            expect([...data]).toEqual([
+                ["2", "c"],
+                [0, "a"],
+            ]);
         });
     });
 
@@ -3635,6 +5396,51 @@ describe("Obj", () => {
 
         it("should return empty object for empty input", () => {
             expect(Obj.take({}, 5)).toEqual({});
+        });
+
+        it("takes a Map's items in its insertion order, which a record cannot hold", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "take-out-of-order-collection" and "take-out-of-order":
+            // both take c and a; Collection::take keeps their keys 2 and 0, where Arr::take renumbers them.
+            expect(Obj.take(outOfOrder(), 2)).toEqual({ 2: "c", 0: "a" });
+            // docs/php-parity/task-30-map-order.json, "take-out-of-order-negative-collection"
+            expect(Obj.take(outOfOrder(), -1)).toEqual({ 1: "b" });
+        });
+
+        it("takes a Map mixing string and integer keys in its insertion order", () => {
+            const mixed = () =>
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "take-mixed"
+            expect(Obj.take(mixed(), 2)).toEqual({ x: 1, 0: 2 });
+            // docs/php-parity/task-30-map-order.json, "take-mixed-negative": a record would
+            // enumerate key 0 first and take x and y.
+            expect(Obj.take(mixed(), -2)).toEqual({ 0: 2, y: 3 });
+        });
+
+        it("counts the Map keys PHP stores as one as a single item", () => {
+            // docs/php-parity/task-30-map-order.json, "take-collision-negative": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'], so x is the last item.
+            expect(
+                Obj.take(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                    -1,
+                ),
+            ).toEqual({ x: "b" });
         });
     });
 
@@ -3761,6 +5567,56 @@ describe("Obj", () => {
 
             const kept = collectionLike([2, 3]);
             expect(Obj.flatten({ a: [kept] }, 1)).toEqual([kept]);
+        });
+
+        it("flattens a Map in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "flatten-out-of-order"
+            expect(
+                Obj.flatten(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual(["c", "a", "b"]);
+            // docs/php-parity/task-30-map-order.json, "flatten-mixed"
+            expect(
+                Obj.flatten(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it("flattens a Map's nested items in its insertion order, to any depth", () => {
+            const nested = () =>
+                new Map<number, unknown>([
+                    [2, ["c", ["d"]]],
+                    [0, "a"],
+                    [1, { k: "b" }],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "flatten-out-of-order-nested"
+            expect(Obj.flatten(nested())).toEqual(["c", "d", "a", "b"]);
+            // docs/php-parity/task-30-map-order.json, "flatten-out-of-order-nested-depth-1"
+            expect(Obj.flatten(nested(), 1)).toEqual(["c", ["d"], "a", "b"]);
+        });
+
+        it("flattens the Map keys PHP stores as one as a single value", () => {
+            // docs/php-parity/task-30-map-order.json, "flatten-collision"
+            expect(
+                Obj.flatten(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                ),
+            ).toEqual(["c", "b"]);
         });
     });
 
@@ -3971,6 +5827,61 @@ describe("Obj", () => {
             expect(flipped).toEqual({ a: 0, c: "b" });
             expect(typeof flipped["a"]).toBe("number");
         });
+
+        it("flips a Map in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "flip-out-of-order"
+            expect(
+                Object.entries(
+                    Obj.flip(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                    ),
+                ),
+            ).toEqual([
+                ["c", 2],
+                ["a", 0],
+                ["b", 1],
+            ]);
+        });
+
+        it("keeps the key PHP reaches last for a value two Map keys share", () => {
+            // docs/php-parity/task-30-map-order.json, "flip-out-of-order-duplicate-values"
+            expect(
+                Obj.flip(
+                    new Map([
+                        [2, "v"],
+                        [0, "v"],
+                    ]),
+                ),
+            ).toEqual({ v: 0 });
+            // docs/php-parity/task-30-map-order.json, "flip-mixed-duplicate-values"
+            expect(
+                Obj.flip(
+                    new Map<string | number, string>([
+                        ["x", "v"],
+                        [0, "v"],
+                    ]),
+                ),
+            ).toEqual({ v: 0 });
+            // docs/php-parity/task-30-map-order.json, "flip-collision"
+            expect(
+                Object.entries(
+                    Obj.flip(
+                        new Map<string | number, string>([
+                            [1, "a"],
+                            ["x", "b"],
+                            ["1", "c"],
+                        ]),
+                    ),
+                ),
+            ).toEqual([
+                ["c", 1],
+                ["b", "x"],
+            ]);
+        });
     });
 
     describe("every", () => {
@@ -4008,6 +5919,98 @@ describe("Obj", () => {
             expect(Obj.every(new Map<string, number>(), () => false)).toBe(
                 true,
             );
+        });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (
+                data: Map<string | number, unknown>,
+                answer: boolean,
+            ) => {
+                const seen: unknown[] = [];
+
+                Obj.every(data, (_value, key) => {
+                    seen.push(key);
+
+                    return answer;
+                });
+
+                return seen;
+            };
+            const outOfOrder = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "every-out-of-order-callback-order"
+            expect(keysSeen(outOfOrder, true)).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "every-out-of-order-early-exit-callback-order"
+            expect(keysSeen(outOfOrder, false)).toEqual([2]);
+            // docs/php-parity/task-30-map-order.json, "every-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    true,
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("hands the callback each Map key cast as PHP casts an array key", () => {
+            const keysSeen = (data: Map<unknown, string>) => {
+                const seen: unknown[] = [];
+
+                Obj.every(data, (_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "every-numeric-string-keys-callback-order"
+            expect(
+                keysSeen(
+                    new Map([
+                        ["2", "c"],
+                        ["0", "a"],
+                    ]),
+                ),
+            ).toEqual([2, 0]);
+            // docs/php-parity/task-30-map-order.json, "every-true-key-callback-order"
+            expect(keysSeen(new Map([[true, "a"]]))).toEqual([1]);
+            // docs/php-parity/task-30-map-order.json, "every-null-key-callback-order" and
+            // "every-float-key-callback-order". JS-only: PHP 8.5 also raises a deprecation for a
+            // null and a fractional float key; this port casts them silently.
+            expect(keysSeen(new Map([[null, "a"]]))).toEqual([""]);
+            expect(keysSeen(new Map([[1.5, "a"]]))).toEqual([1]);
+        });
+
+        it("visits the Map keys PHP stores as one once, where the first stood, with the last value", () => {
+            const seen: unknown[] = [];
+
+            Obj.every(
+                new Map<string | number, string>([
+                    [1, "a"],
+                    [0, "z"],
+                    ["1", "b"],
+                ]),
+                (value, key) => {
+                    seen.push([key, value]);
+
+                    return true;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "every-collision-callback-pairs"
+            expect(seen).toEqual([
+                [1, "b"],
+                [0, "z"],
+            ]);
         });
     });
 
@@ -4048,6 +6051,58 @@ describe("Obj", () => {
             expect(Obj.some(items, (value) => value > 5)).toBe(false);
             expect(Obj.some(new Map<string, number>(), () => true)).toBe(false);
         });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (
+                data: Map<string | number, unknown>,
+                answer: boolean,
+            ) => {
+                const seen: unknown[] = [];
+
+                Obj.some(data, (_value, key) => {
+                    seen.push(key);
+
+                    return answer;
+                });
+
+                return seen;
+            };
+            const outOfOrder = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "some-out-of-order-callback-order"
+            expect(keysSeen(outOfOrder, false)).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "some-out-of-order-early-exit-callback-order"
+            expect(keysSeen(outOfOrder, true)).toEqual([2]);
+            // docs/php-parity/task-30-map-order.json, "some-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    false,
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("tests only the last value of Map keys PHP stores as one", () => {
+            // docs/php-parity/task-30-map-order.json, "some-collision": PHP's
+            // [1 => 'a', '1' => 'b'] is [1 => 'b'], so no item is 'a'.
+            expect(
+                Obj.some(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                    (value) => value === "a",
+                ),
+            ).toBe(false);
+        });
     });
 
     describe("join", () => {
@@ -4083,6 +6138,45 @@ describe("Obj", () => {
         it("uses only the final glue for two items", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "join-assoc-two"
             expect(Obj.join({ a: "a", b: "b" }, ", ", " and ")).toBe("a and b");
+        });
+
+        it("joins a Map in its insertion order", () => {
+            const outOfOrder = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "join-out-of-order"
+            expect(Obj.join(outOfOrder, ", ", " and ")).toBe("c, a and b");
+            // docs/php-parity/task-30-map-order.json, "join-out-of-order-no-final-glue"
+            expect(Obj.join(outOfOrder, ", ")).toBe("c, a, b");
+            // docs/php-parity/task-30-map-order.json, "join-mixed"
+            expect(
+                Obj.join(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    ", ",
+                    " and ",
+                ),
+            ).toBe("1, 2 and 3");
+        });
+
+        it("joins the last value of the Map keys PHP stores as one, where the first stood", () => {
+            // docs/php-parity/task-30-map-order.json, "join-collision"
+            expect(
+                Obj.join(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                    ",",
+                ),
+            ).toBe("b,z");
         });
     });
 
@@ -4180,6 +6274,83 @@ describe("Obj", () => {
                 v: 1,
             });
         });
+
+        it("keys a Map's items in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "keyBy-out-of-order-rows"
+            expect(
+                Object.entries(
+                    Obj.keyBy(
+                        new Map([
+                            [2, { id: "r" }],
+                            [0, { id: "p" }],
+                            [1, { id: "q" }],
+                        ]),
+                        "id",
+                    ),
+                ),
+            ).toEqual([
+                ["r", { id: "r" }],
+                ["p", { id: "p" }],
+                ["q", { id: "q" }],
+            ]);
+        });
+
+        it("keeps the item PHP reaches last when a Map's items share a key", () => {
+            // docs/php-parity/task-30-map-order.json, "keyBy-out-of-order-rows-collision":
+            // key 0 comes after key 2, so its item is the one "x" keeps.
+            expect(
+                Obj.keyBy(
+                    new Map([
+                        [2, { id: "x", n: "c" }],
+                        [0, { id: "x", n: "a" }],
+                        [1, { id: "y", n: "b" }],
+                    ]),
+                    "id",
+                ),
+            ).toEqual({ x: { id: "x", n: "a" }, y: { id: "y", n: "b" } });
+        });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const seen: unknown[] = [];
+
+            // docs/php-parity/task-30-map-order.json, "keyBy-out-of-order-rows-callback-order"
+            Obj.keyBy(
+                new Map([
+                    [2, { id: "r" }],
+                    [0, { id: "p" }],
+                    [1, { id: "q" }],
+                ]),
+                (item, key) => {
+                    seen.push(key);
+
+                    return item.id;
+                },
+            );
+            expect(seen).toEqual([2, 0, 1]);
+
+            seen.length = 0;
+            const result = Obj.keyBy(
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]),
+                (item, key) => {
+                    seen.push(key);
+
+                    return `k${item}`;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "keyBy-mixed-callback-order"
+            expect(seen).toEqual(["x", 0, "y"]);
+            // docs/php-parity/task-30-map-order.json, "keyBy-mixed-callback"
+            expect(Object.entries(result)).toEqual([
+                ["k1", 1],
+                ["k2", 2],
+                ["k3", 3],
+            ]);
+        });
     });
 
     describe("prependKeysWith", () => {
@@ -4219,6 +6390,64 @@ describe("Obj", () => {
                 "test.list": [1, 2, 3],
                 "test.meta": { key: 1 },
             });
+        });
+
+        it("prefixes a Map's keys in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "prependKeysWith-out-of-order": the
+            // prefix makes every key a string key, which a record keeps in PHP's order.
+            expect(
+                Object.entries(
+                    Obj.prependKeysWith(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                        "k",
+                    ),
+                ),
+            ).toEqual([
+                ["k2", "c"],
+                ["k0", "a"],
+                ["k1", "b"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "prependKeysWith-mixed"
+            expect(
+                Object.entries(
+                    Obj.prependKeysWith(
+                        new Map<string | number, number>([
+                            ["x", 1],
+                            [0, 2],
+                            ["y", 3],
+                        ]),
+                        "p",
+                    ),
+                ),
+            ).toEqual([
+                ["px", 1],
+                ["p0", 2],
+                ["py", 3],
+            ]);
+        });
+
+        it("prefixes the Map keys PHP stores as one as a single key", () => {
+            // docs/php-parity/task-30-map-order.json, "prependKeysWith-collision": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'].
+            expect(
+                Object.entries(
+                    Obj.prependKeysWith(
+                        new Map<string | number, string>([
+                            [1, "a"],
+                            ["x", "b"],
+                            ["1", "c"],
+                        ]),
+                        "k",
+                    ),
+                ),
+            ).toEqual([
+                ["k1", "c"],
+                ["kx", "b"],
+            ]);
         });
     });
 
@@ -4264,6 +6493,86 @@ describe("Obj", () => {
 
             expect(Obj.only(data, "0")).toEqual({ 0: "foo" });
             expect(Obj.only(data, "bar")).toEqual({ bar: "baz" });
+        });
+
+        it("keeps the data's order, not the key list's, as array_intersect_key does", () => {
+            // docs/php-parity/task-30-map-order.json, "only-string-keys-reordered-selector"
+            expect(Object.keys(Obj.only({ b: 1, a: 2 }, ["a", "b"]))).toEqual([
+                "b",
+                "a",
+            ]);
+            expect(
+                Object.keys(
+                    Obj.only(
+                        new Map([
+                            ["b", 1],
+                            ["a", 2],
+                        ]),
+                        ["a", "a", "b"],
+                    ),
+                ),
+            ).toEqual(["b", "a"]);
+        });
+
+        it("selects from a Map in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "only-out-of-order": PHP keeps 2 before 0.
+            // JS-only: the answer is a record, which enumerates 0 before 2.
+            expect(
+                Obj.only(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    [0, 2],
+                ),
+            ).toEqual({ 0: "a", 2: "c" });
+            // docs/php-parity/task-30-map-order.json, "only-mixed": x stays ahead of y.
+            expect(
+                Object.entries(
+                    Obj.only(
+                        new Map<string | number, number>([
+                            ["x", 1],
+                            [0, 2],
+                            ["y", 3],
+                        ]),
+                        ["y", "x", 0],
+                    ),
+                ),
+            ).toEqual([
+                ["0", 2],
+                ["x", 1],
+                ["y", 3],
+            ]);
+        });
+
+        it("selects the value PHP keeps for Map keys it stores as one", () => {
+            // docs/php-parity/task-30-map-order.json, "only-collision"
+            expect(
+                Obj.only(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                    [1],
+                ),
+            ).toEqual({ 1: "c" });
+        });
+
+        it("keeps a symbol key the list names, and never matches it against a string key", () => {
+            // JS-only: PHP has no symbol keys. A symbol is looked up on the data itself, so it
+            // can't select a string key that happens to be spelled "Symbol(s)".
+            const sym = Symbol("s");
+            const kept = Obj.only({ [sym]: 1, a: 2 }, [sym, "a"]);
+
+            expect(Object.getOwnPropertySymbols(kept)).toEqual([sym]);
+            expect(kept[sym]).toBe(1);
+            expect(Object.keys(kept)).toEqual(["a"]);
+
+            const spelled: Record<PropertyKey, number> = { "Symbol(s)": 9 };
+
+            expect(Obj.only(spelled, [sym])).toEqual({});
         });
     });
 
@@ -4353,6 +6662,29 @@ describe("Obj", () => {
             expect(result).toEqual({ John: 30, Jane: 25 });
         });
 
+        it("files a list return under its own indexes, letting the last row win", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-with-keys-list-return", "arr-assoc" then "arr-single-row".
+            expect(
+                Obj.mapWithKeys({ a: 1, b: 2 }, (value, key) => [
+                    `key_${String(key)}`,
+                    value * 2,
+                ]),
+            ).toEqual({ 0: "key_b", 1: 4 });
+            expect(
+                Obj.mapWithKeys({ a: 1 }, (value, key) => [
+                    `key_${String(key)}`,
+                    value * 2,
+                ]),
+            ).toEqual({ 0: "key_a", 1: 2 });
+            // Same row, "arr-pair-return": a single-pair record is the idiomatic return.
+            expect(
+                Obj.mapWithKeys({ a: 1, b: 2 }, (value, key) => ({
+                    [key]: value * 2,
+                })),
+            ).toEqual({ a: 2, b: 4 });
+        });
+
         it("should handle non-objects", () => {
             expect(Obj.mapWithKeys(null, () => ({}))).toEqual({});
             expect(Obj.mapWithKeys([], () => ({}))).toEqual({});
@@ -4369,6 +6701,116 @@ describe("Obj", () => {
             }));
             expect(result instanceof Map).toBe(false);
             expect(result).toEqual({ 1: "x", 2: "y" });
+        });
+
+        it("builds its keys in a Map's insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-out-of-order"
+            expect(
+                Object.entries(
+                    Obj.mapWithKeys(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                        (value, key) => ({ [`k${String(key)}`]: value }),
+                    ),
+                ),
+            ).toEqual([
+                ["k2", "c"],
+                ["k0", "a"],
+                ["k1", "b"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-mixed"
+            expect(
+                Object.entries(
+                    Obj.mapWithKeys(
+                        new Map<string | number, number>([
+                            ["x", 1],
+                            [0, 2],
+                            ["y", 3],
+                        ]),
+                        (value, key) => ({ [`k${String(key)}`]: value }),
+                    ),
+                ),
+            ).toEqual([
+                ["kx", 1],
+                ["k0", 2],
+                ["ky", 3],
+            ]);
+        });
+
+        it("lets the item PHP reaches last in a Map win a key two callbacks return", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-out-of-order-collision"
+            expect(
+                Obj.mapWithKeys(outOfOrder(), (value) => ({ same: value })),
+            ).toEqual({ same: "b" });
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-out-of-order-int-collision"
+            expect(
+                Obj.mapWithKeys(outOfOrder(), (value) => ({ 0: value })),
+            ).toEqual({ 0: "b" });
+        });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (data: Map<string | number, unknown>) => {
+                const seen: unknown[] = [];
+
+                Obj.mapWithKeys(data, (_value, key) => {
+                    seen.push(key);
+
+                    return {};
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-out-of-order-callback-order"
+            expect(
+                keysSeen(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("maps the Map keys PHP stores as one once, with the last value", () => {
+            // docs/php-parity/task-30-map-order.json, "mapWithKeys-collision": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so no key is 'a'.
+            expect(
+                Object.entries(
+                    Obj.mapWithKeys(
+                        new Map<string | number, string>([
+                            [1, "a"],
+                            [0, "z"],
+                            ["1", "b"],
+                        ]),
+                        (value, key) => ({ [value]: key }),
+                    ),
+                ),
+            ).toEqual([
+                ["b", 1],
+                ["z", 0],
+            ]);
         });
     });
 
@@ -4467,7 +6909,9 @@ describe("Obj", () => {
         });
 
         it("casts its key the way PHP casts an array key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast"
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast",
+            // "float", "negative-float", "true" and "false"; task-24,
+            // "r3-prepend-extra-keys", "negative-float-above-minus-one" for the last.
             expect(Obj.prepend({ a: 1, 1: "x" }, "v", 1.5)).toEqual({
                 1: "v",
                 a: 1,
@@ -4484,6 +6928,8 @@ describe("Obj", () => {
                 0: "v",
                 a: 1,
             });
+            // A float between -1 and 0 truncates to PHP's key 0, not to "-0".
+            expect(Obj.prepend({ a: 1 }, "v", -0.5)).toEqual({ 0: "v", a: 1 });
         });
 
         it("keeps a symbol key as a symbol, as keyBy does", () => {
@@ -4493,6 +6939,97 @@ describe("Obj", () => {
 
             expect(Object.getOwnPropertySymbols(result)).toEqual([key]);
             expect(Object.keys(result)).toEqual(["a"]);
+        });
+
+        it("renumbers a Map's integer keys in its insertion order when no key is given", () => {
+            // docs/php-parity/task-30-map-order.json, "prepend-out-of-order". JS-only: PHP's
+            // answer is a list; a keyed backing answers a record, as a record backing does.
+            expect(
+                Obj.prepend(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    "z",
+                ),
+            ).toEqual({ 0: "z", 1: "c", 2: "a", 3: "b" });
+            // docs/php-parity/task-30-map-order.json, "prepend-negative-key-first": a record
+            // walks "-1" after 5, but the Map walks it first, so its value takes key 1.
+            expect(
+                Obj.prepend(
+                    new Map([
+                        [-1, "m"],
+                        [5, "f"],
+                    ]),
+                    "z",
+                ),
+            ).toEqual({ 0: "z", 1: "m", 2: "f" });
+            // docs/php-parity/task-30-map-order.json, "prepend-mixed": PHP puts x before 1.
+            // JS-only: the record enumerates the integer key 1 ahead of x.
+            expect(
+                Obj.prepend(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    "z",
+                ),
+            ).toEqual({ 0: "z", x: 1, 1: 2, y: 3 });
+        });
+
+        it("renumbers the Map keys PHP stores as one as a single entry", () => {
+            // docs/php-parity/task-30-map-order.json, "prepend-collision"
+            expect(
+                Obj.prepend(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                    "z",
+                ),
+            ).toEqual({ 0: "z", 1: "c", x: "b" });
+        });
+
+        it("prepends a keyed value onto a Map's entries", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "prepend-out-of-order-string-key".
+            // JS-only: PHP lists k first; the record enumerates the integer keys ahead of it.
+            expect(Obj.prepend(outOfOrder(), "z", "k")).toEqual({
+                k: "z",
+                2: "c",
+                0: "a",
+                1: "b",
+            });
+            // docs/php-parity/task-30-map-order.json, "prepend-out-of-order-existing-int-key"
+            expect(Obj.prepend(outOfOrder(), "z", 0)).toEqual({
+                0: "z",
+                2: "c",
+                1: "b",
+            });
+        });
+
+        it("reads a Map without changing it", () => {
+            // JS-only: PHP arrays are values, so prepend must not write to the Map it reads.
+            const data = new Map([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            Obj.prepend(data, "z");
+            Obj.prepend(data, "z", "k");
+            expect([...data]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
         });
     });
 
@@ -4569,6 +7106,21 @@ describe("Obj", () => {
     });
 
     describe("query", () => {
+        it("percent-encodes brackets, as PHP_QUERY_RFC3986 does", () => {
+            // docs/php-parity/task-29-final-behaviour.json, "query-deep-nested-brackets",
+            // "query-space-and-plus", "query-flat-list"
+            expect(Obj.query({ a: { b: { c: 1 } } })).toBe("a%5Bb%5D%5Bc%5D=1");
+            expect(Obj.query({ "a b": "c d", "f+o": "b&r" })).toBe(
+                "a%20b=c%20d&f%2Bo=b%26r",
+            );
+            expect(Obj.query({ 0: 1, 1: 2, 2: 3 })).toBe("0=1&1=2&2=3");
+            // "query-rfc3986-sub-delimiters": RFC3986 escapes the five characters
+            // encodeURIComponent leaves alone, and leaves ~-._ unreserved.
+            expect(Obj.query({ "k!'()*~-._": "v!'()*~-._" })).toBe(
+                "k%21%27%28%29%2A~-._=v%21%27%28%29%2A~-._",
+            );
+        });
+
         it("should build query string from object", () => {
             const obj = { name: "John", age: "30", active: "true" };
             expect(Obj.query(obj)).toBe("name=John&age=30&active=true");
@@ -4576,7 +7128,7 @@ describe("Obj", () => {
 
         it("should handle nested objects", () => {
             const obj = { user: { name: "John", age: 30 } };
-            expect(Obj.query(obj)).toBe("user[name]=John&user[age]=30");
+            expect(Obj.query(obj)).toBe("user%5Bname%5D=John&user%5Bage%5D=30");
         });
 
         it("should handle arrays with various types", () => {
@@ -4584,7 +7136,7 @@ describe("Obj", () => {
                 tags: ["js", "ts", null, undefined, { home: "page" }],
             };
             expect(Obj.query(obj)).toBe(
-                "tags[0]=js&tags[1]=ts&tags[4][home]=page",
+                "tags%5B0%5D=js&tags%5B1%5D=ts&tags%5B4%5D%5Bhome%5D=page",
             );
         });
 
@@ -4606,7 +7158,7 @@ describe("Obj", () => {
                     },
                 },
             };
-            expect(Obj.query(obj)).toBe("level1[level2][value]=deep");
+            expect(Obj.query(obj)).toBe("level1%5Blevel2%5D%5Bvalue%5D=deep");
         });
 
         it("should handle object values with null and undefined mixed", () => {
@@ -4627,7 +7179,7 @@ describe("Obj", () => {
                 ],
             };
             expect(Obj.query(obj)).toBe(
-                "matrix[0][0]=1&matrix[0][1]=2&matrix[1][0]=3&matrix[1][1]=4",
+                "matrix%5B0%5D%5B0%5D=1&matrix%5B0%5D%5B1%5D=2&matrix%5B1%5D%5B0%5D=3&matrix%5B1%5D%5B1%5D=4",
             );
         });
 
@@ -4644,6 +7196,77 @@ describe("Obj", () => {
             expect(Obj.query({ foo: "bar", bar: false })).toBe("foo=bar&bar=0");
             expect(Obj.query({ foo: "bar", bar: "" })).toBe("foo=bar&bar=");
             expect(Obj.query({})).toBe("");
+        });
+
+        it("writes a Map's pairs in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "query-out-of-order"
+            expect(
+                Obj.query(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toBe("2=c&0=a&1=b");
+            // docs/php-parity/task-30-map-order.json, "query-mixed"
+            expect(
+                Obj.query(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toBe("x=1&0=2&y=3");
+        });
+
+        it("reads a nested Map in its insertion order instead of dropping it", () => {
+            const nested = new Map([
+                [1, "p"],
+                [0, "q"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "query-out-of-order-nested": the PHP array
+            // stands for both a record holding the Map and a Map holding it.
+            expect(Obj.query({ u: nested, v: 1 })).toBe(
+                "u%5B1%5D=p&u%5B0%5D=q&v=1",
+            );
+            expect(
+                Obj.query(
+                    new Map<string, unknown>([
+                        ["u", nested],
+                        ["v", 1],
+                    ]),
+                ),
+            ).toBe("u%5B1%5D=p&u%5B0%5D=q&v=1");
+            // docs/php-parity/task-30-map-order.json, "query-out-of-order-nested-in-list"
+            expect(Obj.query({ l: [nested, "x"] })).toBe(
+                "l%5B0%5D%5B1%5D=p&l%5B0%5D%5B0%5D=q&l%5B1%5D=x",
+            );
+            // docs/php-parity/task-30-map-order.json, "query-out-of-order-nested-twice"
+            expect(
+                Obj.query(
+                    new Map<string | number, unknown>([
+                        ["a", new Map([["b", nested]])],
+                        [1, "one"],
+                        [0, "zero"],
+                    ]),
+                ),
+            ).toBe("a%5Bb%5D%5B1%5D=p&a%5Bb%5D%5B0%5D=q&1=one&0=zero");
+        });
+
+        it("writes the last value of the Map keys PHP stores as one, where the first stood", () => {
+            // docs/php-parity/task-30-map-order.json, "query-collision"
+            expect(
+                Obj.query(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("1=b&0=z");
         });
     });
 
@@ -4739,16 +7362,101 @@ describe("Obj", () => {
             );
         });
 
-        it("returns null for a Map or Set without a count, matching the NonObjectItems row", () => {
-            // JS-only: Map/Set pass accessible() but have no own enumerable entries.
-            expect(Obj.random(new Map([["a", 1]]))).toBeNull();
+        it("returns null for a Set without a count, matching the NonObjectItems row", () => {
+            // JS-only: a Set is not accessible, so it holds no entries to pick from.
             expect(Obj.random(new Set([1, 2, 3]))).toBeNull();
         });
 
-        it("returns an empty object for a Map or Set when a count is given", () => {
+        it("returns an empty object for a Set when a count is given", () => {
             // JS-only: same NonObjectItems row as lists/functions, not a throw.
-            expect(Obj.random(new Map([["a", 1]]), 2)).toEqual({});
             expect(Obj.random(new Set([1, 2, 3]), 2)).toEqual({});
+        });
+
+        it("returns every pick in the object's own order, not the order drawn", () => {
+            // docs/php-parity/task-30-map-order.json, "random-mixed-partial-keeps-array-order":
+            // Randomizer::pickArrayKeys hands the picks back in the array's order on every draw.
+            const data = { a: 1, b: 2, c: 3, d: 4 };
+            const descending = { d: 4, c: 3, b: 2, a: 1 };
+
+            for (let draw = 0; draw < 200; draw++) {
+                const picked = Object.values(Obj.random(data, 2));
+                const kept = Object.keys(Obj.random(descending, 2, true));
+
+                expect(picked).toEqual([...picked].sort((x, y) => x - y));
+                expect(kept).toEqual([...kept].sort().reverse());
+            }
+        });
+
+        it("picks from a Map and returns the picks in its insertion order", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const mixed = () =>
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "random-out-of-order-full-count"
+            expect(Obj.random(outOfOrder(), 3)).toEqual({
+                0: "c",
+                1: "a",
+                2: "b",
+            });
+            // docs/php-parity/task-30-map-order.json, "random-out-of-order-full-count-preserve-keys".
+            // JS-only: the result is a record, so it enumerates 0, 1, 2.
+            expect(Obj.random(outOfOrder(), 3, true)).toEqual({
+                2: "c",
+                0: "a",
+                1: "b",
+            });
+            // docs/php-parity/task-30-map-order.json, "random-mixed-full-count"
+            expect(Obj.random(mixed(), 3)).toEqual({ 0: 1, 1: 2, 2: 3 });
+            // docs/php-parity/task-30-map-order.json, "random-mixed-full-count-preserve-keys"
+            expect(Obj.random(mixed(), 3, true)).toEqual({ x: 1, 0: 2, y: 3 });
+            expect(["c", "a", "b"]).toContain(Obj.random(outOfOrder()));
+            expect(Obj.random(outOfOrder(), 0)).toEqual({});
+        });
+
+        it("keeps a Map's insertion order for a partial draw", () => {
+            // docs/php-parity/task-30-map-order.json, "random-out-of-order-partial-values-keep-array-order":
+            // every draw holds two picks, in the array's own order.
+            const order = ["c", "a", "b"];
+
+            for (let draw = 0; draw < 200; draw++) {
+                const positions = Object.values(
+                    Obj.random(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                        2,
+                    ),
+                ).map((value) => order.indexOf(value));
+
+                // No picks at all would pass the order check, so the length is checked first.
+                expect(positions).toHaveLength(2);
+                expect(positions).toEqual([...positions].sort((x, y) => x - y));
+            }
+        });
+
+        it("counts the Map keys PHP stores as one as a single item", () => {
+            // docs/php-parity/task-30-map-order.json, "random-collision-full-count"
+            const collision = new Map<string | number, string>([
+                [1, "a"],
+                ["x", "b"],
+                ["1", "c"],
+            ]);
+
+            expect(Obj.random(collision, 2)).toEqual({ 0: "c", 1: "b" });
+            expect(() => Obj.random(collision, 3)).toThrow(
+                "You requested 3 items, but there are only 2 items available.",
+            );
         });
     });
 
@@ -4873,6 +7581,82 @@ describe("Obj", () => {
                 ["1", 40],
             ]);
         });
+
+        it("shifts a Map from the start of its insertion order, renumbering the survivors", () => {
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const one = outOfOrder();
+            const two = outOfOrder();
+
+            // docs/php-parity/task-30-map-order.json, "shift-out-of-order-returns"
+            expect(Obj.shift(one)).toBe("c");
+            // docs/php-parity/task-30-map-order.json, "shift-out-of-order-remaining": the
+            // renumbered keys are numbers, the integer keys PHP stores.
+            expect([...one]).toEqual([
+                [0, "a"],
+                [1, "b"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "shift-out-of-order-count-2-returns"
+            expect(Obj.shift(two, 2)).toEqual(["c", "a"]);
+            // docs/php-parity/task-30-map-order.json, "shift-out-of-order-count-2-remaining"
+            expect([...two]).toEqual([[0, "b"]]);
+        });
+
+        it("shifts a Map mixing string and integer keys in its insertion order", () => {
+            const mixed = () =>
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+            const one = mixed();
+            const two = mixed();
+
+            // docs/php-parity/task-30-map-order.json, "shift-mixed-returns"
+            expect(Obj.shift(one)).toBe(1);
+            // docs/php-parity/task-30-map-order.json, "shift-mixed-remaining"
+            expect([...one]).toEqual([
+                [0, 2],
+                ["y", 3],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "shift-mixed-count-2-returns"
+            expect(Obj.shift(two, 2)).toEqual([1, 2]);
+            // docs/php-parity/task-30-map-order.json, "shift-mixed-count-2-remaining"
+            expect([...two]).toEqual([["y", 3]]);
+        });
+
+        it("shifts the Map keys PHP stores as one as a single item", () => {
+            const data = new Map<string | number, string>([
+                [1, "a"],
+                ["x", "b"],
+                ["1", "c"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "shift-collision-returns"
+            expect(Obj.shift(data)).toBe("c");
+            // docs/php-parity/task-30-map-order.json, "shift-collision-remaining"
+            expect([...data]).toEqual([["x", "b"]]);
+        });
+
+        it("leaves a Map exactly as it was when the count is zero", () => {
+            const data = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "shift-out-of-order-count-0-returns"
+            expect(Obj.shift(data, 0)).toEqual([]);
+            // docs/php-parity/task-30-map-order.json, "shift-out-of-order-count-0-remaining":
+            // nothing is renumbered, so the out-of-order keys stay where they were.
+            expect([...data]).toEqual([
+                [2, "c"],
+                [0, "a"],
+            ]);
+        });
     });
 
     describe("push", () => {
@@ -4886,6 +7670,18 @@ describe("Obj", () => {
             const obj = {};
             const result = Obj.push(obj, "items", "a", "b");
             expect(result).toEqual({ items: ["a", "b"] });
+        });
+
+        it("leaves the caller's nested value alone for an integer key", () => {
+            // JS-only: the arr sibling of this case (task-24-data-release-readiness.json,
+            // "push-integer-key-mutates-the-caller-by-reference" is what PHP does instead);
+            // obj already answered this way, so it pins the agreement.
+            const inner = ["x"];
+            const result = Obj.push({ 0: inner }, 0, "y");
+
+            expect(result).toEqual({ 0: ["x", "y"] });
+            expect(inner).toEqual(["x"]);
+            expect(result[0]).not.toBe(inner);
         });
 
         it("throws PHP's message when the key holds a non-array", () => {
@@ -5101,6 +7897,51 @@ describe("Obj", () => {
             });
             expect(Obj.slice(data, -6, -2)).toEqual({ c: 3, d: 4, e: 5, f: 6 });
         });
+
+        it("slices a Map by its insertion order, which a record cannot hold", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "slice-out-of-order-offset"
+            expect(Obj.slice(outOfOrder(), 1)).toEqual({ 0: "a", 1: "b" });
+            // docs/php-parity/task-30-map-order.json, "slice-out-of-order-offset-length"
+            expect(Obj.slice(outOfOrder(), 0, 2)).toEqual({ 2: "c", 0: "a" });
+            // docs/php-parity/task-30-map-order.json, "slice-out-of-order-negative-offset-length"
+            expect(Obj.slice(outOfOrder(), -2, 1)).toEqual({ 0: "a" });
+        });
+
+        it("slices a Map mixing string and integer keys by its insertion order", () => {
+            const mixed = () =>
+                new Map<string | number, number>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "slice-mixed-offset"
+            expect(Obj.slice(mixed(), 1)).toEqual({ 0: 2, y: 3 });
+            // docs/php-parity/task-30-map-order.json, "slice-mixed-offset-length"
+            expect(Obj.slice(mixed(), 0, 1)).toEqual({ x: 1 });
+        });
+
+        it("counts the Map keys PHP stores as one as a single item", () => {
+            // docs/php-parity/task-30-map-order.json, "slice-collision-offset": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'], two items.
+            expect(
+                Obj.slice(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                    1,
+                ),
+            ).toEqual({ x: "b" });
+        });
     });
 
     describe("sole", () => {
@@ -5110,14 +7951,15 @@ describe("Obj", () => {
         });
 
         it("should throw error for empty objects", () => {
-            expect(() => Obj.sole({})).toThrow("No items found");
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback"
+            expect(() => Obj.sole({})).toThrow(ItemNotFoundException);
         });
 
         it("should throw error for multiple items", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback"
             const obj = { a: 1, b: 2 };
-            expect(() => Obj.sole(obj)).toThrow(
-                "Multiple items found (2 items)",
-            );
+            expect(() => Obj.sole(obj)).toThrow(MultipleItemsFoundException);
+            expect(() => Obj.sole(obj)).toThrow("2 items were found.");
         });
 
         it("should work with callback", () => {
@@ -5125,23 +7967,107 @@ describe("Obj", () => {
             expect(Obj.sole(obj, (value) => value > 2)).toBe(3);
 
             expect(() => Obj.sole(obj, (value) => value > 3)).toThrow(
-                "No items found",
+                ItemNotFoundException,
             );
         });
 
         it("should handle non-objects", () => {
-            expect(() => Obj.sole(null)).toThrow("No items found");
-            expect(() => Obj.sole([])).toThrow("No items found");
+            expect(() => Obj.sole(null)).toThrow(ItemNotFoundException);
+            expect(() => Obj.sole([])).toThrow(ItemNotFoundException);
         });
 
         it("throws when the callback matches more than one item", () => {
-            // ArrTest::testSoleThrowsExceptionIfMoreThanOneItemExists; message wording stays JS's own, not PHP's.
+            // ArrTest::testSoleThrowsExceptionIfMoreThanOneItemExists;
+            // docs/php-parity/task-23-obj-release-readiness.json, "sole-assoc-multi-callback"
             expect(() =>
                 Obj.sole(
                     { a: "baz", b: "foo", c: "baz" },
                     (value) => value === "baz",
                 ),
-            ).toThrow("Multiple items found (2 items)");
+            ).toThrow("2 items were found.");
+        });
+
+        it("reads a Map, handing the callback its keys in insertion order", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const keysSeen = (
+                data: Map<string | number, unknown>,
+                match: unknown,
+            ) => {
+                const seen: unknown[] = [];
+
+                Obj.sole(data, (value, key) => {
+                    seen.push(key);
+
+                    return value === match;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "sole-out-of-order-callback"
+            expect(Obj.sole(outOfOrder(), (value) => value === "c")).toBe("c");
+            // docs/php-parity/task-30-map-order.json, "sole-out-of-order-callback-order": every
+            // entry is visited, there is no early exit.
+            expect(keysSeen(outOfOrder(), "c")).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "sole-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    2,
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("answers a stateful callback from a Map's first-inserted entry", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "sole-out-of-order-first-call-only": the one
+            // call that answers true is the first, on key 2. A record would hand it key 0's 'a'.
+            expect(
+                Obj.sole(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toBe("c");
+        });
+
+        it("counts the Map keys PHP stores as one as a single item", () => {
+            // docs/php-parity/task-30-map-order.json, "sole-collision"
+            expect(
+                Obj.sole(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("b");
+            // docs/php-parity/task-30-map-order.json, "sole-true-key-collision": PHP stores true as 1.
+            expect(
+                Obj.sole(
+                    new Map<number | boolean, string>([
+                        [1, "a"],
+                        [true, "b"],
+                    ]),
+                ),
+            ).toBe("b");
+        });
+
+        it("throws for an empty Map, as for an empty object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback"
+            expect(() => Obj.sole(new Map())).toThrow(ItemNotFoundException);
         });
     });
 
@@ -5285,13 +8211,13 @@ describe("Obj", () => {
                 );
             });
 
-            it("orders two empty containers by their JSON form", () => {
-                // Mixing {} with numbers is not orderable at all - compareValues
-                // ties {} with every number while ranking [] below them - so the
-                // two containers are only comparable against each other.
+            it("ties two empty containers, as PHP's array rule does", () => {
+                // docs/php-parity/task-25-spaceship-arrays.json, "spaceship on
+                // two empty arrays": neither shape holds an entry, so the pair
+                // ties and the stable sort leaves it in insertion order.
                 expect(Object.values(Obj.sort({ a: {}, d: [] }))).toEqual([
-                    [],
                     {},
+                    [],
                 ]);
             });
         });
@@ -5307,10 +8233,10 @@ describe("Obj", () => {
             });
 
             it("does not re-sort by an empty path after the natural sort", () => {
-                // The branches were if/if/if, so a falsy string ran the natural
-                // sort and then the field sort over it, reversing this pair. PHP
-                // cannot arbitrate - Collection::sort("") throws TypeError.
-                const source = { a: { "": 10 }, b: { "": 9 } };
+                // The branches were if/if/if, so a falsy string ran the natural sort and then the field sort over it.
+                // The "" key sits second, so the natural walk (which reads "z" first) and the field walk disagree.
+                // PHP cannot arbitrate - Collection::sort("") throws TypeError.
+                const source = { a: { z: 1, "": 9 }, b: { z: 2, "": 8 } };
 
                 expect(Object.keys(Obj.sort(source, ""))).toEqual(["a", "b"]);
                 expect(Object.values(Obj.sort(source, ""))).toEqual(
@@ -5652,6 +8578,130 @@ describe("Obj", () => {
                 ),
             ).toEqual(["c", "b", "d", "a"]);
         });
+
+        describe("a Map", () => {
+            const ties = () =>
+                new Map([
+                    [2, { n: 1, id: "p" }],
+                    [0, { n: 1, id: "q" }],
+                    [1, { n: 0, id: "r" }],
+                ]);
+            // PHP's [2 => p, 0 => q, 1 => r] sorts to r, p, q: the tied p and q stay in the order
+            // written. The integer keys are renumbered over that sequence.
+            const sorted = [
+                ["0", { n: 0, id: "r" }],
+                ["1", { n: 1, id: "p" }],
+                ["2", { n: 1, id: "q" }],
+            ];
+
+            it("keeps a tie in its insertion order, by field, callback or descriptor", () => {
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order-ties"
+                expect(Object.entries(Obj.sort(ties(), "n"))).toEqual(sorted);
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order-ties-callback"
+                expect(
+                    Object.entries(Obj.sort(ties(), (value) => value.n)),
+                ).toEqual(sorted);
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order-ties-descriptor"
+                expect(
+                    Object.entries(Obj.sort(ties(), [["n", "asc"]])),
+                ).toEqual(sorted);
+            });
+
+            it("hands the callback its keys in insertion order", () => {
+                const seen: unknown[] = [];
+
+                Obj.sort(ties(), (value, key) => {
+                    seen.push(key);
+
+                    return value.n;
+                });
+
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order-ties-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+
+                const mixedSeen: unknown[] = [];
+
+                Obj.sort(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    (value, key) => {
+                        mixedSeen.push(key);
+
+                        return value;
+                    },
+                );
+
+                // docs/php-parity/task-30-map-order.json, "sort-mixed-callback-order"
+                expect(mixedSeen).toEqual(["x", 0, "y"]);
+            });
+
+            it("keeps values PHP compares as equal in insertion order", () => {
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order-loose-ties": "1", 1
+                // and "01" are equal under PHP's comparison, so they stay in the order written.
+                expect(
+                    Object.values(
+                        Obj.sort(
+                            new Map<number, string | number>([
+                                [2, "1"],
+                                [0, 1],
+                                [1, "01"],
+                            ]),
+                        ),
+                    ),
+                ).toEqual(["1", 1, "01"]);
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order"
+                expect(
+                    Obj.sort(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "a", 1: "b", 2: "c" });
+            });
+
+            it("sorts keys PHP stores as one as one item, where the first of them stood", () => {
+                // docs/php-parity/task-30-map-order.json, "sort-collision-loose-ties": "1" lands on
+                // key 1's position with its value "01", which ties 1 and so stays ahead of it.
+                expect(
+                    Object.values(
+                        Obj.sort(
+                            new Map<string | number, string | number>([
+                                [1, "1"],
+                                [0, 1],
+                                ["1", "01"],
+                            ]),
+                        ),
+                    ),
+                ).toEqual(["01", 1]);
+            });
+
+            it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+                // docs/php-parity/task-30-map-order.json, "sort-out-of-order-rows-by-path" and
+                // "sort-out-of-order-rows-by-descriptor": PHP reads each array item's n and puts n = 0 first.
+                // JS-only: a Map item is a leaf a path cannot address, so every item reads null for "n" and they tie.
+                const items = () =>
+                    new Map([
+                        [2, new Map([["n", 1]])],
+                        [0, new Map([["n", 0]])],
+                    ]);
+                const inInsertionOrder = [
+                    ["0", new Map([["n", 1]])],
+                    ["1", new Map([["n", 0]])],
+                ];
+
+                expect(Object.entries(Obj.sort(items(), "n"))).toEqual(
+                    inInsertionOrder,
+                );
+                expect(
+                    Object.entries(Obj.sort(items(), [["n", "asc"]])),
+                ).toEqual(inInsertionOrder);
+            });
+        });
     });
 
     describe("sortDesc", () => {
@@ -5944,6 +8994,118 @@ describe("Obj", () => {
 
             expect(Object.keys(sorted)).toEqual(["b", "a"]);
         });
+
+        describe("a Map", () => {
+            const ties = () =>
+                new Map([
+                    [2, { n: 1, id: "p" }],
+                    [0, { n: 1, id: "q" }],
+                    [1, { n: 0, id: "r" }],
+                ]);
+            // PHP's [2 => p, 0 => q, 1 => r] sorts descending to p, q, r: the tied p and q stay
+            // in the order written. The integer keys are renumbered over that sequence.
+            const sorted = [
+                ["0", { n: 1, id: "p" }],
+                ["1", { n: 1, id: "q" }],
+                ["2", { n: 0, id: "r" }],
+            ];
+
+            it("keeps a tie in its insertion order, by field or descriptor", () => {
+                // docs/php-parity/task-30-map-order.json, "sortDesc-out-of-order-ties"
+                expect(Object.entries(Obj.sortDesc(ties(), "n"))).toEqual(
+                    sorted,
+                );
+                // docs/php-parity/task-30-map-order.json, "sortDesc-out-of-order-ties-descriptor":
+                // sortByDesc turns the descriptor's own "asc" descending.
+                expect(
+                    Object.entries(Obj.sortDesc(ties(), [["n", "asc"]])),
+                ).toEqual(sorted);
+            });
+
+            it("hands the callback its keys in insertion order", () => {
+                const seen: unknown[] = [];
+
+                expect(
+                    Object.entries(
+                        Obj.sortDesc(ties(), (value, key) => {
+                            seen.push(key);
+
+                            return value.n;
+                        }),
+                    ),
+                ).toEqual(sorted);
+                // docs/php-parity/task-30-map-order.json, "sortDesc-out-of-order-ties-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+
+                const mixedSeen: unknown[] = [];
+
+                Obj.sortDesc(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    (value, key) => {
+                        mixedSeen.push(key);
+
+                        return value;
+                    },
+                );
+
+                // docs/php-parity/task-30-map-order.json, "sortDesc-mixed-callback-order"
+                expect(mixedSeen).toEqual(["x", 0, "y"]);
+            });
+
+            it("keeps values PHP compares as equal in insertion order", () => {
+                // docs/php-parity/task-30-map-order.json, "sortDesc-out-of-order-loose-ties"
+                expect(
+                    Object.values(
+                        Obj.sortDesc(
+                            new Map<number, string | number>([
+                                [2, "1"],
+                                [0, 1],
+                                [1, "01"],
+                            ]),
+                        ),
+                    ),
+                ).toEqual(["1", 1, "01"]);
+                // docs/php-parity/task-30-map-order.json, "sortDesc-collision-loose-ties": "1" lands
+                // on key 1's position with its value "01", which ties 1 and so stays ahead of it.
+                expect(
+                    Object.values(
+                        Obj.sortDesc(
+                            new Map<string | number, string | number>([
+                                [1, "1"],
+                                [0, 1],
+                                ["1", "01"],
+                            ]),
+                        ),
+                    ),
+                ).toEqual(["01", 1]);
+            });
+
+            it("cannot read a field path or descriptor into a Map item, so its items tie", () => {
+                // docs/php-parity/task-30-map-order.json, "sortDesc-out-of-order-rows-by-path" and
+                // "sortDesc-out-of-order-rows-by-descriptor": PHP reads each array item's n and puts n = 1 first.
+                // JS-only: a Map item is a leaf a path cannot address, so every item reads null for "n" and they tie.
+                const items = () =>
+                    new Map([
+                        [2, new Map([["n", 0]])],
+                        [0, new Map([["n", 1]])],
+                    ]);
+                const inInsertionOrder = [
+                    ["0", new Map([["n", 0]])],
+                    ["1", new Map([["n", 1]])],
+                ];
+
+                expect(Object.entries(Obj.sortDesc(items(), "n"))).toEqual(
+                    inInsertionOrder,
+                );
+                expect(
+                    Object.entries(Obj.sortDesc(items(), [["n", "asc"]])),
+                ).toEqual(inInsertionOrder);
+            });
+        });
     });
 
     describe("sortRecursive", () => {
@@ -6010,7 +9172,10 @@ describe("Obj", () => {
         });
 
         it("sorts lists by value, recurses into them, and sorts keys", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-literal"
+            // docs/php-parity/task-29-final-behaviour.json, "sortRecursive-literal-js-spelling".
+            // ArrTest's own literal writes `30 => [2=>'a',1=>'b',0=>'c']`, which JavaScript
+            // cannot hold: a plain object enumerates integer keys ascending, so the value that
+            // arrives is `[0=>'c',1=>'b',2=>'a']` — a LIST, which array_is_list sorts by value.
             const sorted = Obj.sortRecursive({
                 users: [
                     {
@@ -6027,7 +9192,7 @@ describe("Obj", () => {
 
             expect(sorted).toEqual({
                 20: [0, 1, 2],
-                30: { 0: "c", 1: "b", 2: "a" },
+                30: { 0: "a", 1: "b", 2: "c" },
                 repositories: [{ id: 0 }, { id: 1 }],
                 users: [
                     { age: 25, name: "jane" },
@@ -6064,12 +9229,12 @@ describe("Obj", () => {
             });
         });
 
-        it("sorts a list of objects by comparing their JSON string form, not by id or PHP's array rule", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "sortRecursive-list-of-objects" — PHP gives [{id:1},{id:2},{id:10}]; obj sorts by JSON form, not PHP.
+        it("sorts a list of objects by PHP's array rule, not by their JSON form", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-list-of-objects";
+            // task-25-spaceship-arrays.json, "Arr::sort orders equal-count rows element-wise"
             expect(
                 Obj.sortRecursive({ r: [{ id: 2 }, { id: 10 }, { id: 1 }] }),
-            ).toEqual({ r: [{ id: 10 }, { id: 1 }, { id: 2 }] });
+            ).toEqual({ r: [{ id: 1 }, { id: 2 }, { id: 10 }] });
         });
 
         it("keeps an object value that isn't a plain object whole, even inside a list", () => {
@@ -6093,6 +9258,110 @@ describe("Obj", () => {
             expect(sorted.p).toBe(point);
             expect(sorted.m).toBe(map);
             expect(sorted.l[0]).toBe(date);
+        });
+
+        describe("a Map", () => {
+            it("is not a list when its integer keys are out of order, so it sorts by key", () => {
+                // docs/php-parity/task-30-map-order.json, "sortRecursive-descending-int-keys":
+                // PHP's [1 => 'a', 0 => 'b'] fails array_is_list, so each key keeps its value.
+                expect(
+                    Obj.sortRecursive(
+                        new Map([
+                            [1, "a"],
+                            [0, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "b", 1: "a" });
+                // docs/php-parity/task-30-map-order.json,
+                // "sortRecursive-out-of-order-key-and-value-sorts-disagree"
+                expect(
+                    Obj.sortRecursive(
+                        new Map([
+                            [2, "a"],
+                            [0, "c"],
+                            [1, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "c", 1: "b", 2: "a" });
+                // docs/php-parity/task-30-map-order.json, "sortRecursive-out-of-order": a key sort
+                // and a value sort agree here.
+                expect(
+                    Obj.sortRecursive(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "a", 1: "b", 2: "c" });
+            });
+
+            it("still sorts a Map keyed 0..n-1 in order by value, as a list", () => {
+                // docs/php-parity/task-29-final-behaviour.json, "sortRecursive-explicit-zero-based-keys"
+                expect(
+                    Obj.sortRecursive(
+                        new Map([
+                            [0, 3],
+                            [1, 1],
+                            [2, 2],
+                        ]),
+                    ),
+                ).toEqual({ 0: 1, 1: 2, 2: 3 });
+            });
+
+            it("sorts keys PHP stores as one as one item, holding the last value", () => {
+                // docs/php-parity/task-30-map-order.json, "sortRecursive-collision": PHP's array is
+                // [1 => 'b', 0 => 'c'], not a list, so it sorts by key.
+                expect(
+                    Obj.sortRecursive(
+                        new Map<string | number, string>([
+                            [1, "a"],
+                            [0, "c"],
+                            ["1", "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "c", 1: "b" });
+                // docs/php-parity/task-30-map-order.json, "sortRecursive-collision-makes-list": PHP's
+                // array is the list [0 => 'c', 1 => 'a'], so it sorts by value, not by key.
+                expect(
+                    Obj.sortRecursive(
+                        new Map<string | number, string>([
+                            [0, "b"],
+                            [1, "a"],
+                            ["0", "c"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "a", 1: "c" });
+            });
+
+            it("sorts a record inside it, but keeps a Map inside it as it is", () => {
+                // docs/php-parity/task-30-map-order.json, "sortRecursive-out-of-order-nested"
+                const sorted = Obj.sortRecursive(
+                    new Map<number, string | Record<string, number>>([
+                        [1, { b: 2, a: 1 }],
+                        [0, "z"],
+                    ]),
+                );
+
+                expect(sorted).toEqual({ 0: "z", 1: { a: 1, b: 2 } });
+                expect(Object.keys(sorted[1] as object)).toEqual(["a", "b"]);
+
+                // JS-only: a nested Map is kept whole, like a Date; PHP would sort the array it stands for.
+                const inner = new Map([
+                    ["b", 2],
+                    ["a", 1],
+                ]);
+                const kept = Obj.sortRecursive(
+                    new Map<number, string | Map<string, number>>([
+                        [1, inner],
+                        [0, "z"],
+                    ]),
+                );
+
+                expect(kept[0]).toBe("z");
+                expect(kept[1]).toBe(inner);
+                expect([...inner.keys()]).toEqual(["b", "a"]);
+            });
         });
     });
 
@@ -6163,6 +9432,93 @@ describe("Obj", () => {
                 "values",
                 "level2",
             ]);
+        });
+
+        describe("a Map", () => {
+            // JS-only: a record enumerates integer keys ascending where PHP's krsort puts them high to low,
+            // so these pin which value each key keeps, which is where a value sort and a key sort differ.
+            it("is not a list when its integer keys are out of order, so it sorts by key", () => {
+                // docs/php-parity/task-30-map-order.json, "sortRecursiveDesc-out-of-order": PHP's
+                // [2 => 'c', 0 => 'a', 1 => 'b'] fails array_is_list, so each key keeps its value.
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                            [1, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "a", 1: "b", 2: "c" });
+                // docs/php-parity/task-30-map-order.json, "sortRecursiveDesc-descending-int-keys"
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map([
+                            [1, "a"],
+                            [0, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "b", 1: "a" });
+                // docs/php-parity/task-30-map-order.json,
+                // "sortRecursiveDesc-out-of-order-key-and-value-sorts-disagree"
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map([
+                            [2, "a"],
+                            [0, "c"],
+                            [1, "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "c", 1: "b", 2: "a" });
+            });
+
+            it("still sorts a Map keyed 0..n-1 in order by value, as a list", () => {
+                // docs/php-parity/task-29-final-behaviour.json,
+                // "sortRecursiveDesc-explicit-zero-based-keys"
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map([
+                            [0, 3],
+                            [1, 1],
+                            [2, 2],
+                        ]),
+                    ),
+                ).toEqual({ 0: 3, 1: 2, 2: 1 });
+            });
+
+            it("sorts keys PHP stores as one as one item, holding the last value", () => {
+                // docs/php-parity/task-30-map-order.json, "sortRecursiveDesc-collision"
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map<string | number, string>([
+                            [1, "a"],
+                            [0, "c"],
+                            ["1", "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "c", 1: "b" });
+                // docs/php-parity/task-30-map-order.json, "sortRecursiveDesc-collision-out-of-order":
+                // PHP's array is [1 => 'b', 0 => 'a'], not a list, so each key keeps its own value.
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map<string | number, string>([
+                            [1, "c"],
+                            [0, "a"],
+                            ["1", "b"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "a", 1: "b" });
+                // docs/php-parity/task-30-map-order.json, "sortRecursiveDesc-collision-makes-list":
+                // PHP's array is the list [0 => 'a', 1 => 'b'], so it sorts by value, not by key.
+                expect(
+                    Obj.sortRecursiveDesc(
+                        new Map<string | number, string>([
+                            [0, "z"],
+                            [1, "b"],
+                            ["0", "a"],
+                        ]),
+                    ),
+                ).toEqual({ 0: "b", 1: "a" });
+            });
         });
     });
 
@@ -6420,6 +9776,134 @@ describe("Obj", () => {
             expect(Obj.splice(data, 1, 1, "bar")).toEqual({ b: 2 });
             expect(data).toEqual({ a: 1, 0: "bar", c: 3 });
         });
+
+        it("splices a Map by its insertion order, rewriting it as PHP's array", () => {
+            const outOfOrder = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const offset = outOfOrder();
+            const offsetLength = outOfOrder();
+            const replaced = outOfOrder();
+
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-offset-returns"
+            expect(Obj.splice(offset, 1)).toEqual({ 0: "a", 1: "b" });
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-offset-remaining"
+            expect([...offset]).toEqual([[0, "c"]]);
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-offset-length-returns"
+            expect(Obj.splice(offsetLength, 0, 1)).toEqual({ 0: "c" });
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-offset-length-remaining"
+            expect([...offsetLength]).toEqual([
+                [0, "a"],
+                [1, "b"],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-replacement-returns"
+            expect(Obj.splice(replaced, 1, 1, ["R"])).toEqual({ 0: "a" });
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-replacement-remaining"
+            expect([...replaced]).toEqual([
+                [0, "c"],
+                [1, "R"],
+                [2, "b"],
+            ]);
+        });
+
+        it("splices a Map mixing string and integer keys in its insertion order", () => {
+            const mixed = () =>
+                new Map<string | number, number | string>([
+                    ["x", 1],
+                    [0, 2],
+                    ["y", 3],
+                ]);
+            const removedOnly = mixed();
+            const replaced = mixed();
+
+            // docs/php-parity/task-30-map-order.json, "splice-mixed-offset-length-returns"
+            expect(Obj.splice(removedOnly, 0, 1)).toEqual({ x: 1 });
+            // docs/php-parity/task-30-map-order.json, "splice-mixed-offset-length-remaining"
+            expect([...removedOnly]).toEqual([
+                [0, 2],
+                ["y", 3],
+            ]);
+            // docs/php-parity/task-30-map-order.json, "splice-mixed-replacement-returns"
+            expect(Obj.splice(replaced, 1, 1, ["R"])).toEqual({ 0: 2 });
+            // docs/php-parity/task-30-map-order.json, "splice-mixed-replacement-remaining"
+            expect([...replaced]).toEqual([
+                ["x", 1],
+                [0, "R"],
+                ["y", 3],
+            ]);
+        });
+
+        it("splices a Map replacement in by its insertion order, into a record or a Map", () => {
+            const replacement = () =>
+                new Map<number, string>([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+            const record: Record<string, string> = { k: "K", j: "J" };
+            const map = new Map([
+                ["k", "K"],
+                ["j", "J"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "splice-string-keys-out-of-order-replacement-returns"
+            expect(Obj.splice(record, 0, 1, replacement())).toEqual({ k: "K" });
+            expect(Obj.splice(map, 0, 1, replacement())).toEqual({ k: "K" });
+            // docs/php-parity/task-30-map-order.json, "splice-string-keys-out-of-order-replacement-remaining"
+            expect(Object.entries(record)).toEqual([
+                ["0", "c"],
+                ["1", "a"],
+                ["2", "b"],
+                ["j", "J"],
+            ]);
+            expect([...map]).toEqual([
+                [0, "c"],
+                [1, "a"],
+                [2, "b"],
+                ["j", "J"],
+            ]);
+        });
+
+        it("splices the Map keys PHP stores as one as a single item, in the data and in a replacement", () => {
+            const data = new Map<string | number, string>([
+                [1, "a"],
+                ["x", "b"],
+                ["1", "c"],
+            ]);
+            const replaced = new Map<number, string>([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-30-map-order.json, "splice-collision-offset-length-returns"
+            expect(Obj.splice(data, 0, 1)).toEqual({ 0: "c" });
+            // docs/php-parity/task-30-map-order.json, "splice-collision-offset-length-remaining"
+            expect([...data]).toEqual([["x", "b"]]);
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-replacement-collision-returns"
+            expect(
+                Obj.splice(
+                    replaced,
+                    1,
+                    1,
+                    new Map<string | number, string>([
+                        [1, "p"],
+                        ["x", "q"],
+                        ["1", "r"],
+                    ]),
+                ),
+            ).toEqual({ 0: "a" });
+            // docs/php-parity/task-30-map-order.json, "splice-out-of-order-replacement-collision-remaining"
+            expect([...replaced]).toEqual([
+                [0, "c"],
+                [1, "r"],
+                [2, "q"],
+                [3, "b"],
+            ]);
+        });
     });
 
     describe("toCssClasses", () => {
@@ -6494,6 +9978,54 @@ describe("Obj", () => {
             // ("CSS helpers use PHP truthiness for the value").
             expect(Obj.toCssClasses({ foo: [] })).toBe("");
             expect(Obj.toCssClasses({ foo: {} })).toBe("");
+        });
+
+        it("lists a Map's classes in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "toCssClasses-out-of-order"
+            expect(
+                Obj.toCssClasses(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toBe("c a b");
+            // docs/php-parity/task-30-map-order.json, "toCssClasses-mixed"
+            expect(
+                Obj.toCssClasses(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toBe("x 2 y");
+            // docs/php-parity/task-30-map-order.json, "toCssClasses-out-of-order-booleans"
+            expect(
+                Obj.toCssClasses(
+                    new Map<string | number, string | boolean>([
+                        [2, "c2"],
+                        ["x", true],
+                        [0, "c0"],
+                        ["off", false],
+                        [1, "c1"],
+                    ]),
+                ),
+            ).toBe("c2 x c0 c1");
+        });
+
+        it("lists the last value of the Map keys PHP stores as one, where the first stood", () => {
+            // docs/php-parity/task-30-map-order.json, "toCssClasses-collision"
+            expect(
+                Obj.toCssClasses(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                ),
+            ).toBe("b z");
         });
     });
 
@@ -6582,6 +10114,43 @@ describe("Obj", () => {
             expect(Obj.toCssStyles({ foo: [] })).toBe("");
             expect(Obj.toCssStyles({ foo: {} })).toBe("");
         });
+
+        it("lists a Map's styles in its insertion order", () => {
+            // docs/php-parity/task-30-map-order.json, "toCssStyles-out-of-order"
+            expect(
+                Obj.toCssStyles(
+                    new Map([
+                        [2, "c:2"],
+                        [0, "a:0"],
+                        [1, "b:1"],
+                    ]),
+                ),
+            ).toBe("c:2; a:0; b:1;");
+            // docs/php-parity/task-30-map-order.json, "toCssStyles-mixed-booleans"
+            expect(
+                Obj.toCssStyles(
+                    new Map<string | number, string | boolean>([
+                        ["x:1", true],
+                        [0, "z:0"],
+                        ["off:1", false],
+                        ["y:1", true],
+                    ]),
+                ),
+            ).toBe("x:1; z:0; y:1;");
+        });
+
+        it("lists the last value of the Map keys PHP stores as one, where the first stood", () => {
+            // docs/php-parity/task-30-map-order.json, "toCssStyles-collision"
+            expect(
+                Obj.toCssStyles(
+                    new Map<string | number, string>([
+                        [1, "a:1"],
+                        [0, "z:0"],
+                        ["1", "b:1"],
+                    ]),
+                ),
+            ).toBe("b:1; z:0;");
+        });
     });
 
     describe("where", () => {
@@ -6610,6 +10179,85 @@ describe("Obj", () => {
                 ),
             ).toEqual({ 10: 1, 20: 2 });
         });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (data: Map<string | number, unknown>) => {
+                const seen: unknown[] = [];
+
+                Obj.where(data, (_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "where-out-of-order-callback-order"
+            expect(
+                keysSeen(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "where-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("keeps the items PHP keeps for a callback that counts its calls", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "where-out-of-order-first-two-visits"
+            expect(
+                Obj.where(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    () => ++calls <= 2,
+                ),
+            ).toEqual({ 2: "c", 0: "a" });
+
+            calls = 0;
+            // docs/php-parity/task-30-map-order.json, "where-mixed-first-visit"
+            expect(
+                Obj.where(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toEqual({ x: 1 });
+        });
+
+        it("tests only the last value of Map keys PHP stores as one", () => {
+            // docs/php-parity/task-30-map-order.json, "where-collision": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so no item is 'a'.
+            expect(
+                Obj.where(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                    (value) => value === "a",
+                ),
+            ).toEqual({});
+        });
     });
 
     describe("reject", () => {
@@ -6617,6 +10265,85 @@ describe("Obj", () => {
             const obj = { a: 1, b: 2, c: 3, d: 4 };
             const result = Obj.reject(obj, (value) => value > 2);
             expect(result).toEqual({ a: 1, b: 2 });
+        });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (data: Map<string | number, unknown>) => {
+                const seen: unknown[] = [];
+
+                Obj.reject(data, (_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "reject-out-of-order-callback-order"
+            expect(
+                keysSeen(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "reject-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("drops the items PHP drops for a callback that counts its calls", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "reject-out-of-order-first-visit"
+            expect(
+                Obj.reject(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toEqual({ 0: "a", 1: "b" });
+
+            calls = 0;
+            // docs/php-parity/task-30-map-order.json, "reject-mixed-first-visit"
+            expect(
+                Obj.reject(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toEqual({ 0: 2, y: 3 });
+        });
+
+        it("tests only the last value of Map keys PHP stores as one", () => {
+            // docs/php-parity/task-30-map-order.json, "reject-collision": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so rejecting 'b' empties key 1.
+            expect(
+                Obj.reject(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                    (value) => value === "b",
+                ),
+            ).toEqual({ 0: "z" });
         });
     });
 
@@ -6821,6 +10548,68 @@ describe("Obj", () => {
                 9: "b",
             });
         });
+
+        it("renumbers a Map's integer keys in its insertion order", () => {
+            const outOfOrder = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-30-map-order.json, "pad-out-of-order-grow-right"
+            expect(Obj.pad(outOfOrder(), 6, "P")).toEqual({
+                0: "c",
+                1: "a",
+                2: "b",
+                3: "P",
+                4: "P",
+                5: "P",
+            });
+            // docs/php-parity/task-30-map-order.json, "pad-out-of-order-grow-left"
+            expect(Obj.pad(outOfOrder(), -6, "P")).toEqual({
+                0: "P",
+                1: "P",
+                2: "P",
+                3: "c",
+                4: "a",
+                5: "b",
+            });
+        });
+
+        it("copies a Map's entries into a record when no padding is needed", () => {
+            // docs/php-parity/task-30-map-order.json, "pad-out-of-order-no-op": PHP hands the
+            // array back with its keys unchanged. JS-only: the copy is a record, so it enumerates 0 first.
+            const data = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            expect(Obj.pad(data, 2, "P")).toEqual({ 2: "c", 0: "a", 1: "b" });
+            expect(Obj.pad(data, -3, "P")).toEqual({ 2: "c", 0: "a", 1: "b" });
+            expect([...data]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+        });
+
+        it("counts the Map keys PHP stores as one as a single item", () => {
+            // docs/php-parity/task-30-map-order.json, "pad-collision-grow-right": PHP's
+            // [1 => 'a', 'x' => 'b', '1' => 'c'] is [1 => 'c', 'x' => 'b'], so one slot is padded.
+            expect(
+                Obj.pad(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                    3,
+                    "P",
+                ),
+            ).toEqual({ 0: "c", x: "b", 1: "P" });
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -7020,6 +10809,56 @@ describe("Obj", () => {
                 ["name", "taylor"],
             ]);
         });
+
+        it("reverses a Map from its insertion order, which a record cannot hold", () => {
+            // docs/php-parity/task-30-map-order.json, "reverse-out-of-order": PHP's reversed array
+            // holds b, a, c. JS-only: the integer keys are renumbered over that order, as for a record.
+            const result = Obj.reverse(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            expect(Object.values(result)).toEqual(["b", "a", "c"]);
+            expect(result).toEqual({ 0: "b", 1: "a", 2: "c" });
+        });
+
+        it("gives PHP's own keys and order for a Map whose reversed integer keys ascend", () => {
+            // docs/php-parity/task-30-map-order.json, "reverse-string-keys-then-descending-int-keys"
+            expect(
+                Object.entries(
+                    Obj.reverse(
+                        new Map<string | number, string>([
+                            ["y", "Y"],
+                            ["x", "X"],
+                            [1, "o"],
+                            [0, "z"],
+                        ]),
+                    ),
+                ),
+            ).toEqual([
+                ["0", "z"],
+                ["1", "o"],
+                ["x", "X"],
+                ["y", "Y"],
+            ]);
+        });
+
+        it("reverses the Map keys PHP stores as one as a single entry", () => {
+            // docs/php-parity/task-30-map-order.json, "reverse-collision": PHP's reversed array is
+            // [x => b, 1 => c]. JS-only: the integer key is renumbered to 0.
+            expect(
+                Obj.reverse(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["x", "b"],
+                        ["1", "c"],
+                    ]),
+                ),
+            ).toEqual({ x: "b", 0: "c" });
+        });
     });
 
     describe("partition", () => {
@@ -7038,6 +10877,85 @@ describe("Obj", () => {
             const [passed, failed] = Obj.partition(obj, (value) => value > 2);
             expect(passed).toEqual({ c: 3, d: 4 });
             expect(failed).toEqual({ a: 1, b: 2 });
+        });
+
+        it("hands the callback a Map's keys in its insertion order", () => {
+            const keysSeen = (data: Map<string | number, unknown>) => {
+                const seen: unknown[] = [];
+
+                Obj.partition(data, (_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                return seen;
+            };
+
+            // docs/php-parity/task-30-map-order.json, "partition-out-of-order-callback-order"
+            expect(
+                keysSeen(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "partition-mixed-callback-order"
+            expect(
+                keysSeen(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                ),
+            ).toEqual(["x", 0, "y"]);
+        });
+
+        it("puts each item on PHP's side for a callback that counts its calls", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "partition-out-of-order-first-visit"
+            expect(
+                Obj.partition(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toEqual([{ 2: "c" }, { 0: "a", 1: "b" }]);
+
+            calls = 0;
+            // docs/php-parity/task-30-map-order.json, "partition-mixed-first-visit"
+            expect(
+                Obj.partition(
+                    new Map<string | number, number>([
+                        ["x", 1],
+                        [0, 2],
+                        ["y", 3],
+                    ]),
+                    () => ++calls <= 1,
+                ),
+            ).toEqual([{ x: 1 }, { 0: 2, y: 3 }]);
+        });
+
+        it("tests only the last value of Map keys PHP stores as one", () => {
+            // docs/php-parity/task-30-map-order.json, "partition-collision": PHP's
+            // [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so 'a' lands on neither side.
+            expect(
+                Obj.partition(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        [0, "z"],
+                        ["1", "b"],
+                    ]),
+                    (value) => value === "b",
+                ),
+            ).toEqual([{ 1: "b" }, { 0: "z" }]);
         });
     });
 
@@ -7061,6 +10979,33 @@ describe("Obj", () => {
                 }),
             ).toEqual({ b: 0, c: false, d: "", f: [] });
         });
+
+        it("reads a Map's values rather than treating it as empty", () => {
+            // docs/php-parity/task-30-map-order.json, "whereNotNull-out-of-order". JS-only: the
+            // result is a record, so it enumerates its integer keys ascending.
+            expect(
+                Obj.whereNotNull(
+                    new Map([
+                        [2, "c"],
+                        [0, null],
+                        [1, "b"],
+                    ]),
+                ),
+            ).toEqual({ 2: "c", 1: "b" });
+        });
+
+        it("drops the Map keys PHP stores as one when the last value is null", () => {
+            // docs/php-parity/task-30-map-order.json, "whereNotNull-collision-null-last"
+            expect(
+                Obj.whereNotNull(
+                    new Map<string | number, string | null>([
+                        [1, "a"],
+                        ["x", "m"],
+                        ["1", null],
+                    ]),
+                ),
+            ).toEqual({ x: "m" });
+        });
     });
 
     describe("wrap", () => {
@@ -7078,24 +11023,24 @@ describe("Obj", () => {
             expect(Obj.wrap(null)).toEqual({});
         });
 
-        it("returns a Map or a Set as-is, as it returns any object", () => {
-            // JS-only: PHP has no Map or Set, and Arr::wrap wraps every object; obj returns any object it is given.
+        it("returns a Map as-is but wraps a Set", () => {
+            // JS-only: PHP has no Map or Set. A Map carries array entries, so it is
+            // handed back like a plain object; a Set does not, so it is wrapped.
             const map = new Map([["a", 1]]);
             const set = new Set([1]);
 
             expect(Obj.wrap(map)).toBe(map);
-            expect(Obj.wrap(set)).toBe(set);
+            expect(Obj.wrap(set)).toEqual({ 0: set });
         });
 
-        it("returns a Date or class instance as-is, which Arr::wrap wraps", () => {
-            // JS-only: obj's analogue of a PHP array is any object that isn't a list, so wrap hands it back;
-            // PHP wraps every object (docs/php-parity/task-23-obj-release-readiness.json, "wrap-datetime",
-            // "wrap-stdclass-is-wrapped").
+        it("wraps a Date or class instance, as Arr::wrap does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "wrap-datetime" and
+            // "wrap-stdclass-is-wrapped": PHP wraps every value that is not an array.
             const date = new Date(0);
             const point = new Point();
 
-            expect(Obj.wrap(date)).toBe(date);
-            expect(Obj.wrap(point)).toBe(point);
+            expect(Obj.wrap(date)).toEqual({ 0: date });
+            expect(Obj.wrap(point)).toEqual({ 0: point });
         });
 
         it("wraps falsy scalars instead of dropping them", () => {
@@ -7171,6 +11116,90 @@ describe("Obj", () => {
         it("should handle non-accessible data", () => {
             expect(Obj.mapSpread(null, () => "test")).toEqual({});
             expect(Obj.mapSpread([], () => "test")).toEqual({});
+        });
+
+        it("spreads a Collection-like row's items, not its own fields", () => {
+            // docs/php-parity/task-24-data-release-readiness.json,
+            // "d6-map-spread-collection-row", "assoc": the record-backed sub-key, not the
+            // "list" one — Arr::mapSpread(['x' => new Collection([1, 'a'])], ...).
+            const rows = {
+                x: collectionLike([1, "a"]),
+                y: collectionLike([2, "b"]),
+            };
+
+            expect(
+                Obj.mapSpread(
+                    rows,
+                    (n, c, k) => `${String(n)}-${String(c)}-${String(k)}`,
+                ),
+            ).toEqual({ x: "1-a-x", y: "2-b-y" });
+        });
+
+        it("leaves the row alone where PHP appends the key to it", () => {
+            // JS-only: the same row records `row-mutated-to` [1, "a", 0] — PHP's
+            // `$chunk[] = $key` writes through the Collection handle. Only pop, shift,
+            // splice and unshift mutate here, so the row is read, never written.
+            const items = [1, "a"];
+
+            Obj.mapSpread({ x: collectionLike(items) }, (n, c, k) => [n, c, k]);
+
+            expect(items).toEqual([1, "a"]);
+        });
+
+        it("spreads a Map's rows in its insertion order", () => {
+            const seen: unknown[] = [];
+            const result = Obj.mapSpread(
+                new Map([
+                    [2, ["c", 1]],
+                    [0, ["a", 2]],
+                    [1, ["b", 3]],
+                ]),
+                (x, y, key) => {
+                    seen.push(key);
+
+                    return `${String(x)}${String(y)}${String(key)}`;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "mapSpread-out-of-order-callback-order"
+            expect(seen).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "mapSpread-out-of-order". JS-only: the
+            // result is a record, so it enumerates its integer keys ascending.
+            expect(result).toEqual({ 2: "c12", 0: "a20", 1: "b31" });
+        });
+
+        it("hands the callback a Map's mixed keys in its insertion order", () => {
+            const seen: unknown[] = [];
+
+            Obj.mapSpread(
+                new Map<string | number, [number, string]>([
+                    ["x", [1, "p"]],
+                    [0, [2, "q"]],
+                    ["y", [3, "r"]],
+                ]),
+                (_count, _label, key) => seen.push(key),
+            );
+
+            // docs/php-parity/task-30-map-order.json, "mapSpread-mixed-callback-order"
+            expect(seen).toEqual(["x", 0, "y"]);
+        });
+
+        it("spreads the Map keys PHP stores as one once, with the last row", () => {
+            let calls = 0;
+
+            // docs/php-parity/task-30-map-order.json, "mapSpread-collision-visit-count": PHP's
+            // [1 => ['a', 1], 0 => ['z', 2], '1' => ['b', 3]] is [1 => ['b', 3], 0 => ['z', 2]].
+            expect(
+                Obj.mapSpread(
+                    new Map<string | number, [string, number]>([
+                        [1, ["a", 1]],
+                        [0, ["z", 2]],
+                        ["1", ["b", 3]],
+                    ]),
+                    (x, y, key) =>
+                        `${x}${String(y)}${String(key)}#${String(++calls)}`,
+                ),
+            ).toEqual({ 1: "b31#1", 0: "z20#2" });
         });
     });
 
@@ -7359,7 +11388,7 @@ describe("Obj", () => {
                     collectionLike({ id: 123, foo_bar: "Hello" }),
                 ),
             ).toEqual({ id: 1, first_word: "Hello" });
-            // C6's fixture shares no key+value pair with its operand either wrapped or raw,
+            // The preceding case shares no key+value pair with its operand wrapped or raw,
             // so this key-matching case is what actually pins diffAssoc's own unwrap.
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
             expect(
@@ -7629,7 +11658,7 @@ describe("Obj", () => {
 
                     return false;
                 }),
-            ).toThrow("No items found");
+            ).toThrow(ItemNotFoundException);
             Obj.keyBy({ 1: { id: 1 }, x: { id: 2 } }, (_item, key) => {
                 seen.push(key);
 
@@ -7872,4 +11901,96 @@ describe("prototype objects as write targets", () => {
             unpolluted();
         },
     );
+});
+
+/**
+ * The runtime half of this package's known type-soundness limits. Each case answers something the
+ * declared type does not say; `obj-residuals.test-d.ts` pins the declared side, so a fix to
+ * either one fails the other and both notes get rewritten together.
+ */
+describe("residual limits: what the runtime answers where the type disagrees", () => {
+    class Pt {
+        x = 1;
+
+        m(): number {
+            return 1;
+        }
+    }
+
+    class Sized {
+        x = 1;
+        y = 2;
+    }
+
+    it("skips a class instance in collapse", () => {
+        // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects",
+        // "assoc-object-item": ['g1' => ['a' => 1], 'g2' => (object) ['b' => 2]] answers
+        // {"a": 1}. task-24, "r3-assoc-backed-leaf-rules", "collapse-only-object-assoc":
+        // the record-backed twin of "only-object", which records a LIST of one object.
+        expect(Obj.collapse({ g1: { a: 1 }, g2: new Pt() })).toEqual({ a: 1 });
+        expect(Obj.collapse({ g2: new Pt() })).toEqual({});
+    });
+
+    it("keeps a class instance as one leaf in flatten", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "r3-assoc-backed-leaf-rules", "flatten-single-object-entry": Arr::flatten(['a' =>
+        // $o]) answers one leaf, the object itself. task-23's "flatten-object-leaf" "map"
+        // makes the same call with two further entries, so it records a count of 3.
+        expect(Obj.flatten({ a: new Sized() })).toEqual([new Sized()]);
+        expect(Obj.flatten({ a: new Sized() })[0]).toBeInstanceOf(Sized);
+    });
+
+    it("replaces a class instance whole in replaceRecursive", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "r3-assoc-backed-leaf-rules", "replaceRecursive-object-under-array": ['a' => $o]
+        // under ['a' => ['x' => 5]] answers {"a": {"x": 5}} — PHP recurses into two arrays
+        // only, so the object is replaced, never merged. task-23's "p" uses other inputs.
+        expect(
+            Obj.replaceRecursive({ a: new Sized() }, { a: { x: 5 } }),
+        ).toEqual({ a: { x: 5 } });
+    });
+
+    it("keeps a typed array whole in flatten", () => {
+        // JS-only: PHP has no typed array. It is not a plain object, so the same
+        // leaf rule that keeps a Date keeps this.
+        const flattened = Obj.flatten({ a: new Uint8Array([1]) });
+
+        expect(flattened).toHaveLength(1);
+        expect(flattened[0]).toBeInstanceOf(Uint8Array);
+    });
+
+    it("unwraps an optional all() member in collapse and flatten", () => {
+        // JS-only: PHP has no optional method; the unwrap tests `is_callable`, which
+        // an optional member passes at runtime and no type can promise.
+        const row = { all: () => [1, 2] } as { all?: () => number[] };
+
+        expect(Obj.collapse({ a: { all: () => ({ x: 1 }) } })).toEqual({
+            x: 1,
+        });
+        expect(Obj.flatten({ a: row })).toEqual([1, 2]);
+        expect(Obj.flatten({ a: row }, 1)).toEqual([1, 2]);
+    });
+
+    it("casts a combine key the way PHP's (string) cast prints a number", () => {
+        // docs/php-parity/task-24-data-release-readiness.json,
+        // "d6-combine-key-cast-minus-zero-and-1e19": PHP stores "-0" and "1.0E+19",
+        // neither of which TypeScript's own `${n}` spells that way.
+        expect(Object.keys(Obj.combine([-0, 1e19], [1, 2]))).toEqual([
+            "-0",
+            "1.0E+19",
+        ]);
+    });
+
+    it("misses a user class's prototype method in get", () => {
+        // JS-only: PHP has no prototype chain, so no call records this. Only own keys
+        // are read, so the path resolves to the default.
+        expect(Obj.get({ p: new Pt() }, "p.m")).toBeNull();
+    });
+
+    it("answers an empty object for top-level Date data and sorts a tuple in sortRecursive", () => {
+        // JS-only: a Date has no own enumerable keys, so there is nothing to copy;
+        // a tuple is a list at runtime, so its values sort like any other list's.
+        expect(Obj.sortRecursive(new Date(0))).toEqual({});
+        expect(Obj.sortRecursive({ t: [2, 1] })).toEqual({ t: [1, 2] });
+    });
 });

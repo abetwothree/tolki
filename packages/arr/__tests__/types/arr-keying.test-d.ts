@@ -12,8 +12,18 @@ import {
     users,
 } from "./fixtures";
 
+declare const untypedRows: unknown[];
+
 describe("arr keying type tests", () => {
     describe("keyBy", () => {
+        it("answers a readable value type for an untyped array", () => {
+            // The row used to resolve its unfixed `TValue extends object` to `object`,
+            // which permits no read at all.
+            expectTypeOf(Arr.keyBy(untypedRows, "id")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+
         it("preserves the element type with a string key", () => {
             const result = Arr.keyBy(users, "id");
             expectTypeOf(result).toEqualTypeOf<
@@ -99,11 +109,13 @@ describe("arr keying type tests", () => {
             ).toEqualTypeOf<Record<string, string>>();
         });
 
-        it("returns Record<string, unknown> for unknown data", () => {
+        it("rejects unknown data and keys it once narrowed", () => {
             const data: unknown = ["a"];
-            expectTypeOf(Arr.prependKeysWith(data, "k_")).toEqualTypeOf<
-                Record<string, unknown>
-            >();
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.prependKeysWith(data, "k_");
+            expectTypeOf(
+                Arr.prependKeysWith(data as unknown[], "k_"),
+            ).toEqualTypeOf<Record<string, unknown>>();
         });
     });
 
@@ -155,9 +167,11 @@ describe("arr keying type tests", () => {
             >();
         });
 
-        it("returns Record<string, unknown>[] for unknown data", () => {
+        it("rejects unknown data and selects once narrowed", () => {
             const data: unknown = [{ a: 1 }];
-            expectTypeOf(Arr.select(data, ["a"])).toEqualTypeOf<
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.select(data, ["a"]);
+            expectTypeOf(Arr.select(data as unknown[], ["a"])).toEqualTypeOf<
                 Record<string, unknown>[]
             >();
         });

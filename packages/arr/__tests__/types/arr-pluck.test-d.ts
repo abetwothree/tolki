@@ -232,17 +232,15 @@ describe("arr pluck type tests", () => {
             expectTypeOf(Arr.pluck(data, "name")).toEqualTypeOf<string[]>();
         });
 
-        it("returns the untyped fallback union for unknown data", () => {
-            // When `data` is `unknown`, none of the literal-path/closure
-            // overloads (which all require an array-shaped `data`) can
-            // match, so this falls through to the pre-existing untyped
-            // fallback overload. That overload covers both the keyed and
-            // unkeyed call shapes in one signature, so its return type is
-            // `unknown[] | Record<string | number, unknown>` rather than
-            // a bare `unknown[]` — there is no way to know statically
-            // which shape a caller intends when `data` itself is unknown.
+        it("rejects unknown data and returns the untyped union once narrowed", () => {
+            // Narrowed to `unknown[]`, none of the literal-path/closure
+            // overloads can match, so this falls through to the untyped
+            // fallback row. That row covers both the keyed and unkeyed call
+            // shapes, hence the union return.
             const data: unknown = nameItems;
-            expectTypeOf(Arr.pluck(data, "name")).toEqualTypeOf<
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.pluck(data, "name");
+            expectTypeOf(Arr.pluck(data as unknown[], "name")).toEqualTypeOf<
                 unknown[] | Record<string | number, unknown>
             >();
         });

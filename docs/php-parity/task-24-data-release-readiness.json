@@ -1,0 +1,3392 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+    },
+    "probes": [
+        {
+            "label": "boolean-string-value",
+            "php": "Arr::boolean(['string' => 'foo bar'], 'string')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [string] must be a boolean, string found."
+        },
+        {
+            "label": "float-string-value",
+            "php": "Arr::float(['string' => 'foo bar'], 'string')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [string] must be a float, string found."
+        },
+        {
+            "label": "integer-string-value",
+            "php": "Arr::integer(['string' => 'foo bar'], 'string')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [string] must be an integer, string found."
+        },
+        {
+            "label": "integer-float-value",
+            "php": "Arr::integer(['a' => 1.5], 'a')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [a] must be an integer, double found."
+        },
+        {
+            "label": "boolean-list-int-key",
+            "php": "Arr::boolean(['foo bar'], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a boolean, string found."
+        },
+        {
+            "label": "float-list-int-key",
+            "php": "Arr::float(['foo bar'], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a float, string found."
+        },
+        {
+            "label": "integer-list-int-key",
+            "php": "Arr::integer(['foo bar'], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, string found."
+        },
+        {
+            "label": "string-list-int-key",
+            "php": "Arr::string([1234], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a string, integer found."
+        },
+        {
+            "label": "boolean-missing-key-default",
+            "php": "Arr::boolean([], 'missing', true) and Arr::boolean([], 'missing', false)",
+            "value": {
+                "true": true,
+                "false": false
+            }
+        },
+        {
+            "label": "float-missing-key-default",
+            "php": "Arr::float([], 'missing', 1.5)",
+            "value": 1.5
+        },
+        {
+            "label": "integer-float-value-list",
+            "php": "Arr::integer([1.5], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, double found."
+        },
+        {
+            "label": "boolean-missing-key-no-default",
+            "php": "Arr::boolean([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a boolean, NULL found."
+        },
+        {
+            "label": "boolean-list-missing-index-no-default",
+            "php": "Arr::boolean([true, false], 5)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [5] must be a boolean, NULL found."
+        },
+        {
+            "label": "float-missing-key-no-default",
+            "php": "Arr::float([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a float, NULL found."
+        },
+        {
+            "label": "float-list-missing-index-no-default",
+            "php": "Arr::float([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a float, NULL found."
+        },
+        {
+            "label": "integer-missing-key-no-default",
+            "php": "Arr::integer([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be an integer, NULL found."
+        },
+        {
+            "label": "integer-list-missing-index-no-default",
+            "php": "Arr::integer([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be an integer, NULL found."
+        },
+        {
+            "label": "string-missing-key-no-default",
+            "php": "Arr::string([], 'missing')",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [missing] must be a string, NULL found."
+        },
+        {
+            "label": "string-list-missing-index-no-default",
+            "php": "Arr::string([], 0)",
+            "threw": "InvalidArgumentException",
+            "message": "Array value for key [0] must be a string, NULL found."
+        },
+        {
+            "label": "take-positive",
+            "php": "Arr::take([1..6], 3)",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "take-negative",
+            "php": "Arr::take([1..6], -3)",
+            "value": [
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "take-zero",
+            "php": "Arr::take([1..6], 0)",
+            "value": []
+        },
+        {
+            "label": "take-over-size",
+            "php": "Arr::take([1..6], 10)",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "take-negative-over-size",
+            "php": "Arr::take([1..6], -10)",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "label": "take-empty",
+            "php": "Arr::take([], 3) and Arr::take([], -3)",
+            "value": {
+                "positive": [],
+                "negative": []
+            }
+        },
+        {
+            "label": "take-assoc-positive",
+            "php": "Arr::take(['a'=>1,'b'=>2,'c'=>3,'d'=>4], 2)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "take-assoc-negative",
+            "php": "Arr::take(['a'=>1,'b'=>2,'c'=>3,'d'=>4], -2)",
+            "value": {
+                "c": 3,
+                "d": 4
+            }
+        },
+        {
+            "label": "collection-take-negative-keeps-keys",
+            "php": "(new Collection(['taylor','dayle','shawn']))->take(-2)",
+            "value": {
+                "1": "dayle",
+                "2": "shawn"
+            }
+        },
+        {
+            "label": "collection-take-positive-keeps-keys",
+            "php": "(new Collection(['taylor','dayle','shawn']))->take(2)",
+            "value": [
+                "taylor",
+                "dayle"
+            ]
+        },
+        {
+            "label": "collection-take-zero",
+            "php": "(new Collection(['taylor','dayle','shawn']))->take(0)",
+            "value": []
+        },
+        {
+            "label": "search-strict-falsy",
+            "php": "search over [false,0,1,[],''] in strict mode",
+            "value": {
+                "'false'": false,
+                "'1'": false,
+                "false": 0,
+                "0": 1,
+                "1": 2,
+                "[]": 3,
+                "''": 4
+            }
+        },
+        {
+            "label": "search-loose-falsy",
+            "php": "search over [false,0,1,[],''] loosely",
+            "value": {
+                "0": 0,
+                "''": 0,
+                "'1'": 2
+            }
+        },
+        {
+            "label": "search-string-key-hit",
+            "php": "(new Collection(['foo'=>'bar','baz'=>'qux']))->search('qux')",
+            "value": "baz"
+        },
+        {
+            "label": "search-not-found",
+            "php": "search for a missing value, list and assoc",
+            "value": {
+                "list": false,
+                "assoc": false
+            }
+        },
+        {
+            "label": "search-callback",
+            "php": "(new Collection([1,2,3]))->search(fn($v) => $v > 2)",
+            "value": 2
+        },
+        {
+            "label": "search-callback-not-found",
+            "php": "(new Collection([1,2,3]))->search(fn($v) => $v > 9)",
+            "value": false
+        },
+        {
+            "label": "search-callback-key-arg",
+            "php": "(new Collection(['a','b','c']))->search(fn($v,$k) => $k === 2)",
+            "value": 2
+        },
+        {
+            "label": "search-assoc-callback-key-arg",
+            "php": "(new Collection(['x'=>1,'y'=>2]))->search(fn($v,$k) => $k === 'y')",
+            "value": "y"
+        },
+        {
+            "label": "before-strict-falsy",
+            "php": "before(1, true) and before(false, true) over [false,0,1,[],'']",
+            "value": {
+                "one": 0,
+                "first": null
+            }
+        },
+        {
+            "label": "after-strict-falsy",
+            "php": "after(0, true) and after('', true) over [false,0,1,[],'']",
+            "value": {
+                "zero": 1,
+                "last": null
+            }
+        },
+        {
+            "label": "hasAll-empty-and-null-values-count-as-present",
+            "php": "Arr::hasAll(['name'=>'Taylor','age'=>'','city'=>null], \u2026)",
+            "value": {
+                "'name'": true,
+                "'age'": true,
+                "'city'": true,
+                "['age','car']": false,
+                "['city','some']": false,
+                "['name','age','city']": true,
+                "['name','age','city','country']": false
+            }
+        },
+        {
+            "label": "hasAll-dot-paths",
+            "php": "Arr::hasAll(['user'=>['name'=>'Taylor']], 'user.name' | 'user.age')",
+            "value": {
+                "hit": true,
+                "miss": false
+            }
+        },
+        {
+            "label": "hasAll-all-missing",
+            "php": "Arr::hasAll($hasAll, 'foo') and Arr::hasAll($hasAll, ['foo','bar','baz','bar'])",
+            "value": {
+                "scalar": false,
+                "list": false
+            }
+        },
+        {
+            "label": "hasAll-empty-key-list",
+            "php": "Arr::hasAll(['a' => 1], [])",
+            "value": false
+        },
+        {
+            "label": "hasAll-through-list",
+            "php": "Arr::hasAll([['name' => 'John']], '0.name')",
+            "value": true
+        },
+        {
+            "label": "hasAll-empty-key-list-list",
+            "php": "Arr::hasAll([1, 2, 3], [])",
+            "value": false
+        },
+        {
+            "label": "hasAny-variadic",
+            "php": "Arr::hasAny(['name'=>'Taylor','age'=>''], 'surname', 'name')",
+            "value": false
+        },
+        {
+            "label": "hasAny-dot-over-null-and-empty",
+            "php": "Arr::hasAny over null/'' values and dot paths",
+            "value": {
+                "null value": true,
+                "dot over null": true,
+                "all missing": false
+            }
+        },
+        {
+            "label": "hasAny-null-keys",
+            "php": "Arr::hasAny(['a' => 1], null)",
+            "value": false
+        },
+        {
+            "label": "hasAny-true-hits",
+            "php": "Arr::hasAny \u2014 array-form and bare-key calls that actually return true",
+            "value": {
+                "array form assoc": true,
+                "bare key assoc": true,
+                "array form list": true
+            }
+        },
+        {
+            "label": "hasAny-list-null-and-empty",
+            "php": "Arr::hasAny over a list with a null value and a partial key set",
+            "value": {
+                "null value": true,
+                "stray plus real": true,
+                "all missing": false
+            }
+        },
+        {
+            "label": "collection-chunk-zero",
+            "php": "(new Collection([1..10]))->chunk(0)",
+            "value": []
+        },
+        {
+            "label": "collection-chunk-negative",
+            "php": "(new Collection([1..10]))->chunk(-1)",
+            "value": []
+        },
+        {
+            "label": "collection-chunk-last-chunk-keys",
+            "php": "(new Collection([1..10]))->chunk(3)->get(3)",
+            "value": {
+                "9": 10
+            }
+        },
+        {
+            "label": "collection-chunk-assoc-preserves-keys",
+            "php": "(new Collection(['a'=>1,'b'=>2,'c'=>3]))->chunk(2)",
+            "value": [
+                {
+                    "a": 1,
+                    "b": 2
+                },
+                {
+                    "c": 3
+                }
+            ]
+        },
+        {
+            "label": "arr-chunk-zero-and-negative",
+            "php": "array_chunk guard via Collection::chunk on an assoc backing",
+            "value": {
+                "zero": [],
+                "negative": []
+            }
+        },
+        {
+            "label": "join-single",
+            "php": "Arr::join(['a'], ', ', ' and ')",
+            "value": "a"
+        },
+        {
+            "label": "join-empty",
+            "php": "Arr::join([], ', ', ' and ')",
+            "value": ""
+        },
+        {
+            "label": "join-three-no-final-glue",
+            "php": "Arr::join(['a','b','c'], ', ')",
+            "value": "a, b, c"
+        },
+        {
+            "label": "join-assoc-numbers",
+            "php": "Arr::join(['a'=>1,'b'=>2,'c'=>3], ', ')",
+            "value": "1, 2, 3"
+        },
+        {
+            "label": "divide-empty",
+            "php": "Arr::divide([])",
+            "value": [
+                [],
+                []
+            ]
+        },
+        {
+            "label": "divide-array-values",
+            "php": "Arr::divide(['a' => [1, 2], 'b' => 'x'])",
+            "value": [
+                [
+                    "a",
+                    "b"
+                ],
+                [
+                    [
+                        1,
+                        2
+                    ],
+                    "x"
+                ]
+            ]
+        },
+        {
+            "label": "divide-list",
+            "php": "Arr::divide(['Null', 'one'])",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    "Null",
+                    "one"
+                ]
+            ]
+        },
+        {
+            "label": "crossJoin-list-empty-dimension",
+            "php": "Arr::crossJoin([1, 2], [])",
+            "value": []
+        },
+        {
+            "label": "random-zero-count",
+            "php": "Arr::random([1,2,3,4], 0)",
+            "value": []
+        },
+        {
+            "label": "random-empty-zero-count",
+            "php": "Arr::random([], 0) \u2014 does NOT throw",
+            "value": []
+        },
+        {
+            "label": "random-numeric-string-counts",
+            "php": "Arr::random([1,2,3,4], '0'|'1'|'2'): count and key shape only",
+            "value": {
+                "'0'": {
+                    "count": 0,
+                    "keys": []
+                },
+                "'1'": {
+                    "count": 1,
+                    "keys": [
+                        0
+                    ]
+                },
+                "'2'": {
+                    "count": 2,
+                    "keys": [
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
+            "label": "random-preserve-keys-invariant",
+            "php": "Arr::random([1,2,3,4], 2, true): keys are a subset of the source keys",
+            "value": {
+                "count": 2,
+                "keys are original": true,
+                "values are original": true
+            }
+        },
+        {
+            "label": "random-single-no-count-type",
+            "php": "gettype(Arr::random([1,2,3,4]))",
+            "value": "integer"
+        },
+        {
+            "label": "shuffle-keeps-same-values",
+            "php": "sort(Arr::shuffle(range(0, 25)))",
+            "value": {
+                "sorted": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25
+                ]
+            }
+        },
+        {
+            "label": "sole-empty-no-callback",
+            "php": "Arr::sole([])",
+            "threw": "Illuminate\\Support\\ItemNotFoundException",
+            "message": ""
+        },
+        {
+            "label": "sole-multi-no-callback",
+            "php": "Arr::sole(['a' => 1, 'b' => 2])",
+            "threw": "Illuminate\\Support\\MultipleItemsFoundException",
+            "message": "2 items were found."
+        },
+        {
+            "label": "sole-single-no-callback",
+            "php": "Arr::sole(['only' => 42])",
+            "value": 42
+        },
+        {
+            "label": "set-creates-missing-path",
+            "php": "set(['products'=>['desk'=>['price'=>100]]], 'table.price', 500)",
+            "value": {
+                "flat write": {
+                    "products": {
+                        "desk": {
+                            "price": 100
+                        }
+                    },
+                    "table": 500
+                },
+                "then dotted write": {
+                    "products": {
+                        "desk": {
+                            "price": 100
+                        }
+                    },
+                    "table": {
+                        "price": 500
+                    }
+                }
+            }
+        },
+        {
+            "label": "partition-preserves-keys",
+            "php": "Arr::partition(['John','Jane','Greg'], fn($v) => $v !== 'Greg')",
+            "value": [
+                [
+                    "John",
+                    "Jane"
+                ],
+                {
+                    "2": "Greg"
+                }
+            ]
+        },
+        {
+            "label": "partition-empty",
+            "php": "Arr::partition([], fn () => true)",
+            "value": [
+                [],
+                []
+            ]
+        },
+        {
+            "label": "partition-assoc-preserves-keys",
+            "php": "Arr::partition(['a'=>1,'b'=>2,'c'=>3], fn($v) => $v > 1)",
+            "value": [
+                {
+                    "b": 2,
+                    "c": 3
+                },
+                {
+                    "a": 1
+                }
+            ]
+        },
+        {
+            "label": "where-preserves-int-keys",
+            "php": "Arr::where(['100','200','300','400'], fn($v) => $v === '200' || $v === '400')",
+            "value": {
+                "1": "200",
+                "3": "400"
+            }
+        },
+        {
+            "label": "reject-preserves-int-keys",
+            "php": "Arr::reject([1,2,3,4,5], fn($v) => $v % 2 === 0)",
+            "value": {
+                "0": 1,
+                "2": 3,
+                "4": 5
+            }
+        },
+        {
+            "label": "reject-no-callback",
+            "php": "(new Collection([1, null, 2, false, 3, '']))->reject()",
+            "value": {
+                "1": null,
+                "3": false,
+                "5": ""
+            }
+        },
+        {
+            "label": "whereNotNull-all-null",
+            "php": "Arr::whereNotNull([null, null]) and Arr::whereNotNull(['a'=>null])",
+            "value": {
+                "list": [],
+                "assoc": []
+            }
+        },
+        {
+            "label": "whereNotNull-list-preserves-keys",
+            "php": "Arr::whereNotNull([null, 0, false, '', null, []])",
+            "value": {
+                "1": 0,
+                "2": false,
+                "3": "",
+                "5": []
+            }
+        },
+        {
+            "label": "except-single-dot-path",
+            "php": "Arr::except(['name'=>'taylor','framework'=>['language'=>'PHP','name'=>'Laravel']], 'framework.language')",
+            "value": {
+                "name": "taylor",
+                "framework": {
+                    "name": "Laravel"
+                }
+            }
+        },
+        {
+            "label": "collection-except-null",
+            "php": "(new Collection(['a'=>1,'b'=>2]))->except(null)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "collection-except-self",
+            "php": "$c->except($c)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "select-bare-existing-key",
+            "php": "Arr::select(['a'=>['name'=>'Taylor','age'=>1],'b'=>['name'=>'Abigail','age'=>2]], 'name')",
+            "value": {
+                "a": {
+                    "name": "Taylor"
+                },
+                "b": {
+                    "name": "Abigail"
+                }
+            }
+        },
+        {
+            "label": "select-missing-and-null-list",
+            "php": "Arr::select over a list backing \u2014 missing key and null key",
+            "value": {
+                "missing": [
+                    [],
+                    []
+                ],
+                "null": [
+                    [],
+                    []
+                ]
+            }
+        },
+        {
+            "label": "prependKeysWith-list",
+            "php": "Arr::prependKeysWith(['a', 'b', 'c'], 'item_')",
+            "value": {
+                "item_0": "a",
+                "item_1": "b",
+                "item_2": "c"
+            }
+        },
+        {
+            "label": "count-empty",
+            "php": "count([]) via Collection",
+            "value": {
+                "empty": 0,
+                "nested": 2
+            }
+        },
+        {
+            "label": "count-nested-top-level-only",
+            "php": "Collection count only counts top-level items, never descends",
+            "value": {
+                "assoc": 2,
+                "list": 2
+            }
+        },
+        {
+            "label": "map-empty",
+            "php": "Arr::map([], fn($v) => $v)",
+            "value": []
+        },
+        {
+            "label": "map-source-unchanged",
+            "php": "Arr::map does not mutate its source",
+            "value": {
+                "source": {
+                    "a": 1,
+                    "b": 2
+                },
+                "mapped": {
+                    "a": 2,
+                    "b": 4
+                }
+            }
+        },
+        {
+            "label": "map-list-index-key",
+            "php": "Arr::map(['a','b'], fn($v,$k) => \"$k-$v\")",
+            "value": [
+                "0-a",
+                "1-b"
+            ]
+        },
+        {
+            "label": "values-empty",
+            "php": "(new Collection([]))->values()",
+            "value": []
+        },
+        {
+            "label": "contains-loose-list",
+            "php": "contains over [null] and [0]",
+            "value": {
+                "[null]": {
+                    "false": true,
+                    "null": true,
+                    "[]": true,
+                    "0": true,
+                    "''": true
+                },
+                "[0]": {
+                    "'0'": true,
+                    "false": true,
+                    "null": true
+                }
+            }
+        },
+        {
+            "label": "contains-two-args-key-value",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 1)",
+            "value": true
+        },
+        {
+            "label": "contains-three-args-operator",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>'4'],['v'=>5]]))->contains('v', <op>, 4)",
+            "value": {
+                "'='": true,
+                "'=='": true,
+                "'==='": false,
+                "'>'": true
+            }
+        },
+        {
+            "label": "containsStrict-numeric-string",
+            "php": "(new Collection([1, 3, 5, '02']))->containsStrict('02') and ->containsStrict(2)",
+            "value": {
+                "'02'": true,
+                "2": false
+            }
+        },
+        {
+            "label": "sort-scalar-keys",
+            "php": "array_keys(Arr::sort(['c'=>3,'a'=>1,'b'=>2]))",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "sortDesc-scalar-keys",
+            "php": "array_keys(Arr::sortDesc(['c'=>3,'a'=>1,'b'=>2]))",
+            "value": [
+                "c",
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-closure-keys",
+            "php": "array_keys(Arr::sort(['a'=>['name'=>'Desk'],'b'=>['name'=>'Chair']], fn($v)=>$v['name']))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-dot-key-keys",
+            "php": "array_keys(Arr::sort(['a'=>['meta'=>['k'=>2]],'b'=>['meta'=>['k'=>1]]], 'meta.k'))",
+            "value": [
+                "b",
+                "a"
+            ]
+        },
+        {
+            "label": "sort-rows-list-closure",
+            "php": "array_values(Arr::sort([['name'=>'Desk'],['name'=>'Chair']], fn($v)=>$v['name']))",
+            "value": [
+                {
+                    "name": "Chair"
+                },
+                {
+                    "name": "Desk"
+                }
+            ]
+        },
+        {
+            "label": "sortDesc-rows-list-dot-key",
+            "php": "array_values(Arr::sortDesc([['meta'=>['k'=>1]],['meta'=>['k'=>2]]], 'meta.k'))",
+            "value": [
+                {
+                    "meta": {
+                        "k": 2
+                    }
+                },
+                {
+                    "meta": {
+                        "k": 1
+                    }
+                }
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-numbers-list",
+            "php": "Arr::sortRecursiveDesc([[1,9,10]])",
+            "value": [
+                [
+                    10,
+                    9,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "sortRecursiveDesc-three-groups",
+            "php": "Arr::sortRecursiveDesc(['empty'=>[],'nested'=>['level1'=>['level2'=>['level3'=>[2,3,1]],'values'=>[4,5,6]]],'mixed'=>['a'=>1,2=>'b','c'=>3,1=>'d']])",
+            "value": {
+                "nested": {
+                    "level1": {
+                        "values": [
+                            6,
+                            5,
+                            4
+                        ],
+                        "level2": {
+                            "level3": [
+                                3,
+                                2,
+                                1
+                            ]
+                        }
+                    }
+                },
+                "mixed": {
+                    "c": 3,
+                    "a": 1,
+                    "2": "b",
+                    "1": "d"
+                },
+                "empty": []
+            }
+        },
+        {
+            "label": "where-list-key-predicate",
+            "php": "array_values(Arr::where(['a','b','c'], fn($v,$k)=>$k>0))",
+            "value": [
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "reject-key-predicate",
+            "php": "Arr::reject(['a'=>1,'b'=>2], fn($v,$k)=>$k==='a')",
+            "value": {
+                "b": 2
+            }
+        },
+        {
+            "label": "partition-key-predicate",
+            "php": "Arr::partition([1=>'a','x'=>'b'], fn($v,$k)=>is_numeric($k))",
+            "value": [
+                {
+                    "1": "a"
+                },
+                {
+                    "x": "b"
+                }
+            ]
+        },
+        {
+            "label": "sortByMany-keys-list",
+            "php": "array_values(Arr::sort($sbmList, ['name','age','meta.key']))",
+            "value": [
+                {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "sortByMany-order-list",
+            "php": "array_values(Arr::sort($sbmList, ['name',['age',false],['meta.key',true]]))",
+            "value": [
+                {
+                    "name": "Dave",
+                    "age": 10,
+                    "meta": {
+                        "key": 3
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 10,
+                    "meta": {
+                        "key": 5
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 2
+                    }
+                },
+                {
+                    "name": "John",
+                    "age": 8,
+                    "meta": {
+                        "key": 3
+                    }
+                }
+            ]
+        },
+        {
+            "label": "map-source-unchanged-list",
+            "php": "Arr::map does not mutate its list source",
+            "value": {
+                "source": [
+                    1,
+                    2
+                ],
+                "mapped": [
+                    2,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "prependKeysWith-two-item-list",
+            "php": "Arr::prependKeysWith(['a', 'b'], 'p.')",
+            "value": {
+                "p.0": "a",
+                "p.1": "b"
+            }
+        },
+        {
+            "label": "except-string-key",
+            "php": "Arr::except([1 => 'hAz', 2 => 'x'], '2')",
+            "value": {
+                "1": "hAz"
+            }
+        },
+        {
+            "label": "take-assoc-over-size",
+            "php": "Arr::take(['a'=>1,'b'=>2], 10)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "take-assoc-negative-over-size",
+            "php": "Arr::take(['a'=>1,'b'=>2], -10)",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "select-bare-key-list",
+            "php": "array_values(Arr::select([['a'=>1,'b'=>2],['a'=>3,'b'=>4]], 'a'))",
+            "value": [
+                {
+                    "a": 1
+                },
+                {
+                    "a": 3
+                }
+            ]
+        },
+        {
+            "label": "pop-list-count-exceeds-length",
+            "php": "(new Collection(['foo','bar','baz']))->pop(2) then a fresh pop(6)",
+            "value": {
+                "two": [
+                    "baz",
+                    "bar"
+                ],
+                "first": "foo",
+                "six": [
+                    "baz",
+                    "bar",
+                    "foo"
+                ]
+            }
+        },
+        {
+            "label": "pop-empty-default-count",
+            "php": "(new Collection([]))->pop()",
+            "value": null
+        },
+        {
+            "label": "exceptValues-list-keeps-gap",
+            "php": "Arr::exceptValues(['foo','bar','baz','qux'], ['foo','baz'])",
+            "value": {
+                "1": "bar",
+                "3": "qux"
+            }
+        },
+        {
+            "label": "onlyValues-list-keeps-gap",
+            "php": "Arr::onlyValues(['foo','bar','baz','qux'], ['foo','baz'])",
+            "value": {
+                "0": "foo",
+                "2": "baz"
+            }
+        },
+        {
+            "label": "replace-list-string-key-replacer",
+            "php": "(new Collection(['a','b','c']))->replace(['k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "2": "c",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replace-list-sparse-replacer",
+            "php": "(new Collection(['a']))->replace([3 => 'd'])",
+            "value": {
+                "0": "a",
+                "3": "d"
+            }
+        },
+        {
+            "label": "replace-list-mixed-key-replacer",
+            "php": "(new Collection(['a','b']))->replace([1 => 'z', 'k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "z",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-string-key-replacer",
+            "php": "(new Collection(['a','b','c']))->replaceRecursive(['k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "b",
+                "2": "c",
+                "k": "x"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-sparse-replacer",
+            "php": "(new Collection(['a']))->replaceRecursive([3 => 'd'])",
+            "value": {
+                "0": "a",
+                "3": "d"
+            }
+        },
+        {
+            "label": "replaceRecursive-list-mixed-key-replacer",
+            "php": "(new Collection(['a','b']))->replaceRecursive([1 => 'z', 'k' => 'x'])",
+            "value": {
+                "0": "a",
+                "1": "z",
+                "k": "x"
+            }
+        },
+        {
+            "label": "intersect-scalar-backing",
+            "php": "(new Collection(5))->intersect([5])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "diffAssoc-scalar-backing",
+            "php": "(new Collection(5))->diffAssoc([1, 99, 3])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "intersectAssoc-scalar-backing",
+            "php": "(new Collection(5))->intersectAssoc([5])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "intersectByKeys-scalar-backing",
+            "php": "(new Collection(5))->intersectByKeys([1])",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "intersectAssocUsing-scalar-backing",
+            "php": "(new Collection(5))->intersectAssocUsing([5], fn ($a, $b) => strcasecmp((string) $a, (string) $b))",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "d7-union-scalar-backing",
+            "php": "(new Collection(5))->union([9]) and (new Collection('x'))->union([9])",
+            "value": {
+                "int": [
+                    5
+                ],
+                "string": [
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "d7-union-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2])))->union(['d' => 4]) and ->union([9, 9, 9])",
+            "value": {
+                "keyed-operand": {
+                    "0": 1,
+                    "1": 2,
+                    "d": 4
+                },
+                "list-operand": [
+                    1,
+                    2,
+                    9
+                ]
+            }
+        },
+        {
+            "label": "d7-combine-scalar-backing",
+            "php": "(new Collection(5))->combine(['x']), (new Collection('k'))->combine(['x']) and (new Collection(null))->combine([])",
+            "value": {
+                "int": {
+                    "5": "x"
+                },
+                "string": {
+                    "k": "x"
+                },
+                "null": []
+            }
+        },
+        {
+            "label": "d7-combine-traversable-backing",
+            "php": "(new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])",
+            "value": {
+                "k1": "x",
+                "k2": "y"
+            }
+        },
+        {
+            "label": "take-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->take(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "random-traversable-backing-count",
+            "php": "count((new Collection(new ArrayIterator([1, 2, 3])))->random(2)->all())",
+            "value": 2
+        },
+        {
+            "label": "flatten-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->flatten()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "has-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(0)",
+            "value": true
+        },
+        {
+            "label": "has-traversable-backing-last-index",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(2)",
+            "value": true
+        },
+        {
+            "label": "has-traversable-backing-past-end",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->has(3)",
+            "value": false
+        },
+        {
+            "label": "values-traversable-backing",
+            "php": "(new Collection(new ArrayIterator([1, 2, 3])))->values()",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "take-string-backing",
+            "php": "(new Collection('abc'))->take(2)",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "flatten-string-backing",
+            "php": "(new Collection('abc'))->flatten()",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "values-string-backing",
+            "php": "(new Collection('abc'))->values()",
+            "value": [
+                "abc"
+            ]
+        },
+        {
+            "label": "integer-list-missing-index-with-default",
+            "php": "Arr::integer([], 0, 5)",
+            "value": 5
+        },
+        {
+            "label": "firstOrFail-stored-null-list",
+            "php": "(new Collection([null]))->firstOrFail()",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-assoc",
+            "php": "(new Collection(['a' => null]))->firstOrFail()",
+            "value": null
+        },
+        {
+            "label": "firstOrFail-stored-null-with-callback",
+            "php": "(new Collection([1, null]))->firstOrFail(fn ($v) => is_null($v))",
+            "value": null
+        },
+        {
+            "label": "reduce-empty-no-initial",
+            "php": "(new Collection([]))->reduce(fn ($c, $v) => $c + $v) and the assoc backing",
+            "value": {
+                "list": null,
+                "assoc": null
+            }
+        },
+        {
+            "label": "set-list-key-cast",
+            "php": "Arr::set(['a','b'], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        "a",
+                        "V"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "a",
+                        {
+                            "5": "V"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-record-key-cast",
+            "php": "Arr::set(['x'=>1], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "x": 1,
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "x": 1,
+                        "1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "x": 1,
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": {
+                        "x": 1,
+                        "1": {
+                            "5": "V"
+                        }
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "x": 1,
+                        "": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-nested-list-key-cast",
+            "php": "Arr::set([['a','b']], '0.'.$seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        "a",
+                        "V"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "a",
+                        {
+                            "5": "V"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-nested-record-key-cast",
+            "php": "Arr::set([['x'=>1]], '0.'.$seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "x": 1,
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "x": 1,
+                        "1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "x": 1,
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": {
+                        "x": 1,
+                        "1": {
+                            "5": "V"
+                        }
+                    },
+                    "keys": [
+                        "string:x",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "x": 1,
+                        "": "V"
+                    },
+                    "keys": [
+                        "string:x",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push-list-key-cast",
+            "php": "Arr::push([['a']], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "0": [
+                            "a"
+                        ],
+                        "01": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "integer:0",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        [
+                            "a"
+                        ],
+                        [
+                            "V"
+                        ]
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "0": [
+                            "a"
+                        ],
+                        "-1": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        [
+                            "a"
+                        ],
+                        {
+                            "5": [
+                                "V"
+                            ]
+                        }
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "0": [
+                            "a"
+                        ],
+                        "": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "integer:0",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "push-record-key-cast",
+            "php": "Arr::push(['k'=>['a']], $seg, 'V') for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "01": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "string:01"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "1": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "integer:1"
+                    ]
+                },
+                "-1": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "-1": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "integer:-1"
+                    ]
+                },
+                "1.5": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "1": {
+                            "5": [
+                                "V"
+                            ]
+                        }
+                    },
+                    "keys": [
+                        "string:k",
+                        "integer:1"
+                    ]
+                },
+                "": {
+                    "json": {
+                        "k": [
+                            "a"
+                        ],
+                        "": [
+                            "V"
+                        ]
+                    },
+                    "keys": [
+                        "string:k",
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-record-key-cast",
+            "php": "Arr::forget(['a'=>['x','y','z']], 'a.'.$seg) for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "0": "x",
+                        "2": "z"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:2"
+                    ]
+                },
+                "-1": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-list-key-cast",
+            "php": "Arr::forget([['x','y','z']], '0.'.$seg) for $seg in '01','1','-1','1.5',''",
+            "value": {
+                "01": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1": {
+                    "json": {
+                        "0": "x",
+                        "2": "z"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:2"
+                    ]
+                },
+                "-1": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "1.5": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                },
+                "": {
+                    "json": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:2"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "undot-noncanonical-index",
+            "php": "Arr::undot(['01' => 'a']) and Arr::undot(['0.01' => 'a'])",
+            "value": {
+                "top level": {
+                    "json": {
+                        "01": "a"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "nested": {
+                    "json": {
+                        "01": "a"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "get-write-path-key-cast",
+            "php": "Arr::get with an empty segment, a non-canonical index, and a stored '01' key",
+            "value": {
+                "[['' => 1]] '0.'": 1,
+                "[['a','b']] '0.01'": null,
+                "[['01' => 'z']] '0.01'": "z",
+                "['a','b'] '01'": null
+            }
+        },
+        {
+            "label": "set-then-get-noncanonical-index",
+            "php": "$a = []; Arr::set($a, '01', 5); Arr::get($a, '01')",
+            "value": 5
+        },
+        {
+            "label": "set-then-get-noncanonical-index-nested",
+            "php": "$a = [[]]; Arr::set($a, '0.01', 5); Arr::get($a, '0.01')",
+            "value": {
+                "written": [
+                    {
+                        "01": 5
+                    }
+                ],
+                "read back": 5
+            }
+        },
+        {
+            "label": "forget-top-level-key-cast",
+            "php": "Arr::forget(['products', ['desk', [100]]], $seg) for $seg in '01','1',''",
+            "value": {
+                "01": {
+                    "json": [
+                        "products",
+                        [
+                            "desk",
+                            [
+                                100
+                            ]
+                        ]
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                },
+                "1": {
+                    "json": [
+                        "products"
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "": {
+                    "json": [
+                        "products",
+                        [
+                            "desk",
+                            [
+                                100
+                            ]
+                        ]
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "set-empty-middle-segment",
+            "php": "$a = []; Arr::set($a, '0..1', 'V')",
+            "value": {
+                "outer": {
+                    "json": [
+                        {
+                            "": {
+                                "1": "V"
+                            }
+                        }
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "inner": {
+                    "json": {
+                        "": {
+                            "1": "V"
+                        }
+                    },
+                    "keys": [
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "add-leaves-the-caller-value-untouched",
+            "php": "$src = [['desk' => 100]]; Arr::add($src, '0.chair', 150)",
+            "value": {
+                "source": [
+                    {
+                        "desk": 100
+                    }
+                ],
+                "result": [
+                    {
+                        "desk": 100,
+                        "chair": 150
+                    }
+                ]
+            }
+        },
+        {
+            "label": "add-list-leaves-the-caller-value-untouched",
+            "php": "$src = [[100]]; Arr::add($src, '0.1', 150)",
+            "value": {
+                "source": [
+                    [
+                        100
+                    ]
+                ],
+                "result": [
+                    [
+                        100,
+                        150
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "add-existing-key-is-a-no-op",
+            "php": "$src = [['desk' => 100]]; Arr::add($src, '0.desk', 150)",
+            "value": [
+                {
+                    "desk": 100
+                }
+            ]
+        },
+        {
+            "label": "push-mutates-the-caller-by-reference",
+            "php": "$src = [['a']]; Arr::push($src, '0', 'b')",
+            "value": {
+                "source": [
+                    [
+                        "a",
+                        "b"
+                    ]
+                ],
+                "result": [
+                    [
+                        "a",
+                        "b"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "push-missing-index-stores-an-empty-array",
+            "php": "$src = [1, 2, 3]; Arr::push($src, 4)",
+            "value": {
+                "source": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "4": []
+                },
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "set-dot-path-under-a-list-index",
+            "php": "$a = ['a', 'b']; Arr::set($a, '0.x', 5)",
+            "value": [
+                {
+                    "x": 5
+                },
+                "b"
+            ]
+        },
+        {
+            "label": "firstOrFail-stored-null-assoc-with-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null]))->firstOrFail(fn ($v) => is_null($v))",
+            "value": null
+        },
+        {
+            "label": "set-scalar-element-empty-trailing-segment",
+            "php": "$a = ['a']; Arr::set($a, '0.', 'value')",
+            "value": {
+                "outer": {
+                    "json": [
+                        {
+                            "": "value"
+                        }
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "inner": {
+                    "json": {
+                        "": "value"
+                    },
+                    "keys": [
+                        "string:"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "forget-list-noncanonical-among-several-keys",
+            "php": "Arr::forget([['x','y','z']], ['0.01', '0.2'])",
+            "value": {
+                "json": [
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    "integer:0",
+                    "integer:1"
+                ]
+            }
+        },
+        {
+            "label": "add-nested-list-leaves-the-caller-value-untouched",
+            "php": "$src = ['products', ['desk']]; Arr::add($src, '1.1', 200)",
+            "value": {
+                "source": [
+                    "products",
+                    [
+                        "desk"
+                    ]
+                ],
+                "result": [
+                    "products",
+                    [
+                        "desk",
+                        200
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "add-nested-record-leaves-the-caller-value-untouched",
+            "php": "$src = ['a' => ['z' => 1]]; Arr::add($src, 'a.y', 2)",
+            "value": {
+                "source": {
+                    "a": {
+                        "z": 1
+                    }
+                },
+                "result": {
+                    "a": {
+                        "z": 1,
+                        "y": 2
+                    }
+                }
+            }
+        },
+        {
+            "label": "own-key-channel-round-trip",
+            "php": "$a = ['a','b']; Arr::set($a, '01', 'V'); then Arr::get / Arr::has",
+            "value": {
+                "written": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "e3-own-key-channel-empty-root",
+            "php": "$a = []; $a['01'] = 'V'; and $b = []; Arr::set($b, '01', 'V')",
+            "value": {
+                "raw subscript": {
+                    "json": {
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "Arr::set": {
+                    "json": {
+                        "01": "V"
+                    },
+                    "keys": [
+                        "string:01"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "own-key-channel-negative-index-round-trip",
+            "php": "$a = ['a','b']; Arr::set($a, '-1', 'V'); then Arr::get / Arr::has",
+            "value": {
+                "written": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "-1": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "integer:-1"
+                    ]
+                },
+                "get": "V",
+                "has": true
+            }
+        },
+        {
+            "label": "own-key-channel-survives-other-helpers",
+            "php": "on $a = ['a','b'] + Arr::set($a,'01','V'): except, add, set, only, forget",
+            "value": {
+                "except ['zzz']": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01"
+                    ]
+                },
+                "add '2'": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V",
+                        "2": "c"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01",
+                        "integer:2"
+                    ]
+                },
+                "set '2'": {
+                    "json": {
+                        "0": "a",
+                        "1": "b",
+                        "01": "V",
+                        "2": "c"
+                    },
+                    "keys": [
+                        "integer:0",
+                        "integer:1",
+                        "string:01",
+                        "integer:2"
+                    ]
+                },
+                "only [0]": {
+                    "json": [
+                        "a"
+                    ],
+                    "keys": [
+                        "integer:0"
+                    ]
+                },
+                "forget '01'": {
+                    "json": [
+                        "a",
+                        "b"
+                    ],
+                    "keys": [
+                        "integer:0",
+                        "integer:1"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "add-nested-object-is-replaced-wholesale",
+            "php": "$src = [new D4Point(1)]; Arr::add($src, '0.y', 2)",
+            "value": {
+                "source": [
+                    {
+                        "x": 1
+                    }
+                ],
+                "source_type": "D4Point",
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "add-assoc-nested-object-is-replaced-wholesale",
+            "php": "$src = ['a' => new D4Point(1)]; Arr::add($src, 'a.y', 2)",
+            "value": {
+                "source": {
+                    "a": {
+                        "x": 1
+                    }
+                },
+                "source_type": "D4Point",
+                "result": {
+                    "a": {
+                        "y": 2
+                    }
+                },
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "add-nested-arrayaccess-is-replaced-wholesale",
+            "php": "$src = [new ArrayObject(['z' => 1])]; Arr::add($src, '0.y', 2)",
+            "value": {
+                "source_count": 1,
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "push-integer-key-mutates-the-caller-by-reference",
+            "php": "$src = [['x']]; Arr::push($src, 0, 'y')",
+            "value": {
+                "source": [
+                    [
+                        "x",
+                        "y"
+                    ]
+                ],
+                "result": [
+                    [
+                        "x",
+                        "y"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "d6-map-with-keys-list-return",
+            "php": "Arr::mapWithKeys(['a' => 1, 'b' => 2], fn ($v, $k) => [\"key_$k\", $v * 2])",
+            "value": {
+                "arr-assoc": [
+                    "key_b",
+                    4
+                ],
+                "collection-assoc": [
+                    "key_b",
+                    4
+                ],
+                "collection-list": [
+                    "key_1",
+                    4
+                ],
+                "arr-single-row": [
+                    "key_a",
+                    2
+                ],
+                "arr-pair-return": {
+                    "a": 2,
+                    "b": 4
+                }
+            }
+        },
+        {
+            "label": "d6-diff-keys",
+            "php": "(new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeys(['id' => 123, 'foo_bar' => 'Hello'])",
+            "value": {
+                "assoc": {
+                    "first_word": "Hello"
+                },
+                "assoc-value-ignored": {
+                    "b": 2
+                },
+                "list": {
+                    "2": 3
+                },
+                "list-keyed-operand": [
+                    1
+                ],
+                "nullish-operand": {
+                    "a": 1
+                },
+                "collection-operand": {
+                    "b": 2
+                }
+            }
+        },
+        {
+            "label": "d6-diff-using",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->diffUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')",
+            "value": {
+                "assoc": {
+                    "b": "brown",
+                    "c": "blue"
+                },
+                "list": {
+                    "1": "brown",
+                    "2": "blue"
+                },
+                "nullish-operand": {
+                    "a": "green"
+                },
+                "collection-operand": {
+                    "b": "brown"
+                }
+            }
+        },
+        {
+            "label": "d6-intersect-using",
+            "php": "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 'blue']))->intersectUsing(['A' => 'GREEN', 'yellow'], 'strcasecmp')",
+            "value": {
+                "assoc": {
+                    "a": "green"
+                },
+                "list": [
+                    "green"
+                ],
+                "nullish-operand": [],
+                "collection-operand": {
+                    "a": "green"
+                }
+            }
+        },
+        {
+            "label": "d6-diff-assoc-using-and-diff-keys-using-on-a-list",
+            "php": "(new Collection([1, 2, 3]))->diffAssocUsing([1, 9, 3], 'strcasecmp') / ->diffKeysUsing(['a' => 1, 1 => 5], 'strcasecmp')",
+            "value": {
+                "diffAssocUsing-list": {
+                    "1": 2
+                },
+                "diffKeysUsing-list": [
+                    1
+                ],
+                "diffAssocUsing-assoc": {
+                    "b": "brown"
+                },
+                "diffKeysUsing-assoc": {
+                    "first_word": "Hello"
+                }
+            }
+        },
+        {
+            "label": "d6-map-spread-collection-row",
+            "php": "$rows = [new Collection([1, 'a'])]; Arr::mapSpread($rows, fn ($n, $c, $k) => \"$n-$c-$k\")",
+            "value": {
+                "list": [
+                    "1-a-0",
+                    "2-b-1"
+                ],
+                "assoc": {
+                    "x": "1-a-x",
+                    "y": "2-b-y"
+                },
+                "row-mutated-to": [
+                    1,
+                    "a",
+                    0
+                ],
+                "collection-mapSpread": [
+                    "1-a-0",
+                    "2-b-1"
+                ]
+            }
+        },
+        {
+            "label": "d6-set-assoc-nested-object-is-replaced-wholesale",
+            "php": "$src = ['a' => new D4Point(1)]; Arr::set($src, 'a.y', 2)",
+            "value": {
+                "result": {
+                    "a": {
+                        "y": 2
+                    }
+                },
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "d6-nested-list-is-descended-not-replaced",
+            "php": "$src = ['a' => ['q']]; Arr::add($src, 'a.1', 'y') and Arr::set($src, 'a.1', 'y')",
+            "value": {
+                "add": {
+                    "a": [
+                        "q",
+                        "y"
+                    ]
+                },
+                "set": {
+                    "a": [
+                        "q",
+                        "y"
+                    ]
+                },
+                "source-after-add": {
+                    "a": [
+                        "q"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "d6-combine-key-cast-minus-zero-and-1e19",
+            "php": "(new Collection([-0.0, 1e19]))->combine([1, 2]): the keys as PHP stores them",
+            "value": [
+                [
+                    "string",
+                    "-0"
+                ],
+                [
+                    "string",
+                    "1.0E+19"
+                ]
+            ]
+        },
+        {
+            "label": "d6-list-operand-edges",
+            "php": "(new Collection([1, 2]))->diffKeys([999]) / ->diffKeys(null) / ->diffKeys(new Collection([9])) and the diffUsing / intersectUsing twins",
+            "value": {
+                "diffKeys-value-ignored": {
+                    "1": 2
+                },
+                "diffKeys-nullish-operand": [
+                    1,
+                    2
+                ],
+                "diffKeys-collection-operand": {
+                    "1": 2
+                },
+                "diffUsing-nullish-operand": [
+                    "green"
+                ],
+                "diffUsing-collection-operand": {
+                    "1": "brown"
+                },
+                "intersectUsing-nullish-operand": [],
+                "intersectUsing-collection-operand": [
+                    "green"
+                ]
+            }
+        },
+        {
+            "label": "d6-prepend-existing-integer-key",
+            "php": "Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)",
+            "value": {
+                "result": {
+                    "1": "z",
+                    "b": 2
+                },
+                "keys": [
+                    1,
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "d6-nested-list-in-a-list-is-descended",
+            "php": "$src = [['q']]; Arr::add($src, '0.1', 'y')",
+            "value": {
+                "add": [
+                    [
+                        "q",
+                        "y"
+                    ]
+                ],
+                "source-after-add": [
+                    [
+                        "q"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "r2-sole-no-filter-keeps-a-falsy-item",
+            "php": "(new Collection([null]))->sole() / ([0]) / ([1,2,3])",
+            "value": {
+                "[null]": null,
+                "[0]": 0,
+                "['']": "",
+                "[1,2,3]": "3 items were found."
+            }
+        },
+        {
+            "label": "r2-set-noncanonical-index-head-with-rest",
+            "php": "$a = ['a','b']; Arr::set($a, '01.x', 5)",
+            "value": {
+                "written": {
+                    "0": "a",
+                    "1": "b",
+                    "01": {
+                        "x": 5
+                    }
+                },
+                "keys": [
+                    "int:0",
+                    "int:1",
+                    "string:01"
+                ]
+            }
+        },
+        {
+            "label": "e3-set-noncanonical-index-nested-scalar-element",
+            "php": "$a = ['a','b']; Arr::set($a, '0.01', 5)",
+            "value": {
+                "written": [
+                    {
+                        "01": 5
+                    },
+                    "b"
+                ],
+                "keys": [
+                    "int:0",
+                    "int:1"
+                ],
+                "element 0 keys": [
+                    "string:01"
+                ],
+                "read back": 5
+            }
+        },
+        {
+            "label": "r3-operator-table",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for all eleven operators",
+            "value": {
+                "4 vs 4": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "4 vs \"4\"": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "null vs 4": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "0 vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "null vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "-1 vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"abc\" vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"\" vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"10\" vs \"9\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "raw spaceship": {
+                    "1 <=> null": 1,
+                    "null <=> 1": -1,
+                    "NAN <=> 1": 1,
+                    "1 <=> NAN": 1,
+                    "NAN <=> NAN": 1,
+                    "0 <=> null": 0,
+                    "-1 <=> null": 1
+                }
+            }
+        },
+        {
+            "label": "r3-assoc-backed-contains",
+            "php": "(new Collection(['a'=>['v'=>1],'b'=>['v'=>3],'c'=>['v'=>'4'],'d'=>['v'=>5]]))->contains(...) and the containsStrict twins",
+            "value": {
+                "operator": {
+                    "'='": true,
+                    "'=='": true,
+                    "'==='": false,
+                    "'>'": true
+                },
+                "key-value": {
+                    "1": true,
+                    "2": false
+                },
+                "null-key": {
+                    "> 1": true,
+                    "> 9": false
+                },
+                "containsStrict-numeric-string": {
+                    "'02'": true,
+                    "2": false
+                },
+                "containsStrict-two-args": {
+                    "array": true,
+                    "reordered": false,
+                    "null": true,
+                    "null-missing": true,
+                    "null-none": false
+                },
+                "containsStrict-callback-null": false
+            }
+        },
+        {
+            "label": "r3-list-backed-contains",
+            "php": "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 2) and (new Collection([null, 1]))->containsStrict(fn ($v) => is_null($v))",
+            "value": {
+                "key-value-no-match": false,
+                "containsStrict-callback-null": false
+            }
+        },
+        {
+            "label": "r3-assoc-backed-leaf-rules",
+            "php": "Arr::flatten(['a' => $o]), Arr::collapse(['g2' => $o]), array_replace_recursive(['a' => $o], ['a' => ['x' => 5]])",
+            "value": {
+                "flatten-single-object-entry": {
+                    "count": 1,
+                    "kept": true
+                },
+                "collapse-only-object-assoc": [],
+                "replaceRecursive-object-under-array": {
+                    "a": {
+                        "x": 5
+                    }
+                }
+            }
+        },
+        {
+            "label": "r3-prepend-extra-keys",
+            "php": "Arr::prepend([1 => 'a', 2 => 'b', 'c' => 3], 'z', 2) and @Arr::prepend(['a' => 1], 'v', -0.5)",
+            "value": {
+                "existing-integer-key-2": {
+                    "result": {
+                        "2": "z",
+                        "1": "a",
+                        "c": 3
+                    },
+                    "keys": [
+                        "int:2",
+                        "int:1",
+                        "string:c"
+                    ]
+                },
+                "negative-float-above-minus-one": {
+                    "result": {
+                        "0": "v",
+                        "a": 1
+                    },
+                    "keys": [
+                        "int:0",
+                        "string:a"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "r3-contains-boolean-value",
+            "php": "(new Collection([['active'=>true],['active'=>false]]))->contains('active', true) and the forms around it",
+            "value": {
+                "key-true": true,
+                "key-false": true,
+                "key-true-no-match": false,
+                "key-operator-true": true,
+                "containsStrict-key-of-a-row": false,
+                "contains-key-of-a-row": false,
+                "non-string-operator": true,
+                "null-key-operator": true,
+                "diffKeysUsing-nullish-operand": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "r3-set-list-nested-object-is-replaced-wholesale",
+            "php": "$src = [new D4Point(1)]; Arr::set($src, '0.y', 2)",
+            "value": {
+                "result": [
+                    {
+                        "y": 2
+                    }
+                ],
+                "result_type": "array"
+            }
+        },
+        {
+            "label": "r4-nan-bool-null-table",
+            "php": "(new Collection([['v' => NAN]]))->contains('v', <op>, true|false|null) for all eleven operators",
+            "value": {
+                "NAN vs true": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "true vs NAN": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "NAN vs false": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "false vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "NAN vs null": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "null vs NAN": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "raw spaceship": {
+                    "NAN <=> true": 0,
+                    "true <=> NAN": 0,
+                    "NAN <=> false": 1,
+                    "false <=> NAN": -1,
+                    "NAN <=> null": 1,
+                    "null <=> NAN": -1
+                }
+            }
+        },
+        {
+            "label": "r4-strict-operators",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', '==='|'!==', $value) over arrays and objects",
+            "value": {
+                "[1,2] vs [1,2]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "[1,2] vs [1,\"2\"]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[1,2] vs [2,1]": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "===": false,
+                    "!==": true
+                },
+                "[] vs []": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "['a'=>1,'b'=>2] vs the same pairs": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "['a'=>1,'b'=>2] vs the same pairs reordered": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[[1]] vs [[1]]": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "D4Point(1) vs another D4Point(1)": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "D4Point(1) vs itself": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": true,
+                    "!==": false
+                },
+                "DateTimeImmutable@0 vs another": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "===": false,
+                    "!==": true
+                },
+                "[1,2] vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "===": false,
+                    "!==": true
+                }
+            }
+        },
+        {
+            "label": "r4-object-scalar-guard",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) over object/array against scalar",
+            "value": {
+                "stdClass vs \"\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"\" vs stdClass": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "\"abc\" vs stdClass": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "stdClass vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "stdClass vs true": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": false,
+                    "<=": false,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "assoc array vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "\"abc\" vs assoc array": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "assoc array vs true": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "empty array vs null": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": false
+                },
+                "empty array vs \"abc\"": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                }
+            }
+        },
+        {
+            "label": "r4-undot-backings",
+            "php": "(new Collection(5|'a.b'|new ArrayIterator(['a.b'])|null|true))->undot()",
+            "value": {
+                "int": [
+                    5
+                ],
+                "string": [
+                    "a.b"
+                ],
+                "traversable": [
+                    "a.b"
+                ],
+                "null": [],
+                "bool": [
+                    true
+                ],
+                "list": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "r4-set-nested-list-in-a-list-is-descended",
+            "php": "$src = [['q']]; Arr::set($src, '0.1', 'y')",
+            "value": {
+                "set": [
+                    "q",
+                    "y"
+                ],
+                "source-after-set": [
+                    [
+                        "q",
+                        "y"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "r4-operator-table-extras",
+            "php": "(new Collection([['v' => $retrieved]]))->contains('v', <op>, $value) for two ints and two array pairs",
+            "value": {
+                "1 vs 2": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": true,
+                    ">": false,
+                    "<=": true,
+                    ">=": false,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "2 vs 1": {
+                    "=": false,
+                    "==": false,
+                    "!=": true,
+                    "<>": true,
+                    "<": false,
+                    ">": true,
+                    "<=": false,
+                    ">=": true,
+                    "===": false,
+                    "!==": true,
+                    "<=>": true
+                },
+                "1 vs 1": {
+                    "=": true,
+                    "==": true,
+                    "!=": false,
+                    "<>": false,
+                    "<": false,
+                    ">": false,
+                    "<=": true,
+                    ">=": true,
+                    "===": true,
+                    "!==": false,
+                    "<=>": false
+                },
+                "raw spaceship": {
+                    "1 <=> 2": -1,
+                    "2 <=> 1": 1,
+                    "1 <=> 1": 0
+                },
+                "assoc array vs the same pairs": {
+                    "'='": true
+                },
+                "assoc array vs \"x\"": {
+                    "'='": false
+                }
+            }
+        },
+        {
+            "label": "r4-assoc-backed-operator-forms",
+            "php": "(new Collection(['a'=>['v'=>5],'b'=>['v'=>6]]))->contains('v', 5, 6) and the data.spec twins",
+            "value": {
+                "non-string-operator-assoc": true,
+                "non-string-operator-list": true,
+                "key-true-assoc": true,
+                "key-operator-true-assoc": true,
+                "key-true-list": true,
+                "null-key-list": true
+            }
+        }
+    ]
+}

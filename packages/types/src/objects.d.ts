@@ -11,9 +11,9 @@ export type AddToObject<
 > = T & Record<K, V>;
 
 /**
- * Values the `@tolki/obj` helpers never walk as objects: arrays, Maps, Sets,
- * WeakMaps, WeakSets and functions. An overload taking this type first routes
- * them to the untyped result instead of a misleading per-key type.
+ * Values the `@tolki/obj` helpers do not walk as objects: arrays, Maps, Sets, WeakMaps, WeakSets and functions.
+ * An overload taking this type first routes them to the untyped result instead of a misleading per-key type.
+ * A helper that walks a Map declares its Map rows first; this type's row then gives `Map | string[]` its widest result.
  */
 export type NonObjectItems =
     | readonly unknown[]
@@ -22,6 +22,17 @@ export type NonObjectItems =
     | WeakMap<object, unknown>
     | WeakSet<object>
     | ((...args: never[]) => unknown);
+
+/**
+ * `NonObjectItems` without the Map, for an obj helper's empty-result row, so `Map | string[]` is not typed as empty.
+ *
+ * @remarks A Map keyed by `unknown`, `any` or an object type still fits the `WeakMap` member, so a union
+ * holding it beside another of these values is typed as empty, though its Map is walked.
+ */
+export type NonKeyedItems = Exclude<
+    NonObjectItems,
+    ReadonlyMap<unknown, unknown>
+>;
 
 /**
  * Flattens an intersection into a single object type, so hovers and exact
@@ -84,6 +95,78 @@ export type PhpArrayKey<K> = K extends number
  * ObjectKey<{ a: 1; 0: 2; "10": 3 }> // "a" | 0 | 10
  */
 export type ObjectKey<T> = PhpArrayKey<keyof T>;
+
+/**
+ * The key `@tolki/obj` reports for a Map key: the key PHP stores for it, since a Map stands for a PHP array.
+ * A key that is not a string, number, boolean, `null` or `undefined` is stringified, typed `string | number`.
+ *
+ * @remarks An integer key, or a float's truncation, outside the safe integer range reaches callbacks and
+ * `keys()` as its decimal string, yet is typed `number`.
+ *
+ * @example
+ * MapArrayKey<"10">      // 10
+ * MapArrayKey<"01">      // "01"
+ * MapArrayKey<2>         // 2
+ * MapArrayKey<1.5>       // number
+ * MapArrayKey<true>      // 1
+ * MapArrayKey<null>      // ""
+ * MapArrayKey<object>    // string | number
+ */
+export type MapArrayKey<K> = K extends string
+    ? PhpArrayKey<K>
+    : K extends number
+      ? `${K}` extends `${bigint}`
+          ? K
+          : number
+      : K extends boolean
+        ? K extends true
+            ? 1
+            : 0
+        : K extends null | undefined
+          ? ""
+          : string | number;
+
+/**
+ * The key a callback receives for an entry of `M`, a Map or a union holding Maps: each Map's
+ * `MapArrayKey`, and nothing for a member that is not a Map. It distributes over `M`, which
+ * a `ReadonlyMap<TKey, TValue>` parameter cannot do: TypeScript infers one `TKey` from a union
+ * of Maps, finds the other Map does not fit it, and skips the row.
+ *
+ * @example
+ * MapEntryKey<Map<"1" | "a", string>>                      // 1 | "a"
+ * MapEntryKey<Map<string, number> | Map<number, string>>   // string | number
+ * MapEntryKey<Map<boolean, string> | undefined>            // 0 | 1
+ */
+export type MapEntryKey<M> =
+    M extends ReadonlyMap<infer K, unknown> ? MapArrayKey<K> : never;
+
+/**
+ * The value an entry of `M`, a Map or a union holding Maps, holds: each Map's value type, and
+ * nothing for a member that is not a Map. Like `MapEntryKey`, it distributes over `M`.
+ *
+ * @example
+ * MapEntryValue<Map<number, string>>                     // string
+ * MapEntryValue<Map<string, number> | Map<number, string>> // number | string
+ * MapEntryValue<Map<number, string> | string[]>          // string
+ */
+export type MapEntryValue<M> =
+    M extends ReadonlyMap<unknown, infer V> ? V : never;
+
+/**
+ * The `data` a Map row takes to read a union of Maps whole, for `MapEntryKey` and `MapEntryValue` to read.
+ * An `any` argument does not match it, so `any` reaches the per-key rows instead of reading as a Map.
+ *
+ * @remarks `TMap` must be a bare, unconstrained type parameter, or the `any` test lets `any` through. A Map typed
+ * by a caller's type parameter (`M extends Map<K, V>`) fails it too, so a `ReadonlyMap<TKey, TValue>` row goes first.
+ *
+ * @example
+ * declare function values<TMap>(data: MapData<TMap>): MapEntryValue<TMap>[];
+ * values(new Map([[2, "c"]]) as Map<number, string> | Map<string, boolean>); // (string | boolean)[]
+ * values(JSON.parse("{}"));                                               // no match: any is turned away
+ */
+export type MapData<TMap> = TMap &
+    ReadonlyMap<unknown, unknown> &
+    (0 extends 1 & TMap ? never : unknown);
 
 /**
  * The object an obj helper returns after renumbering integer-like keys: `T`

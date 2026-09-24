@@ -1,5 +1,12 @@
-import { wrap as arrWrap } from "@tolki/arr";
-import type { ArrayItems, PathKey, PathKeys } from "@tolki/types";
+import type {
+    ArrayItems,
+    MapData,
+    MapEntryValue,
+    PathKey,
+    PathKeys,
+    UndotObjectValue,
+    UndotValue,
+} from "@tolki/types";
 import {
     arrayValueMessage,
     castableToArray,
@@ -17,6 +24,7 @@ import {
     isString,
     isUndefined,
     isUnsafeKey,
+    keyedEntries,
     phpArrayKey,
 } from "@tolki/utils";
 
@@ -279,15 +287,15 @@ export function forgetKeysObject<
 
     /**
      * Check whether a path segment is a valid array index for the given array.
-     * Segments are parsed with Number(), the same convention used by
-     * forgetKeysArray in this package.
+     * Segments take PHP's array-key cast, the same convention used by
+     * forgetKeysArray in this package, so "01" is a string key and not index 1.
      *
      * @param segment - The path segment to validate.
      * @param arr - The array the segment would index into.
      * @returns The integer index, or null if the segment is not a valid index.
      */
     const toArrayIndex = (segment: string, arr: unknown[]): number | null => {
-        const index = segment.length > 0 ? Number(segment) : NaN;
+        const index = phpArrayKey(segment);
         if (!isInteger(index) || index < 0 || index >= arr.length) {
             return null;
         }
@@ -425,8 +433,9 @@ export function forgetKeysArray<TValue>(
     data: ArrayItems<TValue>,
     keys: PathKeys,
 ): TValue[] {
-    // This mirrors Arr.forget implementation (immutable)
-    const removeAt = <U>(arr: ArrayItems<U>, index: number): U[] => {
+    // This mirrors Arr.forget implementation (immutable). A string index is a key
+    // PHP kept a string ("01", ""), which no JS list holds, so it removes nothing.
+    const removeAt = <U>(arr: ArrayItems<U>, index: string | number): U[] => {
         if (!isInteger(index) || index < 0 || index >= arr.length) {
             return arr.slice();
         }
@@ -506,15 +515,14 @@ export function forgetKeysArray<TValue>(
             return removeAt(data, k);
         }
 
-        const parts = String(k)
-            .split(".")
-            .map((p) => (p.length ? Number(p) : NaN));
+        // PHP's array-key cast, so "01" is a string key no list holds, not index 1.
+        const parts = String(k).split(".").map(phpArrayKey);
 
         if (parts.length === 1) {
             return removeAt(data, parts[0]!);
         }
 
-        if (parts.some((n) => Number.isNaN(n))) {
+        if (parts.some((n) => !isNumber(n))) {
             return data.slice();
         }
 
@@ -536,10 +544,8 @@ export function forgetKeysArray<TValue>(
             groupsMap.set(key, entry);
             continue;
         }
-        const parts = String(k)
-            .split(".")
-            .map((p) => (p.length ? Number(p) : NaN));
-        if (parts.length === 0 || parts.some((n) => Number.isNaN(n))) {
+        const parts = String(k).split(".").map(phpArrayKey);
+        if (parts.length === 0 || parts.some((n) => !isNumber(n))) {
             continue;
         }
         const parent = parts.slice(0, -1) as number[];
@@ -618,7 +624,8 @@ export function setImmutable<TValue>(
     };
 
     if (isNumber(key) || (isString(key) && key.indexOf(".") === -1)) {
-        const raw = isNumber(key) ? key : Number(key);
+        // PHP's array-key cast, so "01" and "" are string keys, not index 1 or 0.
+        const raw = isNumber(key) ? key : phpArrayKey(key);
         if (!isInteger(raw) || raw < 0) {
             return root as TValue[];
         }
@@ -637,7 +644,7 @@ export function setImmutable<TValue>(
     const parts = String(key).split(".");
     const segments: number[] = [];
     for (const p of parts) {
-        const n = p.length ? Number(p) : NaN;
+        const n = phpArrayKey(p);
         if (!isInteger(n) || n < 0) {
             return root as TValue[];
         }
@@ -798,7 +805,8 @@ export function pushWithPath<TValue>(
 /**
  * Flatten a nested structure into a flat object with dot notation keys.
  * Converts nested arrays and plain objects into a single-level object with path-based keys;
- * any other object (a class instance, Date or Map) is kept whole as a value.
+ * any other object (a class instance, Date or Map) is kept whole as a value. The root itself
+ * may be a Map, whose entries are flattened in its insertion order.
  *
  * @param data - The data to flatten.
  * @param prepend - Optional string to prepend to all keys.
@@ -824,14 +832,22 @@ export function dotFlatten<TValue, TKey extends PropertyKey = PropertyKey>(
         return dotFlattenArray(data, prepend, depth);
     }
 
-    return dotFlattenArray(arrWrap(data), prepend, depth);
+    // `Arr::wrap`'s own rule, written out: importing `wrap` from @tolki/arr for this one
+    // call closed an import cycle, since arr already imports this module. Neither an object
+    // nor an array reaches here, so the array pass-through arm cannot apply.
+    return dotFlattenArray(
+        isNull(data) ? [] : [data as TValue],
+        prepend,
+        depth,
+    );
 }
 
 /**
  * Flatten a nested object structure into a flat object with dot notation keys.
- * Converts nested objects into a single-level object with path-based keys.
+ * Converts nested objects into a single-level object with path-based keys. A Map root is
+ * read in its insertion order; a Map nested inside is kept whole as a value.
  *
- * @param data - The object to flatten.
+ * @param data - The object or Map to flatten.
  * @param prepend - Optional string to prepend to all keys.
  * @param depth - Optional maximum depth to flatten (default is Infinity).
  * @returns A flat object with dot-notated keys.
@@ -864,7 +880,7 @@ export function dotFlattenObject<
         prefix: string,
         currentDepth: number,
     ): void => {
-        for (const [key, value] of Object.entries(obj) as [TKey, TValue][]) {
+        for (const [key, value] of keyedEntries<TValue>(obj)) {
             // Arr::dot builds `$prefix.$key`, so a caller's prepend is used exactly as given.
             const newKey = `${prefix}${String(key)}`;
 
@@ -965,17 +981,24 @@ export function dotFlattenArray<TValue>(
 /**
  * Expand a flat object with dot notation keys into a nested structure.
  *
- * Dispatches to {@link undotExpandObject} for the (always plain-object) `map`
- * input; nested consecutive-integer containers become real arrays, but the
- * root always stays an object — see {@link undotExpandObject}.
+ * Dispatches to {@link undotExpandObject} for a plain-object or Map `map`, a Map read in its insertion order;
+ * nested consecutive-integer containers become real arrays, but the root always stays an object.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A nested structure (array or object).
  *
  * @example
  *
  * undotExpand({'a.b.c': 1, 'a.d': 2}); -> {a: {b: {c: 1}, d: 2}}
+ * undotExpand(new Map([['a.b', 1]])); -> {a: {b: 1}}
  */
+// A Map takes the object branch, so it answers what undotExpandObject answers for one.
+export function undotExpand<TMap>(
+    map: MapData<TMap>,
+): Record<string, UndotObjectValue<MapEntryValue<TMap>>>;
+export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
+    map: Record<TKey, TValue>,
+): TValue[] | Record<TKey, TValue>;
 export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
     map: Record<TKey, TValue>,
 ): TValue[] | Record<TKey, TValue> {
@@ -983,7 +1006,8 @@ export function undotExpand<TValue, TKey extends PropertyKey = PropertyKey>(
         return undotExpandObject(map);
     }
 
-    return undotExpandArray(map);
+    // `map` narrows to `never` here, which the Map overload would claim, so the type arguments pick the record one.
+    return undotExpandArray<TValue, TKey>(map);
 }
 
 /**
@@ -1041,15 +1065,24 @@ function promoteConsecutiveIntegerContainers(
  *
  * Nested containers whose own keys are the consecutive integers `0..n-1` are
  * rebuilt as real arrays (see {@link promoteConsecutiveIntegerContainers}); the
- * root always stays a plain object.
+ * root always stays a plain object. A Map is read in its insertion order.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A nested object structure.
  *
  * @example
  *
  * undotExpandObject({'user.name': 'John', 'user.age': 30}); -> {user: {name: 'John', age: 30}}
+ * undotExpandObject(new Map([['a.b', 1], ['c', 2]])); -> {a: {b: 1}, c: 2}
  */
+// A Map's keys are only known at runtime, so it answers a string-keyed record, as obj.undot's Map row does.
+export function undotExpandObject<TMap>(
+    map: MapData<TMap>,
+): Record<string, UndotObjectValue<MapEntryValue<TMap>>>;
+export function undotExpandObject<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(map: Record<TKey, TValue>): Record<TKey, TValue>;
 export function undotExpandObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
@@ -1057,8 +1090,9 @@ export function undotExpandObject<
     const results: Record<string, TValue> = {} as Record<TKey, TValue>;
     const containerPaths = new Set<string>();
 
-    // Object.entries returns string keys only (symbols are not enumerated)
-    for (const [key, value] of Object.entries(map) as [string, TValue][]) {
+    // A Map keeps its insertion order, so when a dotted key and a plain key name the same place,
+    // the later write wins, as in PHP.
+    for (const [key, value] of keyedEntries<TValue>(map)) {
         const result = setObjectValue(results, key, value);
         // Object.assign uses [[Set]], so a "__proto__" key setObjectValue
         // returns as its own data would reparent results instead of copying.
@@ -1100,9 +1134,10 @@ export function isCanonicalUndotIndex(segment: string): boolean {
 
 /**
  * Expand a flat object with dot notation keys into a nested array structure.
- * Converts a flattened object back into its original nested array form.
+ * Converts a flattened object back into its original nested array form. A Map is read
+ * in its insertion order.
  *
- * @param map - The flat object with dot-notated keys.
+ * @param map - The flat object or Map with dot-notated keys.
  * @returns A nested array structure.
  *
  * @example
@@ -1110,17 +1145,24 @@ export function isCanonicalUndotIndex(segment: string): boolean {
  * Expand flat object to nested arrays
  * undotExpandArray({ '0': 'a', '1.0': 'b', '1.1': 'c' }); -> ['a', ['b', 'c']]
  * undotExpandArray({ '0.0.0': 'deep' }); -> [[['deep']]]
+ * undotExpandArray(new Map([['1', 'b'], ['0', 'a']])); -> ['a', 'b']
  */
+// A Map's string keys may be dotted index paths, so a value may sit inside nested lists.
+export function undotExpandArray<TMap>(
+    map: MapData<TMap>,
+): UndotValue<MapEntryValue<TMap>>[];
+export function undotExpandArray<
+    TValue,
+    TKey extends PropertyKey = PropertyKey,
+>(map: Record<TKey, TValue>): TValue[];
 export function undotExpandArray<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(map: Record<TKey, TValue>): TValue[] {
     const root: unknown[] = [];
-    // Object.entries returns string keys only
-    for (const [rawKey, value] of Object.entries(map ?? {}) as [
-        string,
-        TValue,
-    ][]) {
+    // A Map keeps its insertion order, so the later of two writes to one place wins, as in PHP, except that a
+    // dotted key running through a scalar an earlier key wrote is skipped, where PHP's later write replaces it.
+    for (const [rawKey, value] of keyedEntries<TValue>(map ?? {})) {
         if (rawKey.length === 0) {
             continue;
         }
@@ -1290,9 +1332,11 @@ export function getMixedValue<TValue, TDefault = null>(
 
     // For dot notation, check if we have mixed notation (not all numeric)
     const segments = keyStr.split(".");
+    // PHP's array-key cast, so "01" and "" name string keys the mixed reader has
+    // to resolve; Number() called them indices and sent them to the list reader.
     const allNumeric = segments.every((seg) => {
-        const n = Number(seg);
-        return isInteger(n) && n >= 0;
+        const n = phpArrayKey(seg);
+        return isNumber(n) && n >= 0;
     });
 
     // If all segments are numeric, use existing getRaw function
@@ -1314,6 +1358,19 @@ export function getMixedValue<TValue, TDefault = null>(
 /**
  * Enhanced mixed array/object path functions for Laravel-style operations
  */
+
+/**
+ * Determine whether a path segment's value is a container a write descends into.
+ *
+ * `Arr::set` tests `is_array`, so a class instance, `Date` or `Map` is not a
+ * container: the write replaces it wholesale rather than merging onto it.
+ *
+ * @param value - The value found at a path segment.
+ * @returns True when the value is a list or a plain object.
+ */
+function isWritableContainer(value: unknown): boolean {
+    return isArray(value) || isPlainObject(value);
+}
 
 /**
  * Set a value in an array using mixed array/object dot notation (mutable version).
@@ -1365,24 +1422,20 @@ export function setMixed<TValue>(
         return arr;
     }
 
-    // Handle dot notation
-    const segments = key.toString().split(".");
+    // PHP subscripts the array with the segment itself, so PHP's array-key cast
+    // decides: "01" and "" stay string keys and only a canonical integer indexes.
+    const segments = key.toString().split(".").map(phpArrayKey);
     let current: unknown = arr;
 
-    // Validate first segment for arrays
+    // A first segment that is no list index cannot address the root array, so an
+    // empty root becomes the single record the rest of the path writes into.
     const firstSegment = segments[0];
-    if (!firstSegment) {
-        return arr;
-    }
-
-    const firstIndex = parseInt(firstSegment, 10);
-    // At this point, current === arr which is always an array
-    if (!isInteger(firstIndex) || firstIndex < 0) {
-        // If array is empty, create object at index 0 for non-numeric first segment
-        if ((current as unknown[]).length === 0) {
-            (current as unknown[]).push({});
-            current = (current as unknown[])[0];
-        }
+    if (
+        !(isNumber(firstSegment) && firstSegment >= 0) &&
+        (current as unknown[]).length === 0
+    ) {
+        (current as unknown[]).push({});
+        current = (current as unknown[])[0];
         // Otherwise fall through: Arr::set stores a key that is no array
         // index on the array itself, and a JS array is an object, so it
         // can carry it as an own property rather than losing the value.
@@ -1390,54 +1443,39 @@ export function setMixed<TValue>(
 
     for (let i = 0; i < segments.length - 1; i++) {
         const segment = segments[i];
-        if (!segment) {
-            continue;
-        }
+        const nextSegment = segments[i + 1];
 
-        const index = parseInt(segment, 10);
-
-        if (isInteger(index) && index >= 0 && isArray(current)) {
+        if (isNumber(segment) && segment >= 0 && isArray(current)) {
             // Extend array if necessary
-            while (current.length <= index) {
+            while (current.length <= segment) {
                 current.push(undefined);
             }
 
             // If the next level doesn't exist or isn't an object/array, create it
-            const nextValue = current[index];
-            if (
-                isNull(nextValue) ||
-                isUndefined(nextValue) ||
-                !isObjectAny(nextValue)
-            ) {
-                const nextSegment = segments[i + 1]!;
-                const nextIndex = parseInt(nextSegment, 10);
-                current[index] = (isInteger(nextIndex) ? [] : {}) as TValue;
+            const nextValue = current[segment];
+            if (!isWritableContainer(nextValue)) {
+                current[segment] = (isNumber(nextSegment) ? [] : {}) as TValue;
             }
 
-            current = current[index];
+            current = current[segment];
         } else {
             // Handle non-numeric keys (object properties)
             // At this point, current is guaranteed to be an object (or array treated as object)
             // because we always create structure before navigating
             const obj = current as Record<string, unknown>;
-            const unsafe = isUnsafeKey(segment);
+            const property = String(segment);
+            const unsafe = isUnsafeKey(property);
             // An unsafe key not yet its own risks reading the inherited
             // accessor/data value (e.g. Object.prototype); treat it as absent.
             const nextValue =
-                unsafe && !Object.hasOwn(obj, segment)
+                unsafe && !Object.hasOwn(obj, property)
                     ? undefined
-                    : obj[segment];
-            if (
-                isNull(nextValue) ||
-                isUndefined(nextValue) ||
-                !isObjectAny(nextValue)
-            ) {
-                const nextSegment = segments[i + 1]!;
-                const nextIndex = parseInt(nextSegment, 10);
+                    : obj[property];
+            if (!isWritableContainer(nextValue)) {
                 defineKey(
                     obj,
-                    segment,
-                    (isInteger(nextIndex) ? [] : {}) as TValue,
+                    property,
+                    (isNumber(nextSegment) ? [] : {}) as TValue,
                 );
             } else if (unsafe) {
                 // An owned unsafe key can itself be a live reference to a
@@ -1445,7 +1483,7 @@ export function setMixed<TValue>(
                 // clone it so the write below never lands on the real thing.
                 defineKey(
                     obj,
-                    segment,
+                    property,
                     (isArray(nextValue)
                         ? [...(nextValue as unknown[])]
                         : {
@@ -1453,7 +1491,7 @@ export function setMixed<TValue>(
                           }) as TValue,
                 );
             }
-            current = obj[segment];
+            current = obj[property];
         }
 
         // Descending into one makes every write below it global, so the same
@@ -1463,24 +1501,25 @@ export function setMixed<TValue>(
         }
     }
 
-    // Set the final value
+    // JS-only: the else branch stores a non-index key as the list's OWN property, which is no
+    // element — get misses it, has too EXCEPT for a negative index, and except, add and set drop
+    // it, all PHP keeps (task-24-data-release-readiness.json, "own-key-channel-*"). only, forget agree.
     const lastSegment = segments[segments.length - 1];
-    if (!lastSegment) {
-        return arr;
-    }
 
-    const lastIndex = parseInt(lastSegment, 10);
-
-    if (isInteger(lastIndex) && lastIndex >= 0 && isArray(current)) {
-        while (current.length <= lastIndex) {
+    if (isNumber(lastSegment) && lastSegment >= 0 && isArray(current)) {
+        while (current.length <= lastSegment) {
             current.push(undefined as TValue);
         }
-        current[lastIndex] = value as TValue;
+        current[lastSegment] = value as TValue;
     } else if (!isNull(current) && isObjectAny(current)) {
         // The traversal above builds structure as it goes, so `current` is
         // an array or plain object here for any array-shaped root — this
         // guard only matters for a caller-supplied root that never was one.
-        defineKey(current as Record<string, unknown>, lastSegment, value);
+        defineKey(
+            current as Record<string, unknown>,
+            String(lastSegment),
+            value,
+        );
     }
 
     return arr;
@@ -1527,12 +1566,13 @@ export function pushMixed<TValue>(
         return arr as TValue[];
     }
 
-    // Navigate to the target using mixed paths
+    // Navigate to the target using mixed paths. PHP subscripts with the segment
+    // itself, so only a canonical integer names an index; "01" is a string key.
     const segments = key.toString().split(".");
     if (segments.length === 1) {
         // Simple case: push directly to root array at the specified index
-        const idx = parseInt(segments[0]!, 10);
-        if (isInteger(idx) && idx >= 0) {
+        const idx = phpArrayKey(segments[0]!);
+        if (isNumber(idx) && idx >= 0) {
             // Push directly to the array - don't create nested structure
             (data as unknown[]).push(...(values as unknown[]));
         }
@@ -1545,9 +1585,9 @@ export function pushMixed<TValue>(
         const segment = segments[i];
         if (!segment) continue;
 
-        const index = parseInt(segment, 10);
+        const index = phpArrayKey(segment);
 
-        if (isInteger(index) && index >= 0 && isArray(current)) {
+        if (isNumber(index) && index >= 0 && isArray(current)) {
             // Extend array if necessary
             while (current.length <= index) {
                 current.push(undefined);
@@ -1598,6 +1638,11 @@ export function pushMixed<TValue>(
  * Set a value in an array using mixed array/object dot notation (immutable version).
  * Supports both numeric array indices and object property names in paths.
  *
+ * The copy is deep through arrays and plain objects only. A class instance, a `Date` or a
+ * `Map` is aliased into the result rather than copied, because PHP holds an object by handle
+ * where it copies an array by value — copying one's entries flattened it into a plain object.
+ * Such a value is shared with the caller's input; the write path itself is never shared.
+ *
  * @param data - The data to set the value in.
  * @param key - The path where to set the value.
  * @param value - The value to set.
@@ -1623,7 +1668,9 @@ export function setMixedImmutable<TValue>(
         return [] as TValue[];
     }
 
-    // Create a deep copy for immutable operation
+    // Copy every array and plain object along the way, so the caller's value is never written
+    // through. A class instance, Date or Map is ALIASED into the result instead — deliberately:
+    // PHP holds an object by handle, and copying its entries flattened it into a plain object.
     const deepCopy = (obj: unknown): unknown => {
         // Return primitives and null/undefined as-is
         if (isNull(obj) || isUndefined(obj) || !isObjectAny(obj)) {
@@ -1634,7 +1681,14 @@ export function setMixedImmutable<TValue>(
             return obj.map(deepCopy);
         }
 
-        // Object case - obj is a non-null, non-array object
+        // A class instance, a Date or a Map is no PHP array: copying its entries flattened it
+        // into a plain object, and setMixed then MERGED onto it where `is_array` replaces it
+        // wholesale. PHP holds an object by handle, so sharing the reference is the copy.
+        if (!isPlainObject(obj)) {
+            return obj;
+        }
+
+        // Object case - obj is a non-null, non-array plain object
         const result: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(obj)) {
             defineKey(result, k, deepCopy(v));
@@ -1812,10 +1866,15 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
     const segments = keyStr.split(".");
     let current: Record<string, unknown> = result;
 
-    for (let i = 0; i < segments.length - 1; i++) {
-        const segment = segments[i];
-        if (!segment) {
-            continue;
+    const lastIndex = segments.length - 1;
+
+    // An empty segment is a real PHP array key: `Arr::set($a, 'a..b', 9)` writes
+    // `$a['a']['']['b']`. Skipping it wrote the wrong path or dropped the value.
+    for (const [index, segment] of segments.entries()) {
+        if (index === lastIndex) {
+            defineKey(current, segment, value);
+
+            break;
         }
 
         // An unsafe segment not yet its own risks reading the inherited
@@ -1825,21 +1884,20 @@ export function setObjectValue<TValue, TKey extends PropertyKey = PropertyKey>(
                 ? undefined
                 : current[segment];
 
+        // Arr::set descends by is_array, so a class instance, Date or Map on the path is
+        // replaced wholesale; a list is a container and keeps its elements. The clone is
+        // what makes the write immutable, so it has to match the container's own shape.
         defineKey(
             current,
             segment,
-            !existing || !isObject(existing)
+            !isWritableContainer(existing)
                 ? {}
-                : // Clone nested objects to maintain immutability
-                  { ...(existing as Record<string, unknown>) },
+                : isArray(existing)
+                  ? [...(existing as unknown[])]
+                  : { ...(existing as Record<string, unknown>) },
         );
 
         current = current[segment] as Record<string, unknown>;
-    }
-
-    const lastSegment = segments[segments.length - 1];
-    if (lastSegment) {
-        defineKey(current, lastSegment, value);
     }
 
     return result as Record<TKey, TValue>;
