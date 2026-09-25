@@ -6,6 +6,7 @@ import {
     isString,
     ItemNotFoundException,
     MultipleItemsFoundException,
+    UnexpectedValueException,
 } from "@tolki/utils";
 import { afterEach, assertType, describe, expect, it } from "vitest";
 
@@ -10419,52 +10420,94 @@ describe("Collection", () => {
     describe("ensure", () => {
         describe("Laravel Tests", () => {
             it("test ensure for scalar", () => {
+                // CollectionTest::testEnsureForScalar
                 const data = collect([1, 2, 3]);
                 data.ensure("number");
 
                 const data2 = collect([1, 2, 3, "foo"]);
-                expect(() => {
-                    data2.ensure("number");
-                }).toThrowError();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-scalar-message"
+                // JS-only: the list names the JavaScript type the caller passed, number, where PHP's names int
+                expect(() => data2.ensure("number")).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [number] items, but 'string' found at position 3.",
+                    ),
+                );
             });
 
             it("test ensure for objects", () => {
-                const data = collect([{}, {}, {}]);
-                data.ensure("object");
+                // CollectionTest::testEnsureForObjects
+                class stdClass {}
 
-                const data2 = collect([{}, {}, {}, collect([])]);
-                expect(() => {
-                    data2.ensure("object");
-                }).toThrowError();
+                const data = collect([
+                    new stdClass(),
+                    new stdClass(),
+                    new stdClass(),
+                ]);
+                data.ensure(stdClass);
+
+                const data2 = collect([
+                    new stdClass(),
+                    new stdClass(),
+                    new stdClass(),
+                    Collection.name,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-class-message"
+                expect(() => data2.ensure(stdClass)).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [stdClass] items, but 'string' found at position 3.",
+                    ),
+                );
             });
 
             it("test ensure for inheritance", () => {
-                const data = collect([new Error(), new Error()]);
-                data.ensure("object");
+                // CollectionTest::testEnsureForInheritance
+                const data = collect([new TypeError(), new RangeError()]);
+                data.ensure(Error);
 
-                const wrongType = collect([]);
-                const data2 = collect([new Error(), new Error(), wrongType]);
-                expect(() => {
-                    data2.ensure("object");
-                }).toThrowError();
+                const wrongType = new Collection();
+                const data2 = collect([
+                    new TypeError(),
+                    new RangeError(),
+                    wrongType,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-inheritance-message"
+                // JS-only: Error roots JavaScript's errors where Throwable roots PHP's, and a class has no namespace
+                expect(() => data2.ensure(Error)).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [Error] items, but 'Collection' found at position 2.",
+                    ),
+                );
             });
 
             it("test ensure for multiple types", () => {
+                // CollectionTest::testEnsureForMultipleTypes
                 const data = collect([new Error(), 123]);
-                data.ensure(["object", "number"]);
+                data.ensure([Error, "number"]);
 
-                const wrongType = collect([]);
+                const wrongType = new Collection();
                 const data2 = collect([new Error(), new Error(), wrongType]);
-                expect(() => {
-                    data2.ensure(["object", "number"]);
-                }).toThrowError();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-multiple-message"
+                // JS-only: Error and number stand in for PHP's Throwable and int, and a class has no namespace
+                expect(() => data2.ensure([Error, "number"])).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [Error, number] items, but 'Collection' found at position 2.",
+                    ),
+                );
             });
         });
 
         it("handles object type values", () => {
             const c = collect(["hello", "world"]);
-            // Type as object with type names as values
-            expect(() => c.ensure({ first: "string" })).not.toThrow();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-assoc-types"
+            expect(c.ensure({ first: "string" }).all()).toEqual([
+                "hello",
+                "world",
+            ]);
         });
 
         it("handles instanceof check", () => {
@@ -10472,7 +10515,115 @@ describe("Collection", () => {
                 constructor(public value: number) {}
             }
             const c = collect([new MyClass(1), new MyClass(2)]);
+
+            // CollectionTest::testEnsureForObjects
             expect(() => c.ensure(MyClass)).not.toThrow();
+        });
+
+        it("accepts an instance of a subclass of the class it names", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-subclass-passes"
+            expect(collect([new Child()]).ensure(Parent).count()).toBe(1);
+        });
+
+        it("accepts null for the null type", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-null-passes"
+            expect(collect([null]).ensure("null").all()).toEqual([null]);
+        });
+
+        it("names a null item as gettype() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-array-rejects-null"
+            // JS-only: phpTypeName names null NULL, as gettype() does, where PHP's get_debug_type says null
+            expect(() => collect([null]).ensure("array")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [array] items, but 'NULL' found at position 0.",
+                ),
+            );
+        });
+
+        it("returns the collection it checked", () => {
+            const collection = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-returns-same-instance"
+            expect(collection.ensure("number")).toBe(collection);
+        });
+
+        it("prints a string key's position as PHP's %d does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-keyed-position"
+            expect(() => collect({ a: 1, b: "x" }).ensure("number")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [number] items, but 'string' found at position 0.",
+                ),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-numeric-prefix-key-position"
+            expect(() => collect({ "3x": "a" }).ensure("number")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [number] items, but 'string' found at position 3.",
+                ),
+            );
+        });
+
+        it("takes the object type as any object but null and an array", () => {
+            // JS-only: PHP has no object type name; a Collection is an object like any other
+            expect(
+                collect([{}, new Date(0), new Collection()])
+                    .ensure("object")
+                    .count(),
+            ).toBe(3);
+            expect(() => collect([null]).ensure("object")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [object] items, but 'NULL' found at position 0.",
+                ),
+            );
+            expect(() => collect([[1]]).ensure("object")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [object] items, but 'array' found at position 0.",
+                ),
+            );
+        });
+
+        it("reads undefined as null, and as its own undefined type", () => {
+            // JS-only: undefined is read as PHP's null
+            expect(collect([undefined]).ensure("null").count()).toBe(1);
+            expect(collect([undefined]).ensure("undefined").count()).toBe(1);
+        });
+
+        it("names what it found as gettype() does, and an object a class built by that class", () => {
+            // JS-only: PHP's get_debug_type names int, float and bool, where phpTypeName follows gettype()
+            expect(() => collect([1]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'integer' found at position 0.",
+                ),
+            );
+            expect(() => collect([1.5]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'double' found at position 0.",
+                ),
+            );
+            expect(() => collect([{}]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'object' found at position 0.",
+                ),
+            );
+            expect(() => collect([new Date(0)]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'Date' found at position 0.",
+                ),
+            );
+        });
+
+        it("names an object with no constructor by its type", () => {
+            const orphan: unknown = Object.create(Object.create(null));
+
+            // JS-only: an object whose prototype chain holds no constructor has no class to name
+            expect(() => collect([orphan]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'object' found at position 0.",
+                ),
+            );
         });
     });
 

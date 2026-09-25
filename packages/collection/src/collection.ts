@@ -70,6 +70,7 @@ import {
     defineKey,
     isArray,
     isEnumCase,
+    isFiniteNumber,
     isFunction,
     isInteger,
     isIntegerLikeKey,
@@ -95,6 +96,7 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
+    phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolveDefault,
@@ -104,6 +106,7 @@ import {
     toJsonSerializable,
     toPhpKeyString,
     typeOf,
+    UnexpectedValueException,
 } from "@tolki/utils";
 
 // import { initProxyHandler } from "./proxy";
@@ -4694,24 +4697,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Ensure that every item in the collection is of the expected type.
      *
-     * @param type - The expected type(s) for the items, can be a string type name, constructor, array of types, or object with types as values
+     * @param type - A class, or a type name ("string", "number", "boolean", "symbol", "bigint", "function", "array",
+     * "object", "null" or "undefined"), or a list or record of them
      * @returns The current collection instance if all items are of the expected type
-     * @throws Error if any item is not of the expected type
+     * @throws UnexpectedValueException naming the first item that is none of the types, and its position
      *
      * @example
      *
      * new Collection([1, 2, 3]).ensure('number'); -> collection is valid
-     * new Collection([1, '2', 3]).ensure('number'); -> throws Error
+     * new Collection([1, '2', 3]).ensure('number'); -> throws UnexpectedValueException
      * new Collection([new Date(), new Date()]).ensure(Date); -> collection is valid
-     * new Collection([new Date(), {}]).ensure(Date); -> throws Error
+     * new Collection([new Date(), {}]).ensure(Date); -> throws UnexpectedValueException
      * new Collection([1, '2', true]).ensure(['number', 'string', 'boolean']); -> collection is valid
-     * new Collection([1, '2', null]).ensure(['number', 'string', 'boolean']); -> throws Error
-     * new Collection([1, '2', null]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> throws Error
+     * new Collection([1, '2', null]).ensure(['number', 'string', 'boolean']); -> throws UnexpectedValueException
      * new Collection([1, '2', true]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> collection is valid
-     * new Collection([1, 2, 3]).ensure('string'); -> throws Error
      * new Collection([null, undefined]).ensure('null'); -> collection is valid
-     * new Collection([null, undefined]).ensure('undefined'); -> collection is valid
-     * new Collection([null, undefined]).ensure(['null', 'undefined']); -> collection is valid
+     * new Collection([{}, new Date()]).ensure('object'); -> collection is valid
      */
     ensure<TEnsureOfType>(
         type:
@@ -4725,30 +4726,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | "undefined"
             | "null",
     ) {
-        const types = isArray(type)
+        const allowedTypes: unknown[] = isArray(type)
             ? type
             : isObject(type)
               ? Object.values(type)
               : [type];
 
-        return this.each((item, index) => {
-            const itemType = typeOf(item);
-            for (const allowedType of types) {
-                // When checking for 'object' type, exclude Collection instances
-                if (allowedType === "object" && item instanceof Collection) {
-                    continue;
-                }
-
-                if (
-                    itemType === allowedType ||
-                    (isFunction(allowedType) && item instanceof allowedType)
-                ) {
-                    return true;
-                }
+        return this.each((item, key) => {
+            if (
+                allowedTypes.some((allowedType) => isOfType(item, allowedType))
+            ) {
+                return true;
             }
 
-            throw new Error(
-                `Collection should only include [${types.join(", ")}] items, but '${itemType}' found at position ${String(index)}.`,
+            const names = allowedTypes.map((allowedType) =>
+                isFunction(allowedType)
+                    ? allowedType.name
+                    : String(allowedType),
+            );
+
+            throw new UnexpectedValueException(
+                `Collection should only include [${names.join(", ")}] items, but '${foundTypeName(item)}' found at position ${phpIntegerFormat(key)}.`,
             );
         });
     }
@@ -6411,6 +6409,64 @@ function handOver<TItems extends object>(items: TItems): TItems {
     owned.add(items);
 
     return items;
+}
+
+/**
+ * Determine whether an item is of a type ensure() names: a class by instanceof, a type name by the item's own type.
+ *
+ * @param item - The item to check
+ * @param type - A class, or a type name such as "string", "array", "object" or "null"
+ * @returns True when the item is of the type
+ */
+function isOfType(item: unknown, type: unknown): boolean {
+    if (isFunction(type)) {
+        return item instanceof type;
+    }
+
+    if (isNull(item)) {
+        return type === "null";
+    }
+
+    // The port reads undefined as PHP's null, so "null" accepts it beside its own "undefined".
+    if (isUndefined(item)) {
+        return type === "null" || type === "undefined";
+    }
+
+    return type === typeOf(item);
+}
+
+/**
+ * Name an item's type for ensure()'s message: the class of an object a class built, else the name gettype() gives.
+ *
+ * @param item - The item to name
+ * @returns The class's name, or phpTypeName's
+ */
+function foundTypeName(item: unknown): string {
+    if (
+        !isPlainObject(item) &&
+        isObject(item) &&
+        isFunction(item["constructor"])
+    ) {
+        return item["constructor"].name;
+    }
+
+    return phpTypeName(item);
+}
+
+/**
+ * Print a key the way PHP's `sprintf('%d', $key)` does: an integer as itself, a string by its leading number, else 0.
+ *
+ * @param key - The key to print
+ * @returns The integer PHP prints
+ */
+function phpIntegerFormat(key: PropertyKey): number {
+    if (isNumber(key)) {
+        return key;
+    }
+
+    const leading = Number.parseFloat(String(key));
+
+    return isFiniteNumber(leading) ? Math.trunc(leading) : 0;
 }
 
 /**
