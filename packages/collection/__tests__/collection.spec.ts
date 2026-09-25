@@ -544,13 +544,25 @@ describe("Collection", () => {
         });
 
         it("hands out getIterator()'s iterator, which is itself iterable", () => {
-            const iterator = collect([1, 2])[Symbol.iterator]();
+            const collection = collect([1, 2]);
+            const getIterator = vi.spyOn(collection, "getIterator");
 
-            // JS-only: for...of is JavaScript's foreach, and it reads the same iterator getIterator() returns
-            expect(Symbol.iterator in iterator).toBe(true);
-            expect(Object.prototype.toString.call(iterator)).toBe(
-                "[object Array Iterator]",
-            );
+            try {
+                const seen: number[] = [];
+
+                for (const value of collection) {
+                    seen.push(value);
+                }
+
+                // JS-only: for...of is JavaScript's foreach, and it reads the iterator getIterator() returns
+                expect(getIterator).toHaveBeenCalledOnce();
+                expect(seen).toEqual([1, 2]);
+                expect(Symbol.iterator in collection[Symbol.iterator]()).toBe(
+                    true,
+                );
+            } finally {
+                getIterator.mockRestore();
+            }
         });
 
         it("iterates a snapshot, as PHP's foreach does", () => {
