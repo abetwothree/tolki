@@ -163,6 +163,7 @@ describe("Collection", () => {
 
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
+            // CollectionTest::testConstructMethodFromNull
             const collection = collect();
             expect(collection.all()).toEqual([]);
         });
@@ -176,11 +177,13 @@ describe("Collection", () => {
         });
 
         it("creates collection from object", () => {
+            // CollectionTest::testConstructMethodFromArray
             const collection = collect({ a: 1, b: 2 });
             expect(collection.all()).toEqual({ a: 1, b: 2 });
         });
 
         it("creates collection from null or undefined values", () => {
+            // CollectionTest::testConstructMethodFromNull
             const collectionFromNull = collect(null);
             expect(collectionFromNull.all()).toEqual([]);
 
@@ -189,6 +192,7 @@ describe("Collection", () => {
         });
 
         it("creates a collection from another collection", () => {
+            // CollectionTest::testConstructMethodFromCollection
             const original = collect([1, 2, 3]);
             const collection = collect(original);
             expect(collection.all()).toEqual([1, 2, 3]);
@@ -228,6 +232,8 @@ describe("Collection", () => {
         });
 
         it("creates a collection from a primitive value (string, number, boolean)", () => {
+            // CollectionTest::testConstructMethod
+            // CollectionTest::testCollectionIsConstructed
             const stringCollection = collect("hello");
             expect(stringCollection.all()).toEqual(["hello"]);
 
@@ -246,6 +252,8 @@ describe("Collection", () => {
                     [4, { id: 2, name: "C" }],
                 ]),
             );
+
+            // JS-only: a Map stands in for a PHP array whose integer keys are out of order
             expect(data.all()).toEqual({
                 3: { id: 1, name: "A" },
                 5: { id: 3, name: "B" },
@@ -254,6 +262,7 @@ describe("Collection", () => {
         });
 
         it("constructor preserves itemsWithOrder when created from another Collection", () => {
+            // JS-only: itemsWithOrder is this port's own record of an order a plain object cannot hold
             // Create a collection via Map with numeric keys to set itemsWithOrder
             const m = new Map<number, { v: string }>([
                 [2, { v: "b" }],
@@ -515,6 +524,7 @@ describe("Collection", () => {
 
     describe("Symbol.iterator", () => {
         it("makes the collection iterable with for...of", () => {
+            // JS-only: for...of is JavaScript's counterpart of PHP's foreach
             const collection = collect([10, 20, 30]);
             const result: number[] = [];
             for (const item of collection) {
@@ -524,6 +534,7 @@ describe("Collection", () => {
         });
 
         it("makes the collection iterable with for...of for object items", () => {
+            // JS-only: for...of is JavaScript's counterpart of PHP's foreach
             const collection = collect({ a: 1, b: 2, c: 3 });
             const result: number[] = [];
             for (const item of collection) {
@@ -3730,7 +3741,9 @@ describe("Collection", () => {
 
     describe("isEmpty", () => {
         describe("Laravel Tests", () => {
-            it("", () => {
+            it("answers for an empty collection and a filled one", () => {
+                // CollectionTest::testEmptyCollectionIsEmpty
+                // CollectionTest::testEmptyCollectionIsNotEmpty
                 const data = collect();
 
                 expect(data.isEmpty()).toBe(true);
@@ -3761,6 +3774,11 @@ describe("Collection", () => {
         it("returns false for non-empty object collection", () => {
             const collection = collect({ a: 1 });
             expect(collection.isEmpty()).toBe(false);
+        });
+
+        it("counts a null item as an item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-isEmpty-null-item"
+            expect(collect([null]).isEmpty()).toBe(false);
         });
 
         it("agrees with count() after a keyed write onto an empty list", () => {
@@ -9072,6 +9090,7 @@ describe("Collection", () => {
     describe("getIterator", () => {
         describe("Laravel Tests", () => {
             it("test iterable", () => {
+                // CollectionTest::testIterable
                 const c = collect(["foo"]);
                 const iterator = c.getIterator();
                 expect(iterator[Symbol.iterator]).toBeDefined();
@@ -9126,6 +9145,8 @@ describe("Collection", () => {
     describe("count", () => {
         describe("Laravel Tests", () => {
             it("test countable", () => {
+                // CollectionTest::testCountable
+                // JS-only: Number(c) and length stand in for PHP's Countable
                 const c = collect(["foo", "bar"]);
                 expect(Number(c)).toBe(2);
                 expect(c).toHaveLength(2);
@@ -9592,11 +9613,13 @@ describe("Collection", () => {
     describe("make", () => {
         describe("Laravel Tests", () => {
             it("test make method", () => {
+                // CollectionTest::testMakeMethod
                 const data = Collection.make("foo");
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test make method from null", () => {
+                // CollectionTest::testMakeMethodFromNull
                 const data = Collection.make(null);
                 expect(data.all()).toEqual([]);
 
@@ -9605,12 +9628,15 @@ describe("Collection", () => {
             });
 
             it("test make method from collection", () => {
+                // CollectionTest::testMakeMethodFromCollection
                 const firstCollection = Collection.make({ foo: "bar" });
                 const secondCollection = Collection.make(firstCollection);
                 expect(secondCollection.all()).toEqual({ foo: "bar" });
             });
 
             it("test make method from array", () => {
+                // CollectionTest::testMakeMethodFromArray
+                // CollectionTest::testConstructMakeFromObject
                 const data = Collection.make({ foo: "bar" });
                 expect(data.all()).toEqual({ foo: "bar" });
 
@@ -9632,16 +9658,19 @@ describe("Collection", () => {
     describe("wrap", () => {
         describe("Laravel Tests", () => {
             it("test wrap with scalar", () => {
+                // CollectionTest::testWrapWithScalar
                 const data = Collection.wrap("foo");
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test wrap with array", () => {
+                // CollectionTest::testWrapWithArray
                 const data = Collection.wrap(["foo"]);
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test wrap with arrayable", () => {
+                // CollectionTest::testWrapWithArrayable
                 class TestArrayableObject {
                     toArray() {
                         return ["arrayable"];
@@ -9654,6 +9683,7 @@ describe("Collection", () => {
             });
 
             it("test wrap with jsonable", () => {
+                // CollectionTest::testWrapWithJsonable
                 class TestJsonableObject {
                     toJSON() {
                         return JSON.stringify(["jsonable"]);
@@ -9666,6 +9696,7 @@ describe("Collection", () => {
             });
 
             it("test wrap with json serialize", () => {
+                // CollectionTest::testWrapWithJsonSerialize
                 class TestJsonSerializeObject {
                     toJSON() {
                         return JSON.stringify(["jsonserialize"]);
@@ -9678,12 +9709,14 @@ describe("Collection", () => {
             });
 
             it("test wrap with collection class", () => {
+                // CollectionTest::testWrapWithCollectionClass
                 const innerCollection = Collection.make(["foo"]);
                 const data = Collection.wrap(innerCollection);
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test wrap with collection sub class", () => {
+                // CollectionTest::testWrapWithCollectionSubclass
                 class TestCollectionSubclass extends Collection<
                     unknown,
                     string
@@ -9740,15 +9773,18 @@ describe("Collection", () => {
     describe("unwrap", () => {
         describe("Laravel Tests", () => {
             it("test unwrap collection", () => {
+                // CollectionTest::testUnwrapCollection
                 const data = new Collection(["foo"]);
                 expect(Collection.unwrap(data)).toEqual(["foo"]);
             });
 
             it("test unwrap collection with array", () => {
+                // CollectionTest::testUnwrapCollectionWithArray
                 expect(Collection.unwrap(["foo"])).toEqual(["foo"]);
             });
 
             it("test unwrap collection with scalar", () => {
+                // CollectionTest::testUnwrapCollectionWithScalar
                 expect(Collection.unwrap("foo")).toBe("foo");
             });
         });
@@ -9764,11 +9800,13 @@ describe("Collection", () => {
             });
 
             it("test empty collection is empty", () => {
+                // CollectionTest::testEmptyCollectionIsEmpty
                 const c = new Collection();
                 expect(c.isEmpty()).toBe(true);
             });
 
             it("test empty collection is not empty", () => {
+                // CollectionTest::testEmptyCollectionIsNotEmpty
                 const c = new Collection(["foo", "bar"]);
                 expect(c.isEmpty()).toBe(false);
                 expect(c.isNotEmpty()).toBe(true);
@@ -9788,6 +9826,7 @@ describe("Collection", () => {
     describe("times", () => {
         describe("Laravel Tests", () => {
             it("test times method", () => {
+                // CollectionTest::testTimesMethod
                 const two = Collection.times(2, (number) => {
                     return `slug-${number}`;
                 });
@@ -9807,11 +9846,17 @@ describe("Collection", () => {
                 expect(range.all()).toEqual([1, 2, 3, 4, 5]);
             });
         });
+
+        it("counts to the whole part of a fractional count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-fractional-count"
+            expect(Collection.times(2.7).all()).toEqual([1, 2]);
+        });
     });
 
     describe("fromJson", () => {
         describe("Laravel Tests", () => {
             it("test from json", () => {
+                // CollectionTest::testFromJson
                 const json = JSON.stringify({ foo: "bar", baz: "quz" });
 
                 const instance = Collection.fromJson(json);
@@ -12475,6 +12520,7 @@ describe("Collection", () => {
     describe("collect", () => {
         describe("Laravel Tests", () => {
             it("test collect", () => {
+                // CollectionTest::testCollect
                 const data = Collection.make({
                     a: 1,
                     b: 2,
@@ -12516,6 +12562,7 @@ describe("Collection", () => {
 
     describe("toArray", () => {
         it("test to array", () => {
+            // CollectionTest::testToArrayCallsToArrayOnEachItemInCollection
             const data = Collection.make({ a: 1, b: 2, c: 3 });
 
             expect(data.toArray()).toEqual({ a: 1, b: 2, c: 3 });
@@ -12681,6 +12728,8 @@ describe("Collection", () => {
             }
 
             const c = collect([new ToJSONOnly()]);
+
+            // JS-only: toJSON is JavaScript's own serialization hook, which PHP has no counterpart for
             expect(c.jsonSerialize()).toEqual([{ foo: "bar" }]);
         });
 
@@ -12705,6 +12754,8 @@ describe("Collection", () => {
             }
 
             const c = collect([new ToJsonReturnsObject()]);
+
+            // JS-only: PHP's toJson() returns a string; any other answer is taken as already decoded
             expect(c.jsonSerialize()).toEqual([{ x: 1, y: "z" }]);
         });
 
@@ -12720,6 +12771,8 @@ describe("Collection", () => {
             ];
 
             const c = collect(input);
+
+            // JS-only: undefined has no PHP counterpart
             expect(c.jsonSerialize()).toEqual(input);
         });
 
@@ -12749,6 +12802,7 @@ describe("Collection", () => {
 
     describe("toJson", () => {
         it("toJson returns serialized items by default", () => {
+            // CollectionTest::testToJsonEncodesTheJsonSerializeResult
             const c = collect([
                 new TestArrayableObject(),
                 new TestJsonableObject(),
@@ -12772,6 +12826,7 @@ describe("Collection", () => {
         });
 
         it("toJson supports pretty printing with space", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1 }, { b: 2 }]);
             const json = c.toJson(undefined, 2);
             expect(json).toBe(
@@ -12780,6 +12835,7 @@ describe("Collection", () => {
         });
 
         it("toJson with array replacer filters keys", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const replacer: (string | number)[] = ["b"]; // keep only key 'b'
             const json = c.toJson(replacer);
@@ -12787,6 +12843,7 @@ describe("Collection", () => {
         });
 
         it("toJson with function replacer transforms values", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const replacer = (key: string, value: unknown) => {
                 if (key === "b" && typeof value === "number") {
@@ -12799,10 +12856,17 @@ describe("Collection", () => {
         });
 
         it("toJson with null replacer behaves like no replacer", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const jsonNull = c.toJson(null);
             const jsonDefault = c.toJson();
             expect(jsonNull).toBe(jsonDefault);
+        });
+
+        it("writes / and non-ASCII characters as they are", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-escapes-slash-and-unicode"
+            // JS-only: PHP escapes / and non-ASCII characters; JSON.stringify writes them as they are
+            expect(collect(["a/b", "é"]).toJson()).toBe('["a/b","é"]');
         });
 
         it("encodes keys 0..n-1 in order as a JSON list, whatever the backing", () => {
@@ -12899,6 +12963,7 @@ describe("Collection", () => {
 
     describe("toPrettyJson", () => {
         it("returns pretty-printed JSON by default (4 spaces)", () => {
+            // CollectionTest::testToPrettyJsonEncodesTheJsonSerializeResult
             const c = collect([
                 new TestArrayableObject(),
                 new TestJsonableObject(),
@@ -12926,6 +12991,7 @@ describe("Collection", () => {
         });
 
         it("supports custom indentation spaces", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1 }, { b: 2 }]);
             const pretty2 = c.toPrettyJson(undefined, 2);
             const pretty4 = c.toPrettyJson(undefined, 4);
@@ -12939,6 +13005,7 @@ describe("Collection", () => {
         });
 
         it("supports array replacer to filter keys", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([
                 { a: 1, b: 2 },
                 { b: 3, c: 4 },
@@ -12949,6 +13016,7 @@ describe("Collection", () => {
         });
 
         it("supports function replacer to transform values", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const replacer = (key: string, value: unknown) => {
                 if (key === "b" && typeof value === "number") {
@@ -12962,15 +13030,30 @@ describe("Collection", () => {
         });
 
         it("null replacer behaves like no replacer", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const prettyNull = c.toPrettyJson(null, 2);
             const prettyDefault = c.toPrettyJson(undefined, 2);
             expect(prettyNull).toBe(prettyDefault);
         });
+
+        it("indents by four spaces a level, as JSON_PRETTY_PRINT does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toPrettyJson-list"
+            expect(collect([1, [2]]).toPrettyJson()).toBe(
+                "[\n    1,\n    [\n        2\n    ]\n]",
+            );
+        });
+
+        it("prints an empty collection as []", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toPrettyJson-empty"
+            expect(collect().toPrettyJson()).toBe("[]");
+            expect(collect({}).toPrettyJson()).toBe("[]");
+        });
     });
 
     describe("toString", () => {
         it("toString returns same output as toJson()", () => {
+            // CollectionTest::testCastingToStringJsonEncodesTheToArrayResult
             const c = collect([
                 new TestArrayableObject(),
                 new TestJsonableObject(),
@@ -13184,6 +13267,7 @@ describe("Collection", () => {
         });
 
         it("handles hasNumericKeys for order preservation", () => {
+            // JS-only: a Map stands in for a PHP array whose integer keys are out of order
             // Create a Map with numeric keys to trigger the hasNumericKeys branch
             const map = new Map<number, string>();
             map.set(2, "two");
@@ -13196,6 +13280,7 @@ describe("Collection", () => {
         });
 
         it("handles Map with non-numeric keys (false branch)", () => {
+            // JS-only: a Map stands in for a keyed PHP array
             // Create a Map with string keys to trigger the hasNumericKeys=false branch
             const map = new Map<string, number>();
             map.set("b", 2);
@@ -14484,6 +14569,7 @@ describe("Collection", () => {
         }
 
         it("preserves subclass type and extra state through filter", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14495,6 +14581,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through filter returning empty", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14505,6 +14592,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through reject", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14515,6 +14603,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through map", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14526,6 +14615,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through values", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14537,6 +14627,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through unique", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const duped = new TestCollectionWithExtraState(
                 [1, 1, 2, 2, 3],
                 "u-tag",
@@ -14547,6 +14638,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through keys", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14559,6 +14651,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through sort", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14569,6 +14662,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through slice", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14579,6 +14673,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through chunk (outer and inner)", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14596,6 +14691,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through merge", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14606,6 +14702,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through diff", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14616,6 +14713,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through partition", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14632,6 +14730,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through pluck", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const assoc = new TestCollectionWithExtraState(
                 [{ name: "Taylor" }, { name: "Nuno" }],
                 "p-tag",
@@ -14644,6 +14743,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through reverse", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -14654,6 +14754,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through flatten", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const nested = new TestCollectionWithExtraState(
                 [
                     [1, 2],
@@ -14667,6 +14768,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through pad", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
