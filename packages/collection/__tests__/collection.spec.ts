@@ -9044,6 +9044,33 @@ describe("Collection", () => {
             }
             expect(items).toEqual([1, 2, 3]);
         });
+
+        it("iterates a snapshot, as PHP's ArrayIterator iterates a copy of the items", () => {
+            const collection = collect([1, 2]);
+            const seen: number[] = [];
+
+            for (const value of collection.getIterator()) {
+                seen.push(value);
+
+                if (seen.length < 5) {
+                    collection.push(9);
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-iterator-is-a-snapshot"
+            expect([seen, collection.all()]).toEqual([
+                [1, 2],
+                [1, 2, 9, 9],
+            ]);
+        });
+
+        it("skips a list's holes, which hold no item", () => {
+            const holes: string[] = [];
+            holes[1] = "b";
+
+            // JS-only: PHP has no sparse array; a hole holds no item, as count() says
+            expect([...new Collection(holes).getIterator()]).toEqual(["b"]);
+        });
     });
 
     describe("count", () => {

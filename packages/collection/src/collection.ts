@@ -4025,7 +4025,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * iteratorObj.next(); -> {value: undefined, done: true}
      */
     getIterator() {
-        return this.getItemValues(this.items)[Symbol.iterator]();
+        // PHP's ArrayIterator holds a copy of the items, so an item pushed mid-loop is never visited.
+        return Object.values(this.items)[Symbol.iterator]();
     }
 
     /**
