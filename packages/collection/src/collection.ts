@@ -5560,10 +5560,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Convert the object into something JSON serializable.
      *
-     * @returns An array of the collection's items, with each item converted to a JSON-serializable form
+     * @returns The items, each converted to a JSON-serializable form: a list when the keys are 0..n-1 in order
      */
     jsonSerialize() {
-        return this.map((value) => jsonSerializeItem(value)).all();
+        const entries = this.entriesInOrder().map(
+            ([key, value]) => [key, jsonSerializeItem(value)] as const,
+        );
+
+        // json_encode writes a list only for keys 0..n-1 in order, whichever backing holds them.
+        if (entries.every(([key], index) => key === index)) {
+            return entries.map(([, value]) => value) as TValue[];
+        }
+
+        return Object.fromEntries(entries) as Record<TKey, TValue>;
     }
 
     /**

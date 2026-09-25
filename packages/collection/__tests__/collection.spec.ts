@@ -12494,6 +12494,62 @@ describe("Collection", () => {
             const jsonDefault = c.toJson();
             expect(jsonNull).toBe(jsonDefault);
         });
+
+        it("encodes keys 0..n-1 in order as a JSON list, whatever the backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-toJson-integer-keys-in-order-are-a-list"
+            expect(collect({ 0: "a", 1: "b" }).toJson()).toBe('["a","b"]');
+            expect(collect({ 0: "a", 1: "b" }).jsonSerialize()).toEqual([
+                "a",
+                "b",
+            ]);
+            expect(
+                collect(
+                    new Map([
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ).toJson(),
+            ).toBe('["a","b"]');
+        });
+
+        it("encodes integer keys that do not start at 0 as a JSON object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-toJson-integer-keys-from-one-are-an-object"
+            expect(collect({ 1: "a", 2: "b" }).toJson()).toBe(
+                '{"1":"a","2":"b"}',
+            );
+        });
+
+        it("encodes keys 0 and 1 in the wrong order as a JSON object", () => {
+            const collection = collect(
+                new Map([
+                    [1, "b"],
+                    [0, "a"],
+                ]),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-toJson-list-keys-out-of-order-are-an-object"
+            expect(JSON.parse(collection.toJson())).toEqual({ 1: "b", 0: "a" });
+            expect(Array.isArray(collection.jsonSerialize())).toBe(false);
+        });
+
+        it("encodes a keyed collection emptied of its items as []", () => {
+            const collection = collect({ a: 1 }).forget("a");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-emptied-keyed-is-a-list"
+            expect(collection.toJson()).toBe("[]");
+            expect(collection.jsonSerialize()).toEqual([]);
+        });
+
+        it("encodes a list with a hole as an object of the indexes it holds", () => {
+            const holes: string[] = [];
+            holes[1] = "b";
+
+            // JS-only: PHP has no sparse array; a hole holds no item, so the keys are not 0..n-1
+            expect(new Collection(holes).toJson()).toBe('{"1":"b"}');
+        });
     });
 
     describe("toPrettyJson", () => {
