@@ -325,6 +325,19 @@ describe("Collection", () => {
             expect(new Collection(new NotJson()).all()).toEqual([]);
         });
 
+        it("lets an error thrown by a Jsonable's toJson() propagate", () => {
+            const failure = new Error("toJson failed");
+
+            class ThrowingJson {
+                toJson(): string {
+                    throw failure;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonable-toJson-throws"
+            expect(() => new Collection(new ThrowingJson())).toThrow(failure);
+        });
+
         it("reads a JsonSerializable's jsonSerialize()", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable"
             expect(new Collection(new TestJsonSerializeObject()).all()).toEqual(

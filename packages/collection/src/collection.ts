@@ -6373,8 +6373,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isFunction(items["toJson"])) {
+            // Only the decode is guarded: PHP's json_decode nulls invalid JSON, but a throwing toJson() propagates.
+            const json = String(items["toJson"]());
+
             try {
-                return this.castToItems(JSON.parse(String(items["toJson"]())));
+                return this.castToItems(JSON.parse(json));
             } catch {
                 return [];
             }
