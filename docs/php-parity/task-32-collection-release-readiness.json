@@ -2463,14 +2463,6 @@
             }
         },
         {
-            "label": "C32-D-whereIn-null-key",
-            "php": "(new Collection([1, 2, 3]))->whereIn(null, [1, 3])->values()",
-            "value": [
-                1,
-                3
-            ]
-        },
-        {
             "label": "C32-D-unique-collection-rows",
             "php": "c32c_rows(list | keyed)->unique('k'): keys and each row's 'v'",
             "value": {

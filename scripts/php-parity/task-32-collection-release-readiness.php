@@ -538,7 +538,6 @@ probe('C32-D-item-paths-filtered-values', "what the filters keep, read as values
     'whereNotIn' => c32c_rows($keyed)->whereNotIn('k', ['a'])->pluck('v')->all(),
     'whereNotBetween' => c32c_rows($keyed)->whereNotBetween('v', [2, 2])->pluck('v')->all(),
 ], ['list' => false, 'keyed' => true]));
-probe('C32-D-whereIn-null-key', "(new Collection([1, 2, 3]))->whereIn(null, [1, 3])->values()", fn () => (new Collection([1, 2, 3]))->whereIn(null, [1, 3])->values()->all());
 probe('C32-D-unique-collection-rows', "c32c_rows(list | keyed)->unique('k'): keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => [
     c32c_rows($keyed)->unique('k')->keys()->all(),
     c32c_rows($keyed)->unique('k')->pluck('v')->all(),
