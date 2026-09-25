@@ -22,6 +22,7 @@ use Illuminate\Tests\Support\TestJsonSerializeObject;
 use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
 use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
+use Symfony\Component\VarDumper\VarDumper;
 
 // ---- Family A ------------------------------------------------------------
 
@@ -77,6 +78,13 @@ probe('C32-A-make-collection-copies', '$a = collect([1]); $b = Collection::make(
 // --- collect() returns the base class
 probe('C32-A-collect-method-returns-base-class', 'get_class(C32ASub::make([1])->collect())', fn () => get_class(C32ASub::make([1])->collect()));
 
+// --- toBase
+probe('C32-A-toBase-is-base-class', '$base = C32ASub::make([1, 2])->toBase(); [get_class($base), $base->all()]', function () { $base = C32ASub::make([1, 2])->toBase(); return [get_class($base), $base->all()]; });
+probe('C32-A-toBase-copies', '$sub = C32ASub::make([1, 2]); $base = $sub->toBase(); $base->push(3); [$sub->all(), $base->all()]', function () { $sub = C32ASub::make([1, 2]); $base = $sub->toBase(); $base->push(3); return [$sub->all(), $base->all()]; });
+
+// --- empty
+probe('C32-A-empty-extra-argument-is-ignored', 'Collection::empty(false)->all()', fn () => Collection::empty(false)->all());
+
 // --- static factories keep the subclass
 probe('C32-A-static-factories-keep-subclass', 'get_class of C32ASub::make/wrap/empty/range/times/times(cb)/fromJson', fn () => [
     'make' => get_class(C32ASub::make([1])),
@@ -104,6 +112,13 @@ probe('C32-A-range-single', 'Collection::range(3, 3)->all()', fn () => Collectio
 probe('C32-A-range-float-step', 'Collection::range(0, 1, 0.1)->all()', fn () => Collection::range(0, 1, 0.1)->all());
 probe('C32-A-range-step-zero-throws', 'Collection::range(1, 5, 0)', fn () => Collection::range(1, 5, 0)->all());
 probe('C32-A-range-negative-step-increasing-throws', 'Collection::range(1, 5, -1)', fn () => Collection::range(1, 5, -1)->all());
+probe('C32-A-range-step-exceeds-span-throws', 'Collection::range(1, 2, 3)', fn () => Collection::range(1, 2, 3)->all());
+probe('C32-A-range-step-equals-span', 'Collection::range(0, 10, 10)->all()', fn () => Collection::range(0, 10, 10)->all());
+probe('C32-A-range-negative-step-descending', 'Collection::range(5, 1, -2)->all()', fn () => Collection::range(5, 1, -2)->all());
+probe('C32-A-range-float-step-stops-at-end', 'Collection::range(0, 1, 0.4)->all()', fn () => Collection::range(0, 1, 0.4)->all());
+probe('C32-A-range-float-size-rounds-half-up', 'Collection::range(0.2, 0.5, 0.1)->all()', fn () => Collection::range(0.2, 0.5, 0.1)->all());
+probe('C32-A-range-descending-float-step', 'Collection::range(1, 0, 0.3)->all()', fn () => Collection::range(1, 0, 0.3)->all());
+probe('C32-A-range-descending-float-stops-at-end', 'Collection::range(4, 1.5)->all()', fn () => Collection::range(4, 1.5)->all());
 
 // --- times
 probe('C32-A-times-fractional-count', 'Collection::times(2.7)->all()', fn () => Collection::times(2.7)->all());
@@ -113,6 +128,7 @@ probe('C32-A-fromJson-invalid-is-empty', "Collection::fromJson('{bad')->all()", 
 probe('C32-A-fromJson-scalar-is-wrapped', "Collection::fromJson('5')->all()", fn () => Collection::fromJson('5')->all());
 probe('C32-A-fromJson-null-is-empty', "Collection::fromJson('null')->all()", fn () => Collection::fromJson('null')->all());
 probe('C32-A-fromJson-list', "Collection::fromJson('[\"a\",\"b\"]')->all()", fn () => Collection::fromJson('["a","b"]')->all());
+probe('C32-A-fromJson-integer-keys-out-of-order', "Collection::fromJson('{\"2\":\"a\",\"1\":\"b\"}')->keys()->all()", fn () => Collection::fromJson('{"2":"a","1":"b"}')->keys()->all());
 
 // --- jsonSerialize / toJson / toPrettyJson / __toString
 probe('C32-A-jsonSerialize-php-fixtures', 'testJsonSerialize fixtures', fn () => collect([new TestArrayableObject, new TestJsonableObject, new TestJsonSerializeObject, new C32AJsonSerializeToString, 'baz'])->jsonSerialize());
@@ -120,6 +136,12 @@ probe('C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray', 'collect([new C3
 probe('C32-A-jsonSerialize-prefers-toJson-over-toArray', 'collect([new C32AArrayableAndJsonable])->jsonSerialize()', fn () => collect([new C32AArrayableAndJsonable])->jsonSerialize());
 probe('C32-A-jsonSerialize-invalid-jsonable-is-null', 'collect([new C32ABadJsonable])->jsonSerialize()', fn () => collect([new C32ABadJsonable])->jsonSerialize());
 probe('C32-A-jsonSerialize-keyed', "collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize()", fn () => collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize());
+probe('C32-A-toArray-plain-item-members-are-data', "\$item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; [array_keys(\$item), \$item['b']]", function () { $item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; return [array_keys($item), $item['b']]; });
+probe('C32-A-jsonSerialize-plain-item-members-are-data', "\$item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; [array_keys(\$item), \$item['b']]", function () { $item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; return [array_keys($item), $item['b']]; });
+probe('C32-A-toJson-integer-keys-in-order-are-a-list', "collect([0 => 'a', 1 => 'b'])->toJson()", fn () => collect([0 => 'a', 1 => 'b'])->toJson());
+probe('C32-A-toJson-integer-keys-from-one-are-an-object', "collect([1 => 'a', 2 => 'b'])->toJson()", fn () => collect([1 => 'a', 2 => 'b'])->toJson());
+probe('C32-A-toJson-emptied-keyed-is-a-list', "collect(['a' => 1])->forget('a')->toJson()", fn () => collect(['a' => 1])->forget('a')->toJson());
+probe('C32-A-toJson-integer-keys-out-of-order', "collect([2 => 'a', 1 => 'b'])->toJson()", fn () => collect([2 => 'a', 1 => 'b'])->toJson());
 probe('C32-A-json-encode-collection', 'json_encode(collect([1, 2]))', fn () => json_encode(collect([1, 2])));
 probe('C32-A-json-encode-nested-collection', "json_encode(['users' => collect([['id' => 1]])])", fn () => json_encode(['users' => collect([['id' => 1]])]));
 probe('C32-A-toJson-escapes-slash-and-unicode', "collect(['a/b', 'é'])->toJson()", fn () => collect(['a/b', 'é'])->toJson());
@@ -127,6 +149,48 @@ probe('C32-A-toPrettyJson-list', 'collect([1, [2]])->toPrettyJson()', fn () => c
 probe('C32-A-toPrettyJson-empty', 'collect()->toPrettyJson()', fn () => collect()->toPrettyJson());
 probe('C32-A-string-concat-is-json', "collect(['foo']) . ''", fn () => collect(['foo']) . '');
 probe('C32-A-escape-when-casting-to-string', "(string) collect(['<b>'])->escapeWhenCastingToString()", fn () => (string) collect(['<b>'])->escapeWhenCastingToString());
+probe('C32-A-escape-when-casting-concat', "collect(['<b>'])->escapeWhenCastingToString() . ''", fn () => collect(['<b>'])->escapeWhenCastingToString() . '');
+probe('C32-A-escape-when-casting-to-string-all-characters', "(string) collect([\"&'<>&amp;\"])->escapeWhenCastingToString()", fn () => (string) collect(["&'<>&amp;"])->escapeWhenCastingToString());
+probe('C32-A-escape-when-casting-to-string-off', "(string) collect(['<b>'])->escapeWhenCastingToString()->escapeWhenCastingToString(false)", fn () => (string) collect(['<b>'])->escapeWhenCastingToString()->escapeWhenCastingToString(false));
+probe('C32-A-escape-when-casting-leaves-toJson', "collect(['<b>'])->escapeWhenCastingToString()->toJson()", fn () => collect(['<b>'])->escapeWhenCastingToString()->toJson());
+
+// --- dump (VarDumper's output is discarded so it stays out of the transcript)
+probe('C32-A-dump-returns-same-instance', '$c = collect([1]); $c->dump() === $c', function () {
+    VarDumper::setHandler(fn () => null);
+
+    try {
+        $c = collect([1]);
+
+        return $c->dump() === $c;
+    } finally {
+        VarDumper::setHandler(null);
+    }
+});
+
+// --- iteration (foreach reads getIterator(), an ArrayIterator over a copy of the items)
+probe('C32-A-iterator-is-a-snapshot', '$c = collect([1, 2]); foreach ($c as $v) { $seen[] = $v; if (count($seen) < 5) { $c->push(9); } } [$seen, $c->all()]', function () {
+    $c = collect([1, 2]);
+    $seen = [];
+
+    foreach ($c as $v) {
+        $seen[] = $v;
+
+        if (count($seen) < 5) {
+            $c->push(9);
+        }
+    }
+
+    return [$seen, $c->all()];
+});
+probe('C32-A-iterate-integer-keys-out-of-order', "foreach (collect([2 => 'a', 1 => 'b']) as \$v) { \$seen[] = \$v; }", function () {
+    $seen = [];
+
+    foreach (collect([2 => 'a', 1 => 'b']) as $v) {
+        $seen[] = $v;
+    }
+
+    return $seen;
+});
 
 // --- count / isEmpty
 probe('C32-A-isEmpty-after-put-on-empty-list', "collect([])->put('x', 1)->isEmpty()", fn () => collect([])->put('x', 1)->isEmpty());
@@ -142,6 +206,8 @@ probe('C32-A-ensure-array-rejects-null', "collect([null])->ensure('array')", fn 
 probe('C32-A-ensure-subclass-passes', 'collect([new C32AChild])->ensure(C32AParent::class)->count()', fn () => collect([new C32AChild])->ensure(C32AParent::class)->count());
 probe('C32-A-ensure-returns-same-instance', '$c = collect([1]); $c->ensure(\'int\') === $c', function () { $c = collect([1]); return $c->ensure('int') === $c; });
 probe('C32-A-ensure-keyed-position', "collect(['a' => 1, 'b' => 'x'])->ensure('int')", fn () => collect(['a' => 1, 'b' => 'x'])->ensure('int'));
+probe('C32-A-ensure-numeric-prefix-key-position', "collect(['3x' => 'a'])->ensure('int')", fn () => collect(['3x' => 'a'])->ensure('int'));
+probe('C32-A-ensure-assoc-types', "collect(['hello', 'world'])->ensure(['first' => 'string'])->all()", fn () => collect(['hello', 'world'])->ensure(['first' => 'string'])->all());
 
 // ---- Family B ------------------------------------------------------------
 

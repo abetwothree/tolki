@@ -221,6 +221,37 @@
             "value": "Illuminate\\Support\\Collection"
         },
         {
+            "label": "C32-A-toBase-is-base-class",
+            "php": "$base = C32ASub::make([1, 2])->toBase(); [get_class($base), $base->all()]",
+            "value": [
+                "Illuminate\\Support\\Collection",
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-toBase-copies",
+            "php": "$sub = C32ASub::make([1, 2]); $base = $sub->toBase(); $base->push(3); [$sub->all(), $base->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-empty-extra-argument-is-ignored",
+            "php": "Collection::empty(false)->all()",
+            "value": []
+        },
+        {
             "label": "C32-A-static-factories-keep-subclass",
             "php": "get_class of C32ASub::make/wrap/empty/range/times/times(cb)/fromJson",
             "value": {
@@ -350,6 +381,67 @@
             "message": "range(): Argument #3 ($step) must be greater than 0 for increasing ranges"
         },
         {
+            "label": "C32-A-range-step-exceeds-span-throws",
+            "php": "Collection::range(1, 2, 3)",
+            "threw": "ValueError",
+            "message": "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)"
+        },
+        {
+            "label": "C32-A-range-step-equals-span",
+            "php": "Collection::range(0, 10, 10)->all()",
+            "value": [
+                0,
+                10
+            ]
+        },
+        {
+            "label": "C32-A-range-negative-step-descending",
+            "php": "Collection::range(5, 1, -2)->all()",
+            "value": [
+                5,
+                3,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-float-step-stops-at-end",
+            "php": "Collection::range(0, 1, 0.4)->all()",
+            "value": [
+                0,
+                0.4,
+                0.8
+            ]
+        },
+        {
+            "label": "C32-A-range-float-size-rounds-half-up",
+            "php": "Collection::range(0.2, 0.5, 0.1)->all()",
+            "value": [
+                0.2,
+                0.30000000000000004,
+                0.4,
+                0.5
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-float-step",
+            "php": "Collection::range(1, 0, 0.3)->all()",
+            "value": [
+                1,
+                0.7,
+                0.4,
+                0.10000000000000009
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-float-stops-at-end",
+            "php": "Collection::range(4, 1.5)->all()",
+            "value": [
+                4,
+                3,
+                2
+            ]
+        },
+        {
             "label": "C32-A-times-fractional-count",
             "php": "Collection::times(2.7)->all()",
             "value": [
@@ -380,6 +472,14 @@
             "value": [
                 "a",
                 "b"
+            ]
+        },
+        {
+            "label": "C32-A-fromJson-integer-keys-out-of-order",
+            "php": "Collection::fromJson('{\"2\":\"a\",\"1\":\"b\"}')->keys()->all()",
+            "value": [
+                2,
+                1
             ]
         },
         {
@@ -435,6 +535,50 @@
             }
         },
         {
+            "label": "C32-A-toArray-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "b"
+                ],
+                2
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'toJson' => fn () => '[1]', 'jsonSerialize' => fn () => 1, 'b' => 2]])->jsonSerialize()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "toJson",
+                    "jsonSerialize",
+                    "b"
+                ],
+                2
+            ]
+        },
+        {
+            "label": "C32-A-toJson-integer-keys-in-order-are-a-list",
+            "php": "collect([0 => 'a', 1 => 'b'])->toJson()",
+            "value": "[\"a\",\"b\"]"
+        },
+        {
+            "label": "C32-A-toJson-integer-keys-from-one-are-an-object",
+            "php": "collect([1 => 'a', 2 => 'b'])->toJson()",
+            "value": "{\"1\":\"a\",\"2\":\"b\"}"
+        },
+        {
+            "label": "C32-A-toJson-emptied-keyed-is-a-list",
+            "php": "collect(['a' => 1])->forget('a')->toJson()",
+            "value": "[]"
+        },
+        {
+            "label": "C32-A-toJson-integer-keys-out-of-order",
+            "php": "collect([2 => 'a', 1 => 'b'])->toJson()",
+            "value": "{\"2\":\"a\",\"1\":\"b\"}"
+        },
+        {
             "label": "C32-A-json-encode-collection",
             "php": "json_encode(collect([1, 2]))",
             "value": "[1,2]"
@@ -468,6 +612,55 @@
             "label": "C32-A-escape-when-casting-to-string",
             "php": "(string) collect(['<b>'])->escapeWhenCastingToString()",
             "value": "[&quot;&lt;b&gt;&quot;]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-concat",
+            "php": "collect(['<b>'])->escapeWhenCastingToString() . ''",
+            "value": "[&quot;&lt;b&gt;&quot;]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-to-string-all-characters",
+            "php": "(string) collect([\"&'<>&amp;\"])->escapeWhenCastingToString()",
+            "value": "[&quot;&amp;&#039;&lt;&gt;&amp;amp;&quot;]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-to-string-off",
+            "php": "(string) collect(['<b>'])->escapeWhenCastingToString()->escapeWhenCastingToString(false)",
+            "value": "[\"<b>\"]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-leaves-toJson",
+            "php": "collect(['<b>'])->escapeWhenCastingToString()->toJson()",
+            "value": "[\"<b>\"]"
+        },
+        {
+            "label": "C32-A-dump-returns-same-instance",
+            "php": "$c = collect([1]); $c->dump() === $c",
+            "value": true
+        },
+        {
+            "label": "C32-A-iterator-is-a-snapshot",
+            "php": "$c = collect([1, 2]); foreach ($c as $v) { $seen[] = $v; if (count($seen) < 5) { $c->push(9); } } [$seen, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    9,
+                    9
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-iterate-integer-keys-out-of-order",
+            "php": "foreach (collect([2 => 'a', 1 => 'b']) as $v) { $seen[] = $v; }",
+            "value": [
+                "a",
+                "b"
+            ]
         },
         {
             "label": "C32-A-isEmpty-after-put-on-empty-list",
@@ -531,6 +724,20 @@
             "php": "collect(['a' => 1, 'b' => 'x'])->ensure('int')",
             "threw": "UnexpectedValueException",
             "message": "Collection should only include [int] items, but 'string' found at position 0."
+        },
+        {
+            "label": "C32-A-ensure-numeric-prefix-key-position",
+            "php": "collect(['3x' => 'a'])->ensure('int')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [int] items, but 'string' found at position 3."
+        },
+        {
+            "label": "C32-A-ensure-assoc-types",
+            "php": "collect(['hello', 'world'])->ensure(['first' => 'string'])->all()",
+            "value": [
+                "hello",
+                "world"
+            ]
         },
         {
             "label": "C32-B-put-string-key-on-list",
