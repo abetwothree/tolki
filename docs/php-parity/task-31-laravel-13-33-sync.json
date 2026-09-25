@@ -351,8 +351,8 @@
         },
         {
             "label": "parseInt-php-int-max",
-            "php": "Number::parseInt((string) PHP_INT_MAX)",
-            "value": 9223372036854775807
+            "php": "(string) Number::parseInt((string) PHP_INT_MAX)",
+            "value": "9223372036854775807"
         },
         {
             "label": "camel-multibyte-first-space",

@@ -122,7 +122,7 @@ probe('currency-rounds-to-zero-eur-de', "Number::currency(-0.001, in: 'EUR', loc
 probe('parseInt-past-int32', "Number::parseInt('3,000,000,000')", fn () => Number::parseInt('3,000,000,000'));
 probe('parseInt-past-int32-negative', "Number::parseInt('-3,000,000,000')", fn () => Number::parseInt('-3,000,000,000'));
 probe('parseInt-max-safe-integer', "Number::parseInt('9007199254740991')", fn () => Number::parseInt('9007199254740991'));
-probe('parseInt-php-int-max', 'Number::parseInt((string) PHP_INT_MAX)', fn () => Number::parseInt((string) PHP_INT_MAX));
+probe('parseInt-php-int-max', '(string) Number::parseInt((string) PHP_INT_MAX)', fn () => (string) Number::parseInt((string) PHP_INT_MAX));
 
 // Str::camel() lowercases a multibyte first character (laravel/framework#61545).
 probe('camel-multibyte-first-space', "Str::camel('Über uns')", fn () => Str::camel('Über uns'));
