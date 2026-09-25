@@ -467,6 +467,12 @@ describe("Number", () => {
             expect(Num.fileSize(NaN)).toBe("NaN B");
             expect(Num.fileSize("not a number")).toBe("NaN B");
         });
+
+        it("does not print a negative zero", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "fileSize-rounds-to-zero" and "fileSize-negative-zero"
+            expect(Num.fileSize(-0.4)).toBe("0 B");
+            expect(Num.fileSize(-0)).toBe("0 B");
+        });
     });
 
     describe("forHumans", () => {
