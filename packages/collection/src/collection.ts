@@ -4354,7 +4354,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TWrapValue, TWrapKey>,
         ...args: unknown[]
     ) {
-        const Wrapped = this as CollectionClass<TWrapValue, TWrapKey>;
+        const Static = this as CollectionClass<TWrapValue, TWrapKey>;
 
         // Arr::wrap leaves an array as it is and makes null empty; a plain object and a Map stand in for arrays.
         if (
@@ -4363,10 +4363,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             isNull(value) ||
             isUndefined(value)
         ) {
-            return new Wrapped(value, ...args);
+            return new Static(value, ...args);
         }
 
-        return new Wrapped(handOver([value]), ...args);
+        return new Static(handOver([value]), ...args);
     }
 
     /**
