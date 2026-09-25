@@ -1,6 +1,6 @@
 import * as Arr from "@tolki/arr";
 import { collect, Collection } from "@tolki/collection";
-import { SortDirection } from "@tolki/enum";
+import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import {
     isString,
@@ -43,6 +43,28 @@ const strnatcasecmp = (a: unknown, b: unknown): number => {
 const strrev = (s: string): string => {
     return s.split("").reverse().join("");
 };
+
+// Laravel's test fixture enums (Illuminate\Tests\Support\Fixtures), as @tolki/enum defines them.
+const TestEnum = defineEnum({ A: "A", backed: false, _cases: ["A"] } as const);
+const TestBackedEnum = defineEnum({
+    A: 1,
+    B: 2,
+    backed: true,
+    _cases: ["A", "B"],
+} as const);
+const TestStringBackedEnum = defineEnum({
+    A: "A",
+    B: "B",
+    backed: true,
+    _cases: ["A", "B"],
+} as const);
+const StaffEnum = defineEnum({
+    Taylor: "Taylor",
+    Joe: "Joe",
+    James: "James",
+    backed: false,
+    _cases: ["Taylor", "Joe", "James"],
+} as const);
 
 describe("Collection", () => {
     describe("assert constructor types", () => {
@@ -2328,15 +2350,17 @@ describe("Collection", () => {
             });
 
             it("test group by attribute with stringable key", () => {
+                // CollectionTest::testGroupByAttributeWithStringableKey: PHP's anonymous class with a __toString
+                // is a class instance here, since a plain object models an array of group keys.
                 const payload = [
                     { name: new Stringable("Laravel"), url: "1" },
                     { name: new Stringable("Laravel"), url: "1" },
                     {
-                        name: {
+                        name: new (class {
                             toString(): string {
                                 return "Framework";
-                            },
-                        },
+                            }
+                        })(),
                         url: "2",
                     },
                 ];
@@ -2352,6 +2376,40 @@ describe("Collection", () => {
                 expect(resultByUrl.all()).toEqual({
                     1: [payload[0], payload[1]],
                     2: [payload[2]],
+                });
+            });
+
+            it("test group by attribute with enum key", () => {
+                // CollectionTest::testGroupByAttributeWithEnumKey
+                const payload = [
+                    { name: TestEnum.from("A"), url: "1" },
+                    { name: TestBackedEnum.from(1), url: "1" },
+                    { name: TestStringBackedEnum.from("A"), url: "2" },
+                ];
+                const data = collect(payload);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-enum-key"
+                expect(data.groupBy("name").toArray()).toEqual({
+                    A: [payload[0], payload[2]],
+                    1: [payload[1]],
+                });
+                expect(data.groupBy("url").toArray()).toEqual({
+                    1: [payload[0], payload[1]],
+                    2: [payload[2]],
+                });
+            });
+
+            it("test group by attribute with backed enum key", () => {
+                // CollectionTest::testGroupByAttributeWithBackedEnumKey
+                const data = collect([
+                    { rating: TestBackedEnum.from(1), url: "1" },
+                    { rating: TestBackedEnum.from(2), url: "1" },
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-backed-enum-key"
+                expect(data.groupBy("rating").toArray()).toEqual({
+                    1: [{ rating: TestBackedEnum.from(1), url: "1" }],
+                    2: [{ rating: TestBackedEnum.from(2), url: "1" }],
                 });
             });
 
@@ -2747,25 +2805,25 @@ describe("Collection", () => {
             });
         });
 
-        it("resolved key is object", () => {
+        it("throws for a plain object key, which PHP cannot store", () => {
             const collection = collect([
                 { id: { name: "John" } },
                 { id: { name: "Jane" } },
             ]);
-            const keyed = collection.keyBy((item) => item.id);
-            expect(keyed.all()).toEqual({
-                '{"name":"John"}': { id: { name: "John" } },
-                '{"name":"Jane"}': { id: { name: "Jane" } },
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-assoc-key"
+            expect(() => collection.keyBy((item) => item.id)).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
 
-        it("resolved key is array", () => {
+        it("throws for an array key, which PHP cannot store", () => {
             const collection = collect([{ id: [1, 2] }, { id: [3, 4] }]);
-            const keyed = collection.keyBy((item) => item.id);
-            expect(keyed.all()).toEqual({
-                "1.2": { id: [1, 2] },
-                "3.4": { id: [3, 4] },
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-array-key"
+            expect(() => collection.keyBy((item) => item.id)).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
 
         it("works with object collection (non-array items)", () => {
@@ -2783,42 +2841,48 @@ describe("Collection", () => {
             });
         });
 
-        it("uses the value property of backed enum objects as the key", () => {
-            // Simulate Laravel backed enum objects (objects with a primitive `value` property)
-            const enumA = { value: "active" };
-            const enumB = { value: "inactive" };
+        it("keys by a string-backed enum case's value", () => {
+            // CollectionTest::testKeyByBackedEnum
             const data = collect([
-                { id: 1, status: enumA },
-                { id: 2, status: enumB },
+                { id: 1, status: TestStringBackedEnum.from("A") },
+                { id: 2, status: TestStringBackedEnum.from("B") },
             ]);
+
             expect(data.keyBy("status").all()).toEqual({
-                active: { id: 1, status: enumA },
-                inactive: { id: 2, status: enumB },
+                A: { id: 1, status: TestStringBackedEnum.from("A") },
+                B: { id: 2, status: TestStringBackedEnum.from("B") },
             });
         });
 
-        it("uses numeric value property of backed enum objects as the key", () => {
-            // Simulate backed enums with integer values (covers isNumber branch)
-            const enumA = { value: 1 };
-            const enumB = { value: 2 };
+        it("keys by an int-backed or a pure enum case's value", () => {
             const data = collect([
-                { id: "a", status: enumA },
-                { id: "b", status: enumB },
+                { id: 1, s: TestBackedEnum.from(2) },
+                { id: 2, s: TestBackedEnum.from(1) },
             ]);
-            expect(data.keyBy("status").all()).toEqual({
-                1: { id: "a", status: enumA },
-                2: { id: "b", status: enumB },
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-enum-keys"
+            expect(
+                data
+                    .keyBy("s")
+                    .map((row) => row.id)
+                    .all(),
+            ).toEqual({ 2: 1, 1: 2 });
+            expect(
+                collect([1])
+                    .keyBy(() => TestEnum.from("A"))
+                    .keys()
+                    .all(),
+            ).toEqual(["A"]);
         });
 
-        it("stringifies objects with a non-primitive value property", () => {
-            // An object with a `value` key whose value is not a string or number
-            // should fall through to JSON.stringify (covers the false branch of the backed-enum check)
-            const keyObj = { value: null };
-            const data = collect([{ id: 1, meta: keyObj }]);
-            expect(data.keyBy("meta").all()).toEqual({
-                '{"value":null}': { id: 1, meta: keyObj },
-            });
+        it("throws for a plain object that only looks like an enum case", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-assoc-key": without an own
+            // string name and a string or number value, a plain object models an array, not a case.
+            const data = collect([{ id: 1, meta: { value: null } }]);
+
+            expect(() => data.keyBy("meta")).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
 
         it("casts a bool, null or float key the way PHP stores an array offset", () => {
@@ -8826,6 +8890,7 @@ describe("Collection", () => {
     describe("countBy", () => {
         describe("Laravel Tests", () => {
             it("test count by standalone", () => {
+                // CollectionTest::testCountByStandalone
                 const c = collect([
                     "foo",
                     "foo",
@@ -8841,12 +8906,18 @@ describe("Collection", () => {
                 });
 
                 const d = collect([true, true, false, false, false]);
-                expect(d.countBy().all()).toEqual({ true: 2, false: 3 });
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-bools"
+                expect(d.countBy().all()).toEqual({ 1: 2, 0: 3 });
 
                 const e = collect([1, 5, 1, 5, 5, 1]);
                 expect(e.countBy().all()).toEqual({ 1: 3, 5: 3 });
 
-                const f = collect(["James", "Joe", "Taylor"]);
+                const f = collect([
+                    StaffEnum.from("James"),
+                    StaffEnum.from("Joe"),
+                    StaffEnum.from("Taylor"),
+                ]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-pure-enum"
                 expect(f.countBy().all()).toEqual({
                     James: 1,
                     Joe: 1,
@@ -8855,6 +8926,7 @@ describe("Collection", () => {
             });
 
             it("test count by with key", () => {
+                // CollectionTest::testCountByWithKey
                 const c = collect([
                     { key: "a" },
                     { key: "a" },
@@ -8865,48 +8937,68 @@ describe("Collection", () => {
                     { key: "b" },
                 ]);
                 expect(c.countBy("key").all()).toEqual({ a: 4, b: 3 });
+
+                const d = collect([
+                    { key: TestBackedEnum.from(1) },
+                    { key: TestBackedEnum.from(2) },
+                    { key: TestBackedEnum.from(2) },
+                ]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-key-backed-enum"
+                expect(d.countBy("key").all()).toEqual({ 1: 1, 2: 2 });
             });
 
             it("test count by with callback", () => {
-                const c = collect([
-                    "apple",
-                    "apricot",
-                    "banana",
-                    "blueberry",
-                    "cherry",
-                ]);
-                expect(c.countBy((item) => item.charAt(0)).all()).toEqual({
+                // CollectionTest::testCountableByWithCallback
+                const c = collect(["alice", "aaron", "bob", "carla"]);
+                expect(c.countBy((name) => name.charAt(0)).all()).toEqual({
                     a: 2,
-                    b: 2,
+                    b: 1,
                     c: 1,
                 });
+
+                const d = collect([1, 2, 3, 4, 5]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-bool"
+                expect(d.countBy((i) => i % 2 === 0).all()).toEqual({
+                    1: 2,
+                    0: 3,
+                });
+
+                const e = collect(["A", "A", "B", "A"] as const);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-string-enum"
+                expect(
+                    e.countBy((i) => TestStringBackedEnum.from(i)).all(),
+                ).toEqual({ A: 3, B: 1 });
             });
         });
 
-        it("handles object/array result as key", () => {
+        it("throws for a plain object result, which PHP cannot count under", () => {
             const c = collect([{ type: "a" }, { type: "b" }, { type: "a" }]);
-            // When callback returns an object, it should be JSON stringified
-            const result = c.countBy((item) => ({ t: item.type }));
-            expect(result.all()).toEqual({
-                '{"t":"a"}': 2,
-                '{"t":"b"}': 1,
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-assoc-key"
+            expect(() => c.countBy((item) => ({ t: item.type }))).toThrow(
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            );
         });
 
-        it("handles array result as key", () => {
+        it("throws for an array result, which PHP cannot count under", () => {
             const c = collect([
                 [1, 2],
                 [1, 2],
                 [3, 4],
             ]);
-            const result = c.countBy((item) => item);
-            expect(result.all()).toEqual({
-                "[1,2]": 2,
-                "[3,4]": 1,
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-array-key"
+            expect(() => c.countBy((item) => item)).toThrow(
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            );
         });
 
         it("counts null and undefined keys under an empty string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-null-key"
             const c = collect([{ url: null }, { url: "a" }, {}]);
             expect(c.countBy("url").all()).toEqual({
                 "": 2,
@@ -14753,6 +14845,266 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-key-type-array-items"
             expect(seen).toEqual([0, 1, 5]);
+        });
+    });
+
+    describe("computed keys follow PHP's array-key rules", () => {
+        /** An object with its own toString, as PHP's anonymous class with a __toString. */
+        const framework = () =>
+            new (class {
+                toString(): string {
+                    return "Framework";
+                }
+            })();
+
+        it.each([
+            [
+                "groupBy truncates a float key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-float-key"
+                () =>
+                    collect([1, 2])
+                        .groupBy(() => 1.5)
+                        .toArray(),
+                { 1: [1, 2] },
+            ],
+            [
+                "groupBy files an item under each value of a plain object it returns",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-assoc-return"
+                () =>
+                    collect([1, 2])
+                        .groupBy((x) => ({ p: x, q: "z" }))
+                        .toArray(),
+                { 1: [1], z: [1, 2], 2: [2] },
+            ],
+            [
+                "countBy truncates a float",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-float"
+                () => collect([1.5, 1.7, 2.5]).countBy().all(),
+                { 1: 2, 2: 1 },
+            ],
+            [
+                "pluck casts a key closure's bool or float result",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-closure-casts"
+                () => [
+                    collect([{ v: "x" }, { v: "y" }])
+                        .pluck("v", (row) => row.v === "x")
+                        .all(),
+                    collect([{ v: "x" }])
+                        .pluck("v", () => 1.5)
+                        .all(),
+                ],
+                [{ 1: "x", 0: "y" }, { 1: "x" }],
+            ],
+            [
+                "pluck casts a key path's null, bool or float value",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+                () =>
+                    collect([
+                        { k: null, v: "n" },
+                        { k: true, v: "t" },
+                        { k: false, v: "f" },
+                        { k: 1.5, v: "fl" },
+                    ])
+                        .pluck("v", "k")
+                        .all(),
+                { "": "n", 1: "fl", 0: "f" },
+            ],
+            [
+                "pluck casts a Stringable or an object with its own toString to its string",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-stringable-key" and
+                // "C32-E-pluck-tostring-key"
+                () => [
+                    collect([{ v: 1 }])
+                        .pluck("v", () => new Stringable("Lara"))
+                        .all(),
+                    collect([{ v: 1 }])
+                        .pluck("v", framework)
+                        .all(),
+                ],
+                [{ Lara: 1 }, { Framework: 1 }],
+            ],
+            [
+                "pluck keys by a unit enum case's name",
+                // JS-only: a unit enum case is its name, a plain string, so pluck keys by it where PHP's case throws.
+                () =>
+                    collect([{ v: 1 }])
+                        .pluck("v", () => TestEnum.A)
+                        .all(),
+                { A: 1 },
+            ],
+            [
+                "mode truncates a float",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-float-items"
+                () => collect([1.5, 1.7, 2.5]).mode(),
+                [1],
+            ],
+            [
+                "mode counts a unit enum case by its name",
+                // JS-only: a unit enum case is its name, a plain string, so mode counts it where PHP's case throws.
+                () => collect([TestEnum.A, TestEnum.A, "z"]).mode(),
+                ["A"],
+            ],
+        ] as [string, () => unknown, unknown][])(
+            "%s",
+            (_name, run, expected) => {
+                expect(run()).toEqual(expected);
+            },
+        );
+
+        it.each([
+            [
+                "keyBy throws an Error for an object without its own toString",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-date-key": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([1]).keyBy(() => new Date(0)),
+                new Error(
+                    "Object of class Date could not be converted to string",
+                ),
+            ],
+            [
+                "groupBy throws for an array key among the keys it gets back",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-nested-array-key"
+                () => collect([1]).groupBy(() => [[1, 2]]),
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            ],
+            [
+                "groupBy throws for a plain object key among the keys it gets back",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-nested-assoc-key"
+                () => collect([1]).groupBy(() => [{ a: 1 }]),
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            ],
+            [
+                "groupBy throws for a Date key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-date-key"
+                () => collect([1]).groupBy(() => new Date(0)),
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            ],
+            [
+                "countBy throws for a Date",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-date-key": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([1]).countBy(() => new Date(0)),
+                new TypeError(
+                    "Cannot access offset of type Date in isset or empty",
+                ),
+            ],
+            [
+                "countBy throws for a Stringable, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-stringable-key": the
+                // message names the class as JS does, without PHP's Illuminate\Support namespace.
+                () => collect([1]).countBy(() => new Stringable("Lara")),
+                new TypeError(
+                    "Cannot access offset of type Stringable in isset or empty",
+                ),
+            ],
+            [
+                "countBy throws for an object with its own toString, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-tostring-key"
+                () => collect([1]).countBy(framework),
+                new TypeError(
+                    "Cannot access offset of type class@anonymous in isset or empty",
+                ),
+            ],
+            [
+                "pluck throws for an array key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key"
+                () => collect([{ v: 1 }]).pluck("v", () => [1, 2]),
+                new TypeError("Cannot access offset of type array on array"),
+            ],
+            [
+                "pluck throws for a plain object key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-assoc-key"
+                () => collect([{ v: 1 }]).pluck("v", () => ({ a: 1 })),
+                new TypeError("Cannot access offset of type array on array"),
+            ],
+            [
+                "pluck throws for a Date key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-date-key": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([{ v: 1 }]).pluck("v", () => new Date(0)),
+                new TypeError("Cannot access offset of type Date on array"),
+            ],
+            [
+                "pluck throws for an enum case key, which it does not unwrap",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a
+                // plain object here, so the message names the array it models where PHP names the enum's class.
+                () =>
+                    collect([{ v: 1 }]).pluck("v", () =>
+                        TestBackedEnum.from(2),
+                    ),
+                new TypeError("Cannot access offset of type array on array"),
+            ],
+            [
+                "mode throws for array items",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-array-items"
+                () => collect([[1], [1]]).mode(),
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for plain object items",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-assoc-items"
+                () => collect([{ a: 1 }, { a: 1 }]).mode(),
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for Date items",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-date-items": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([new Date(0), new Date(0)]).mode(),
+                new TypeError(
+                    "Cannot access offset of type Date in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for enum case items, which it does not unwrap",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-enum-items": a case is a
+                // plain object here, so the message names the array it models where PHP names the enum's class.
+                () =>
+                    collect([
+                        TestBackedEnum.from(2),
+                        TestBackedEnum.from(2),
+                    ]).mode(),
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for Stringable items, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-stringable-items": the
+                // message names the class as JS does, without PHP's Illuminate\Support namespace.
+                () =>
+                    collect([
+                        new Stringable("Lara"),
+                        new Stringable("Lara"),
+                    ]).mode(),
+                new TypeError(
+                    "Cannot access offset of type Stringable in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for items with their own toString, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-tostring-items"
+                () => {
+                    const item = framework();
+
+                    return collect([item, item]).mode();
+                },
+                new TypeError(
+                    "Cannot access offset of type class@anonymous in isset or empty",
+                ),
+            ],
+        ] as [string, () => unknown, Error][])("%s", (_name, run, failure) => {
+            expect(run).toThrow(failure);
         });
     });
 });

@@ -70,7 +70,7 @@ import {
     createSortSpecComparator,
     defineKey,
     isArray,
-    isBoolean,
+    isEnumCase,
     isFunction,
     isIntegerLikeKey,
     isIterable,
@@ -91,6 +91,7 @@ import {
     objectToString,
     operatorMatch,
     phpArrayKey,
+    phpComputedKey,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolveDefault,
@@ -381,7 +382,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return;
             }
 
-            const countKey = phpArrayKey(value);
+            const countKey = phpComputedKey(value, { invalid: issetOffset });
 
             counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
         });
@@ -1165,27 +1166,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     groupBy<TGroupKey extends PropertyKey = PropertyKey>(
         groupByValue:
-            | ((
-                  value: TValue,
-                  index: TKey,
-              ) => TGroupKey | TGroupKey[] | null | undefined)
-            | Array<
-                  | TGroupKey
-                  | ((
-                        value: TValue,
-                        index: TKey,
-                    ) => TGroupKey | TGroupKey[] | null | undefined)
-              >
+            | ((value: TValue, index: TKey) => unknown)
+            | Array<TGroupKey | ((value: TValue, index: TKey) => unknown)>
             | TGroupKey
             | PathKey,
         preserveKeys: boolean = false,
     ) {
         let nextGroups: Array<
-            | TGroupKey
-            | ((
-                  value: TValue,
-                  index: TKey,
-              ) => TGroupKey | TGroupKey[] | null | undefined)
+            TGroupKey | ((value: TValue, index: TKey) => unknown)
         > | null = null;
 
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
@@ -1201,35 +1189,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             groupByValue = shiftedValue as
-                | ((value: TValue, index: TKey) => TGroupKey)
+                | ((value: TValue, index: TKey) => unknown)
                 | PathKey;
         }
 
         groupByValue = this.valueRetriever(
-            groupByValue as
-                | PathKey
-                | ((...args: (TValue | TKey)[]) => TGroupKey),
-        ) as (value: TValue, key: TKey) => TGroupKey;
+            groupByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
+        ) as (value: TValue, key: TKey) => unknown;
 
         const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
 
         // Determine if we should use objects for grouped collections
         // When preserving keys from an object collection, use objects
         const useObjects = preserveKeys && isObject(this.items);
-
-        const normalizeGroupKey = (groupKey: unknown) => {
-            if (isBoolean(groupKey)) {
-                return groupKey ? 1 : 0;
-            }
-
-            // Handle stringable objects (objects with toString method)
-            // Check if it's an object/function with a toString method
-            if (objectToString(groupKey)) {
-                return groupKey.toString();
-            }
-
-            return groupKey as unknown as TGroupKey | string | number;
-        };
 
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
@@ -1238,18 +1210,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 value as TValue,
                 phpArrayKey(key) as TKey,
             );
-            const groupKeys = isArray(rawGroupKeys)
-                ? rawGroupKeys
-                : [rawGroupKeys];
+            let groupKeys: unknown[] = [rawGroupKeys];
 
-            for (let groupKey of groupKeys) {
-                // Group null/undefined keys under an empty string key,
-                // mirroring PHP's (string) null cast in Laravel
-                if (isNull(groupKey) || isUndefined(groupKey)) {
-                    groupKey = "" as TGroupKey;
-                }
+            // PHP groups by each value of an array it gets back, which a plain object that is no enum case models.
+            if (isArray(rawGroupKeys)) {
+                groupKeys = rawGroupKeys;
+            } else if (
+                isPlainObject(rawGroupKeys) &&
+                !isEnumCase(rawGroupKeys)
+            ) {
+                groupKeys = Object.values(rawGroupKeys);
+            }
 
-                groupKey = normalizeGroupKey(groupKey) as TGroupKey;
+            for (const rawGroupKey of groupKeys) {
+                const groupKey = phpComputedKey(rawGroupKey, {
+                    enumCases: true,
+                    stringables: true,
+                    invalid: () =>
+                        new TypeError(
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                        ),
+                });
 
                 const groups = results as Record<
                     PropertyKey,
@@ -1335,18 +1316,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Key an array or object by a field or using a callback, array, or key/index.
-     * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
-     * and a float truncated toward zero.
+     * Key an associative array by a field or using a callback.
      *
-     * @param keyByValue - The key to key by, or a callback function
+     * @param keyByValue - The path or callback giving each item's key, cast as PHP casts an array key
      * @returns A new collection with keyed items
      *
      * @example
      *
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy('id'); -> new Collection({1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}})
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(item => item.name); -> new Collection({'John': {id: 1, name: 'John'}, 'Jane': {id: 2, name: 'Jane'}})
-     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(['id', 'name']); -> new Collection({'1.John': {id: 1, name: 'John'}, '2.Jane': {id: 2, name: 'Jane'}})
+     * new Collection([{user: {id: 7}}]).keyBy(['user', 'id']); -> new Collection({7: {user: {id: 7}}})
      */
     keyBy(
         keyByValue:
@@ -1363,31 +1342,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            let resolvedKey = keyByValueCallback(
+            const resolvedKey = keyByValueCallback(
                 value as TValue,
                 phpArrayKey(key) as TKey,
             );
 
-            // Convert Collection instances to arrays before JSON stringifying
-            if (resolvedKey instanceof Collection) {
-                resolvedKey = JSON.stringify(resolvedKey.all());
-            } else if (
-                isObject(resolvedKey) &&
-                Object.prototype.hasOwnProperty.call(resolvedKey, "value") &&
-                (isString(resolvedKey["value"]) ||
-                    isNumber(resolvedKey["value"]))
-            ) {
-                // Treat objects with a primitive `value` property as backed enums (Laravel UnitEnum pattern)
-                resolvedKey = resolvedKey["value"] as string | number;
-            } else if (isObject(resolvedKey)) {
-                resolvedKey = JSON.stringify(resolvedKey);
-            } else if (isArray(resolvedKey)) {
-                resolvedKey = resolvedKey.join(".");
-            }
-
             defineKey(
                 results,
-                isSymbol(resolvedKey) ? resolvedKey : phpArrayKey(resolvedKey),
+                // JS-only: PHP has no symbols; a symbol key is kept as it is, as arr and obj keyBy keep it.
+                isSymbol(resolvedKey)
+                    ? resolvedKey
+                    : phpComputedKey(resolvedKey, {
+                          enumCases: true,
+                          stringables: true,
+                          invalid: unconvertibleKey,
+                      }),
                 value as TValue,
             );
         }
@@ -1928,14 +1897,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     pluck<TPluckValue = TValue>(
         value: string | PropertyKey | ((item: TValue) => TPluckValue),
-        key: PropertyKey | ((item: TValue) => string | number) | null = null,
+        key: PropertyKey | ((item: TValue) => unknown) | null = null,
     ): Collection<TPluckValue, TKey> {
         return this.newInstance(
             handOver(
                 dataPluck(
                     this.items,
                     value as string | ((item: unknown) => unknown),
-                    key as string | ((item: unknown) => string | number) | null,
+                    key as string | ((item: unknown) => unknown) | null,
                 ),
             ),
         ) as unknown as Collection<TPluckValue, TKey>;
@@ -4132,17 +4101,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         for (const [key, value] of Object.entries(this.items)) {
             const result = callback(value as TValue, phpArrayKey(key) as TKey);
-
-            let resultKey: string;
-            if (isObject(result) || isArray(result)) {
-                resultKey = JSON.stringify(result);
-            } else if (isNull(result) || isUndefined(result)) {
-                // Count null/undefined keys under an empty string key,
-                // mirroring PHP's (string) null cast in Laravel
-                resultKey = "";
-            } else {
-                resultKey = String(result);
-            }
+            const resultKey = phpComputedKey(result, {
+                enumCases: true,
+                invalid: issetOffset,
+            });
 
             const seen = Object.hasOwn(results, resultKey)
                 ? (results[resultKey] as number)
@@ -6398,6 +6360,34 @@ function handOver<TItems extends object>(items: TItems): TItems {
     owned.add(items);
 
     return items;
+}
+
+/**
+ * The error keyBy's PHP throws for a key it cannot store: it casts every object with `(string)` first.
+ *
+ * @param type - The type name of the key
+ * @returns A TypeError for an array, else the Error `(string)` throws for an object without `__toString`
+ */
+function unconvertibleKey(type: string): Error {
+    if (type === "array") {
+        return new TypeError("Cannot access offset of type array on array");
+    }
+
+    return new Error(
+        `Object of class ${type} could not be converted to string`,
+    );
+}
+
+/**
+ * The error PHP throws when it looks up, through `isset` or `empty`, a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function issetOffset(type: string): TypeError {
+    return new TypeError(
+        `Cannot access offset of type ${type} in isset or empty`,
+    );
 }
 
 /**
