@@ -576,14 +576,102 @@ describe("Collection", () => {
     });
 
     describe("range", () => {
-        it("creates collection with range", () => {
-            const collection = Collection.range(1, 5);
-            expect(collection.all()).toEqual([1, 2, 3, 4, 5]);
+        describe("Laravel Tests", () => {
+            it("test range method", () => {
+                // CollectionTest::testRangeMethod
+                expect(Collection.range(1, 5).all()).toEqual([1, 2, 3, 4, 5]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-ascending-through-zero"
+                expect(Collection.range(-2, 2).all()).toEqual([
+                    -2, -1, 0, 1, 2,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-ascending-negative"
+                expect(Collection.range(-4, -2).all()).toEqual([-4, -3, -2]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending"
+                expect(Collection.range(5, 1).all()).toEqual([5, 4, 3, 2, 1]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-through-zero"
+                expect(Collection.range(2, -2).all()).toEqual([
+                    2, 1, 0, -1, -2,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-negative"
+                expect(Collection.range(-2, -4).all()).toEqual([-2, -3, -4]);
+            });
         });
 
         it("creates collection with step", () => {
             const collection = Collection.range(1, 10, 2);
             expect(collection.all()).toEqual([1, 3, 5, 7, 9]);
+        });
+
+        it("counts down by the step's size, whatever its sign", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-step"
+            expect(Collection.range(10, 1, 3).all()).toEqual([10, 7, 4, 1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-negative-step-descending"
+            expect(Collection.range(5, 1, -2).all()).toEqual([5, 3, 1]);
+        });
+
+        it("holds the one item when both ends meet", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-single"
+            expect(Collection.range(3, 3).all()).toEqual([3]);
+        });
+
+        it("takes a step as long as the span, but no longer", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-step-equals-span"
+            expect(Collection.range(0, 10, 10).all()).toEqual([0, 10]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-step-exceeds-span-throws"
+            expect(() => Collection.range(1, 2, 3)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                ),
+            );
+        });
+
+        it("computes each float item from the start rather than adding steps up", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-step"
+            expect(Collection.range(0, 1, 0.1).all()).toEqual([
+                0, 0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6000000000000001,
+                0.7000000000000001, 0.8, 0.9, 1,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-float-step"
+            expect(Collection.range(1, 0, 0.3).all()).toEqual([
+                1, 0.7, 0.4, 0.10000000000000009,
+            ]);
+        });
+
+        it("sizes a float range by rounding half up, then stops at the far end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-size-rounds-half-up"
+            expect(Collection.range(0.2, 0.5, 0.1).all()).toEqual([
+                0.2, 0.30000000000000004, 0.4, 0.5,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-step-stops-at-end"
+            expect(Collection.range(0, 1, 0.4).all()).toEqual([0, 0.4, 0.8]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-float-stops-at-end"
+            expect(Collection.range(4, 1.5).all()).toEqual([4, 3, 2]);
+        });
+
+        it("rejects a zero step", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-step-zero-throws"
+            expect(() => Collection.range(1, 5, 0)).toThrow(
+                new Error("range(): Argument #3 ($step) cannot be 0"),
+            );
+        });
+
+        it("rejects a negative step on an increasing range", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-negative-step-increasing-throws"
+            expect(() => Collection.range(1, 5, -1)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be greater than 0 for increasing ranges",
+                ),
+            );
         });
     });
 

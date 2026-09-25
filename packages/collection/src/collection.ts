@@ -71,6 +71,7 @@ import {
     isArray,
     isEnumCase,
     isFunction,
+    isInteger,
     isIntegerLikeKey,
     isIterable,
     isMap,
@@ -286,27 +287,66 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Create a collection with the given range.
      *
      * @param from - Starting number of the range
-     * @param to - Ending number of the range
-     * @param step - Step size for the range
+     * @param to - Ending number of the range, counted down to when it is below the start
+     * @param step - Step size for the range; it may be negative only on a decreasing range
      * @returns A new Collection instance containing the range of numbers
+     * @throws Error when the step is 0, negative on an increasing range, or longer than the range
      *
      * @example
      *
-     * Collection.range(1, 5); -> new Collection({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-     * Collection.range(1, 10, 2); -> new Collection({0: 1, 1: 3, 2: 5, 3: 7, 4: 9})
+     * Collection.range(1, 5); -> new Collection([1, 2, 3, 4, 5])
+     * Collection.range(1, 10, 2); -> new Collection([1, 3, 5, 7, 9])
+     * Collection.range(5, 1); -> new Collection([5, 4, 3, 2, 1])
+     * Collection.range(0, 1, 0.25); -> new Collection([0, 0.25, 0.5, 0.75, 1])
      */
     static range(
         from: number,
         to: number,
         step: number = 1,
     ): Collection<number, number> {
-        const rangeArray: number[] = [];
-
-        for (let i = from; i <= to; i += step) {
-            rangeArray.push(i);
+        if (step === 0) {
+            throw new Error("range(): Argument #3 ($step) cannot be 0");
         }
 
-        return new Collection<number, number>(handOver(rangeArray));
+        if (to > from && step < 0) {
+            throw new Error(
+                "range(): Argument #3 ($step) must be greater than 0 for increasing ranges",
+            );
+        }
+
+        const stride = Math.abs(step);
+        const span = Math.abs(to - from);
+
+        if (span !== 0 && span < stride) {
+            throw new Error(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+        }
+
+        const descending = to < from;
+        const sized = span / stride + 1;
+        const whole = Math.floor(sized);
+        const isFloatRange =
+            !isInteger(from) || !isInteger(to) || !isInteger(step);
+        // PHP rounds a float range's size half up, where an integer range's is floored.
+        const size = isFloatRange && sized - whole >= 0.5 ? whole + 1 : whole;
+        const items: number[] = [];
+
+        for (let index = 0; index < size; index++) {
+            // Each item is reckoned from the start, so a float step's rounding error never builds up.
+            const item = descending
+                ? from - index * stride
+                : from + index * stride;
+
+            // The rounded size can reach one step past the end, and PHP drops that item.
+            if (descending ? item < to : item > to) {
+                break;
+            }
+
+            items.push(item);
+        }
+
+        return new Collection<number, number>(handOver(items));
     }
 
     /**
