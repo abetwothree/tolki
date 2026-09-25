@@ -6042,25 +6042,25 @@ function operatorPredicate<TValue>(
  */
 export function containsStrict<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    key: TValue | ((value: TValue, key: MapArrayKey<TKey>) => boolean),
+    key: TValue | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
 ): boolean;
 export function containsStrict<TMap>(
     data: MapData<TMap>,
     key:
         | MapEntryValue<TMap>
-        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
 ): boolean;
 export function containsStrict(data: NonKeyedItems, key: unknown): boolean;
 export function containsStrict(
     data: NonObjectItems,
-    key: (value: unknown, key: string | number) => boolean,
+    key: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function containsStrict(data: NonObjectItems, key: unknown): boolean;
 export function containsStrict<T extends object>(
     data: T,
     key:
         | ObjectValue<T>
-        | ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean),
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
 ): boolean;
 export function containsStrict(
     data: unknown,
@@ -6069,7 +6069,7 @@ export function containsStrict(
 ): boolean;
 export function containsStrict<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
-    key: TValue | ((value: TValue, key: PropertyKey) => boolean),
+    key: TValue | ((value: TValue, key: PropertyKey) => unknown),
     value?: unknown,
 ): boolean {
     // PHP takes the two-argument form whenever a second argument is passed, a null one included.

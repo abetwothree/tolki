@@ -4340,7 +4340,7 @@ export function contains<TValue>(
  */
 export function containsStrict<TValue>(
     data: ArrayItems<TValue>,
-    key: TValue | ((value: TValue, index: number) => boolean),
+    key: TValue | ((value: TValue, index: number) => unknown),
 ): boolean;
 export function containsStrict(
     data: readonly unknown[] | null | undefined,
@@ -4349,7 +4349,7 @@ export function containsStrict(
 ): boolean;
 export function containsStrict<TValue>(
     data: ArrayItems<TValue> | unknown,
-    key: TValue | ((value: TValue, index: number) => boolean),
+    key: TValue | ((value: TValue, index: number) => unknown),
     value?: unknown,
 ): boolean {
     // PHP takes the two-argument form whenever a second argument is passed, a null one included.
