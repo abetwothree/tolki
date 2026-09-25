@@ -677,6 +677,37 @@ describe("Collection", () => {
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
 
+        it("collapses an outer collection with string keys", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
+            // "collapseWithKeys-mixed-keys" and "collapseWithKeys-string-keys-lists"
+            expect(
+                Object.entries(
+                    collect({ first: { a: 1, b: 2 }, second: { c: 3 } })
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 1],
+                ["b", 2],
+                ["c", 3],
+            ]);
+            expect(
+                Object.entries(
+                    collect({ 5: { a: 1 }, second: collect({ b: 2, a: 3 }) })
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 3],
+                ["b", 2],
+            ]);
+            expect(
+                collect({ first: [1, 2], second: [3] })
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([3, 2]);
+        });
+
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
         describe("with a hostile __proto__ key", () => {
@@ -4243,6 +4274,16 @@ describe("Collection", () => {
             );
         });
 
+        it("throws with fewer or with more values than keys", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "combine-fewer-values" and "combine-more-values":
+            // PHP throws a ValueError, which this port raises as an Error carrying the same message.
+            const message =
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements";
+
+            expect(() => collect([1, 2]).combine([3])).toThrow(message);
+            expect(() => collect([1]).combine([2, 3])).toThrow(message);
+        });
+
         it("casts a null key to the empty string, matching array_combine", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
             expect(collect({ k: null }).combine([1]).all()).toEqual({
@@ -7297,6 +7338,43 @@ describe("Collection", () => {
     });
 
     describe("sortBy", () => {
+        it("orders numbers and numeric strings by value", () => {
+            // Laravel's own test passes SORT_NUMERIC, which this port has no parameter for; its default flag
+            // orders this data the same way. docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "sortBy-many-default-flag-asc", "sortBy-many-default-flag-desc" and "sortBy-key-default-flag"
+            const prices = collect([
+                { price: 1.5 },
+                { price: "10.5" },
+                { price: 1.2 },
+                { price: "10.2" },
+                { price: 1.9 },
+            ]);
+
+            expect(
+                prices
+                    .sortBy([["price", "asc"]])
+                    .pluck("price")
+                    .values()
+                    .all(),
+            ).toEqual([1.2, 1.5, 1.9, "10.2", "10.5"]);
+            expect(
+                prices
+                    .sortBy([["price", "desc"]])
+                    .pluck("price")
+                    .values()
+                    .all(),
+            ).toEqual(["10.5", "10.2", 1.9, 1.5, 1.2]);
+            expect(
+                prices.sortBy("price").pluck("price").values().all(),
+            ).toEqual(
+                prices
+                    .sortBy([["price", "asc"]])
+                    .pluck("price")
+                    .values()
+                    .all(),
+            );
+        });
+
         it("keeps all() and values() in agreement over integer keys", () => {
             // PHP-verified (task-10-pluck-sort.json, "sortBy/sortByDesc: all() and
             // values() agree on order"): sortby_values and sortbymany_values are
@@ -8089,6 +8167,16 @@ describe("Collection", () => {
             it("test take last", () => {
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(-2).all()).toEqual(["dayle", "shawn"]);
+            });
+
+            it("test take last with limit greater than collection size", () => {
+                // docs/php-parity/task-31-laravel-13-33-sync.json, "take-negative-past-size"
+                const data = collect(["taylor", "dayle", "shawn"]);
+                expect(data.take(-5).all()).toEqual([
+                    "taylor",
+                    "dayle",
+                    "shawn",
+                ]);
             });
         });
     });
