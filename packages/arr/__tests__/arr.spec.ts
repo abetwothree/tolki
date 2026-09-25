@@ -6927,9 +6927,30 @@ describe("Arr", () => {
                 [null, null, "a"],
             ],
             [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness",
+                // whose keyed answers a Map gives, as the array it stands for
+                "first over a Map",
+                (callback: () => unknown) =>
+                    Arr.first(
+                        new Map([
+                            ["x", "a"],
+                            ["y", "b"],
+                        ]),
+                        callback,
+                    ),
+                [null, null, "a"],
+            ],
+            [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "last",
                 (callback: () => unknown) => Arr.last(["a", "b"], callback),
+                [null, null, "b"],
+            ],
+            [
+                // JS-only: PHP has no Set; it walks as the list of its values does.
+                "last over a Set",
+                (callback: () => unknown) =>
+                    Arr.last(new Set(["a", "b"]), callback),
                 [null, null, "b"],
             ],
             [
@@ -6939,9 +6960,23 @@ describe("Arr", () => {
                 [false, false, true],
             ],
             [
+                // JS-only: PHP has no Set; it walks as the list of its values does.
+                "every over a Set",
+                (callback: () => unknown) =>
+                    Arr.every(new Set(["a", "b"]), callback),
+                [false, false, true],
+            ],
+            [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "some",
                 (callback: () => unknown) => Arr.some(["a", "b"], callback),
+                [false, false, true],
+            ],
+            [
+                // JS-only: PHP has no Set; it walks as the list of its values does.
+                "some over a Set",
+                (callback: () => unknown) =>
+                    Arr.some(new Set(["a", "b"]), callback),
                 [false, false, true],
             ],
             [
