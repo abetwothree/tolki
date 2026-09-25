@@ -9080,6 +9080,72 @@ describe("Collection", () => {
                 expect(d.offsetGet(0)).toBe("foo");
                 expect(d.offsetGet(1)).toBe("bar");
             });
+
+            it("test offset access", () => {
+                // CollectionTest::testOffsetAccess
+                const c = new Collection({ name: "taylor" });
+                expect(c.offsetGet("name")).toBe("taylor");
+                c.offsetSet("name", "dayle");
+                expect(c.offsetGet("name")).toBe("dayle");
+                expect(c.offsetExists("name")).toBe(true);
+                c.offsetUnset("name");
+                expect(c.offsetExists("name")).toBe(false);
+                c.offsetSet(null, "jason");
+                expect(c.offsetGet(0)).toBe("jason");
+            });
+        });
+
+        it("misses a member a plain object inherits", () => {
+            const record = collect({ a: 1 });
+
+            // JS-only: a miss is undefined (PHP: null, with a warning)
+            expect(record.offsetGet("toString")).toBeUndefined();
+            expect(record.offsetGet("constructor")).toBeUndefined();
+            expect(record.offsetGet("__proto__")).toBeUndefined();
+        });
+
+        it("reads an own __proto__ key as the item it holds", () => {
+            const record = collect(Object.fromEntries([["__proto__", 5]]));
+
+            // docs/php-parity/task-16-final-review.json,
+            // '"__proto__" is an ordinary array key in every keyed Collection result'
+            expect(record.offsetGet("__proto__")).toBe(5);
+        });
+
+        it("misses a list's length and its methods", () => {
+            const list = collect([1, 2]);
+
+            // JS-only: a miss is undefined (PHP: null, with a warning)
+            expect(list.offsetGet("length")).toBeUndefined();
+            expect(list.offsetGet("map")).toBeUndefined();
+        });
+
+        it("misses exactly where get() falls back to its default", () => {
+            const sentinel = Symbol("default");
+            const recordKeys = [
+                "toString",
+                "constructor",
+                "__proto__",
+                "a",
+                "b",
+            ];
+            const listKeys = ["length", "map", 0, 2];
+            const record = collect({ a: 1 });
+            const list = collect([1, 2]);
+
+            // JS-only: a miss is undefined (PHP: null, with a warning)
+            expect(
+                recordKeys.map((key) => record.offsetGet(key) === undefined),
+            ).toEqual([true, true, true, false, true]);
+            expect(
+                recordKeys.map((key) => record.get(key, sentinel) === sentinel),
+            ).toEqual([true, true, true, false, true]);
+            expect(
+                listKeys.map((key) => list.offsetGet(key) === undefined),
+            ).toEqual([true, true, false, true]);
+            expect(
+                listKeys.map((key) => list.get(key, sentinel) === sentinel),
+            ).toEqual([true, true, false, true]);
         });
     });
 

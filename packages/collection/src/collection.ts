@@ -4241,13 +4241,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetExists('c'); -> false
      */
     offsetExists(key: PropertyKey): boolean {
-        const ownKey = this.ownKey(key);
-
-        if (isUndefined(ownKey)) {
-            return false;
-        }
-
-        const value = (this.items as Record<PropertyKey, TValue>)[ownKey];
+        const value = this.offsetGet(key);
 
         return !isNull(value) && !isUndefined(value);
     }
@@ -4265,12 +4259,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetGet('a'); -> 1
      * new Collection({a: 1, b: 2}).offsetGet('c'); -> undefined
      */
-    offsetGet(key: TKey) {
-        if (isArray(this.items)) {
-            return this.items[key as number];
+    offsetGet(key: PropertyKey) {
+        const ownKey = this.ownKey(key);
+
+        if (isUndefined(ownKey)) {
+            return undefined;
         }
 
-        return (this.items as Record<TKey, TValue>)[key];
+        return (this.items as Record<PropertyKey, TValue>)[ownKey];
     }
 
     /**
