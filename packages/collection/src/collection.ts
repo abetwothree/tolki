@@ -1790,9 +1790,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).isEmpty(); -> false
      */
     isEmpty(): boolean {
-        return isArray(this.items)
-            ? this.items.length === 0
-            : Object.keys(this.items).length === 0;
+        return this.count() === 0;
     }
 
     /**
@@ -4204,25 +4202,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
      */
     add<T, K extends PropertyKey>(item: T, key: K | null = null) {
+        if (!isNull(key)) {
+            this.putKey(key, item as unknown as TValue);
+
+            return this;
+        }
+
         if (isArray(this.items)) {
-            if (!isNull(key)) {
-                // `put`/`offsetSet`/`getOrPut` take an unconstrained key, so a
-                // "__proto__" one reaches the array write and would reparent it.
-                defineKey(
-                    this.items as unknown as Record<string, TValue>,
-                    key,
-                    item as unknown as TValue,
-                );
-            } else {
-                (this.items as TValue[]).push(item as unknown as TValue);
-            }
+            (this.items as TValue[]).push(item as unknown as TValue);
 
             return this;
         }
 
         defineKey(
             this.items as Record<string, TValue>,
-            isNull(key) ? this.nextAppendKey() : key,
+            this.nextAppendKey(),
             item as unknown as TValue,
         );
 
@@ -4292,7 +4286,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '0': 3}
      * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
      */
-    offsetSet(key: TKey | null, value: TValue | unknown) {
+    offsetSet(key: PropertyKey | null, value: TValue | unknown) {
         this.add(value, key);
     }
 
@@ -6206,23 +6200,58 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * The key PHP's `$array[] =` writes next: one past the highest integer key an
-     * object backing holds, or 0 when it holds none.
+     * object backing holds, negative ones included, or 0 when it holds none.
      *
      * @returns The next free integer key
      */
     protected nextAppendKey(): number {
-        let next = 0;
+        let highest: number | null = null;
 
-        // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
-        // `isIntegerLikeKey` rejects a negative one, so an all-negative backing appends at 0 where
-        // PHP 8.3+ counts on from the highest — a divergence, never an overwrite.
+        // Ascending key order stops above 2**32-2, so the largest integer key may not be last.
         for (const key of Object.keys(this.items)) {
-            if (isIntegerLikeKey(key) && Number(key) >= next) {
-                next = Number(key) + 1;
+            const phpKey = phpArrayKey(key);
+
+            if (isNumber(phpKey) && (isNull(highest) || phpKey > highest)) {
+                highest = phpKey;
             }
         }
 
-        return next;
+        return isNull(highest) ? 0 : highest + 1;
+    }
+
+    /**
+     * Write a value under a key, as PHP's `$items[$key] = $value` does.
+     *
+     * @param key - The key to write, cast as PHP casts an array key
+     * @param value - The value to store under the key
+     */
+    protected putKey(key: PropertyKey, value: TValue): void {
+        const phpKey = phpArrayKey(key);
+
+        if (isArray(this.items)) {
+            // An index up to the length overwrites or appends; any other key makes PHP's array a keyed one.
+            if (
+                isNumber(phpKey) &&
+                phpKey >= 0 &&
+                phpKey <= this.items.length
+            ) {
+                this.items[phpKey] = value;
+
+                return;
+            }
+
+            const items = Object.fromEntries(this.items.entries());
+            defineKey(items, phpKey, value);
+            this.items = items as Record<TKey, TValue>;
+
+            return;
+        }
+
+        defineKey(this.items as Record<string, TValue>, phpKey, value);
+
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
     }
 
     /**

@@ -3497,6 +3497,24 @@ describe("Collection", () => {
             const collection = collect({ a: 1 });
             expect(collection.isEmpty()).toBe(false);
         });
+
+        it("agrees with count() after a keyed write onto an empty list", () => {
+            const collection = collect([]).put("x", 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-isEmpty-after-put-on-empty-list"
+            expect(collection.isEmpty()).toBe(false);
+            expect(collection.count()).toBe(1);
+        });
+
+        it("agrees with count() on a list with a hole", () => {
+            const holes: number[] = [];
+            holes.length = 1;
+            const collection = new Collection(holes);
+
+            // JS-only: PHP has no sparse array; a hole holds no item, so neither view counts one.
+            expect(collection.isEmpty()).toBe(true);
+            expect(collection.count()).toBe(0);
+        });
     });
 
     describe("containsOneItem", () => {
@@ -5712,8 +5730,9 @@ describe("Collection", () => {
             });
 
             it("test put add item to collection", () => {
-                const data = collect({});
-                expect(data.toArray()).toEqual({});
+                // CollectionTest::testPutAddsItemToCollection
+                const data = new Collection();
+                expect(data.toArray()).toEqual([]);
                 data.put("foo", 1);
                 expect(data.toArray()).toEqual({ foo: 1 });
                 data.put("bar", { nested: "two" });
@@ -5729,12 +5748,28 @@ describe("Collection", () => {
             });
         });
 
-        // docs/php-parity/task-17-second-review.json, "put uses \"length\" as an ordinary key"
-        it('puts a "length" key on an array backing without throwing', () => {
+        it('keeps a "length" key as data on a list backing', () => {
             const collection = new Collection([1, 2]);
-            expect(() =>
-                collection.put("length" as never, 5 as never),
-            ).not.toThrow();
+            collection.put("length", 0);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-length-zero-on-list"
+            expect({
+                all: collection.all(),
+                count: collection.count(),
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                get: collection.get("length"),
+                has: collection.has("length"),
+                last: collection.last(),
+            }).toEqual({
+                all: { 0: 1, 1: 2, length: 0 },
+                count: 3,
+                keys: [0, 1, "length"],
+                values: [1, 2, 0],
+                get: 0,
+                has: true,
+                last: 0,
+            });
         });
 
         // docs/php-parity/task-17-second-review.json: "Arr::set writes a
@@ -12688,6 +12723,199 @@ describe("Collection", () => {
         });
     });
 
+    // Each row pins all seven views its probe records: a key that only some of them see is the failure.
+    describe("keyed writes onto a list backing", () => {
+        /** The seven views each probe row records, read at the key the row wrote. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+            key: string | number,
+        ) => ({
+            all: collection.all(),
+            count: collection.count(),
+            keys: collection.keys().all(),
+            values: collection.values().all(),
+            get: collection.get(key),
+            has: collection.has(key),
+            last: collection.last(),
+        });
+
+        it("put keeps a string key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            collection.put("x", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-on-list"
+            expect(views(collection, "x")).toEqual({
+                all: { 0: 1, 1: 2, x: 3 },
+                count: 3,
+                keys: [0, 1, "x"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("offsetSet keeps a string key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            collection.offsetSet("x", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetSet-string-key-on-list"
+            expect(views(collection, "x")).toEqual({
+                all: { 0: 1, 1: 2, x: 3 },
+                count: 3,
+                keys: [0, 1, "x"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("getOrPut keeps a string key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            const returned = collection.getOrPut("x", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-getOrPut-string-key-on-list"
+            expect({ returned, ...views(collection, "x") }).toEqual({
+                returned: 3,
+                all: { 0: 1, 1: 2, x: 3 },
+                count: 3,
+                keys: [0, 1, "x"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("getOrPut computes a missing key once on an empty collection", () => {
+            const collection = collect();
+            let calls = 0;
+            const next = () => `v${++calls}`;
+
+            const first = collection.getOrPut("k", next);
+            const second = collection.getOrPut("k", next);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-getOrPut-memoizes-on-empty"
+            expect({ first, second, calls, all: collection.all() }).toEqual({
+                first: "v1",
+                second: "v1",
+                calls: 1,
+                all: { k: "v1" },
+            });
+        });
+
+        it("put keeps a string key on an empty collection", () => {
+            const collection = collect();
+            collection.put("foo", 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-on-empty"
+            expect(views(collection, "foo")).toEqual({
+                all: { foo: 1 },
+                count: 1,
+                keys: ["foo"],
+                values: [1],
+                get: 1,
+                has: true,
+                last: 1,
+            });
+        });
+
+        it("put keeps an integer key past the end without filling the gap", () => {
+            const collection = collect([1, 2]);
+            collection.put(5, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-gap-int-key-on-list"
+            expect(views(collection, 5)).toEqual({
+                all: { 0: 1, 1: 2, 5: 3 },
+                count: 3,
+                keys: [0, 1, 5],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("put keeps a negative key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            collection.put(-1, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-negative-key-on-list"
+            expect(views(collection, -1)).toEqual({
+                all: { 0: 1, 1: 2, "-1": 3 },
+                count: 3,
+                keys: [0, 1, -1],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("put keeps a non-canonical integer string as a string key", () => {
+            const collection = collect([1, 2]);
+            collection.put("01", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-non-canonical-int-string-on-list"
+            expect(views(collection, "01")).toEqual({
+                all: { 0: 1, 1: 2, "01": 3 },
+                count: 3,
+                keys: [0, 1, "01"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("put truncates a float key to the index it overwrites", () => {
+            const collection = collect([1, 2]);
+            collection.put(1.5, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-float-key-on-list"
+            expect(collection.all()).toEqual([1, 3]);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, 3]);
+            expect(collection.count()).toBe(2);
+        });
+
+        it("put casts a boolean key to the index it overwrites", () => {
+            const collection = collect([1, 2]);
+            collection.put(true, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-bool-key-on-list"
+            expect(collection.all()).toEqual([1, 3]);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, 3]);
+            expect(collection.count()).toBe(2);
+        });
+
+        it("shift after a string-key put renumbers only the integer keys", () => {
+            const collection = collect([1, 2]);
+            collection.put("x", 3);
+            const returned = collection.shift();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-shift"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 1,
+                all: { 0: 2, x: 3 },
+            });
+            expect(collection.keys().all()).toEqual([0, "x"]);
+            expect(collection.values().all()).toEqual([2, 3]);
+        });
+
+        it("transform after a string-key put maps the string key too", () => {
+            const collection = collect([1, 2]).put("x", 3);
+            collection.transform((value) => value * 10);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-transform"
+            expect(collection.all()).toEqual({ 0: 10, 1: 20, x: 30 });
+            expect(collection.keys().all()).toEqual([0, 1, "x"]);
+            expect(collection.values().all()).toEqual([10, 20, 30]);
+        });
+    });
+
     // `add` appended at the COUNT, which is not a free key: on `{x: 1, 3: 'b', y: 2}` the
     // count is 3, so the append overwrote an entry that was already there.
     describe("a null key appends where PHP's $array[] = does", () => {
@@ -12788,14 +13016,28 @@ describe("Collection", () => {
             });
         });
 
-        it("floors the next key at 0 where PHP counts on from a negative one", () => {
+        it("counts on from a negative key, as PHP 8.3 does", () => {
             const collection = collect({ "-3": "a" });
             collection.add("z");
 
-            // docs/php-parity/task-26-collection-order.json, "append-key-after-a-negative-key" —
-            // PHP 8.3+ writes -2 there. A negative key is not integer-like to `isIntegerLikeKey`,
-            // so this floors at 0: a divergence, but never an overwrite, since 0 is not in use.
-            expect(collection.all()).toEqual({ "-3": "a", 0: "z" });
+            // docs/php-parity/task-26-collection-order.json, "append-key-after-a-negative-key"
+            expect(views(collection)).toEqual({
+                all: { "-3": "a", "-2": "z" },
+                values: ["a", "z"],
+                keys: [-3, -2],
+            });
+        });
+
+        it("counts on from the highest key held now, not the highest ever held", () => {
+            const collection = collect({ 5: "a", 6: "b" }).forget(6).push("x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-max-int-key-then-push"
+            // JS-only: PHP remembers the largest integer key ever used; a plain object cannot
+            expect(views(collection)).toEqual({
+                all: { 5: "a", 6: "x" },
+                values: ["a", "x"],
+                keys: [5, 6],
+            });
         });
     });
 
@@ -14071,9 +14313,8 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
         });
     });
 
-    // Unlike every row above, the hostile input here is the KEY ARGUMENT, not the
-    // data, so it reaches the array-backed write that `put`/`offsetSet`/`getOrPut`
-    // all forward into. The result stays an array, so its prototype is Array's.
+    // Unlike every row above, the hostile input here is the KEY ARGUMENT, not the data, so it
+    // reaches the keyed write that `put`/`offsetSet`/`getOrPut` share on a list backing.
     describe.each([
         [
             "put",
@@ -14103,9 +14344,13 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
 
             const items = collection.all();
 
-            expect(Object.getPrototypeOf(items)).toBe(Array.prototype);
+            expect(Object.getPrototypeOf(items)).toBe(Object.prototype);
             expect(Object.hasOwn(items as object, "__proto__")).toBe(true);
-            expect(collection.map((value) => value).all()).toEqual([1, 2]);
+            expect(collection.map((value) => value).all()).toEqual({
+                0: 1,
+                1: 2,
+                ["__proto__"]: { polluted: true },
+            });
         });
     });
 
