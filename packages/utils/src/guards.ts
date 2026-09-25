@@ -55,6 +55,29 @@ export function isPlainObject(
 }
 
 /**
+ * Check if a value is an `@tolki/enum` case, the shape `from()` and `cases()` build.
+ *
+ * @param value - The value to check
+ * @returns True for a plain object with its own string `name` and its own string or number `value`
+ *
+ * @example
+ *
+ * isEnumCase({ value: 1, backed: true, name: "A" }); -> true
+ * isEnumCase({ value: 1 }); -> false
+ */
+export function isEnumCase(
+    value: unknown,
+): value is Record<"name" | "value", string | number> {
+    return (
+        isPlainObject(value) &&
+        Object.hasOwn(value, "name") &&
+        isString(value["name"]) &&
+        Object.hasOwn(value, "value") &&
+        (isString(value["value"]) || isNumber(value["value"]))
+    );
+}
+
+/**
  * Check if a value is any object (including arrays, null).
  *
  * @param value - The value to check

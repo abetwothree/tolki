@@ -52,6 +52,33 @@ describe("Utils", () => {
         });
     });
 
+    describe("isEnumCase", () => {
+        it("returns true for a case @tolki/enum builds", () => {
+            // JS-only: the shape defineEnum's from() and cases() build; a PHP enum case is an object of its enum's class.
+            expect(
+                Utils.isEnumCase({ value: 2, backed: true, name: "B" }),
+            ).toBe(true);
+            expect(
+                Utils.isEnumCase({ value: "A", backed: false, name: "A" }),
+            ).toBe(true);
+        });
+
+        it("returns false without an own string name and an own string or number value", () => {
+            // JS-only: the shape defineEnum's from() and cases() build; a PHP enum case is an object of its enum's class.
+            class Case {
+                name = "A";
+                value = 1;
+            }
+
+            expect(Utils.isEnumCase({ value: 1 })).toBe(false);
+            expect(Utils.isEnumCase({ name: 1, value: 1 })).toBe(false);
+            expect(Utils.isEnumCase({ name: "A" })).toBe(false);
+            expect(Utils.isEnumCase({ name: "A", value: null })).toBe(false);
+            expect(Utils.isEnumCase(new Case())).toBe(false);
+            expect(Utils.isEnumCase("A")).toBe(false);
+        });
+    });
+
     describe("isObjectAny", () => {
         it("returns true for types that return typeof as 'object'", () => {
             expect(Utils.isObjectAny({})).toBe(true);

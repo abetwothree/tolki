@@ -1,6 +1,7 @@
 import {
     isArray,
     isBoolean,
+    isEnumCase,
     isFunction,
     isInteger,
     isMap,
@@ -182,24 +183,6 @@ export function phpComputedKey(
     }
 
     return phpArrayKey(key);
-}
-
-/**
- * Determine whether a value is an `@tolki/enum` case, the shape `from()` and `cases()` build.
- *
- * @param value - The value to test
- * @returns True for a plain object with its own string `name` and its own string or number `value`
- */
-function isEnumCase(
-    value: unknown,
-): value is Record<"name" | "value", string | number> {
-    return (
-        isPlainObject(value) &&
-        Object.hasOwn(value, "name") &&
-        isString(value["name"]) &&
-        Object.hasOwn(value, "value") &&
-        (isString(value["value"]) || isNumber(value["value"]))
-    );
 }
 
 /**
