@@ -286,6 +286,7 @@ probe('C32-C-collection-rows-by-backing', "c32c_rows(list | keyed): contains('k'
     c32c_rows($keyed)->firstWhere('k', 'a')->all(),
     c32c_rows($keyed)->value('v'),
 ], ['list' => false, 'keyed' => true]));
+probe('C32-C-value-collection-row-null', "(new Collection([new Collection(['v' => null]), new Collection(['v' => 1])]))->value('v', 'def')", fn () => (new Collection([new Collection(['v' => null]), new Collection(['v' => 1])]))->value('v', 'def'));
 probe('C32-C-contains-unit-enum-operand', '(new Collection([["n" => C32StaffEnum::Joe]]))->contains("n", "Joe") / contains("n", C32StaffEnum::Joe) / contains("n", "!=", "Joe")', fn () => [
     (new Collection([['n' => C32StaffEnum::Joe]]))->contains('n', 'Joe'),
     (new Collection([['n' => C32StaffEnum::Joe]]))->contains('n', C32StaffEnum::Joe),
@@ -541,6 +542,41 @@ probe('C32-D-partition-collection-rows', "c32c_rows(list | keyed)->partition('k'
     $half->keys()->all(),
     $half->pluck('v')->all(),
 ], c32c_rows($keyed)->partition('k', 'b')->all()), ['list' => false, 'keyed' => true]));
+probe('C32-D-where-in-collection-rows', "c32c_rows(list | keyed): whereIn('k', ['a']) / whereNotIn('k', ['a']) / whereNotBetween('v', [2, 2]) keys, containsStrict('k', 'a')", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->whereIn('k', ['a'])->keys()->all(),
+    c32c_rows($keyed)->whereNotIn('k', ['a'])->keys()->all(),
+    c32c_rows($keyed)->whereNotBetween('v', [2, 2])->keys()->all(),
+    c32c_rows($keyed)->containsStrict('k', 'a'),
+], ['list' => false, 'keyed' => true]));
+
+/** An ArrayAccess that is not Enumerable, whose offsetExists is isset. */
+class C32D_Access implements ArrayAccess
+{
+    public function __construct(private array $items) {}
+    public function offsetExists(mixed $offset): bool { return isset($this->items[$offset]); }
+    public function offsetGet(mixed $offset): mixed { return $this->items[$offset]; }
+    public function offsetSet(mixed $offset, mixed $value): void { $this->items[$offset] = $value; }
+    public function offsetUnset(mixed $offset): void { unset($this->items[$offset]); }
+}
+
+probe('C32-D-data-get-collection-target', "data_get over a Collection: 'a.b', '*.b' over Collection rows, a null value with a default, and the protected 'items' property", fn () => [
+    data_get(new Collection(['a' => ['b' => 1]]), 'a.b'),
+    data_get(new Collection([new Collection(['b' => 1]), new Collection(['b' => 2])]), '*.b'),
+    data_get(new Collection(['v' => null]), 'v', 'def'),
+    data_get(new Collection(['a' => 1]), 'items'),
+]);
+probe('C32-D-data-has-collection-target', "data_has over a Collection: a null value, 'a.b', a missing key; and data_has with a null or an empty key", fn () => [
+    data_has(new Collection(['v' => null]), 'v'),
+    data_has(new Collection(['a' => ['b' => 1]]), 'a.b'),
+    data_has(new Collection(['a' => 1]), 'b'),
+    data_has(['a' => 1], null),
+    data_has(['a' => 1], []),
+]);
+probe('C32-D-data-get-arrayaccess-target', "an ArrayAccess that is not Enumerable: data_get 'a', data_has 'n' (null) and 'a', data_get 'missing' with a default", function () {
+    $target = new C32D_Access(['a' => 1, 'n' => null]);
+
+    return [data_get($target, 'a'), data_has($target, 'n'), data_has($target, 'a'), data_get($target, 'missing', 'def')];
+});
 
 // ---- Family E ------------------------------------------------------------
 
@@ -682,6 +718,7 @@ probe('C32-E-pluck-date-key', "(new Collection([['v' => 1]]))->pluck('v', fn () 
 probe('C32-E-pluck-enum-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => C32E_Int::B)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => C32E_Int::B)->all());
 probe('C32-E-pluck-stringable-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))->all());
 probe('C32-E-pluck-tostring-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => an object with __toString)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class { public function __toString() { return 'Framework'; } })->all());
+probe('C32-E-pluck-closure-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)->all());
 
 // ---- Family F ------------------------------------------------------------
 
@@ -867,6 +904,10 @@ probe('C32-G-sliding-subclass', 'get_class of (new SubCollection([1, 2, 3]))->sl
 probe('C32-G-sortBy-collection-rows', "c32c_rows(list | keyed)->sortBy('k'): keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => [
     c32c_rows($keyed)->sortBy('k')->keys()->all(),
     c32c_rows($keyed)->sortBy('k')->pluck('v')->all(),
+], ['list' => false, 'keyed' => true]));
+probe('C32-G-sortBy-descriptors-collection-rows', "c32c_rows(list | keyed)->sortBy([['k', 'asc'], ['v', 'desc']]): keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->sortBy([['k', 'asc'], ['v', 'desc']])->keys()->all(),
+    c32c_rows($keyed)->sortBy([['k', 'asc'], ['v', 'desc']])->pluck('v')->all(),
 ], ['list' => false, 'keyed' => true]));
 
 // ---- Family H ------------------------------------------------------------
