@@ -165,6 +165,7 @@ function readSegment(target: unknown, segment: string): unknown {
         return entry ? entry[1] : absent;
     }
 
+    // A miss reads no property, unlike data_get: JS cannot tell a public one from state such as a Collection's items.
     if (isArrayAccess(target)) {
         // An Enumerable answers with array_key_exists over its items, so an item holding null still exists.
         const exists = isEnumerable(target)

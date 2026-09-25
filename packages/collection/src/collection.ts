@@ -1258,7 +1258,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             TValue[] | Record<TKey, TValue>
         >();
 
-        // Groups are handed back as their items, each grouped again first when there is another level.
         for (const [groupKey, group] of groups) {
             results.set(
                 groupKey,
