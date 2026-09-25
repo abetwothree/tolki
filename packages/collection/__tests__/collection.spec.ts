@@ -14082,6 +14082,68 @@ describe("Collection", () => {
             expect(padded.tag).toBe("my-tag");
         });
 
+        it("test static factory methods forward extra arguments", () => {
+            // CollectionTest::testStaticFactoryMethodsForwardExtraArguments
+            const made = TestCollectionWithExtraState.make(
+                [1, 2, 3],
+                "make-tag",
+            );
+            expect(made).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(made).toHaveProperty("tag", "make-tag");
+            expect(made.all()).toEqual([1, 2, 3]);
+
+            const wrapped = TestCollectionWithExtraState.wrap(
+                [4, 5],
+                "wrap-tag",
+            );
+            expect(wrapped).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(wrapped).toHaveProperty("tag", "wrap-tag");
+            expect(wrapped.all()).toEqual([4, 5]);
+
+            const empty = TestCollectionWithExtraState.empty("empty-tag");
+            expect(empty).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(empty).toHaveProperty("tag", "empty-tag");
+            expect(empty.all()).toEqual([]);
+
+            const range = TestCollectionWithExtraState.range(
+                1,
+                3,
+                1,
+                "range-tag",
+            );
+            expect(range).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(range).toHaveProperty("tag", "range-tag");
+            expect(range.all()).toEqual([1, 2, 3]);
+
+            const times = TestCollectionWithExtraState.times(
+                3,
+                (i) => i * 10,
+                "times-tag",
+            );
+            expect(times).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(times).toHaveProperty("tag", "times-tag");
+            expect(times.all()).toEqual([10, 20, 30]);
+
+            const timesZero = TestCollectionWithExtraState.times(
+                0,
+                null,
+                "zero-tag",
+            );
+            expect(timesZero).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(timesZero).toHaveProperty("tag", "zero-tag");
+            expect(timesZero.all()).toEqual([]);
+
+            const json = TestCollectionWithExtraState.fromJson(
+                '["a","b"]',
+                512,
+                0,
+                "json-tag",
+            );
+            expect(json).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(json).toHaveProperty("tag", "json-tag");
+            expect(json.all()).toEqual(["a", "b"]);
+        });
+
         it("keeps the calling subclass in every static factory", () => {
             class Sub extends Collection<unknown, PropertyKey> {}
 

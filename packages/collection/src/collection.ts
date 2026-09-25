@@ -289,6 +289,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param from - Starting number of the range
      * @param to - Ending number of the range, counted down to when it is below the start
      * @param step - Step size for the range; it may be negative only on a decreasing range
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new Collection instance containing the range of numbers
      * @throws Error when the step is 0, negative on an increasing range, or longer than the range
      *
@@ -303,6 +304,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         from: number,
         to: number,
         step: number = 1,
+        ...args: unknown[]
     ): Collection<number, number> {
         if (step === 0) {
             throw new Error("range(): Argument #3 ($step) cannot be 0");
@@ -346,7 +348,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             items.push(item);
         }
 
-        return new this<number, number>(handOver(items));
+        return new (this as CollectionClass<number, number>)(
+            handOver(items),
+            ...args,
+        );
     }
 
     /**
@@ -4255,6 +4260,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Create a new collection instance if the value isn't one already.
      *
      * @param items - The items to create the collection from
+     * @param args - Further arguments for the constructor, which a subclass may take
      * @returns A new collection instance
      *
      * @example
@@ -4266,24 +4272,44 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     static make<TValue extends Record<PropertyKey, unknown>>(
         items: TValue,
+        ...args: unknown[]
     ): Collection<TValue, string>;
     static make<TValue>(
         items: TValue[] | readonly TValue[],
+        ...args: unknown[]
     ): Collection<TValue, number>;
     static make<TValue, TKey extends PropertyKey>(
         items: Collection<TValue, TKey>,
+        ...args: unknown[]
     ): Collection<TValue, TKey>;
     static make<TValue>(
         items: Arrayable<TValue>,
+        ...args: unknown[]
     ): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
     static make<TValue, TKey extends PropertyKey>(
         items: Map<TKey, TValue>,
+        ...args: unknown[]
     ): Collection<TValue, TKey>;
-    static make(items?: null | undefined): Collection<[], number>;
-    static make(items: string): Collection<string[], number>;
-    static make(items: number): Collection<number[], number>;
-    static make(items: boolean): Collection<boolean[], number>;
-    static make(items: symbol): Collection<symbol[], number>;
+    static make(
+        items?: null | undefined,
+        ...args: unknown[]
+    ): Collection<[], number>;
+    static make(
+        items: string,
+        ...args: unknown[]
+    ): Collection<string[], number>;
+    static make(
+        items: number,
+        ...args: unknown[]
+    ): Collection<number[], number>;
+    static make(
+        items: boolean,
+        ...args: unknown[]
+    ): Collection<boolean[], number>;
+    static make(
+        items: symbol,
+        ...args: unknown[]
+    ): Collection<symbol[], number>;
     static make<TMakeValue, TMakeKey extends PropertyKey = PropertyKey>(
         items?:
             | DataItems<TMakeValue, TMakeKey>
@@ -4293,9 +4319,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | symbol
             | null
             | undefined,
+        ...args: unknown[]
     ) {
-        return new this<TMakeValue, TMakeKey>(
-            items ?? ([] as DataItems<TMakeValue, TMakeKey>),
+        return new (this as CollectionClass<TMakeValue, TMakeKey>)(
+            items,
+            ...args,
         );
     }
 
@@ -4303,6 +4331,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Wrap the given value in a collection if applicable.
      *
      * @param value - The value to wrap in a collection
+     * @param args - Further arguments for the constructor, which a subclass may take
      * @returns The value as a collection, or the original collection if already one
      *
      * @example
@@ -4318,12 +4347,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | TWrapValue
             | DataItems<TWrapValue, TWrapKey>
             | Collection<TWrapValue, TWrapKey>,
+        ...args: unknown[]
     ) {
+        const Wrapped = this as CollectionClass<TWrapValue, TWrapKey>;
+
         if (value instanceof Collection) {
-            return new this(value);
+            return new Wrapped(value, ...args);
         }
 
-        return new this(arrWrap(value) as DataItems<TWrapValue, TWrapKey>);
+        return new Wrapped(arrWrap(value), ...args);
     }
 
     /**
@@ -4354,14 +4386,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Create a new instance with no items.
      *
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new empty collection instance
      *
      * @example
      *
      * Collection.empty(); -> new Collection([])
      */
-    static empty() {
-        return new this<never, never>(handOver([]));
+    static empty(...args: unknown[]) {
+        return new (this as unknown as CollectionClass<never, never>)(
+            handOver([]),
+            ...args,
+        );
     }
 
     /**
@@ -4369,6 +4405,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param count - The number of times to invoke the callback
      * @param callback - The callback to invoke, receives the current count (1-based) as an argument, or null to just create a range of numbers
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new collection with the results of the callback or a range of numbers
      *
      * @example
@@ -4380,22 +4417,29 @@ export class Collection<TValue, TKey extends PropertyKey> {
     static times<TTimesValue>(
         count: number,
         callback: ((count: number) => TTimesValue) | null = null,
+        ...args: unknown[]
     ) {
         if (count < 1) {
-            return new this();
+            return new (this as CollectionClass<unknown, PropertyKey>)(
+                handOver([]),
+                ...args,
+            );
         }
 
         if (isNull(callback)) {
-            return this.range(1, count);
+            return this.range(1, count, 1, ...args);
         }
 
-        return this.range(1, count).map(callback);
+        return this.range(1, count, 1, ...args).map(callback);
     }
 
     /**
      * Create a new collection by decoding a JSON string.
      *
      * @param json - The JSON string to decode
+     * @param _depth - PHP's json_decode nesting limit, which JSON.parse has no counterpart for
+     * @param _flags - PHP's json_decode flags, which JSON.parse has no counterpart for
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new collection with the decoded items
      *
      * @example
@@ -4403,8 +4447,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.fromJson('{"a":1,"b":2}'); -> new Collection({a: 1, b: 2})
      * Collection.fromJson('[1,2,3]'); -> new Collection([1, 2, 3])
      */
-    static fromJson(json: string) {
-        return new this(JSON.parse(json));
+    static fromJson(
+        json: string,
+        _depth: number = 512,
+        _flags: number = 0,
+        ...args: unknown[]
+    ) {
+        const items = JSON.parse(json);
+
+        return new (this as CollectionClass<typeof items, PropertyKey>)(
+            items,
+            ...args,
+        );
     }
 
     /**
@@ -6355,6 +6409,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return [value as TValue];
     }
 }
+
+/** A collection class as its static factories call it: `new static($items, ...$args)`. */
+type CollectionClass<TValue, TKey extends PropertyKey> = new (
+    items?: unknown,
+    ...args: unknown[]
+) => Collection<TValue, TKey>;
 
 /** Items a builder created for a new instance; the constructor adopts them instead of copying. */
 const owned = new WeakSet<object>();
