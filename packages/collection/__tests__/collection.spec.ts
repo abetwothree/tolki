@@ -9029,6 +9029,43 @@ describe("Collection", () => {
                 expect(d.offsetExists(1)).toBe(true);
                 expect(d.offsetExists(2)).toBe(false);
             });
+
+            it("test behaves like an array with array access", () => {
+                // CollectionTest::testBehavesLikeAnArrayWithArrayAccess
+                const list = new Collection(["foo", null]);
+                expect(list.offsetExists(0)).toBe(true);
+                expect(list.offsetExists(1)).toBe(false);
+                expect(list.offsetExists(1000)).toBe(false);
+                expect(list.offsetGet(0)).toBe("foo");
+                expect(list.offsetGet(1)).toBeNull();
+
+                const record = new Collection({ k1: "foo", k2: null });
+                expect(record.offsetExists("k1")).toBe(true);
+                expect(record.offsetExists("k2")).toBe(false);
+                expect(record.offsetExists("k3")).toBe(false);
+                expect(record.offsetGet("k1")).toBe("foo");
+                expect(record.offsetGet("k2")).toBeNull();
+            });
+        });
+
+        it("answers true for every falsy value that is not null, as isset does", () => {
+            const collection = collect([0, false, "", [], "0"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetExists-falsy-values"
+            expect(
+                [0, 1, 2, 3, 4].map((key) => collection.offsetExists(key)),
+            ).toEqual([true, true, true, true, true]);
+        });
+
+        it("answers true for a zero value on a record", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetExists-zero-on-record"
+            expect(collect({ a: 0 }).offsetExists("a")).toBe(true);
+        });
+
+        it("answers false for a member a plain object or an array inherits", () => {
+            // JS-only: PHP's array inherits no members, so only an own key can be set.
+            expect(collect({ a: 1 }).offsetExists("toString")).toBe(false);
+            expect(collect([1, 2]).offsetExists("length")).toBe(false);
         });
     });
 
@@ -9092,6 +9129,26 @@ describe("Collection", () => {
                 d.offsetUnset(1);
                 expect(d.offsetExists(1)).toBe(false);
             });
+        });
+
+        it("leaves a list untouched for a negative key", () => {
+            const collection = collect(["a", "b", "c"]);
+            collection.offsetUnset(-1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetUnset-negative-on-list"
+            expect(collection.all()).toEqual(["a", "b", "c"]);
+            expect(collection.keys().all()).toEqual([0, 1, 2]);
+            expect(collection.values().all()).toEqual(["a", "b", "c"]);
+        });
+
+        it("leaves a list untouched for a string key", () => {
+            const collection = collect(["a", "b", "c"]);
+            collection.offsetUnset("x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetUnset-string-on-list"
+            expect(collection.all()).toEqual(["a", "b", "c"]);
+            expect(collection.keys().all()).toEqual([0, 1, 2]);
+            expect(collection.values().all()).toEqual(["a", "b", "c"]);
         });
     });
 

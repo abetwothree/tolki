@@ -4240,12 +4240,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetExists('a'); -> true
      * new Collection({a: 1, b: 2}).offsetExists('c'); -> false
      */
-    offsetExists(key: TKey): boolean {
-        if (isArray(this.items)) {
-            return isTruthy(this.items[key as number]);
+    offsetExists(key: PropertyKey): boolean {
+        const ownKey = this.ownKey(key);
+
+        if (isUndefined(ownKey)) {
+            return false;
         }
 
-        return isTruthy((this.items as Record<TKey, TValue>)[key]);
+        const value = (this.items as Record<PropertyKey, TValue>)[ownKey];
+
+        return !isNull(value) && !isUndefined(value);
     }
 
     /**
@@ -4304,13 +4308,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * const objCollection = new Collection({a: 1, b: 2, c: 3});
      * objCollection.offsetUnset('b'); -> collection is now {a: 1, c: 3}
      */
-    offsetUnset(key: TKey) {
-        if (isArray(this.items)) {
-            this.items.splice(key as number, 1);
+    offsetUnset(key: PropertyKey) {
+        const ownKey = this.ownKey(key);
+
+        if (isUndefined(ownKey)) {
             return;
         }
 
-        delete (this.items as Record<TKey, TValue>)[key];
+        if (isArray(this.items)) {
+            this.items.splice(ownKey as number, 1);
+
+            return;
+        }
+
+        delete (this.items as Record<PropertyKey, TValue>)[ownKey];
 
         if (this.itemsWithOrder) {
             this.reorderAfterMutation(this.itemsWithOrder);
@@ -6217,6 +6228,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return isNull(highest) ? 0 : highest + 1;
+    }
+
+    /**
+     * The key an offset names among the backing's own entries, cast as PHP casts an array key.
+     *
+     * @param key - The offset to look up
+     * @returns The key the backing holds the entry under, or undefined when it holds none
+     */
+    protected ownKey(key: PropertyKey): string | number | undefined {
+        const phpKey = phpArrayKey(key);
+
+        // A list's entries are its indexes alone; its `length` and its methods are no items.
+        if (isArray(this.items) && !isNumber(phpKey)) {
+            return undefined;
+        }
+
+        return Object.hasOwn(this.items, phpKey) ? phpKey : undefined;
     }
 
     /**
