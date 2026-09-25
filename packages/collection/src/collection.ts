@@ -43,7 +43,6 @@ import {
     dataReverse,
     dataSearch,
     dataSelect,
-    dataSet,
     dataShift,
     dataShuffle,
     dataSlice,
@@ -1100,24 +1099,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (this.itemsWithOrder) {
             this.reorderAfterMutation(this.itemsWithOrder);
         }
-
-        return this;
-    }
-
-    /**
-     * Set an item in the collection by key.
-     *
-     * @param key - The key to set
-     * @param value - The value to set
-     * @returns The collection instance after setting the item
-     *
-     * @example
-     *
-     * new Collection({a: 1, b: 2}).set('c', 3); -> new Collection({a: 1, b: 2, c: 3})
-     * new Collection([1, 2, 3]).set(1, 4); -> new Collection([1, 4, 3])
-     */
-    set<K extends PathKey, T>(key: K, value: T) {
-        this.items = dataSet(this.items, key, value) as DataItems<TValue, TKey>;
 
         return this;
     }
@@ -4188,10 +4169,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Add an item to the collection.
      *
-     * A null key appends where PHP's `$array[] =` does: past the highest integer key.
+     * The item lands where PHP's `$array[] =` puts it: past the highest integer key.
      *
      * @param item - The item to add to the collection
-     * @param key - The key to add the item under, or null to append
      * @returns The current collection with the item added
      *
      * @example
@@ -4199,15 +4179,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).add(3); -> collection is now [1, 2, 3]
      * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '0': 3}
      * new Collection({5: 'a'}).add('z'); -> collection is now {5: 'a', 6: 'z'}
-     * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
      */
-    add<T, K extends PropertyKey>(item: T, key: K | null = null) {
-        if (!isNull(key)) {
-            this.putKey(key, item as unknown as TValue);
-
-            return this;
-        }
-
+    add<T>(item: T) {
         if (isArray(this.items)) {
             (this.items as TValue[]).push(item as unknown as TValue);
 
@@ -4287,7 +4260,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
      */
     offsetSet(key: PropertyKey | null, value: TValue | unknown) {
-        this.add(value, key);
+        const offset = key ?? null;
+
+        // A null or undefined offset appends, as PHP's `$items[] = $value` does.
+        if (isNull(offset)) {
+            this.add(value);
+
+            return;
+        }
+
+        this.putKey(offset, value as TValue);
     }
 
     /**

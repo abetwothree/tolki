@@ -2189,37 +2189,6 @@ describe("Collection", () => {
         });
     });
 
-    describe("set", () => {
-        it("sets value by key in object", () => {
-            const collection = collect({ a: 1, b: 2 });
-            collection.set("c", 3);
-            expect(collection.all()).toEqual({ a: 1, b: 2, c: 3 });
-        });
-
-        it("sets value by index in array", () => {
-            const collection = collect([1, 2, 3]);
-            collection.set(1, 4);
-            expect(collection.all()).toEqual([1, 4, 3]);
-        });
-
-        it("sets nested object path using dot notation", () => {
-            const collection = collect({});
-            collection.set("user.profile.name", "Taylor");
-            expect(collection.all()).toEqual({
-                user: { profile: { name: "Taylor" } },
-            });
-        });
-
-        // Note: nested array index via dot paths is not supported by dataSet in this implementation.
-
-        it("returns the collection instance for chaining", () => {
-            const collection = collect({});
-            const returned = collection.set("a", 1).set("b.c", 2);
-            expect(returned).toBe(collection);
-            expect(collection.all()).toEqual({ a: 1, b: { c: 2 } });
-        });
-    });
-
     describe("get", () => {
         it("gets value by key in object", () => {
             const collection = collect({ a: 1, b: 2, c: 3 });
@@ -8921,6 +8890,7 @@ describe("Collection", () => {
     describe("add", () => {
         describe("Laravel Tests", () => {
             it("test add", () => {
+                // CollectionTest::testAdd
                 const c = collect([]);
                 c.add(1);
                 expect(c.values().all()).toEqual([1]);
@@ -8944,7 +8914,9 @@ describe("Collection", () => {
                     [],
                     "name",
                 ]);
-                c.add(3, 0);
+                c.put(0, 3);
+
+                // docs/php-parity/task-26-collection-order.json, "order-put-existing-key"
                 expect(c.values().all()).toEqual([
                     3,
                     2,
@@ -8957,39 +8929,8 @@ describe("Collection", () => {
             });
         });
 
-        it("test add to objects", () => {
-            const c = collect({});
-            c.add(1, "a");
-            expect(c.all()).toEqual({ a: 1 });
-            c.add(2, "b");
-            expect(c.all()).toEqual({ a: 1, b: 2 });
-            c.add("", "c");
-            expect(c.all()).toEqual({ a: 1, b: 2, c: "" });
-            c.add(null, "d");
-            expect(c.all()).toEqual({ a: 1, b: 2, c: "", d: null });
-            c.add(false, "e");
-            expect(c.all()).toEqual({ a: 1, b: 2, c: "", d: null, e: false });
-            c.add([], "f");
-            expect(c.all()).toEqual({
-                a: 1,
-                b: 2,
-                c: "",
-                d: null,
-                e: false,
-                f: [],
-            });
-            c.add("name", "g");
-            expect(c.all()).toEqual({
-                a: 1,
-                b: 2,
-                c: "",
-                d: null,
-                e: false,
-                f: [],
-                g: "name",
-            });
-            c.add(5, "a");
-            expect(c.all()).toEqual({
+        it("appends at 0 onto a backing whose keys are all strings", () => {
+            const c = collect({
                 a: 5,
                 b: 2,
                 c: "",
@@ -12039,11 +11980,12 @@ describe("Collection", () => {
             expect(c.toString()).toBe(expected);
         });
 
-        it("toString reflects changes after set operations", () => {
+        it("toString reflects changes after put operations", () => {
             const c = collect({ a: 1 });
-            c.set("b", 2);
-            const expected = JSON.stringify({ a: 1, b: 2 });
-            expect(c.toString()).toBe(expected);
+            c.put("b", 2);
+
+            // CollectionTest::testCastingToStringJsonEncodesTheToArrayResult
+            expect(c.toString()).toBe('{"a":1,"b":2}');
         });
     });
 
@@ -12821,12 +12763,11 @@ describe("Collection", () => {
             });
         });
 
-        it("set appends a new key last and updates an existing one in place", () => {
+        it("offsetSet appends a new key last and updates an existing one in place", () => {
             const added = collect(outOfOrder());
-            added.set("k", "z");
+            added.offsetSet("k", "z");
 
-            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key".
-            // PHP has no Collection::set, so the row records `$c['k'] = 'z'` instead.
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key"
             expect(views(added)).toEqual({
                 all: { 0: "a", 1: "b", 2: "c", k: "z" },
                 values: ["c", "a", "b", "z"],
@@ -12834,10 +12775,9 @@ describe("Collection", () => {
             });
 
             const updated = collect(outOfOrder());
-            updated.set(0, "z");
+            updated.offsetSet(0, "z");
 
-            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key".
-            // PHP has no Collection::set, so the row records `$c[0] = 'z'` instead.
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key"
             expect(views(updated)).toEqual({
                 all: { 0: "z", 1: "b", 2: "c" },
                 values: ["c", "z", "b"],
