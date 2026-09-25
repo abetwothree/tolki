@@ -55,6 +55,7 @@ import {
     dataValues,
 } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
+import { explodePluckPath, hasPluckPath, resolvePluckPath } from "@tolki/path";
 import type {
     Arrayable,
     ArrayItems,
@@ -92,6 +93,7 @@ import {
     phpArrayKey,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
+    resolveDefault,
     resolveSliceRange,
     strictEqual,
     toArrayable,
@@ -102,10 +104,10 @@ import {
 
 // import { initProxyHandler } from "./proxy";
 
-// Collection resolves a descriptor's key with dataGet, the way
+// Collection resolves a descriptor's key with data_get, the way
 // Collection::sortByMany does; Arr and Obj resolve with getNestedValue.
 const sortSpecComparator = createSortSpecComparator((item, key) =>
-    dataGet(item as DataItems<unknown, PropertyKey>, key),
+    itemValue(item, key),
 );
 
 export function collect<TValue>(
@@ -538,13 +540,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // PHP takes the two-argument form whenever a second argument is passed, a null one included.
         if (!isUndefined(value)) {
             return this.contains((item) => {
-                return strictEqual(
-                    dataGet(
-                        item as DataItems<unknown, PropertyKey>,
-                        key as PathKey,
-                    ),
-                    value,
-                );
+                return strictEqual(itemValue(item, key as PathKey), value);
             });
         }
 
@@ -4688,15 +4684,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         defaultValue: TValueDefault | (() => TValueDefault) | null = null,
     ) {
-        const item = this.first((target) => {
-            return dataHas(target as DataItems<unknown, PropertyKey>, key);
-        });
+        const item = this.first((target) => itemHas(target, key));
 
-        return dataGet(
-            item as DataItems<unknown, PropertyKey>,
-            key,
-            defaultValue,
-        );
+        // An item that holds the key is never null, as data_has finds no key in null.
+        if (isNull(item)) {
+            return resolveDefault(defaultValue);
+        }
+
+        return itemValue(item, key);
     }
 
     /**
@@ -5153,15 +5148,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const valueSet = this.getRawItems(values);
 
         return this.filter((item: TValue) => {
-            const itemValue = dataGet(
-                item as DataItems<unknown, PropertyKey>,
-                key,
-            );
+            const retrieved = itemValue(item, key);
             if (strict) {
-                return Object.values(valueSet).includes(itemValue as TValue);
+                return Object.values(valueSet).includes(retrieved as TValue);
             }
 
-            return Object.values(valueSet).some((v) => v == itemValue);
+            return Object.values(valueSet).some((v) => v == retrieved);
         });
     }
 
@@ -5212,16 +5204,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         values: TValueSet,
     ) {
         return this.filter((item: TValue) => {
-            const itemValue = dataGet(
-                item as DataItems<unknown, PropertyKey>,
-                key,
-            );
+            const retrieved = itemValue(item, key);
             const valueSet = this.getRawItems(values);
             const valuesArray = Object.values(valueSet);
 
             return (
-                compareValues(itemValue, valuesArray[0]) < 0 ||
-                compareValues(itemValue, valuesArray[valuesArray.length - 1]) >
+                compareValues(retrieved, valuesArray[0]) < 0 ||
+                compareValues(retrieved, valuesArray[valuesArray.length - 1]) >
                     0
             );
         });
@@ -5243,15 +5232,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const valueSet = this.getRawItems(values);
 
         return this.reject((item: TValue) => {
-            const itemValue = dataGet(
-                item as DataItems<unknown, PropertyKey>,
-                key,
-            );
+            const retrieved = itemValue(item, key);
             if (strict) {
-                return Object.values(valueSet).includes(itemValue as TValue);
+                return Object.values(valueSet).includes(retrieved as TValue);
             }
 
-            return Object.values(valueSet).some((v) => v == itemValue);
+            return Object.values(valueSet).some((v) => v == retrieved);
         });
     }
 
@@ -5691,7 +5677,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return function (item: unknown): boolean {
             const retrieved = isNull(key)
                 ? item
-                : dataGet(item!, key as PathKey);
+                : itemValue(item, key as PathKey);
 
             // The switch this used to inline IS operatorMatch, which `contains`'s
             // key/operator/value form in arr and obj already runs; sharing it is what
@@ -5727,9 +5713,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * valueRetriever('id'); -> (item) => dataGet(item, 'id', null)
+     * valueRetriever('id'); -> (item) => itemValue(item, 'id')
      * valueRetriever((item) => item.id); -> (item) => item.id
-     * valueRetriever('user.name'); -> (item) => dataGet(item, 'user.name', null)
+     * valueRetriever('user.name'); -> (item) => itemValue(item, 'user.name')
      */
     protected valueRetriever<TArgs, TReturn>(
         value: PathKey | ((...args: TArgs[]) => TReturn),
@@ -5746,11 +5732,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return function (...args: TArgs[]) {
-            return dataGet(
-                args[0] as DataItems<unknown, PropertyKey>,
-                value as PathKey,
-                null,
-            );
+            return itemValue(args[0], value as PathKey);
         };
     }
 
@@ -6428,4 +6410,42 @@ function handOver<TItems extends object>(items: TItems): TItems {
     owned.add(items);
 
     return items;
+}
+
+/**
+ * Read the value an item holds at a path, the way PHP's `data_get` does.
+ *
+ * @param item - The item to read
+ * @param path - A dot-separated path or its segments; null reads the item itself
+ * @returns The value at the path, or null when the item holds none there
+ */
+function itemValue(item: unknown, path: PathKey | readonly PathKey[]): unknown {
+    return resolvePluckPath(item, pathSegments(path));
+}
+
+/**
+ * Determine whether an item holds a value at a path, the way PHP's `data_has` does.
+ *
+ * @param item - The item to check
+ * @param path - A dot-separated path or its segments; null names no path, which no item holds
+ * @returns True when the item holds a value at the path, null included
+ */
+function itemHas(item: unknown, path: PathKey | readonly PathKey[]): boolean {
+    return hasPluckPath(item, pathSegments(path));
+}
+
+/**
+ * Split a path into the segments `data_get` reads one at a time.
+ *
+ * @param path - A dot-separated path or its segments
+ * @returns The segments, as strings
+ */
+function pathSegments(path: PathKey | readonly PathKey[]): string[] {
+    if (isArray(path)) {
+        return path.map((segment) => String(segment));
+    }
+
+    return explodePluckPath(
+        isNull(path) || isUndefined(path) ? null : String(path),
+    );
 }

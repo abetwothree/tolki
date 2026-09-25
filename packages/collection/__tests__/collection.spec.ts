@@ -14267,6 +14267,301 @@ describe("Collection", () => {
             );
         });
     });
+
+    describe("item paths read like data_get", () => {
+        /** The rows as a list, or keyed "x", "y" and "z" in order. */
+        const backed = (keyed: boolean, rows: unknown[]) =>
+            keyed
+                ? collect(
+                      Object.fromEntries(
+                          rows.map((row, index) => [
+                              ["x", "y", "z"][index],
+                              row,
+                          ]),
+                      ),
+                  )
+                : collect(rows);
+
+        /** Three Collection rows, "k" => b, a, b and "v" => 1, 2, 3, as a list or keyed "x", "y" and "z". */
+        const collectionRows = (keyed: boolean) =>
+            backed(keyed, [
+                collect({ k: "b", v: 1 }),
+                collect({ k: "a", v: 2 }),
+                collect({ k: "b", v: 3 }),
+            ]) as Collection<Collection<string | number, string>, PropertyKey>;
+
+        it.each([
+            [
+                "where reads a dot path through the item, never a literal dotted key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) =>
+                    backed(keyed, [
+                        { a: { b: 1 } },
+                        { a: { b: 2 } },
+                        { "a.b": 2 },
+                    ])
+                        .where("a.b", 2)
+                        .values()
+                        .all(),
+                { list: [{ a: { b: 2 } }], keyed: [{ a: { b: 2 } }] },
+            ],
+            [
+                "where expands a wildcard in the path",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) =>
+                    backed(keyed, [
+                        { a: [{ b: 1 }, { b: 2 }] },
+                        { a: [{ b: 3 }] },
+                    ])
+                        .where("a.*.b", [1, 2])
+                        .values()
+                        .all(),
+                {
+                    list: [{ a: [{ b: 1 }, { b: 2 }] }],
+                    keyed: [{ a: [{ b: 1 }, { b: 2 }] }],
+                },
+            ],
+            [
+                "pluck reads a dot path through the item, never a literal dotted key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                (keyed: boolean) =>
+                    backed(keyed, [{ "a.b": 1, a: { b: 2 } }])
+                        .pluck("a.b")
+                        .all(),
+                { list: [2], keyed: [2] },
+            ],
+            [
+                "value reads a dot path through the item, never a literal dotted key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                (keyed: boolean) =>
+                    backed(keyed, [{ "a.b": 1, a: { b: 2 } }]).value("a.b"),
+                { list: 2, keyed: 2 },
+            ],
+            [
+                "value finds no item for a path that only a literal dotted key would match",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                (keyed: boolean) =>
+                    backed(keyed, [{ "a.b": 1 }]).value("a.b", "miss"),
+                { list: "miss", keyed: "miss" },
+            ],
+            [
+                "keyBy reads an array path one segment at a time",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                (keyed: boolean) =>
+                    backed(keyed, [{ a: { b: "z" } }])
+                        .keyBy(["a", "b"])
+                        .keys()
+                        .all(),
+                { list: ["z"], keyed: ["z"] },
+            ],
+            [
+                "keyBy keys an array path that reaches no value under the empty string",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                (keyed: boolean) =>
+                    backed(keyed, [{ id: 1, name: "John" }])
+                        .keyBy(["id", "name"])
+                        .keys()
+                        .all(),
+                { list: [""], keyed: [""] },
+            ],
+        ] as [
+            string,
+            (keyed: boolean) => unknown,
+            { list: unknown; keyed: unknown },
+        ][])("%s", (_name, run, expected) => {
+            expect(run(false)).toEqual(expected.list);
+            expect(run(true)).toEqual(expected.keyed);
+        });
+
+        it.each([
+            [
+                "contains reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows-by-backing"
+                (keyed: boolean) => collectionRows(keyed).contains("k", "a"),
+                { list: true, keyed: true },
+            ],
+            [
+                "where reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) =>
+                    collectionRows(keyed).where("k", "b").pluck("v").all(),
+                { list: [1, 3], keyed: [1, 3] },
+            ],
+            [
+                "firstWhere reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows-by-backing"
+                (keyed: boolean) =>
+                    collectionRows(keyed).firstWhere("k", "a")?.all(),
+                { list: { k: "a", v: 2 }, keyed: { k: "a", v: 2 } },
+            ],
+            [
+                "value reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows-by-backing"
+                (keyed: boolean) => collectionRows(keyed).value("v"),
+                { list: 1, keyed: 1 },
+            ],
+            [
+                "pluck reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-collection-rows"
+                (keyed: boolean) => [
+                    collectionRows(keyed).pluck("v").all(),
+                    collectionRows(keyed).pluck("v", "k").all(),
+                ],
+                {
+                    list: [[1, 2, 3], { b: 3, a: 2 }],
+                    keyed: [[1, 2, 3], { b: 3, a: 2 }],
+                },
+            ],
+            [
+                "sortBy reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed).sortBy("k").pluck("v").all(),
+                { list: [2, 1, 3], keyed: [2, 1, 3] },
+            ],
+            [
+                "sortBy reads each descriptor's path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptors-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .sortBy([
+                            ["k", "asc"],
+                            ["v", "desc"],
+                        ])
+                        .pluck("v")
+                        .all(),
+                { list: [2, 3, 1], keyed: [2, 3, 1] },
+            ],
+            [
+                "groupBy reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .groupBy("k")
+                        .map((group) => collect(group).pluck("v").all())
+                        .all(),
+                { list: { b: [1, 3], a: [2] }, keyed: { b: [1, 3], a: [2] } },
+            ],
+            [
+                "keyBy reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .keyBy("k")
+                        .map((row) => row.offsetGet("v"))
+                        .all(),
+                { list: { b: 3, a: 2 }, keyed: { b: 3, a: 2 } },
+            ],
+            [
+                "unique reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-collection-rows"
+                (keyed: boolean) => [
+                    collectionRows(keyed).unique("k").keys().all(),
+                    collectionRows(keyed).unique("k").pluck("v").all(),
+                ],
+                {
+                    list: [
+                        [0, 1],
+                        [1, 2],
+                    ],
+                    keyed: [
+                        ["x", "y"],
+                        [1, 2],
+                    ],
+                },
+            ],
+            [
+                "duplicates reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-collection-rows"
+                (keyed: boolean) => [
+                    collectionRows(keyed).duplicates("k").keys().all(),
+                    collectionRows(keyed).duplicates("k").values().all(),
+                ],
+                { list: [[2], ["b"]], keyed: [["z"], ["b"]] },
+            ],
+            [
+                "partition reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .partition("k", "b")
+                        .all()
+                        .map((half) => half.pluck("v").all()),
+                { list: [[1, 3], [2]], keyed: [[1, 3], [2]] },
+            ],
+            [
+                "whereIn, whereNotIn and whereNotBetween read a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) => [
+                    collectionRows(keyed).whereIn("k", ["a"]).pluck("v").all(),
+                    collectionRows(keyed)
+                        .whereNotIn("k", ["a"])
+                        .pluck("v")
+                        .all(),
+                    collectionRows(keyed)
+                        .whereNotBetween("v", [2, 2])
+                        .pluck("v")
+                        .all(),
+                ],
+                {
+                    list: [[2], [1, 3], [1, 3]],
+                    keyed: [[2], [1, 3], [1, 3]],
+                },
+            ],
+            [
+                "containsStrict reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-in-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed).containsStrict("k", "a"),
+                { list: true, keyed: true },
+            ],
+        ] as [
+            string,
+            (keyed: boolean) => unknown,
+            { list: unknown; keyed: unknown },
+        ][])("%s", (_name, run, expected) => {
+            expect(run(false)).toEqual(expected.list);
+            expect(run(true)).toEqual(expected.keyed);
+        });
+
+        it("reads a single Collection row through contains, where, firstWhere and value", () => {
+            const rows = () => collect([collect({ v: 1 })]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows"
+            expect([
+                rows().contains("v", 1),
+                rows().where("v", 1).count(),
+                rows().firstWhere("v", 1)?.all(),
+                rows().value("v"),
+            ]).toEqual([true, 1, { v: 1 }, 1]);
+        });
+
+        it("plucks a key out of Collection rows", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-collections"
+            expect(
+                collect([collect({ a: 1 }), collect({ a: 2 })])
+                    .pluck("a")
+                    .all(),
+            ).toEqual([1, 2]);
+        });
+
+        it("reads the item itself for a null path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-null-key"
+            expect(
+                collect([1, 2, 3]).whereIn(null, [1, 3]).values().all(),
+            ).toEqual([1, 3]);
+        });
+
+        it("takes the first Collection row that holds the key, even when it holds null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-value-collection-row-null"
+            expect(
+                collect([collect({ v: null }), collect({ v: 1 })]).value(
+                    "v",
+                    "def",
+                ),
+            ).toBeNull();
+        });
+    });
 });
 
 // Only JSON.parse produces a real own enumerable "__proto__" key; a literal

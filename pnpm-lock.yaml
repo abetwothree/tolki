@@ -214,6 +214,9 @@ importers:
       "@tolki/enum":
         specifier: workspace:^
         version: link:../enum
+      "@tolki/path":
+        specifier: workspace:^
+        version: link:../path
       "@tolki/types":
         specifier: workspace:^
         version: link:../types

@@ -16,7 +16,7 @@ export type SortValueResolver = (item: unknown, key: PathKey) => unknown;
  * Build the sort-descriptor comparator factory for one path resolver.
  *
  * `@tolki/utils` sits below every path package, so the caller supplies the
- * resolver: `getNestedValue` for `Arr`/`Obj`, `dataGet` for `Collection`.
+ * resolver: `getNestedValue` for `Arr`/`Obj`, a `data_get` reader for `Collection`.
  *
  * @param resolve - Reads a descriptor's key off an item.
  * @returns A function building the comparator one sort descriptor implies.
