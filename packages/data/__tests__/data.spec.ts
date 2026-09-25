@@ -7862,7 +7862,11 @@ describe("Data", () => {
             // docs/php-parity/task-31-laravel-13-33-sync.json,
             // "containsStrict-list-null-callback" and "containsStrict-list-zero-callback"
             expect(
-                Data.dataContains([1, null, 2], (value) => value === null, true),
+                Data.dataContains(
+                    [1, null, 2],
+                    (value) => value === null,
+                    true,
+                ),
             ).toBe(true);
             expect(
                 Data.dataContains([1, null, 2], (value) => value === 0, true),
