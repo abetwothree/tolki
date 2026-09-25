@@ -78,6 +78,7 @@ probe('mode-numeric-strings', "(new Collection(['1', 1, '1']))->mode()", fn () =
 probe('mode-empty-string', "(new Collection(['', '', 'a']))->mode()", fn () => (new Collection(['', '', 'a']))->mode());
 probe('mode-tie-first-seen', '(new Collection([3, 1, 3, 1]))->mode()', fn () => (new Collection([3, 1, 3, 1]))->mode());
 probe('mode-out-of-order-tie', "(new Collection([2 => 'c', 0 => 'a']))->mode()", fn () => (new Collection([2 => 'c', 0 => 'a']))->mode());
+probe('mode-out-of-order-key-tie', "(new Collection([2 => ['foo' => 'c'], 0 => ['foo' => 'a']]))->mode('foo')", fn () => (new Collection([2 => ['foo' => 'c'], 0 => ['foo' => 'a']]))->mode('foo'));
 probe('mode-assoc-strings', "(new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode()", fn () => (new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode());
 
 // max() keeps an earlier value that no later value exceeds.
@@ -121,6 +122,9 @@ probe('currency-rounds-to-zero-no-digits', 'Number::currency(-0.4, precision: 0)
 probe('currency-keeps-sign', 'Number::currency(-0.006)', fn () => Number::currency(-0.006));
 probe('currency-negative-zero', 'Number::currency(-0.0)', fn () => Number::currency(-0.0));
 probe('currency-rounds-to-zero-eur-de', "Number::currency(-0.001, in: 'EUR', locale: 'de')", fn () => Number::currency(-0.001, in: 'EUR', locale: 'de'));
+// fileSize() formats through format(), so it inherits the same guard.
+probe('fileSize-rounds-to-zero', 'Number::fileSize(-0.4)', fn () => Number::fileSize(-0.4));
+probe('fileSize-negative-zero', 'Number::fileSize(-0.0)', fn () => Number::fileSize(-0.0));
 
 // Number::parseInt() parses 64-bit integers (laravel/framework#61691).
 probe('parseInt-past-int32', "Number::parseInt('3,000,000,000')", fn () => Number::parseInt('3,000,000,000'));

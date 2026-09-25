@@ -122,6 +122,14 @@
             ]
         },
         {
+            "label": "mode-out-of-order-key-tie",
+            "php": "(new Collection([2 => ['foo' => 'c'], 0 => ['foo' => 'a']]))->mode('foo')",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
             "label": "mode-assoc-strings",
             "php": "(new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode()",
             "value": [
@@ -343,6 +351,16 @@
             "label": "currency-rounds-to-zero-eur-de",
             "php": "Number::currency(-0.001, in: 'EUR', locale: 'de')",
             "value": "0,00\u00a0\u20ac"
+        },
+        {
+            "label": "fileSize-rounds-to-zero",
+            "php": "Number::fileSize(-0.4)",
+            "value": "0 B"
+        },
+        {
+            "label": "fileSize-negative-zero",
+            "php": "Number::fileSize(-0.0)",
+            "value": "0 B"
         },
         {
             "label": "parseInt-past-int32",
