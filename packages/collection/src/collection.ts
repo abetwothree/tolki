@@ -275,7 +275,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param step - Step size for the range; it may be negative only on a decreasing range
      * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new Collection instance containing the range of numbers
-     * @throws Error when the step is 0, negative on an increasing range, or longer than the range
+     * @throws Error when an argument is not a finite number, or the step is 0, negative on an increasing range,
+     * or longer than the range
      *
      * @example
      *
@@ -290,8 +291,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
         step: number = 1,
         ...args: unknown[]
     ): Collection<number, number> {
+        if (!isFiniteNumber(step)) {
+            throw nonFiniteRangeArgument("#3 ($step)", step);
+        }
+
         if (step === 0) {
             throw new Error("range(): Argument #3 ($step) cannot be 0");
+        }
+
+        if (!isFiniteNumber(from)) {
+            throw nonFiniteRangeArgument("#1 ($start)", from);
+        }
+
+        if (!isFiniteNumber(to)) {
+            throw nonFiniteRangeArgument("#2 ($end)", to);
         }
 
         if (to > from && step < 0) {
@@ -6589,6 +6602,22 @@ function jsonSerializeItem(value: unknown): unknown {
     }
 
     return value;
+}
+
+/**
+ * The ValueError PHP's range() throws for an argument that is NAN or INF, as a plain Error.
+ *
+ * @param argument - The argument's position and name, as PHP's message prints them
+ * @param value - The argument, which is not a finite number
+ * @returns The error to throw
+ */
+function nonFiniteRangeArgument(argument: string, value: number): Error {
+    // PHP prints INF for either infinity.
+    const provided = Number.isNaN(value) ? "NAN" : "INF";
+
+    return new Error(
+        `range(): Argument ${argument} must be a finite number, ${provided} provided`,
+    );
 }
 
 /**

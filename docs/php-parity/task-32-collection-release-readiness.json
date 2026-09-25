@@ -442,11 +442,82 @@
             ]
         },
         {
+            "label": "C32-A-range-non-finite-arguments-throw",
+            "php": "Collection::range() given NAN, INF or -INF as the step, the start or the end",
+            "value": [
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #1 ($start) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #1 ($start) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #1 ($start) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, INF provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, INF provided"
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-range-checks-the-step-first",
+            "php": "Collection::range(NAN, NAN, NAN) and Collection::range(NAN, 5, 0)",
+            "value": [
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #3 ($step) cannot be 0"
+                ]
+            ]
+        },
+        {
             "label": "C32-A-times-fractional-count",
             "php": "Collection::times(2.7)->all()",
             "value": [
                 1,
                 2
+            ]
+        },
+        {
+            "label": "C32-A-times-non-finite-count",
+            "php": "Collection::times(NAN), times(INF) and times(-INF)",
+            "value": [
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided"
+                ],
+                [
+                    "ValueError",
+                    "range(): Argument #2 ($end) must be a finite number, INF provided"
+                ],
+                []
             ]
         },
         {

@@ -119,9 +119,25 @@ probe('C32-A-range-float-step-stops-at-end', 'Collection::range(0, 1, 0.4)->all(
 probe('C32-A-range-float-size-rounds-half-up', 'Collection::range(0.2, 0.5, 0.1)->all()', fn () => Collection::range(0.2, 0.5, 0.1)->all());
 probe('C32-A-range-descending-float-step', 'Collection::range(1, 0, 0.3)->all()', fn () => Collection::range(1, 0, 0.3)->all());
 probe('C32-A-range-descending-float-stops-at-end', 'Collection::range(4, 1.5)->all()', fn () => Collection::range(4, 1.5)->all());
+$rangeOutcome = function (array $arguments) {
+    try {
+        return Collection::range(...$arguments)->all();
+    } catch (\Throwable $e) {
+        return [get_class($e), $e->getMessage()];
+    }
+};
+probe('C32-A-range-non-finite-arguments-throw', 'Collection::range() given NAN, INF or -INF as the step, the start or the end', fn () => array_map($rangeOutcome, [[1, 5, NAN], [1, 5, INF], [1, 5, -INF], [NAN, 5], [INF, 5], [-INF, 5], [0, NAN], [0, INF], [0, -INF]]));
+probe('C32-A-range-checks-the-step-first', 'Collection::range(NAN, NAN, NAN) and Collection::range(NAN, 5, 0)', fn () => array_map($rangeOutcome, [[NAN, NAN, NAN], [NAN, 5, 0]]));
 
 // --- times
 probe('C32-A-times-fractional-count', 'Collection::times(2.7)->all()', fn () => Collection::times(2.7)->all());
+probe('C32-A-times-non-finite-count', 'Collection::times(NAN), times(INF) and times(-INF)', fn () => array_map(function ($count) {
+    try {
+        return Collection::times($count)->all();
+    } catch (\Throwable $e) {
+        return [get_class($e), $e->getMessage()];
+    }
+}, [NAN, INF, -INF]));
 
 // --- fromJson
 probe('C32-A-fromJson-invalid-is-empty', "Collection::fromJson('{bad')->all()", fn () => Collection::fromJson('{bad')->all());

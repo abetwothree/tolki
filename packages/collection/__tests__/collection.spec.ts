@@ -726,6 +726,71 @@ describe("Collection", () => {
             );
         });
 
+        it("rejects a step that is not a finite number", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-non-finite-arguments-throw"
+            expect(() => Collection.range(1, 5, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(1, 5, Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(1, 5, -Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, INF provided",
+                ),
+            );
+        });
+
+        it("rejects a start or an end that is not a finite number", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-non-finite-arguments-throw"
+            expect(() => Collection.range(NaN, 5)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(0, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(Infinity, 5)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(-Infinity, 5)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(0, Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(0, -Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+        });
+
+        it("checks the step before the start and the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-checks-the-step-first"
+            expect(() => Collection.range(NaN, NaN, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(NaN, 5, 0)).toThrow(
+                new Error("range(): Argument #3 ($step) cannot be 0"),
+            );
+        });
+
         it("rejects a negative step on an increasing range", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-negative-step-increasing-throws"
             expect(() => Collection.range(1, 5, -1)).toThrow(
@@ -9845,6 +9910,21 @@ describe("Collection", () => {
                 const range = Collection.times(5);
                 expect(range.all()).toEqual([1, 2, 3, 4, 5]);
             });
+        });
+
+        it("throws range()'s error for a count that is not finite, and builds nothing below one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-non-finite-count"
+            expect(() => Collection.times(NaN)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.times(Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+            expect(Collection.times(-Infinity).all()).toEqual([]);
         });
 
         it("counts to the whole part of a fractional count", () => {
