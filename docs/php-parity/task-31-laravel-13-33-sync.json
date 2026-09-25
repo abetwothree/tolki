@@ -129,6 +129,16 @@
             ]
         },
         {
+            "label": "max-keeps-earlier-larger-value",
+            "php": "(new Collection([3, 1, 2]))->max()",
+            "value": 3
+        },
+        {
+            "label": "max-key-keeps-earlier-larger-value",
+            "php": "(new Collection([['foo' => 20], ['foo' => 10]]))->max('foo')",
+            "value": 20
+        },
+        {
             "label": "collapseWithKeys-string-keys",
             "php": "(new Collection(['first' => ['a' => 1, 'b' => 2], 'second' => ['c' => 3]]))->collapseWithKeys()",
             "value": [

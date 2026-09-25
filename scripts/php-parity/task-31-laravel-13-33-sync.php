@@ -80,6 +80,10 @@ probe('mode-tie-first-seen', '(new Collection([3, 1, 3, 1]))->mode()', fn () => 
 probe('mode-out-of-order-tie', "(new Collection([2 => 'c', 0 => 'a']))->mode()", fn () => (new Collection([2 => 'c', 0 => 'a']))->mode());
 probe('mode-assoc-strings', "(new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode()", fn () => (new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode());
 
+// max() keeps an earlier value that no later value exceeds.
+probe('max-keeps-earlier-larger-value', '(new Collection([3, 1, 2]))->max()', fn () => (new Collection([3, 1, 2]))->max());
+probe('max-key-keeps-earlier-larger-value', "(new Collection([['foo' => 20], ['foo' => 10]]))->max('foo')", fn () => (new Collection([['foo' => 20], ['foo' => 10]]))->max('foo'));
+
 // collapseWithKeys() with string outer keys (laravel/framework#61539); it used to crash.
 probe('collapseWithKeys-string-keys', "(new Collection(['first' => ['a' => 1, 'b' => 2], 'second' => ['c' => 3]]))->collapseWithKeys()", fn () => pairs((new Collection(['first' => ['a' => 1, 'b' => 2], 'second' => ['c' => 3]]))->collapseWithKeys()));
 probe('collapseWithKeys-mixed-keys', "(new Collection([5 => ['a' => 1], 'second' => new Collection(['b' => 2, 'a' => 3])]))->collapseWithKeys()", fn () => pairs((new Collection([5 => ['a' => 1], 'second' => new Collection(['b' => 2, 'a' => 3])]))->collapseWithKeys()));
