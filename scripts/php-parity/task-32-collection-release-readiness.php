@@ -271,6 +271,21 @@ probe('C32-C-collection-rows', 'rows that are Collections: contains("v", 1) / wh
     (new Collection([new Collection(['v' => 1])]))->firstWhere('v', 1)->all(),
     (new Collection([new Collection(['v' => 1])]))->value('v'),
 ]);
+
+/** Three Collection rows, 'k' => b, a, b and 'v' => 1, 2, 3, as a list or keyed 'x', 'y', 'z'. */
+function c32c_rows(bool $keyed): Collection
+{
+    $rows = [new Collection(['k' => 'b', 'v' => 1]), new Collection(['k' => 'a', 'v' => 2]), new Collection(['k' => 'b', 'v' => 3])];
+
+    return new Collection($keyed ? array_combine(['x', 'y', 'z'], $rows) : $rows);
+}
+
+probe('C32-C-collection-rows-by-backing', "c32c_rows(list | keyed): contains('k', 'a') / where('k', 'b')->keys() / firstWhere('k', 'a')->all() / value('v')", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->contains('k', 'a'),
+    c32c_rows($keyed)->where('k', 'b')->keys()->all(),
+    c32c_rows($keyed)->firstWhere('k', 'a')->all(),
+    c32c_rows($keyed)->value('v'),
+], ['list' => false, 'keyed' => true]));
 probe('C32-C-contains-unit-enum-operand', '(new Collection([["n" => C32StaffEnum::Joe]]))->contains("n", "Joe") / contains("n", C32StaffEnum::Joe) / contains("n", "!=", "Joe")', fn () => [
     (new Collection([['n' => C32StaffEnum::Joe]]))->contains('n', 'Joe'),
     (new Collection([['n' => C32StaffEnum::Joe]]))->contains('n', C32StaffEnum::Joe),
@@ -499,6 +514,34 @@ probe('C32-D-duplicates-list-then-push', "(new Collection(['x', 'y', 'x']))->dup
 probe('C32-D-select-collection-rows', "(new Collection([new Collection(['a' => 1, 'b' => 2])]))->select('a')", fn () => pairs((new Collection([new Collection(['a' => 1, 'b' => 2])]))->select('a')));
 probe('C32-D-select-prototype-key-names', "(new Collection([['a' => 1]]))->select('toString', 'constructor', 'a')", fn () => pairs((new Collection([['a' => 1]]))->select('toString', 'constructor', 'a')));
 
+/** The rows as a list, or keyed 'x', 'y', 'z' in order. */
+function c32d_items(bool $keyed, array $rows): Collection
+{
+    return new Collection($keyed ? array_combine(array_slice(['x', 'y', 'z'], 0, count($rows)), $rows) : $rows);
+}
+
+probe('C32-D-item-paths-by-backing', "where('a.b', 2) and where('a.*.b', [1, 2]) keys, pluck('a.b'), value('a.b') and value('a.b', 'miss'), keyBy(['a', 'b']) and keyBy(['id', 'name']) keys, over a list and over 'x', 'y', 'z'", fn () => array_map(fn (bool $keyed) => [
+    'whereDotPath' => c32d_items($keyed, [['a' => ['b' => 1]], ['a' => ['b' => 2]], ['a.b' => 2]])->where('a.b', 2)->keys()->all(),
+    'whereWildcardPath' => c32d_items($keyed, [['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]])->where('a.*.b', [1, 2])->keys()->all(),
+    'pluckDotPath' => c32d_items($keyed, [['a.b' => 1, 'a' => ['b' => 2]]])->pluck('a.b')->all(),
+    'valueDotPath' => c32d_items($keyed, [['a.b' => 1, 'a' => ['b' => 2]]])->value('a.b'),
+    'valueDotPathMiss' => c32d_items($keyed, [['a.b' => 1]])->value('a.b', 'miss'),
+    'keyByNestedPath' => c32d_items($keyed, [['a' => ['b' => 'z']]])->keyBy(['a', 'b'])->keys()->all(),
+    'keyByUnreachablePath' => c32d_items($keyed, [['id' => 1, 'name' => 'John']])->keyBy(['id', 'name'])->keys()->all(),
+], ['list' => false, 'keyed' => true]));
+probe('C32-D-unique-collection-rows', "c32c_rows(list | keyed)->unique('k'): keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->unique('k')->keys()->all(),
+    c32c_rows($keyed)->unique('k')->pluck('v')->all(),
+], ['list' => false, 'keyed' => true]));
+probe('C32-D-duplicates-collection-rows', "c32c_rows(list | keyed)->duplicates('k'): keys and values", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->duplicates('k')->keys()->all(),
+    c32c_rows($keyed)->duplicates('k')->values()->all(),
+], ['list' => false, 'keyed' => true]));
+probe('C32-D-partition-collection-rows', "c32c_rows(list | keyed)->partition('k', 'b'): each half's keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => array_map(fn (Collection $half) => [
+    $half->keys()->all(),
+    $half->pluck('v')->all(),
+], c32c_rows($keyed)->partition('k', 'b')->all()), ['list' => false, 'keyed' => true]));
+
 // ---- Family E ------------------------------------------------------------
 
 enum C32E_Pure { case A; }
@@ -585,6 +628,61 @@ probe('C32-E-array-item-all-member-is-data', "\$row = ['all' => fn () => [9], 'b
 });
 probe('C32-E-mapSpread-string-keyed-row', "collect([['all' => fn () => [9], 'b' => 2]])->mapSpread(fn (...\$a) => count(\$a))", fn () => (new Collection([['all' => fn () => [9], 'b' => 2]]))->mapSpread(fn (...$a) => count($a))->all());
 
+// Collection rows are ArrayAccess, so data_get reads through them.
+probe('C32-E-groupBy-collection-rows', "c32c_rows(list | keyed)->groupBy('k'): each group's 'v' values", fn () => array_map(fn (bool $keyed) => c32c_rows($keyed)->groupBy('k')->map(fn (Collection $group) => $group->pluck('v')->all())->all(), ['list' => false, 'keyed' => true]));
+probe('C32-E-keyBy-collection-rows', "c32c_rows(list | keyed)->keyBy('k'): each row's 'v'", fn () => array_map(fn (bool $keyed) => c32c_rows($keyed)->keyBy('k')->map(fn (Collection $row) => $row['v'])->all(), ['list' => false, 'keyed' => true]));
+probe('C32-E-pluck-collection-rows', "c32c_rows(list | keyed)->pluck('v') and ->pluck('v', 'k')", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->pluck('v')->all(),
+    c32c_rows($keyed)->pluck('v', 'k')->all(),
+], ['list' => false, 'keyed' => true]));
+
+probe('C32-E-callback-key-types-sweep', "[gettype(\$k), \$k] for each key a callback sees on ['a', 'b'] and on ['1' => 'a', 'x' => 'b']; sortKeysUsing lists the distinct keys it compared, sorted", function () {
+    $out = [];
+    foreach (['list' => ['a', 'b'], 'record' => ['1' => 'a', 'x' => 'b']] as $name => $items) {
+        $trace = function (callable $run) use ($items): array {
+            $seen = [];
+            $run(new Collection($items), function ($k) use (&$seen) { $seen[] = [gettype($k), $k]; });
+
+            return $seen;
+        };
+        $out['every'][$name] = $trace(fn ($c, $note) => $c->every(function ($v, $k) use ($note) { $note($k); return true; }));
+        $out['each'][$name] = $trace(fn ($c, $note) => $c->each(function ($v, $k) use ($note) { $note($k); }));
+        $out['groupBy'][$name] = $trace(fn ($c, $note) => $c->groupBy(function ($v, $k) use ($note) { $note($k); return 'g'; }));
+        $out['countBy'][$name] = $trace(fn ($c, $note) => $c->countBy(function ($v, $k) use ($note) { $note($k); return 'g'; }));
+        $out['sortBy'][$name] = $trace(fn ($c, $note) => $c->sortBy(function ($v, $k) use ($note) { $note($k); return $v; }));
+        $out['reduceSpread'][$name] = $trace(fn ($c, $note) => $c->reduceSpread(function ($carry, $v, $k) use ($note) { $note($k); return [$carry]; }, null));
+        $out['mapWithKeys'][$name] = $trace(fn ($c, $note) => $c->mapWithKeys(function ($v, $k) use ($note) { $note($k); return [$v => $v]; }));
+        $out['keyBy'][$name] = $trace(fn ($c, $note) => $c->keyBy(function ($v, $k) use ($note) { $note($k); return $v; }));
+        $compared = $trace(fn ($c, $note) => $c->sortKeysUsing(function ($a, $b) use ($note) { $note($a); $note($b); return strcmp((string) $a, (string) $b); }));
+        $distinct = array_values(array_unique(array_map('json_encode', $compared)));
+        sort($distinct);
+        $out['sortKeysUsing'][$name] = array_map(fn (string $pair) => json_decode($pair, true), $distinct);
+    }
+
+    return $out;
+});
+
+// A computed key PHP cannot store throws; the message depends on how each method writes the key.
+probe('C32-E-keyBy-array-key', "(new Collection([1]))->keyBy(fn () => [1, 2])", fn () => (new Collection([1]))->keyBy(fn () => [1, 2])->all());
+probe('C32-E-keyBy-assoc-key', "(new Collection([1]))->keyBy(fn () => ['a' => 1])", fn () => (new Collection([1]))->keyBy(fn () => ['a' => 1])->all());
+probe('C32-E-keyBy-date-key', "(new Collection([1]))->keyBy(fn () => new DateTime('@0'))", fn () => (new Collection([1]))->keyBy(fn () => new DateTime('@0'))->all());
+probe('C32-E-groupBy-nested-array-key', "(new Collection([1]))->groupBy(fn () => [[1, 2]])", fn () => (new Collection([1]))->groupBy(fn () => [[1, 2]])->all());
+probe('C32-E-groupBy-nested-assoc-key', "(new Collection([1]))->groupBy(fn () => [['a' => 1]])", fn () => (new Collection([1]))->groupBy(fn () => [['a' => 1]])->all());
+probe('C32-E-groupBy-date-key', "(new Collection([1]))->groupBy(fn () => new DateTime('@0'))", fn () => (new Collection([1]))->groupBy(fn () => new DateTime('@0'))->all());
+probe('C32-E-groupBy-assoc-return', "(new Collection([1, 2]))->groupBy(fn (\$x) => ['p' => \$x, 'q' => 'z'])", fn () => c32e_pairs((new Collection([1, 2]))->groupBy(fn ($x) => ['p' => $x, 'q' => 'z'])));
+probe('C32-E-countBy-array-key', "(new Collection([1]))->countBy(fn () => [1, 2])", fn () => (new Collection([1]))->countBy(fn () => [1, 2])->all());
+probe('C32-E-countBy-assoc-key', "(new Collection([1]))->countBy(fn () => ['a' => 1])", fn () => (new Collection([1]))->countBy(fn () => ['a' => 1])->all());
+probe('C32-E-countBy-date-key', "(new Collection([1]))->countBy(fn () => new DateTime('@0'))", fn () => (new Collection([1]))->countBy(fn () => new DateTime('@0'))->all());
+probe('C32-E-countBy-stringable-key', "(new Collection([1]))->countBy(fn () => new Stringable('Lara'))", fn () => (new Collection([1]))->countBy(fn () => new Stringable('Lara'))->all());
+probe('C32-E-countBy-tostring-key', "(new Collection([1]))->countBy(fn () => an object with __toString)", fn () => (new Collection([1]))->countBy(fn () => new class { public function __toString() { return 'Framework'; } })->all());
+probe('C32-E-countBy-null-key', "(new Collection([['url' => null], ['url' => 'a'], []]))->countBy('url')", fn () => (new Collection([['url' => null], ['url' => 'a'], []]))->countBy('url')->all());
+probe('C32-E-pluck-array-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => [1, 2])", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => [1, 2])->all());
+probe('C32-E-pluck-assoc-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => ['a' => 1])", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => ['a' => 1])->all());
+probe('C32-E-pluck-date-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new DateTime('@0'))", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new DateTime('@0'))->all());
+probe('C32-E-pluck-enum-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => C32E_Int::B)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => C32E_Int::B)->all());
+probe('C32-E-pluck-stringable-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))->all());
+probe('C32-E-pluck-tostring-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => an object with __toString)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class { public function __toString() { return 'Framework'; } })->all());
+
 // ---- Family F ------------------------------------------------------------
 
 $fViews = fn (Collection $c) => ['all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()];
@@ -645,6 +743,7 @@ probe('C32-F-plain-object-all-member-is-data', "collect(['all' => 1, 'b' => 2])-
     'diffKeys' => collect(['all' => 1, 'b' => 2])->diffKeys((object) ['all' => fn () => ['b' => 2]])->all(),
     'combineKeys' => collect(['k'])->combine((object) ['all' => fn () => ['v']])->keys()->all(),
 ]);
+probe('C32-F-combine-int-key-order', "(new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()", fn () => (new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()->all());
 
 // ---- Family G ------------------------------------------------------------
 
@@ -765,6 +864,10 @@ probe('C32-G-sliding-subclass', 'get_class of (new SubCollection([1, 2, 3]))->sl
 
     return [get_class($sub->sliding()) === get_class($sub), get_class($sub->sliding()->first()) === get_class($sub)];
 });
+probe('C32-G-sortBy-collection-rows', "c32c_rows(list | keyed)->sortBy('k'): keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => [
+    c32c_rows($keyed)->sortBy('k')->keys()->all(),
+    c32c_rows($keyed)->sortBy('k')->pluck('v')->all(),
+], ['list' => false, 'keyed' => true]));
 
 // ---- Family H ------------------------------------------------------------
 
@@ -843,5 +946,15 @@ probe('C32-H-whenEmpty-scalar-return', "(new Collection)->whenEmpty(fn () => 'sc
 
 // mode over array items
 probe('C32-H-mode-array-items', "(new Collection([[1], [1]]))->mode()", fn () => (new Collection([[1], [1]]))->mode());
+probe('C32-H-mode-assoc-items', "(new Collection([['a' => 1], ['a' => 1]]))->mode()", fn () => (new Collection([['a' => 1], ['a' => 1]]))->mode());
+probe('C32-H-mode-date-items', "(new Collection([new DateTime('@0'), new DateTime('@0')]))->mode()", fn () => (new Collection([new DateTime('@0'), new DateTime('@0')]))->mode());
+probe('C32-H-mode-enum-items', "(new Collection([C32E_Int::B, C32E_Int::B]))->mode()", fn () => (new Collection([C32E_Int::B, C32E_Int::B]))->mode());
+probe('C32-H-mode-stringable-items', "(new Collection([new Stringable('Lara'), new Stringable('Lara')]))->mode()", fn () => (new Collection([new Stringable('Lara'), new Stringable('Lara')]))->mode());
+probe('C32-H-mode-tostring-items', "(new Collection([\$o, \$o]))->mode(), \$o an object with __toString", function () {
+    $o = new class { public function __toString() { return 'Framework'; } };
+
+    return (new Collection([$o, $o]))->mode();
+});
+probe('C32-H-mode-float-items', "@(new Collection([1.5, 1.7, 2.5]))->mode()", fn () => @(new Collection([1.5, 1.7, 2.5]))->mode());
 
 emit();

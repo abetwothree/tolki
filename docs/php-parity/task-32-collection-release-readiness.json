@@ -1110,6 +1110,36 @@
             ]
         },
         {
+            "label": "C32-C-collection-rows-by-backing",
+            "php": "c32c_rows(list | keyed): contains('k', 'a') / where('k', 'b')->keys() / firstWhere('k', 'a')->all() / value('v')",
+            "value": {
+                "list": [
+                    true,
+                    [
+                        0,
+                        2
+                    ],
+                    {
+                        "k": "a",
+                        "v": 2
+                    },
+                    1
+                ],
+                "keyed": [
+                    true,
+                    [
+                        "x",
+                        "z"
+                    ],
+                    {
+                        "k": "a",
+                        "v": 2
+                    },
+                    1
+                ]
+            }
+        },
+        {
             "label": "C32-C-contains-unit-enum-operand",
             "php": "(new Collection([[\"n\" => C32StaffEnum::Joe]]))->contains(\"n\", \"Joe\") / contains(\"n\", C32StaffEnum::Joe) / contains(\"n\", \"!=\", \"Joe\")",
             "value": [
@@ -2306,6 +2336,144 @@
             ]
         },
         {
+            "label": "C32-D-item-paths-by-backing",
+            "php": "where('a.b', 2) and where('a.*.b', [1, 2]) keys, pluck('a.b'), value('a.b') and value('a.b', 'miss'), keyBy(['a', 'b']) and keyBy(['id', 'name']) keys, over a list and over 'x', 'y', 'z'",
+            "value": {
+                "list": {
+                    "whereDotPath": [
+                        1
+                    ],
+                    "whereWildcardPath": [
+                        0
+                    ],
+                    "pluckDotPath": [
+                        2
+                    ],
+                    "valueDotPath": 2,
+                    "valueDotPathMiss": "miss",
+                    "keyByNestedPath": [
+                        "z"
+                    ],
+                    "keyByUnreachablePath": [
+                        ""
+                    ]
+                },
+                "keyed": {
+                    "whereDotPath": [
+                        "y"
+                    ],
+                    "whereWildcardPath": [
+                        "x"
+                    ],
+                    "pluckDotPath": [
+                        2
+                    ],
+                    "valueDotPath": 2,
+                    "valueDotPathMiss": "miss",
+                    "keyByNestedPath": [
+                        "z"
+                    ],
+                    "keyByUnreachablePath": [
+                        ""
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-D-unique-collection-rows",
+            "php": "c32c_rows(list | keyed)->unique('k'): keys and each row's 'v'",
+            "value": {
+                "list": [
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        1,
+                        2
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "x",
+                        "y"
+                    ],
+                    [
+                        1,
+                        2
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-duplicates-collection-rows",
+            "php": "c32c_rows(list | keyed)->duplicates('k'): keys and values",
+            "value": {
+                "list": [
+                    [
+                        2
+                    ],
+                    [
+                        "b"
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "z"
+                    ],
+                    [
+                        "b"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-partition-collection-rows",
+            "php": "c32c_rows(list | keyed)->partition('k', 'b'): each half's keys and each row's 'v'",
+            "value": {
+                "list": [
+                    [
+                        [
+                            0,
+                            2
+                        ],
+                        [
+                            1,
+                            3
+                        ]
+                    ],
+                    [
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ]
+                    ]
+                ],
+                "keyed": [
+                    [
+                        [
+                            "x",
+                            "z"
+                        ],
+                        [
+                            1,
+                            3
+                        ]
+                    ],
+                    [
+                        [
+                            "y"
+                        ],
+                        [
+                            2
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
@@ -3306,6 +3474,438 @@
             "message": "Cannot use positional argument after named argument during unpacking"
         },
         {
+            "label": "C32-E-groupBy-collection-rows",
+            "php": "c32c_rows(list | keyed)->groupBy('k'): each group's 'v' values",
+            "value": {
+                "list": {
+                    "b": [
+                        1,
+                        3
+                    ],
+                    "a": [
+                        2
+                    ]
+                },
+                "keyed": {
+                    "b": [
+                        1,
+                        3
+                    ],
+                    "a": [
+                        2
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-E-keyBy-collection-rows",
+            "php": "c32c_rows(list | keyed)->keyBy('k'): each row's 'v'",
+            "value": {
+                "list": {
+                    "b": 3,
+                    "a": 2
+                },
+                "keyed": {
+                    "b": 3,
+                    "a": 2
+                }
+            }
+        },
+        {
+            "label": "C32-E-pluck-collection-rows",
+            "php": "c32c_rows(list | keyed)->pluck('v') and ->pluck('v', 'k')",
+            "value": {
+                "list": [
+                    [
+                        1,
+                        2,
+                        3
+                    ],
+                    {
+                        "b": 3,
+                        "a": 2
+                    }
+                ],
+                "keyed": [
+                    [
+                        1,
+                        2,
+                        3
+                    ],
+                    {
+                        "b": 3,
+                        "a": 2
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-E-callback-key-types-sweep",
+            "php": "[gettype($k), $k] for each key a callback sees on ['a', 'b'] and on ['1' => 'a', 'x' => 'b']; sortKeysUsing lists the distinct keys it compared, sorted",
+            "value": {
+                "every": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "each": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "groupBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "countBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "sortBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "reduceSpread": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "mapWithKeys": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "keyBy": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                },
+                "sortKeysUsing": {
+                    "list": [
+                        [
+                            "integer",
+                            0
+                        ],
+                        [
+                            "integer",
+                            1
+                        ]
+                    ],
+                    "record": [
+                        [
+                            "integer",
+                            1
+                        ],
+                        [
+                            "string",
+                            "x"
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-E-keyBy-array-key",
+            "php": "(new Collection([1]))->keyBy(fn () => [1, 2])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-keyBy-assoc-key",
+            "php": "(new Collection([1]))->keyBy(fn () => ['a' => 1])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-keyBy-date-key",
+            "php": "(new Collection([1]))->keyBy(fn () => new DateTime('@0'))",
+            "threw": "Error",
+            "message": "Object of class DateTime could not be converted to string"
+        },
+        {
+            "label": "C32-E-groupBy-nested-array-key",
+            "php": "(new Collection([1]))->groupBy(fn () => [[1, 2]])",
+            "threw": "TypeError",
+            "message": "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+        },
+        {
+            "label": "C32-E-groupBy-nested-assoc-key",
+            "php": "(new Collection([1]))->groupBy(fn () => [['a' => 1]])",
+            "threw": "TypeError",
+            "message": "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+        },
+        {
+            "label": "C32-E-groupBy-date-key",
+            "php": "(new Collection([1]))->groupBy(fn () => new DateTime('@0'))",
+            "threw": "TypeError",
+            "message": "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+        },
+        {
+            "label": "C32-E-groupBy-assoc-return",
+            "php": "(new Collection([1, 2]))->groupBy(fn ($x) => ['p' => $x, 'q' => 'z'])",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    {
+                        "Collection": [
+                            [
+                                0,
+                                "integer",
+                                1
+                            ]
+                        ]
+                    }
+                ],
+                [
+                    "z",
+                    "string",
+                    {
+                        "Collection": [
+                            [
+                                0,
+                                "integer",
+                                1
+                            ],
+                            [
+                                1,
+                                "integer",
+                                2
+                            ]
+                        ]
+                    }
+                ],
+                [
+                    2,
+                    "integer",
+                    {
+                        "Collection": [
+                            [
+                                0,
+                                "integer",
+                                2
+                            ]
+                        ]
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-array-key",
+            "php": "(new Collection([1]))->countBy(fn () => [1, 2])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-assoc-key",
+            "php": "(new Collection([1]))->countBy(fn () => ['a' => 1])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-date-key",
+            "php": "(new Collection([1]))->countBy(fn () => new DateTime('@0'))",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type DateTime in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-stringable-key",
+            "php": "(new Collection([1]))->countBy(fn () => new Stringable('Lara'))",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type Illuminate\\Support\\Stringable in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-tostring-key",
+            "php": "(new Collection([1]))->countBy(fn () => an object with __toString)",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type class@anonymous in isset or empty"
+        },
+        {
+            "label": "C32-E-countBy-null-key",
+            "php": "(new Collection([['url' => null], ['url' => 'a'], []]))->countBy('url')",
+            "value": {
+                "": 2,
+                "a": 1
+            }
+        },
+        {
+            "label": "C32-E-pluck-array-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => [1, 2])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-pluck-assoc-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => ['a' => 1])",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array on array"
+        },
+        {
+            "label": "C32-E-pluck-date-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => new DateTime('@0'))",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type DateTime on array"
+        },
+        {
+            "label": "C32-E-pluck-enum-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => C32E_Int::B)",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type C32E_Int on array"
+        },
+        {
+            "label": "C32-E-pluck-stringable-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))",
+            "value": {
+                "Lara": 1
+            }
+        },
+        {
+            "label": "C32-E-pluck-tostring-key",
+            "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => an object with __toString)",
+            "value": {
+                "Framework": 1
+            }
+        },
+        {
             "label": "C32-F-merge-null-is-a-new-instance",
             "php": "$a = collect([1]); $b = $a->merge(null); $b->push(2);",
             "value": {
@@ -3816,6 +4416,15 @@
                     "k"
                 ]
             }
+        },
+        {
+            "label": "C32-F-combine-int-key-order",
+            "php": "(new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()",
+            "value": [
+                3,
+                1,
+                2
+            ]
         },
         {
             "label": "C32-G-sort-comparator",
@@ -4478,6 +5087,36 @@
             ]
         },
         {
+            "label": "C32-G-sortBy-collection-rows",
+            "php": "c32c_rows(list | keyed)->sortBy('k'): keys and each row's 'v'",
+            "value": {
+                "list": [
+                    [
+                        1,
+                        0,
+                        2
+                    ],
+                    [
+                        2,
+                        1,
+                        3
+                    ]
+                ],
+                "keyed": [
+                    [
+                        "y",
+                        "x",
+                        "z"
+                    ],
+                    [
+                        2,
+                        1,
+                        3
+                    ]
+                ]
+            }
+        },
+        {
             "label": "C32-H-sum-numeric-strings",
             "php": "(new Collection(['1', '2', '3']))->sum()",
             "value": 6
@@ -4783,6 +5422,43 @@
             "php": "(new Collection([[1], [1]]))->mode()",
             "threw": "TypeError",
             "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-assoc-items",
+            "php": "(new Collection([['a' => 1], ['a' => 1]]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-date-items",
+            "php": "(new Collection([new DateTime('@0'), new DateTime('@0')]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type DateTime in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-enum-items",
+            "php": "(new Collection([C32E_Int::B, C32E_Int::B]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type C32E_Int in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-stringable-items",
+            "php": "(new Collection([new Stringable('Lara'), new Stringable('Lara')]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type Illuminate\\Support\\Stringable in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-tostring-items",
+            "php": "(new Collection([$o, $o]))->mode(), $o an object with __toString",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type class@anonymous in isset or empty"
+        },
+        {
+            "label": "C32-H-mode-float-items",
+            "php": "@(new Collection([1.5, 1.7, 2.5]))->mode()",
+            "value": [
+                1
+            ]
         }
     ]
 }
