@@ -300,18 +300,22 @@ describe("Collection", () => {
                 foo = "bar";
             }
 
+            const collection = new Collection(new Stub());
+
             // CollectionTest::testConstructMethodFromObject
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-stdclass"
-            expect(new Collection(new Stub()).all()).toStrictEqual({
-                foo: "bar",
-            });
+            expect(collection.all()).toStrictEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
         });
 
         it("decodes a Jsonable's toJson()", () => {
+            const collection = new Collection(new TestJsonableObject());
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonable"
-            expect(new Collection(new TestJsonableObject()).all()).toEqual({
-                foo: "bar",
-            });
+            expect(collection.all()).toEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
         });
 
         it("builds an empty collection from a Jsonable whose toJson() is not JSON", () => {
@@ -339,10 +343,12 @@ describe("Collection", () => {
         });
 
         it("reads a JsonSerializable's jsonSerialize()", () => {
+            const collection = new Collection(new TestJsonSerializeObject());
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable"
-            expect(new Collection(new TestJsonSerializeObject()).all()).toEqual(
-                { foo: "bar" },
-            );
+            expect(collection.all()).toEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
         });
 
         it("wraps a JsonSerializable's scalar result", () => {
@@ -355,10 +361,12 @@ describe("Collection", () => {
         });
 
         it("keeps the keys an Arrayable's toArray() returns", () => {
+            const collection = new Collection(new TestArrayableObject());
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-arrayable-keyed"
-            expect(new Collection(new TestArrayableObject()).all()).toEqual({
-                foo: "bar",
-            });
+            expect(collection.all()).toEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
         });
 
         it("iterates a Traversable before serializing it, as PHP does", () => {
@@ -416,6 +424,8 @@ describe("Collection", () => {
                 { a: 1 },
                 { a: 1, b: 2 },
             ]);
+            expect(collection.keys().all()).toEqual(["a", "b"]);
+            expect(collection.values().all()).toEqual([1, 2]);
         });
 
         it("copies only the top level, so a nested array stays shared", () => {
@@ -5403,6 +5413,10 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
             expect([original, c.all()]).toEqual([{ b: 2 }, { 0: 1, b: 2 }]);
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "D1 unshift assoc item onto assoc"
+            expect(c.keys().all()).toEqual([0, "b"]);
+            expect(c.values().all()).toEqual([1, 2]);
         });
 
         it("classifies keys like PHP, keeping non-canonical numeric strings", () => {
@@ -12879,6 +12893,8 @@ describe("Collection", () => {
                 calls: 1,
                 all: { k: "v1" },
             });
+            expect(collection.keys().all()).toEqual(["k"]);
+            expect(collection.values().all()).toEqual(["v1"]);
         });
 
         it("put keeps a string key on an empty collection", () => {
@@ -14440,6 +14456,12 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
                 1: 2,
                 ["__proto__"]: { polluted: true },
             });
+            expect(collection.keys().all()).toEqual([0, 1, "__proto__"]);
+            expect(collection.values().all()).toEqual([
+                1,
+                2,
+                { polluted: true },
+            ]);
         });
     });
 
