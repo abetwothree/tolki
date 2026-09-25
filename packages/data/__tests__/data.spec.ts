@@ -10868,7 +10868,7 @@ describe("Data", () => {
         };
 
         // PHP casts "0" and [] to false, and every object to true, however empty.
-        const answers = ["0", [], new Date(0)];
+        const answers = ["0", [], new Date(0), new (class {})()];
 
         it.each([
             [
@@ -10880,8 +10880,18 @@ describe("Data", () => {
                         Data.dataChunkWhile(items(keyed), callback),
                     ).map((chunk) => Object.values(chunk)),
                 {
-                    list: [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
-                    keyed: [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
+                    list: [
+                        [["a"], ["b"]],
+                        [["a"], ["b"]],
+                        [["a", "b"]],
+                        [["a", "b"]],
+                    ],
+                    keyed: [
+                        [["a"], ["b"]],
+                        [["a"], ["b"]],
+                        [["a", "b"]],
+                        [["a", "b"]],
+                    ],
                 },
             ],
             [
@@ -10889,28 +10899,34 @@ describe("Data", () => {
                 "dataFirst",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataFirst(items(keyed), callback),
-                { list: [null, null, "a"], keyed: [null, null, "a"] },
+                { list: [null, null, "a", "a"], keyed: [null, null, "a", "a"] },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataLast",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataLast(items(keyed), callback),
-                { list: [null, null, "b"], keyed: [null, null, "b"] },
+                { list: [null, null, "b", "b"], keyed: [null, null, "b", "b"] },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataEvery",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataEvery(items(keyed), callback),
-                { list: [false, false, true], keyed: [false, false, true] },
+                {
+                    list: [false, false, true, true],
+                    keyed: [false, false, true, true],
+                },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataSome",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataSome(items(keyed), callback),
-                { list: [false, false, true], keyed: [false, false, true] },
+                {
+                    list: [false, false, true, true],
+                    keyed: [false, false, true, true],
+                },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
@@ -10922,10 +10938,12 @@ describe("Data", () => {
                         "ItemNotFoundException",
                         "ItemNotFoundException",
                         "a",
+                        "a",
                     ],
                     keyed: [
                         "ItemNotFoundException",
                         "ItemNotFoundException",
+                        "a",
                         "a",
                     ],
                 },
@@ -10936,8 +10954,8 @@ describe("Data", () => {
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataWhere(items(keyed), callback),
                 {
-                    list: [[], [], ["a", "b"]],
-                    keyed: [{}, {}, { x: "a", y: "b" }],
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
                 },
             ],
             [
@@ -10946,8 +10964,8 @@ describe("Data", () => {
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataReject(items(keyed), callback),
                 {
-                    list: [["a", "b"], ["a", "b"], []],
-                    keyed: [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}],
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}, {}],
                 },
             ],
             [
@@ -10960,10 +10978,12 @@ describe("Data", () => {
                         [[], ["a", "b"]],
                         [[], ["a", "b"]],
                         [["a", "b"], []],
+                        [["a", "b"], []],
                     ],
                     keyed: [
                         [{}, { x: "a", y: "b" }],
                         [{}, { x: "a", y: "b" }],
+                        [{ x: "a", y: "b" }, {}],
                         [{ x: "a", y: "b" }, {}],
                     ],
                 },
@@ -10973,7 +10993,10 @@ describe("Data", () => {
                 "dataContains",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataContains(items(keyed), callback),
-                { list: [false, false, true], keyed: [false, false, true] },
+                {
+                    list: [false, false, true, true],
+                    keyed: [false, false, true, true],
+                },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
@@ -10981,8 +11004,8 @@ describe("Data", () => {
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataFilter(items(keyed), callback),
                 {
-                    list: [[], [], ["a", "b"]],
-                    keyed: [{}, {}, { x: "a", y: "b" }],
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
                 },
             ],
             [
@@ -10990,7 +11013,7 @@ describe("Data", () => {
                 "dataSearch",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataSearch(items(keyed), callback),
-                { list: [false, false, 0], keyed: [false, false, "x"] },
+                { list: [false, false, 0, 0], keyed: [false, false, "x", "x"] },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json,
@@ -11000,14 +11023,14 @@ describe("Data", () => {
                     Data.dataBefore(items(keyed), (value: unknown) =>
                         value === "b" ? callback() : false,
                     ),
-                { list: [null, null, "a"], keyed: [null, null, "a"] },
+                { list: [null, null, "a", "a"], keyed: [null, null, "a", "a"] },
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
                 "dataAfter",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataAfter(items(keyed), callback),
-                { list: [null, null, "b"], keyed: [null, null, "b"] },
+                { list: [null, null, "b", "b"], keyed: [null, null, "b", "b"] },
             ],
         ] as [
             string,

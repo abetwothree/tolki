@@ -6910,7 +6910,7 @@ describe("Arr", () => {
         };
 
         // PHP casts "0" and [] to false, and every object to true, however empty.
-        const answers = ["0", [], new Date(0)];
+        const answers = ["0", [], new Date(0), new (class {})()];
 
         it.each([
             [
@@ -6918,13 +6918,13 @@ describe("Arr", () => {
                 "chunkWhile",
                 (callback: () => unknown) =>
                     Arr.chunkWhile(["a", "b"], callback),
-                [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
+                [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]], [["a", "b"]]],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "first",
                 (callback: () => unknown) => Arr.first(["a", "b"], callback),
-                [null, null, "a"],
+                [null, null, "a", "a"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness",
@@ -6938,64 +6938,64 @@ describe("Arr", () => {
                         ]),
                         callback,
                     ),
-                [null, null, "a"],
+                [null, null, "a", "a"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "last",
                 (callback: () => unknown) => Arr.last(["a", "b"], callback),
-                [null, null, "b"],
+                [null, null, "b", "b"],
             ],
             [
                 // JS-only: PHP has no Set; it walks as the list of its values does.
                 "last over a Set",
                 (callback: () => unknown) =>
                     Arr.last(new Set(["a", "b"]), callback),
-                [null, null, "b"],
+                [null, null, "b", "b"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "every",
                 (callback: () => unknown) => Arr.every(["a", "b"], callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // JS-only: PHP has no Set; it walks as the list of its values does.
                 "every over a Set",
                 (callback: () => unknown) =>
                     Arr.every(new Set(["a", "b"]), callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "some",
                 (callback: () => unknown) => Arr.some(["a", "b"], callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // JS-only: PHP has no Set; it walks as the list of its values does.
                 "some over a Set",
                 (callback: () => unknown) =>
                     Arr.some(new Set(["a", "b"]), callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "sole",
                 (callback: () => unknown) => Arr.sole(["a"], callback),
-                ["ItemNotFoundException", "ItemNotFoundException", "a"],
+                ["ItemNotFoundException", "ItemNotFoundException", "a", "a"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "where",
                 (callback: () => unknown) => Arr.where(["a", "b"], callback),
-                [[], [], ["a", "b"]],
+                [[], [], ["a", "b"], ["a", "b"]],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "reject",
                 (callback: () => unknown) => Arr.reject(["a", "b"], callback),
-                [["a", "b"], ["a", "b"], []],
+                [["a", "b"], ["a", "b"], [], []],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
@@ -7006,19 +7006,20 @@ describe("Arr", () => {
                     [[], ["a", "b"]],
                     [[], ["a", "b"]],
                     [["a", "b"], []],
+                    [["a", "b"], []],
                 ],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
                 "contains",
                 (callback: () => unknown) => Arr.contains(["a", "b"], callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
                 "filter",
                 (callback: () => unknown) => Arr.filter(["a", "b"], callback),
-                [[], [], ["a", "b"]],
+                [[], [], ["a", "b"], ["a", "b"]],
             ],
         ] as [string, (callback: () => unknown) => unknown, unknown[]][])(
             "%s judges its callback's result by PHP truthiness",

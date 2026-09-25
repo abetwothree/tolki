@@ -11801,7 +11801,7 @@ describe("Obj", () => {
         };
 
         // PHP casts "0" and [] to false, and every object to true, however empty.
-        const answers = ["0", [], new Date(0)];
+        const answers = ["0", [], new Date(0), new (class {})()];
 
         it.each([
             [
@@ -11812,55 +11812,55 @@ describe("Obj", () => {
                     Object.values(
                         Obj.chunkWhile({ x: "a", y: "b" }, callback),
                     ).map((chunk) => Object.values(chunk)),
-                [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
+                [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]], [["a", "b"]]],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "first",
                 (callback: () => unknown) =>
                     Obj.first({ x: "a", y: "b" }, callback),
-                [null, null, "a"],
+                [null, null, "a", "a"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "last",
                 (callback: () => unknown) =>
                     Obj.last({ x: "a", y: "b" }, callback),
-                [null, null, "b"],
+                [null, null, "b", "b"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "every",
                 (callback: () => unknown) =>
                     Obj.every({ x: "a", y: "b" }, callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "some",
                 (callback: () => unknown) =>
                     Obj.some({ x: "a", y: "b" }, callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "sole",
                 (callback: () => unknown) => Obj.sole({ x: "a" }, callback),
-                ["ItemNotFoundException", "ItemNotFoundException", "a"],
+                ["ItemNotFoundException", "ItemNotFoundException", "a", "a"],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "where",
                 (callback: () => unknown) =>
                     Obj.where({ x: "a", y: "b" }, callback),
-                [{}, {}, { x: "a", y: "b" }],
+                [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
                 "reject",
                 (callback: () => unknown) =>
                     Obj.reject({ x: "a", y: "b" }, callback),
-                [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}],
+                [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}, {}],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
@@ -11871,6 +11871,7 @@ describe("Obj", () => {
                     [{}, { x: "a", y: "b" }],
                     [{}, { x: "a", y: "b" }],
                     [{ x: "a", y: "b" }, {}],
+                    [{ x: "a", y: "b" }, {}],
                 ],
             ],
             [
@@ -11878,14 +11879,14 @@ describe("Obj", () => {
                 "contains",
                 (callback: () => unknown) =>
                     Obj.contains({ x: "a", y: "b" }, callback),
-                [false, false, true],
+                [false, false, true, true],
             ],
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
                 "filter",
                 (callback: () => unknown) =>
                     Obj.filter({ x: "a", y: "b" }, callback),
-                [{}, {}, { x: "a", y: "b" }],
+                [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
             ],
         ] as [string, (callback: () => unknown) => unknown, unknown[]][])(
             "%s judges its callback's result by PHP truthiness",

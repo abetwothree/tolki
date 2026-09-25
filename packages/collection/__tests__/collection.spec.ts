@@ -15902,7 +15902,7 @@ describe("Collection", () => {
         };
 
         // PHP casts "0" and [] to false, and every object to true, however empty.
-        const answers = ["0", [], new Date(0)];
+        const answers = ["0", [], new Date(0), new (class {})()];
 
         /** The same expected answers for the list and the keyed backing. */
         const both = <T>(answer: T) => ({ list: answer, keyed: answer });
@@ -15914,10 +15914,14 @@ describe("Collection", () => {
                 (callback: () => unknown, keyed: boolean) =>
                     pairs(items(keyed).filter(callback)),
                 {
-                    list: [[], [], ["a", "b"]],
+                    list: [[], [], ["a", "b"], ["a", "b"]],
                     keyed: [
                         [],
                         [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
                         [
                             ["x", "a"],
                             ["y", "b"],
@@ -15930,10 +15934,14 @@ describe("Collection", () => {
                 (callback: () => unknown, keyed: boolean) =>
                     pairs(items(keyed).where(callback)),
                 {
-                    list: [[], [], ["a", "b"]],
+                    list: [[], [], ["a", "b"], ["a", "b"]],
                     keyed: [
                         [],
                         [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
                         [
                             ["x", "a"],
                             ["y", "b"],
@@ -15946,7 +15954,7 @@ describe("Collection", () => {
                 (callback: () => unknown, keyed: boolean) =>
                     pairs(items(keyed).reject(callback)),
                 {
-                    list: [["a", "b"], ["a", "b"], []],
+                    list: [["a", "b"], ["a", "b"], [], []],
                     keyed: [
                         [
                             ["x", "a"],
@@ -15957,6 +15965,7 @@ describe("Collection", () => {
                             ["y", "b"],
                         ],
                         [],
+                        [],
                     ],
                 },
             ],
@@ -15964,73 +15973,83 @@ describe("Collection", () => {
                 "first",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).first(callback),
-                both([null, null, "a"]),
+                both([null, null, "a", "a"]),
             ],
             [
                 "last",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).last(callback),
-                both([null, null, "b"]),
+                both([null, null, "b", "b"]),
             ],
             [
                 "firstWhere",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).firstWhere(callback),
-                both([null, null, "a"]),
+                both([null, null, "a", "a"]),
             ],
             [
                 "firstOrFail",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).firstOrFail(callback),
-                both(["ItemNotFoundException", "ItemNotFoundException", "a"]),
+                both([
+                    "ItemNotFoundException",
+                    "ItemNotFoundException",
+                    "a",
+                    "a",
+                ]),
             ],
             [
                 "sole",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed, true).sole(callback),
-                both(["ItemNotFoundException", "ItemNotFoundException", "a"]),
+                both([
+                    "ItemNotFoundException",
+                    "ItemNotFoundException",
+                    "a",
+                    "a",
+                ]),
             ],
             [
                 "every",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).every(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "some",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).some(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "contains",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).contains(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "doesntContain",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).doesntContain(callback),
-                both([true, true, false]),
+                both([true, true, false, false]),
             ],
             [
                 "containsStrict",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).containsStrict(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "doesntContainStrict",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).doesntContainStrict(callback),
-                both([true, true, false]),
+                both([true, true, false, false]),
             ],
             [
                 "search",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).search(callback),
-                { list: [false, false, 0], keyed: [false, false, "x"] },
+                { list: [false, false, 0, 0], keyed: [false, false, "x", "x"] },
             ],
             [
                 // The probe's before callback answers for "b" only, so a match has an item before it.
@@ -16039,37 +16058,37 @@ describe("Collection", () => {
                     items(keyed).before((value) =>
                         value === "b" ? callback() : false,
                     ),
-                both([null, null, "a"]),
+                both([null, null, "a", "a"]),
             ],
             [
                 "after",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).after(callback),
-                both([null, null, "b"]),
+                both([null, null, "b", "b"]),
             ],
             [
                 "hasSole",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed, true).hasSole(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "containsOneItem",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed, true).containsOneItem(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "hasMany",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).hasMany(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "containsManyItems",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).containsManyItems(callback),
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "partition",
@@ -16079,6 +16098,7 @@ describe("Collection", () => {
                     list: [
                         [[], ["a", "b"]],
                         [[], ["a", "b"]],
+                        [["a", "b"], []],
                         [["a", "b"], []],
                     ],
                     keyed: [
@@ -16103,6 +16123,13 @@ describe("Collection", () => {
                             ],
                             [],
                         ],
+                        [
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                            [],
+                        ],
                     ],
                 },
             ],
@@ -16114,13 +16141,18 @@ describe("Collection", () => {
                         .chunkWhile(callback)
                         .map((chunk) => chunk.values().all())
                         .all(),
-                both([[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]]),
+                both([
+                    [["a"], ["b"]],
+                    [["a"], ["b"]],
+                    [["a", "b"]],
+                    [["a", "b"]],
+                ]),
             ],
             [
                 "percentage",
                 (callback: () => unknown, keyed: boolean) =>
                     items(keyed).percentage(callback),
-                both([0, 0, 100]),
+                both([0, 0, 100, 100]),
             ],
         ] as [
             string,
@@ -16156,7 +16188,7 @@ describe("Collection", () => {
 
                     return called;
                 },
-                both([false, false, true]),
+                both([false, false, true, true]),
             ],
             [
                 "unless",
@@ -16169,7 +16201,7 @@ describe("Collection", () => {
 
                     return called;
                 },
-                both([true, true, false]),
+                both([true, true, false, false]),
             ],
         ] as [
             string,
@@ -16201,7 +16233,10 @@ describe("Collection", () => {
             expect({
                 first: answers.map((answer) => ordered().first(() => answer)),
                 last: answers.map((answer) => ordered().last(() => answer)),
-            }).toEqual({ first: [null, null, "a"], last: [null, null, "b"] });
+            }).toEqual({
+                first: [null, null, "a", "a"],
+                last: [null, null, "b", "b"],
+            });
         });
 
         it('finds no match for a callback answering "0" or []', () => {
