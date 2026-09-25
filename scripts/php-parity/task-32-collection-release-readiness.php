@@ -578,6 +578,18 @@ probe('C32-D-data-get-arrayaccess-target', "an ArrayAccess that is not Enumerabl
     return [data_get($target, 'a'), data_has($target, 'n'), data_has($target, 'a'), data_get($target, 'missing', 'def')];
 });
 
+/** An object with one public property that holds null. */
+class C32D_Point { public $p = null; }
+
+probe('C32-D-data-get-array-path-dotted-segment', "data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b'])", fn () => data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b']));
+probe('C32-D-data-has-array-and-object-targets', "data_has(['a' => null], 'a') / data_has([10, 20], '1') / data_has([10], '01') / data_has(new C32D_Point, 'p') / data_has(new C32D_Point, 'q')", fn () => [
+    data_has(['a' => null], 'a'),
+    data_has([10, 20], '1'),
+    data_has([10], '01'),
+    data_has(new C32D_Point, 'p'),
+    data_has(new C32D_Point, 'q'),
+]);
+
 // ---- Family E ------------------------------------------------------------
 
 enum C32E_Pure { case A; }

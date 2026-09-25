@@ -2547,6 +2547,22 @@
             ]
         },
         {
+            "label": "C32-D-data-get-array-path-dotted-segment",
+            "php": "data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b'])",
+            "value": 1
+        },
+        {
+            "label": "C32-D-data-has-array-and-object-targets",
+            "php": "data_has(['a' => null], 'a') / data_has([10, 20], '1') / data_has([10], '01') / data_has(new C32D_Point, 'p') / data_has(new C32D_Point, 'q')",
+            "value": [
+                true,
+                true,
+                false,
+                true,
+                false
+            ]
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
