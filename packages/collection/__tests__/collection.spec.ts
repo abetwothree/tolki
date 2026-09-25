@@ -318,6 +318,50 @@ describe("Collection", () => {
             expect(collection.values().all()).toEqual([1, 2, 3]);
         });
 
+        it("folds Map keys PHP stores as one into the first one's place, holding the last value", () => {
+            const views = (entries: [unknown, string][]) => {
+                const collection = new Collection(new Map(entries));
+
+                return {
+                    all: collection.all(),
+                    keys: collection.keys().all(),
+                    values: collection.values().all(),
+                    count: collection.count(),
+                };
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-colliding-keys"
+            expect(
+                views([
+                    [true, "a"],
+                    [1, "b"],
+                    [0, "z"],
+                ]),
+            ).toEqual({
+                all: { 1: "b", 0: "z" },
+                keys: [1, 0],
+                values: ["b", "z"],
+                count: 2,
+            });
+            expect(
+                views([
+                    [null, "n"],
+                    ["", "e"],
+                ]),
+            ).toEqual({
+                all: { "": "e" },
+                keys: [""],
+                values: ["e"],
+                count: 1,
+            });
+            expect(
+                views([
+                    [1.5, "f"],
+                    [1, "i"],
+                ]),
+            ).toEqual({ all: { 1: "i" }, keys: [1], values: ["i"], count: 1 });
+        });
+
         it("reads a class instance's own fields as a record, as PHP casts an object", () => {
             class Stub {
                 foo = "bar";

@@ -6183,23 +6183,25 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Read a Map's entries as the pairs a PHP array would hold, casting a
-     * numeric-looking key to a number the way PHP's array key cast does.
+     * Read a Map's entries as the pairs a PHP array would hold, one per key PHP stores.
      *
      * @param items - The Map to read
-     * @returns The entries in the Map's own insertion order
+     * @returns The entries in the Map's own insertion order, each key cast as PHP casts an array key
      */
     protected mapEntries(
         items: ReadonlyMap<unknown, unknown>,
     ): Array<[TKey, TValue]> {
-        return [...items.entries()].map(([key, value]) => {
-            // PHP has no symbol key to cast, so a symbol stays the key it is.
-            if (isSymbol(key)) {
-                return [key as TKey, value as TValue];
-            }
+        const entries = new Map<unknown, [TKey, TValue]>();
 
-            return [phpArrayKey(key) as TKey, value as TValue];
-        });
+        for (const [key, value] of items) {
+            // PHP has no symbol key to cast, so a symbol stays the key it is.
+            const phpKey = isSymbol(key) ? key : phpArrayKey(key);
+
+            // Keys PHP stores as one fold into the first one's place, holding the last one's value.
+            entries.set(phpKey, [phpKey as TKey, value as TValue]);
+        }
+
+        return [...entries.values()];
     }
 
     /**
