@@ -4322,8 +4322,7 @@ export function contains<TValue>(
 
         for (const [index, item] of data.entries()) {
             if (callback(item as TValue, index)) {
-                // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
-                return strict ? !isNull(item) : true;
+                return true;
             }
         }
 
@@ -4344,7 +4343,7 @@ export function contains<TValue>(
  * With a second argument, each item's `key` path is compared with it the way PHP's
  * `===` compares — so an array or plain object matches by value, in order. Without one,
  * this is `contains(data, key, true)`: `in_array($key, $items, true)` for a value, and
- * `! is_null($this->first($key))` for a callback.
+ * `array_any($items, $key)` for a callback, so a match holding null counts.
  *
  * @see Collection::containsStrict — `packages/collection/stubs/Collection.php:216`.
  *
@@ -4358,6 +4357,7 @@ export function contains<TValue>(
  * containsStrict([1, 3, 5, '02'], '02'); -> true
  * containsStrict([1, 3, 5, '02'], 2); -> false
  * containsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
+ * containsStrict([1, null, 2], (value) => value === null); -> true
  */
 export function containsStrict<TValue>(
     data: ArrayItems<TValue>,

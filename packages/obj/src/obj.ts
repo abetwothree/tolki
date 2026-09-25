@@ -5877,7 +5877,7 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * contains({ a: { age: 30 } }, 'age', 30); -> true (key/value)
  * contains({ a: { age: 30 } }, 'age', '>', 25); -> true (key/operator/value)
  * contains({ a: { on: true } }, 'on', '=', true); -> true (a boolean value needs the operator)
- * contains(new Map([[2, null], [0, 'a']]), () => true, true); -> false (the first match is null)
+ * contains(new Map([[2, null], [0, 'a']]), () => true, true); -> true (a match holding null counts)
  * contains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false (PHP keeps only 'b')
  */
 export function contains<TValue, TKey>(
@@ -5974,8 +5974,7 @@ export function contains<TValue>(
     if (isFunction(value)) {
         for (const [key, val] of entries) {
             if (value(val, phpArrayKey(key))) {
-                // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
-                return strict ? !isNull(val) : true;
+                return true;
             }
         }
 
@@ -6040,7 +6039,7 @@ function operatorPredicate<TValue>(
  * With a second argument, each entry's `key` path is compared with it the way PHP's
  * `===` compares — so an array or plain object matches by value, in order. Without one,
  * this is `contains(data, key, true)`: `in_array($key, $items, true)` for a value, and
- * `! is_null($this->first($key))` for a callback.
+ * `array_any($items, $key)` for a callback, so a match holding null counts.
  *
  * @see Collection::containsStrict — `packages/collection/stubs/Collection.php:216`.
  *
@@ -6054,6 +6053,7 @@ function operatorPredicate<TValue>(
  * containsStrict({ a: 1, b: '02' }, '02'); -> true
  * containsStrict({ a: 1, b: '02' }, 2); -> false
  * containsStrict({ row: { tags: ['a', 'b'] } }, 'tags', ['a', 'b']); -> true
+ * containsStrict({ a: 1, b: null }, (value) => value === null); -> true
  */
 export function containsStrict<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,

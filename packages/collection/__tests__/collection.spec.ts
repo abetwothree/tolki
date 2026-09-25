@@ -799,6 +799,43 @@ describe("Collection", () => {
             expect(collection.containsStrict("2")).toBe(false);
         });
 
+        it("counts a callback match holding null, as array_any does", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-list-null-callback",
+            // "containsStrict-list-zero-callback" and "containsStrict-null-first-callback"
+            const c = collect([1, null, 2]);
+            expect(c.containsStrict((value) => value === null)).toBe(true);
+            expect(c.containsStrict((value) => value === 0)).toBe(false);
+            expect(collect([null, "a"]).containsStrict(() => true)).toBe(true);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
+            expect(
+                new Collection(
+                    new Map([
+                        [2, null],
+                        [0, "a"],
+                    ]),
+                ).containsStrict(() => true),
+            ).toBe(true);
+        });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            const seen: number[] = [];
+
+            new Collection(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ).containsStrict((_value, key) => {
+                seen.push(key);
+
+                return false;
+            });
+
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-out-of-order-callback-keys"
+            expect(seen).toEqual([2, 0, 1]);
+        });
+
         it("uses strict comparison in object", () => {
             const collection = new Collection({
                 a: 1,
@@ -957,6 +994,15 @@ describe("Collection", () => {
             expect(g.doesntContainStrict("foo")).toBe(true);
             expect(g.doesntContainStrict(null)).toBe(true);
             expect(g.doesntContainStrict("")).toBe(false);
+        });
+
+        it("negates a callback match holding null", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "doesntContainStrict-list-null-callback"
+            expect(
+                collect([1, null, 2]).doesntContainStrict(
+                    (value) => value === null,
+                ),
+            ).toBe(false);
         });
     });
 

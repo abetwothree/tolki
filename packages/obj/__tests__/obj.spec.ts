@@ -4048,7 +4048,7 @@ describe("Obj", () => {
             ).toBe(true);
         });
 
-        it("ignores a callback match holding null when strict", () => {
+        it("counts a callback match holding null when strict, as array_any does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D2 containsStrict callback matching a null value"
             expect(
                 Obj.contains(
@@ -4056,7 +4056,7 @@ describe("Obj", () => {
                     (value) => value === null,
                     true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
             expect(
                 Obj.contains({ a: null, b: 1 }, (value) => value === null),
             ).toBe(true);
@@ -4227,10 +4227,9 @@ describe("Obj", () => {
             ).toEqual([2, 0, 1]);
         });
 
-        it("answers a strict callback search from a Map's first match in insertion order", () => {
-            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
-            // and "containsStrict-mixed-null-first-callback": the first match holds null, so it
-            // does not count.
+        it("counts a strict callback match in a Map whatever value it holds", () => {
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback",
+            // "containsStrict-mixed-null-first-callback" and "containsStrict-out-of-order-non-null-first-callback"
             expect(
                 Obj.contains(
                     new Map([
@@ -4240,7 +4239,7 @@ describe("Obj", () => {
                     () => true,
                     true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
             expect(
                 Obj.contains(
                     new Map<string | number, string | null>([
@@ -4250,9 +4249,7 @@ describe("Obj", () => {
                     () => true,
                     true,
                 ),
-            ).toBe(false);
-            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-non-null-first-callback":
-            // the first match in insertion order holds 'a', so it counts; a record would walk key 0's null first.
+            ).toBe(true);
             expect(
                 Obj.contains(
                     new Map([
@@ -4263,11 +4260,6 @@ describe("Obj", () => {
                     true,
                 ),
             ).toBe(true);
-            // JS-only: a record enumerates integer keys ascending (ECMA-262
-            // OrdinaryOwnPropertyKeys), so it walks key 0 first and finds 'a'.
-            expect(Obj.contains({ 2: null, 0: "a" }, () => true, true)).toBe(
-                true,
-            );
         });
 
         it("finds a value in a Map, but only the last value of keys PHP stores as one", () => {
@@ -4328,7 +4320,7 @@ describe("Obj", () => {
             );
         });
 
-        it("ignores a callback match holding null, as first() does", () => {
+        it("counts a callback match holding null, as array_any does", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "r3-assoc-backed-contains", "containsStrict-callback-null": task-23's
             // "D2 containsStrict…" row records its own LABEL where its call belongs, so
@@ -4337,6 +4329,20 @@ describe("Obj", () => {
                 Obj.containsStrict(
                     { a: null, b: 1 },
                     (value) => value === null,
+                ),
+            ).toBe(true);
+            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "containsStrict-assoc-null-callback" and "containsStrict-assoc-zero-callback"
+            expect(
+                Obj.containsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+            expect(
+                Obj.containsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === 0,
                 ),
             ).toBe(false);
         });
@@ -4373,7 +4379,7 @@ describe("Obj", () => {
                     ]),
                     () => true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
         });
     });
 

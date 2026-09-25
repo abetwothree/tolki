@@ -530,6 +530,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
      * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
+     * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
     containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     containsStrict(key: unknown, value?: unknown): boolean;
@@ -551,8 +552,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isFunction(key)) {
-            return !isNull(
-                this.first(key as (value: TValue, index: TKey) => boolean),
+            // `array_any` counts a match holding null, so only an absent item may equal the placeholder.
+            const placeholder = Symbol("containsStrict");
+
+            return (
+                this.first<typeof placeholder>(
+                    key as (value: TValue, index: TKey) => boolean,
+                    placeholder,
+                ) !== placeholder
             );
         }
 
