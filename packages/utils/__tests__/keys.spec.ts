@@ -231,6 +231,143 @@ describe("Utils", () => {
         });
     });
 
+    describe("phpComputedKey", () => {
+        it("casts a bool, null or float the way PHP stores an array key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts" and
+            // "C32-E-pluck-key-closure-casts"
+            expect(Utils.phpComputedKey(true)).toBe(1);
+            expect(Utils.phpComputedKey(false)).toBe(0);
+            expect(Utils.phpComputedKey(null)).toBe("");
+            expect(Utils.phpComputedKey(1.5)).toBe(1);
+            // JS-only: PHP has no undefined; it is cast like null.
+            expect(Utils.phpComputedKey(undefined)).toBe("");
+        });
+
+        it("casts a numeric string the way PHP stores an array key", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            expect(Utils.phpComputedKey("10")).toBe(10);
+            expect(Utils.phpComputedKey("-1")).toBe(-1);
+            expect(Utils.phpComputedKey("1.5")).toBe("1.5");
+            expect(Utils.phpComputedKey("01")).toBe("01");
+        });
+
+        it("reads an enum case as its value when the method unwraps enum cases", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-enum-keys",
+            // "C32-E-countBy-callback-string-enum" and "C32-E-countBy-pure-enum"
+            const options = { enumCases: true };
+
+            expect(
+                Utils.phpComputedKey(
+                    { value: 2, backed: true, name: "B" },
+                    options,
+                ),
+            ).toBe(2);
+            expect(
+                Utils.phpComputedKey(
+                    { value: "A", backed: true, name: "A" },
+                    options,
+                ),
+            ).toBe("A");
+            expect(
+                Utils.phpComputedKey(
+                    { value: "James", backed: false, name: "James" },
+                    options,
+                ),
+            ).toBe("James");
+        });
+
+        it("throws for an enum case when the method does not unwrap enum cases", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a
+            // plain object here, so the message names the array it models where PHP names the enum's class.
+            expect(() =>
+                Utils.phpComputedKey({ value: 2, backed: true, name: "B" }),
+            ).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
+        });
+
+        it("reads an object with its own toString as that string when the method casts Stringables", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-tostring-key" and
+            // "C32-E-pluck-stringable-key"
+            const options = { stringables: true };
+
+            expect(
+                Utils.phpComputedKey(
+                    new (class {
+                        toString(): string {
+                            return "Framework";
+                        }
+                    })(),
+                    options,
+                ),
+            ).toBe("Framework");
+            expect(
+                Utils.phpComputedKey(
+                    {
+                        toString(): string {
+                            return "Lara";
+                        },
+                    },
+                    options,
+                ),
+            ).toBe("Lara");
+        });
+
+        it("throws for an object with its own toString when the method does not cast Stringables", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-tostring-key"
+            expect(() =>
+                Utils.phpComputedKey(
+                    new (class {
+                        toString(): string {
+                            return "Framework";
+                        }
+                    })(),
+                    {
+                        invalid: (type) =>
+                            new TypeError(
+                                `Cannot access offset of type ${type} in isset or empty`,
+                            ),
+                    },
+                ),
+            ).toThrow(
+                new TypeError(
+                    "Cannot access offset of type class@anonymous in isset or empty",
+                ),
+            );
+        });
+
+        it("throws for an array or a plain object, which PHP cannot store as a key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key" and
+            // "C32-E-pluck-assoc-key"
+            const failure = new TypeError(
+                "Cannot access offset of type array on array",
+            );
+
+            expect(() => Utils.phpComputedKey([1, 2])).toThrow(failure);
+            expect(() =>
+                Utils.phpComputedKey({ a: 1 }, { stringables: true }),
+            ).toThrow(failure);
+        });
+
+        it("never reads a Date as a Stringable, as PHP's DateTime has no __toString", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-date-key": a JS Date
+            // names its own class, where PHP's message names DateTime.
+            expect(() =>
+                Utils.phpComputedKey(new Date(0), { stringables: true }),
+            ).toThrow(
+                new TypeError("Cannot access offset of type Date on array"),
+            );
+        });
+
+        it("throws for a function, which PHP cannot store as a key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key": a JS
+            // function names its own class, where PHP's message names Closure.
+            expect(() => Utils.phpComputedKey(() => 1)).toThrow(
+                new TypeError("Cannot access offset of type Function on array"),
+            );
+        });
+    });
+
     describe("keyedEntries", () => {
         it("answers a plain object exactly as Object.entries does", () => {
             const record = { b: 1, 2: "c", a: 2, 0: "a" };
