@@ -68,7 +68,6 @@ import {
     isPlainObject,
     isPrototypeObject,
     isString,
-    isStringable,
     isSymbol,
     isUndefined,
     isWeakMap,
@@ -78,6 +77,7 @@ import {
     MultipleItemsFoundException,
     operatorMatch,
     phpArrayKey,
+    phpComputedKey,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
@@ -2256,7 +2256,7 @@ export function select<TValue extends object>(
 export function pluck<TValue extends object, const TPath extends string>(
     data: ArrayItems<TValue>,
     value: TPath,
-    key: string | readonly string[] | ((item: TValue) => string | number),
+    key: string | readonly string[] | ((item: TValue) => unknown),
 ): Record<string | number, PluckValue<TValue, TPath>>;
 // Overload: literal path, no key or a nullish one → array of the resolved value type
 export function pluck<TValue extends object, const TPath extends string>(
@@ -2268,7 +2268,7 @@ export function pluck<TValue extends object, const TPath extends string>(
 export function pluck<TValue extends object, TResult>(
     data: ArrayItems<TValue>,
     value: (item: TValue) => TResult,
-    key: string | readonly string[] | ((item: TValue) => string | number),
+    key: string | readonly string[] | ((item: TValue) => unknown),
 ): Record<string | number, TResult>;
 // Overload: closure value, no key or a nullish one → array of the closure return type
 export function pluck<TValue extends object, TResult>(
@@ -2280,7 +2280,7 @@ export function pluck<TValue extends object, TResult>(
 export function pluck<TValue extends object>(
     data: ArrayItems<TValue>,
     value: null | undefined,
-    key: string | readonly string[] | ((item: TValue) => string | number),
+    key: string | readonly string[] | ((item: TValue) => unknown),
 ): Record<string | number, TValue>;
 // Overload: null/undefined value, no key or a nullish one → array of whole items, matching Arr::pluck($data, null)
 export function pluck<TValue extends object>(
@@ -2292,7 +2292,7 @@ export function pluck<TValue extends object>(
 export function pluck<TValue extends object>(
     data: ArrayItems<TValue>,
     value: string | readonly string[] | ((item: TValue) => unknown),
-    key: string | readonly string[] | ((item: TValue) => string | number),
+    key: string | readonly string[] | ((item: TValue) => unknown),
 ): Record<string | number, unknown>;
 // Overload: without key or with a nullish one → returns array
 export function pluck<TValue extends object>(
@@ -2309,11 +2309,7 @@ export function pluck<TValue extends object>(
         | ((item: TValue) => unknown)
         | null
         | undefined,
-    key?:
-        | string
-        | readonly string[]
-        | ((item: TValue) => string | number)
-        | null,
+    key?: string | readonly string[] | ((item: TValue) => unknown) | null,
 ): unknown[] | Record<string | number, unknown>;
 // Implementation
 export function pluck<TValue extends object>(
@@ -2324,11 +2320,7 @@ export function pluck<TValue extends object>(
         | ((item: TValue) => unknown)
         | null
         | undefined,
-    key:
-        | string
-        | readonly string[]
-        | ((item: TValue) => string | number)
-        | null = null,
+    key: string | readonly string[] | ((item: TValue) => unknown) | null = null,
 ): unknown[] | Record<string | number, unknown> {
     if (!accessible(data)) {
         return [];
@@ -2344,7 +2336,6 @@ export function pluck<TValue extends object>(
 
     for (const item of values) {
         let itemValue: unknown;
-        let itemKey: string | number | undefined;
 
         // Get the value
         if (isFunction(valuePath)) {
@@ -2358,47 +2349,25 @@ export function pluck<TValue extends object>(
             );
         }
 
-        // Get the key if specified
-        if (!isNull(key) && !isUndefined(key)) {
-            if (isFunction(key)) {
-                itemKey = (key as (item: TValue) => string | number)(item);
-            } else {
-                const nestedKey = resolvePluckPath(
-                    item,
-                    explodePluckPath(key as string | readonly string[]),
-                );
-                if (
-                    typeof nestedKey === "string" ||
-                    typeof nestedKey === "number"
-                ) {
-                    itemKey = nestedKey;
-                } else if (typeof nestedKey === "boolean") {
-                    // PHP casts a boolean array key to int (true -> 1,
-                    // false -> 0), not to the string "true"/"false".
-                    itemKey = nestedKey ? 1 : 0;
-                } else if (!isNull(nestedKey)) {
-                    itemKey = String(nestedKey) as string;
-                }
-            }
-
-            // Convert objects with toString to string
-            if (!isUndefined(itemKey) && isStringable(itemKey)) {
-                itemKey = String(itemKey);
-            }
-        }
-
-        // Add to results
         if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
-        } else {
-            // PHP casts a null array key to "" — a key path that resolves
-            // to null/undefined files the value under "", not "undefined".
-            defineKey(
-                results as Record<string, unknown>,
-                String(isUndefined(itemKey) ? "" : itemKey),
-                itemValue,
-            );
+
+            continue;
         }
+
+        const itemKey = isFunction(key)
+            ? (key as (item: TValue) => unknown)(item)
+            : resolvePluckPath(
+                  item,
+                  explodePluckPath(key as string | readonly string[]),
+              );
+
+        // Arr::pluck casts an object with __toString to its string before PHP casts the array key.
+        defineKey(
+            results as Record<string, unknown>,
+            phpComputedKey(itemKey, { stringables: true }),
+            itemValue,
+        );
     }
 
     return results;

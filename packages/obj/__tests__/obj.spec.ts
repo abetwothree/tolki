@@ -1,5 +1,5 @@
 import * as Arr from "@tolki/arr";
-import { SortDirection } from "@tolki/enum";
+import { defineEnum, SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import {
     isString,
@@ -5211,6 +5211,70 @@ describe("Obj", () => {
                 expect(Obj.pluck(items, "n")).toEqual([null]);
                 expect(Obj.pluck(items, "*")).toEqual([[]]);
             });
+        });
+
+        it("casts a key closure's bool or float result the way PHP stores the key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-closure-casts"
+            expect(
+                Obj.pluck(
+                    { a: { v: "x" }, b: { v: "y" } },
+                    "v",
+                    (row) => row.v === "x",
+                ),
+            ).toEqual({ 1: "x", 0: "y" });
+            expect(Obj.pluck({ a: { v: "x" } }, "v", () => 1.5)).toEqual({
+                1: "x",
+            });
+        });
+
+        it("casts a key path's null, bool or float value the way PHP stores the key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+            expect(
+                Obj.pluck(
+                    {
+                        a: { k: null, v: "n" },
+                        b: { k: true, v: "t" },
+                        c: { k: false, v: "f" },
+                        d: { k: 1.5, v: "fl" },
+                    },
+                    "v",
+                    "k",
+                ),
+            ).toEqual({ "": "n", 1: "fl", 0: "f" });
+        });
+
+        it("throws for a key PHP cannot store", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key",
+            // "C32-E-pluck-assoc-key" and "C32-E-pluck-date-key": a JS Date names its own class,
+            // where PHP's message names DateTime.
+            const rows = { a: { v: 1 } };
+
+            expect(() => Obj.pluck(rows, "v", () => [1, 2])).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
+            expect(() => Obj.pluck(rows, "v", () => ({ a: 1 }))).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
+            expect(() => Obj.pluck(rows, "v", () => new Date(0))).toThrow(
+                new TypeError("Cannot access offset of type Date on array"),
+            );
+        });
+
+        it("throws for an enum case key, which PHP cannot store either", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a plain
+            // object here, so the message names the array it models where PHP names the enum's class.
+            const Status = defineEnum({
+                A: 1,
+                B: 2,
+                backed: true,
+                _cases: ["A", "B"],
+            } as const);
+
+            expect(() =>
+                Obj.pluck({ a: { v: 1 } }, "v", () => Status.from(2)),
+            ).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
     });
 
