@@ -12290,6 +12290,75 @@ describe("Collection", () => {
                     "baz",
                 ]);
             });
+
+            it("test json serialize calls to array or json serialize on each item in collection", () => {
+                class JsonItem {
+                    jsonSerialize() {
+                        return "foo.json";
+                    }
+                }
+
+                class ArrayItem {
+                    toArray() {
+                        return "bar.array";
+                    }
+                }
+
+                const c = new Collection([new JsonItem(), new ArrayItem()]);
+
+                // CollectionTest::testJsonSerializeCallsToArrayOrJsonSerializeOnEachItemInCollection
+                expect(c.jsonSerialize()).toEqual(["foo.json", "bar.array"]);
+            });
+        });
+
+        it("serializes an item by its jsonSerialize() before its toArray()", () => {
+            class ArrayableAndJsonSerializable {
+                toArray() {
+                    return { from: "toArray" };
+                }
+
+                jsonSerialize() {
+                    return { from: "jsonSerialize" };
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray"
+            expect(
+                collect([new ArrayableAndJsonSerializable()]).jsonSerialize(),
+            ).toEqual([{ from: "jsonSerialize" }]);
+        });
+
+        it("serializes an item by its toJson() before its toArray()", () => {
+            class ArrayableAndJsonable {
+                toArray() {
+                    return { from: "toArray" };
+                }
+
+                toJson() {
+                    return '{"from":"toJson"}';
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-prefers-toJson-over-toArray"
+            expect(
+                collect([new ArrayableAndJsonable()]).jsonSerialize(),
+            ).toEqual([{ from: "toJson" }]);
+        });
+
+        it("keeps an object that converts through none of them as that very object", () => {
+            class Plain {}
+
+            const item = new Plain();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-other-object-is-kept"
+            expect(collect([item]).jsonSerialize()[0]).toBe(item);
+        });
+
+        it("keeps the keys of a keyed collection", () => {
+            const c = collect({ a: new TestArrayableObject(), b: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-keyed"
+            expect(c.jsonSerialize()).toEqual({ a: { foo: "bar" }, b: 1 });
         });
 
         it("jsonSerialize handles Jsonable with toJSON only", () => {
@@ -12311,7 +12380,9 @@ describe("Collection", () => {
             }
 
             const c = collect([new BadJsonable()]);
-            expect(c.jsonSerialize()).toEqual(["not-json"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-invalid-jsonable-is-null"
+            expect(c.jsonSerialize()).toEqual([null]);
         });
 
         it("jsonSerialize handles Jsonable toJson returning object", () => {

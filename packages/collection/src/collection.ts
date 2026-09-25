@@ -101,7 +101,6 @@ import {
     resolveSliceRange,
     strictEqual,
     toArrayable,
-    toJsonable,
     toJsonSerializable,
     toPhpKeyString,
     typeOf,
@@ -5564,50 +5563,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns An array of the collection's items, with each item converted to a JSON-serializable form
      */
     jsonSerialize() {
-        return this.map((value) => {
-            // A plain object is data, as a PHP array is, whatever conversion members it holds.
-            if (isPlainObject(value)) {
-                return value;
-            }
-
-            // If the item is Arrayable, use its array representation
-            if (toArrayable(value)) {
-                return value.toArray();
-            }
-
-            // If the item is Jsonable, use its JSON representation via toJson(),
-            // and parse it to a native value to match Laravel expectations
-            if (toJsonable(value)) {
-                // Prefer Laravel-style toJson(); otherwise fall back to JS toJSON()
-                let jsonOut: unknown;
-                if (isFunction((value as { toJson: () => unknown }).toJson)) {
-                    jsonOut = (value as { toJson: () => unknown }).toJson();
-                } else {
-                    const raw = (value as { toJSON: () => unknown }).toJSON();
-                    // If toJSON returned an object/value, stringify then parse to normalize
-                    jsonOut = JSON.stringify(raw);
-                }
-
-                // If we have a string, try to parse to native; otherwise return as-is
-                if (isString(jsonOut)) {
-                    try {
-                        return JSON.parse(jsonOut);
-                    } catch {
-                        return jsonOut;
-                    }
-                }
-
-                return jsonOut;
-            }
-
-            // If the item is JsonSerializable, delegate to jsonSerialize()
-            if (toJsonSerializable(value)) {
-                return value.jsonSerialize();
-            }
-
-            // Otherwise, return the raw value as-is (no wrapping)
-            return value as unknown;
-        }).all();
+        return this.map((value) => jsonSerializeItem(value)).all();
     }
 
     /**
@@ -6458,6 +6414,41 @@ function decodeJson(json: string): unknown {
     } catch {
         return null;
     }
+}
+
+/**
+ * Convert one item as `jsonSerialize()` does: JsonSerializable first, then Jsonable, then Arrayable.
+ *
+ * @param value - The item to convert
+ * @returns What the item serializes as, or the item itself when it converts through none of them
+ */
+function jsonSerializeItem(value: unknown): unknown {
+    // A plain object is data, as a PHP array is, whatever conversion members it holds.
+    if (isPlainObject(value) || !isObject(value)) {
+        return value;
+    }
+
+    if (toJsonSerializable(value)) {
+        return value.jsonSerialize();
+    }
+
+    if (isFunction(value["toJson"])) {
+        const json = value["toJson"]();
+
+        // PHP's toJson() must answer a string; any other answer is taken as already decoded.
+        return isString(json) ? decodeJson(json) : json;
+    }
+
+    if (toArrayable(value)) {
+        return value.toArray();
+    }
+
+    // JavaScript's own toJSON hook comes last, so it never overrides one of PHP's interfaces.
+    if (isFunction(value["toJSON"])) {
+        return decodeJson(JSON.stringify(value));
+    }
+
+    return value;
 }
 
 /**
