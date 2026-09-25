@@ -150,6 +150,19 @@ describe("Number", () => {
 
             Num.useLocale("en");
         });
+
+        it("does not print a negative zero", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "format-negative-zero", "format-rounds-to-zero",
+            // "format-rounds-to-zero-one-digit", "format-keeps-sign", "format-default-precision",
+            // "format-max-precision-rounds-to-zero" and "format-rounds-to-zero-de"
+            expect(Num.format(-0.0)).toBe("0");
+            expect(Num.format(-0.4, 0)).toBe("0");
+            expect(Num.format(-0.04, 1)).toBe("0.0");
+            expect(Num.format(-0.06, 1)).toBe("-0.1");
+            expect(Num.format(-0.4)).toBe("-0.4");
+            expect(Num.format(-0.0004, null, 2)).toBe("0");
+            expect(Num.format(-0.04, 1, null, "de")).toBe("0,0");
+        });
     });
 
     describe("parse", () => {
@@ -185,6 +198,16 @@ describe("Number", () => {
 
         it("should return false for invalid input", () => {
             expect(Num.parseInt("a string that isn't a number")).toBe(false);
+        });
+
+        it("parses integers past 32 bits", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "parseInt-past-int32", "parseInt-past-int32-negative"
+            // and "parseInt-max-safe-integer". PHP's own test parses PHP_INT_MAX, which a JS number cannot hold.
+            expect(Num.parseInt("3,000,000,000")).toBe(3000000000);
+            expect(Num.parseInt("-3,000,000,000")).toBe(-3000000000);
+            expect(Num.parseInt("9007199254740991")).toBe(
+                Number.MAX_SAFE_INTEGER,
+            );
         });
     });
 
@@ -341,6 +364,17 @@ describe("Number", () => {
             expect(Num.percentage("50")).toBe("50%");
             expect(Num.percentage("1,234.56", 2)).toBe("1,234.56%");
         });
+
+        it("does not print a negative zero", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "percentage-rounds-to-zero",
+            // "percentage-rounds-to-zero-one-digit", "percentage-keeps-sign-one-digit", "percentage-keeps-sign"
+            // and "percentage-max-precision-rounds-to-zero"
+            expect(Num.percentage(-0.4)).toBe("0%");
+            expect(Num.percentage(-0.04, 1)).toBe("0.0%");
+            expect(Num.percentage(-0.4, 1)).toBe("-0.4%");
+            expect(Num.percentage(-5)).toBe("-5%");
+            expect(Num.percentage(-0.004, 0, 2)).toBe("0%");
+        });
     });
 
     describe("currency", () => {
@@ -380,6 +414,18 @@ describe("Number", () => {
             // Test string input to cover the typeof amount === "string" branch
             expect(Num.currency("100")).toBe("$100.00");
             expect(Num.currency("1,234.56")).toBe("$1,234.56");
+        });
+
+        it("does not print a negative zero", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "currency-rounds-to-zero", "currency-float-noise",
+            // "currency-rounds-to-zero-no-digits", "currency-keeps-sign", "currency-negative-zero"
+            // and "currency-rounds-to-zero-eur-de"
+            expect(Num.currency(-0.001)).toBe("$0.00");
+            expect(Num.currency(0.1 + 0.2 - 0.3 - 0.0000000001)).toBe("$0.00");
+            expect(Num.currency(-0.4, "", null, 0)).toBe("$0");
+            expect(Num.currency(-0.006)).toBe("-$0.01");
+            expect(Num.currency(-0.0)).toBe("$0.00");
+            expect(Num.currency(-0.001, "EUR", "de")).toBe("0,00 €");
         });
     });
 
