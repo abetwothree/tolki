@@ -530,6 +530,14 @@ probe('C32-D-item-paths-by-backing', "where('a.b', 2) and where('a.*.b', [1, 2])
     'keyByNestedPath' => c32d_items($keyed, [['a' => ['b' => 'z']]])->keyBy(['a', 'b'])->keys()->all(),
     'keyByUnreachablePath' => c32d_items($keyed, [['id' => 1, 'name' => 'John']])->keyBy(['id', 'name'])->keys()->all(),
 ], ['list' => false, 'keyed' => true]));
+probe('C32-D-item-paths-filtered-values', "what the filters keep, read as values: where('a.b', 2) and where('a.*.b', [1, 2]) over plain rows, and where('k', 'b'), whereIn('k', ['a']), whereNotIn('k', ['a']) and whereNotBetween('v', [2, 2]) over c32c_rows as each row's 'v'", fn () => array_map(fn (bool $keyed) => [
+    'whereDotPath' => c32d_items($keyed, [['a' => ['b' => 1]], ['a' => ['b' => 2]], ['a.b' => 2]])->where('a.b', 2)->values()->all(),
+    'whereWildcardPath' => c32d_items($keyed, [['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]])->where('a.*.b', [1, 2])->values()->all(),
+    'where' => c32c_rows($keyed)->where('k', 'b')->pluck('v')->all(),
+    'whereIn' => c32c_rows($keyed)->whereIn('k', ['a'])->pluck('v')->all(),
+    'whereNotIn' => c32c_rows($keyed)->whereNotIn('k', ['a'])->pluck('v')->all(),
+    'whereNotBetween' => c32c_rows($keyed)->whereNotBetween('v', [2, 2])->pluck('v')->all(),
+], ['list' => false, 'keyed' => true]));
 probe('C32-D-unique-collection-rows', "c32c_rows(list | keyed)->unique('k'): keys and each row's 'v'", fn () => array_map(fn (bool $keyed) => [
     c32c_rows($keyed)->unique('k')->keys()->all(),
     c32c_rows($keyed)->unique('k')->pluck('v')->all(),
