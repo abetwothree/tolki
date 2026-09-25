@@ -59,6 +59,11 @@ probe('C32-A-construct-jsonserializable', 'new Collection(new TestJsonSerializeO
 probe('C32-A-construct-jsonserializable-scalar', 'new Collection(new TestJsonSerializeWithScalarValueObject)', fn () => (new Collection(new TestJsonSerializeWithScalarValueObject))->all());
 probe('C32-A-construct-arrayable-keyed', 'new Collection(new TestArrayableObject)', fn () => (new Collection(new TestArrayableObject))->all());
 probe('C32-A-construct-traversable-beats-jsonserializable', "new Collection(new TestTraversableAndJsonSerializableObject(['a' => 1, 'b' => 2]))", fn () => (new Collection(new TestTraversableAndJsonSerializableObject(['a' => 1, 'b' => 2])))->all());
+probe('C32-A-construct-colliding-keys', "keys, values and count of new Collection([true => 'a', 1 => 'b', 0 => 'z']), [null => 'n', '' => 'e'] and [1.5 => 'f', 1 => 'i']", fn () => array_map(fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'count' => $c->count()], [
+    'bool' => new Collection([true => 'a', 1 => 'b', 0 => 'z']),
+    'null' => @(new Collection([null => 'n', '' => 'e'])),
+    'float' => @(new Collection([1.5 => 'f', 1 => 'i'])),
+]));
 
 // --- copy semantics (PHP arrays are values)
 probe('C32-A-construct-from-collection-copies', '$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]', function () { $a = collect([1, 2]); $b = new Collection($a); $b->push(3); return [$a->all(), $b->all()]; });
@@ -550,6 +555,27 @@ probe('C32-D-partition-collection-rows', "c32c_rows(list | keyed)->partition('k'
     $half->keys()->all(),
     $half->pluck('v')->all(),
 ], c32c_rows($keyed)->partition('k', 'b')->all()), ['list' => false, 'keyed' => true]));
+
+/** The c32c rows as plain arrays, the shape a JS Map row stands for. */
+function c32d_array_rows(bool $keyed): Collection
+{
+    $rows = [['k' => 'b', 'v' => 1], ['k' => 'a', 'v' => 2], ['k' => 'b', 'v' => 3]];
+
+    return new Collection($keyed ? array_combine(['x', 'y', 'z'], $rows) : $rows);
+}
+
+probe('C32-D-array-rows-by-backing', "c32d_array_rows(list | keyed): contains('k', 'a'), where('k', 'b') v's, firstWhere('k', 'a'), value('v'), pluck('v') and pluck('v', 'k'), sortBy('k') v's, groupBy('k') and keyBy('k') v's, whereIn('k', ['a']) v's", fn () => array_map(fn (bool $keyed) => [
+    'contains' => c32d_array_rows($keyed)->contains('k', 'a'),
+    'where' => c32d_array_rows($keyed)->where('k', 'b')->pluck('v')->all(),
+    'firstWhere' => c32d_array_rows($keyed)->firstWhere('k', 'a'),
+    'value' => c32d_array_rows($keyed)->value('v'),
+    'pluck' => c32d_array_rows($keyed)->pluck('v')->all(),
+    'pluckKeyed' => c32d_array_rows($keyed)->pluck('v', 'k')->all(),
+    'sortBy' => c32d_array_rows($keyed)->sortBy('k')->pluck('v')->all(),
+    'groupBy' => c32d_array_rows($keyed)->groupBy('k')->map(fn (Collection $group) => $group->pluck('v')->all())->all(),
+    'keyBy' => c32d_array_rows($keyed)->keyBy('k')->map(fn (array $row) => $row['v'])->all(),
+    'whereIn' => c32d_array_rows($keyed)->whereIn('k', ['a'])->pluck('v')->all(),
+], ['list' => false, 'keyed' => true]));
 probe('C32-D-where-in-collection-rows', "c32c_rows(list | keyed): whereIn('k', ['a']) / whereNotIn('k', ['a']) / whereNotBetween('v', [2, 2]) keys, containsStrict('k', 'a')", fn () => array_map(fn (bool $keyed) => [
     c32c_rows($keyed)->whereIn('k', ['a'])->keys()->all(),
     c32c_rows($keyed)->whereNotIn('k', ['a'])->keys()->all(),
@@ -739,6 +765,14 @@ probe('C32-E-pluck-enum-key', "(new Collection([['v' => 1]]))->pluck('v', fn () 
 probe('C32-E-pluck-stringable-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))->all());
 probe('C32-E-pluck-tostring-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => an object with __toString)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class { public function __toString() { return 'Framework'; } })->all());
 probe('C32-E-pluck-closure-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)->all());
+probe('C32-E-pluck-nested-array-row', "(new Collection([['n' => 1]]))->pluck('n') and ->pluck('*')", fn () => ['path' => (new Collection([['n' => 1]]))->pluck('n')->all(), 'wildcard' => (new Collection([['n' => 1]]))->pluck('*')->all()]);
+probe('C32-E-keyed-results-out-of-order-receiver', "a receiver whose integer keys run 2, 0: keyBy('id'), groupBy('g') and countBy() keys, mapToDictionary(fn => [\$v => \$k]), and flip() over 'x', 'y', 'x'", fn () => [
+    'keyBy' => (new Collection([2 => ['id' => 5], 0 => ['id' => 4]]))->keyBy('id')->keys()->all(),
+    'groupBy' => (new Collection([2 => ['g' => 5], 0 => ['g' => 4]]))->groupBy('g')->keys()->all(),
+    'countBy' => (new Collection([2 => 5, 0 => 4]))->countBy()->keys()->all(),
+    'mapToDictionary' => c32e_pairs((new Collection([2 => 5, 0 => 4]))->mapToDictionary(fn ($v, $k) => [$v => $k])),
+    'flip' => c32e_pairs((new Collection([2 => 'x', 0 => 'y', 1 => 'x']))->flip()),
+]);
 
 // ---- Family F ------------------------------------------------------------
 

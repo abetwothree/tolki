@@ -101,6 +101,41 @@
             }
         },
         {
+            "label": "C32-A-construct-colliding-keys",
+            "php": "keys, values and count of new Collection([true => 'a', 1 => 'b', 0 => 'z']), [null => 'n', '' => 'e'] and [1.5 => 'f', 1 => 'i']",
+            "value": {
+                "bool": {
+                    "keys": [
+                        1,
+                        0
+                    ],
+                    "values": [
+                        "b",
+                        "z"
+                    ],
+                    "count": 2
+                },
+                "null": {
+                    "keys": [
+                        ""
+                    ],
+                    "values": [
+                        "e"
+                    ],
+                    "count": 1
+                },
+                "float": {
+                    "keys": [
+                        1
+                    ],
+                    "values": [
+                        "i"
+                    ],
+                    "count": 1
+                }
+            }
+        },
+        {
             "label": "C32-A-construct-from-collection-copies",
             "php": "$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]",
             "value": [
@@ -2557,6 +2592,96 @@
             }
         },
         {
+            "label": "C32-D-array-rows-by-backing",
+            "php": "c32d_array_rows(list | keyed): contains('k', 'a'), where('k', 'b') v's, firstWhere('k', 'a'), value('v'), pluck('v') and pluck('v', 'k'), sortBy('k') v's, groupBy('k') and keyBy('k') v's, whereIn('k', ['a']) v's",
+            "value": {
+                "list": {
+                    "contains": true,
+                    "where": [
+                        1,
+                        3
+                    ],
+                    "firstWhere": {
+                        "k": "a",
+                        "v": 2
+                    },
+                    "value": 1,
+                    "pluck": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "pluckKeyed": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "sortBy": [
+                        2,
+                        1,
+                        3
+                    ],
+                    "groupBy": {
+                        "b": [
+                            1,
+                            3
+                        ],
+                        "a": [
+                            2
+                        ]
+                    },
+                    "keyBy": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "whereIn": [
+                        2
+                    ]
+                },
+                "keyed": {
+                    "contains": true,
+                    "where": [
+                        1,
+                        3
+                    ],
+                    "firstWhere": {
+                        "k": "a",
+                        "v": 2
+                    },
+                    "value": 1,
+                    "pluck": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "pluckKeyed": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "sortBy": [
+                        2,
+                        1,
+                        3
+                    ],
+                    "groupBy": {
+                        "b": [
+                            1,
+                            3
+                        ],
+                        "a": [
+                            2
+                        ]
+                    },
+                    "keyBy": {
+                        "b": 3,
+                        "a": 2
+                    },
+                    "whereIn": [
+                        2
+                    ]
+                }
+            }
+        },
+        {
             "label": "C32-D-where-in-collection-rows",
             "php": "c32c_rows(list | keyed): whereIn('k', ['a']) / whereNotIn('k', ['a']) / whereNotBetween('v', [2, 2]) keys, containsStrict('k', 'a')",
             "value": {
@@ -4077,6 +4202,66 @@
             "php": "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)",
             "threw": "TypeError",
             "message": "Cannot access offset of type Closure on array"
+        },
+        {
+            "label": "C32-E-pluck-nested-array-row",
+            "php": "(new Collection([['n' => 1]]))->pluck('n') and ->pluck('*')",
+            "value": {
+                "path": [
+                    1
+                ],
+                "wildcard": [
+                    [
+                        1
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyed-results-out-of-order-receiver",
+            "php": "a receiver whose integer keys run 2, 0: keyBy('id'), groupBy('g') and countBy() keys, mapToDictionary(fn => [$v => $k]), and flip() over 'x', 'y', 'x'",
+            "value": {
+                "keyBy": [
+                    5,
+                    4
+                ],
+                "groupBy": [
+                    5,
+                    4
+                ],
+                "countBy": [
+                    5,
+                    4
+                ],
+                "mapToDictionary": [
+                    [
+                        5,
+                        "integer",
+                        [
+                            2
+                        ]
+                    ],
+                    [
+                        4,
+                        "integer",
+                        [
+                            0
+                        ]
+                    ]
+                ],
+                "flip": [
+                    [
+                        "x",
+                        "string",
+                        1
+                    ],
+                    [
+                        "y",
+                        "string",
+                        0
+                    ]
+                ]
+            }
         },
         {
             "label": "C32-F-merge-null-is-a-new-instance",
