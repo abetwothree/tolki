@@ -507,13 +507,28 @@ describe("Utils", () => {
             expect(Utils.isPhpFalsy(true)).toBe(false);
         });
 
-        it("treats any own-key-less object as falsy, a documented non-PHP limitation", () => {
-            // PHP has no equivalent of Date/Map/RegExp; these are objects with no own
-            // enumerable keys, so isPhpFalsy treats them the same as an empty plain
-            // object.
-            expect(Utils.isPhpFalsy(new Date())).toBe(true);
+        it("keeps a Date, a RegExp or a class instance truthy however empty, as PHP keeps every object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-keeps-empty-objects"
+            // JS-only: a RegExp has no PHP class; it is an object like any other.
+            class Empty {}
+
+            expect(Utils.isPhpFalsy(new Date(0))).toBe(false);
+            expect(Utils.isPhpFalsy(/re/)).toBe(false);
+            expect(Utils.isPhpFalsy(new Empty())).toBe(false);
+        });
+
+        it("reads a Map or a Set as the array it stands for, falsy only when empty", () => {
+            // JS-only: a Map or a Set has no PHP type; it stands in for an array, which is falsy only when empty.
             expect(Utils.isPhpFalsy(new Map())).toBe(true);
-            expect(Utils.isPhpFalsy(/re/)).toBe(true);
+            expect(Utils.isPhpFalsy(new Set())).toBe(true);
+            expect(Utils.isPhpFalsy(new Map([[1, 2]]))).toBe(false);
+            expect(Utils.isPhpFalsy(new Set([1]))).toBe(false);
+        });
+
+        it("reads a zero bigint as falsy", () => {
+            // JS-only: PHP has no bigint; a zero one is falsy as the integer 0 is.
+            expect(Utils.isPhpFalsy(0n)).toBe(true);
+            expect(Utils.isPhpFalsy(1n)).toBe(false);
         });
     });
 

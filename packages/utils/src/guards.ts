@@ -501,8 +501,9 @@ export function isTruthy(value: unknown): boolean {
  * Determine whether a value is falsy the way PHP's `array_filter()` (no
  * callback) treats it — PHP's own truthiness, not JS's.
  *
- * Drops `false`, `null`/`undefined`, `0`, `""`, `"0"`, and an empty array or
- * plain object; keeps `"00"`, `"0.0"`, and `NaN` (all truthy in PHP).
+ * Drops `false`, `null`/`undefined`, `0`, `0n`, `""`, `"0"`, and an empty array,
+ * plain object, `Map` or `Set`; keeps `"00"`, `"0.0"`, `NaN` and every other
+ * object, however empty, as PHP keeps every object.
  *
  * @param value - The value to check
  * @returns True if the value is falsy under PHP's rules
@@ -511,6 +512,7 @@ export function isTruthy(value: unknown): boolean {
  *
  * isPhpFalsy("0"); -> true
  * isPhpFalsy("00"); -> false
+ * isPhpFalsy(new Date(0)); -> false
  */
 export function isPhpFalsy(value: unknown): boolean {
     if (
@@ -518,19 +520,24 @@ export function isPhpFalsy(value: unknown): boolean {
         value === null ||
         isUndefined(value) ||
         value === 0 ||
+        value === 0n ||
         value === "" ||
         value === "0"
     ) {
         return true;
     }
 
-    // Empty arrays are falsy in PHP
     if (isArray(value)) {
         return value.length === 0;
     }
 
-    // Empty objects are falsy in PHP
-    if (isObject(value)) {
+    // A Map or a Set stands in for a PHP array here, so only its entries decide.
+    if (isMap(value) || isSet(value)) {
+        return value.size === 0;
+    }
+
+    // Every PHP object is truthy; a plain object models an array, which is falsy when empty.
+    if (isPlainObject(value)) {
         return Object.keys(value).length === 0;
     }
 

@@ -304,6 +304,14 @@ describe("Utils", () => {
             expect(Utils.compareValues(true, false)).toBe(1);
         });
 
+        // task-19-spaceship.json, "spaceship on null and an empty array" and "spaceship on false and an
+        // empty array"; task-25-spaceship-arrays.json, "e3 spaceship on an empty array and true"
+        it("casts an empty plain object to false against null or a boolean, as PHP casts an empty array", () => {
+            expect(Utils.compareValues({}, null)).toBe(0);
+            expect(Utils.compareValues({}, false)).toBe(0);
+            expect(Utils.compareValues({}, true)).toBe(-1);
+        });
+
         // Recorded divergence, not parity: PHP orders every array above every
         // scalar (task-19-spaceship.json, "spaceship on an int and a
         // one-element array" is -1), where this port keeps JS coercion.
@@ -591,21 +599,15 @@ describe("Utils", () => {
 
         // task-20-loose-equal.json, "plain object and true"/"...and false"/"...and null"
         // and their "stateless object" twins: an object is ALWAYS truthy in PHP, so only
-        // the plain object standing in for an associative array may be empty-and-falsy.
-        it("treats every non-plain object as truthy, however empty its own keys are", () => {
+        // what stands in for an array (a plain object, a Map, a Set) may be empty-and-falsy.
+        it("treats a Date, a RegExp or a class instance as truthy, however empty its own keys are", () => {
             class Sized {
                 get size(): number {
                     return 0;
                 }
             }
 
-            const stateless: unknown[] = [
-                new Date(0),
-                new Map(),
-                new Set(),
-                /re/,
-                new Sized(),
-            ];
+            const stateless: unknown[] = [new Date(0), /re/, new Sized()];
 
             for (const value of stateless) {
                 expect(Utils.looseEqual(value, true)).toBe(true);
@@ -622,6 +624,15 @@ describe("Utils", () => {
             expect(Utils.looseEqual({ a: 1 }, null)).toBe(false);
             // A null prototype is plain too: there is nowhere else for state to hide.
             expect(Utils.looseEqual(Object.create(null), false)).toBe(true);
+        });
+
+        it("reads a Map or a Set as the array it stands for against a boolean or null", () => {
+            // JS-only: a Map or a Set has no PHP type; it stands in for an array, which is falsy only when empty.
+            expect(Utils.looseEqual(new Map(), false)).toBe(true);
+            expect(Utils.looseEqual(new Set(), null)).toBe(true);
+            expect(Utils.looseEqual(new Map(), true)).toBe(false);
+            expect(Utils.looseEqual(new Map([[1, 2]]), true)).toBe(true);
+            expect(Utils.looseEqual(new Set([1]), false)).toBe(false);
         });
 
         // task-20-loose-equal.json, "assoc arrays in a different order",
@@ -999,19 +1010,18 @@ describe("Utils", () => {
             expect(Utils.operatorMatch({}, "!=", null)).toBe(false);
             expect(Utils.operatorMatch({}, "===", null)).toBe(false);
             expect(Utils.operatorMatch({}, "!==", null)).toBe(true);
+            expect(Utils.operatorMatch({}, ">", null)).toBe(false);
+            expect(Utils.operatorMatch({}, "<=", null)).toBe(true);
+            expect(Utils.operatorMatch({}, "<=>", null)).toBe(false);
         });
 
         it("keeps compareValues' array-vs-scalar divergence on a plain object too", () => {
-            // Same row, "assoc array vs \"abc\"", "\"abc\" vs assoc array" and
-            // "empty array vs null": PHP sorts every array above every scalar and calls
-            // `[] <=> null` 0; compareValues keeps JS coercion, a documented divergence.
+            // Same row, "assoc array vs \"abc\"" and "\"abc\" vs assoc array": PHP sorts every
+            // array above every scalar; compareValues keeps JS coercion, a documented divergence.
             expect(Utils.operatorMatch({ x: 1 }, ">", "abc")).toBe(false);
             expect(Utils.operatorMatch({ x: 1 }, "<", "abc")).toBe(true);
             expect(Utils.operatorMatch("abc", "<", { x: 1 })).toBe(false);
             expect(Utils.operatorMatch("abc", ">", { x: 1 })).toBe(true);
-            expect(Utils.operatorMatch({}, ">", null)).toBe(true);
-            expect(Utils.operatorMatch({}, "<=", null)).toBe(false);
-            expect(Utils.operatorMatch({}, "<=>", null)).toBe(true);
         });
     });
 });

@@ -112,27 +112,14 @@ function compareNumericStrings(a: string, b: string): number {
 }
 
 /**
- * Cast a value the way PHP's `(bool)` does, for `<=>`'s rule that a null or a
- * boolean on either side compares both sides as booleans.
+ * Cast a value the way PHP's `(bool)` does, for the rule of `<=>` and `==` that a
+ * null or a boolean on either side compares both sides as booleans.
  *
  * @param value - The value to cast
  * @returns The value's PHP truthiness
  */
 function toPhpBool(value: unknown): boolean {
-    // typeof, not isNumber: PHP's (bool) NAN is true, so only a real zero is falsy.
-    if (typeof value === "number") {
-        return value !== 0;
-    }
-
-    if (isString(value)) {
-        return value !== "" && value !== "0";
-    }
-
-    if (isArray(value)) {
-        return value.length > 0;
-    }
-
-    return Boolean(value);
+    return !isPhpFalsy(value);
 }
 
 /**
@@ -152,16 +139,13 @@ type VisitedPairs = Map<object, Set<object>>;
  * Faithful to PHP, this order is **not transitive** — `null` ties `0` and `""`,
  * yet `0 > ""`.
  *
- * Four recorded divergences from PHP:
+ * Three recorded divergences from PHP:
  * - a cyclic pair ties, where PHP raises `Error: Nesting level too deep`;
  * - an array against a scalar keeps JS coercion, where PHP sorts every array above
  *   every scalar;
  * - a `Date` against an array or a plain object keeps the entry-count rule, where
  *   PHP sorts every object above every array: `new DateTime(...) <=> []` is 1 and
  *   `[] <=> new DateTime(...)` is -1. (Only two OBJECTS answer 1 from either side.)
- * - an EMPTY plain object against null or a boolean reads as truthy, where PHP casts
- *   an empty array to false: `compareValues({}, null)` is 1 and `({}, true)` is 0,
- *   where PHP's `[] <=> null` is 0 and `[] <=> true` is -1. The `[]` spelling agrees.
  *
  * JS-only: a `Map`, a `Set` and a `RegExp` have no PHP analogue, so there is no
  * rule to port — each carries no own enumerable keys, and any two of them tie.
@@ -351,14 +335,11 @@ export function looseEqual(a: unknown, b: unknown): boolean {
     if (aIsNull || bIsNull) {
         const other = aIsNull ? b : a;
 
-        return isString(other) ? other === "" : !phpTruthy(other);
+        return isString(other) ? other === "" : !toPhpBool(other);
     }
 
-    // A PLAIN JS object models a PHP associative array here, not a stdClass, so phpTruthy lets
-    // isPhpFalsy (guards.ts) call {} falsy and false == {} holds as PHP's [] == false does.
-    // Probed as "empty array and false"; every other object is truthy, as "plain object and false".
     if (isBoolean(a) || isBoolean(b)) {
-        return phpTruthy(a) === phpTruthy(b);
+        return toPhpBool(a) === toPhpBool(b);
     }
 
     // PHP refuses to compare NaN with anything, before any cast, so NAN == "NAN" is false too.
@@ -441,27 +422,6 @@ export function looseEqual(a: unknown, b: unknown): boolean {
     }
 
     return false;
-}
-
-/**
- * PHP truthiness with bigint folded in, since PHP has no bigint but JS callers may pass one.
- *
- * @param value - The value to cast
- * @returns The value's PHP truthiness
- */
-function phpTruthy(value: unknown): boolean {
-    if (typeof value === "bigint") {
-        return value !== 0n;
-    }
-
-    // An object is always truthy in PHP; only the plain object standing in for an
-    // associative array may be empty-and-falsy, and its state is its own keys. A Date,
-    // Map, Set, RegExp or class instance keeps state elsewhere, so emptiness says nothing.
-    if (isObject(value) && !isPlainObject(value)) {
-        return true;
-    }
-
-    return !isPhpFalsy(value);
 }
 
 /**
