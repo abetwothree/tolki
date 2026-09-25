@@ -1,0 +1,417 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.33.0-21-g5841965e11"
+    },
+    "probes": [
+        {
+            "label": "containsStrict-list-null-callback",
+            "php": "(new Collection([1, null, 2]))->containsStrict(fn ($v) => is_null($v))",
+            "value": true
+        },
+        {
+            "label": "containsStrict-list-zero-callback",
+            "php": "(new Collection([1, null, 2]))->containsStrict(fn ($v) => $v === 0)",
+            "value": false
+        },
+        {
+            "label": "containsStrict-assoc-null-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null, 'c' => 2]))->containsStrict(fn ($v) => is_null($v))",
+            "value": true
+        },
+        {
+            "label": "containsStrict-assoc-zero-callback",
+            "php": "(new Collection(['a' => 1, 'b' => null, 'c' => 2]))->containsStrict(fn ($v) => $v === 0)",
+            "value": false
+        },
+        {
+            "label": "containsStrict-null-first-callback",
+            "php": "(new Collection([null, 'a']))->containsStrict(fn () => true)",
+            "value": true
+        },
+        {
+            "label": "doesntContainStrict-list-null-callback",
+            "php": "(new Collection([1, null, 2]))->doesntContainStrict(fn ($v) => is_null($v))",
+            "value": false
+        },
+        {
+            "label": "containsStrict-out-of-order-callback-keys",
+            "php": "keys a false-answering containsStrict callback sees on [2 => 'c', 0 => 'a', 1 => 'b']",
+            "value": [
+                2,
+                0,
+                1
+            ]
+        },
+        {
+            "label": "containsStrict-stops-at-first-match",
+            "php": "keys an is_null callback sees on ['a', null, 'c']",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "mode-key-with-nulls",
+            "php": "(new Collection([(object) ['foo' => 5], (object) ['foo' => null], (object) ['foo' => null]]))->mode('foo')",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "mode-null-and-value",
+            "php": "(new Collection([null, 3]))->mode()",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "mode-only-nulls",
+            "php": "(new Collection([null, null]))->mode()",
+            "value": null
+        },
+        {
+            "label": "mode-missing-key",
+            "php": "(new Collection([['foo' => 5], ['bar' => 1], ['bar' => 2]]))->mode('foo')",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "mode-dotted-values",
+            "php": "(new Collection(['a.b', 'a.b', 'c']))->mode()",
+            "value": [
+                "a.b"
+            ]
+        },
+        {
+            "label": "mode-bools",
+            "php": "(new Collection([true, true, false]))->mode()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "mode-numeric-strings",
+            "php": "(new Collection(['1', 1, '1']))->mode()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "mode-empty-string",
+            "php": "(new Collection(['', '', 'a']))->mode()",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "mode-tie-first-seen",
+            "php": "(new Collection([3, 1, 3, 1]))->mode()",
+            "value": [
+                3,
+                1
+            ]
+        },
+        {
+            "label": "mode-out-of-order-tie",
+            "php": "(new Collection([2 => 'c', 0 => 'a']))->mode()",
+            "value": [
+                "c",
+                "a"
+            ]
+        },
+        {
+            "label": "mode-assoc-strings",
+            "php": "(new Collection(['x' => 'p', 'y' => 'q', 'z' => 'q']))->mode()",
+            "value": [
+                "q"
+            ]
+        },
+        {
+            "label": "collapseWithKeys-string-keys",
+            "php": "(new Collection(['first' => ['a' => 1, 'b' => 2], 'second' => ['c' => 3]]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-mixed-keys",
+            "php": "(new Collection([5 => ['a' => 1], 'second' => new Collection(['b' => 2, 'a' => 3])]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    3
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-string-keys-lists",
+            "php": "(new Collection(['first' => [1, 2], 'second' => [3]]))->collapseWithKeys()",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "sortBy-many-numeric-flag-asc",
+            "php": "sortBy([['price', 'asc']], SORT_NUMERIC)->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
+            "label": "sortBy-many-numeric-flag-desc",
+            "php": "sortBy([['price', 'desc']], SORT_NUMERIC)->pluck('price')->values()",
+            "value": [
+                "10.5",
+                "10.2",
+                1.9,
+                1.5,
+                1.2
+            ]
+        },
+        {
+            "label": "sortBy-many-default-flag-asc",
+            "php": "sortBy([['price', 'asc']])->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
+            "label": "sortBy-many-default-flag-desc",
+            "php": "sortBy([['price', 'desc']])->pluck('price')->values()",
+            "value": [
+                "10.5",
+                "10.2",
+                1.9,
+                1.5,
+                1.2
+            ]
+        },
+        {
+            "label": "sortBy-key-default-flag",
+            "php": "sortBy('price')->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
+            "label": "take-negative-past-size",
+            "php": "(new Collection(['taylor', 'dayle', 'shawn']))->take(-5)->all()",
+            "value": [
+                "taylor",
+                "dayle",
+                "shawn"
+            ]
+        },
+        {
+            "label": "combine-fewer-values",
+            "php": "(new Collection([1, 2]))->combine([3])->all()",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "combine-more-values",
+            "php": "(new Collection([1]))->combine([2, 3])->all()",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "format-negative-zero",
+            "php": "Number::format(-0.0)",
+            "value": "0"
+        },
+        {
+            "label": "format-rounds-to-zero",
+            "php": "Number::format(-0.4, precision: 0)",
+            "value": "0"
+        },
+        {
+            "label": "format-rounds-to-zero-one-digit",
+            "php": "Number::format(-0.04, precision: 1)",
+            "value": "0.0"
+        },
+        {
+            "label": "format-keeps-sign",
+            "php": "Number::format(-0.06, precision: 1)",
+            "value": "-0.1"
+        },
+        {
+            "label": "format-default-precision",
+            "php": "Number::format(-0.4)",
+            "value": "-0.4"
+        },
+        {
+            "label": "format-max-precision-rounds-to-zero",
+            "php": "Number::format(-0.0004, maxPrecision: 2)",
+            "value": "0"
+        },
+        {
+            "label": "format-rounds-to-zero-de",
+            "php": "Number::format(-0.04, precision: 1, locale: 'de')",
+            "value": "0,0"
+        },
+        {
+            "label": "percentage-rounds-to-zero",
+            "php": "Number::percentage(-0.4)",
+            "value": "0%"
+        },
+        {
+            "label": "percentage-rounds-to-zero-one-digit",
+            "php": "Number::percentage(-0.04, precision: 1)",
+            "value": "0.0%"
+        },
+        {
+            "label": "percentage-keeps-sign-one-digit",
+            "php": "Number::percentage(-0.4, precision: 1)",
+            "value": "-0.4%"
+        },
+        {
+            "label": "percentage-keeps-sign",
+            "php": "Number::percentage(-5)",
+            "value": "-5%"
+        },
+        {
+            "label": "percentage-max-precision-rounds-to-zero",
+            "php": "Number::percentage(-0.004, maxPrecision: 2)",
+            "value": "0%"
+        },
+        {
+            "label": "currency-rounds-to-zero",
+            "php": "Number::currency(-0.001)",
+            "value": "$0.00"
+        },
+        {
+            "label": "currency-float-noise",
+            "php": "Number::currency(0.1 + 0.2 - 0.3 - 0.0000000001)",
+            "value": "$0.00"
+        },
+        {
+            "label": "currency-rounds-to-zero-no-digits",
+            "php": "Number::currency(-0.4, precision: 0)",
+            "value": "$0"
+        },
+        {
+            "label": "currency-keeps-sign",
+            "php": "Number::currency(-0.006)",
+            "value": "-$0.01"
+        },
+        {
+            "label": "currency-negative-zero",
+            "php": "Number::currency(-0.0)",
+            "value": "$0.00"
+        },
+        {
+            "label": "currency-rounds-to-zero-eur-de",
+            "php": "Number::currency(-0.001, in: 'EUR', locale: 'de')",
+            "value": "0,00\u00a0\u20ac"
+        },
+        {
+            "label": "parseInt-past-int32",
+            "php": "Number::parseInt('3,000,000,000')",
+            "value": 3000000000
+        },
+        {
+            "label": "parseInt-past-int32-negative",
+            "php": "Number::parseInt('-3,000,000,000')",
+            "value": -3000000000
+        },
+        {
+            "label": "parseInt-max-safe-integer",
+            "php": "Number::parseInt('9007199254740991')",
+            "value": 9007199254740991
+        },
+        {
+            "label": "parseInt-php-int-max",
+            "php": "Number::parseInt((string) PHP_INT_MAX)",
+            "value": 9223372036854775807
+        },
+        {
+            "label": "camel-multibyte-first-space",
+            "php": "Str::camel('\u00dcber uns')",
+            "value": "\u00fcberUns"
+        },
+        {
+            "label": "camel-multibyte-first-snake",
+            "php": "Str::camel('\u00e9mile_zola')",
+            "value": "\u00e9mileZola"
+        },
+        {
+            "label": "camel-multibyte-first-kebab",
+            "php": "Str::camel('\u00c9lan-vital')",
+            "value": "\u00e9lanVital"
+        },
+        {
+            "label": "password-length-below-pool-count",
+            "php": "array_map(fn ($n) => strlen(Str::password($n)), [1, 2, 3])",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "password-zero-length",
+            "php": "Str::password(0)",
+            "value": ""
+        },
+        {
+            "label": "password-negative-length",
+            "php": "Str::password(-2)",
+            "value": ""
+        },
+        {
+            "label": "password-no-pools",
+            "php": "Str::password(32, false, false, false, false)",
+            "threw": "InvalidArgumentException",
+            "message": "At least one character pool must be enabled."
+        },
+        {
+            "label": "password-no-pools-zero-length",
+            "php": "Str::password(0, false, false, false, false)",
+            "threw": "InvalidArgumentException",
+            "message": "At least one character pool must be enabled."
+        },
+        {
+            "label": "password-numbers-only",
+            "php": "Str::password(5, false, true, false, false)",
+            "value": {
+                "length": 5,
+                "digits": true
+            }
+        },
+        {
+            "label": "password-spaces-only",
+            "php": "Str::password(3, false, false, false, true)",
+            "value": "   "
+        }
+    ]
+}
