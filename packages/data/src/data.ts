@@ -176,6 +176,7 @@ import {
     isFunction,
     isMap,
     isNull,
+    isPhpFalsy,
     isUndefined,
     keyedEntries,
     looseEqual,
@@ -1416,14 +1417,14 @@ function searchableEntries<TValue>(items: unknown): [string, TValue][] {
  */
 function searchEntries<TValue, TKey extends PropertyKey>(
     entries: readonly [string, TValue][],
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean,
 ): TKey | number | false {
     for (const [key, item] of entries) {
         const actualKey = phpArrayKey(key) as TKey;
 
         if (isFunction(value)) {
-            if (value(item, actualKey)) {
+            if (!isPhpFalsy(value(item, actualKey))) {
                 return actualKey;
             }
 
@@ -1475,31 +1476,31 @@ export function dataSearch<TMap>(
         | MapEntryValue<TMap>
         | string
         | number
-        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
     strict?: boolean,
 ): MapEntryKey<TMap> | false;
 // Overload: list backing, whose key is the index
 export function dataSearch<TValue>(
     items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    value: TValue | string | number | ((item: TValue, key: number) => unknown),
     strict?: boolean,
 ): number | false;
 // Overload: keyed backing, whose numeric-string key comes back as a number
 export function dataSearch<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TKey | number | false;
 // Overload: the package's own canonical input, whose list half answers an index
 export function dataSearch<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TKey | number | false;
 // Implementation
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean = false,
 ): TKey | number | false {
     return searchEntries(searchableEntries<TValue>(items), value, strict);
@@ -1531,31 +1532,31 @@ export function dataBefore<TMap>(
         | MapEntryValue<TMap>
         | string
         | number
-        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
     strict?: boolean,
 ): MapEntryValue<TMap> | null;
 // Overload: list backing, whose key is the index
 export function dataBefore<TValue>(
     items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    value: TValue | string | number | ((item: TValue, key: number) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: keyed backing, whose key is the record's own
 export function dataBefore<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: the package's own canonical input, which either half satisfies
 export function dataBefore<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Implementation
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean = false,
 ): TValue | null {
     // Read ONCE: a generator is single-use, and the search and the position lookup must walk the same entries.
@@ -1605,31 +1606,31 @@ export function dataAfter<TMap>(
         | MapEntryValue<TMap>
         | string
         | number
-        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
     strict?: boolean,
 ): MapEntryValue<TMap> | null;
 // Overload: list backing, whose key is the index
 export function dataAfter<TValue>(
     items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    value: TValue | string | number | ((item: TValue, key: number) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: keyed backing, whose key is the record's own
 export function dataAfter<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: the package's own canonical input, which either half satisfies
 export function dataAfter<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Implementation
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean = false,
 ): TValue | null {
     // Read ONCE: a generator is single-use, and the search and the position lookup must walk the same entries.

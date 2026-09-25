@@ -10844,4 +10844,189 @@ describe("Data", () => {
             );
         });
     });
+
+    describe("callback results judged by PHP truthiness", () => {
+        /** The items "a" and "b" (or "a" alone), as a list or keyed "x" and "y". */
+        const items = (
+            keyed: boolean,
+            one = false,
+        ): string[] | Record<string, string> => {
+            if (keyed) {
+                return one ? { x: "a" } : { x: "a", y: "b" };
+            }
+
+            return one ? ["a"] : ["a", "b"];
+        };
+
+        /** What `run` answers, or the name of the exception it throws, as the probe records one. */
+        const outcome = (run: () => unknown): unknown => {
+            try {
+                return run();
+            } catch (error) {
+                return (error as Error).name;
+            }
+        };
+
+        // PHP casts "0" and [] to false, and every object to true, however empty.
+        const answers = ["0", [], new Date(0)];
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-collection-callback-php-truthiness", which records each chunk's values
+                "dataChunkWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    Object.values(
+                        Data.dataChunkWhile(items(keyed), callback),
+                    ).map((chunk) => Object.values(chunk)),
+                {
+                    list: [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
+                    keyed: [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataFirst",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataFirst(items(keyed), callback),
+                { list: [null, null, "a"], keyed: [null, null, "a"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataLast",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataLast(items(keyed), callback),
+                { list: [null, null, "b"], keyed: [null, null, "b"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataEvery",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataEvery(items(keyed), callback),
+                { list: [false, false, true], keyed: [false, false, true] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataSome",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataSome(items(keyed), callback),
+                { list: [false, false, true], keyed: [false, false, true] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataSole",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataSole(items(keyed, true), callback),
+                {
+                    list: [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a",
+                    ],
+                    keyed: [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a",
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataWhere",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataWhere(items(keyed), callback),
+                {
+                    list: [[], [], ["a", "b"]],
+                    keyed: [{}, {}, { x: "a", y: "b" }],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataReject",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataReject(items(keyed), callback),
+                {
+                    list: [["a", "b"], ["a", "b"], []],
+                    keyed: [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataPartition",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataPartition(items(keyed), callback),
+                {
+                    list: [
+                        [[], ["a", "b"]],
+                        [[], ["a", "b"]],
+                        [["a", "b"], []],
+                    ],
+                    keyed: [
+                        [{}, { x: "a", y: "b" }],
+                        [{}, { x: "a", y: "b" }],
+                        [{ x: "a", y: "b" }, {}],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataContains",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataContains(items(keyed), callback),
+                { list: [false, false, true], keyed: [false, false, true] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataFilter",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataFilter(items(keyed), callback),
+                {
+                    list: [[], [], ["a", "b"]],
+                    keyed: [{}, {}, { x: "a", y: "b" }],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataSearch",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataSearch(items(keyed), callback),
+                { list: [false, false, 0], keyed: [false, false, "x"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-collection-callback-php-truthiness", whose before callback answers for "b" only
+                "dataBefore",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataBefore(items(keyed), (value: unknown) =>
+                        value === "b" ? callback() : false,
+                    ),
+                { list: [null, null, "a"], keyed: [null, null, "a"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataAfter",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataAfter(items(keyed), callback),
+                { list: [null, null, "b"], keyed: [null, null, "b"] },
+            ],
+        ] as [
+            string,
+            (callback: () => unknown, keyed: boolean) => unknown,
+            { list: unknown[]; keyed: unknown[] },
+        ][])(
+            "%s judges its callback's result by PHP truthiness on either backing",
+            (_name, run, expected) => {
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, false)),
+                    ),
+                ).toEqual(expected.list);
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, true)),
+                    ),
+                ).toEqual(expected.keyed);
+            },
+        );
+    });
 });
