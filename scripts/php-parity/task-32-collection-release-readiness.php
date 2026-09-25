@@ -14,6 +14,7 @@ require_once repoRoot() . '/packages/collection/stubs/Common.php';
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Stringable;
 use Illuminate\Tests\Support\TestArrayableObject;
@@ -232,6 +233,69 @@ probe('C32-C-callback-php-truthiness', 'callbacks returning "0" or [] are falsy:
     'every' => (new Collection([1, 2]))->every(fn () => '0'),
     'hasSole' => (new Collection([1]))->hasSole(fn () => '0'),
     'hasMany' => (new Collection([1, 2]))->hasMany(fn () => []),
+]);
+
+/** The items ['a', 'b'] (or ['a'] alone), as a list or keyed 'x', 'y'. */
+function c32c_items(bool $keyed, bool $one = false): array
+{
+    $items = $keyed ? ['x' => 'a', 'y' => 'b'] : ['a', 'b'];
+
+    return $one ? array_slice($items, 0, 1, true) : $items;
+}
+
+/** What $run answers for a callback answering '0', [] and new DateTime('@0'), or the short name of what it throws. */
+function c32c_truthiness(callable $run): array
+{
+    return array_map(function ($result) use ($run) {
+        try {
+            return pairs($run(fn () => $result));
+        } catch (\Throwable $e) {
+            return (new ReflectionClass($e))->getShortName();
+        }
+    }, ['0', [], new DateTime('@0')]);
+}
+
+probe('C32-C-arr-callback-php-truthiness', "Arr::first / last / every / some / sole / where / reject / partition over c32c_items(list | keyed), sole over its first item alone, with a callback answering '0', [] and new DateTime('@0')", fn () => array_map(fn (bool $keyed) => [
+    'first' => c32c_truthiness(fn ($cb) => Arr::first(c32c_items($keyed), $cb)),
+    'last' => c32c_truthiness(fn ($cb) => Arr::last(c32c_items($keyed), $cb)),
+    'every' => c32c_truthiness(fn ($cb) => Arr::every(c32c_items($keyed), $cb)),
+    'some' => c32c_truthiness(fn ($cb) => Arr::some(c32c_items($keyed), $cb)),
+    'sole' => c32c_truthiness(fn ($cb) => Arr::sole(c32c_items($keyed, true), $cb)),
+    'where' => c32c_truthiness(fn ($cb) => Arr::where(c32c_items($keyed), $cb)),
+    'reject' => c32c_truthiness(fn ($cb) => Arr::reject(c32c_items($keyed), $cb)),
+    'partition' => c32c_truthiness(fn ($cb) => Arr::partition(c32c_items($keyed), $cb)),
+], ['list' => false, 'keyed' => true]));
+probe('C32-C-collection-callback-php-truthiness', "each callback method over new Collection(c32c_items(list | keyed)), sole / hasSole / containsOneItem over its first item alone, with a callback answering '0', [] and new DateTime('@0'); before's callback answers it for 'b' only, chunkWhile records each chunk's values, when / unless take it as the condition and record whether fn () => 'called' ran", fn () => array_map(fn (bool $keyed) => [
+    'filter' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->filter($cb)),
+    'where' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->where($cb)),
+    'reject' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->reject($cb)),
+    'first' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->first($cb)),
+    'last' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->last($cb)),
+    'firstWhere' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->firstWhere($cb)),
+    'firstOrFail' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->firstOrFail($cb)),
+    'sole' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed, true)))->sole($cb)),
+    'every' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->every($cb)),
+    'some' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->some($cb)),
+    'contains' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->contains($cb)),
+    'doesntContain' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->doesntContain($cb)),
+    'containsStrict' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->containsStrict($cb)),
+    'doesntContainStrict' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->doesntContainStrict($cb)),
+    'search' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->search($cb)),
+    'before' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->before(fn ($v) => $v === 'b' ? $cb() : false)),
+    'after' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->after($cb)),
+    'hasSole' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed, true)))->hasSole($cb)),
+    'containsOneItem' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed, true)))->containsOneItem($cb)),
+    'hasMany' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->hasMany($cb)),
+    'containsManyItems' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->containsManyItems($cb)),
+    'partition' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->partition($cb)),
+    'chunkWhile' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->chunkWhile($cb)->map(fn (Collection $chunk) => $chunk->values()->all())),
+    'percentage' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->percentage($cb)),
+    'when' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->when($cb(), fn () => 'called') === 'called'),
+    'unless' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->unless($cb(), fn () => 'called') === 'called'),
+], ['list' => false, 'keyed' => true]));
+probe('C32-C-ordered-first-last-callback-php-truthiness', "(new Collection([2 => 'a', 0 => 'b']))->first(\$cb) / last(\$cb), \$cb answering '0', [] and new DateTime('@0')", fn () => [
+    'first' => c32c_truthiness(fn ($cb) => (new Collection([2 => 'a', 0 => 'b']))->first($cb)),
+    'last' => c32c_truthiness(fn ($cb) => (new Collection([2 => 'a', 0 => 'b']))->last($cb)),
 ]);
 probe('C32-C-no-args-forms-throw', '(new Collection([1]))->some() / every() / firstWhere()', function () {
     $out = [];
