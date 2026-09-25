@@ -4354,16 +4354,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Create a new instance with no items.
      *
-     * @param asArray - Whether to create the empty collection as an array or object, defaults to true (array)
      * @returns A new empty collection instance
      *
      * @example
      *
      * Collection.empty(); -> new Collection([])
-     * Collection.empty(true); -> new Collection({})
      */
-    static empty(asArray: boolean = true) {
-        return new this(handOver(asArray ? [] : {}));
+    static empty() {
+        return new this<never, never>(handOver([]));
     }
 
     /**

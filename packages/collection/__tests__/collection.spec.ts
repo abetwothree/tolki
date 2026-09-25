@@ -9605,13 +9605,10 @@ describe("Collection", () => {
     describe("empty", () => {
         describe("Laravel Tests", () => {
             it("test empty method", () => {
+                // CollectionTest::testEmptyMethod
                 const c = Collection.empty();
                 expect(c.count()).toBe(0);
                 expect(c.all()).toEqual([]);
-
-                const d = Collection.empty(false);
-                expect(d.count()).toBe(0);
-                expect(d.all()).toEqual({});
             });
 
             it("test empty collection is empty", () => {
@@ -9624,6 +9621,15 @@ describe("Collection", () => {
                 expect(c.isEmpty()).toBe(false);
                 expect(c.isNotEmpty()).toBe(true);
             });
+        });
+
+        it("builds an empty list even when handed false", () => {
+            const collection = Reflect.apply(Collection.empty, Collection, [
+                false,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-empty-extra-argument-is-ignored"
+            expect(collection.all()).toEqual([]);
         });
     });
 
