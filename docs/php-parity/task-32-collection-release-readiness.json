@@ -66,6 +66,12 @@
             }
         },
         {
+            "label": "C32-A-construct-jsonable-toJson-throws",
+            "php": "new Collection(new C32AThrowingJsonable)",
+            "threw": "RuntimeException",
+            "message": "toJson failed"
+        },
+        {
             "label": "C32-A-construct-jsonserializable",
             "php": "new Collection(new TestJsonSerializeObject)",
             "value": {

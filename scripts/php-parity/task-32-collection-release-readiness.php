@@ -36,6 +36,9 @@ class C32AArrayableAndJsonable implements Arrayable, Jsonable {
 class C32ABadJsonable implements Jsonable {
     public function toJson($options = 0) { return 'not-json'; }
 }
+class C32AThrowingJsonable implements Jsonable {
+    public function toJson($options = 0) { throw new RuntimeException('toJson failed'); }
+}
 class C32AJsonSerializeToString implements JsonSerializable {
     public function jsonSerialize(): string { return 'foobar'; }
 }
@@ -51,6 +54,7 @@ probe('C32-A-construct-traversable-keyed', "new Collection(new ArrayObject(['foo
 probe('C32-A-construct-generator-list', 'new Collection((function () { yield 1; yield 2; })())', fn () => (new Collection((function () { yield 1; yield 2; })()))->all());
 probe('C32-A-construct-stdclass', "new Collection((object) ['foo' => 'bar'])", fn () => (new Collection((object) ['foo' => 'bar']))->all());
 probe('C32-A-construct-jsonable', 'new Collection(new TestJsonableObject)', fn () => (new Collection(new TestJsonableObject))->all());
+probe('C32-A-construct-jsonable-toJson-throws', 'new Collection(new C32AThrowingJsonable)', fn () => (new Collection(new C32AThrowingJsonable))->all());
 probe('C32-A-construct-jsonserializable', 'new Collection(new TestJsonSerializeObject)', fn () => (new Collection(new TestJsonSerializeObject))->all());
 probe('C32-A-construct-jsonserializable-scalar', 'new Collection(new TestJsonSerializeWithScalarValueObject)', fn () => (new Collection(new TestJsonSerializeWithScalarValueObject))->all());
 probe('C32-A-construct-arrayable-keyed', 'new Collection(new TestArrayableObject)', fn () => (new Collection(new TestArrayableObject))->all());
