@@ -1,0 +1,4754 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.33.0-21-g5841965e11"
+    },
+    "probes": [
+        {
+            "label": "C32-A-construct-false",
+            "php": "new Collection(false)",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "C32-A-construct-zero",
+            "php": "new Collection(0)",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-A-construct-empty-string",
+            "php": "new Collection('')",
+            "value": [
+                ""
+            ]
+        },
+        {
+            "label": "C32-A-construct-traversable-list",
+            "php": "new Collection(new ArrayObject([1, 2, 3]))",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "C32-A-construct-traversable-keyed",
+            "php": "new Collection(new ArrayObject(['foo' => 1, 'bar' => 2, 'baz' => 3]))",
+            "value": {
+                "foo": 1,
+                "bar": 2,
+                "baz": 3
+            }
+        },
+        {
+            "label": "C32-A-construct-generator-list",
+            "php": "new Collection((function () { yield 1; yield 2; })())",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-construct-stdclass",
+            "php": "new Collection((object) ['foo' => 'bar'])",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonable",
+            "php": "new Collection(new TestJsonableObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonserializable",
+            "php": "new Collection(new TestJsonSerializeObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-jsonserializable-scalar",
+            "php": "new Collection(new TestJsonSerializeWithScalarValueObject)",
+            "value": [
+                "foo"
+            ]
+        },
+        {
+            "label": "C32-A-construct-arrayable-keyed",
+            "php": "new Collection(new TestArrayableObject)",
+            "value": {
+                "foo": "bar"
+            }
+        },
+        {
+            "label": "C32-A-construct-traversable-beats-jsonserializable",
+            "php": "new Collection(new TestTraversableAndJsonSerializableObject(['a' => 1, 'b' => 2]))",
+            "value": {
+                "a": 1,
+                "b": 2
+            }
+        },
+        {
+            "label": "C32-A-construct-from-collection-copies",
+            "php": "$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-array-copies",
+            "php": "$arr = [1, 2]; $c = new Collection($arr); $c->push(3); [$arr, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-collect-method-copies",
+            "php": "$a = collect([1, 2]); $b = $a->collect(); $b->push(3); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-all-returns-a-copy",
+            "php": "$a = collect([1, 2]); $x = $a->all(); $x[] = 3; $a->all()",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-wrap-collection-copies",
+            "php": "$a = collect([1]); $b = Collection::wrap($a); $b->push(2); [$a->all(), $b->all(), $a === $b]",
+            "value": [
+                [
+                    1
+                ],
+                [
+                    1,
+                    2
+                ],
+                false
+            ]
+        },
+        {
+            "label": "C32-A-make-collection-copies",
+            "php": "$a = collect([1]); $b = Collection::make($a); $b->push(2); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1
+                ],
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-collect-method-returns-base-class",
+            "php": "get_class(C32ASub::make([1])->collect())",
+            "value": "Illuminate\\Support\\Collection"
+        },
+        {
+            "label": "C32-A-static-factories-keep-subclass",
+            "php": "get_class of C32ASub::make/wrap/empty/range/times/times(cb)/fromJson",
+            "value": {
+                "make": "C32ASub",
+                "wrap": "C32ASub",
+                "empty": "C32ASub",
+                "range": "C32ASub",
+                "times": "C32ASub",
+                "times-callback": "C32ASub",
+                "fromJson": "C32ASub"
+            }
+        },
+        {
+            "label": "C32-A-wrap-assoc-array",
+            "php": "Collection::wrap(['a' => 1])->all()",
+            "value": {
+                "a": 1
+            }
+        },
+        {
+            "label": "C32-A-wrap-null",
+            "php": "Collection::wrap(null)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-A-wrap-false",
+            "php": "Collection::wrap(false)->all()",
+            "value": [
+                false
+            ]
+        },
+        {
+            "label": "C32-A-range-descending",
+            "php": "Collection::range(5, 1)->all()",
+            "value": [
+                5,
+                4,
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-through-zero",
+            "php": "Collection::range(2, -2)->all()",
+            "value": [
+                2,
+                1,
+                0,
+                -1,
+                -2
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-negative",
+            "php": "Collection::range(-2, -4)->all()",
+            "value": [
+                -2,
+                -3,
+                -4
+            ]
+        },
+        {
+            "label": "C32-A-range-ascending-through-zero",
+            "php": "Collection::range(-2, 2)->all()",
+            "value": [
+                -2,
+                -1,
+                0,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-range-ascending-negative",
+            "php": "Collection::range(-4, -2)->all()",
+            "value": [
+                -4,
+                -3,
+                -2
+            ]
+        },
+        {
+            "label": "C32-A-range-descending-step",
+            "php": "Collection::range(10, 1, 3)->all()",
+            "value": [
+                10,
+                7,
+                4,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-single",
+            "php": "Collection::range(3, 3)->all()",
+            "value": [
+                3
+            ]
+        },
+        {
+            "label": "C32-A-range-float-step",
+            "php": "Collection::range(0, 1, 0.1)->all()",
+            "value": [
+                0,
+                0.1,
+                0.2,
+                0.30000000000000004,
+                0.4,
+                0.5,
+                0.6000000000000001,
+                0.7000000000000001,
+                0.8,
+                0.9,
+                1
+            ]
+        },
+        {
+            "label": "C32-A-range-step-zero-throws",
+            "php": "Collection::range(1, 5, 0)",
+            "threw": "ValueError",
+            "message": "range(): Argument #3 ($step) cannot be 0"
+        },
+        {
+            "label": "C32-A-range-negative-step-increasing-throws",
+            "php": "Collection::range(1, 5, -1)",
+            "threw": "ValueError",
+            "message": "range(): Argument #3 ($step) must be greater than 0 for increasing ranges"
+        },
+        {
+            "label": "C32-A-times-fractional-count",
+            "php": "Collection::times(2.7)->all()",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-A-fromJson-invalid-is-empty",
+            "php": "Collection::fromJson('{bad')->all()",
+            "value": []
+        },
+        {
+            "label": "C32-A-fromJson-scalar-is-wrapped",
+            "php": "Collection::fromJson('5')->all()",
+            "value": [
+                5
+            ]
+        },
+        {
+            "label": "C32-A-fromJson-null-is-empty",
+            "php": "Collection::fromJson('null')->all()",
+            "value": []
+        },
+        {
+            "label": "C32-A-fromJson-list",
+            "php": "Collection::fromJson('[\"a\",\"b\"]')->all()",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-php-fixtures",
+            "php": "testJsonSerialize fixtures",
+            "value": [
+                {
+                    "foo": "bar"
+                },
+                {
+                    "foo": "bar"
+                },
+                {
+                    "foo": "bar"
+                },
+                "foobar",
+                "baz"
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray",
+            "php": "collect([new C32AArrayableAndJsonSerializable])->jsonSerialize()",
+            "value": [
+                {
+                    "from": "jsonSerialize"
+                }
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-prefers-toJson-over-toArray",
+            "php": "collect([new C32AArrayableAndJsonable])->jsonSerialize()",
+            "value": [
+                {
+                    "from": "toJson"
+                }
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-invalid-jsonable-is-null",
+            "php": "collect([new C32ABadJsonable])->jsonSerialize()",
+            "value": [
+                null
+            ]
+        },
+        {
+            "label": "C32-A-jsonSerialize-keyed",
+            "php": "collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize()",
+            "value": {
+                "a": {
+                    "foo": "bar"
+                },
+                "b": 1
+            }
+        },
+        {
+            "label": "C32-A-json-encode-collection",
+            "php": "json_encode(collect([1, 2]))",
+            "value": "[1,2]"
+        },
+        {
+            "label": "C32-A-json-encode-nested-collection",
+            "php": "json_encode(['users' => collect([['id' => 1]])])",
+            "value": "{\"users\":[{\"id\":1}]}"
+        },
+        {
+            "label": "C32-A-toJson-escapes-slash-and-unicode",
+            "php": "collect(['a/b', '\u00e9'])->toJson()",
+            "value": "[\"a\\/b\",\"\\u00e9\"]"
+        },
+        {
+            "label": "C32-A-toPrettyJson-list",
+            "php": "collect([1, [2]])->toPrettyJson()",
+            "value": "[\n    1,\n    [\n        2\n    ]\n]"
+        },
+        {
+            "label": "C32-A-toPrettyJson-empty",
+            "php": "collect()->toPrettyJson()",
+            "value": "[]"
+        },
+        {
+            "label": "C32-A-string-concat-is-json",
+            "php": "collect(['foo']) . ''",
+            "value": "[\"foo\"]"
+        },
+        {
+            "label": "C32-A-escape-when-casting-to-string",
+            "php": "(string) collect(['<b>'])->escapeWhenCastingToString()",
+            "value": "[&quot;&lt;b&gt;&quot;]"
+        },
+        {
+            "label": "C32-A-isEmpty-after-put-on-empty-list",
+            "php": "collect([])->put('x', 1)->isEmpty()",
+            "value": false
+        },
+        {
+            "label": "C32-A-isEmpty-null-item",
+            "php": "collect([null])->isEmpty()",
+            "value": false
+        },
+        {
+            "label": "C32-A-ensure-scalar-message",
+            "php": "collect([1, 2, 3, 'foo'])->ensure('int')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [int] items, but 'string' found at position 3."
+        },
+        {
+            "label": "C32-A-ensure-class-message",
+            "php": "collect([new stdClass, new stdClass, new stdClass, Collection::class])->ensure(stdClass::class)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [stdClass] items, but 'string' found at position 3."
+        },
+        {
+            "label": "C32-A-ensure-inheritance-message",
+            "php": "collect([new Error, new Error, new Collection])->ensure(Throwable::class)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [Throwable] items, but 'Illuminate\\Support\\Collection' found at position 2."
+        },
+        {
+            "label": "C32-A-ensure-multiple-message",
+            "php": "collect([new Error, new Error, new Collection])->ensure([Throwable::class, 'int'])",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [Throwable, int] items, but 'Illuminate\\Support\\Collection' found at position 2."
+        },
+        {
+            "label": "C32-A-ensure-null-passes",
+            "php": "collect([null])->ensure('null')->all()",
+            "value": [
+                null
+            ]
+        },
+        {
+            "label": "C32-A-ensure-array-rejects-null",
+            "php": "collect([null])->ensure('array')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [array] items, but 'null' found at position 0."
+        },
+        {
+            "label": "C32-A-ensure-subclass-passes",
+            "php": "collect([new C32AChild])->ensure(C32AParent::class)->count()",
+            "value": 1
+        },
+        {
+            "label": "C32-A-ensure-returns-same-instance",
+            "php": "$c = collect([1]); $c->ensure('int') === $c",
+            "value": true
+        },
+        {
+            "label": "C32-A-ensure-keyed-position",
+            "php": "collect(['a' => 1, 'b' => 'x'])->ensure('int')",
+            "threw": "UnexpectedValueException",
+            "message": "Collection should only include [int] items, but 'string' found at position 0."
+        },
+        {
+            "label": "C32-B-put-string-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put('x', 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-offsetSet-string-key-on-list",
+            "php": "$c = collect([1, 2]); $c->offsetSet('x', 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-getOrPut-string-key-on-list",
+            "php": "$c = collect([1, 2]); $r = $c->getOrPut('x', 3); views",
+            "value": {
+                "returned": 3,
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-getOrPut-memoizes-on-empty",
+            "php": "$c = collect(); getOrPut('k', counter) twice",
+            "value": {
+                "first": "v1",
+                "second": "v1",
+                "calls": 1,
+                "all": {
+                    "k": "v1"
+                }
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-on-empty",
+            "php": "$c = collect(); $c->put('foo', 1); views",
+            "value": {
+                "all": {
+                    "foo": 1
+                },
+                "count": 1,
+                "keys": [
+                    "foo"
+                ],
+                "values": [
+                    1
+                ],
+                "get": 1,
+                "has": true,
+                "last": 1
+            }
+        },
+        {
+            "label": "C32-B-put-gap-int-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put(5, 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "5": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    5
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-negative-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put(-1, 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "-1": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    -1
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-non-canonical-int-string-on-list",
+            "php": "$c = collect([1, 2]); $c->put('01', 3); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "01": 3
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "01"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ],
+                "get": 3,
+                "has": true,
+                "last": 3
+            }
+        },
+        {
+            "label": "C32-B-put-float-key-on-list",
+            "php": "$c = collect([1, 2]); @$c->put(1.5, 3); $c->all()",
+            "value": [
+                1,
+                3
+            ]
+        },
+        {
+            "label": "C32-B-put-bool-key-on-list",
+            "php": "$c = collect([1, 2]); $c->put(true, 3); $c->all()",
+            "value": [
+                1,
+                3
+            ]
+        },
+        {
+            "label": "C32-B-put-length-zero-on-list",
+            "php": "$c = collect([1, 2]); $c->put('length', 0); views",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "length": 0
+                },
+                "count": 3,
+                "keys": [
+                    0,
+                    1,
+                    "length"
+                ],
+                "values": [
+                    1,
+                    2,
+                    0
+                ],
+                "get": 0,
+                "has": true,
+                "last": 0
+            }
+        },
+        {
+            "label": "C32-B-put-method-name-then-push",
+            "php": "$c = collect([1, 2]); $c->put('push', 9)->push(3); $c->all()",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "push": 9,
+                "2": 3
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-pop",
+            "php": "$c = collect([1, 2]); $c->put('x', 3); $c->pop()",
+            "value": {
+                "returned": 3,
+                "all": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-shift",
+            "php": "$c = collect([1, 2]); $c->put('x', 3); $c->shift()",
+            "value": {
+                "returned": 1,
+                "all": {
+                    "0": 2,
+                    "x": 3
+                }
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-push",
+            "php": "$c = collect([1, 2]); $c->put('x', 3)->push(4); $c->all()",
+            "value": {
+                "0": 1,
+                "1": 2,
+                "x": 3,
+                "2": 4
+            }
+        },
+        {
+            "label": "C32-B-put-string-key-then-transform",
+            "php": "$c = collect([1, 2]); $c->put('x', 3)->transform(fn ($v) => $v * 10)->all()",
+            "value": {
+                "0": 10,
+                "1": 20,
+                "x": 30
+            }
+        },
+        {
+            "label": "C32-B-prepend-string-key-on-list-order",
+            "php": "$c = collect(['b', 'c'])->prepend('a', 'k'); values/keys/first/last",
+            "value": {
+                "values": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "keys": [
+                    "k",
+                    0,
+                    1
+                ],
+                "first": "a",
+                "last": "c"
+            }
+        },
+        {
+            "label": "C32-B-push-onto-string-keyed-last",
+            "php": "collect(['a' => 1])->push('z')->last()",
+            "value": "z"
+        },
+        {
+            "label": "C32-B-has-null-key",
+            "php": "[collect(['a' => 1])->has(null), collect(['' => 1])->has(null)]",
+            "value": [
+                false,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-has-empty-key-list",
+            "php": "[collect(['a' => 1])->has([]), collect([])->has([])]",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-has-array-ignores-extra-args",
+            "php": "[collect(['first' => 1])->has(['first'], 'third'), collect(['first' => 1])->hasAny(['third'], 'first')]",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-B-hasAny-null-key",
+            "php": "[collect(['' => 1])->hasAny(null), collect(['a' => 1])->hasAny(null), collect(['' => 1])->hasAny([null])]",
+            "value": [
+                true,
+                false,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-hasAny-dot-path-is-literal",
+            "php": "[collect(['a' => ['b' => 1]])->hasAny('a.b'), collect(['a.b' => 1])->hasAny('a.b')]",
+            "value": [
+                false,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-get-null-on-list",
+            "php": "collect([1, 2, 3])->get(null)",
+            "value": null
+        },
+        {
+            "label": "C32-B-get-null-empty-string-key",
+            "php": "collect(['' => 'x'])->get(null)",
+            "value": "x"
+        },
+        {
+            "label": "C32-B-pull-string-index-on-list",
+            "php": "$c = collect(['a', 'b', 'c']); $c->pull('1')",
+            "value": {
+                "returned": "b",
+                "all": {
+                    "0": "a",
+                    "2": "c"
+                },
+                "count": 2
+            }
+        },
+        {
+            "label": "C32-B-pull-missing-on-list-keeps-list",
+            "php": "$c = collect(['foo', 'bar']); $c->pull(2); $c->pull(-1)",
+            "value": {
+                "returned": [
+                    null,
+                    null
+                ],
+                "all": [
+                    "foo",
+                    "bar"
+                ],
+                "json": "[\"foo\",\"bar\"]"
+            }
+        },
+        {
+            "label": "C32-B-pull-keeps-sibling-collections",
+            "php": "$c = collect(['a' => collect([1]), 'b' => 2]); $c->pull('b')",
+            "value": true
+        },
+        {
+            "label": "C32-B-pull-returns-stored-collection",
+            "php": "collect(['a' => collect(['x' => 1])])->pull('a') instanceof Collection",
+            "value": true
+        },
+        {
+            "label": "C32-B-pull-dot-into-nested-collection",
+            "php": "$c = collect(['a' => collect(['x' => 1, 'y' => 2])]); $c->pull('a.x')",
+            "value": {
+                "returned": 1,
+                "nestedIsCollection": true,
+                "toArray": {
+                    "a": {
+                        "y": 2
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-forget-dot-path-is-literal",
+            "php": "collect(['a' => ['b' => 1]])->forget('a.b')->all()",
+            "value": {
+                "a": {
+                    "b": 1
+                }
+            }
+        },
+        {
+            "label": "C32-B-forget-max-int-key-then-push",
+            "php": "collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')->all()",
+            "value": {
+                "5": "a",
+                "7": "x"
+            }
+        },
+        {
+            "label": "C32-B-offsetExists-falsy-values",
+            "php": "collect([0, false, '', [], '0']) offsetExists(0..4)",
+            "value": [
+                true,
+                true,
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-B-offsetExists-zero-on-record",
+            "php": "collect(['a' => 0])->offsetExists('a')",
+            "value": true
+        },
+        {
+            "label": "C32-B-offsetUnset-negative-on-list",
+            "php": "$c = collect(['a', 'b', 'c']); $c->offsetUnset(-1); $c->all()",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-B-offsetUnset-string-on-list",
+            "php": "$c = collect(['a', 'b', 'c']); $c->offsetUnset('x'); $c->all()",
+            "value": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-B-splice-null-length",
+            "php": "$c = collect([1, 2, 3, 4]); $c->splice(1, null, ['x'])",
+            "value": {
+                "returned": [
+                    2,
+                    3,
+                    4
+                ],
+                "all": [
+                    1,
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-B-shift-negative-on-empty-throws",
+            "php": "collect([])->shift(-1)",
+            "threw": "InvalidArgumentException",
+            "message": "Number of shifted items may not be less than zero."
+        },
+        {
+            "label": "C32-B-pop-one-on-list-returns-value",
+            "php": "$c = collect([1, 2, 3]); $c->pop(1)",
+            "value": {
+                "returned": 3,
+                "all": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-B-shift-one-on-list-returns-value",
+            "php": "$c = collect([1, 2, 3]); $c->shift(1)",
+            "value": {
+                "returned": 1,
+                "all": [
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-C-every-two-args-key-value",
+            "php": "(new Collection([[\"age\" => 18], [\"age\" => 18]]))->every(\"age\", 18) / (new Collection([[\"status\" => \"active\"], [\"status\" => \"active\"]]))->every(\"status\", \"active\")",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-C-every-two-args-null-value",
+            "php": "(new Collection([[\"x\" => null], [\"x\" => null]]))->every(\"x\", null) / (new Collection([[\"x\" => 1]]))->every(\"x\", null)",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-C-every-callback-key-types",
+            "php": "key types an always-true every callback sees on [\"a\", \"b\"] and on [\"1\" => \"a\", \"x\" => \"b\"]",
+            "value": {
+                "list": [
+                    [
+                        "integer",
+                        0
+                    ],
+                    [
+                        "integer",
+                        1
+                    ]
+                ],
+                "record": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-C-every-path-php-falsy",
+            "php": "(new Collection([[\"a\" => \"0\"]]))->every(\"a\") / (new Collection([[\"a\" => []]]))->every(\"a\") / (new Collection([\"0\"]))->every(null)",
+            "value": [
+                false,
+                false,
+                false
+            ]
+        },
+        {
+            "label": "C32-C-callback-php-truthiness",
+            "php": "callbacks returning \"0\" or [] are falsy: contains / first / search / every / hasSole / hasMany",
+            "value": {
+                "contains": false,
+                "first": null,
+                "first-array": null,
+                "search": false,
+                "every": false,
+                "hasSole": false,
+                "hasMany": false
+            }
+        },
+        {
+            "label": "C32-C-no-args-forms-throw",
+            "php": "(new Collection([1]))->some() / every() / firstWhere()",
+            "value": {
+                "some": "ArgumentCountError",
+                "every": "ArgumentCountError",
+                "firstWhere": "ArgumentCountError"
+            }
+        },
+        {
+            "label": "C32-C-string-key-one-arg-forms-throw",
+            "php": "(new Collection([[\"name\" => \"foo\"]]))->hasSole(\"name\") / hasMany(\"name\") / sole(\"name\") / firstOrFail(\"name\")",
+            "value": {
+                "hasSole": "TypeError",
+                "hasMany": "TypeError",
+                "sole": "TypeError",
+                "firstOrFail": "TypeError"
+            }
+        },
+        {
+            "label": "C32-C-two-args-null-value",
+            "php": "contains / hasSole / hasMany / sole / firstWhere with (\"a\", null) over [[\"a\" => null], [\"a\" => 1]]",
+            "value": {
+                "contains": true,
+                "contains-none": false,
+                "hasSole": true,
+                "hasMany": true,
+                "sole": {
+                    "a": null
+                },
+                "firstWhere": {
+                    "a": null
+                }
+            }
+        },
+        {
+            "label": "C32-C-hasSole-hasMany-keep-falsy-items",
+            "php": "(new Collection([0]))->hasSole() / (new Collection([null]))->hasSole() / (new Collection([0, null]))->hasMany()",
+            "value": [
+                true,
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-C-collection-rows",
+            "php": "rows that are Collections: contains(\"v\", 1) / where(\"v\", 1)->count() / firstWhere(\"v\", 1)->all() / value(\"v\")",
+            "value": [
+                true,
+                1,
+                {
+                    "v": 1
+                },
+                1
+            ]
+        },
+        {
+            "label": "C32-C-contains-unit-enum-operand",
+            "php": "(new Collection([[\"n\" => C32StaffEnum::Joe]]))->contains(\"n\", \"Joe\") / contains(\"n\", C32StaffEnum::Joe) / contains(\"n\", \"!=\", \"Joe\")",
+            "value": [
+                true,
+                true,
+                false
+            ]
+        },
+        {
+            "label": "C32-C-callback-key-types-numeric-string-record",
+            "php": "key types each callback sees on [\"1\" => \"a\", \"x\" => \"b\"]: containsStrict / search / hasSole / sole / firstOrFail",
+            "value": {
+                "containsStrict": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "search": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "hasSole": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "sole": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ],
+                "firstOrFail": [
+                    [
+                        "integer",
+                        1
+                    ],
+                    [
+                        "string",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-C-search-numeric-string-record-key",
+            "php": "gettype and value of (new Collection([\"1\" => \"a\", \"x\" => \"b\"]))->search(\"a\")",
+            "value": [
+                "integer",
+                1
+            ]
+        },
+        {
+            "label": "C32-C-before-after-string-key-first",
+            "php": "(new Collection([\"foo\" => \"bar\", 1, 2, 3, 4, 5]))->before(1) / after(\"bar\")",
+            "value": [
+                "bar",
+                1
+            ]
+        },
+        {
+            "label": "C32-C-first-empty-no-default",
+            "php": "(new Collection([]))->first() / (new Collection([\"a\" => null]))->first(null, \"d\")",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "C32-C-value-default",
+            "php": "(new Collection([[\"a\" => 1]]))->value(\"b\", fn () => \"d\") / value(\"b\", \"d\") / (new Collection([]))->value(\"a\")",
+            "value": [
+                "d",
+                "d",
+                null
+            ]
+        },
+        {
+            "label": "C32-C-multiple-items-found-count",
+            "php": "(new MultipleItemsFoundException(2))->count / getCount()",
+            "value": [
+                2,
+                2
+            ]
+        },
+        {
+            "label": "C32-C-random-record-count-is-list",
+            "php": "array_is_list((new Collection([\"a\" => 1, \"b\" => 2, \"c\" => 3]))->random(2)->all()) / random(0) / random(3, true) on [10, 20, 30]",
+            "value": [
+                true,
+                [],
+                true
+            ]
+        },
+        {
+            "label": "C32-C-random-negative-count",
+            "php": "(new Collection([1, 2, 3]))->random(-1)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-C-random-float-count",
+            "php": "(new Collection([1, 2, 3]))->random(1.2)->count() / random(2.9)->count(), with deprecations",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-C-random-callable-count",
+            "php": "(new Collection([1, 2, 3]))->random(fn ($c) => $c instanceof Collection ? 2 : 0)->count() / random(fn () => 0)->all() / random(fn () => 5)",
+            "value": [
+                2,
+                [],
+                [
+                    "InvalidArgumentException",
+                    "You requested 5 items, but there are only 3 items available."
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-reject-none-php-falsy",
+            "php": "(new Collection([[], '0', 0.0, 'a', '', null, true]))->reject()->values()",
+            "value": [
+                [],
+                "0",
+                0,
+                "",
+                null
+            ]
+        },
+        {
+            "label": "C32-D-reject-false-loose",
+            "php": "(new Collection([null, 0, '', 'a', [], true, false]))->reject(false)->values()",
+            "value": [
+                "a",
+                true
+            ]
+        },
+        {
+            "label": "C32-D-reject-null-loose",
+            "php": "(new Collection([0, '', false, [], 'a', '0']))->reject(null)->values()",
+            "value": [
+                "a",
+                "0"
+            ]
+        },
+        {
+            "label": "C32-D-reject-zero-loose",
+            "php": "(new Collection(['a', '0', 0, null, false, '', '0.0']))->reject(0)->values()",
+            "value": [
+                "a",
+                ""
+            ]
+        },
+        {
+            "label": "C32-D-reject-numeric-string-loose",
+            "php": "(new Collection([1, '01', '1.0', true, '1e0', 'x']))->reject('1')->values()",
+            "value": [
+                "x"
+            ]
+        },
+        {
+            "label": "C32-D-reject-array-value",
+            "php": "(new Collection([[1, 2], [2, 1], ['1', '2'], 'x']))->reject([1, 2])->values()",
+            "value": [
+                [
+                    2,
+                    1
+                ],
+                "x"
+            ]
+        },
+        {
+            "label": "C32-D-where-one-arg-truthiness",
+            "php": "(new Collection([['v' => 1], ['v' => 'a'], ['v' => 0], ['v' => '0'], ['v' => ''], ['v' => null], ['v' => []], ['v' => true], ['v' => false]]))->where('v')->keys()",
+            "value": [
+                0,
+                1,
+                7
+            ]
+        },
+        {
+            "label": "C32-D-where-null-key-items",
+            "php": "(new Collection([1, 2, 3, 4]))->where(null, '>', 2)",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-where-dot-path",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]], ['a.b' => 2]]))->where('a.b', 2)->keys()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "C32-D-where-eq-null-loose",
+            "php": "(new Collection([['v' => 0], ['v' => ''], ['v' => false], ['v' => null], ['v' => '0'], ['v' => []], ['v' => 'a']]))->where('v', '=', null)->keys()",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-where-missing-key-null",
+            "php": "(new Collection([['a' => 1], ['b' => 2]]))->where('missing', null)->keys()",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-D-where-strict-array-by-value",
+            "php": "(new Collection([['v' => [1, 2]], ['v' => ['1', '2']], ['v' => [2, 1]]]))->whereStrict('v', [1, 2])->keys()",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-D-whereNull-keyed",
+            "php": "(new Collection(['a' => null, 'b' => 0, 'c' => null]))->whereNull()",
+            "value": [
+                [
+                    "a",
+                    null
+                ],
+                [
+                    "c",
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-whereNotNull-dot-path",
+            "php": "(new Collection([['a' => ['b' => null]], ['a' => ['b' => 0]], ['a' => []]]))->whereNotNull('a.b')->keys()",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-null-loose",
+            "php": "whereIn('v', [null]) over v = 0, '', false, null, '0', 'a', []",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                6
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-numeric-string-loose",
+            "php": "whereIn('v', ['1e1']) over v = 10, '10', '1e1', '010', 'x'",
+            "value": [
+                0,
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-true-loose",
+            "php": "whereIn('v', [true]) over v = 'x', 1, 0, '', null, '0', [1]",
+            "value": [
+                0,
+                1,
+                6
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-array-loose",
+            "php": "whereIn('v', [[1, 2]]) over v = [1, 2], ['1', '2'], [2, 1]",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-D-whereInStrict-array",
+            "php": "whereInStrict('v', [[1, 2]]) over v = [1, 2], ['1', '2']",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-D-whereNotIn-null-loose",
+            "php": "whereNotIn('v', [null]) over v = 0, '', false, null, '0', 'a', []",
+            "value": [
+                4,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-whereNotIn-true-loose",
+            "php": "whereNotIn('v', [true]) over v = 'x', 1, 0, '', null, '0', [1]",
+            "value": [
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        {
+            "label": "C32-D-whereNotInStrict-array",
+            "php": "whereNotInStrict('v', [[1, 2]]) over v = [1, 2], ['1', '2']",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-collection-values",
+            "php": "whereIn('v', new Collection(['a' => 1, 'b' => 3])) over v = 1..4",
+            "value": [
+                0,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-null-key",
+            "php": "(new Collection([1, 2, 3]))->whereIn(null, [1, 3])",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-whereBetween-three-values",
+            "php": "whereBetween('v', [1, 5, 3]) over v = 0..6",
+            "value": [
+                1,
+                2,
+                3
+            ]
+        },
+        {
+            "label": "C32-D-whereBetween-keyed-values",
+            "php": "whereBetween('v', ['max' => 3, 'min' => 1]) over v = 0..4",
+            "value": []
+        },
+        {
+            "label": "C32-D-whereBetween-collection-values",
+            "php": "whereBetween('v', new Collection([1, 3])) over v = 0..4",
+            "value": []
+        },
+        {
+            "label": "C32-D-whereNotBetween-collection-values",
+            "php": "whereNotBetween('v', new Collection([1, 3])) over v = 0..4",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "C32-D-whereBetween-null-item",
+            "php": "whereBetween('v', [0, 2]) over v = null, 0, 1, '', false",
+            "value": [
+                0,
+                1,
+                2,
+                4
+            ]
+        },
+        {
+            "label": "C32-D-whereInstanceOf-assoc-types",
+            "php": "(new Collection([new stdClass, new ArrayObject, new SplStack]))->whereInstanceOf(['a' => stdClass::class, 'b' => SplStack::class])->keys()",
+            "value": [
+                0,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-unique-loose-bool-mix",
+            "php": "(new Collection([1, '1', true, 'a']))->unique()",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    3,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-unique-loose-zero-strings",
+            "php": "(new Collection(['a', 0, 'b', '0']))->unique()",
+            "value": [
+                "a",
+                0,
+                "b"
+            ]
+        },
+        {
+            "label": "C32-D-unique-loose-falsy",
+            "php": "(new Collection([null, 0, '', false]))->unique()",
+            "value": [
+                null
+            ]
+        },
+        {
+            "label": "C32-D-unique-loose-numeric-strings",
+            "php": "(new Collection([10, '1e1', 'abc', 'ABC', '10.0']))->unique()",
+            "value": [
+                [
+                    0,
+                    10
+                ],
+                [
+                    2,
+                    "abc"
+                ],
+                [
+                    3,
+                    "ABC"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-unique-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 1, 'c' => 2]))->unique()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "c",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-unique-key-loose",
+            "php": "(new Collection([['id' => 1], ['id' => '1'], ['id' => true], ['id' => 2]]))->unique('id')",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "id",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    3,
+                    [
+                        [
+                            "id",
+                            2
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-unique-arrays-strict",
+            "php": "(new Collection([[1, 2], ['1', 2], [1, 2]]))->uniqueStrict()",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    "1",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-unique-arrays-loose",
+            "php": "(new Collection([[1, 2], ['1', 2], [1, 2]]))->unique()",
+            "value": [
+                [
+                    1,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-unique-dot-path",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 1]], ['a' => ['b' => 2]]]))->unique('a.b')->keys()",
+            "value": [
+                0,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 1]))->duplicates()",
+            "value": [
+                [
+                    "c",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-list-first-key",
+            "php": "(new Collection(['x', 'y', 'x']))->duplicates()->keys()",
+            "value": [
+                2
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-callback-key-arg",
+            "php": "(new Collection(['a' => 1, 'b' => 2]))->duplicates(fn ($v, $k) => $k === 'b' ? 1 : $v)",
+            "value": [
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-loose-sort-regular",
+            "php": "(new Collection(['a', 0, 'b', '0', 'a']))->duplicates()",
+            "value": [
+                [
+                    3,
+                    "0"
+                ],
+                [
+                    4,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-null-first-arg",
+            "php": "(new Collection($kv))->only(null, 'first')",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ],
+                [
+                    "last",
+                    "Otwell"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-array-then-extra-arg",
+            "php": "(new Collection($kv))->only(['first'], 'last')",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-array-then-extra-arg",
+            "php": "(new Collection($kv))->except(['first'], 'last')",
+            "value": [
+                [
+                    "last",
+                    "Otwell"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-dot-key-literal",
+            "php": "(new Collection(['a' => ['b' => 1], 'a.b' => 2]))->only('a.b')",
+            "value": [
+                [
+                    "a.b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-dot-key-nested-miss",
+            "php": "(new Collection(['a' => ['b' => 1, 'c' => 2]]))->only('a.b')",
+            "value": []
+        },
+        {
+            "label": "C32-D-except-dot-key-literal-first",
+            "php": "(new Collection(['a.b' => 1, 'a' => ['b' => 2]]))->except('a.b')",
+            "value": [
+                [
+                    "a",
+                    [
+                        [
+                            "b",
+                            2
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-keyed-collection-arg",
+            "php": "(new Collection($kv))->only(new Collection(['x' => 'first', 'y' => 'email']))",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-keyed-collection-arg",
+            "php": "(new Collection($kv))->except(new Collection(['x' => 'first', 'y' => 'email']))",
+            "value": [
+                [
+                    "last",
+                    "Otwell"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-list-keys",
+            "php": "(new Collection(['a', 'b', 'c', 'd']))->only([3, 1])",
+            "value": [
+                [
+                    1,
+                    "b"
+                ],
+                [
+                    3,
+                    "d"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-except-list-numeric-string",
+            "php": "(new Collection(['a', 'b', 'c']))->except('1')",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-empty-array",
+            "php": "(new Collection($kv))->only([])",
+            "value": []
+        },
+        {
+            "label": "C32-D-except-empty-array",
+            "php": "(new Collection($kv))->except([])",
+            "value": [
+                [
+                    "first",
+                    "Taylor"
+                ],
+                [
+                    "last",
+                    "Otwell"
+                ],
+                [
+                    "email",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-dot-path-literal",
+            "php": "(new Collection([['id' => 1, 'details' => ['age' => 30, 'city' => 'NY']]]))->select(['id', 'details.age'])",
+            "value": [
+                [
+                    [
+                        "id",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-object-null-prop",
+            "php": "(new Collection([(object) ['a' => null, 'b' => 1]]))->select('a', 'b')",
+            "value": [
+                [
+                    [
+                        "b",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-array-null-value",
+            "php": "(new Collection([['a' => null, 'b' => 1]]))->select('a', 'b')",
+            "value": [
+                [
+                    [
+                        "a",
+                        null
+                    ],
+                    [
+                        "b",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-scalar-items",
+            "php": "(new Collection([1, 'x', null]))->select('a')",
+            "value": [
+                [],
+                [],
+                []
+            ]
+        },
+        {
+            "label": "C32-D-select-object-method-name",
+            "php": "(new Collection([new Collection(['a' => 1])]))->select('all', 'a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-null-then-key",
+            "php": "(new Collection([['a' => 1, 'b' => 2]]))->select(null, 'a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ],
+                    [
+                        "b",
+                        2
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-int-key",
+            "php": "(new Collection([[10, 20, 30]]))->select([0, 2])",
+            "value": [
+                [
+                    [
+                        0,
+                        10
+                    ],
+                    [
+                        2,
+                        30
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-null-key-truthiness",
+            "php": "(new Collection([1, 0, '', 'a', null, [], '0']))->partition(null)",
+            "value": [
+                [
+                    1,
+                    "a"
+                ],
+                [
+                    0,
+                    "",
+                    null,
+                    [],
+                    "0"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-two-arg-null",
+            "php": "(new Collection([['v' => null], ['v' => 0], ['v' => 1]]))->partition('v', null)",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-not-equal-operator",
+            "php": "(new Collection([['v' => 1], ['v' => '1'], ['v' => 2]]))->partition('v', '!=', 1)",
+            "value": [
+                [
+                    2
+                ],
+                [
+                    0,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-partition-outer-keys",
+            "php": "(new Collection(['a' => 1, 'b' => 2]))->partition(fn ($v) => $v > 1)->keys()",
+            "value": [
+                0,
+                1
+            ]
+        },
+        {
+            "label": "C32-D-partition-no-args",
+            "php": "(new Collection([1]))->partition()",
+            "value": "ArgumentCountError: Too few arguments to function Illuminate\\Support\\Collection::partition(), 0 passed"
+        },
+        {
+            "label": "C32-D-skipUntil-list-keys",
+            "php": "(new Collection([1, 2, 3, 4]))->skipUntil(3)",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    3,
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipUntil-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->skipUntil(2)",
+            "value": [
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipUntil-strict-value",
+            "php": "(new Collection([1, 2, 3, 4]))->skipUntil('3')",
+            "value": []
+        },
+        {
+            "label": "C32-D-skipUntil-callback-key",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->skipUntil(fn ($v, $k) => $k === 'b')",
+            "value": [
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 1]))->skipWhile(1)",
+            "value": [
+                [
+                    "b",
+                    2
+                ],
+                [
+                    "c",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-list-keys",
+            "php": "(new Collection([1, 1, 2, 1]))->skipWhile(1)",
+            "value": [
+                [
+                    2,
+                    2
+                ],
+                [
+                    3,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-strict-value",
+            "php": "(new Collection([1, 1, 2]))->skipWhile('1')",
+            "value": [
+                1,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-skipWhile-callback-key",
+            "php": "(new Collection(['x', 'y', 'z']))->skipWhile(fn ($v, $k) => $k < 1)",
+            "value": [
+                [
+                    1,
+                    "y"
+                ],
+                [
+                    2,
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-strict-value",
+            "php": "(new Collection([1, 2, 3, 4]))->takeUntil('3')",
+            "value": [
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->takeUntil(3)",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-callback-key",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->takeUntil(fn ($v, $k) => $k === 'c')",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeWhile-strict-value",
+            "php": "(new Collection([1, 1, 2]))->takeWhile('1')",
+            "value": []
+        },
+        {
+            "label": "C32-D-takeWhile-keyed",
+            "php": "(new Collection(['a' => 1, 'b' => 1, 'c' => 2, 'd' => 1]))->takeWhile(1)",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-takeWhile-callback-key",
+            "php": "(new Collection(['x', 'y', 'z']))->takeWhile(fn ($v, $k) => $k < 2)",
+            "value": [
+                "x",
+                "y"
+            ]
+        },
+        {
+            "label": "C32-D-takeWhile-null-value",
+            "php": "(new Collection([null, null, 0]))->takeWhile(null)",
+            "value": [
+                null,
+                null
+            ]
+        },
+        {
+            "label": "C32-D-takeUntil-empty",
+            "php": "(new Collection([]))->takeUntil(1)",
+            "value": []
+        },
+        {
+            "label": "C32-D-skipUntil-out-of-order-keys",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->skipUntil('a')",
+            "value": [
+                "a",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-D-filter-keeps-empty-objects",
+            "php": "(new Collection([new DateTime('@0'), new stdClass, new ArrayObject, new SplObjectStorage, 'x']))->filter()->count()",
+            "value": 5
+        },
+        {
+            "label": "C32-D-filter-callback-string-zero",
+            "php": "(new Collection([1, 2]))->filter(fn ($v) => $v > 1 ? '0' : 'x')",
+            "value": [
+                1
+            ]
+        },
+        {
+            "label": "C32-D-reject-none-empty-objects",
+            "php": "(new Collection([new DateTime('@0'), new stdClass]))->reject()->count()",
+            "value": 0
+        },
+        {
+            "label": "C32-D-where-one-arg-empty-object",
+            "php": "(new Collection([['v' => new DateTime('@0')], ['v' => new stdClass]]))->where('v')->count()",
+            "value": 0
+        },
+        {
+            "label": "C32-D-partition-null-empty-objects",
+            "php": "(new Collection([new DateTime('@0'), new stdClass]))->partition(null) counts",
+            "value": [
+                2,
+                0
+            ]
+        },
+        {
+            "label": "C32-D-partition-bool-false-two-arg",
+            "php": "(new Collection([['v' => false], ['v' => 0], ['v' => null], ['v' => 1]]))->partition('v', false) keys",
+            "value": [
+                [
+                    0,
+                    1,
+                    2
+                ],
+                [
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-data-get-literal-dotted-key",
+            "php": "data_get(['a.b' => 1, 'a' => ['b' => 2]], 'a.b') and data_get(['a.b' => 1], 'a.b', 'miss')",
+            "value": [
+                2,
+                "miss"
+            ]
+        },
+        {
+            "label": "C32-D-where-wildcard-path",
+            "php": "(new Collection([['a' => [['b' => 1], ['b' => 2]]], ['a' => [['b' => 3]]]]))->where('a.*.b', [1, 2])->keys()",
+            "value": [
+                0
+            ]
+        },
+        {
+            "label": "C32-D-unique-non-transitive-loose",
+            "php": "(new Collection(['abc', '0', false, '']))->unique()",
+            "value": [
+                "abc",
+                "0"
+            ]
+        },
+        {
+            "label": "C32-D-unique-strict-null-key",
+            "php": "(new Collection([1, '1', 1, true]))->unique(null, true)",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    "1"
+                ],
+                [
+                    3,
+                    true
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-non-transitive-loose",
+            "php": "(new Collection(['abc', '0', false, '']))->duplicates()",
+            "value": [
+                [
+                    2,
+                    false
+                ],
+                [
+                    3,
+                    ""
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-out-of-order",
+            "php": "(new Collection([2 => 'a', 0 => 'b', 1 => 'a']))->duplicates()",
+            "value": [
+                [
+                    1,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-duplicates-list-then-push",
+            "php": "(new Collection(['x', 'y', 'x']))->duplicates()->push('z')",
+            "value": [
+                [
+                    2,
+                    "x"
+                ],
+                [
+                    3,
+                    "z"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-collection-rows",
+            "php": "(new Collection([new Collection(['a' => 1, 'b' => 2])]))->select('a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-prototype-key-names",
+            "php": "(new Collection([['a' => 1]]))->select('toString', 'constructor', 'a')",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapWithKeys-overwriting-keys",
+            "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    "C"
+                ],
+                [
+                    2,
+                    "integer",
+                    "B"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapWithKeys-multiple-rows-order",
+            "php": "collect(rows 1..3)->mapWithKeys(fn ($i) => [$i['id'] => $i['name'], $i['name'] => $i['id']])->keys()",
+            "value": [
+                1,
+                "A",
+                2,
+                "B",
+                3,
+                "C"
+            ]
+        },
+        {
+            "label": "C32-E-mapWithKeys-callback-key-type",
+            "php": "collect([1 => 'a', 'x' => 'b'])->mapWithKeys(fn ($v, $k) => [$v => gettype($k)])",
+            "value": {
+                "a": "integer",
+                "b": "string"
+            }
+        },
+        {
+            "label": "C32-E-mapWithKeys-returns-collection",
+            "php": "collect([1, 2])->mapWithKeys(fn ($v) => collect(['k'.$v => $v]))",
+            "value": {
+                "k1": 1,
+                "k2": 2
+            }
+        },
+        {
+            "label": "C32-E-keyed-results-empty",
+            "php": "collect([])->mapWithKeys(...), ->groupBy('x'), ->countBy(), ->keyBy('x'), ->flip()",
+            "value": {
+                "mapWithKeys": [],
+                "groupBy": [],
+                "countBy": [],
+                "keyBy": [],
+                "flip": []
+            }
+        },
+        {
+            "label": "C32-E-mapToDictionary-int-key-order",
+            "php": "collect([3, 1, 3, 2])->mapToDictionary(fn ($v, $k) => [$v => $k])",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    [
+                        0,
+                        2
+                    ]
+                ],
+                [
+                    1,
+                    "integer",
+                    [
+                        1
+                    ]
+                ],
+                [
+                    2,
+                    "integer",
+                    [
+                        3
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapToDictionary-multi-pair-takes-first",
+            "php": "collect([1, 2])->mapToDictionary(fn ($v) => ['a' => $v, 'b' => $v * 10])",
+            "value": {
+                "a": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-E-mapToDictionary-list-return",
+            "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B']])->mapToDictionary(fn ($i) => [$i['name'], $i['id']])",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    [
+                        "A",
+                        "B"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapToDictionary-one-item-list-return",
+            "php": "collect([['name'=>'A'],['name'=>'B']])->mapToDictionary(fn ($i) => [$i['name']])",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    [
+                        "A",
+                        "B"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapToGroups-int-key-order",
+            "php": "collect([3, 1, 3])->mapToGroups(fn ($v, $k) => [$v => $k])",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    {
+                        "Collection": [
+                            [
+                                0,
+                                "integer",
+                                0
+                            ],
+                            [
+                                1,
+                                "integer",
+                                2
+                            ]
+                        ]
+                    }
+                ],
+                [
+                    1,
+                    "integer",
+                    {
+                        "Collection": [
+                            [
+                                0,
+                                "integer",
+                                1
+                            ]
+                        ]
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapSpread-scalar-row",
+            "php": "collect([10, 20])->mapSpread(fn (...$a) => $a)",
+            "threw": "Error",
+            "message": "Cannot use a scalar value as an array"
+        },
+        {
+            "label": "C32-E-eachSpread-scalar-row",
+            "php": "collect([10, 20])->eachSpread(fn (...$a) => null)",
+            "threw": "Error",
+            "message": "Cannot use a scalar value as an array"
+        },
+        {
+            "label": "C32-E-mapInto-constructor-args",
+            "php": "collect(['first', 'second'])->mapInto(C32E_Args::class) ctor args",
+            "value": [
+                [
+                    "first",
+                    0
+                ],
+                [
+                    "second",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-mapInto-constructor-args-assoc",
+            "php": "collect(['x' => 'first'])->mapInto(C32E_Args::class) ctor args",
+            "value": {
+                "x": [
+                    "first",
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-mapInto-backed-enums",
+            "php": "collect([1, 2])->mapInto(IntEnum) and collect(['A','B'])->mapInto(StrEnum): case names",
+            "value": {
+                "int": [
+                    "A",
+                    "B"
+                ],
+                "string": [
+                    "A",
+                    "B"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-each-mixed-keys",
+            "php": "collect([1, 2, 'foo' => 'bar', 'bam' => 'baz'])->each(copy)",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    1
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    "foo",
+                    "string",
+                    "bar"
+                ],
+                [
+                    "bam",
+                    "string",
+                    "baz"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-each-stop-on-string-key",
+            "php": "same, returning false on the first string key",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    1
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    "foo",
+                    "string",
+                    "bar"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-each-key-type-array-items",
+            "php": "collect([['a' => 1], ['b' => 2]])->each(gettype($k)) and collect([5 => ['a' => 1]])",
+            "value": [
+                "integer",
+                "integer",
+                "integer"
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-groups-are-collections",
+            "php": "collect([['r'=>1],['r'=>1]])->groupBy('r')->get(1): class and count",
+            "value": {
+                "class": "Illuminate\\Support\\Collection",
+                "count": 2
+            }
+        },
+        {
+            "label": "C32-E-groupBy-multilevel-shape",
+            "php": "groupBy(['skilllevel', fn => roles], true) with users as leaves",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    {
+                        "Collection": [
+                            [
+                                "Role_1",
+                                "string",
+                                {
+                                    "Collection": [
+                                        [
+                                            10,
+                                            "integer",
+                                            1
+                                        ],
+                                        [
+                                            20,
+                                            "integer",
+                                            2
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "Role_3",
+                                "string",
+                                {
+                                    "Collection": [
+                                        [
+                                            10,
+                                            "integer",
+                                            1
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "Role_2",
+                                "string",
+                                {
+                                    "Collection": [
+                                        [
+                                            20,
+                                            "integer",
+                                            2
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    }
+                ],
+                [
+                    2,
+                    "integer",
+                    {
+                        "Collection": [
+                            [
+                                "Role_1",
+                                "string",
+                                {
+                                    "Collection": [
+                                        [
+                                            30,
+                                            "integer",
+                                            3
+                                        ]
+                                    ]
+                                }
+                            ],
+                            [
+                                "Role_2",
+                                "string",
+                                {
+                                    "Collection": [
+                                        [
+                                            40,
+                                            "integer",
+                                            4
+                                        ]
+                                    ]
+                                }
+                            ]
+                        ]
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-enum-key",
+            "php": "groupBy('name') over pure A, int-backed A (1), string-backed A ('A'): group keys => item keys",
+            "value": [
+                [
+                    "A",
+                    "string",
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                [
+                    1,
+                    "integer",
+                    [
+                        0
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-backed-enum-key",
+            "php": "groupBy('rating') over int-backed A, B: counts",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    1
+                ],
+                [
+                    2,
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-bool-key-order",
+            "php": "collect([['a'=>true],['a'=>false],['a'=>true]])->groupBy('a'): counts",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    0,
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-float-key",
+            "php": "@collect([1, 2])->groupBy(fn () => 1.5): counts",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-int-key-order",
+            "php": "collect([['r'=>2],['r'=>1],['r'=>2]])->groupBy('r')->keys()",
+            "value": [
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-callback-key-type",
+            "php": "collect(['a', 'b'])->groupBy(fn ($v, $k) => gettype($k))->keys()",
+            "value": [
+                "integer"
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-preserve-keys-list-backing",
+            "php": "collect(['a','b','c'])->groupBy(fn ($v, $k) => $k % 2 ? 'odd' : 'even', true)",
+            "value": [
+                [
+                    "even",
+                    "string",
+                    {
+                        "Collection": [
+                            [
+                                0,
+                                "integer",
+                                "a"
+                            ],
+                            [
+                                2,
+                                "integer",
+                                "c"
+                            ]
+                        ]
+                    }
+                ],
+                [
+                    "odd",
+                    "string",
+                    {
+                        "Collection": [
+                            [
+                                1,
+                                "integer",
+                                "b"
+                            ]
+                        ]
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-groupBy-empty-and-null-array-arg",
+            "php": "collect([1, 2, 1])->groupBy([]) and ->groupBy([null])",
+            "value": {
+                "empty": [
+                    [
+                        1,
+                        "integer",
+                        {
+                            "Collection": [
+                                [
+                                    0,
+                                    "integer",
+                                    1
+                                ],
+                                [
+                                    1,
+                                    "integer",
+                                    1
+                                ]
+                            ]
+                        }
+                    ],
+                    [
+                        2,
+                        "integer",
+                        {
+                            "Collection": [
+                                [
+                                    0,
+                                    "integer",
+                                    2
+                                ]
+                            ]
+                        }
+                    ]
+                ],
+                "null": [
+                    [
+                        1,
+                        "integer",
+                        {
+                            "Collection": [
+                                [
+                                    0,
+                                    "integer",
+                                    1
+                                ],
+                                [
+                                    1,
+                                    "integer",
+                                    1
+                                ]
+                            ]
+                        }
+                    ],
+                    [
+                        2,
+                        "integer",
+                        {
+                            "Collection": [
+                                [
+                                    0,
+                                    "integer",
+                                    2
+                                ]
+                            ]
+                        }
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-int-key-order",
+            "php": "collect([['id'=>3],['id'=>1],['id'=>2]])->keyBy('id')->keys()",
+            "value": [
+                3,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-E-keyBy-enum-keys",
+            "php": "keyBy over int-backed B then A, and keyBy(fn => pure A)",
+            "value": {
+                "int": [
+                    [
+                        2,
+                        "integer",
+                        1
+                    ],
+                    [
+                        1,
+                        "integer",
+                        2
+                    ]
+                ],
+                "pure": [
+                    "A"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-stringable-keys",
+            "php": "keyBy(fn => object with __toString) and keyBy(fn => new Stringable('Lara'))",
+            "value": {
+                "toString": [
+                    "Framework"
+                ],
+                "stringable": [
+                    "Lara"
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyBy-callback-key-type",
+            "php": "collect([1 => 'a', 'x' => 'b'])->keyBy(fn ($v, $k) => $v.':'.gettype($k))->keys()",
+            "value": [
+                "a:integer",
+                "b:string"
+            ]
+        },
+        {
+            "label": "C32-E-keyBy-array-path",
+            "php": "collect([['a'=>['b'=>'z']]])->keyBy(['a','b']) and collect([['id'=>1,'name'=>'John']])->keyBy(['id','name'])",
+            "value": {
+                "nested": [
+                    "z"
+                ],
+                "jsdoc": [
+                    ""
+                ]
+            }
+        },
+        {
+            "label": "C32-E-countBy-bools",
+            "php": "collect([true, true, false, false, false])->countBy()",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    0,
+                    "integer",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-pure-enum",
+            "php": "collect([Staff::James, Staff::Joe, Staff::Taylor])->countBy()",
+            "value": [
+                [
+                    "James",
+                    "string",
+                    1
+                ],
+                [
+                    "Joe",
+                    "string",
+                    1
+                ],
+                [
+                    "Taylor",
+                    "string",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-key-backed-enum",
+            "php": "collect([['key'=>IntEnum::A],['key'=>IntEnum::B],['key'=>IntEnum::B]])->countBy('key')",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    1
+                ],
+                [
+                    2,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-callback-bool",
+            "php": "collect([1, 2, 3, 4, 5])->countBy(fn ($i) => $i % 2 === 0)",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    3
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-callback-string-enum",
+            "php": "collect(['A','A','B','A'])->countBy(fn ($i) => StrEnum::from($i))",
+            "value": [
+                [
+                    "A",
+                    "string",
+                    3
+                ],
+                [
+                    "B",
+                    "string",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-int-key-order",
+            "php": "collect([3, 1, 3])->countBy()",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    2
+                ],
+                [
+                    1,
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-float",
+            "php": "@collect([1.5, 1.7, 2.5])->countBy()",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    2
+                ],
+                [
+                    2,
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-countBy-callback-key-type",
+            "php": "collect(['a', 'b'])->countBy(fn ($v, $k) => gettype($k))",
+            "value": [
+                [
+                    "integer",
+                    "string",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-pluck-accessor",
+            "php": "collect([accessor(some=foo), accessor(some=bar)])->pluck('some')",
+            "value": [
+                "foo",
+                "bar"
+            ]
+        },
+        {
+            "label": "C32-E-pluck-int-key-order",
+            "php": "collect([['id'=>3,'n'=>'c'],['id'=>1,'n'=>'a'],['id'=>2,'n'=>'b']])->pluck('n', 'id')",
+            "value": [
+                [
+                    3,
+                    "integer",
+                    "c"
+                ],
+                [
+                    1,
+                    "integer",
+                    "a"
+                ],
+                [
+                    2,
+                    "integer",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-pluck-key-path-casts",
+            "php": "@collect([k=null, k=true, k=false, k=1.5])->pluck('v', 'k')",
+            "value": [
+                [
+                    "",
+                    "string",
+                    "n"
+                ],
+                [
+                    1,
+                    "integer",
+                    "fl"
+                ],
+                [
+                    0,
+                    "integer",
+                    "f"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-pluck-key-closure-casts",
+            "php": "collect([['v'=>'x'],['v'=>'y']])->pluck('v', fn ($r) => $r['v'] === 'x') and @->pluck('v', fn () => 1.5)",
+            "value": {
+                "bool": [
+                    [
+                        1,
+                        "integer",
+                        "x"
+                    ],
+                    [
+                        0,
+                        "integer",
+                        "y"
+                    ]
+                ],
+                "float": [
+                    [
+                        1,
+                        "integer",
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-pluck-nested-collections",
+            "php": "collect([collect(['a'=>1]), collect(['a'=>2])])->pluck('a')",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-E-flip-int-key-order",
+            "php": "collect(['x' => 3, 'y' => 1])->flip() and the testFlipSkipsUnsupportedValues order",
+            "value": {
+                "ints": [
+                    [
+                        3,
+                        "integer",
+                        "x"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "y"
+                    ]
+                ],
+                "skips": [
+                    [
+                        "taylor",
+                        "string",
+                        "string"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "integer"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-collapse-nested-collections",
+            "php": "collect([collect([1,2,3]), collect([4,5,6])])->collapse() and collect([[o1],[o2]])->collapse() count",
+            "value": {
+                "collections": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6
+                ],
+                "objects": 2
+            }
+        },
+        {
+            "label": "C32-E-collapseWithKeys-int-key-order",
+            "php": "collect([[1=>'a'],[3=>'c'],[2=>'b'],'drop'])->collapseWithKeys()",
+            "value": [
+                [
+                    1,
+                    "integer",
+                    "a"
+                ],
+                [
+                    3,
+                    "integer",
+                    "c"
+                ],
+                [
+                    2,
+                    "integer",
+                    "b"
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-collapseWithKeys-skips-object-item",
+            "php": "collect([[1, 2], new DateTime('@0')])->collapseWithKeys()",
+            "value": [
+                [
+                    0,
+                    "integer",
+                    1
+                ],
+                [
+                    1,
+                    "integer",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-E-keyed-results-mixed-key-order",
+            "php": "a string key produced before an int key: groupBy/countBy/keyBy/pluck/mapToDictionary/collapseWithKeys/flip ->keys()",
+            "value": {
+                "groupBy": [
+                    "s",
+                    5
+                ],
+                "countBy": [
+                    "s",
+                    5
+                ],
+                "keyBy": [
+                    "s",
+                    5
+                ],
+                "pluck": [
+                    "s",
+                    5
+                ],
+                "mapToDictionary": [
+                    "s",
+                    5
+                ],
+                "collapseWithKeys": [
+                    "s",
+                    5
+                ],
+                "flip": [
+                    "s",
+                    5
+                ]
+            }
+        },
+        {
+            "label": "C32-E-dot-list-backing",
+            "php": "collect(['a', 'b'])->dot() and collect(['0' => 'a', '1' => 'b'])->undot()",
+            "value": {
+                "dot": [
+                    [
+                        0,
+                        "integer",
+                        "a"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "b"
+                    ]
+                ],
+                "undot": [
+                    [
+                        0,
+                        "integer",
+                        "a"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "b"
+                    ]
+                ],
+                "dot-is-list": true
+            }
+        },
+        {
+            "label": "C32-F-merge-null-is-a-new-instance",
+            "php": "$a = collect([1]); $b = $a->merge(null); $b->push(2);",
+            "value": {
+                "same": false,
+                "receiver": [
+                    1
+                ],
+                "result": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-union-null-is-a-new-instance",
+            "php": "$a = collect([1]); $b = $a->union(null); $b->push(2);",
+            "value": {
+                "same": false,
+                "receiver": [
+                    1
+                ],
+                "result": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-null-is-a-new-instance",
+            "php": "$a = collect([1]); $b = $a->mergeRecursive(null); $b->push(2);",
+            "value": {
+                "same": false,
+                "receiver": [
+                    1
+                ],
+                "result": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-assoc-then-list",
+            "php": "collect(['a' => 1, 'b' => 2])->merge([3, 4])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2,
+                    "0": 3,
+                    "1": 4
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-int-keyed-record-then-list",
+            "php": "collect(['a' => 1, 5 => 'x'])->merge(['y'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "x",
+                    "1": "y"
+                },
+                "keys": [
+                    "a",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-same-int-key-appends",
+            "php": "collect([5 => 'a'])->merge([5 => 'b'])",
+            "value": {
+                "all": [
+                    "a",
+                    "b"
+                ],
+                "keys": [
+                    0,
+                    1
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-scalar-operand",
+            "php": "collect(['hello'])->merge(1)",
+            "value": [
+                "hello",
+                1
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-list-list-appends",
+            "php": "collect([1, [2, 3]])->mergeRecursive([4, [5]])",
+            "value": [
+                1,
+                [
+                    2,
+                    3
+                ],
+                4,
+                [
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-merging-arrays",
+            "php": "collect([1, [4, 5, 7], ['b' => 4, 'c' => 5, 'd' => [8, 9], 'e' => ['x' => 1, 'y' => 2]]])->mergeRecursive(collect([2, [6, 8], ['b' => 5, 'c' => 6, 'd' => [10, 11], 'e' => ['x' => 3, 'z' => 4]], 3]))",
+            "value": [
+                1,
+                [
+                    4,
+                    5,
+                    7
+                ],
+                {
+                    "b": 4,
+                    "c": 5,
+                    "d": [
+                        8,
+                        9
+                    ],
+                    "e": {
+                        "x": 1,
+                        "y": 2
+                    }
+                },
+                2,
+                [
+                    6,
+                    8
+                ],
+                {
+                    "b": 5,
+                    "c": 6,
+                    "d": [
+                        10,
+                        11
+                    ],
+                    "e": {
+                        "x": 3,
+                        "z": 4
+                    }
+                },
+                3
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-target-longer",
+            "php": "collect([1, [2, 3, 4], ['a' => 7, 'b' => 8, 'c' => 9]])->mergeRecursive(collect([5, [6]]))",
+            "value": [
+                1,
+                [
+                    2,
+                    3,
+                    4
+                ],
+                {
+                    "a": 7,
+                    "b": 8,
+                    "c": 9
+                },
+                5,
+                [
+                    6
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-scalar-meets-assoc",
+            "php": "collect(['a' => 1])->mergeRecursive(['a' => ['x' => 1]])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "x": 1
+                },
+                "keys": [
+                    0,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-assoc-meets-scalar",
+            "php": "collect(['a' => ['x' => 1]])->mergeRecursive(['a' => 2])",
+            "value": {
+                "all": {
+                    "x": 1,
+                    "0": 2
+                },
+                "keys": [
+                    "x",
+                    0
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-list-meets-assoc",
+            "php": "collect(['a' => [1, 2]])->mergeRecursive(['a' => ['x' => 3]])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "x": 3
+                },
+                "keys": [
+                    0,
+                    1,
+                    "x"
+                ],
+                "values": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-nested-int-keys-append",
+            "php": "collect(['a' => [5 => 'p']])->mergeRecursive(['a' => [5 => 'q']])",
+            "value": {
+                "all": {
+                    "5": "p",
+                    "6": "q"
+                },
+                "keys": [
+                    5,
+                    6
+                ],
+                "values": [
+                    "p",
+                    "q"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-scalar-operand",
+            "php": "collect([1])->mergeRecursive(2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-existing-and-new-keys",
+            "php": "collect(['a' => 5, 'b' => [3, 4], 'c' => ['z' => 5, 'y' => [9, 0]]])->mergeRecursive(collect(['a' => 6, 'b' => [5, 6], 'c' => ['z' => 6, 'y' => [10, 11]], 'd' => 'new']))",
+            "value": {
+                "a": [
+                    5,
+                    6
+                ],
+                "b": [
+                    3,
+                    4,
+                    5,
+                    6
+                ],
+                "c": {
+                    "z": [
+                        5,
+                        6
+                    ],
+                    "y": [
+                        9,
+                        0,
+                        10,
+                        11
+                    ]
+                },
+                "d": "new"
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-spec-object-and-arrays",
+            "php": "collect(['a' => 1, 'b' => [2, 3], 'c' => ['x' => 4, 'y' => 5]])->mergeRecursive(collect(['a' => [6, 7], 'b' => 4, 'c' => ['x' => [8, 9]]]))",
+            "value": {
+                "a": [
+                    1,
+                    6,
+                    7
+                ],
+                "b": [
+                    2,
+                    3,
+                    4
+                ],
+                "c": {
+                    "x": [
+                        4,
+                        8,
+                        9
+                    ],
+                    "y": 5
+                }
+            }
+        },
+        {
+            "label": "C32-F-multiply-assoc",
+            "php": "collect(['a' => 1, 'b' => 2])->multiply(2)",
+            "value": [
+                1,
+                2,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-F-replace-sparse-int-keyed-replacer",
+            "php": "collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])",
+            "value": [
+                "a",
+                "d",
+                "e"
+            ]
+        },
+        {
+            "label": "C32-F-replaceRecursive-sparse-replacer",
+            "php": "collect(['a', 'b', ['c', 'd']])->replaceRecursive(['z', 2 => [1 => 'e']])",
+            "value": [
+                "z",
+                "b",
+                [
+                    "c",
+                    "e"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-receiver-shorter",
+            "php": "collect(['a', 'b'])->zip([1, 2, 3])",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    2
+                ],
+                [
+                    null,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-empty-receiver",
+            "php": "collect([])->zip([1, 2])",
+            "value": [
+                [
+                    null,
+                    1
+                ],
+                [
+                    null,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-null-operand",
+            "php": "collect([1, 2])->zip(null)",
+            "value": [
+                [
+                    1,
+                    null
+                ],
+                [
+                    2,
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-assoc-receiver-longer-operand",
+            "php": "collect(['a' => 1, 'b' => 2])->zip(['x' => 'p', 'y' => 'q', 'z' => 'r'])",
+            "value": [
+                [
+                    1,
+                    "p"
+                ],
+                [
+                    2,
+                    "q"
+                ],
+                [
+                    null,
+                    "r"
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-diffUsing-spaceship-comparator",
+            "php": "collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)",
+            "value": {
+                "0": 1,
+                "2": 3
+            }
+        },
+        {
+            "label": "C32-F-intersectUsing-spaceship-comparator",
+            "php": "collect([1, 2, 3])->intersectUsing([2, 3], fn ($a, $b) => $a <=> $b)",
+            "value": {
+                "1": 2,
+                "2": 3
+            }
+        },
+        {
+            "label": "C32-F-diffUsing-list-keeps-keys",
+            "php": "collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')",
+            "value": {
+                "1": "b",
+                "2": "c"
+            }
+        },
+        {
+            "label": "C32-F-assoc-and-key-diffs-null-operand",
+            "php": "collect(['a' => 1])->diffAssoc(null) / ->diffAssocUsing(null, 'strcasecmp') / ->diffKeysUsing(null, 'strcasecmp')",
+            "value": {
+                "diffAssoc": {
+                    "a": 1
+                },
+                "diffAssocUsing": {
+                    "a": 1
+                },
+                "diffKeysUsing": {
+                    "a": 1
+                }
+            }
+        },
+        {
+            "label": "C32-F-crossJoin-null-and-scalar-operands",
+            "php": "collect([1, 2])->crossJoin(null) / ->crossJoin('x')",
+            "value": {
+                "null": [],
+                "scalar": [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        2,
+                        "x"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-F-combine-null-operand-on-empty",
+            "php": "collect([])->combine(null)",
+            "value": []
+        },
+        {
+            "label": "C32-F-combine-null-operand-throws",
+            "php": "collect(['a'])->combine(null)",
+            "threw": "ValueError",
+            "message": "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements"
+        },
+        {
+            "label": "C32-F-plain-object-all-member-is-data",
+            "php": "collect(['all' => 1, 'b' => 2])->intersectByKeys((object) ['all' => fn () => ['b' => 2]]) / ->union(...) keys / ->replace(...) keys / ->diffKeys(...) / ->combine(...) keys",
+            "value": {
+                "intersectByKeys": {
+                    "all": 1
+                },
+                "unionKeys": [
+                    "a",
+                    "all"
+                ],
+                "replaceKeys": [
+                    "a",
+                    "all"
+                ],
+                "diffKeys": {
+                    "b": 2
+                },
+                "combineKeys": [
+                    "k"
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sort-comparator",
+            "php": "(new Collection([5, 3, 1, 2, 4]))->sort(fn ($a, $b) => $a <=> $b)->values()->all()",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        {
+            "label": "C32-G-sort-comparator-desc",
+            "php": "(new Collection([5, 3, 1, 2, 4]))->sort(fn ($a, $b) => $b <=> $a)->values()->all()",
+            "value": [
+                5,
+                4,
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-G-sort-comparator-assoc",
+            "php": "(new Collection(['a' => 3, 'b' => 1, 'c' => 2]))->sort(fn ($x, $y) => $x <=> $y)->all()",
+            "value": [
+                [
+                    "b",
+                    1
+                ],
+                [
+                    "c",
+                    2
+                ],
+                [
+                    "a",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sort-comparator-rows",
+            "php": "(new Collection([['n' => 2], ['n' => 1], ['n' => 3]]))->sort(fn ($a, $b) => $a['n'] <=> $b['n'])->values()->all()",
+            "value": [
+                {
+                    "n": 1
+                },
+                {
+                    "n": 2
+                },
+                {
+                    "n": 3
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortDesc-callback-throws",
+            "php": "(new Collection([1, 3, 2]))->sortDesc(fn ($v) => $v)",
+            "threw": "TypeError",
+            "message": "arsort(): Argument #2 ($flags) must be of type int, Closure given"
+        },
+        {
+            "label": "C32-G-sortBy-callback-key-types-list",
+            "php": "(new Collection([10, 20]))->sortBy(fn ($v, $k) => ...) recording [gettype($k), $k]",
+            "value": [
+                [
+                    "integer",
+                    0
+                ],
+                [
+                    "integer",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-callback-key-types-int-keys",
+            "php": "(new Collection([5 => 'a', 7 => 'b']))->sortBy(fn ($v, $k) => ...) recording [gettype($k), $k]",
+            "value": [
+                [
+                    "integer",
+                    5
+                ],
+                [
+                    "integer",
+                    7
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-callback-by-key",
+            "php": "(new Collection(['x' => 1, 'a' => 2, 'm' => 3]))->sortBy(fn ($v, $k) => $k)->all()",
+            "value": [
+                [
+                    "a",
+                    2
+                ],
+                [
+                    "m",
+                    3
+                ],
+                [
+                    "x",
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortKeysUsing-key-types",
+            "php": "(new Collection(['a', 'b', 'c']))->sortKeysUsing(fn ($a, $b) => ...) recording gettype of each key",
+            "value": [
+                "integer"
+            ]
+        },
+        {
+            "label": "C32-G-sortKeysUsing-int-keys-desc",
+            "php": "(new Collection([5 => 'e', 2 => 'b', 9 => 'z']))->sortKeysUsing(fn ($a, $b) => $b <=> $a)->values()->all()",
+            "value": [
+                "z",
+                "e",
+                "b"
+            ]
+        },
+        {
+            "label": "C32-G-split-int-keys-renumber",
+            "php": "(new Collection([5 => 'a', 6 => 'b', 7 => 'c']))->split(2)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            "a"
+                        ],
+                        [
+                            1,
+                            "b"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            "c"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-split-assoc-keys",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->split(2)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "a",
+                            1
+                        ],
+                        [
+                            "b",
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "c",
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-split-more-groups-than-items",
+            "php": "(new Collection([1, 2, 3]))->split(5)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            0,
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-split-infinite-groups",
+            "php": "(new Collection([1, 2, 3]))->split(INF)",
+            "threw": "DivisionByZeroError",
+            "message": "Modulo by zero"
+        },
+        {
+            "label": "C32-G-splitIn-keeps-keys",
+            "php": "(new Collection(range(1, 10)))->splitIn(3)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ],
+                        [
+                            1,
+                            2
+                        ],
+                        [
+                            2,
+                            3
+                        ],
+                        [
+                            3,
+                            4
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            4,
+                            5
+                        ],
+                        [
+                            5,
+                            6
+                        ],
+                        [
+                            6,
+                            7
+                        ],
+                        [
+                            7,
+                            8
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            8,
+                            9
+                        ],
+                        [
+                            9,
+                            10
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-splitIn-more-groups-than-items",
+            "php": "(new Collection([1, 2, 3]))->splitIn(5)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            2,
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-splitIn-empty",
+            "php": "(new Collection([]))->splitIn(2)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-G-sliding-assoc",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->sliding()",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            "a",
+                            1
+                        ],
+                        [
+                            "b",
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            "b",
+                            2
+                        ],
+                        [
+                            "c",
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sliding-size-over-count",
+            "php": "(new Collection([1, 2, 3]))->sliding(5)->all()",
+            "value": []
+        },
+        {
+            "label": "C32-G-chunk-assoc-no-preserve",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->chunk(2, false)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ],
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            3
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-chunk-fractional-size",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->chunk(2.5)",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            0,
+                            1
+                        ],
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            2,
+                            3
+                        ],
+                        [
+                            3,
+                            4
+                        ]
+                    ]
+                ],
+                [
+                    2,
+                    [
+                        [
+                            4,
+                            5
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-nth-assoc",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5]))->nth(2)",
+            "value": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    3
+                ],
+                [
+                    2,
+                    5
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-forPage-edges",
+            "php": "forPage(-1, 2), forPage(2, 0), forPage(1, -1) over ['one','two','three','four']",
+            "value": {
+                "negative_page": [
+                    [
+                        0,
+                        "one"
+                    ],
+                    [
+                        1,
+                        "two"
+                    ]
+                ],
+                "zero_per_page": [],
+                "negative_per_page": [
+                    [
+                        0,
+                        "one"
+                    ],
+                    [
+                        1,
+                        "two"
+                    ],
+                    [
+                        2,
+                        "three"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-forPage-assoc",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->forPage(2, 1)->all()",
+            "value": {
+                "b": 2
+            }
+        },
+        {
+            "label": "C32-G-take-assoc-negative",
+            "php": "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->take(-2)->all()",
+            "value": {
+                "b": 2,
+                "c": 3
+            }
+        },
+        {
+            "label": "C32-G-skip-negative",
+            "php": "(new Collection([1, 2, 3]))->skip(-1)",
+            "value": [
+                [
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-descriptor-mixed-directions",
+            "php": "sortBy([['name', 'asc'], ['age', 'desc']]) over four people",
+            "value": [
+                {
+                    "name": "a",
+                    "age": 3
+                },
+                {
+                    "name": "a",
+                    "age": 1
+                },
+                {
+                    "name": "b",
+                    "age": 2
+                },
+                {
+                    "name": "b",
+                    "age": 1
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-descriptor-mixed-directions",
+            "php": "sortByDesc([['name', 'asc'], ['age', 'desc']]) over four people",
+            "value": [
+                {
+                    "name": "b",
+                    "age": 2
+                },
+                {
+                    "name": "b",
+                    "age": 1
+                },
+                {
+                    "name": "a",
+                    "age": 3
+                },
+                {
+                    "name": "a",
+                    "age": 1
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByDesc-id-then-name",
+            "php": "sortByDesc(['id'])->sortByDesc(['id', 'name']) (testSortByCallableStringDesc)",
+            "value": [
+                {
+                    "id": 2,
+                    "name": "baz"
+                },
+                {
+                    "id": 2,
+                    "name": "bar"
+                },
+                {
+                    "id": 1,
+                    "name": "foo"
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-ties-stable",
+            "php": "sortBy('k') over [k=1 a, k=0 b, k=1 c] ->pluck('id')",
+            "value": [
+                "b",
+                "a",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-string-Ascending-direction",
+            "php": "sortBy([['n', 'Ascending']]) - a plain string, not the enum",
+            "value": [
+                3,
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-mixed-case-default-flag",
+            "php": "sortBy(['item']) over img1/Img101/img10/Img11 (testSortByMany, default flag)",
+            "value": [
+                "Img101",
+                "Img11",
+                "img1",
+                "img10"
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-umlaut-default-flag",
+            "php": "sortBy(['item']) over \u00d6sterreich/Oesterreich/Zeta (testSortByMany, default flag)",
+            "value": [
+                "Oesterreich",
+                "Zeta",
+                "\u00d6sterreich"
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-null-desc-default-flag",
+            "php": "sortBy([['first','desc'],['second','desc']]) over [f/null, f/s] (testNaturalSortByManyWithNull, default flag)",
+            "value": [
+                {
+                    "first": "f",
+                    "second": "s"
+                },
+                {
+                    "first": "f",
+                    "second": null
+                }
+            ]
+        },
+        {
+            "label": "C32-G-sortByMany-null-values",
+            "php": "sortBy(['first','second']) and sortByDesc(['first','second']) over [f/null, f/s, a/z]",
+            "value": {
+                "asc": [
+                    {
+                        "first": "a",
+                        "second": "z"
+                    },
+                    {
+                        "first": "f",
+                        "second": null
+                    },
+                    {
+                        "first": "f",
+                        "second": "s"
+                    }
+                ],
+                "desc": [
+                    {
+                        "first": "f",
+                        "second": "s"
+                    },
+                    {
+                        "first": "f",
+                        "second": null
+                    },
+                    {
+                        "first": "a",
+                        "second": "z"
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-dot-path",
+            "php": "(new Collection([(object) ['id' => 1, 'foo' => ['bar' => 'B']], (object) ['id' => 2, 'foo' => ['bar' => 'A']]]))->sortBy('foo.bar')->pluck('id')->all()",
+            "value": [
+                2,
+                1
+            ]
+        },
+        {
+            "label": "C32-G-sliding-subclass",
+            "php": "get_class of (new SubCollection([1, 2, 3]))->sliding() and of its first window",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-H-sum-numeric-strings",
+            "php": "(new Collection(['1', '2', '3']))->sum()",
+            "value": 6
+        },
+        {
+            "label": "C32-H-sum-float-strings",
+            "php": "(new Collection(['1.5', '2']))->sum()",
+            "value": 3.5
+        },
+        {
+            "label": "C32-H-sum-key-numeric-strings",
+            "php": "(new Collection([['foo' => '4'], ['foo' => '2']]))->sum('foo')",
+            "value": 6
+        },
+        {
+            "label": "C32-H-sum-non-numeric-string",
+            "php": "(new Collection([1, 'a']))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + string"
+        },
+        {
+            "label": "C32-H-sum-null-and-bools",
+            "php": "[sum([1, null, 2]), sum([true, true, false])]",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "C32-H-sum-dot-path",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]]]))->sum('a.b')",
+            "value": 3
+        },
+        {
+            "label": "C32-H-avg-non-numeric-string",
+            "php": "(new Collection([10, 'house', 20]))->avg()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + string"
+        },
+        {
+            "label": "C32-H-avg-callback-arity",
+            "php": "(new Collection(['a' => 1]))->avg(fn (...$args) => count($args))",
+            "value": 1
+        },
+        {
+            "label": "C32-H-min-numeric-strings",
+            "php": "(new Collection(['10', '9', '8']))->min()",
+            "value": "8"
+        },
+        {
+            "label": "C32-H-max-numeric-strings",
+            "php": "(new Collection(['10', '9', '8']))->max()",
+            "value": "10"
+        },
+        {
+            "label": "C32-H-min-max-callback-arity",
+            "php": "[min(fn (...$a) => count($a)), max(...)] on ['a' => 1]",
+            "value": [
+                1,
+                1
+            ]
+        },
+        {
+            "label": "C32-H-min-max-strings",
+            "php": "[min, max] of ['b', 'a', 'c']",
+            "value": [
+                "a",
+                "c"
+            ]
+        },
+        {
+            "label": "C32-H-max-dot-path",
+            "php": "(new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b')",
+            "value": 7
+        },
+        {
+            "label": "C32-H-median-numeric-strings",
+            "php": "[median(['10', '9', '8']), median(['10', '9'])]",
+            "value": [
+                "9",
+                9.5
+            ]
+        },
+        {
+            "label": "C32-H-median-rows-without-key",
+            "php": "(new Collection([['value' => 1, 'age' => 20], ['value' => 3, 'age' => 30], ['value' => 2, 'age' => 25]]))->median()",
+            "value": {
+                "value": 2,
+                "age": 25
+            }
+        },
+        {
+            "label": "C32-H-median-array-key",
+            "php": "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 9]], ['a' => ['b' => 5]]]))->median(['a', 'b'])",
+            "value": 5
+        },
+        {
+            "label": "C32-H-percentage-fp-below-half",
+            "php": "(new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 9, 1)",
+            "value": 0.4
+        },
+        {
+            "label": "C32-H-percentage-precision-zero-and-negative",
+            "php": "[percentage(..., 0), percentage(..., -1)] on [1, 1, 2]",
+            "value": [
+                67,
+                70
+            ]
+        },
+        {
+            "label": "C32-H-implode-class-instances-by-key",
+            "php": "(new Collection([new C32HUser('foo'), new C32HUser('bar')]))->implode('email', ',')",
+            "value": "foo,bar"
+        },
+        {
+            "label": "C32-H-implode-tostring-objects-are-plucked",
+            "php": "(new Collection([new C32HToString('a'), new C32HToString('b')]))->implode(',')",
+            "value": ""
+        },
+        {
+            "label": "C32-H-implode-scalar-casts",
+            "php": "(new Collection([true, false, null, 1.0, 2.50, 0]))->implode(',')",
+            "value": "1,,,1,2.5,0"
+        },
+        {
+            "label": "C32-H-implode-missing-key",
+            "php": "(new Collection([['a' => 1], ['b' => 2]]))->implode('a', ',')",
+            "value": "1,"
+        },
+        {
+            "label": "C32-H-implode-nested-collections-by-key",
+            "php": "(new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ',')",
+            "value": "x,y"
+        },
+        {
+            "label": "C32-H-join-null-last-item",
+            "php": "(new Collection(['a', null]))->join(', ', ' and ')",
+            "value": "a and "
+        },
+        {
+            "label": "C32-H-join-bool-items",
+            "php": "(new Collection([true, false, true]))->join(', ', ' and ')",
+            "value": "1,  and 1"
+        },
+        {
+            "label": "C32-H-reduce-no-initial-trace",
+            "php": "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn ($c, $v, $k) => $v)",
+            "value": [
+                [
+                    null,
+                    10,
+                    0
+                ],
+                [
+                    10,
+                    20,
+                    1
+                ],
+                [
+                    20,
+                    30,
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "C32-H-reduce-no-initial-single",
+            "php": "(new Collection([5]))->reduce(fn ($c, $v) => [$c, $v])",
+            "value": [
+                null,
+                5
+            ]
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-boolean",
+            "php": "(new Collection([1]))->reduceSpread(fn () => false, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'boolean' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-integer",
+            "php": "(new Collection([1]))->reduceSpread(fn () => 5, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'integer' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-double",
+            "php": "(new Collection([1]))->reduceSpread(fn () => 1.5, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'double' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-null",
+            "php": "(new Collection([1]))->reduceSpread(fn () => null, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'NULL' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-string",
+            "php": "(new Collection([1]))->reduceSpread(fn () => 'x', null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'string' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-throws-object",
+            "php": "(new Collection([1]))->reduceSpread(fn () => new stdClass, null)",
+            "threw": "UnexpectedValueException",
+            "message": "Collection::reduceSpread expects reducer to return an array, but got a 'object' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-list-key-type",
+            "php": "(new Collection(['a', 'b']))->reduceSpread(fn ($acc, $v, $k) => [$acc.gettype($k).$k], '')",
+            "value": [
+                "integer0integer1"
+            ]
+        },
+        {
+            "label": "C32-H-reduceSpread-empty",
+            "php": "(new Collection([]))->reduceSpread(fn () => false, 1, 2)",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-H-pipeThrough-order",
+            "php": "(new Collection(['a']))->pipeThrough([push('b'), implode(''), strtoupper])",
+            "value": "AB"
+        },
+        {
+            "label": "C32-H-pipeThrough-empty-returns-receiver",
+            "php": "$c->pipeThrough([]) === $c",
+            "value": true
+        },
+        {
+            "label": "C32-H-when-php-falsy-values",
+            "php": "[when('0', ...) === $c, when([], ...) === $c]",
+            "value": [
+                true,
+                true
+            ]
+        },
+        {
+            "label": "C32-H-unless-php-falsy-values",
+            "php": "[unless('0', fn () => 'called'), unless([], fn () => 'called')]",
+            "value": [
+                "called",
+                "called"
+            ]
+        },
+        {
+            "label": "C32-H-when-null-callback-throws",
+            "php": "(new Collection([1]))->when(true, null)",
+            "threw": "Error",
+            "message": "Value of type null is not callable"
+        },
+        {
+            "label": "C32-H-unless-null-callback-throws",
+            "php": "(new Collection([1]))->unless(false, null)",
+            "threw": "Error",
+            "message": "Value of type null is not callable"
+        },
+        {
+            "label": "C32-H-when-default-receives-value",
+            "php": "(new Collection([1]))->when(0, fn () => 'cb', fn ($c, $v) => var_export($v, true))",
+            "value": "0"
+        },
+        {
+            "label": "C32-H-when-callback-returns-scalar",
+            "php": "[when(true, fn () => false), when(true, fn () => 42)]",
+            "value": [
+                false,
+                42
+            ]
+        },
+        {
+            "label": "C32-H-when-closure-value",
+            "php": "(new Collection([1, 2]))->when(fn ($c) => $c->count(), fn ($c, $v) => $v * 10)",
+            "value": 20
+        },
+        {
+            "label": "C32-H-when-callable-string-value-not-invoked",
+            "php": "(new Collection([1]))->when('strlen', fn ($c, $v) => $v)",
+            "value": "strlen"
+        },
+        {
+            "label": "C32-H-whenEmpty-callback-receives-true",
+            "php": "(new Collection)->whenEmpty(fn ($c, $v) => var_export($v, true))",
+            "value": "true"
+        },
+        {
+            "label": "C32-H-whenNotEmpty-default-receives-false",
+            "php": "(new Collection)->whenNotEmpty(fn () => 'cb', fn ($c, $v) => var_export($v, true))",
+            "value": "false"
+        },
+        {
+            "label": "C32-H-whenEmpty-scalar-return",
+            "php": "(new Collection)->whenEmpty(fn () => 'scalar')",
+            "value": "scalar"
+        },
+        {
+            "label": "C32-H-mode-array-items",
+            "php": "(new Collection([[1], [1]]))->mode()",
+            "threw": "TypeError",
+            "message": "Cannot access offset of type array in isset or empty"
+        }
+    ]
+}
