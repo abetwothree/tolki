@@ -3063,7 +3063,7 @@ describe("Arr", () => {
         });
 
         it("reads the item itself for a null key and takes a callable key whole", () => {
-            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // EnumeratesValues.php:1140-1157 — a callable key is the predicate, and
             // `data_get($item, null)` answers the item.
             expect(Arr.contains([1, 2, 3], null, ">", 2)).toBe(true);
             expect(Arr.contains([1, 2, 3], null, ">", 9)).toBe(false);
@@ -3300,8 +3300,8 @@ describe("Arr", () => {
             });
         });
 
-        // arr already matches Collection.php:1172 (newInstance(array_replace(...))) and
-        // getArrayableItems(null) -> [] (EnumeratesValues.php:1121). obj was fixed to
+        // arr already matches Collection.php:1185 (newInstance(array_replace(...))) and
+        // getArrayableItems(null) -> [] (EnumeratesValues.php:1123). obj was fixed to
         // match here; these lock arr's side of the pair so it cannot drift back.
         it("does not mutate its argument", () => {
             const data = [1, 2];
@@ -5809,7 +5809,7 @@ describe("Arr", () => {
         });
 
         it("sorts descending using per-key directions", () => {
-            // Mirrors Collection::sortByDesc (Collection.php:1683-1693): every
+            // Mirrors Collection::sortByDesc (Collection.php:1696-1706): every
             // descriptor's direction is forced to descending, overriding
             // whatever was specified — `["meta.key", true]`'s "ascending" is
             // discarded, not negated. With every key forced descending this

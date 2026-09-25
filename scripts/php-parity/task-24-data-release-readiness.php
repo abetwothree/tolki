@@ -474,13 +474,13 @@ probe('integer-list-missing-index-with-default', "Arr::integer([], 0, 5)", fn ()
 
 // ==== Group 0 (carried in from the D1-D3 review): two Collection rows the port gets wrong.
 
-// Collection.php:1502 seeds firstOrFail with a fresh stdClass precisely so that a STORED
+// Collection.php:1515 seeds firstOrFail with a fresh stdClass precisely so that a STORED
 // null is a found item. Only an absent item can equal that placeholder.
 probe('firstOrFail-stored-null-list', "(new Collection([null]))->firstOrFail()", fn () => (new Collection([null]))->firstOrFail());
 probe('firstOrFail-stored-null-assoc', "(new Collection(['a' => null]))->firstOrFail()", fn () => (new Collection(['a' => null]))->firstOrFail());
 probe('firstOrFail-stored-null-with-callback', "(new Collection([1, null]))->firstOrFail(fn (\$v) => is_null(\$v))", fn () => (new Collection([1, null]))->firstOrFail(fn ($v) => is_null($v)));
 
-// EnumeratesValues.php:843 starts reduce at $initial and never throws; an empty backing
+// EnumeratesValues.php:845 starts reduce at $initial and never throws; an empty backing
 // with no initial value simply hands $initial (null) straight back.
 probe('reduce-empty-no-initial', "(new Collection([]))->reduce(fn (\$c, \$v) => \$c + \$v) and the assoc backing", fn () => [
     'list' => (new Collection([]))->reduce(fn ($c, $v) => $c + $v),

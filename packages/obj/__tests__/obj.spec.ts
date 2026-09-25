@@ -4118,7 +4118,7 @@ describe("Obj", () => {
         });
 
         it("reads the entry itself for a null key and takes a callable key whole", () => {
-            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // EnumeratesValues.php:1140-1157 — a callable key is the predicate, and
             // `data_get($item, null)` answers the item.
             expect(Obj.contains({ a: 1, b: 2 }, null, ">", 1)).toBe(true);
             expect(Obj.contains({ a: 1, b: 2 }, null, ">", 9)).toBe(false);
@@ -8390,7 +8390,7 @@ describe("Obj", () => {
             });
 
             it("honours per-key direction tuples", () => {
-                // Laravel: `true` and 'asc' sort ASCENDING (Collection.php:1638).
+                // Laravel: `true` and 'asc' sort ASCENDING (Collection.php:1651).
                 const unsorted = {
                     a: { name: "Item", age: 2 },
                     b: { name: "Item", age: 10 },
@@ -8919,7 +8919,7 @@ describe("Obj", () => {
 
         describe("multi-key descriptors", () => {
             it("reverses every descriptor's own direction", () => {
-                // Mirrors Collection::sortByDesc (Collection.php:1683-1693): every
+                // Mirrors Collection::sortByDesc (Collection.php:1696-1706): every
                 // key/tuple descriptor's direction is overridden to descending,
                 // regardless of what it specified.
                 const unsorted = {
@@ -9566,7 +9566,7 @@ describe("Obj", () => {
         });
 
         it("removes through to the end when no length is given", () => {
-            // PHP branches on func_num_args === 1 (Collection.php:1757); the one-arg
+            // PHP branches on func_num_args === 1 (Collection.php:1770); the one-arg
             // form must remove everything from offset to the end, not nothing.
             const data = { foo: "f", baz: "z" };
             const removed = Obj.splice(data, 1);
@@ -10356,14 +10356,14 @@ describe("Obj", () => {
         });
 
         it("does not mutate its argument", () => {
-            // PHP is newInstance(array_replace(...)), Collection.php:1172.
+            // PHP is newInstance(array_replace(...)), Collection.php:1185.
             const data = { a: 1 };
             Obj.replace(data, { b: 2 });
             expect(data).toEqual({ a: 1 });
         });
 
         it("treats a null replacer as a no-op", () => {
-            // getArrayableItems(null) -> [] (EnumeratesValues.php:1121); pinned by
+            // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
             // CollectionTest.php:1490.
             expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
         });
@@ -10481,7 +10481,7 @@ describe("Obj", () => {
 
         it("numbers negative pad slots from zero, not backwards from -1", () => {
             // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
-            // {"0":0,"1":0,"2":0,"a":1,"b":2} (Collection.php:1906, captured in
+            // {"0":0,"1":0,"2":0,"a":1,"b":2} (Collection.php:1919, captured in
             // docs/php-parity/task-07-pad-union.json).
             expect(Obj.pad({ a: 1, b: 2 }, -5, 0)).toEqual({
                 0: 0,
@@ -10633,14 +10633,14 @@ describe("Obj", () => {
         });
 
         it("does not mutate its argument, including nested objects", () => {
-            // PHP is newInstance(array_replace_recursive(...)), Collection.php:1183.
+            // PHP is newInstance(array_replace_recursive(...)), Collection.php:1196.
             const nested = { a: { x: 1 } };
             Obj.replaceRecursive(nested, { a: { y: 2 } });
             expect(nested).toEqual({ a: { x: 1 } });
         });
 
         it("treats a null replacer as a no-op", () => {
-            // getArrayableItems(null) -> [] (EnumeratesValues.php:1121); pinned by
+            // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
             // CollectionTest.php:1532.
             expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
         });

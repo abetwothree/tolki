@@ -6,7 +6,7 @@ require __DIR__ . '/bootstrap.php';
 
 use Illuminate\Support\Collection;
 
-// Task 3/4/6 — Collection::chunkWhile (Collection.php:1541 → LazyCollection::chunkWhile) and
+// Task 3/4/6 — Collection::chunkWhile (Collection.php:1554 → LazyCollection::chunkWhile) and
 // EnumeratesValues::chunkBy (:937). Lists feed arr tests, assoc arrays feed obj tests, both feed collection.
 
 // chunkWhile — the three CollectionTest cases plus the shape of the callback's arguments.

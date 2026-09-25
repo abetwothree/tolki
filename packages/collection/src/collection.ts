@@ -3269,7 +3269,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
-        // equal it and a stored null stays a found item (Collection.php:1502).
+        // equal it and a stored null stays a found item (Collection.php:1515).
         const placeholder = Symbol("firstOrFail");
 
         // `first` answers `| null` only for its no-default form; this call always hands
@@ -3324,7 +3324,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback's third argument is the chunk built so far, as a collection, so `chunk.last()` works
      * exactly as it does in Laravel.
      *
-     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which delegates to
+     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1554`, which delegates to
      *      `LazyCollection::chunkWhile`.
      *
      * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
@@ -3361,7 +3361,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Chunk the collection into chunks by comparing adjacent values using the given key or callback.
      *
-     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:939`.
      *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
      *
      * @param key - A path into each item, or a callback receiving the value and its key
@@ -3436,7 +3436,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * and `values()` always agree about order; see `sort` above.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Ignored when `callback` is an array (Collection.php:1588); use `sortByDesc`/`sortByMany`.
+     * @param descending - Ignored when `callback` is an array (Collection.php:1601); use `sortByDesc`/`sortByMany`.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3467,7 +3467,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
-            // PHP's sortBy (Collection.php:1588) discards $descending
+            // PHP's sortBy (Collection.php:1601) discards $descending
             // entirely for the array form; not passed through here either.
             // Use sortByDesc/sortByMany's forceDescending to force it.
             return this.sortByMany(callback);
@@ -3602,7 +3602,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isArray(callback) && !isFunction(callback)) {
             // sortBy's array branch discards its own `descending` argument,
             // so forcing every descriptor descending goes through
-            // sortByMany's forceDescending param (Collection.php:1687).
+            // sortByMany's forceDescending param (Collection.php:1700).
             return this.sortByMany(callback, true);
         }
 
@@ -5315,7 +5315,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         if (entries.length === 0) {
             // PHP's reduce never throws: an empty backing hands back $initial,
-            // which defaults to null (EnumeratesValues.php:843).
+            // which defaults to null (EnumeratesValues.php:845).
             return isUndefined(initial) ? null : (initial as TReduce);
         }
 

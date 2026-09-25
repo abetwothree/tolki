@@ -5665,7 +5665,7 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // Collection.php:1172 ends in newInstance(...), so neither the array-backed
+            // Collection.php:1185 ends in newInstance(...), so neither the array-backed
             // nor the object-backed source collection's items may change.
             const fromArray = new Collection([1, 2]);
             const fromObject = new Collection({ a: 1, b: 2 });
@@ -7737,7 +7737,7 @@ describe("Collection", () => {
 
         it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
             // Mirrors Collection::sortByDesc rewriting every comparison's direction slot
-            // before sorting (Collection.php:1687-1697): the force parameter overrides
+            // before sorting (Collection.php:1700-1710): the force parameter overrides
             // an explicit per-descriptor direction.
             const data = collect([{ age: 2 }, { age: 10 }]);
             const forced = data.sortByMany([["age", "asc"]], true);
@@ -7985,7 +7985,7 @@ describe("Collection", () => {
         });
 
         it("splices to the end with a single argument, either backing", () => {
-            // PHP branches on func_num_args === 1 (Collection.php:1757) — the one-arg
+            // PHP branches on func_num_args === 1 (Collection.php:1770) — the one-arg
             // form removes offset -> end for both backings, not nothing.
             const fromArray = new Collection(["f", "z"]);
             const fromObject = new Collection({ foo: "f", baz: "z" });
