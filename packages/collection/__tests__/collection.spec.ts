@@ -9698,6 +9698,24 @@ describe("Collection", () => {
                 expect(instance.all()).toEqual({ foo: "bar", baz: "quz" });
             });
         });
+
+        it("builds an empty collection from invalid JSON, as json_decode gives null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-invalid-is-empty"
+            expect(Collection.fromJson("{bad").all()).toEqual([]);
+        });
+
+        it("wraps a decoded scalar and builds nothing from JSON null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-scalar-is-wrapped"
+            expect(Collection.fromJson("5").all()).toEqual([5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-null-is-empty"
+            expect(Collection.fromJson("null").all()).toEqual([]);
+        });
+
+        it("decodes a JSON array as a list", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-list"
+            expect(Collection.fromJson('["a","b"]').all()).toEqual(["a", "b"]);
+        });
     });
 
     describe("avg", () => {

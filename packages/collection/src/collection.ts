@@ -4448,12 +4448,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param _depth - PHP's json_decode nesting limit, which JSON.parse has no counterpart for
      * @param _flags - PHP's json_decode flags, which JSON.parse has no counterpart for
      * @param args - Arguments for the constructor after the items, which a subclass may take
-     * @returns A new collection with the decoded items
+     * @returns A new collection with the decoded items, or an empty one when the JSON is invalid
      *
      * @example
      *
      * Collection.fromJson('{"a":1,"b":2}'); -> new Collection({a: 1, b: 2})
      * Collection.fromJson('[1,2,3]'); -> new Collection([1, 2, 3])
+     * Collection.fromJson('{bad'); -> new Collection([])
      */
     static fromJson(
         json: string,
@@ -4461,10 +4462,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         _flags: number = 0,
         ...args: unknown[]
     ) {
-        const items = JSON.parse(json);
-
-        return new (this as CollectionClass<typeof items, PropertyKey>)(
-            items,
+        return new (this as CollectionClass<unknown, PropertyKey>)(
+            decodeJson(json),
             ...args,
         );
     }
@@ -6437,6 +6436,20 @@ function handOver<TItems extends object>(items: TItems): TItems {
     owned.add(items);
 
     return items;
+}
+
+/**
+ * Decode JSON the way PHP's `json_decode($json, true)` does, where invalid JSON decodes to null.
+ *
+ * @param json - The JSON text to decode
+ * @returns The decoded value, or null when the text is not JSON
+ */
+function decodeJson(json: string): unknown {
+    try {
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
 }
 
 /**
