@@ -557,9 +557,10 @@ export function chunkBy<TValue>(
  * Collapse an array of arrays into a single array, or an array of objects into a single object.
  *
  * Once any item is a plain object, the result is `array_merge`'s: list values append under the next
- * integer key, integer keys renumber and a later string key wins. A Collection-like item unwraps
- * through its `all()` method, and any other item that isn't a plain object or a list is skipped,
- * as `Arr::collapse` skips a PHP object: a `Date`, a `Map` or a class instance.
+ * integer key, integer keys renumber and a later string key wins. A Collection-like item, a class
+ * instance with an `all()` method, unwraps through it; a plain object is data whatever members it has.
+ * Any other item that isn't a plain object or a list is skipped, as `Arr::collapse` skips a PHP
+ * object: a `Date`, a `Map` or a class instance.
  *
  * @param data - The array to collapse.
  * @returns A new flattened array or merged object.
@@ -583,8 +584,12 @@ export function collapse<TValue extends ArrayItems<unknown>>(
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[] {
+    // Arr::collapse merges a Collection item's items; a plain object models a PHP array, so an
+    // `all` member on one is data.
     const items = data.map((item) =>
-        isObject(item) && isFunction(item["all"]) ? item["all"]() : item,
+        !isPlainObject(item) && isObject(item) && isFunction(item["all"])
+            ? item["all"]()
+            : item,
     );
 
     // A plain object among the items is a PHP map, making array_merge's result one; obj.collapse runs that merge.
@@ -1317,8 +1322,9 @@ export function take<TValue>(
 /**
  * Flatten a multi-dimensional array into a single level.
  *
- * Only arrays and plain objects are flattened, along with the items of a Collection-like item (one with an
- * `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
+ * Only arrays and plain objects are flattened, along with the items of a Collection-like item (a class instance
+ * with an `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
+ * A plain object is data whatever members it has, so its `all` member is one of its values.
  *
  * @param data The array to flatten.
  * @param depth Maximum depth to flatten. Use Infinity for full flattening.
@@ -1355,9 +1361,10 @@ export function flatten<TValue>(
     }
 
     for (const entry of data as ArrayItems<unknown>) {
-        // Arr::flatten flattens a Collection item's items, and only an array otherwise.
+        // Arr::flatten flattens a Collection item's items, and only an array otherwise; a plain
+        // object models a PHP array, so an `all` member on one is data.
         const item =
-            isObject(entry) && isFunction(entry["all"])
+            !isPlainObject(entry) && isObject(entry) && isFunction(entry["all"])
                 ? entry["all"]()
                 : entry;
 
@@ -2619,9 +2626,12 @@ export function mapSpread<TMapReturn>(
     for (let i = 0; i < values.length; i++) {
         const row = values[i];
         // A Collection row carries its items behind all(): `$chunk[] = $key` appends to the
-        // Collection itself and `...$chunk` then walks the Traversable, not its fields.
+        // Collection itself and `...$chunk` then walks the Traversable, not its fields. A plain
+        // object models a PHP array, so an `all` member on one is data.
         const chunk =
-            isObject(row) && isFunction(row["all"]) ? row["all"]() : row;
+            !isPlainObject(row) && isObject(row) && isFunction(row["all"])
+                ? row["all"]()
+                : row;
 
         if (isArray(chunk)) {
             // Spread the chunk elements and append the index

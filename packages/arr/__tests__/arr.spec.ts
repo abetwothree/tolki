@@ -647,8 +647,17 @@ describe("Arr", () => {
         it("merges a Collection-like item's items and skips a scalar", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-collection-items"
             expect(
-                Arr.collapse([{ all: () => [1, 2] }, 5, { all: () => [3] }]),
+                Arr.collapse([collectionLike([1, 2]), 5, collectionLike([3])]),
             ).toEqual([1, 2, 3]);
+        });
+
+        it("merges a plain object item's all member as data, never unwrapping it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            const all = () => [9];
+            const collapsed = Arr.collapse([{ all, b: 2 }]);
+
+            expect(collapsed).toEqual({ all, b: 2 });
+            expect(Object.keys(collapsed)).toEqual(["all", "b"]);
         });
 
         it("renumbers a negative integer key like any other integer key", () => {
@@ -1294,6 +1303,13 @@ describe("Arr", () => {
 
             const kept = collectionLike([2, 3]);
             expect(Arr.flatten([[kept]], 1)).toEqual([kept]);
+        });
+
+        it("keeps a plain object item's all member as a value, never unwrapping it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            const all = () => [9];
+
+            expect(Arr.flatten([{ all, b: 2 }])).toEqual([all, 2]);
         });
     });
 
@@ -4914,6 +4930,14 @@ describe("Arr", () => {
             Arr.mapSpread([collectionLike(items)], (n, c, k) => [n, c, k]);
 
             expect(items).toEqual([1, "a"]);
+        });
+
+        it("passes a plain object row whole, never unwrapping its all member", () => {
+            // JS-only: PHP throws on a string-keyed row (task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-string-keyed-row"); the lenient spread hands any non-list row over whole.
+            const row = { all: () => [9], b: 2 };
+
+            expect(Arr.mapSpread([row], (...args) => args)).toEqual([[row, 0]]);
         });
     });
 

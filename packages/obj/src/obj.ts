@@ -984,9 +984,10 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Collapse an object of objects or lists into a single object, renumbering integer keys as `array_merge` does.
  *
- * A Map is merged in its insertion order. A Collection-like item unwraps through `all()`, and any other item that
- * isn't a plain object or a list (a `Date`, a `Map`, a class instance) is skipped. Declared types, pinned in
- * `obj-residuals.test-d.ts`, still copy a class instance's keys and leave an OPTIONAL `all?()` item unwrapped.
+ * A Map is merged in its insertion order. A Collection-like item, a class instance with an `all()` method, unwraps
+ * through it, while a plain object is merged as data whatever members it has; any other item that isn't a list (a
+ * `Date`, a `Map`, another class instance) is skipped. Declared types, pinned in `obj-residuals.test-d.ts`, still
+ * copy a class instance's keys and leave an OPTIONAL `all?()` item unwrapped.
  *
  * @param object - The object or Map of objects or lists to collapse.
  * @returns A new flattened object.
@@ -1030,9 +1031,10 @@ export function collapse<
     let nextIndex = 0;
 
     for (const [, group] of keyedEntries<TValue[keyof TValue]>(object)) {
-        // Arr::collapse merges a Collection item's items, never the Collection's own fields.
+        // Arr::collapse merges a Collection item's items, never the Collection's own fields; a plain
+        // object models a PHP array, so an `all` member on one is data.
         const item =
-            isObject(group) && isFunction(group["all"])
+            !isPlainObject(group) && isObject(group) && isFunction(group["all"])
                 ? group["all"]()
                 : group;
 
@@ -1864,8 +1866,10 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * Flatten a multi-dimensional object into a single-level array.
  *
  * Arrays, plain objects, a root Map's values (in its insertion order) and a Collection-like item's `all()` items are
- * flattened; any other object, a nested `Map`, `Date` or class instance included, is kept as a value. Declared types,
- * pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an OPTIONAL `all?()`.
+ * flattened, a Collection-like item being a class instance with an `all()` method: a plain object's `all` member is
+ * one of its values. Any other object, a nested `Map`, `Date` or class instance included, is kept as a value.
+ * Declared types, pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an
+ * OPTIONAL `all?()`.
  *
  * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
  *
@@ -1920,9 +1924,12 @@ export function flatten<TValue>(
             : keyedEntries(items as object).map(([, value]) => value);
 
         for (const value of values) {
-            // Arr::flatten flattens a Collection item's items, and only an array otherwise.
+            // Arr::flatten flattens a Collection item's items, and only an array otherwise; a plain
+            // object models a PHP array, so an `all` member on one is data.
             const item =
-                isObject(value) && isFunction(value["all"])
+                !isPlainObject(value) &&
+                isObject(value) &&
+                isFunction(value["all"])
                     ? value["all"]()
                     : value;
 
@@ -3789,11 +3796,14 @@ export function mapSpread<
 
     const result: Record<PropertyKey, TMapSpreadValue> = {};
 
-    for (const [key, item] of keyedEntries<TValue>(data)) {
+    for (const [key, item] of keyedEntries<unknown>(data)) {
         // A Collection row carries its items behind all(): PHP's `...$chunk` walks the
-        // Traversable, where spreading the instance would hand over its own fields.
+        // Traversable, where spreading the instance would hand over its own fields. A plain
+        // object models a PHP array, so an `all` member on one is data.
         const row =
-            isObject(item) && isFunction(item["all"]) ? item["all"]() : item;
+            !isPlainObject(item) && isObject(item) && isFunction(item["all"])
+                ? item["all"]()
+                : item;
 
         // Arr::mapSpread spreads a list row; a plain-object row spreads its values and a scalar
         // passes whole, which PHP rejects but is kept as JS leniency.

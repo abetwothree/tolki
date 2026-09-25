@@ -73,15 +73,15 @@ describe("obj residual type-soundness limits", () => {
 
     describe("an optional all() member is not modelled as unwrapping", () => {
         it("collapse keeps the Collection-like row as it is", () => {
-            // Runtime: { x: 1 } — the unwrap is `isFunction(item.all)`, which an
-            // optional member satisfies at runtime but cannot guarantee in a type.
+            // Runtime: { x: 1 } for a class instance — the unwrap is `isFunction(item.all)`, which
+            // an optional member satisfies at runtime but cannot guarantee in a type.
             expectTypeOf(Obj.collapse({ a: optionalAllRecord })).toEqualTypeOf<{
                 all?: () => { x: number };
             }>();
         });
 
         it("flatten keeps the member itself as the leaf", () => {
-            // Runtime: [1, 2] at every depth.
+            // Runtime: [1, 2] at every depth for a class instance.
             expectTypeOf(Obj.flatten({ a: optionalAll })).toEqualTypeOf<
                 ((() => number[]) | undefined)[]
             >();

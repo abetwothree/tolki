@@ -1089,6 +1089,15 @@ describe("Obj", () => {
             ).toEqual({ x: 1, y: 2 });
         });
 
+        it("merges a plain object item's all member as data, never unwrapping it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            const all = () => [9];
+            const collapsed = Obj.collapse({ x: { all, b: 2 } });
+
+            expect(collapsed).toEqual({ all, b: 2 });
+            expect(Object.keys(collapsed)).toEqual(["all", "b"]);
+        });
+
         it("renumbers a negative integer key like any other integer key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
             expect(
@@ -5593,6 +5602,13 @@ describe("Obj", () => {
 
             const kept = collectionLike([2, 3]);
             expect(Obj.flatten({ a: [kept] }, 1)).toEqual([kept]);
+        });
+
+        it("keeps a plain object item's all member as a value, never unwrapping it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            const all = () => [9];
+
+            expect(Obj.flatten({ x: { all, b: 2 } })).toEqual([all, 2]);
         });
 
         it("flattens a Map in its insertion order", () => {
@@ -11172,6 +11188,16 @@ describe("Obj", () => {
             expect(items).toEqual([1, "a"]);
         });
 
+        it("spreads a plain object row's values, never unwrapping its all member", () => {
+            // JS-only: PHP throws on a string-keyed row (task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-string-keyed-row"); the lenient spread passes a plain object row's values.
+            const all = () => [9];
+
+            expect(
+                Obj.mapSpread({ x: { all, b: 2 } }, (...args) => args),
+            ).toEqual({ x: [all, 2, "x"] });
+        });
+
         it("spreads a Map's rows in its insertion order", () => {
             const seen: unknown[] = [];
             const result = Obj.mapSpread(
@@ -11988,9 +12014,9 @@ describe("residual limits: what the runtime answers where the type disagrees", (
     it("unwraps an optional all() member in collapse and flatten", () => {
         // JS-only: PHP has no optional method; the unwrap tests `is_callable`, which
         // an optional member passes at runtime and no type can promise.
-        const row = { all: () => [1, 2] } as { all?: () => number[] };
+        const row: { all?: () => number[] } = collectionLike([1, 2]);
 
-        expect(Obj.collapse({ a: { all: () => ({ x: 1 }) } })).toEqual({
+        expect(Obj.collapse({ a: collectionLike({ x: 1 }) })).toEqual({
             x: 1,
         });
         expect(Obj.flatten({ a: row })).toEqual([1, 2]);

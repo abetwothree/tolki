@@ -612,14 +612,16 @@ describe("Collection", () => {
             ).toEqual({ 0: 1, 1: 2, 2: "z", x: 1 });
         });
 
-        it("merges a Collection-like item's items on an object backing", () => {
+        it("merges a Collection item's items on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
-            // A duck-typed item isn't a Collection instance, so it reaches obj.collapse's own unwrap.
-            expect(
-                collect({ a: { all: () => ({ x: 1 }) }, b: { y: 2 } })
-                    .collapse()
-                    .all(),
-            ).toEqual({ x: 1, y: 2 });
+            const result = collect({
+                a: collect({ x: 1 }),
+                b: { y: 2 },
+            }).collapse();
+
+            expect(result.all()).toEqual({ x: 1, y: 2 });
+            expect(result.keys().all()).toEqual(["x", "y"]);
+            expect(result.values().all()).toEqual([1, 2]);
         });
 
         it("renumbers a negative integer key on an object backing", () => {

@@ -3409,7 +3409,7 @@ describe("Data", () => {
         it("spreads a Collection-like row's items on the array backing", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "d6-map-spread-collection-row", "list"
-            const rows = [{ all: () => [1, "a"] }, { all: () => [2, "b"] }];
+            const rows = [collectionLike([1, "a"]), collectionLike([2, "b"])];
 
             expect(
                 Data.dataMapSpread(
@@ -3422,8 +3422,8 @@ describe("Data", () => {
         it("spreads a Collection-like row's items on the object backing", () => {
             // Same row, "assoc": Arr::mapSpread(['x' => new Collection([1, 'a'])], ...)
             const rows = {
-                x: { all: () => [1, "a"] },
-                y: { all: () => [2, "b"] },
+                x: collectionLike([1, "a"]),
+                y: collectionLike([2, "b"]),
             };
 
             expect(
