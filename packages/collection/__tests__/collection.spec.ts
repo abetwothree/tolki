@@ -10758,6 +10758,19 @@ describe("Collection", () => {
             expect(collect([new Child()]).ensure("Child").count()).toBe(1);
         });
 
+        it("matches a class named as a string only exactly, where the class itself takes subclasses", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // JS-only: PHP's instanceof resolves a class name to take its subclasses; JavaScript cannot resolve one
+            expect(() => collect([new Child()]).ensure("Parent")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [Parent] items, but 'Child' found at position 0.",
+                ),
+            );
+            expect(collect([new Child()]).ensure(Parent).count()).toBe(1);
+        });
+
         it("accepts null for the null type", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-null-passes"
             expect(collect([null]).ensure("null").all()).toEqual([null]);

@@ -4733,6 +4733,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Ensure that every item in the collection is of the expected type.
      *
+     * A class named as a string matches only that class; pass the class itself to accept its subclasses too.
+     *
      * @param type - A class, a type name as PHP's get_debug_type() gives it ("int", "float", "string", "bool", "array",
      * "null" or a class's name) or as JavaScript's typeof does ("number", "boolean", "object", "undefined", …),
      * or a list or record of them
