@@ -4351,23 +4351,15 @@ describe("Collection", () => {
             });
 
             it("test union collection", () => {
+                // CollectionTest::testUnionCollection
+                // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
                 const c = collect({ name: "Hello" });
-                expect(
-                    c.union(collect({ name: "World", id: 1 })).all(),
-                ).toEqual({ name: "Hello", id: 1 });
+                const united = c.union(collect({ name: "World", id: 1 }));
+
+                expect(united.all()).toEqual({ name: "Hello", id: 1 });
+                expect(united.keys().all()).toEqual(["name", "id"]);
+                expect(united.values().all()).toEqual(["Hello", 1]);
             });
-        });
-
-        it("reads a Collection operand's items", () => {
-            // CollectionTest::testUnionCollection
-            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
-            const result = collect({ name: "Hello" }).union(
-                collect({ name: "World", id: 1 }),
-            );
-
-            expect(result.all()).toEqual({ name: "Hello", id: 1 });
-            expect(result.keys().all()).toEqual(["name", "id"]);
-            expect(result.values().all()).toEqual(["Hello", 1]);
         });
 
         it("lets the left operand win even when its value is undefined", () => {
@@ -5770,6 +5762,7 @@ describe("Collection", () => {
             });
 
             it("test replace collection", () => {
+                // CollectionTest::testReplaceCollection
                 const c = collect(["a", "b", "c"]);
                 expect(c.replace(collect(["d", "e"])).all()).toEqual([
                     "d",
@@ -5782,26 +5775,28 @@ describe("Collection", () => {
                     ["d", "e", "f", "g"],
                 );
 
+                // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc":
+                // the same replacer as an array, so the same keys in the same order
                 const c3 = collect({ name: "amir", family: "otwell" });
-                expect(
-                    c3.replace(collect({ name: "taylor", age: 26 })).all(),
-                ).toEqual({ name: "taylor", family: "otwell", age: 26 });
-            });
+                const replaced = c3.replace(
+                    collect({ name: "taylor", age: 26 }),
+                );
 
-            it("reads a Collection replacer's items", () => {
-                // CollectionTest::testReplaceCollection
-                const result = collect({
-                    name: "amir",
-                    family: "otwell",
-                }).replace(collect({ name: "taylor", age: 26 }));
-
-                expect(result.all()).toEqual({
+                expect(replaced.all()).toEqual({
                     name: "taylor",
                     family: "otwell",
                     age: 26,
                 });
-                expect(result.keys().all()).toEqual(["name", "family", "age"]);
-                expect(result.values().all()).toEqual(["taylor", "otwell", 26]);
+                expect(replaced.keys().all()).toEqual([
+                    "name",
+                    "family",
+                    "age",
+                ]);
+                expect(replaced.values().all()).toEqual([
+                    "taylor",
+                    "otwell",
+                    26,
+                ]);
             });
         });
 
