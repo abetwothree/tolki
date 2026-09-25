@@ -78,6 +78,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpAccessible,
     isPhpArrayKey,
     isPhpFalsy,
     isPlainObject,
@@ -4338,6 +4339,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * Collection.wrap([1, 2, 3]); -> new Collection([1, 2, 3])
      * Collection.wrap({a: 1, b: 2}); -> new Collection({a: 1, b: 2})
+     * Collection.wrap(new Map([['a', 1]])); -> new Collection({a: 1})
      * Collection.wrap(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.wrap(123); -> new Collection([123])
      * Collection.wrap(null); -> new Collection([])
@@ -4351,11 +4353,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         const Wrapped = this as CollectionClass<TWrapValue, TWrapKey>;
 
-        if (value instanceof Collection) {
+        // Arr::wrap leaves an array as it is and makes null empty; a plain object and a Map stand in for arrays.
+        if (
+            value instanceof Collection ||
+            isPhpAccessible(value) ||
+            isNull(value) ||
+            isUndefined(value)
+        ) {
             return new Wrapped(value, ...args);
         }
 
-        return new Wrapped(arrWrap(value), ...args);
+        return new Wrapped(handOver([value]), ...args);
     }
 
     /**

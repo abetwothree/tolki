@@ -9583,6 +9583,37 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-collection-copies"
             expect([a.all(), b.all(), a === b]).toEqual([[1], [1, 2], false]);
         });
+
+        it("takes a plain object's entries as the items, as PHP takes an array's", () => {
+            const collection = Collection.wrap({ a: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-assoc-array"
+            expect(collection.all()).toEqual({ a: 1 });
+            expect(collection.keys().all()).toEqual(["a"]);
+            expect(collection.values().all()).toEqual([1]);
+        });
+
+        it("takes a Map's entries as the items, as the constructor does", () => {
+            const collection = Collection.wrap(new Map([["a", 1]]));
+
+            // JS-only: a Map stands in for a keyed PHP array, which wrap() hands to the constructor as it is
+            expect(collection.all()).toEqual({ a: 1 });
+            expect(collection.keys().all()).toEqual(["a"]);
+            expect(collection.values().all()).toEqual([1]);
+        });
+
+        it("builds an empty collection from null or undefined", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-null"
+            expect(Collection.wrap(null).all()).toEqual([]);
+
+            // JS-only: undefined is read as PHP's null
+            expect(Collection.wrap(undefined).all()).toEqual([]);
+        });
+
+        it("wraps false, which is no array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-false"
+            expect(Collection.wrap(false).all()).toEqual([false]);
+        });
     });
 
     describe("unwrap", () => {
