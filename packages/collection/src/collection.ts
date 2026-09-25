@@ -346,7 +346,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             items.push(item);
         }
 
-        return new Collection<number, number>(handOver(items));
+        return new this<number, number>(handOver(items));
     }
 
     /**
@@ -4388,12 +4388,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isNull(callback)) {
-            return Collection.range(1, count);
+            return this.range(1, count);
         }
 
-        return (
-            Collection.range(1, count) as unknown as Collection<number, number>
-        ).map(callback);
+        return this.range(1, count).map(callback);
     }
 
     /**

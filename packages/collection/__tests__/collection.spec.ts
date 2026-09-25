@@ -14075,6 +14075,29 @@ describe("Collection", () => {
             expect(padded).toBeInstanceOf(TestCollectionWithExtraState);
             expect(padded.tag).toBe("my-tag");
         });
+
+        it("keeps the calling subclass in every static factory", () => {
+            class Sub extends Collection<unknown, PropertyKey> {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-static-factories-keep-subclass"
+            expect({
+                make: Sub.make([1]).constructor,
+                wrap: Sub.wrap([1]).constructor,
+                empty: Sub.empty().constructor,
+                range: Sub.range(1, 3).constructor,
+                times: Sub.times(3).constructor,
+                "times-callback": Sub.times(3, (i) => i * 10).constructor,
+                fromJson: Sub.fromJson("[1]").constructor,
+            }).toEqual({
+                make: Sub,
+                wrap: Sub,
+                empty: Sub,
+                range: Sub,
+                times: Sub,
+                "times-callback": Sub,
+                fromJson: Sub,
+            });
+        });
     });
 
     // Collection half of the cross-backing agreement sweep; the row-by-row sweep over
