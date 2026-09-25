@@ -1234,7 +1234,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            const rawGroupKeys = groupByValue(value as TValue, key as TKey);
+            const rawGroupKeys = groupByValue(
+                value as TValue,
+                phpArrayKey(key) as TKey,
+            );
             const groupKeys = isArray(rawGroupKeys)
                 ? rawGroupKeys
                 : [rawGroupKeys];
@@ -1360,15 +1363,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            let callbackKey: string | number = key;
-
-            if (isArray(this.items)) {
-                callbackKey = Number(key);
-            }
-
             let resolvedKey = keyByValueCallback(
                 value as TValue,
-                callbackKey as TKey,
+                phpArrayKey(key) as TKey,
             );
 
             // Convert Collection instances to arrays before JSON stringifying
@@ -2070,17 +2067,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ) {
         const entries: Array<[TKey, TValue]> =
             this.orderedEntries() ??
-            (isArray(this.items)
-                ? Object.entries(this.items).map(
-                      ([key, value]) =>
-                          [phpArrayKey(key), value] as unknown as [
-                              TKey,
-                              TValue,
-                          ],
-                  )
-                : (Object.entries(this.items) as unknown as Array<
-                      [TKey, TValue]
-                  >));
+            Object.entries(this.items).map(
+                ([key, value]) =>
+                    [phpArrayKey(key), value] as unknown as [TKey, TValue],
+            );
 
         const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
 
@@ -3497,7 +3487,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(this.items)) {
             const sortValue = callbackFn(
                 value as TValue,
-                key as TKey,
+                phpArrayKey(key) as TKey,
             ) as TSortValue;
             entries.push([key as TKey, value as TValue, sortValue]);
         }
@@ -3708,7 +3698,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     sortKeysUsing(callback: (a: TKey, b: TKey) => number) {
         const keys = Object.keys(this.items);
 
-        keys.sort((a, b) => callback(a as TKey, b as TKey));
+        keys.sort((a, b) =>
+            callback(phpArrayKey(a) as TKey, phpArrayKey(b) as TKey),
+        );
 
         const entries = keys.map(
             (key) =>
@@ -4139,7 +4131,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         for (const [key, value] of Object.entries(this.items)) {
-            const result = callback(value as TValue, key as TKey);
+            const result = callback(value as TValue, phpArrayKey(key) as TKey);
 
             let resultKey: string;
             if (isObject(result) || isArray(result)) {
@@ -4556,11 +4548,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     each(callback: (value: TValue, key: TKey) => unknown) {
         for (const [key, value] of Object.entries(this.items)) {
-            let loopKey = phpArrayKey(key) as unknown;
-            if (isObject(value)) {
-                loopKey = String(loopKey);
-            }
-            if (callback(value as TValue, loopKey as TKey) === false) {
+            if (callback(value as TValue, phpArrayKey(key) as TKey) === false) {
                 break;
             }
         }
@@ -4623,7 +4611,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 key as PathKey | ((...args: (TValue | TKey)[]) => boolean),
             );
             for (const [key, value] of Object.entries(this.items)) {
-                if (!callback(value as TValue, key as TKey)) {
+                if (!callback(value as TValue, phpArrayKey(key) as TKey)) {
                     return false;
                 }
             }
@@ -5419,7 +5407,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(this.items)) {
             const callbackResult = (
                 callback as (...args: unknown[]) => unknown
-            )(...result, value, key);
+            )(...result, value, phpArrayKey(key));
 
             if (!isArray(callbackResult)) {
                 const resultType = typeOf(callbackResult);

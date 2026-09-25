@@ -3,6 +3,7 @@ import { collect, Collection } from "@tolki/collection";
 import { SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import {
+    isString,
     ItemNotFoundException,
     MultipleItemsFoundException,
 } from "@tolki/utils";
@@ -9615,23 +9616,30 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test each", () => {
-                const c = collect([1, 2, { foo: "bar" }, { bam: "baz" }]);
+                // CollectionTest::testEach
+                const original = { 0: 1, 1: 2, foo: "bar", bam: "baz" };
+                const c = collect(original);
 
-                let result: unknown[] = [];
+                let result: Record<PropertyKey, unknown> = {};
+                const keys: PropertyKey[] = [];
                 c.each((item, key) => {
                     result[key] = item;
+                    keys.push(key);
                 });
-                expect(result).toEqual([1, 2, { foo: "bar" }, { bam: "baz" }]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-mixed-keys"
+                expect(result).toEqual(original);
+                expect(keys).toEqual([0, 1, "foo", "bam"]);
 
-                result = [];
+                result = {};
                 c.each((item, key) => {
                     result[key] = item;
-                    if (typeof key === "string") {
+                    if (isString(key)) {
                         return false;
                     }
                     return;
                 });
-                expect(result).toEqual([1, 2, { foo: "bar" }]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-stop-on-string-key"
+                expect(result).toEqual({ 0: 1, 1: 2, foo: "bar" });
             });
 
             it("test each spread", () => {
@@ -14560,6 +14568,191 @@ describe("Collection", () => {
                     "def",
                 ),
             ).toBeNull();
+        });
+    });
+
+    describe("callbacks receive PHP's integer keys", () => {
+        /** The keys a method hands its callback over ["a", "b"] and over { 1: "a", x: "b" }, in order. */
+        const keysSeen = (
+            run: (
+                collection: Collection<string, PropertyKey>,
+                note: (key: PropertyKey) => void,
+            ) => void,
+        ): PropertyKey[][] =>
+            [collect(["a", "b"]), collect({ 1: "a", x: "b" })].map(
+                (collection) => {
+                    const seen: PropertyKey[] = [];
+
+                    run(
+                        collection as unknown as Collection<
+                            string,
+                            PropertyKey
+                        >,
+                        (key) => {
+                            seen.push(key);
+                        },
+                    );
+
+                    return seen;
+                },
+            );
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-callback-key-types"
+                "every",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.every((_value, key) => {
+                        note(key);
+
+                        return true;
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-mixed-keys"
+                "each",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.each((_value, key) => {
+                        note(key);
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-callback-key-type"
+                "groupBy",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.groupBy((_value, key) => {
+                        note(key);
+
+                        return "g";
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-key-type"
+                "countBy",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.countBy((_value, key) => {
+                        note(key);
+
+                        return "g";
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-callback-key-types-list"
+                // and "C32-G-sortBy-callback-key-types-int-keys"
+                "sortBy",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.sortBy((value, key) => {
+                        note(key);
+
+                        return value;
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-list-key-type"
+                "reduceSpread",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.reduceSpread((carry, _value, key) => {
+                        note(key);
+
+                        return [carry];
+                    }, null);
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-callback-key-type"
+                "mapWithKeys",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.mapWithKeys((value, key) => {
+                        note(key);
+
+                        return { [value]: value };
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-callback-key-type"
+                "keyBy",
+                (
+                    collection: Collection<string, PropertyKey>,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.keyBy((value, key) => {
+                        note(key);
+
+                        return value;
+                    });
+                },
+            ],
+        ])("%s hands its callback PHP's integer keys", (_method, run) => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-callback-key-types-sweep"
+            expect(keysSeen(run)).toEqual([
+                [0, 1],
+                [1, "x"],
+            ]);
+        });
+
+        it("sortKeysUsing compares PHP's integer keys", () => {
+            const compared = keysSeen((collection, note) => {
+                collection.sortKeysUsing((a, b) => {
+                    note(a);
+                    note(b);
+
+                    return String(a).localeCompare(String(b));
+                });
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-key-types" and
+            // "C32-E-callback-key-types-sweep", which list the distinct keys compared, sorted
+            expect(
+                compared.map((keys) =>
+                    [...new Set(keys)].sort((a, b) =>
+                        String(a).localeCompare(String(b)),
+                    ),
+                ),
+            ).toEqual([
+                [0, 1],
+                [1, "x"],
+            ]);
+        });
+
+        it("each hands its callback an integer key for an array or object item too", () => {
+            const seen: PropertyKey[] = [];
+
+            collect([{ a: 1 }, { b: 2 }]).each((_value, key) => {
+                seen.push(key);
+            });
+            collect({ 5: { a: 1 } }).each((_value, key) => {
+                seen.push(key);
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-key-type-array-items"
+            expect(seen).toEqual([0, 1, 5]);
         });
     });
 });
