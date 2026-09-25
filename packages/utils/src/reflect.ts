@@ -9,13 +9,13 @@ import {
 
 /**
  * Get a more specific type description for debugging purposes.
- * Differentiates between null, arrays, and other types.
+ * Reports JavaScript's `typeof` name, except that an array reports as "array".
  *
  * @param {unknown} v - The value to get the type of.
  * @returns {string} A string describing the type.
  * @example
  * Get specific types
- * typeOf(null); -> "null"
+ * typeOf(null); -> "object"
  * typeOf([]); -> "array"
  * typeOf({}); -> "object"
  */
