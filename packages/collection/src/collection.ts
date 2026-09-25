@@ -370,7 +370,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([null, null]).mode(); -> null
      */
     mode(key: PropertyKey | null = null): Array<string | number> | null {
-        const values = isNull(key) ? this.values() : this.pluck(key).values();
+        const values = isNull(key) ? this.values() : this.values().pluck(key);
         const counts = new Map<string | number, number>();
 
         values.each((value) => {

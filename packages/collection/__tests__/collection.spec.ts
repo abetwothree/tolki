@@ -498,6 +498,15 @@ describe("Collection", () => {
                 ).mode(),
             ).toEqual(["c", "a"]);
             expect(collect({ x: "p", y: "q", z: "q" }).mode()).toEqual(["q"]);
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-out-of-order-key-tie"
+            expect(
+                new Collection(
+                    new Map([
+                        [2, { foo: "c" }],
+                        [0, { foo: "a" }],
+                    ]),
+                ).mode("foo"),
+            ).toEqual(["c", "a"]);
         });
     });
 
