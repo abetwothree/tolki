@@ -69,6 +69,7 @@ import {
     createSortSpecComparator,
     defineKey,
     isArray,
+    isBoolean,
     isEnumCase,
     isFiniteNumber,
     isFunction,
@@ -96,7 +97,6 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
-    phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolveDefault,
@@ -4720,21 +4720,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Ensure that every item in the collection is of the expected type.
      *
-     * @param type - A class, or a type name ("string", "number", "boolean", "symbol", "bigint", "function", "array",
-     * "object", "null" or "undefined"), or a list or record of them
+     * @param type - A class, a type name as PHP's get_debug_type() gives it ("int", "float", "string", "bool", "array",
+     * "null" or a class's name) or as JavaScript's typeof does ("number", "boolean", "object", "undefined", …),
+     * or a list or record of them
      * @returns The current collection instance if all items are of the expected type
      * @throws UnexpectedValueException naming the first item that is none of the types, and its position
      *
      * @example
      *
-     * new Collection([1, 2, 3]).ensure('number'); -> collection is valid
-     * new Collection([1, '2', 3]).ensure('number'); -> throws UnexpectedValueException
+     * new Collection([1, 2, 3]).ensure('int'); -> collection is valid
+     * new Collection([1, '2', 3]).ensure('int'); -> throws UnexpectedValueException
      * new Collection([new Date(), new Date()]).ensure(Date); -> collection is valid
      * new Collection([new Date(), {}]).ensure(Date); -> throws UnexpectedValueException
-     * new Collection([1, '2', true]).ensure(['number', 'string', 'boolean']); -> collection is valid
-     * new Collection([1, '2', null]).ensure(['number', 'string', 'boolean']); -> throws UnexpectedValueException
-     * new Collection([1, '2', true]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> collection is valid
+     * new Collection([1, '2', true]).ensure(['int', 'string', 'bool']); -> collection is valid
+     * new Collection([1, '2', null]).ensure(['int', 'string', 'bool']); -> throws UnexpectedValueException
+     * new Collection([1, '2', true]).ensure({a: 'int', b: 'string', c: 'bool'}); -> collection is valid
      * new Collection([null, undefined]).ensure('null'); -> collection is valid
+     * new Collection([1.5, 2]).ensure('number'); -> collection is valid
      * new Collection([{}, new Date()]).ensure('object'); -> collection is valid
      */
     ensure<TEnsureOfType>(
@@ -4769,7 +4771,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
 
             throw new UnexpectedValueException(
-                `Collection should only include [${names.join(", ")}] items, but '${foundTypeName(item)}' found at position ${phpIntegerFormat(key)}.`,
+                `Collection should only include [${names.join(", ")}] items, but '${getDebugType(item)}' found at position ${phpIntegerFormat(key)}.`,
             );
         });
     }
@@ -6453,10 +6455,10 @@ function handOver<TItems extends object>(items: TItems): TItems {
 }
 
 /**
- * Determine whether an item is of a type ensure() names: a class by instanceof, a type name by the item's own type.
+ * Determine whether an item is of a type ensure() names, as PHP matches get_debug_type() or instanceof.
  *
  * @param item - The item to check
- * @param type - A class, or a type name such as "string", "array", "object" or "null"
+ * @param type - A class, a get_debug_type() name such as "int", "array", "null" or a class's name, or a typeof name
  * @returns True when the item is of the type
  */
 function isOfType(item: unknown, type: unknown): boolean {
@@ -6464,34 +6466,49 @@ function isOfType(item: unknown, type: unknown): boolean {
         return item instanceof type;
     }
 
-    if (isNull(item)) {
-        return type === "null";
+    if (type === getDebugType(item)) {
+        return true;
     }
 
-    // The port reads undefined as PHP's null, so "null" accepts it beside its own "undefined".
-    if (isUndefined(item)) {
-        return type === "null" || type === "undefined";
-    }
-
-    return type === typeOf(item);
+    // JS-only: JavaScript's typeof names are accepted too, "object" meaning any object but null and an array.
+    return !isNull(item) && type === typeOf(item);
 }
 
 /**
- * Name an item's type for ensure()'s message: the class of an object a class built, else the name gettype() gives.
+ * Name a value's type as PHP's `get_debug_type()` does, for ensure()'s message.
  *
- * @param item - The item to name
- * @returns The class's name, or phpTypeName's
+ * @param value - The value to name
+ * @returns null, int, float, string, bool, array or the class's name, else the JavaScript typeof name
  */
-function foundTypeName(item: unknown): string {
-    if (
-        !isPlainObject(item) &&
-        isObject(item) &&
-        isFunction(item["constructor"])
-    ) {
-        return item["constructor"].name;
+function getDebugType(value: unknown): string {
+    // The port reads undefined as PHP's null.
+    if (isNull(value) || isUndefined(value)) {
+        return "null";
     }
 
-    return phpTypeName(item);
+    if (typeOf(value) === "number") {
+        return isInteger(value) ? "int" : "float";
+    }
+
+    if (isString(value)) {
+        return "string";
+    }
+
+    if (isBoolean(value)) {
+        return "bool";
+    }
+
+    // A plain object stands in for a PHP array.
+    if (isArray(value) || isPlainObject(value)) {
+        return "array";
+    }
+
+    if (isObject(value) && isFunction(value["constructor"])) {
+        return value["constructor"].name;
+    }
+
+    // JS-only: PHP has no function, symbol, bigint or classless object, so each keeps its typeof name.
+    return typeOf(value);
 }
 
 /**

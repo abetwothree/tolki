@@ -210,6 +210,15 @@ probe('C32-A-ensure-returns-same-instance', '$c = collect([1]); $c->ensure(\'int
 probe('C32-A-ensure-keyed-position', "collect(['a' => 1, 'b' => 'x'])->ensure('int')", fn () => collect(['a' => 1, 'b' => 'x'])->ensure('int'));
 probe('C32-A-ensure-numeric-prefix-key-position', "collect(['3x' => 'a'])->ensure('int')", fn () => collect(['3x' => 'a'])->ensure('int'));
 probe('C32-A-ensure-assoc-types', "collect(['hello', 'world'])->ensure(['first' => 'string'])->all()", fn () => collect(['hello', 'world'])->ensure(['first' => 'string'])->all());
+probe('C32-A-ensure-debug-type-names', "the message collect([\$item])->ensure('string') throws for 1, 1.5, NAN, true and ['a' => 1]", fn () => array_map(function ($item) {
+    try {
+        collect([$item])->ensure('string');
+    } catch (UnexpectedValueException $e) {
+        return $e->getMessage();
+    }
+}, [1, 1.5, NAN, true, ['a' => 1]]));
+probe('C32-A-ensure-array-accepts-assoc', "collect([['a' => 1]])->ensure('array')->count()", fn () => collect([['a' => 1]])->ensure('array')->count());
+probe('C32-A-ensure-class-name-string', "collect([new C32AChild])->ensure('C32AChild')->count()", fn () => collect([new C32AChild])->ensure('C32AChild')->count());
 
 // ---- Family B ------------------------------------------------------------
 

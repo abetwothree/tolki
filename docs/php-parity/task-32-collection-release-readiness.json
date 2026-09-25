@@ -750,6 +750,27 @@
             ]
         },
         {
+            "label": "C32-A-ensure-debug-type-names",
+            "php": "the message collect([$item])->ensure('string') throws for 1, 1.5, NAN, true and ['a' => 1]",
+            "value": [
+                "Collection should only include [string] items, but 'int' found at position 0.",
+                "Collection should only include [string] items, but 'float' found at position 0.",
+                "Collection should only include [string] items, but 'float' found at position 0.",
+                "Collection should only include [string] items, but 'bool' found at position 0.",
+                "Collection should only include [string] items, but 'array' found at position 0."
+            ]
+        },
+        {
+            "label": "C32-A-ensure-array-accepts-assoc",
+            "php": "collect([['a' => 1]])->ensure('array')->count()",
+            "value": 1
+        },
+        {
+            "label": "C32-A-ensure-class-name-string",
+            "php": "collect([new C32AChild])->ensure('C32AChild')->count()",
+            "value": 1
+        },
+        {
             "label": "C32-B-put-string-key-on-list",
             "php": "$c = collect([1, 2]); $c->put('x', 3); views",
             "value": {
