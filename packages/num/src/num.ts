@@ -140,8 +140,6 @@ export function parse(value: string, locale: string | null = null): number {
 /**
  * Parse a string into an integer according to the specified locale.
  *
- * A JavaScript number holds integers exactly only up to `Number.MAX_SAFE_INTEGER`; PHP's go up to `PHP_INT_MAX`.
- *
  * @param value - The string to parse.
  * @param locale - The locale to use for parsing.
  * @returns The parsed integer or false if parsing fails.
