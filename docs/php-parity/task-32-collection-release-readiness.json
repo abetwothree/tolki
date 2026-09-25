@@ -3272,6 +3272,34 @@
             }
         },
         {
+            "label": "C32-E-array-item-all-member-is-data",
+            "php": "$row = ['all' => fn () => [9], 'b' => 2]: collect([$row]) and collect(['x' => $row]) ->collapse()->keys() and ->flatten() (a closure as 'Closure')",
+            "value": {
+                "collapseKeys": [
+                    "all",
+                    "b"
+                ],
+                "collapseKeyedKeys": [
+                    "all",
+                    "b"
+                ],
+                "flatten": [
+                    "Closure",
+                    2
+                ],
+                "flattenKeyed": [
+                    "Closure",
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-E-mapSpread-string-keyed-row",
+            "php": "collect([['all' => fn () => [9], 'b' => 2]])->mapSpread(fn (...$a) => count($a))",
+            "threw": "Error",
+            "message": "Cannot use positional argument after named argument during unpacking"
+        },
+        {
             "label": "C32-F-merge-null-is-a-new-instance",
             "php": "$a = collect([1]); $b = $a->merge(null); $b->push(2);",
             "value": {

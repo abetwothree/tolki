@@ -568,6 +568,18 @@ probe('C32-E-keyed-results-mixed-key-order', "a string key produced before an in
     'flip' => (new Collection(['s', 5]))->flip()->keys()->all(),
 ]);
 probe('C32-E-dot-list-backing', "collect(['a', 'b'])->dot() and collect(['0' => 'a', '1' => 'b'])->undot()", fn () => ['dot' => c32e_pairs(Collection::make(['a', 'b'])->dot()), 'undot' => c32e_pairs(Collection::make(['0' => 'a', '1' => 'b'])->undot()), 'dot-is-list' => array_is_list(Collection::make(['a', 'b'])->dot()->all())]);
+probe('C32-E-array-item-all-member-is-data', "\$row = ['all' => fn () => [9], 'b' => 2]: collect([\$row]) and collect(['x' => \$row]) ->collapse()->keys() and ->flatten() (a closure as 'Closure')", function () {
+    $row = ['all' => fn () => [9], 'b' => 2];
+    $named = fn (Collection $c) => $c->map(fn ($v) => $v instanceof Closure ? 'Closure' : $v)->all();
+
+    return [
+        'collapseKeys' => (new Collection([$row]))->collapse()->keys()->all(),
+        'collapseKeyedKeys' => (new Collection(['x' => $row]))->collapse()->keys()->all(),
+        'flatten' => $named((new Collection([$row]))->flatten()),
+        'flattenKeyed' => $named((new Collection(['x' => $row]))->flatten()),
+    ];
+});
+probe('C32-E-mapSpread-string-keyed-row', "collect([['all' => fn () => [9], 'b' => 2]])->mapSpread(fn (...\$a) => count(\$a))", fn () => (new Collection([['all' => fn () => [9], 'b' => 2]]))->mapSpread(fn (...$a) => count($a))->all());
 
 // ---- Family F ------------------------------------------------------------
 
