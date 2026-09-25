@@ -2411,13 +2411,13 @@ describe("Collection", () => {
                 const data = collect(payload);
 
                 const resultByName = data.groupBy("name");
-                expect(resultByName.all()).toEqual({
+                expect(resultByName.toArray()).toEqual({
                     Laravel: [payload[0], payload[1]],
                     Framework: [payload[2]],
                 });
 
                 const resultByUrl = data.groupBy("url");
-                expect(resultByUrl.all()).toEqual({
+                expect(resultByUrl.toArray()).toEqual({
                     1: [payload[0], payload[1]],
                     2: [payload[2]],
                 });
@@ -14809,6 +14809,31 @@ describe("Collection", () => {
             ).toEqual([1, 2]);
         });
 
+        it("where keeps the key of each item a path matches", () => {
+            // A record holding a list's own keys keeps them, where a list backing reindexes after a removal.
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-dot-path"
+            expect(
+                collect({
+                    0: { a: { b: 1 } },
+                    1: { a: { b: 2 } },
+                    2: { "a.b": 2 },
+                })
+                    .where("a.b", 2)
+                    .keys()
+                    .all(),
+            ).toEqual([1]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-wildcard-path"
+            expect(
+                collect({
+                    0: { a: [{ b: 1 }, { b: 2 }] },
+                    1: { a: [{ b: 3 }] },
+                })
+                    .where("a.*.b", [1, 2])
+                    .keys()
+                    .all(),
+            ).toEqual([0]);
+        });
+
         it("reads the item itself for a null path", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-null-key"
             expect(
@@ -14997,6 +15022,55 @@ describe("Collection", () => {
             ]);
         });
 
+        it("containsStrict, search, hasSole, sole and firstOrFail hand their callbacks PHP's integer keys", () => {
+            const collection = collect({ 1: "a", x: "b" });
+            const keysSeen = (
+                run: (
+                    callback: (value: string, key: PropertyKey) => boolean,
+                ) => void,
+            ): PropertyKey[] => {
+                const keys: PropertyKey[] = [];
+
+                run((_value, key) => {
+                    keys.push(key);
+
+                    return false;
+                });
+
+                return keys;
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-C-callback-key-types-numeric-string-record"
+            expect({
+                containsStrict: keysSeen((callback) => {
+                    collection.containsStrict(callback);
+                }),
+                search: keysSeen((callback) => {
+                    collection.search(callback);
+                }),
+                hasSole: keysSeen((callback) => {
+                    collection.hasSole(callback);
+                }),
+                sole: keysSeen((callback) => {
+                    expect(() => collection.sole(callback)).toThrow(
+                        ItemNotFoundException,
+                    );
+                }),
+                firstOrFail: keysSeen((callback) => {
+                    expect(() => collection.firstOrFail(callback)).toThrow(
+                        ItemNotFoundException,
+                    );
+                }),
+            }).toEqual({
+                containsStrict: [1, "x"],
+                search: [1, "x"],
+                hasSole: [1, "x"],
+                sole: [1, "x"],
+                firstOrFail: [1, "x"],
+            });
+        });
+
         it("each hands its callback an integer key for an array or object item too", () => {
             const seen: PropertyKey[] = [];
 
@@ -15107,6 +15181,12 @@ describe("Collection", () => {
                         .pluck("v", () => TestEnum.A)
                         .all(),
                 { A: 1 },
+            ],
+            [
+                "mode counts a bool under the integer key PHP stores it as",
+                // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-bools"
+                () => collect([true, true, false]).mode(),
+                [1],
             ],
             [
                 "mode truncates a float",
