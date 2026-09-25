@@ -525,6 +525,11 @@
             ]
         },
         {
+            "label": "C32-A-jsonSerialize-other-object-is-kept",
+            "php": "$o = new C32AParent; collect([$o])->jsonSerialize()[0] === $o",
+            "value": true
+        },
+        {
             "label": "C32-A-jsonSerialize-keyed",
             "php": "collect(['a' => new TestArrayableObject, 'b' => 1])->jsonSerialize()",
             "value": {
