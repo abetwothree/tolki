@@ -14176,17 +14176,17 @@ describe("Collection", () => {
             expect(Object.values(fromArray.all())).toEqual([10, 30, 40]);
         });
 
-        it("undot, either backing", () => {
+        it("undot, a list given dotted keys by put and the record it becomes", () => {
             // Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c']) -> ['a',['b','c']].
-            // Constructing copies only a list's elements, so the dotted keys reach the list by keyed writes.
-            const flatArray = new Collection(["a"])
+            // A list cannot hold a dotted key, so put rebuilds it as keyed; both halves then undot the same record.
+            const keyedList = new Collection(["a"])
                 .put("1.0", "b")
                 .put("1.1", "c");
-            const flatObject = { "0": "a", "1.0": "b", "1.1": "c" };
+            const record = { "0": "a", "1.0": "b", "1.1": "c" };
 
             agree(
-                flatArray.undot().all(),
-                new Collection(flatObject).undot().all(),
+                keyedList.undot().all(),
+                new Collection(record).undot().all(),
                 [
                     ["0", "a"],
                     ["1", ["b", "c"]],
