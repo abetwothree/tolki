@@ -82,6 +82,7 @@ import {
     isString,
     isSymbol,
     isTruthy,
+    isTruthyObject,
     isUndefined,
     isUnsafeKey,
     ItemNotFoundException,
@@ -301,7 +302,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             rangeArray.push(i);
         }
 
-        return new Collection<number, number>(rangeArray);
+        return new Collection<number, number>(handOver(rangeArray));
     }
 
     /**
@@ -348,10 +349,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return values.get(middle);
         }
 
-        return this.newInstance([
-            values.get(middle - 1),
-            values.get(middle),
-        ]).average() as TValue;
+        return this.newInstance(
+            handOver([values.get(middle - 1), values.get(middle)]),
+        ).average() as TValue;
     }
 
     /**
@@ -411,7 +411,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     collapse() {
         return this.newInstance(
-            dataCollapse(this.itemsToRawValues() as TValue[]),
+            handOver(dataCollapse(this.itemsToRawValues() as TValue[])),
         );
     }
 
@@ -470,10 +470,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
         if (allArrays) {
-            return this.newInstance(Object.values(merged));
+            return this.newInstance(handOver(Object.values(merged)));
         }
 
-        return this.newInstance(merged);
+        return this.newInstance(handOver(merged));
     }
 
     /**
@@ -644,7 +644,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ...items.map((item) => this.getRawItems(item)),
         );
 
-        return this.newInstance(results);
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -665,7 +665,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null
             | undefined,
     ) {
-        return this.newInstance(dataDiff(this.items, this.getRawItems(items)));
+        return this.newInstance(
+            handOver(dataDiff(this.items, this.getRawItems(items))),
+        );
     }
 
     /**
@@ -709,7 +711,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return this.newInstance(results);
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -732,7 +734,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
     ) {
         return this.newInstance(
-            dataDiffAssoc(this.items, this.getRawItems(items)),
+            handOver(dataDiffAssoc(this.items, this.getRawItems(items))),
         );
     }
 
@@ -755,15 +757,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return this.newInstance(
-            dataDiffAssocUsing(
-                this.items,
-                this.getRawItems(items),
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes a bare key and rejects a typed callback (contravariance).
-                callback as (
-                    keyA: string | number,
-                    keyB: string | number,
-                ) => boolean,
+            handOver(
+                dataDiffAssocUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes a bare key and rejects a typed callback (contravariance).
+                    callback as (
+                        keyA: string | number,
+                        keyB: string | number,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -795,10 +799,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isArray(this.items)) {
-            return this.newInstance(Object.values(results) as TValue[]);
+            return this.newInstance(
+                handOver(Object.values(results) as TValue[]),
+            );
         }
 
-        return this.newInstance(results);
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -820,15 +826,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return this.newInstance(
-            dataDiffKeysUsing(
-                this.items,
-                this.getRawItems(items),
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes a bare key and rejects a typed callback (contravariance).
-                callback as (
-                    keyA: string | number,
-                    keyB: string | number,
-                ) => boolean,
+            handOver(
+                dataDiffKeysUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes a bare key and rejects a typed callback (contravariance).
+                    callback as (
+                        keyA: string | number,
+                        keyB: string | number,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -888,7 +896,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Laravel preserves keys for both arrays and objects
-        return this.newInstance(duplicatesItems);
+        return this.newInstance(handOver(duplicatesItems));
     }
 
     /**
@@ -963,7 +971,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             keysToExcept = keys as PathKey[];
         }
 
-        return this.newInstance(dataExcept(this.items, keysToExcept));
+        return this.newInstance(handOver(dataExcept(this.items, keysToExcept)));
     }
 
     /**
@@ -979,14 +987,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     filter(callback: ((value: TValue, key: TKey) => boolean) | null = null) {
         if (isNull(callback)) {
-            return this.newInstance(dataFilter(this.items));
+            return this.newInstance(handOver(dataFilter(this.items)));
         }
 
         // `Items` is a union, so the delegates hand the callback their own widest
         // value type; the collection's own generics are the narrower truth here.
         return this.newInstance(
-            dataFilter(this.items, (value, key) =>
-                callback(value as TValue, key as TKey),
+            handOver(
+                dataFilter(this.items, (value, key) =>
+                    callback(value as TValue, key as TKey),
+                ),
             ),
         );
     }
@@ -1049,7 +1059,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     flatten(depth: number = Infinity) {
         // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
-        return this.newInstance(dataFlatten(this.items, depth));
+        return this.newInstance(handOver(dataFlatten(this.items, depth)));
     }
 
     /**
@@ -1063,7 +1073,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({name: 'taylor'}).flip(); -> new Collection({taylor: 'name'})
      */
     flip() {
-        return this.newInstance(dataFlip(this.items));
+        return this.newInstance(handOver(dataFlip(this.items)));
     }
 
     /**
@@ -1271,7 +1281,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
                 if (!group) {
                     group = (useObjects
-                        ? this.newInstance({})
+                        ? this.newInstance(handOver({}))
                         : this.newInstance()) as unknown as Collection<
                         TValue,
                         TKey
@@ -1290,7 +1300,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        const result = this.newInstance(results);
+        const result = this.newInstance(handOver(results));
 
         if (isArray(nextGroups) && nextGroups.length > 0) {
             const nestedResult = result.map((group) => {
@@ -1318,7 +1328,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 );
             }
 
-            return this.newInstance(nestedConvertedResults);
+            return this.newInstance(handOver(nestedConvertedResults));
         }
 
         // Convert inner collections to arrays/objects to match Laravel's toArray() behavior
@@ -1341,7 +1351,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return this.newInstance(convertedResults);
+        return this.newInstance(handOver(convertedResults));
     }
 
     /**
@@ -1408,7 +1418,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return this.newInstance(results);
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -1630,13 +1640,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
         return this.newInstance(
-            dataIntersect(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
+            handOver(
+                dataIntersect(
+                    this.items,
+                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                ),
             ),
         );
     }
@@ -1658,16 +1670,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (a: TValue, b: TValue) => boolean,
     ) {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
         return this.newInstance(
-            dataIntersect(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes `unknown` and rejects a typed callback (contravariance).
-                callback as (a: unknown, b: unknown) => boolean,
+            handOver(
+                dataIntersect(
+                    this.items,
+                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes `unknown` and rejects a typed callback (contravariance).
+                    callback as (a: unknown, b: unknown) => boolean,
+                ),
             ),
         );
     }
@@ -1688,13 +1702,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
         return this.newInstance(
-            dataIntersectAssoc(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
+            handOver(
+                dataIntersectAssoc(
+                    this.items,
+                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                ),
             ),
         );
     }
@@ -1717,19 +1733,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
         return this.newInstance(
-            dataIntersectAssocUsing(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes a bare key and rejects a typed callback (contravariance).
-                callback as (
-                    keyA: string | number,
-                    keyB: string | number,
-                ) => boolean,
+            handOver(
+                dataIntersectAssocUsing(
+                    this.items,
+                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes a bare key and rejects a typed callback (contravariance).
+                    callback as (
+                        keyA: string | number,
+                        keyB: string | number,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -1749,12 +1767,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
         }
         return this.newInstance(
-            dataIntersectByKeys(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
+            handOver(
+                dataIntersectByKeys(
+                    this.items,
+                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                ),
             ),
         );
     }
@@ -1872,14 +1892,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // If we have preserved order for numeric keys, use it
         if (ordered) {
             return this.newInstance(
-                ordered.map(([key]) => key),
+                handOver(ordered.map(([key]) => key)),
             ) as unknown as Collection<TKey, number>;
         }
 
-        return this.newInstance(dataKeys(this.items)) as unknown as Collection<
-            TKey,
-            number
-        >;
+        return this.newInstance(
+            handOver(dataKeys(this.items)),
+        ) as unknown as Collection<TKey, number>;
     }
 
     /**
@@ -1940,10 +1959,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PropertyKey | ((item: TValue) => string | number) | null = null,
     ): Collection<TPluckValue, TKey> {
         return this.newInstance(
-            dataPluck(
-                this.items,
-                value as string | ((item: unknown) => unknown),
-                key as string | ((item: unknown) => string | number) | null,
+            handOver(
+                dataPluck(
+                    this.items,
+                    value as string | ((item: unknown) => unknown),
+                    key as string | ((item: unknown) => string | number) | null,
+                ),
             ),
         ) as unknown as Collection<TPluckValue, TKey>;
     }
@@ -1961,8 +1982,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
         return this.newInstance(
-            dataMap(this.items, (value, key) =>
-                callback(value as TValue, key as TKey),
+            handOver(
+                dataMap(this.items, (value, key) =>
+                    callback(value as TValue, key as TKey),
+                ),
             ),
         );
     }
@@ -2045,7 +2068,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return this.newInstance(dictionary);
+        return this.newInstance(handOver(dictionary));
     }
 
     /**
@@ -2127,14 +2150,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const rawItems = this.getRawItems(items);
 
         if (isArray(this.items) && isArray(rawItems)) {
-            return this.newInstance([...this.items, ...rawItems]);
+            return this.newInstance(handOver([...this.items, ...rawItems]));
         }
 
         if (isObject(this.items) && isObject(rawItems)) {
-            return this.newInstance({ ...this.items, ...rawItems });
+            return this.newInstance(handOver({ ...this.items, ...rawItems }));
         }
 
-        return this.newInstance({ ...this.items, ...rawItems });
+        return this.newInstance(handOver({ ...this.items, ...rawItems }));
     }
 
     /**
@@ -2225,7 +2248,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 }
             }
 
-            return this.newInstance(result as TValue[]);
+            return this.newInstance(handOver(result as TValue[]));
         }
 
         if (isObject(this.items) && isObject(otherItems)) {
@@ -2234,7 +2257,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 TValue | TMergeRecursiveValue
             >;
 
-            return this.newInstance(result);
+            return this.newInstance(handOver(result));
         }
 
         return this.merge(items as DataItems<TValue, TKey>) as Collection<
@@ -2285,9 +2308,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TCombineValue, TCombineKey>,
     ) {
         return this.newInstance(
-            dataCombine(
-                this.items as TValue[],
-                this.getRawItems(values) as TValue[],
+            handOver(
+                dataCombine(
+                    this.items as TValue[],
+                    this.getRawItems(values) as TValue[],
+                ),
             ),
         );
     }
@@ -2314,7 +2339,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this;
         }
 
-        return this.newInstance(dataUnion(this.items, this.getRawItems(items)));
+        return this.newInstance(
+            handOver(dataUnion(this.items, this.getRawItems(items))),
+        );
     }
 
     /**
@@ -2352,7 +2379,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             position++;
         }
 
-        return this.newInstance(newItems) as unknown as Collection<
+        return this.newInstance(handOver(newItems)) as unknown as Collection<
             TValue[],
             number
         >;
@@ -2385,7 +2412,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
-        return this.newInstance(dataOnly(this.items, keysParam));
+        return this.newInstance(handOver(dataOnly(this.items, keysParam)));
     }
 
     /**
@@ -2415,7 +2442,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
-        return this.newInstance(dataSelect(this.items, keysParam));
+        return this.newInstance(handOver(dataSelect(this.items, keysParam)));
     }
 
     /**
@@ -2455,7 +2482,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return removed[0] ?? null;
             }
 
-            return this.newInstance(removed) as unknown as Collection<
+            return this.newInstance(handOver(removed)) as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -2487,12 +2514,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        const poppedValues = dataPop(this.items, count);
+        const poppedValues = dataPop(this.items, count) as TValue[];
 
-        return this.newInstance(poppedValues) as unknown as Collection<
-            TValue[],
-            number
-        >;
+        return this.newInstance(
+            handOver(poppedValues),
+        ) as unknown as Collection<TValue[], number>;
     }
 
     /**
@@ -2800,12 +2826,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isFunction(count)) {
             const countValue = count(this) as number;
             return this.newInstance(
-                dataRandom(this.items, countValue, preserveKeys),
+                handOver(dataRandom(this.items, countValue, preserveKeys)),
             );
         }
 
         return this.newInstance(
-            dataRandom(this.items, count as number, preserveKeys),
+            handOver(dataRandom(this.items, count as number, preserveKeys)),
         );
     }
 
@@ -2828,11 +2854,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         return this.newInstance(
-            dataReplace(
-                this.items,
-                isNull(items) || isUndefined(items)
-                    ? items
-                    : this.getRawItems(items),
+            handOver(
+                dataReplace(
+                    this.items,
+                    isNull(items) || isUndefined(items)
+                        ? items
+                        : this.getRawItems(items),
+                ),
             ),
         );
     }
@@ -2857,11 +2885,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         return this.newInstance(
-            dataReplaceRecursive(
-                this.items,
-                isNull(items) || isUndefined(items)
-                    ? items
-                    : this.getRawItems(items),
+            handOver(
+                dataReplaceRecursive(
+                    this.items,
+                    isNull(items) || isUndefined(items)
+                        ? items
+                        : this.getRawItems(items),
+                ),
             ),
         );
     }
@@ -2877,7 +2907,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
      */
     reverse() {
-        return this.newInstance(dataReverse(this.items));
+        return this.newInstance(handOver(dataReverse(this.items)));
     }
 
     /**
@@ -2975,7 +3005,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (count === 0) {
-            return this.newInstance([]) as unknown as Collection<
+            return this.newInstance(handOver([])) as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -2992,7 +3022,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return removed[0] as TValue;
             }
 
-            return this.newInstance(removed) as unknown as Collection<
+            return this.newInstance(handOver(removed)) as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -3006,10 +3036,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return shifted as TValue;
         }
 
-        return this.newInstance(shifted as TValue[]) as unknown as Collection<
-            TValue[],
-            number
-        >;
+        return this.newInstance(
+            handOver(shifted as TValue[]),
+        ) as unknown as Collection<TValue[], number>;
     }
 
     /**
@@ -3023,7 +3052,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({0: 2, 1: 3, 2: 1})
      */
     shuffle() {
-        return this.newInstance(dataShuffle(this.items));
+        return this.newInstance(handOver(dataShuffle(this.items)));
     }
 
     /**
@@ -3100,7 +3129,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(new Map(ordered.slice(start, end)));
         }
 
-        return this.newInstance(dataSlice(this.items, offset, length));
+        return this.newInstance(
+            handOver(dataSlice(this.items, offset, length)),
+        );
     }
 
     /**
@@ -3410,7 +3441,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(dataSort(this.items as TValue[], callback));
+        return this.newInstance(
+            handOver(dataSort(this.items as TValue[], callback)),
+        );
     }
 
     /**
@@ -3431,7 +3464,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(dataSortDesc(this.items as TValue[], callback));
+        return this.newInstance(
+            handOver(dataSortDesc(this.items as TValue[], callback)),
+        );
     }
 
     /**
@@ -3500,9 +3535,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         return this.newInstance(
-            sortedIntoItems(
-                entries.map(([key, value]) => [String(key), value]),
-            ) as DataItems<TValue, TKey>,
+            handOver(
+                sortedIntoItems(
+                    entries.map(([key, value]) => [String(key), value]),
+                ) as DataItems<TValue, TKey>,
+            ),
         );
     }
 
@@ -3566,9 +3603,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         return this.newInstance(
-            sortedIntoItems(
-                entries.map(([key, value]) => [String(key), value as TValue]),
-            ) as DataItems<TValue, TKey>,
+            handOver(
+                sortedIntoItems(
+                    entries.map(([key, value]) => [
+                        String(key),
+                        value as TValue,
+                    ]),
+                ) as DataItems<TValue, TKey>,
+            ),
         );
     }
 
@@ -3655,10 +3697,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // A real array has no engine-imposed key order to fight, so the sorted
         // values slot straight in; only the object branch needs reindexIntegerKeys.
         if (isArray(this.items)) {
-            return this.newInstance(entries.map(([, value]) => value));
+            return this.newInstance(
+                handOver(entries.map(([, value]) => value)),
+            );
         }
 
-        return this.newInstance(sortedIntoItems(entries));
+        return this.newInstance(handOver(sortedIntoItems(entries)));
     }
 
     /**
@@ -3700,10 +3744,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         if (isArray(this.items)) {
-            return this.newInstance(entries.map(([, value]) => value));
+            return this.newInstance(
+                handOver(entries.map(([, value]) => value)),
+            );
         }
 
-        return this.newInstance(sortedIntoItems(entries));
+        return this.newInstance(handOver(sortedIntoItems(entries)));
     }
 
     /**
@@ -3747,7 +3793,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataSplice(this.items, offset, length, ...replacementItems),
+            handOver(
+                dataSplice(this.items, offset, length, ...replacementItems),
+            ),
         );
     }
 
@@ -3813,7 +3861,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
     dot(depth: number = Infinity) {
-        return this.newInstance(dataDot(this.items, "", depth));
+        return this.newInstance(handOver(dataDot(this.items, "", depth)));
     }
 
     /**
@@ -3827,7 +3875,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
      */
     undot() {
-        return this.newInstance(dataUndot(this.items));
+        return this.newInstance(handOver(dataUndot(this.items)));
     }
 
     /**
@@ -3929,10 +3977,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.newInstance(ordered.map(([, value]) => value));
+            return this.newInstance(
+                handOver(ordered.map(([, value]) => value)),
+            );
         }
 
-        return this.newInstance(dataValues(this.items));
+        return this.newInstance(handOver(dataValues(this.items)));
     }
 
     /**
@@ -3980,14 +4030,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             zipped.push(
-                this.newInstance(row) as unknown as Collection<
+                this.newInstance(handOver(row)) as unknown as Collection<
                     TValue | TZipValue,
                     number
                 >,
             );
         }
 
-        return this.newInstance(zipped) as unknown as Collection<
+        return this.newInstance(handOver(zipped)) as unknown as Collection<
             Collection<TValue | TZipValue, number>,
             number
         >;
@@ -4015,7 +4065,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(this.padOrdered(ordered, size, value));
         }
 
-        return this.newInstance(dataPad(this.items, size, value));
+        return this.newInstance(handOver(dataPad(this.items, size, value)));
     }
 
     /**
@@ -4134,7 +4184,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             defineKey(results as Record<string, number>, resultKey, seen + 1);
         }
 
-        return this.newInstance(results);
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -4387,7 +4437,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.empty(true); -> new Collection({})
      */
     static empty(asArray: boolean = true) {
-        return new this(asArray ? [] : {});
+        return new this(handOver(asArray ? [] : {}));
     }
 
     /**
@@ -4928,14 +4978,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
             Boolean(callback(item as TValue, key as TKey)),
         );
 
-        return this.newInstance([
-            this.newInstance(
-                passed as DataItems<TValue, TKey>,
-            ) as unknown as Collection<TValue, TKey>,
-            this.newInstance(
-                failed as DataItems<TValue, TKey>,
-            ) as unknown as Collection<TValue, TKey>,
-        ]) as unknown as Collection<
+        return this.newInstance(
+            handOver([
+                this.newInstance(
+                    handOver(passed as DataItems<TValue, TKey>),
+                ) as unknown as Collection<TValue, TKey>,
+                this.newInstance(
+                    handOver(failed as DataItems<TValue, TKey>),
+                ) as unknown as Collection<TValue, TKey>,
+            ]),
+        ) as unknown as Collection<
             Collection<TValue, TKey>,
             number
         > as TupleCollection<
@@ -5509,10 +5561,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Collect the values into a collection.
      *
-     * @returns A new collection with the current items
+     * @returns A new base collection holding a copy of the current items
      */
     collect() {
-        return this.newInstance(this.all());
+        return new Collection<TValue, TKey>(this);
     }
 
     /**
@@ -5731,11 +5783,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const chunks = isArray(chunked) ? chunked : Object.values(chunked);
 
         return this.newInstance(
-            chunks.map(
-                (chunk) =>
-                    this.newInstance(
-                        chunk as DataItems<TValue, TKey>,
-                    ) as unknown as Collection<TValue, TKey>,
+            handOver(
+                chunks.map(
+                    (chunk) =>
+                        this.newInstance(
+                            handOver(chunk as DataItems<TValue, TKey>),
+                        ) as unknown as Collection<TValue, TKey>,
+                ),
             ),
         ) as unknown as Collection<Collection<TValue, TKey>, number>;
     }
@@ -6042,7 +6096,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            isArray(this.items) ? [...this.items] : { ...this.items },
+            handOver(isArray(this.items) ? [...this.items] : { ...this.items }),
         );
     }
 
@@ -6239,6 +6293,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             this.itemsWithOrder = ordered;
         }
 
+        // A builder's fresh items need no copy; anything a caller can still reach is copied, as PHP copies an array.
+        if (isTruthyObject(items) && owned.delete(items)) {
+            return items as DataItems<TValue, TKey>;
+        }
+
         return this.getRawItems(items);
     }
 
@@ -6250,7 +6309,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected getRawItems(items: unknown): DataItems<TValue, TKey> {
         if (items instanceof Collection) {
-            return items.all();
+            return this.castToItems(items.all());
         }
 
         // If it's a Map, convert to an object; `adoptedOrder` keeps the order a caller owns
@@ -6262,11 +6321,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             return obj;
-        }
-
-        // If it's an empty array, return empty array
-        if (isArray(items) && items.length === 0) {
-            return [] as DataItems<TValue, TKey>;
         }
 
         // A plain object models a PHP array, so a toArray, toJson or jsonSerialize member on one is data.
@@ -6302,21 +6356,37 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Read a value as items the way PHP's `(array)` cast does.
      *
      * @param value - The value to cast
-     * @returns No items for null, an array or plain object as it is, an object's own fields, else the value wrapped
+     * @returns No items for null, a copy of an array or of an object's own fields, else the value wrapped
      */
     protected castToItems(value: unknown): DataItems<TValue, TKey> {
         if (isNull(value) || isUndefined(value)) {
             return [];
         }
 
-        if (isArray(value) || isPlainObject(value)) {
-            return value as DataItems<TValue, TKey>;
+        if (isArray(value)) {
+            return value.slice() as TValue[];
         }
 
+        // A spread defines each own key, "__proto__" included, where an assignment would run a setter.
         if (isObject(value)) {
             return { ...value } as Record<TKey, TValue>;
         }
 
         return [value as TValue];
     }
+}
+
+/** Items a builder created for a new instance; the constructor adopts them instead of copying. */
+const owned = new WeakSet<object>();
+
+/**
+ * Hand items a builder just created to the constructor it calls next, which adopts them without a copy.
+ *
+ * @param items - The freshly built items, which nothing else may hold
+ * @returns The same items
+ */
+function handOver<TItems extends object>(items: TItems): TItems {
+    owned.add(items);
+
+    return items;
 }

@@ -368,6 +368,51 @@ describe("Collection", () => {
                 ).all(),
             ).toEqual(["iterated"]);
         });
+
+        it("copies another collection's items, as PHP copies its array", () => {
+            const a = collect([1, 2]);
+            const b = new Collection(a);
+            b.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-collection-copies"
+            expect([a.all(), b.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("copies the caller's array, as PHP's array is a value", () => {
+            const items = [1, 2];
+            const collection = new Collection(items);
+            collection.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            expect([items, collection.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("copies the caller's object, as PHP's array is a value", () => {
+            const items = { a: 1 };
+            const collection = new Collection(items);
+            collection.put("b", 2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            expect([items, collection.all()]).toEqual([
+                { a: 1 },
+                { a: 1, b: 2 },
+            ]);
+        });
+
+        it("copies only the top level, so a nested array stays shared", () => {
+            const nested = [1];
+            const collection = collect([nested]);
+            nested.push(2);
+
+            // JS-only: nested arrays are shared; PHP copies them by value
+            expect(collection.all()).toEqual([[1, 2]]);
+        });
     });
 
     describe("Symbol.iterator", () => {
@@ -463,6 +508,16 @@ describe("Collection", () => {
             const items = { a: 1, b: 2, c: 3 };
             const collection = collect(items);
             expect(collection.all()).toEqual(items);
+        });
+
+        it("returns the live items, where toArray() returns a copy", () => {
+            const collection = collect([1, 2]);
+            collection.all()[2] = 3;
+            collection.toArray()[3] = 4;
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-all-returns-a-copy"
+            // JS-only: all() returns the live backing; toArray() copies
+            expect(collection.all()).toEqual([1, 2, 3]);
         });
     });
 
@@ -5321,11 +5376,16 @@ describe("Collection", () => {
             });
         });
 
-        it("mutates the original array in place (array backing aliases the caller's array)", () => {
+        it("leaves the caller's array untouched, as PHP's array is a value", () => {
             const original = [2, 3];
             const c = new Collection(original);
             c.unshift(1);
-            expect(original).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            expect([original, c.all()]).toEqual([
+                [2, 3],
+                [1, 2, 3],
+            ]);
         });
 
         it("prepends an object item as one element, like array_unshift", () => {
@@ -5336,13 +5396,13 @@ describe("Collection", () => {
             });
         });
 
-        it("mutates the caller's object in place, like the array backing", () => {
-            // JS-only: PHP arrays are values; a Collection shares the caller's object, as it already shares an array.
+        it("leaves the caller's object untouched, as it leaves an array", () => {
             const original = { b: 2 };
+            const c = new Collection(original);
+            c.unshift(1);
 
-            new Collection(original).unshift(1);
-
-            expect(original).toEqual({ 0: 1, b: 2 });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            expect([original, c.all()]).toEqual([{ b: 2 }, { 0: 1, b: 2 }]);
         });
 
         it("classifies keys like PHP, keeping non-canonical numeric strings", () => {
@@ -9029,6 +9089,15 @@ describe("Collection", () => {
                 expect(data2.all()).toEqual(["foo", "bar"]);
             });
         });
+
+        it("copies a collection's items rather than sharing them", () => {
+            const a = collect([1]);
+            const b = Collection.make(a);
+            b.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-make-collection-copies"
+            expect([a.all(), b.all()]).toEqual([[1], [1, 2]]);
+        });
     });
 
     describe("wrap", () => {
@@ -9096,6 +9165,15 @@ describe("Collection", () => {
                 expect(data.all()).toEqual(["foo"]);
                 expect(data).toBeInstanceOf(TestCollectionSubclass);
             });
+        });
+
+        it("copies a collection's items into a new instance", () => {
+            const a = collect([1]);
+            const b = Collection.wrap(a);
+            b.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-collection-copies"
+            expect([a.all(), b.all(), a === b]).toEqual([[1], [1, 2], false]);
         });
     });
 
@@ -11497,6 +11575,28 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it("copies the items into the new collection", () => {
+            const a = collect([1, 2]);
+            const b = a.collect();
+            b.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-collect-method-copies"
+            expect([a.all(), b.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("returns the base class from a subclass", () => {
+            class Tagged extends Collection<number, number> {}
+
+            const result = Tagged.make([1]).collect();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-collect-method-returns-base-class"
+            expect(result.constructor).toBe(Collection);
+            expect(result.all()).toEqual([1]);
+        });
     });
 
     describe("toArray", () => {
@@ -13731,11 +13831,14 @@ describe("Collection", () => {
 
         it("undot, either backing", () => {
             // Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c']) -> ['a',['b','c']].
-            const flatArray = Object.assign(["a"], { "1.0": "b", "1.1": "c" });
+            // Constructing copies only a list's elements, so the dotted keys reach the list by keyed writes.
+            const flatArray = new Collection(["a"])
+                .put("1.0", "b")
+                .put("1.1", "c");
             const flatObject = { "0": "a", "1.0": "b", "1.1": "c" };
 
             agree(
-                new Collection(flatArray).undot().all(),
+                flatArray.undot().all(),
                 new Collection(flatObject).undot().all(),
                 [
                     ["0", "a"],
