@@ -184,14 +184,16 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isFiniteNumber(variable)` - checks if the variable is a finite number
   - `isPrimitive(variable)` - checks if the variable is a primitive value
   - `isNonPrimitive(variable)` - checks if the variable is not a primitive value
-  - `isFalsy(variable)` - checks if the variable is falsy the way PHP treats falsy values
-  - `isTruthy(variable)` - checks if the variable is truthy the way PHP treats truthy values
+  - `isFalsy(variable)` - checks if the variable is empty in the JavaScript sense: `undefined`, `null`, `false`, `0`, `NaN`, a blank or whitespace-only string, or an array, Map, Set or other object with no own entries (a `Date` included). It is not PHP's rule (`"0"` is not falsy here); use `isPhpFalsy` for that
+  - `isTruthy(variable)` - checks if the variable is not `isFalsy`
+  - `isPhpFalsy(variable)` - checks if the variable is falsy the way PHP casts it to a boolean: `false`, `null`/`undefined`, `0`, `""`, `"0"`, and an empty array or plain object, while every other object, however empty, is truthy; an empty Map or Set and `0n` are falsy too. Use it wherever PHP truthiness applies
   - `isAccessibleData(variable)` - checks if the variable is an array or object whose values can be walked
   - `typeOf(variable)` - returns the JavaScript `typeof` name of the variable, not PHP's, except that an array reports as `"array"`; `null` reports as `"object"`
   - `phpTypeName(variable)` - returns the type name the way PHP's `gettype()` would; use this in parity-facing messages
   - `strictEqual(value1, value2)` - checks if two values are strictly equal the way that PHP does it with `===`
   - `isUnsafeKey(key)` - checks if a key could cause prototype pollution (`__proto__`, `constructor`, `prototype`)
   - `isPhpArrayKey(value)` - checks if a value is one PHP would accept as an array key
+  - `phpArrayKey(key)` - casts a key the way PHP casts an array key (`"10"` becomes `10`, `"01"` stays a string, `true` becomes `1`); use it rather than `entriesKeyValue` wherever a key must follow PHP
   - `defineKey(target, key, value)` - defines an own enumerable key without going through a setter
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
@@ -318,9 +320,7 @@ More detailed description of the packages to be implemented:
 - Use the `@tolki/data` package to handle operations that can work on both arrays and objects. This package will smartly call the appropriate helper from `@tolki/arr` or `@tolki/obj` as needed because the Collection class can hold either arrays or objects.
 - Any functions that are public but there is no equivalent in the `@tolki/arr` or `@tolki/obj` packages should be implemented in those packages as well for consistency and reusability and then called from the Collection class. The `@tolki/data` package should also be updated to handle the new function for both arrays and objects. Then finally the Collection class can call the function from `@tolki/data` to handle both arrays and objects.
 - Private and protected methods should be at the bottom of the class
-- Use generics to type the collection items, e.g. `Collection<T>` where `T` is the type of the items in the collection
-- Use tuple types for collections with fixed number of items, e.g. `Collection<[number, string]>` for a collection with two items: a number and a string
-- Use array types for collections with variable number of items, e.g. `Collection<number[]>` for a collection with any number of numbers
+- `Collection<TValue, TKey>`: `TValue` is **one item's** type and `TKey` its key (`Collection<number>` holds numbers; `Collection<number[]>` holds arrays).
 - Stubs
   - The main stub is `packages/collection/stubs/Collection.php` which contains the `Collection` class and its methods to implement in JS in `packages/collection/src/collection.ts`.
   - The other stubs in `packages/collection/stubs/` are helper classes used by the `Collection` class. The methods from these helper classes should be integrated into the `Collection` class as needed.
