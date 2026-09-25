@@ -15487,6 +15487,108 @@ describe("Collection", () => {
             },
         );
 
+        it.each([
+            [
+                "keyBy",
+                () =>
+                    new Collection(
+                        new Map([
+                            [2, { id: 5 }],
+                            [0, { id: 4 }],
+                        ]),
+                    )
+                        .keyBy("id")
+                        .keys()
+                        .all(),
+                [5, 4],
+            ],
+            [
+                "groupBy",
+                () =>
+                    new Collection(
+                        new Map([
+                            [2, { g: 5 }],
+                            [0, { g: 4 }],
+                        ]),
+                    )
+                        .groupBy("g")
+                        .keys()
+                        .all(),
+                [5, 4],
+            ],
+            [
+                "countBy",
+                () =>
+                    new Collection(
+                        new Map([
+                            [2, 5],
+                            [0, 4],
+                        ]),
+                    )
+                        .countBy()
+                        .keys()
+                        .all(),
+                [5, 4],
+            ],
+            [
+                "mapToDictionary",
+                () => {
+                    const dictionary = new Collection(
+                        new Map([
+                            [2, 5],
+                            [0, 4],
+                        ]),
+                    ).mapToDictionary((value, key) => ({ [value]: key }));
+
+                    return [dictionary.keys().all(), dictionary.values().all()];
+                },
+                [
+                    [5, 4],
+                    [[2], [0]],
+                ],
+            ],
+            [
+                "flip",
+                () => {
+                    const flipped = new Collection(
+                        new Map([
+                            [2, "x"],
+                            [0, "y"],
+                            [1, "x"],
+                        ]),
+                    ).flip();
+
+                    return [flipped.keys().all(), flipped.values().all()];
+                },
+                [
+                    ["x", "y"],
+                    [1, 0],
+                ],
+            ],
+        ] as [string, () => unknown, unknown][])(
+            "%s reads a Map-built collection in the order it holds its keys",
+            (_method, run, expected) => {
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-E-keyed-results-out-of-order-receiver"
+                expect(run()).toEqual(expected);
+            },
+        );
+
+        it("combine pairs a Map-built collection's values in the order it holds them", () => {
+            const combined = new Collection(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ).combine(["x", "y", "z"]);
+
+            // docs/php-parity/task-30-map-order.json, "combine-out-of-order"
+            expect(combined.all()).toEqual({ c: "x", a: "y", b: "z" });
+            expect(combined.keys().all()).toEqual(["c", "a", "b"]);
+            expect(combined.values().all()).toEqual(["x", "y", "z"]);
+        });
+
         it("keeps a Map key's type as PHP stores it, as an integer only when canonical", () => {
             const keys = new Collection(
                 new Map([

@@ -18,7 +18,6 @@ import {
     dataFilter,
     dataFirst,
     dataFlatten,
-    dataFlip,
     dataForget,
     dataGet,
     dataHas,
@@ -1069,19 +1068,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({name: 'taylor'}).flip(); -> new Collection({taylor: 'name'})
      */
     flip() {
-        const flipped = dataFlip(this.items) as Record<string, unknown>;
+        const flipped = new Map<string | number, TKey>();
 
-        // A plain object re-sorts integer keys, so the flipped pairs are laid out again in the order the values come.
-        return this.newInstance(
-            new Map(
-                this.getItemValues(this.items)
-                    .filter((value) => isPhpArrayKey(value))
-                    .map((value) => [
-                        phpArrayKey(value),
-                        flipped[String(value)],
-                    ]),
-            ),
-        );
+        for (const [key, value] of this.entriesInOrder()) {
+            // array_flip skips a value it cannot store as a key.
+            if (isPhpArrayKey(value)) {
+                flipped.set(phpArrayKey(value), key);
+            }
+        }
+
+        return this.newInstance(flipped);
     }
 
     /**
@@ -1215,13 +1211,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // When preserving keys from an object collection, use objects
         const useObjects = preserveKeys && isObject(this.items);
 
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            const rawGroupKeys = groupByValue(
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            );
+        for (const [key, value] of this.entriesInOrder()) {
+            const rawGroupKeys = groupByValue(value, key);
             let groupKeys: unknown[] = [rawGroupKeys];
 
             // PHP groups by each value of an array it gets back, which a plain object that is no enum case models.
@@ -1256,10 +1247,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     groups.set(groupKey, group);
                 }
 
-                group.offsetSet(
-                    preserveKeys ? (key as TKey) : null,
-                    value as TValue,
-                );
+                group.offsetSet(preserveKeys ? key : null, value);
             }
         }
 
@@ -1307,13 +1295,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const results = new Map<PropertyKey, TValue>();
 
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            const resolvedKey = keyByValueCallback(
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            );
+        for (const [key, value] of this.entriesInOrder()) {
+            const resolvedKey = keyByValueCallback(value, key);
 
             results.set(
                 // JS-only: PHP has no symbols; a symbol key is kept as it is, as arr and obj keyBy keep it.
@@ -1324,7 +1307,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                           stringables: true,
                           invalid: unconvertibleKey,
                       }),
-                value as TValue,
+                value,
             );
         }
 
@@ -1959,13 +1942,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return created;
         };
 
-        // For objects, use Object.entries
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            const loopKey = phpArrayKey(key);
-
-            const mapped = callback(value as TValue, loopKey as TKey);
+        for (const [key, value] of this.entriesInOrder()) {
+            const mapped = callback(value, key);
 
             if (isArray(mapped)) {
                 if (mapped.length !== 2) {
@@ -2012,16 +1990,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
-        const entries: Array<[TKey, TValue]> =
-            this.orderedEntries() ??
-            Object.entries(this.items).map(
-                ([key, value]) =>
-                    [phpArrayKey(key), value] as unknown as [TKey, TValue],
-            );
-
         const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
 
-        for (const [key, value] of entries) {
+        for (const [key, value] of this.entriesInOrder()) {
             const result = callback(value, key);
             // Spread the result object to get the key-value pairs
             for (const [newKey, newValue] of Object.entries(result)) {
@@ -2219,15 +2190,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TCombineKey, TCombineValue>
             | Collection<TCombineValue, TCombineKey>,
     ) {
+        const keys = this.orderedValues();
         const combined = dataCombine(
-            this.items as TValue[],
+            keys,
             this.getRawItems(values) as TValue[],
         ) as Record<string, unknown>;
 
         // A plain object re-sorts integer keys, so the combined pairs are laid out again in the order the keys come.
         return this.newInstance(
             new Map(
-                this.getItemValues(this.items).map((key) => {
+                keys.map((key) => {
                     const phpKey = toPhpKeyString(key);
 
                     return [phpKey, combined[phpKey]];
@@ -4084,8 +4056,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 | ((...args: (TValue | TKey)[]) => TCountByResult),
         );
 
-        for (const [key, value] of Object.entries(this.items)) {
-            const result = callback(value as TValue, phpArrayKey(key) as TKey);
+        for (const [key, value] of this.entriesInOrder()) {
+            const result = callback(value, key);
             const resultKey = phpComputedKey(result, {
                 enumCases: true,
                 invalid: issetOffset,
@@ -5979,6 +5951,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return ordered
             ? ordered.map(([, value]) => value)
             : this.getItemValues(this.items);
+    }
+
+    /**
+     * The entries this collection holds, in the order PHP keeps them, each key as PHP stores it.
+     *
+     * @returns The ordered view's entries, or the backing's own entries with their keys cast
+     */
+    protected entriesInOrder(): Array<[TKey, TValue]> {
+        return (
+            this.orderedEntries() ??
+            Object.entries(this.items).map(
+                ([key, value]) => [phpArrayKey(key), value] as [TKey, TValue],
+            )
+        );
     }
 
     /**
