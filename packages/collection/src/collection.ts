@@ -4043,20 +4043,25 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Convert the collection to a primitive value (returns count).
-     * This allows the collection to be used in numeric contexts.
+     * Convert the collection to a primitive: its count where a number is wanted, and its string form otherwise.
      *
-     * @returns The number of items in the collection
+     * @param hint - The kind of primitive JavaScript asks for: "number", "string" or "default"
+     * @returns The number of items for the "number" hint, else what toString() returns
      *
      * @example
      *
      * const c = new Collection([1, 2, 3]);
      * +c; -> 3
      * Number(c); -> 3
-     * c == 3; -> true (loose comparison)
+     * c + ''; -> '[1,2,3]'
+     * `${c}`; -> '[1,2,3]'
      */
-    valueOf(): number {
-        return this.count();
+    [Symbol.toPrimitive](hint: string): number | string {
+        if (hint === "number") {
+            return this.count();
+        }
+
+        return this.toString();
     }
 
     /**

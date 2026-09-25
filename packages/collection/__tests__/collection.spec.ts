@@ -9076,6 +9076,22 @@ describe("Collection", () => {
         });
     });
 
+    describe("Symbol.toPrimitive", () => {
+        it("concatenates as its JSON, as PHP's string conversion does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-string-concat-is-json"
+            expect(collect(["foo"]) + "").toBe('["foo"]');
+            expect(`${collect(["foo"])}`).toBe('["foo"]');
+        });
+
+        it("reads as its count where a number is wanted", () => {
+            const collection = collect([1, 2, 3]);
+
+            // JS-only: PHP cannot cast a Collection to a number, but +c and Number(c) read the count here
+            expect(+collection).toBe(3);
+            expect(Number(collection)).toBe(3);
+        });
+    });
+
     describe("countBy", () => {
         describe("Laravel Tests", () => {
             it("test count by standalone", () => {
