@@ -5601,6 +5601,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Give JSON.stringify the items to encode, as json_encode reads a JsonSerializable's jsonSerialize().
+     *
+     * @returns What jsonSerialize() returns
+     *
+     * @example
+     *
+     * JSON.stringify(new Collection([1, 2])); -> '[1,2]'
+     * JSON.stringify({users: new Collection([{id: 1}])}); -> '{"users":[{"id":1}]}'
+     */
+    toJSON(): unknown {
+        // Typed unknown so an argument with a toJSON of its own infers no item type through this one.
+        return this.jsonSerialize();
+    }
+
+    /**
      * Get the collection of items as pretty print formatted JSON.
      *
      * @param replacer - The replacer function or array for JSON.stringify

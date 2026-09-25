@@ -12552,6 +12552,28 @@ describe("Collection", () => {
         });
     });
 
+    describe("toJSON", () => {
+        it("lets JSON.stringify encode the items, as json_encode encodes a JsonSerializable", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-json-encode-collection"
+            expect(JSON.stringify(collect([1, 2]))).toBe("[1,2]");
+        });
+
+        it("encodes a collection nested in other data by its items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-json-encode-nested-collection"
+            expect(JSON.stringify({ users: collect([{ id: 1 }]) })).toBe(
+                '{"users":[{"id":1}]}',
+            );
+        });
+
+        it("returns what jsonSerialize() returns", () => {
+            const c = collect({ a: new TestArrayableObject(), b: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-keyed"
+            // JS-only: toJSON is JavaScript's name for the hook PHP's JsonSerializable calls jsonSerialize
+            expect(c.toJSON()).toEqual({ a: { foo: "bar" }, b: 1 });
+        });
+    });
+
     describe("toPrettyJson", () => {
         it("returns pretty-printed JSON by default (4 spaces)", () => {
             const c = collect([
