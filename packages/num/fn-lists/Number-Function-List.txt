@@ -1,7 +1,7 @@
 
 Analyzing file: packages/num/stubs/Number.php
 
-Found 23 function(s):
+Found 24 function(s):
 
 METHOD DECLARATIONS:
   public format(int|float $number, ?int $precision, ?int $maxPrecision, ?string $locale) [line 36]
@@ -13,18 +13,19 @@ METHOD DECLARATIONS:
   public spellOrdinal(int|float $number, ?string $locale) [line 141]
   public percentage(int|float $number, $precision, ?int $maxPrecision, ?string $locale) [line 161]
   public currency(int|float $number, $in, ?string $locale, ?int $precision) [line 185]
-  public fileSize(int|float $bytes, $precision, ?int $maxPrecision) [line 206]
-  public abbreviate(int|float $number, $precision, ?int $maxPrecision) [line 231]
-  public forHumans(int|float $number, $precision, ?int $maxPrecision, $abbreviate) [line 245]
-  protected summarize(int|float $number, $precision, ?int $maxPrecision, $units) [line 273]
-  public clamp(int|float $number, int|float $min, int|float $max) [line 326]
-  public pairs(int|float $to, int|float $by, int|float $start, int|float $offset) [line 340]
-  public trim(int|float $number) [line 369]
-  public withLocale($locale, $callback) [line 387]
-  public withCurrency($currency, $callback) [line 409]
-  public useLocale($locale) [line 428]
-  public useCurrency($currency) [line 439]
-  public defaultLocale() [line 449]
-  public defaultCurrency() [line 459]
-  protected ensureIntlExtensionIsInstalled() [line 471]
+  public fileSize(int|float $bytes, $precision, ?int $maxPrecision) [line 211]
+  public abbreviate(int|float $number, $precision, ?int $maxPrecision) [line 236]
+  public forHumans(int|float $number, $precision, ?int $maxPrecision, $abbreviate) [line 250]
+  protected summarize(int|float $number, $precision, ?int $maxPrecision, $units) [line 278]
+  public clamp(int|float $number, int|float $min, int|float $max) [line 331]
+  public pairs(int|float $to, int|float $by, int|float $start, int|float $offset) [line 345]
+  public trim(int|float $number) [line 374]
+  public withLocale($locale, $callback) [line 392]
+  public withCurrency($currency, $callback) [line 414]
+  public useLocale($locale) [line 433]
+  public useCurrency($currency) [line 444]
+  public defaultLocale() [line 454]
+  public defaultCurrency() [line 464]
+  protected ensureIntlExtensionIsInstalled() [line 476]
+  protected withoutNegativeZero(int|float $number, $format) [line 492]
 
