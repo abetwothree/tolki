@@ -12322,7 +12322,8 @@ describe("Collection", () => {
                 }
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray"
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray"
             expect(
                 collect([new ArrayableAndJsonSerializable()]).jsonSerialize(),
             ).toEqual([{ from: "jsonSerialize" }]);
@@ -12339,7 +12340,8 @@ describe("Collection", () => {
                 }
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-prefers-toJson-over-toArray"
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-jsonSerialize-prefers-toJson-over-toArray"
             expect(
                 collect([new ArrayableAndJsonable()]).jsonSerialize(),
             ).toEqual([{ from: "toJson" }]);
@@ -12416,7 +12418,8 @@ describe("Collection", () => {
             const toJson = () => "[1]";
             const jsonSerialize = () => 1;
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-plain-item-members-are-data"
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-jsonSerialize-plain-item-members-are-data"
             expect(
                 collect([
                     { toArray, toJson, jsonSerialize, b: 2 },
