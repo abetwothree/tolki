@@ -14463,21 +14463,24 @@ describe("Collection", () => {
             ],
             [
                 "value reads a dot path through the item, never a literal dotted key",
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-D-data-get-literal-dotted-key"
                 (keyed: boolean) =>
                     backed(keyed, [{ "a.b": 1, a: { b: 2 } }]).value("a.b"),
                 { list: 2, keyed: 2 },
             ],
             [
                 "value finds no item for a path that only a literal dotted key would match",
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-D-data-get-literal-dotted-key"
                 (keyed: boolean) =>
                     backed(keyed, [{ "a.b": 1 }]).value("a.b", "miss"),
                 { list: "miss", keyed: "miss" },
             ],
             [
                 "keyBy reads an array path one segment at a time",
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-E-keyBy-array-path"
                 (keyed: boolean) =>
                     backed(keyed, [{ a: { b: "z" } }])
                         .keyBy(["a", "b"])
@@ -14487,7 +14490,8 @@ describe("Collection", () => {
             ],
             [
                 "keyBy keys an array path that reaches no value under the empty string",
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-E-keyBy-array-path"
                 (keyed: boolean) =>
                     backed(keyed, [{ id: 1, name: "John" }])
                         .keyBy(["id", "name"])
@@ -14889,6 +14893,18 @@ describe("Collection", () => {
             })();
 
         it.each([
+            [
+                "keyBy casts a Stringable or an object with its own toString to its string",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-stringable-keys"
+                () => [
+                    collect([1]).keyBy(framework).keys().all(),
+                    collect([1])
+                        .keyBy(() => new Stringable("Lara"))
+                        .keys()
+                        .all(),
+                ],
+                [["Framework"], ["Lara"]],
+            ],
             [
                 "groupBy truncates a float key",
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-float-key"
