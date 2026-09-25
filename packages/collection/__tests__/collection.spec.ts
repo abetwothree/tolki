@@ -523,6 +523,35 @@ describe("Collection", () => {
             }
             expect(result).toEqual([1, 2, 3]);
         });
+
+        it("hands out getIterator()'s iterator, which is itself iterable", () => {
+            const iterator = collect([1, 2])[Symbol.iterator]();
+
+            // JS-only: for...of is JavaScript's foreach, and it reads the same iterator getIterator() returns
+            expect(Symbol.iterator in iterator).toBe(true);
+            expect(Object.prototype.toString.call(iterator)).toBe(
+                "[object Array Iterator]",
+            );
+        });
+
+        it("iterates a snapshot, as PHP's foreach does", () => {
+            const collection = collect([1, 2]);
+            const seen: number[] = [];
+
+            for (const value of collection) {
+                seen.push(value);
+
+                if (seen.length < 5) {
+                    collection.push(9);
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-iterator-is-a-snapshot"
+            expect([seen, collection.all()]).toEqual([
+                [1, 2],
+                [1, 2, 9, 9],
+            ]);
+        });
     });
 
     describe("test helper classes", () => {

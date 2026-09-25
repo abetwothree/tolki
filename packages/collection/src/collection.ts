@@ -265,22 +265,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Make the collection iterable with for...of loops.
      *
-     * @returns An iterator for the collection values
+     * @returns The iterator getIterator() returns, over the collection's values
      */
     [Symbol.iterator](): Iterator<TValue> {
-        const values = Object.values(this.items);
-
-        let index = 0;
-
-        return {
-            next: (): IteratorResult<TValue> => {
-                if (index < values.length) {
-                    return { value: values[index++] as TValue, done: false };
-                }
-
-                return { value: undefined as never, done: true };
-            },
-        };
+        return this.getIterator();
     }
 
     /**
