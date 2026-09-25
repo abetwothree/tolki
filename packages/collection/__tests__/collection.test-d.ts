@@ -79,4 +79,15 @@ describe("collection type tests", () => {
             ).toEqualTypeOf<number | null>();
         });
     });
+
+    describe("mode", () => {
+        it("answers the PHP array keys the values were counted under, or null", () => {
+            expectTypeOf(collect([1, 2, 2]).mode()).toEqualTypeOf<Array<
+                string | number
+            > | null>();
+            expectTypeOf(
+                collect([{ foo: "a" }, { foo: null }]).mode("foo"),
+            ).toEqualTypeOf<Array<string | number> | null>();
+        });
+    });
 });

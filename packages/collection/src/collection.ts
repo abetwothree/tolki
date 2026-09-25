@@ -356,49 +356,46 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the mode of a given key.
      *
+     * Null items are skipped, and each value is counted under the key PHP would store it as.
+     *
      * @param key - The key to calculate the mode for, or null for the values themselves
-     * @returns An array of the most frequently occurring values, or null if the collection is empty
+     * @returns The most frequent values in the order first seen, or null when no non-null value remains
      *
      * @example
      *
      * new Collection([1, 2, 2, 3, 3, 3]).mode(); -> [3]
      * new Collection([1, 1, 2, 2, 3, 3]).mode(); -> [1, 2, 3]
      * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
-     * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
+     * new Collection([{foo: 5}, {foo: null}, {foo: null}]).mode('foo'); -> [5]
+     * new Collection([null, null]).mode(); -> null
      */
-    mode(key: PropertyKey | null = null): number[] | null {
-        if (this.isEmpty()) {
+    mode(key: PropertyKey | null = null): Array<string | number> | null {
+        const values = isNull(key) ? this.values() : this.pluck(key).values();
+        const counts = new Map<string | number, number>();
+
+        values.each((value) => {
+            // JS-only: undefined stands in for a value PHP does not have, so it is skipped with null.
+            if (isNull(value) || isUndefined(value)) {
+                return;
+            }
+
+            const countKey = phpArrayKey(value);
+
+            counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
+        });
+
+        if (counts.size === 0) {
             return null;
         }
 
-        const keyList = !isNull(key) ? this.pluck(key) : this;
+        const highestCount = [...counts.values()].reduce(
+            (highest, count) => Math.max(highest, count),
+            0,
+        );
 
-        const counts = this.newInstance({}) as unknown as Collection<
-            number,
-            PropertyKey
-        >;
-
-        keyList.each((keyValue) => {
-            counts.set(
-                keyValue as PathKey,
-                ((counts.get(keyValue as PathKey) ?? 0) as number) + 1,
-            );
-        });
-
-        const highestCount = counts.max();
-
-        // PHP sorts the filtered counts again before reading their keys, but
-        // every remaining value equals $highestValue so asort cannot move
-        // one; here that sort would renumber the keys mode() is after.
-        return (
-            counts
-                .filter((value) => value === highestCount)
-                .keys()
-                .all() as PropertyKey[]
-        ).map((key: PropertyKey) => {
-            const num = Number(key);
-            return !isNaN(num) && String(num) === String(key) ? num : key;
-        }) as number[];
+        return [...counts]
+            .filter(([, count]) => count === highestCount)
+            .map(([countKey]) => countKey);
     }
 
     /**

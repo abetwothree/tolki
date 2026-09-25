@@ -460,6 +460,45 @@ describe("Collection", () => {
             // "apple" appears 3 times (most frequent)
             expect(result).toEqual(["apple"]);
         });
+
+        it("skips null items", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-key-with-nulls", "mode-null-and-value",
+            // "mode-only-nulls" and "mode-missing-key"
+            expect(
+                collect([{ foo: 5 }, { foo: null }, { foo: null }]).mode("foo"),
+            ).toEqual([5]);
+            expect(collect([null, 3]).mode()).toEqual([3]);
+            expect(collect([null, null]).mode()).toBeNull();
+            expect(
+                collect([{ foo: 5 }, { bar: 1 }, { bar: 2 }]).mode("foo"),
+            ).toEqual([5]);
+            // JS-only: undefined has no PHP analogue and is skipped with null.
+            expect(collect([undefined, 3]).mode()).toEqual([3]);
+        });
+
+        it("counts each value under the key PHP stores it as", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-dotted-values", "mode-bools",
+            // "mode-numeric-strings" and "mode-empty-string"
+            expect(collect(["a.b", "a.b", "c"]).mode()).toEqual(["a.b"]);
+            expect(collect([true, true, false]).mode()).toEqual([1]);
+            expect(collect(["1", 1, "1"]).mode()).toEqual([1]);
+            expect(collect(["", "", "a"]).mode()).toEqual([""]);
+        });
+
+        it("lists tied values in the order first seen", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-tie-first-seen", "mode-out-of-order-tie"
+            // and "mode-assoc-strings"
+            expect(collect([3, 1, 3, 1]).mode()).toEqual([3, 1]);
+            expect(
+                new Collection(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ).mode(),
+            ).toEqual(["c", "a"]);
+            expect(collect({ x: "p", y: "q", z: "q" }).mode()).toEqual(["q"]);
+        });
     });
 
     describe("collapse", () => {
@@ -9769,6 +9808,13 @@ describe("Collection", () => {
                 const f = collect();
                 expect(f.max()).toBeNull();
             });
+        });
+
+        it("keeps an earlier value that no later value exceeds", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "max-keeps-earlier-larger-value"
+            // and "max-key-keeps-earlier-larger-value"
+            expect(collect([3, 1, 2]).max()).toBe(3);
+            expect(collect([{ foo: 20 }, { foo: 10 }]).max("foo")).toBe(20);
         });
     });
 
