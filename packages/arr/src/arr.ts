@@ -494,13 +494,13 @@ export function chunk<TValue>(
  */
 export function chunkWhile<TValue>(
     data: ArrayItems<TValue>,
-    callback: (value: TValue, index: number, chunk: TValue[]) => boolean,
+    callback: (value: TValue, index: number, chunk: TValue[]) => unknown,
 ): TValue[][] {
     const chunks: TValue[][] = [];
     let chunk: TValue[] = [];
 
     for (const [index, value] of data.entries()) {
-        if (chunk.length > 0 && !callback(value, index, chunk)) {
+        if (chunk.length > 0 && isPhpFalsy(callback(value, index, chunk))) {
             chunks.push(chunk);
             chunk = [];
         }
@@ -1038,7 +1038,7 @@ export function exists<TValue>(data: readonly TValue[], key: PathKey): boolean {
 // Overload: array type with callback for proper type inference
 export function first<TValue, TFirstDefault = null>(
     data: TValue[],
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: array type without callback
@@ -1050,7 +1050,7 @@ export function first<TValue, TFirstDefault = null>(
 // Overload: iterable with callback for proper type inference
 export function first<TValue, TFirstDefault = null>(
     data: Iterable<TValue>,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: iterable without callback
@@ -1064,19 +1064,19 @@ export function first<TValue, TFirstDefault = null>(
 // array-shaped so the dispatch can hand keyed data to obj.
 export function first<TValue, TFirstDefault = null>(
     data: Iterable<TValue>,
-    callback?: ((value: TValue, key: number) => boolean) | null,
+    callback?: ((value: TValue, key: number) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: untyped array or nullish fallback
 export function first<TValue, TFirstDefault = null>(
     data: readonly unknown[] | null | undefined,
-    callback?: ((value: TValue, key: number) => boolean) | null,
+    callback?: ((value: TValue, key: number) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Implementation
 export function first<TValue, TFirstDefault = null>(
     data: ArrayItems<TValue> | unknown,
-    callback?: ((value: TValue, key: number) => boolean) | null,
+    callback?: ((value: TValue, key: number) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
@@ -1124,7 +1124,7 @@ export function first<TValue, TFirstDefault = null>(
         // If from() returns an object, iterate over values
         let index = 0;
         for (const value of Object.values(array)) {
-            if (callback(value as TValue, index++)) {
+            if (!isPhpFalsy(callback(value as TValue, index++))) {
                 return value as TValue;
             }
         }
@@ -1134,7 +1134,7 @@ export function first<TValue, TFirstDefault = null>(
 
     let index = 0;
     for (const item of array) {
-        if (callback(item as TValue, index++)) {
+        if (!isPhpFalsy(callback(item as TValue, index++))) {
             return item as TValue;
         }
     }
@@ -1162,7 +1162,7 @@ export function first<TValue, TFirstDefault = null>(
 // Overload: array type with callback for proper type inference
 export function last<TValue, TFirstDefault = null>(
     data: TValue[],
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: array type without callback
@@ -1174,7 +1174,7 @@ export function last<TValue, TFirstDefault = null>(
 // Overload: iterable with callback for proper type inference
 export function last<TValue, TFirstDefault = null>(
     data: Iterable<TValue>,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: iterable without callback
@@ -1188,19 +1188,19 @@ export function last<TValue, TFirstDefault = null>(
 // array-shaped so the dispatch can hand keyed data to obj.
 export function last<TValue, TFirstDefault = null>(
     data: Iterable<TValue>,
-    callback?: ((value: TValue, key: number) => boolean) | null,
+    callback?: ((value: TValue, key: number) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Overload: untyped array or nullish fallback
 export function last<TValue, TFirstDefault = null>(
     data: readonly unknown[] | null | undefined,
-    callback?: ((value: TValue, key: number) => boolean) | null,
+    callback?: ((value: TValue, key: number) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null;
 // Implementation
 export function last<TValue, TFirstDefault = null>(
     data: ArrayItems<TValue> | unknown,
-    callback?: ((value: TValue, key: number) => boolean) | null,
+    callback?: ((value: TValue, key: number) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
@@ -1247,7 +1247,7 @@ export function last<TValue, TFirstDefault = null>(
     if (isArrayable) {
         const arr = data as readonly TValue[];
         for (let i = arr.length - 1; i >= 0; i--) {
-            if (callback(arr[i] as TValue, i)) {
+            if (!isPhpFalsy(callback(arr[i] as TValue, i))) {
                 return arr[i] as TValue;
             }
         }
@@ -1260,7 +1260,7 @@ export function last<TValue, TFirstDefault = null>(
     let found = false;
     let candidate: TValue | undefined;
     for (const item of iterable) {
-        if (callback(item, index)) {
+        if (!isPhpFalsy(callback(item, index))) {
             candidate = item;
             found = true;
         }
@@ -1803,27 +1803,27 @@ export function hasAny<TValue>(
 // Overload: array type with callback for proper type inference
 export function every<TValue>(
     data: TValue[],
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Overload: iterable type with callback for proper type inference
 export function every<TValue>(
     data: Iterable<TValue>,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Overload: untyped array or nullish fallback
 export function every<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Implementation
 export function every<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean {
     if (accessible(data)) {
         const values = getAccessibleValues<TValue>(data);
         for (let i = 0; i < values.length; i++) {
-            if (!callback(values[i] as TValue, i)) {
+            if (isPhpFalsy(callback(values[i] as TValue, i))) {
                 return false;
             }
         }
@@ -1839,7 +1839,7 @@ export function every<TValue>(
 
     let index = 0;
     for (const value of toWalkable<TValue>(data)) {
-        if (!callback(value, index++)) {
+        if (isPhpFalsy(callback(value, index++))) {
             return false;
         }
     }
@@ -1866,28 +1866,28 @@ export function every<TValue>(
 // Overload: array type with callback for proper type inference
 export function some<TValue>(
     data: TValue[],
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Overload: iterable type with callback for proper type inference
 export function some<TValue>(
     data: Iterable<TValue>,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Overload: untyped array or nullish fallback
 export function some<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean;
 // Implementation
 export function some<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: (value: TValue, key: number) => boolean,
+    callback: (value: TValue, key: number) => unknown,
 ): boolean {
     if (accessible(data)) {
         const values = getAccessibleValues<TValue>(data);
 
         for (let i = 0; i < values.length; i++) {
-            if (callback(values[i] as TValue, i)) {
+            if (!isPhpFalsy(callback(values[i] as TValue, i))) {
                 return true;
             }
         }
@@ -1903,7 +1903,7 @@ export function some<TValue>(
 
     let index = 0;
     for (const value of toWalkable<TValue>(data)) {
-        if (callback(value, index++)) {
+        if (!isPhpFalsy(callback(value, index++))) {
             return true;
         }
     }
@@ -3173,7 +3173,7 @@ export function slice<TValue>(
 // Overload: array type with callback for proper type inference
 export function sole<TValue>(
     data: ArrayItems<TValue>,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue;
 // Overload: array type without callback
 export function sole<TValue>(
@@ -3183,12 +3183,12 @@ export function sole<TValue>(
 // Overload: untyped array or nullish fallback
 export function sole<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback?: (value: TValue, index: number) => boolean,
+    callback?: (value: TValue, index: number) => unknown,
 ): TValue;
 // Implementation
 export function sole<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback?: (value: TValue, index: number) => boolean,
+    callback?: (value: TValue, index: number) => unknown,
 ): TValue {
     const values = getAccessibleValues(data) as TValue[];
 
@@ -3203,7 +3203,7 @@ export function sole<TValue>(
         filteredValues = [];
         for (let i = 0; i < values.length; i++) {
             const value = values[i] as TValue;
-            if (callback(value, i)) {
+            if (!isPhpFalsy(callback(value, i))) {
                 filteredValues.push(value);
             }
         }
@@ -3826,24 +3826,24 @@ export function toCssStyles(
 // Overload: array type with callback for proper type inference
 export function where<TValue>(
     data: ArrayItems<TValue>,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Overload: untyped array or nullish fallback
 export function where<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Implementation
 export function where<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[] {
     const values = getAccessibleValues(data);
     const result: TValue[] = [];
 
     for (let i = 0; i < values.length; i++) {
         const value = values[i] as TValue;
-        if (callback(value, i)) {
+        if (!isPhpFalsy(callback(value, i))) {
             result.push(value);
         }
     }
@@ -3866,19 +3866,19 @@ export function where<TValue>(
 // Overload: array type with callback for proper type inference
 export function reject<TValue>(
     data: ArrayItems<TValue>,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Overload: untyped array or nullish fallback
 export function reject<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Implementation
 export function reject<TValue>(
     data: ArrayItems<TValue> | null | undefined,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[] {
-    return where(data, (value, index) => !callback(value, index));
+    return where(data, (value, index) => isPhpFalsy(callback(value, index)));
 }
 
 /**
@@ -4099,17 +4099,17 @@ export function pad<TPadValue, TValue>(
 // Overload: array type with callback for proper type inference
 export function partition<TValue>(
     data: ArrayItems<TValue>,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): [TValue[], TValue[]];
 // Overload: untyped array or nullish fallback
 export function partition<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): [TValue[], TValue[]];
 // Implementation
 export function partition<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): [TValue[], TValue[]] {
     const values = getAccessibleValues(data);
     const passed: TValue[] = [];
@@ -4117,7 +4117,7 @@ export function partition<TValue>(
 
     for (let i = 0; i < values.length; i++) {
         const value = values[i] as TValue;
-        if (callback(value, i)) {
+        if (!isPhpFalsy(callback(value, i))) {
             passed.push(value);
         } else {
             failed.push(value);
@@ -4231,7 +4231,7 @@ function readItemPath(item: unknown, key: unknown): unknown {
 // Overload: callback function - infers TValue from array type
 export function contains<TValue>(
     data: ArrayItems<TValue>,
-    value: (value: TValue, key: number) => boolean,
+    value: (value: TValue, key: number) => unknown,
     strict?: boolean,
 ): boolean;
 // Overload: value comparison - infers TValue from array type
@@ -4243,7 +4243,7 @@ export function contains<TValue>(
 // Overload: untyped array or nullish fallback
 export function contains<TValue>(
     data: readonly unknown[] | null | undefined,
-    value: TValue | ((value: TValue, key: number) => boolean),
+    value: TValue | ((value: TValue, key: number) => unknown),
     strict?: boolean,
 ): boolean;
 // Overload: PHP's key/operator/value form — `contains('age', '>', 30)`. A callable key
@@ -4252,7 +4252,7 @@ export function contains<TValue>(
 // the `=` arm ("r3-contains-boolean-value", "non-string-operator").
 export function contains<TValue>(
     data: readonly unknown[] | null | undefined,
-    key: PathKey | ((value: TValue, key: number) => boolean),
+    key: PathKey | ((value: TValue, key: number) => unknown),
     operator: unknown,
     value: unknown,
 ): boolean;
@@ -4261,13 +4261,13 @@ export function contains<TValue>(
 // takes it first, so PHP's `contains($key, $flag)` is written `contains(data, key, "=", flag)`.
 export function contains<TValue>(
     data: readonly unknown[] | null | undefined,
-    key: PathKey | ((value: TValue, key: number) => boolean),
+    key: PathKey | ((value: TValue, key: number) => unknown),
     value: NonBooleanValue,
 ): boolean;
 // Implementation
 export function contains<TValue>(
     data: ArrayItems<TValue> | unknown,
-    value: TValue | ((value: TValue, key: number) => boolean),
+    value: TValue | ((value: TValue, key: number) => unknown),
     ...rest: readonly unknown[]
 ): boolean {
     // PHP overloads on func_num_args(); this port's third parameter is `strict`, so the
@@ -4297,10 +4297,10 @@ export function contains<TValue>(
     }
 
     if (isFunction(value)) {
-        const callback = value as (value: TValue, key: number) => boolean;
+        const callback = value as (value: TValue, key: number) => unknown;
 
         for (const [index, item] of data.entries()) {
-            if (callback(item as TValue, index)) {
+            if (!isPhpFalsy(callback(item as TValue, index))) {
                 return true;
             }
         }
@@ -4386,17 +4386,17 @@ export function filter<TData extends readonly unknown[]>(
 // Overload: with callback → element type preserved
 export function filter<TValue>(
     data: ArrayItems<TValue>,
-    callback: (value: TValue, index: number) => boolean,
+    callback: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Overload: untyped array or nullish fallback
 export function filter<TValue>(
     data: readonly unknown[] | null | undefined,
-    callback?: (value: TValue, index: number) => boolean,
+    callback?: (value: TValue, index: number) => unknown,
 ): TValue[];
 // Implementation
 export function filter<TValue>(
     data: ArrayItems<TValue> | unknown,
-    callback?: (value: TValue, index: number) => boolean,
+    callback?: (value: TValue, index: number) => unknown,
 ): TValue[] {
     if (!isArray(data)) {
         return [];
@@ -4407,7 +4407,9 @@ export function filter<TValue>(
         return data.filter((value): value is TValue => !isPhpFalsy(value));
     }
 
-    return (data as TValue[]).filter(callback);
+    return (data as TValue[]).filter(
+        (value, index) => !isPhpFalsy(callback(value, index)),
+    );
 }
 
 /**

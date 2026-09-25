@@ -6898,6 +6898,103 @@ describe("Arr", () => {
             ).toEqual(["b"]);
         });
     });
+
+    describe("callback results judged by PHP truthiness", () => {
+        /** What `run` answers, or the name of the exception it throws, as the probe records one. */
+        const outcome = (run: () => unknown): unknown => {
+            try {
+                return run();
+            } catch (error) {
+                return (error as Error).name;
+            }
+        };
+
+        // PHP casts "0" and [] to false, and every object to true, however empty.
+        const answers = ["0", [], new Date(0)];
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "chunkWhile",
+                (callback: () => unknown) =>
+                    Arr.chunkWhile(["a", "b"], callback),
+                [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "first",
+                (callback: () => unknown) => Arr.first(["a", "b"], callback),
+                [null, null, "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "last",
+                (callback: () => unknown) => Arr.last(["a", "b"], callback),
+                [null, null, "b"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "every",
+                (callback: () => unknown) => Arr.every(["a", "b"], callback),
+                [false, false, true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "some",
+                (callback: () => unknown) => Arr.some(["a", "b"], callback),
+                [false, false, true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "sole",
+                (callback: () => unknown) => Arr.sole(["a"], callback),
+                ["ItemNotFoundException", "ItemNotFoundException", "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "where",
+                (callback: () => unknown) => Arr.where(["a", "b"], callback),
+                [[], [], ["a", "b"]],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "reject",
+                (callback: () => unknown) => Arr.reject(["a", "b"], callback),
+                [["a", "b"], ["a", "b"], []],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "partition",
+                (callback: () => unknown) =>
+                    Arr.partition(["a", "b"], callback),
+                [
+                    [[], ["a", "b"]],
+                    [[], ["a", "b"]],
+                    [["a", "b"], []],
+                ],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "contains",
+                (callback: () => unknown) => Arr.contains(["a", "b"], callback),
+                [false, false, true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "filter",
+                (callback: () => unknown) => Arr.filter(["a", "b"], callback),
+                [[], [], ["a", "b"]],
+            ],
+        ] as [string, (callback: () => unknown) => unknown, unknown[]][])(
+            "%s judges its callback's result by PHP truthiness",
+            (_name, run, expected) => {
+                expect(
+                    answers.map((answer) => outcome(() => run(() => answer))),
+                ).toEqual(expected);
+            },
+        );
+    });
+
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,
     // so a write target has to be refused by identity, not by its shape.
     describe("prototype objects as write targets", () => {

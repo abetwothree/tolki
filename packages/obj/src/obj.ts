@@ -811,7 +811,7 @@ export function chunkWhile<TValue, TKey>(
         value: TValue,
         key: MapArrayKey<TKey>,
         chunk: Record<string, TValue>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, TValue>>;
 export function chunkWhile<TMap>(
     data: MapData<TMap>,
@@ -819,7 +819,7 @@ export function chunkWhile<TMap>(
         value: MapEntryValue<TMap>,
         key: MapEntryKey<TMap>,
         chunk: Record<string, MapEntryValue<TMap>>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, MapEntryValue<TMap>>>;
 export function chunkWhile(
     data: NonKeyedItems,
@@ -827,7 +827,7 @@ export function chunkWhile(
         value: unknown,
         key: string | number,
         chunk: Record<string, unknown>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, never>;
 export function chunkWhile(
     data: NonObjectItems,
@@ -835,7 +835,7 @@ export function chunkWhile(
         value: unknown,
         key: string | number,
         chunk: Record<string, unknown>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, unknown>>;
 export function chunkWhile<T extends object>(
     data: T,
@@ -843,7 +843,7 @@ export function chunkWhile<T extends object>(
         value: ObjectValue<T>,
         key: ObjectKey<T>,
         chunk: Partial<T>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Partial<T>>;
 export function chunkWhile(
     data: unknown,
@@ -851,7 +851,7 @@ export function chunkWhile(
         value: unknown,
         key: string | number,
         chunk: Record<string, unknown>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, unknown>>;
 export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -859,7 +859,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
         value: TValue,
         key: TKey,
         chunk: Record<TKey, TValue>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<TKey, TValue>> {
     const chunks: Record<number, Record<TKey, TValue>> = {};
 
@@ -874,7 +874,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [rawKey, value] of keyedEntries<TValue>(data)) {
         const key = phpArrayKey(rawKey) as TKey;
 
-        if (size > 0 && !callback(value, key, chunk)) {
+        if (size > 0 && isPhpFalsy(callback(value, key, chunk))) {
             chunks[chunkIndex] = chunk;
             chunkIndex += 1;
             chunk = {} as Record<TKey, TValue>;
@@ -1611,36 +1611,36 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  */
 export function first<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: ((value: TValue, key: MapArrayKey<TKey>) => boolean) | null,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TValue | TDefault;
 export function first<TMap, TDefault = null>(
     data: MapData<TMap>,
     callback?:
-        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean)
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown)
         | null,
     defaultValue?: Default<TDefault>,
 ): MapEntryValue<TMap> | TDefault;
 export function first<TDefault = null>(
     data: NonKeyedItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TDefault;
 export function first<TDefault = null>(
     data: NonObjectItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function first<T extends object, TDefault = null>(
     data: T,
     callback?:
-        | ((value: BareObjectValue<T>, key: BareObjectKey<T>) => boolean)
+        | ((value: BareObjectValue<T>, key: BareObjectKey<T>) => unknown)
         | null,
     defaultValue?: Default<TDefault>,
 ): BareObjectValue<T> | TDefault;
 export function first<TDefault = null>(
     data: unknown,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function first<
@@ -1649,7 +1649,7 @@ export function first<
     TFirstDefault = null,
 >(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
@@ -1678,7 +1678,7 @@ export function first<
     }
 
     for (const [key, value] of entries) {
-        if (callback(value, key)) {
+        if (!isPhpFalsy(callback(value, key))) {
             return value;
         }
     }
@@ -1706,34 +1706,34 @@ export function first<
  */
 export function last<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: ((value: TValue, key: MapArrayKey<TKey>) => boolean) | null,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TValue | TDefault;
 export function last<TMap, TDefault = null>(
     data: MapData<TMap>,
     callback?:
-        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean)
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown)
         | null,
     defaultValue?: Default<TDefault>,
 ): MapEntryValue<TMap> | TDefault;
 export function last<TDefault = null>(
     data: NonKeyedItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TDefault;
 export function last<TDefault = null>(
     data: NonObjectItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function last<T extends object, TDefault = null>(
     data: T,
-    callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean) | null,
+    callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): ObjectValue<T> | TDefault;
 export function last<TDefault = null>(
     data: unknown,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function last<
@@ -1742,7 +1742,7 @@ export function last<
     TDefault = null,
 >(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | null,
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
     const resolveDefault = (): TDefault | null => {
@@ -1776,7 +1776,7 @@ export function last<
 
     for (let i = entries.length - 1; i >= 0; i--) {
         const [key, value] = entries[i] as [TKey, TValue];
-        if (callback(value, key)) {
+        if (!isPhpFalsy(callback(value, key))) {
             candidate = value;
             found = true;
             break;
@@ -2514,38 +2514,38 @@ export function hasAny<TValue extends Record<PropertyKey, unknown>>(
  */
 export function every<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): boolean;
 export function every<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): boolean;
 export function every(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function every(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function every<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): boolean;
 export function every(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function every<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
     for (const [key, value] of entriesOf<TValue, TKey>(data)) {
-        if (!callback(value, key)) {
+        if (isPhpFalsy(callback(value, key))) {
             return false;
         }
     }
@@ -2571,38 +2571,38 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function some<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): boolean;
 export function some<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): boolean;
 export function some(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function some(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function some<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): boolean;
 export function some(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function some<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
     for (const [key, value] of entriesOf<TValue, TKey>(data)) {
-        if (callback(value, key)) {
+        if (!isPhpFalsy(callback(value, key))) {
             return true;
         }
     }
@@ -4665,31 +4665,31 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sole<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback?: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): TValue;
 export function sole<TMap>(
     data: MapData<TMap>,
-    callback?: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback?: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): MapEntryValue<TMap>;
 export function sole(
     data: NonKeyedItems,
-    callback?: (value: unknown, key: string | number) => boolean,
+    callback?: (value: unknown, key: string | number) => unknown,
 ): never;
 export function sole(
     data: NonObjectItems,
-    callback?: (value: unknown, key: string | number) => boolean,
+    callback?: (value: unknown, key: string | number) => unknown,
 ): unknown;
 export function sole<T extends object>(
     data: T,
-    callback?: (value: BareObjectValue<T>, key: BareObjectKey<T>) => boolean,
+    callback?: (value: BareObjectValue<T>, key: BareObjectKey<T>) => unknown,
 ): BareObjectValue<T>;
 export function sole(
     data: unknown,
-    callback?: (value: unknown, key: string | number) => boolean,
+    callback?: (value: unknown, key: string | number) => unknown,
 ): unknown;
 export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: (value: TValue, key: TKey) => boolean,
+    callback?: (value: TValue, key: TKey) => unknown,
 ): TValue {
     if (!accessible(data)) {
         throw new ItemNotFoundException();
@@ -4707,7 +4707,7 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
         // Filter using the callback
         filteredEntries = [];
         for (const [key, value] of entries) {
-            if (callback(value, phpArrayKey(key) as TKey)) {
+            if (!isPhpFalsy(callback(value, phpArrayKey(key) as TKey))) {
                 filteredEntries.push([key, value]);
             }
         }
@@ -5377,31 +5377,31 @@ export function toCssStyles(data: unknown): string {
  */
 export function where<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): Record<string, TValue>;
 export function where<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): Record<string, MapEntryValue<TMap>>;
 export function where(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, never>;
 export function where(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function where<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): Partial<T>;
 export function where(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -5410,7 +5410,7 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
-        if (callback(value, phpArrayKey(key) as TKey)) {
+        if (!isPhpFalsy(callback(value, phpArrayKey(key) as TKey))) {
             defineKey(result as Record<string, TValue>, key, value);
         }
     }
@@ -5435,35 +5435,34 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function reject<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): Record<string, TValue>;
 export function reject<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): Record<string, MapEntryValue<TMap>>;
 export function reject(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, never>;
 export function reject(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function reject<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): Partial<T>;
 export function reject(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): Record<TKey, TValue> {
-    return where(
-        data,
-        (value, key) => !callback(value as TValue, key as TKey),
+    return where(data, (value, key) =>
+        isPhpFalsy(callback(value as TValue, key as TKey)),
     ) as Record<TKey, TValue>;
 }
 
@@ -5761,31 +5760,31 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function partition<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): [Record<string, TValue>, Record<string, TValue>];
 export function partition<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): [Record<string, MapEntryValue<TMap>>, Record<string, MapEntryValue<TMap>>];
 export function partition(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, never>, Record<string, never>];
 export function partition(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, unknown>, Record<string, unknown>];
 export function partition<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): [Partial<T>, Partial<T>];
 export function partition(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, unknown>, Record<string, unknown>];
 export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<string, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): [Record<string, TValue>, Record<string, TValue>] {
     if (!accessible(data)) {
         return [{}, {}];
@@ -5795,7 +5794,7 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     const failed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
-        if (callback(value, phpArrayKey(key) as TKey)) {
+        if (!isPhpFalsy(callback(value, phpArrayKey(key) as TKey))) {
             defineKey(passed as Record<string, TValue>, key, value);
         } else {
             defineKey(failed as Record<string, TValue>, key, value);
@@ -5868,12 +5867,12 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function contains<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    value: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    value: (value: TValue, key: MapArrayKey<TKey>) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains<TMap>(
     data: MapData<TMap>,
-    value: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    value: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains(
@@ -5888,7 +5887,7 @@ export function contains(
 ): boolean;
 export function contains(
     data: NonObjectItems,
-    value: (value: unknown, key: string | number) => boolean,
+    value: (value: unknown, key: string | number) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains(
@@ -5898,7 +5897,7 @@ export function contains(
 ): boolean;
 export function contains<T extends object>(
     data: T,
-    value: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    value: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains(
@@ -5912,7 +5911,7 @@ export function contains(
 // the `=` arm ("r3-contains-boolean-value", "non-string-operator").
 export function contains<TValue>(
     data: unknown,
-    key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
+    key: PathKey | ((value: TValue, key: PropertyKey) => unknown),
     operator: unknown,
     value: unknown,
 ): boolean;
@@ -5921,12 +5920,12 @@ export function contains<TValue>(
 // takes it first, so PHP's `contains($key, $flag)` is written `contains(data, key, "=", flag)`.
 export function contains<TValue>(
     data: unknown,
-    key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
+    key: PathKey | ((value: TValue, key: PropertyKey) => unknown),
     value: NonBooleanValue,
 ): boolean;
 export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
-    value: TValue | ((value: TValue, key: PropertyKey) => boolean),
+    value: TValue | ((value: TValue, key: PropertyKey) => unknown),
     ...rest: readonly unknown[]
 ): boolean {
     // PHP overloads on func_num_args(); this port's third parameter is `strict`, so the
@@ -5959,7 +5958,7 @@ export function contains<TValue>(
 
     if (isFunction(value)) {
         for (const [key, val] of entries) {
-            if (value(val, phpArrayKey(key))) {
+            if (!isPhpFalsy(value(val, phpArrayKey(key)))) {
                 return true;
             }
         }
@@ -6109,7 +6108,7 @@ export function filter<TValue, TKey>(
 ): Record<string, TruthyValue<TValue>>;
 export function filter<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): Record<string, TValue>;
 export function filter<TMap>(
     data: MapData<TMap>,
@@ -6117,15 +6116,15 @@ export function filter<TMap>(
 ): Record<string, TruthyValue<MapEntryValue<TMap>>>;
 export function filter<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): Record<string, MapEntryValue<TMap>>;
 export function filter(
     data: NonKeyedItems | null | undefined,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, never>;
 export function filter(
     data: NonObjectItems | null | undefined,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, unknown>;
 export function filter<T extends object>(
     data: T,
@@ -6133,15 +6132,15 @@ export function filter<T extends object>(
 ): TruthyObject<T>;
 export function filter<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): Partial<T>;
 export function filter(
     data: unknown,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, unknown>;
 export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean | null) | unknown,
+    callback?: ((value: TValue, key: TKey) => unknown) | unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -6151,11 +6150,11 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
         // If no callback, filter out PHP-falsy values by default
-        const shouldInclude = isFunction(callback)
+        const judged = isFunction(callback)
             ? callback(value, phpArrayKey(key) as TKey)
-            : !isPhpFalsy(value);
+            : value;
 
-        if (shouldInclude) {
+        if (!isPhpFalsy(judged)) {
             // Writes go through `defineKey` so a `__proto__` key in `data`
             // becomes a real own key instead of reparenting `result` through
             // the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
