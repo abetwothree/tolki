@@ -356,49 +356,46 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the mode of a given key.
      *
+     * Null items are skipped, and each value is counted under the key PHP would store it as.
+     *
      * @param key - The key to calculate the mode for, or null for the values themselves
-     * @returns An array of the most frequently occurring values, or null if the collection is empty
+     * @returns The most frequent values in the order first seen, or null when no non-null value remains
      *
      * @example
      *
      * new Collection([1, 2, 2, 3, 3, 3]).mode(); -> [3]
      * new Collection([1, 1, 2, 2, 3, 3]).mode(); -> [1, 2, 3]
      * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
-     * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
+     * new Collection([{foo: 5}, {foo: null}, {foo: null}]).mode('foo'); -> [5]
+     * new Collection([null, null]).mode(); -> null
      */
-    mode(key: PropertyKey | null = null): number[] | null {
-        if (this.isEmpty()) {
+    mode(key: PropertyKey | null = null): Array<string | number> | null {
+        const values = isNull(key) ? this.values() : this.values().pluck(key);
+        const counts = new Map<string | number, number>();
+
+        values.each((value) => {
+            // JS-only: undefined stands in for a value PHP does not have, so it is skipped with null.
+            if (isNull(value) || isUndefined(value)) {
+                return;
+            }
+
+            const countKey = phpArrayKey(value);
+
+            counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
+        });
+
+        if (counts.size === 0) {
             return null;
         }
 
-        const keyList = !isNull(key) ? this.pluck(key) : this;
+        const highestCount = [...counts.values()].reduce(
+            (highest, count) => Math.max(highest, count),
+            0,
+        );
 
-        const counts = this.newInstance({}) as unknown as Collection<
-            number,
-            PropertyKey
-        >;
-
-        keyList.each((keyValue) => {
-            counts.set(
-                keyValue as PathKey,
-                ((counts.get(keyValue as PathKey) ?? 0) as number) + 1,
-            );
-        });
-
-        const highestCount = counts.max();
-
-        // PHP sorts the filtered counts again before reading their keys, but
-        // every remaining value equals $highestValue so asort cannot move
-        // one; here that sort would renumber the keys mode() is after.
-        return (
-            counts
-                .filter((value) => value === highestCount)
-                .keys()
-                .all() as PropertyKey[]
-        ).map((key: PropertyKey) => {
-            const num = Number(key);
-            return !isNaN(num) && String(num) === String(key) ? num : key;
-        }) as number[];
+        return [...counts]
+            .filter(([, count]) => count === highestCount)
+            .map(([countKey]) => countKey);
     }
 
     /**
@@ -530,6 +527,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
      * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
+     * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
     containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     containsStrict(key: unknown, value?: unknown): boolean;
@@ -551,8 +549,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (isFunction(key)) {
-            return !isNull(
-                this.first(key as (value: TValue, index: TKey) => boolean),
+            // `array_any` counts a match holding null, so only an absent item may equal the placeholder.
+            const placeholder = Symbol("containsStrict");
+
+            return (
+                this.first<typeof placeholder>(
+                    key as (value: TValue, index: TKey) => boolean,
+                    placeholder,
+                ) !== placeholder
             );
         }
 
@@ -3269,7 +3273,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
-        // equal it and a stored null stays a found item (Collection.php:1502).
+        // equal it and a stored null stays a found item (Collection.php:1515).
         const placeholder = Symbol("firstOrFail");
 
         // `first` answers `| null` only for its no-default form; this call always hands
@@ -3324,7 +3328,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback's third argument is the chunk built so far, as a collection, so `chunk.last()` works
      * exactly as it does in Laravel.
      *
-     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which delegates to
+     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1554`, which delegates to
      *      `LazyCollection::chunkWhile`.
      *
      * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
@@ -3361,7 +3365,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Chunk the collection into chunks by comparing adjacent values using the given key or callback.
      *
-     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:939`.
      *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
      *
      * @param key - A path into each item, or a callback receiving the value and its key
@@ -3436,7 +3440,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * and `values()` always agree about order; see `sort` above.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Ignored when `callback` is an array (Collection.php:1588); use `sortByDesc`/`sortByMany`.
+     * @param descending - Ignored when `callback` is an array (Collection.php:1601); use `sortByDesc`/`sortByMany`.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3467,7 +3471,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
-            // PHP's sortBy (Collection.php:1588) discards $descending
+            // PHP's sortBy (Collection.php:1601) discards $descending
             // entirely for the array form; not passed through here either.
             // Use sortByDesc/sortByMany's forceDescending to force it.
             return this.sortByMany(callback);
@@ -3602,7 +3606,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isArray(callback) && !isFunction(callback)) {
             // sortBy's array branch discards its own `descending` argument,
             // so forcing every descriptor descending goes through
-            // sortByMany's forceDescending param (Collection.php:1687).
+            // sortByMany's forceDescending param (Collection.php:1700).
             return this.sortByMany(callback, true);
         }
 
@@ -5315,7 +5319,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         if (entries.length === 0) {
             // PHP's reduce never throws: an empty backing hands back $initial,
-            // which defaults to null (EnumeratesValues.php:843).
+            // which defaults to null (EnumeratesValues.php:845).
             return isUndefined(initial) ? null : (initial as TReduce);
         }
 

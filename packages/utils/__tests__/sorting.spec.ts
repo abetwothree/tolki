@@ -63,7 +63,7 @@ describe("createSortSpecComparator", () => {
     });
 
     it("returns a comparator descriptor untouched, even under forceDescending", () => {
-        // Collection.php:1643 runs a callable descriptor as authored; the
+        // Collection.php:1656 runs a callable descriptor as authored; the
         // sortByDesc rewrite only ever touches a comparison's [1] slot.
         const byAge = (a: Row, b: Row) => a.age - b.age;
 

@@ -3011,12 +3011,12 @@ describe("Arr", () => {
             expect(Arr.contains(data10, 1, true)).toBe(false);
         });
 
-        it("ignores a callback match holding null when strict", () => {
+        it("counts a callback match holding null when strict, as array_any does", () => {
             // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
             // "D2 containsStrict callback matching a null value"
             expect(
                 Arr.contains([null, 1], (value) => value === null, true),
-            ).toBe(false);
+            ).toBe(true);
             expect(Arr.contains([null, 1], (value) => value === null)).toBe(
                 true,
             );
@@ -3063,7 +3063,7 @@ describe("Arr", () => {
         });
 
         it("reads the item itself for a null key and takes a callable key whole", () => {
-            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // EnumeratesValues.php:1140-1157 — a callable key is the predicate, and
             // `data_get($item, null)` answers the item.
             expect(Arr.contains([1, 2, 3], null, ">", 2)).toBe(true);
             expect(Arr.contains([1, 2, 3], null, ">", 9)).toBe(false);
@@ -3129,13 +3129,34 @@ describe("Arr", () => {
             );
         });
 
-        it("ignores a callback match holding null, as first() does", () => {
+        it("counts a callback match holding null, as array_any does", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "r3-list-backed-contains", "containsStrict-callback-null": the list-backed
             // twin. task-23's row of that name is backed by ['a' => null, 'b' => 1].
             expect(
                 Arr.containsStrict([null, 1], (value) => value === null),
+            ).toBe(true);
+            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "containsStrict-list-null-callback" and "containsStrict-list-zero-callback"
+            expect(
+                Arr.containsStrict([1, null, 2], (value) => value === null),
+            ).toBe(true);
+            expect(
+                Arr.containsStrict([1, null, 2], (value) => value === 0),
             ).toBe(false);
+        });
+
+        it("stops at the first match", () => {
+            const seen: number[] = [];
+
+            Arr.containsStrict(["a", null, "c"], (value, key) => {
+                seen.push(key);
+
+                return value === null;
+            });
+
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-stops-at-first-match"
+            expect(seen).toEqual([0, 1]);
         });
     });
 
@@ -3300,8 +3321,8 @@ describe("Arr", () => {
             });
         });
 
-        // arr already matches Collection.php:1172 (newInstance(array_replace(...))) and
-        // getArrayableItems(null) -> [] (EnumeratesValues.php:1121). obj was fixed to
+        // arr already matches Collection.php:1185 (newInstance(array_replace(...))) and
+        // getArrayableItems(null) -> [] (EnumeratesValues.php:1123). obj was fixed to
         // match here; these lock arr's side of the pair so it cannot drift back.
         it("does not mutate its argument", () => {
             const data = [1, 2];
@@ -5809,7 +5830,7 @@ describe("Arr", () => {
         });
 
         it("sorts descending using per-key directions", () => {
-            // Mirrors Collection::sortByDesc (Collection.php:1683-1693): every
+            // Mirrors Collection::sortByDesc (Collection.php:1696-1706): every
             // descriptor's direction is forced to descending, overriding
             // whatever was specified — `["meta.key", true]`'s "ascending" is
             // discarded, not negated. With every key forced descending this

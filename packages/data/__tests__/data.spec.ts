@@ -7858,10 +7858,36 @@ describe("Data", () => {
             ).toEqual([2, 0, 1]);
         });
 
-        it("answers a strict callback search from a Map's first match in insertion order", () => {
-            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
-            // and "containsStrict-mixed-null-first-callback": the first match holds null, so it
-            // does not count.
+        it("counts a strict callback match whatever value it holds, on every backing", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "containsStrict-list-null-callback" and "containsStrict-list-zero-callback"
+            expect(
+                Data.dataContains(
+                    [1, null, 2],
+                    (value) => value === null,
+                    true,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContains([1, null, 2], (value) => value === 0, true),
+            ).toBe(false);
+            // Same file, "containsStrict-assoc-null-callback" and "containsStrict-assoc-zero-callback"
+            expect(
+                Data.dataContains(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === null,
+                    true,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContains(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === 0,
+                    true,
+                ),
+            ).toBe(false);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback",
+            // "containsStrict-mixed-null-first-callback" and "containsStrict-out-of-order-non-null-first-callback"
             expect(
                 Data.dataContains(
                     new Map([
@@ -7871,7 +7897,7 @@ describe("Data", () => {
                     () => true,
                     true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
             expect(
                 Data.dataContains(
                     new Map<string | number, string | null>([
@@ -7881,10 +7907,7 @@ describe("Data", () => {
                     () => true,
                     true,
                 ),
-            ).toBe(false);
-            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-non-null-first-callback":
-            // the first match in insertion order holds 'a', so it counts; the record of these
-            // entries walks key 0 first, whose null does not.
+            ).toBe(true);
             expect(
                 Data.dataContains(
                     new Map([

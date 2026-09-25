@@ -671,7 +671,7 @@ export function boolean<
  * A Map is chunked in its insertion order, so each chunk holds the entries PHP's would.
  * A chunk is a plain object, so the integer keys inside one still enumerate ascending.
  *
- * @see Collection::chunk — `packages/collection/stubs/Collection.php:1520`.
+ * @see Collection::chunk — `packages/collection/stubs/Collection.php:1533`.
  *      Wraps `array_chunk`; `preserveKeys` defaults to `true`.
  *
  * @param data - The record or Map to chunk
@@ -792,7 +792,7 @@ export function chunk<TValue, TKey extends PropertyKey = PropertyKey>(
  * A Map is walked in its insertion order, but the chunk the callback gets is a plain object that lists integer keys
  * first, ascending, so `Object.values(chunk).at(-1)` is the item added last only when its key is listed last.
  *
- * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which runs
+ * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1554`, which runs
  *      `LazyCollection::chunkWhile`. Keys are preserved inside each chunk.
  *
  * @param data - The record or Map to chunk
@@ -897,7 +897,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * A Map is walked in its insertion order, so the items compared as adjacent are the ones PHP compares.
  *
- * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+ * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:939`.
  *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
  *
  * @param data - The record or Map to chunk
@@ -1061,9 +1061,9 @@ export function collapse<
 /**
  * Combine two objects into one, using the values from the first object as
  * keys, mirroring PHP's `array_combine()` / `Collection::combine()`
- * (`Collection.php:933`).
+ * (`Collection.php:936`).
  *
- * @see Collection::combine — `packages/collection/stubs/Collection.php:933`.
+ * @see Collection::combine — `packages/collection/stubs/Collection.php:936`.
  *      Wraps `array_combine`.
  *
  * Declared-type limits, pinned in `obj-residuals.test-d.ts`: a literal `-0` key types as "0" and an
@@ -1350,7 +1350,7 @@ export function undot<TValue, TKey extends PropertyKey = PropertyKey>(
  * The first object is the data, read by its own entries (a list by its indices); each later
  * one is read the way `arrayableItems` reads it, so a Collection-like operand unwraps.
  *
- * @see Collection::union — `packages/collection/stubs/Collection.php:944`.
+ * @see Collection::union — `packages/collection/stubs/Collection.php:947`.
  *      Uses PHP's `+` operator (key union: left keys win), not `array_merge`.
  *
  * @param objects - The objects to union.
@@ -1388,7 +1388,7 @@ export function union<TValue, TKey extends PropertyKey = PropertyKey>(
  * integer keys are renumbered after the items, even when there are none, as `array_unshift` does.
  * A Map is renumbered in its insertion order and rewritten in place, integer keys as numbers, even a `ReadonlyMap`.
  *
- * @see Collection::unshift — `packages/collection/stubs/Collection.php:1087`. Wraps `array_unshift`; mutates.
+ * @see Collection::unshift — `packages/collection/stubs/Collection.php:1096`. Wraps `array_unshift`; mutates.
  *
  * @param items - The items to prepend; the first is the target object or Map, mutated in place when object-accessible.
  * @returns The same object or Map reference, mutated (or a new object when the first item isn't object-accessible).
@@ -2034,7 +2034,7 @@ export function flattenDot<TValue, TKey extends PropertyKey = PropertyKey>(
  * A Map is flipped in its insertion order, so when two keys hold the same value, the key
  * PHP reaches last is the one kept, and each key is the one PHP stores for it.
  *
- * @see Collection::flip — `packages/collection/stubs/Collection.php:463`.
+ * @see Collection::flip — `packages/collection/stubs/Collection.php:464`.
  *
  * @param data - The object or Map of items to flip
  * @returns The data items flipped
@@ -3413,7 +3413,7 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
  * A Map is popped from the end of its insertion order and rewritten in place, its survivors keeping their keys
  * (integer keys as numbers), even if typed `ReadonlyMap`.
  *
- * @see Collection::pop — `packages/collection/stubs/Collection.php:1027`.
+ * @see Collection::pop — `packages/collection/stubs/Collection.php:1030`.
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The object or Map to pop items from. Mutated in place.
@@ -4290,7 +4290,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * theirs. A Map is shifted and renumbered in its insertion order and rewritten in place, integer keys as numbers,
  * even if typed `ReadonlyMap`.
  *
- * @see Collection::shift — `packages/collection/stubs/Collection.php:1268`. Mirrors `array_shift`; mutates.
+ * @see Collection::shift — `packages/collection/stubs/Collection.php:1281`. Mirrors `array_shift`; mutates.
  *
  * @param data - The object or Map to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
@@ -4582,11 +4582,11 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 
 /**
  * Slice the underlying object items, preserving keys — `array_slice($items,
- * $offset, $length, true)` (`Collection.php:1369`).
+ * $offset, $length, true)` (`Collection.php:1382`).
  *
  * A Map is sliced by its insertion order, so the offset and length count the items as PHP's array holds them.
  *
- * @see Collection::slice — `packages/collection/stubs/Collection.php:1369`.
+ * @see Collection::slice — `packages/collection/stubs/Collection.php:1382`.
  *      Wraps `array_slice($items, $offset, $length, preserveKeys: true)`.
  *
  * @param data - The object or Map to slice
@@ -4823,7 +4823,7 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
     let entries = keyedEntries(data);
 
     if (isArray(callback)) {
-        // Multi-key sorting - mirrors Collection::sortByMany (Collection.php:1627);
+        // Multi-key sorting - mirrors Collection::sortByMany (Collection.php:1640);
         // each descriptor keeps its own direction. Checked before isFalsy: an empty
         // descriptor array is PHP-falsy too, but is a no-op here, not a value sort.
         const comparators = (callback as readonly SortSpec<TValue>[]).map(
@@ -5138,7 +5138,7 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  * `__proto__` entry becomes a real own key. A Map, like a Map replacement, is spliced by its insertion order, and it
  * is rewritten in place, integer keys as numbers, even if typed `ReadonlyMap`.
  *
- * @see Collection::splice — `packages/collection/stubs/Collection.php:1755`. Wraps `array_splice`; mutates.
+ * @see Collection::splice — `packages/collection/stubs/Collection.php:1768`. Wraps `array_splice`; mutates.
  *
  * @param data - The object or Map to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key)
@@ -5486,11 +5486,11 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_replace()` / `Collection::replace()`.
  *
  * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
- * is a no-op (`CollectionTest.php:1490`). Writes go through `defineKey` so a
+ * is a no-op (`CollectionTest.php:1502`). Writes go through `defineKey` so a
  * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
  * AGENTS.md:189).
  *
- * @see Collection::replace — `packages/collection/stubs/Collection.php:1170`. Wraps `array_replace`.
+ * @see Collection::replace — `packages/collection/stubs/Collection.php:1183`. Wraps `array_replace`.
  *
  * @param data - The original object to replace items in. Never mutated.
  * @param replacerData - The object or list containing items to replace. `null`/`undefined` is a no-op.
@@ -5537,11 +5537,11 @@ export function replace<T1, T2>(
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
  * Builds a new object at every recursion level rather than mutating `data`. A
- * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1532`). Only
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1544`). Only
  * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
  * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *
- * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1181`. Wraps `array_replace_recursive`.
+ * @see Collection::replaceRecursive — `packages/collection/stubs/Collection.php:1194`. Wraps `array_replace_recursive`.
  *
  * @param data - The original object to replace items in. Never mutated. `null`/`undefined` is treated as empty.
  * @param replacerData - The object containing items to replace. `null`/`undefined` is a no-op.
@@ -5630,7 +5630,7 @@ function mergeRecursive(
  *
  * A Map is reversed from its insertion order, and its integer keys are renumbered over that reversed order.
  *
- * @see Collection::reverse — `packages/collection/stubs/Collection.php:1191`. Wraps `array_reverse($items, true)`.
+ * @see Collection::reverse — `packages/collection/stubs/Collection.php:1204`. Wraps `array_reverse($items, true)`.
  *
  * @param data - The object or Map to reverse.
  * @returns A new object with reversed entries.
@@ -5676,7 +5676,7 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  * keep theirs, though JS lists integer-like keys first. A Map's integer keys are renumbered in its insertion order,
  * and a Map that needs no padding comes back as a record of its entries, keys unchanged.
  *
- * @see Collection::pad — `packages/collection/stubs/Collection.php:1904`. Wraps `array_pad`.
+ * @see Collection::pad — `packages/collection/stubs/Collection.php:1917`. Wraps `array_pad`.
  *
  * @param data - The object or Map to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
@@ -5860,7 +5860,7 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * a fourth makes the third the operator. So a value that may be `boolean` (`unknown`, or a union or type parameter
  * holding it) is written `contains(data, key, "=", value)`. A Map is read in its insertion order.
  *
- * @see Collection::contains — `packages/collection/stubs/Collection.php:195`.
+ * @see Collection::contains — `packages/collection/stubs/Collection.php:196`.
  *
  * @param data - The object or Map to search in.
  * @param value - The value to search for, or the key path when a third argument follows.
@@ -5877,7 +5877,7 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  * contains({ a: { age: 30 } }, 'age', 30); -> true (key/value)
  * contains({ a: { age: 30 } }, 'age', '>', 25); -> true (key/operator/value)
  * contains({ a: { on: true } }, 'on', '=', true); -> true (a boolean value needs the operator)
- * contains(new Map([[2, null], [0, 'a']]), () => true, true); -> false (the first match is null)
+ * contains(new Map([[2, null], [0, 'a']]), () => true, true); -> true (a match holding null counts)
  * contains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false (PHP keeps only 'b')
  */
 export function contains<TValue, TKey>(
@@ -5974,8 +5974,7 @@ export function contains<TValue>(
     if (isFunction(value)) {
         for (const [key, val] of entries) {
             if (value(val, phpArrayKey(key))) {
-                // containsStrict(callback) is `! is_null($this->first($callback))`: a null match doesn't count.
-                return strict ? !isNull(val) : true;
+                return true;
             }
         }
 
@@ -6040,9 +6039,9 @@ function operatorPredicate<TValue>(
  * With a second argument, each entry's `key` path is compared with it the way PHP's
  * `===` compares — so an array or plain object matches by value, in order. Without one,
  * this is `contains(data, key, true)`: `in_array($key, $items, true)` for a value, and
- * `! is_null($this->first($key))` for a callback.
+ * `array_any($items, $key)` for a callback, so a match holding null counts.
  *
- * @see Collection::containsStrict — `packages/collection/stubs/Collection.php:215`.
+ * @see Collection::containsStrict — `packages/collection/stubs/Collection.php:216`.
  *
  * @param data - The object to search in.
  * @param key - The value to search for, or the path to compare when `value` is given.
@@ -6054,6 +6053,7 @@ function operatorPredicate<TValue>(
  * containsStrict({ a: 1, b: '02' }, '02'); -> true
  * containsStrict({ a: 1, b: '02' }, 2); -> false
  * containsStrict({ row: { tags: ['a', 'b'] } }, 'tags', ['a', 'b']); -> true
+ * containsStrict({ a: 1, b: null }, (value) => value === null); -> true
  */
 export function containsStrict<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
@@ -6102,7 +6102,7 @@ export function containsStrict<TValue>(
  *
  * A Map is walked in its insertion order, so the callback sees its items in PHP's order.
  *
- * @see Collection::filter — `packages/collection/stubs/Collection.php:424`.
+ * @see Collection::filter — `packages/collection/stubs/Collection.php:425`.
  *      With a callback, delegates to `Arr::where()`; without one, wraps `array_filter`.
  *
  * @param data - The object or Map to filter.
@@ -6220,7 +6220,7 @@ export function wrap<TValue>(
  * A Map's keys come back in its insertion order, each the key PHP stores for it, and keys PHP stores as one, such as
  * `1` and `"1"`, are reported once, where the first of them stood.
  *
- * @see Collection::keys — `packages/collection/stubs/Collection.php:790`. Wraps `array_keys`.
+ * @see Collection::keys — `packages/collection/stubs/Collection.php:793`. Wraps `array_keys`.
  *
  * @param data - The object or Map to get keys from.
  * @returns An array of all keys.
@@ -6257,7 +6257,7 @@ export function keys(data: unknown): (string | number)[] {
  * A Map's values come back in its insertion order, as `array_values` lists the PHP array it stands for; of Map keys
  * PHP stores as one, such as `1` and `"1"`, only the last value is listed, where the first of them stood.
  *
- * @see Collection::values — `packages/collection/stubs/Collection.php:1870`.
+ * @see Collection::values — `packages/collection/stubs/Collection.php:1883`.
  *      Wraps `array_values`.
  *
  * @param data - The object or Map to get values from.
@@ -6290,7 +6290,7 @@ export function values<TValue>(data: unknown): TValue[] {
  * `phpValueMatch`); unlike `diffAssoc`, a matching key on `other` with a different
  * value does not save the item. `other` is normalized by `arrayableValues`.
  *
- * @see Collection::diff — `packages/collection/stubs/Collection.php:276`. Wraps `array_diff`.
+ * @see Collection::diff — `packages/collection/stubs/Collection.php:277`. Wraps `array_diff`.
  *
  * @param data - The original object.
  * @param other - The object (or array) to compare against.
@@ -6334,7 +6334,7 @@ export function diff<
  * This is `array_diff_assoc` — unlike `diff`, matching by key+value, not by value
  * alone. A non-accessible `other` is treated as empty, so every entry of `data` survives.
  *
- * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:299`. Wraps `array_diff_assoc`.
+ * @see Collection::diffAssoc — `packages/collection/stubs/Collection.php:300`. Wraps `array_diff_assoc`.
  *
  * @param data - The original object
  * @param other - The object to diff against
@@ -6382,7 +6382,7 @@ export function diffAssoc<TValue, TKey extends PropertyKey = PropertyKey>(
  * This is `array_diff_key` — values are ignored entirely; only the key decides.
  * `other` is normalized by `arrayableItems`, so a nullish operand keeps every entry.
  *
- * @see Collection::diffKeys — `packages/collection/stubs/Collection.php:322`. Wraps `array_diff_key`.
+ * @see Collection::diffKeys — `packages/collection/stubs/Collection.php:323`. Wraps `array_diff_key`.
  *
  * @param data - The original object
  * @param other - The object to diff against
@@ -6432,7 +6432,7 @@ export function diffKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  * This is `array_udiff` — the callback replaces `diff`'s `(string)` cast comparison and
  * reports whether two values are equal. `other` is normalized by `arrayableValues`.
  *
- * @see Collection::diffUsing — `packages/collection/stubs/Collection.php:288`. Wraps `array_udiff`.
+ * @see Collection::diffUsing — `packages/collection/stubs/Collection.php:289`. Wraps `array_udiff`.
  *
  * @param data - The original object
  * @param other - The object to diff against
@@ -6492,7 +6492,7 @@ export function diffUsing<T1, T2 = T1>(
  * Diff the data object with the given other object using a callback for key comparison.
  * Compares keys using the callback and values using PHP's `(string)` cast rule.
  *
- * @see Collection::diffAssocUsing — `packages/collection/stubs/Collection.php:311`.
+ * @see Collection::diffAssocUsing — `packages/collection/stubs/Collection.php:312`.
  *      Wraps `array_diff_uassoc`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffAssocUsing`.
  *
  * @param data - The original object
@@ -6560,7 +6560,7 @@ export function diffAssocUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * Diff the data object with the given other object using a callback for key comparison only.
  * Compares keys using the callback and ignores values completely.
  *
- * @see Collection::diffKeysUsing — `packages/collection/stubs/Collection.php:334`.
+ * @see Collection::diffKeysUsing — `packages/collection/stubs/Collection.php:335`.
  *      Wraps `array_diff_ukey`. Obj-only — `Arr.php` has no equivalent, so there is no `arr.diffKeysUsing`.
  *
  * @param data - The original object
@@ -6630,7 +6630,7 @@ export function diffKeysUsing<TValue, TKey extends PropertyKey = PropertyKey>(
  * style; folds Laravel's `intersectUsing()` into this parameter). `other` is
  * normalized by `arrayableValues`.
  *
- * @see Collection::intersect — `packages/collection/stubs/Collection.php:660`. Wraps `array_intersect`.
+ * @see Collection::intersect — `packages/collection/stubs/Collection.php:663`. Wraps `array_intersect`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
@@ -6705,7 +6705,7 @@ export function intersect<T1, T2 = T1>(
  * This is `array_uintersect`. It is `intersect`'s third parameter under its own name,
  * so the two share one algorithm; the callback reports whether two values are equal.
  *
- * @see Collection::intersectUsing — `packages/collection/stubs/Collection.php:672`.
+ * @see Collection::intersectUsing — `packages/collection/stubs/Collection.php:675`.
  *      Wraps `array_uintersect`.
  *
  * @param data - The original object
@@ -6757,7 +6757,7 @@ export function intersectUsing<T1, T2 = T1>(
  * This is `array_intersect_assoc` — unlike `intersect`, `key in other` is required.
  * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
  *
- * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:683`. Wraps `array_intersect_assoc`.
+ * @see Collection::intersectAssoc — `packages/collection/stubs/Collection.php:686`. Wraps `array_intersect_assoc`.
  *
  * @param data - The original object
  * @param other - The object to intersect with
@@ -6810,7 +6810,7 @@ export function intersectAssoc<T1, T2 = T1>(
  *
  * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
  *
- * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:695`. Wraps `array_intersect_uassoc`
+ * @see Collection::intersectAssocUsing — `packages/collection/stubs/Collection.php:698`. Wraps `array_intersect_uassoc`
  *
  * @param data - The original object
  * @param other - The object to intersect with
@@ -6871,7 +6871,7 @@ export function intersectAssocUsing<T1, T2 = T1>(
  *
  * A non-accessible `data` or `other` is treated as empty, so the result is `{}`.
  *
- * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:706`. Wraps `array_intersect_key`.
+ * @see Collection::intersectByKeys — `packages/collection/stubs/Collection.php:709`. Wraps `array_intersect_key`.
  *
  * @param data - The original object
  * @param other - The object to intersect with

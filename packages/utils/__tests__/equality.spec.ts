@@ -798,7 +798,7 @@ describe("Utils", () => {
         });
 
         it("treats an unrecognised operator as PHP's switch default does", () => {
-            // EnumeratesValues.php:1170-1173 — `default:` shares the `=` arm.
+            // EnumeratesValues.php:1172-1175 — `default:` shares the `=` arm.
             expect(Utils.operatorMatch(1, "nonsense", "1")).toBe(true);
             expect(Utils.operatorMatch(1, "nonsense", 2)).toBe(false);
         });
@@ -946,7 +946,7 @@ describe("Utils", () => {
         });
 
         it("answers only the inequality operators when one side alone is an object", () => {
-            // EnumeratesValues.php:1166-1168 — Laravel's guard ahead of the switch; raw PHP
+            // EnumeratesValues.php:1168-1170 — Laravel's guard ahead of the switch; raw PHP
             // would order the pair after a "could not be converted to int" notice.
             const stamp = new Date(0);
 

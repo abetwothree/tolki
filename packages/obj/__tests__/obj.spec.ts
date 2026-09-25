@@ -4048,7 +4048,7 @@ describe("Obj", () => {
             ).toBe(true);
         });
 
-        it("ignores a callback match holding null when strict", () => {
+        it("counts a callback match holding null when strict, as array_any does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D2 containsStrict callback matching a null value"
             expect(
                 Obj.contains(
@@ -4056,7 +4056,7 @@ describe("Obj", () => {
                     (value) => value === null,
                     true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
             expect(
                 Obj.contains({ a: null, b: 1 }, (value) => value === null),
             ).toBe(true);
@@ -4118,7 +4118,7 @@ describe("Obj", () => {
         });
 
         it("reads the entry itself for a null key and takes a callable key whole", () => {
-            // EnumeratesValues.php:1138-1155 — a callable key is the predicate, and
+            // EnumeratesValues.php:1140-1157 — a callable key is the predicate, and
             // `data_get($item, null)` answers the item.
             expect(Obj.contains({ a: 1, b: 2 }, null, ">", 1)).toBe(true);
             expect(Obj.contains({ a: 1, b: 2 }, null, ">", 9)).toBe(false);
@@ -4227,10 +4227,9 @@ describe("Obj", () => {
             ).toEqual([2, 0, 1]);
         });
 
-        it("answers a strict callback search from a Map's first match in insertion order", () => {
-            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
-            // and "containsStrict-mixed-null-first-callback": the first match holds null, so it
-            // does not count.
+        it("counts a strict callback match in a Map whatever value it holds", () => {
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback",
+            // "containsStrict-mixed-null-first-callback" and "containsStrict-out-of-order-non-null-first-callback"
             expect(
                 Obj.contains(
                     new Map([
@@ -4240,7 +4239,7 @@ describe("Obj", () => {
                     () => true,
                     true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
             expect(
                 Obj.contains(
                     new Map<string | number, string | null>([
@@ -4250,9 +4249,7 @@ describe("Obj", () => {
                     () => true,
                     true,
                 ),
-            ).toBe(false);
-            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-non-null-first-callback":
-            // the first match in insertion order holds 'a', so it counts; a record would walk key 0's null first.
+            ).toBe(true);
             expect(
                 Obj.contains(
                     new Map([
@@ -4263,11 +4260,6 @@ describe("Obj", () => {
                     true,
                 ),
             ).toBe(true);
-            // JS-only: a record enumerates integer keys ascending (ECMA-262
-            // OrdinaryOwnPropertyKeys), so it walks key 0 first and finds 'a'.
-            expect(Obj.contains({ 2: null, 0: "a" }, () => true, true)).toBe(
-                true,
-            );
         });
 
         it("finds a value in a Map, but only the last value of keys PHP stores as one", () => {
@@ -4328,15 +4320,27 @@ describe("Obj", () => {
             );
         });
 
-        it("ignores a callback match holding null, as first() does", () => {
+        it("counts a callback match holding null, as array_any does", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-assoc-backed-contains", "containsStrict-callback-null": task-23's
-            // "D2 containsStrict…" row records its own LABEL where its call belongs, so
-            // nothing can be verified against it; this row records the same call.
+            // "r3-assoc-backed-contains", "containsStrict-callback-null"
             expect(
                 Obj.containsStrict(
                     { a: null, b: 1 },
                     (value) => value === null,
+                ),
+            ).toBe(true);
+            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "containsStrict-assoc-null-callback" and "containsStrict-assoc-zero-callback"
+            expect(
+                Obj.containsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+            expect(
+                Obj.containsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === 0,
                 ),
             ).toBe(false);
         });
@@ -4373,7 +4377,7 @@ describe("Obj", () => {
                     ]),
                     () => true,
                 ),
-            ).toBe(false);
+            ).toBe(true);
         });
     });
 
@@ -4416,7 +4420,7 @@ describe("Obj", () => {
 
         it("is case-sensitive", () => {
             // Captured via docs/php-parity/task-06-setops.json ("diff is
-            // case-sensitive"). CollectionTest.php:1590.
+            // case-sensitive"). CollectionTest.php:1602.
             expect(
                 Obj.diff(
                     { 0: "en_GB", 1: "fr", 2: "HR" },
@@ -4706,7 +4710,7 @@ describe("Obj", () => {
         });
 
         it("still matches on key AND value together (must not collapse into intersect)", () => {
-            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1809),
+            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1821),
             // pinned so a future edit cannot collapse it into intersect's value-only rule.
             expect(
                 Obj.intersectAssoc(
@@ -8390,7 +8394,7 @@ describe("Obj", () => {
             });
 
             it("honours per-key direction tuples", () => {
-                // Laravel: `true` and 'asc' sort ASCENDING (Collection.php:1638).
+                // Laravel: `true` and 'asc' sort ASCENDING (Collection.php:1651).
                 const unsorted = {
                     a: { name: "Item", age: 2 },
                     b: { name: "Item", age: 10 },
@@ -8919,7 +8923,7 @@ describe("Obj", () => {
 
         describe("multi-key descriptors", () => {
             it("reverses every descriptor's own direction", () => {
-                // Mirrors Collection::sortByDesc (Collection.php:1683-1693): every
+                // Mirrors Collection::sortByDesc (Collection.php:1696-1706): every
                 // key/tuple descriptor's direction is overridden to descending,
                 // regardless of what it specified.
                 const unsorted = {
@@ -9566,7 +9570,7 @@ describe("Obj", () => {
         });
 
         it("removes through to the end when no length is given", () => {
-            // PHP branches on func_num_args === 1 (Collection.php:1757); the one-arg
+            // PHP branches on func_num_args === 1 (Collection.php:1770); the one-arg
             // form must remove everything from offset to the end, not nothing.
             const data = { foo: "f", baz: "z" };
             const removed = Obj.splice(data, 1);
@@ -10356,15 +10360,15 @@ describe("Obj", () => {
         });
 
         it("does not mutate its argument", () => {
-            // PHP is newInstance(array_replace(...)), Collection.php:1172.
+            // PHP is newInstance(array_replace(...)), Collection.php:1185.
             const data = { a: 1 };
             Obj.replace(data, { b: 2 });
             expect(data).toEqual({ a: 1 });
         });
 
         it("treats a null replacer as a no-op", () => {
-            // getArrayableItems(null) -> [] (EnumeratesValues.php:1121); pinned by
-            // CollectionTest.php:1490.
+            // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
+            // CollectionTest.php:1502.
             expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
         });
 
@@ -10481,7 +10485,7 @@ describe("Obj", () => {
 
         it("numbers negative pad slots from zero, not backwards from -1", () => {
             // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
-            // {"0":0,"1":0,"2":0,"a":1,"b":2} (Collection.php:1906, captured in
+            // {"0":0,"1":0,"2":0,"a":1,"b":2} (Collection.php:1919, captured in
             // docs/php-parity/task-07-pad-union.json).
             expect(Obj.pad({ a: 1, b: 2 }, -5, 0)).toEqual({
                 0: 0,
@@ -10633,15 +10637,15 @@ describe("Obj", () => {
         });
 
         it("does not mutate its argument, including nested objects", () => {
-            // PHP is newInstance(array_replace_recursive(...)), Collection.php:1183.
+            // PHP is newInstance(array_replace_recursive(...)), Collection.php:1196.
             const nested = { a: { x: 1 } };
             Obj.replaceRecursive(nested, { a: { y: 2 } });
             expect(nested).toEqual({ a: { x: 1 } });
         });
 
         it("treats a null replacer as a no-op", () => {
-            // getArrayableItems(null) -> [] (EnumeratesValues.php:1121); pinned by
-            // CollectionTest.php:1532.
+            // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
+            // CollectionTest.php:1544.
             expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
         });
 

@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+        "laravel": "v13.33.0-21-g5841965e11"
     },
     "probes": [
         {
@@ -2873,7 +2873,7 @@
                     "null-missing": true,
                     "null-none": false
                 },
-                "containsStrict-callback-null": false
+                "containsStrict-callback-null": true
             }
         },
         {
@@ -2881,7 +2881,7 @@
             "php": "(new Collection([['v'=>1],['v'=>3],['v'=>5]]))->contains('v', 2) and (new Collection([null, 1]))->containsStrict(fn ($v) => is_null($v))",
             "value": {
                 "key-value-no-match": false,
-                "containsStrict-callback-null": false
+                "containsStrict-callback-null": true
             }
         },
         {

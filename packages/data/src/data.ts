@@ -2315,8 +2315,7 @@ export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
  * Determine if data contains a value.
  *
  * A Map is read in its insertion order, so a callback is handed its keys in the order PHP
- * walks the array. The order decides a strict callback search, whose first match must not be
- * null, and the keys PHP stores as one (`1` and `"1"`) hold only the last value.
+ * walks the array, and the keys PHP stores as one (`1` and `"1"`) hold only the last value.
  *
  * @param data - The data to search
  * @param value - The value to search for or callback function
@@ -2326,7 +2325,7 @@ export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
  *
  * dataContains([1, 2, 3], 2); -> true
  * dataContains({a: 1, b: 2}, (value) => value > 1); -> true
- * dataContains(new Map([[2, null], [0, 'a']]), () => true, true); -> false (the first match is null)
+ * dataContains(new Map([[2, null], [0, 'a']]), () => true, true); -> true (a match holding null counts)
  * dataContains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false
  */
 export const dataContains = dispatch(arrContains, objContains);

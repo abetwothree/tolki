@@ -59,7 +59,7 @@ probe('Arr::sortDesc numeric comparison', 'Arr::sortDesc([1,10,9])', function ()
     return array_values(Arr::sortDesc([1, 10, 9]));
 });
 
-// The four direction forms. Collection.php:1638-1640 is
+// The four direction forms. Collection.php:1651-1653 is
 //   match (Arr::get($comparison, 1, true)) {
 //       true, 'asc',  SortDirection::Ascending  => Ascending,
 //       false, 'desc', SortDirection::Descending => Descending,

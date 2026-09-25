@@ -60,7 +60,9 @@ export function format(
         options.maximumFractionDigits = precision;
     }
 
-    return new Intl.NumberFormat(locale, options).format(number);
+    const formatter = new Intl.NumberFormat(locale, options);
+
+    return formatter.format(withoutNegativeZero(number, formatter.format));
 }
 
 /**
@@ -260,10 +262,10 @@ export function percentage(
         options.maximumFractionDigits = precision;
     }
 
-    // Intl percent multiplies by 100; we divide to match Laravel behavior
-    const formatted = new Intl.NumberFormat(loc, options).format(value / 100);
+    const formatter = new Intl.NumberFormat(loc, options);
 
-    return formatted;
+    // Intl percent multiplies by 100; we divide to match Laravel behavior
+    return formatter.format(withoutNegativeZero(value / 100, formatter.format));
 }
 
 /**
@@ -298,7 +300,9 @@ export function currency(
         options.maximumFractionDigits = precision;
     }
 
-    return new Intl.NumberFormat(loc, options).format(value);
+    const formatter = new Intl.NumberFormat(loc, options);
+
+    return formatter.format(withoutNegativeZero(value, formatter.format));
 }
 
 /**
@@ -751,4 +755,24 @@ export function defaultLocale(): string {
  */
 export function defaultCurrency(): string {
     return _currency;
+}
+
+/**
+ * Replace a negative number that would be formatted as zero with zero, avoiding a "-0" result.
+ *
+ * @param number - The number about to be formatted.
+ * @param formatNumber - The formatter the number is about to be passed to.
+ * @returns Zero when the number would print as a negative zero, otherwise the number unchanged.
+ */
+function withoutNegativeZero(
+    number: number,
+    formatNumber: (value: number) => string,
+): number {
+    if (number === 0) {
+        return 0;
+    }
+
+    return number < 0 && formatNumber(Math.abs(number)) === formatNumber(0)
+        ? 0
+        : number;
 }

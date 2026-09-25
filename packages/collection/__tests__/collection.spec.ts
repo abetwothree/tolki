@@ -460,6 +460,54 @@ describe("Collection", () => {
             // "apple" appears 3 times (most frequent)
             expect(result).toEqual(["apple"]);
         });
+
+        it("skips null items", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-key-with-nulls", "mode-null-and-value",
+            // "mode-only-nulls" and "mode-missing-key"
+            expect(
+                collect([{ foo: 5 }, { foo: null }, { foo: null }]).mode("foo"),
+            ).toEqual([5]);
+            expect(collect([null, 3]).mode()).toEqual([3]);
+            expect(collect([null, null]).mode()).toBeNull();
+            expect(
+                collect([{ foo: 5 }, { bar: 1 }, { bar: 2 }]).mode("foo"),
+            ).toEqual([5]);
+            // JS-only: undefined has no PHP analogue and is skipped with null.
+            expect(collect([undefined, 3]).mode()).toEqual([3]);
+        });
+
+        it("counts each value under the key PHP stores it as", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-dotted-values", "mode-bools",
+            // "mode-numeric-strings" and "mode-empty-string"
+            expect(collect(["a.b", "a.b", "c"]).mode()).toEqual(["a.b"]);
+            expect(collect([true, true, false]).mode()).toEqual([1]);
+            expect(collect(["1", 1, "1"]).mode()).toEqual([1]);
+            expect(collect(["", "", "a"]).mode()).toEqual([""]);
+        });
+
+        it("lists tied values in the order first seen", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-tie-first-seen", "mode-out-of-order-tie"
+            // and "mode-assoc-strings"
+            expect(collect([3, 1, 3, 1]).mode()).toEqual([3, 1]);
+            expect(
+                new Collection(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ).mode(),
+            ).toEqual(["c", "a"]);
+            expect(collect({ x: "p", y: "q", z: "q" }).mode()).toEqual(["q"]);
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-out-of-order-key-tie"
+            expect(
+                new Collection(
+                    new Map([
+                        [2, { foo: "c" }],
+                        [0, { foo: "a" }],
+                    ]),
+                ).mode("foo"),
+            ).toEqual(["c", "a"]);
+        });
     });
 
     describe("collapse", () => {
@@ -638,6 +686,37 @@ describe("Collection", () => {
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
 
+        it("collapses an outer collection with string keys", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
+            // "collapseWithKeys-mixed-keys" and "collapseWithKeys-string-keys-lists"
+            expect(
+                Object.entries(
+                    collect({ first: { a: 1, b: 2 }, second: { c: 3 } })
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 1],
+                ["b", 2],
+                ["c", 3],
+            ]);
+            expect(
+                Object.entries(
+                    collect({ 5: { a: 1 }, second: collect({ b: 2, a: 3 }) })
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 3],
+                ["b", 2],
+            ]);
+            expect(
+                collect({ first: [1, 2], second: [3] })
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([3, 2]);
+        });
+
         // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
         // `{ __proto__: ... }` sets the prototype at construction time instead.
         describe("with a hostile __proto__ key", () => {
@@ -799,6 +878,43 @@ describe("Collection", () => {
             expect(collection.containsStrict("2")).toBe(false);
         });
 
+        it("counts a callback match holding null, as array_any does", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-list-null-callback",
+            // "containsStrict-list-zero-callback" and "containsStrict-null-first-callback"
+            const c = collect([1, null, 2]);
+            expect(c.containsStrict((value) => value === null)).toBe(true);
+            expect(c.containsStrict((value) => value === 0)).toBe(false);
+            expect(collect([null, "a"]).containsStrict(() => true)).toBe(true);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-null-first-callback"
+            expect(
+                new Collection(
+                    new Map([
+                        [2, null],
+                        [0, "a"],
+                    ]),
+                ).containsStrict(() => true),
+            ).toBe(true);
+        });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            const seen: number[] = [];
+
+            new Collection(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ).containsStrict((_value, key) => {
+                seen.push(key);
+
+                return false;
+            });
+
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-out-of-order-callback-keys"
+            expect(seen).toEqual([2, 0, 1]);
+        });
+
         it("uses strict comparison in object", () => {
             const collection = new Collection({
                 a: 1,
@@ -957,6 +1073,15 @@ describe("Collection", () => {
             expect(g.doesntContainStrict("foo")).toBe(true);
             expect(g.doesntContainStrict(null)).toBe(true);
             expect(g.doesntContainStrict("")).toBe(false);
+        });
+
+        it("negates a callback match holding null", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "doesntContainStrict-list-null-callback"
+            expect(
+                collect([1, null, 2]).doesntContainStrict(
+                    (value) => value === null,
+                ),
+            ).toBe(false);
         });
     });
 
@@ -2723,7 +2848,7 @@ describe("Collection", () => {
 
             it("test intersect collection", () => {
                 // Uses `first_world` (not `first_word`) on the other side — matching
-                // Laravel's actual CollectionTest.php:1775.
+                // Laravel's actual CollectionTest.php:1787.
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
@@ -4156,6 +4281,16 @@ describe("Collection", () => {
             expect(() => collect({ x: "a", y: "b" }).combine({ p: 1 })).toThrow(
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
             );
+        });
+
+        it("throws with fewer or with more values than keys", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "combine-fewer-values" and "combine-more-values":
+            // PHP throws a ValueError, which this port raises as an Error carrying the same message.
+            const message =
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements";
+
+            expect(() => collect([1, 2]).combine([3])).toThrow(message);
+            expect(() => collect([1]).combine([2, 3])).toThrow(message);
         });
 
         it("casts a null key to the empty string, matching array_combine", () => {
@@ -5665,7 +5800,7 @@ describe("Collection", () => {
         });
 
         it("replaces without mutating, either backing", () => {
-            // Collection.php:1172 ends in newInstance(...), so neither the array-backed
+            // Collection.php:1185 ends in newInstance(...), so neither the array-backed
             // nor the object-backed source collection's items may change.
             const fromArray = new Collection([1, 2]);
             const fromObject = new Collection({ a: 1, b: 2 });
@@ -7212,6 +7347,43 @@ describe("Collection", () => {
     });
 
     describe("sortBy", () => {
+        it("orders numbers and numeric strings by value", () => {
+            // Laravel's own test passes SORT_NUMERIC, which this port has no parameter for; its default flag
+            // orders this data the same way. docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "sortBy-many-default-flag-asc", "sortBy-many-default-flag-desc" and "sortBy-key-default-flag"
+            const prices = collect([
+                { price: 1.5 },
+                { price: "10.5" },
+                { price: 1.2 },
+                { price: "10.2" },
+                { price: 1.9 },
+            ]);
+
+            expect(
+                prices
+                    .sortBy([["price", "asc"]])
+                    .pluck("price")
+                    .values()
+                    .all(),
+            ).toEqual([1.2, 1.5, 1.9, "10.2", "10.5"]);
+            expect(
+                prices
+                    .sortBy([["price", "desc"]])
+                    .pluck("price")
+                    .values()
+                    .all(),
+            ).toEqual(["10.5", "10.2", 1.9, 1.5, 1.2]);
+            expect(
+                prices.sortBy("price").pluck("price").values().all(),
+            ).toEqual(
+                prices
+                    .sortBy([["price", "asc"]])
+                    .pluck("price")
+                    .values()
+                    .all(),
+            );
+        });
+
         it("keeps all() and values() in agreement over integer keys", () => {
             // PHP-verified (task-10-pluck-sort.json, "sortBy/sortByDesc: all() and
             // values() agree on order"): sortby_values and sortbymany_values are
@@ -7737,7 +7909,7 @@ describe("Collection", () => {
 
         it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
             // Mirrors Collection::sortByDesc rewriting every comparison's direction slot
-            // before sorting (Collection.php:1687-1697): the force parameter overrides
+            // before sorting (Collection.php:1700-1710): the force parameter overrides
             // an explicit per-descriptor direction.
             const data = collect([{ age: 2 }, { age: 10 }]);
             const forced = data.sortByMany([["age", "asc"]], true);
@@ -7985,7 +8157,7 @@ describe("Collection", () => {
         });
 
         it("splices to the end with a single argument, either backing", () => {
-            // PHP branches on func_num_args === 1 (Collection.php:1757) — the one-arg
+            // PHP branches on func_num_args === 1 (Collection.php:1770) — the one-arg
             // form removes offset -> end for both backings, not nothing.
             const fromArray = new Collection(["f", "z"]);
             const fromObject = new Collection({ foo: "f", baz: "z" });
@@ -8004,6 +8176,16 @@ describe("Collection", () => {
             it("test take last", () => {
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(-2).all()).toEqual(["dayle", "shawn"]);
+            });
+
+            it("test take last with limit greater than collection size", () => {
+                // docs/php-parity/task-31-laravel-13-33-sync.json, "take-negative-past-size"
+                const data = collect(["taylor", "dayle", "shawn"]);
+                expect(data.take(-5).all()).toEqual([
+                    "taylor",
+                    "dayle",
+                    "shawn",
+                ]);
             });
         });
     });
@@ -9723,6 +9905,13 @@ describe("Collection", () => {
                 const f = collect();
                 expect(f.max()).toBeNull();
             });
+        });
+
+        it("keeps an earlier value that no later value exceeds", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "max-keeps-earlier-larger-value"
+            // and "max-key-keeps-earlier-larger-value"
+            expect(collect([3, 1, 2]).max()).toBe(3);
+            expect(collect([{ foo: 20 }, { foo: 10 }]).max("foo")).toBe(20);
         });
     });
 

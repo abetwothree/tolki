@@ -1172,17 +1172,15 @@ export function makePad(padStr: string, needed: number): string {
 /**
  * Generate a random, secure password.
  *
- * Mirrors Laravel's Str::password behavior:
- * - Ensures at least one character from each enabled set
- * - Uses a combined pool for remaining characters
- * - Shuffles result and returns a string of requested length
+ * Takes one character from each enabled set while the length allows, then fills the rest from every enabled set.
  *
  * @param length The desired length of the password (default: 32)
  * @param letters Whether to include letters (default: true)
  * @param numbers Whether to include numbers (default: true)
  * @param symbols Whether to include symbols (default: true)
  * @param spaces Whether to include spaces (default: false)
- * @return The generated password string
+ * @returns The generated password string
+ * @throws Error if every character set is turned off.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#password
  */
@@ -1292,36 +1290,41 @@ export function password(
         spacesSet,
     ].filter((s): s is string[] => isArray(s));
 
-    // Fallback: if no sets enabled, return empty string
-    if (enabledSets.length === 0 || length <= 0) {
-        return "";
+    if (enabledSets.length === 0) {
+        throw new Error("At least one character pool must be enabled.");
     }
 
-    const passwordChars: string[] = [];
+    const allCharacters = enabledSets.flat();
 
-    // Ensure at least one char from each enabled set
-    for (const set of enabledSets) {
-        const idx = randomInt(0, set.length - 1);
-        passwordChars.push(set[idx]!);
-    }
+    // At most one character per pool, so a password shorter than the pool count keeps its length.
+    const poolCharacters = shuffled(enabledSets)
+        .slice(0, Math.max(0, length))
+        .map((set) => set[randomInt(0, set.length - 1)]!);
 
-    // Remaining characters from the combined pool
-    const remaining = Math.max(0, length - passwordChars.length);
-    const pool: string[] = enabledSets.flat();
-    for (let i = 0; i < remaining; i++) {
-        const idx = randomInt(0, pool.length - 1);
-        passwordChars.push(pool[idx]!);
-    }
+    const fillCharacters = Array.from(
+        { length: Math.max(0, length - poolCharacters.length) },
+        () => allCharacters[randomInt(0, allCharacters.length - 1)]!,
+    );
 
-    // Shuffle (Fisher-Yates)
-    for (let i = passwordChars.length - 1; i > 0; i--) {
+    return shuffled([...poolCharacters, ...fillCharacters]).join("");
+}
+
+/**
+ * Shuffle a copy of the given items with the Fisher-Yates algorithm.
+ *
+ * @param items - The items to shuffle.
+ * @returns A new array holding the same items in random order.
+ */
+function shuffled<TItem>(items: readonly TItem[]): TItem[] {
+    const result = [...items];
+
+    for (let i = result.length - 1; i > 0; i--) {
         const j = randomInt(0, i);
-        const tmp = passwordChars[i]!;
-        passwordChars[i] = passwordChars[j]!;
-        passwordChars[j] = tmp;
+
+        [result[i], result[j]] = [result[j]!, result[i]!];
     }
 
-    return passwordChars.join("");
+    return result;
 }
 
 /**

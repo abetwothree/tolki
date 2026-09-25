@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.30.1-47-g0aa8d7ecd7"
+        "laravel": "v13.33.0-21-g5841965e11"
     },
     "probes": [
         {
@@ -2042,7 +2042,7 @@
             "label": "D2 containsStrict callback matching a null value",
             "php": "['strict' => (new Collection(['a' => null, 'b' => 1]))->containsStrict(fn ($v) => is_null($v)), 'loose' => (new Collection(['a' => null, 'b' => 1]))->contains(fn ($v) => is_null($v))]",
             "value": {
-                "strict": false,
+                "strict": true,
                 "loose": true
             }
         },

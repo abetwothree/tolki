@@ -6,8 +6,8 @@ require __DIR__ . '/bootstrap.php';
 
 use Illuminate\Support\Collection;
 
-// Task 3/4/6 — Collection::chunkWhile (Collection.php:1541 → LazyCollection::chunkWhile) and
-// EnumeratesValues::chunkBy (:937). Lists feed arr tests, assoc arrays feed obj tests, both feed collection.
+// Task 3/4/6 — Collection::chunkWhile (Collection.php:1554 → LazyCollection::chunkWhile) and
+// EnumeratesValues::chunkBy (:939). Lists feed arr tests, assoc arrays feed obj tests, both feed collection.
 
 // chunkWhile — the three CollectionTest cases plus the shape of the callback's arguments.
 probe('chunkWhile on equal adjacent elements', "['A','A','B','B','C','C','C'] chunkWhile(last === current)",
