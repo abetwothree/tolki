@@ -122,7 +122,7 @@ probe('C32-A-escape-when-casting-to-string', "(string) collect(['<b>'])->escapeW
 probe('C32-A-isEmpty-after-put-on-empty-list', "collect([])->put('x', 1)->isEmpty()", fn () => collect([])->put('x', 1)->isEmpty());
 probe('C32-A-isEmpty-null-item', 'collect([null])->isEmpty()', fn () => collect([null])->isEmpty());
 
-// --- ensure (message parity; the class is UnexpectedValueException, see A1)
+// --- ensure (message parity; the class is UnexpectedValueException)
 probe('C32-A-ensure-scalar-message', "collect([1, 2, 3, 'foo'])->ensure('int')", fn () => collect([1, 2, 3, 'foo'])->ensure('int'));
 probe('C32-A-ensure-class-message', 'collect([new stdClass, new stdClass, new stdClass, Collection::class])->ensure(stdClass::class)', fn () => collect([new stdClass, new stdClass, new stdClass, Collection::class])->ensure(stdClass::class));
 probe('C32-A-ensure-inheritance-message', 'collect([new Error, new Error, new Collection])->ensure(Throwable::class)', fn () => collect([new \Error, new \Error, new Collection])->ensure(\Throwable::class));
@@ -343,7 +343,7 @@ probe('C32-C-random-callable-count', '(new Collection([1, 2, 3]))->random(fn ($c
  */
 
 
-/** Encode $value so JSON keeps its key order: each non-list array, at any depth, becomes a list of [key, value] pairs. */
+/** Encode $value so JSON keeps its key order: each non-list array, at any depth, becomes [key, value] pairs. */
 function pairs(mixed $value): mixed
 {
     if ($value instanceof Collection) {
@@ -505,7 +505,7 @@ class C32E_Args { public array $args; public function __construct(...$args) { $t
 class C32E_Accessor { public function __construct(protected array $attributes) {}
     public function __get($k) { return $k === 'some' ? $this->attributes['some'] : null; }
     public function __isset($k) { return $k === 'some'; } }
-/** Each entry as [key, gettype(key), value], nested Collections as ['Collection' => entries], so key order and type survive JSON. */
+/** Each entry as [key, gettype(key), value]; nested Collections become ['Collection' => entries], preserving order. */
 function c32e_pairs($items): array { $out = []; foreach ($items as $k => $v) { $out[] = [$k, gettype($k), $v instanceof Collection ? ['Collection' => c32e_pairs($v)] : $v]; } return $out; }
 
 probe('C32-E-mapWithKeys-overwriting-keys', "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn (\$i) => [\$i['id'] => \$i['name']])", fn () => c32e_pairs((new Collection([['id' => 1, 'name' => 'A'], ['id' => 2, 'name' => 'B'], ['id' => 1, 'name' => 'C']]))->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])));
@@ -579,7 +579,7 @@ probe('C32-F-merge-null-is-a-new-instance', '$a = collect([1]); $b = $a->merge(n
 probe('C32-F-union-null-is-a-new-instance', '$a = collect([1]); $b = $a->union(null); $b->push(2);', function () { $a = collect([1]); $b = $a->union(null); $b->push(2); return ['same' => $a === $b, 'receiver' => $a->all(), 'result' => $b->all()]; });
 probe('C32-F-mergeRecursive-null-is-a-new-instance', '$a = collect([1]); $b = $a->mergeRecursive(null); $b->push(2);', function () { $a = collect([1]); $b = $a->mergeRecursive(null); $b->push(2); return ['same' => $a === $b, 'receiver' => $a->all(), 'result' => $b->all()]; });
 
-// merge: integer keys are renumbered and appended, string keys overwrite (E4)
+// merge: integer keys are renumbered and appended, string keys overwrite
 probe('C32-F-merge-assoc-then-list', "collect(['a' => 1, 'b' => 2])->merge([3, 4])", fn () => $fViews(collect(['a' => 1, 'b' => 2])->merge([3, 4])));
 probe('C32-F-merge-int-keyed-record-then-list', "collect(['a' => 1, 5 => 'x'])->merge(['y'])", fn () => $fViews(collect(['a' => 1, 5 => 'x'])->merge(['y'])));
 probe('C32-F-merge-same-int-key-appends', "collect([5 => 'a'])->merge([5 => 'b'])", fn () => $fViews(collect([5 => 'a'])->merge([5 => 'b'])));
@@ -825,7 +825,7 @@ probe('C32-H-whenEmpty-callback-receives-true', "(new Collection)->whenEmpty(fn 
 probe('C32-H-whenNotEmpty-default-receives-false', "(new Collection)->whenNotEmpty(fn () => 'cb', fn (\$c, \$v) => var_export(\$v, true))", fn () => (new Collection)->whenNotEmpty(fn () => 'cb', fn ($c, $v) => var_export($v, true)));
 probe('C32-H-whenEmpty-scalar-return', "(new Collection)->whenEmpty(fn () => 'scalar')", fn () => (new Collection)->whenEmpty(fn () => 'scalar'));
 
-// mode over array items (B11 confirmation)
+// mode over array items
 probe('C32-H-mode-array-items', "(new Collection([[1], [1]]))->mode()", fn () => (new Collection([[1], [1]]))->mode());
 
 emit();
