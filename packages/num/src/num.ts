@@ -264,9 +264,9 @@ export function percentage(
         options.maximumFractionDigits = precision;
     }
 
-    // Intl percent multiplies by 100; we divide to match Laravel behavior
     const formatter = new Intl.NumberFormat(loc, options);
 
+    // Intl percent multiplies by 100; we divide to match Laravel behavior
     return formatter.format(withoutNegativeZero(value / 100, formatter.format));
 }
 

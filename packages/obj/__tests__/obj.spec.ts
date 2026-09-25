@@ -4322,9 +4322,7 @@ describe("Obj", () => {
 
         it("counts a callback match holding null, as array_any does", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-assoc-backed-contains", "containsStrict-callback-null": task-23's
-            // "D2 containsStrict…" row records its own LABEL where its call belongs, so
-            // nothing can be verified against it; this row records the same call.
+            // "r3-assoc-backed-contains", "containsStrict-callback-null"
             expect(
                 Obj.containsStrict(
                     { a: null, b: 1 },
@@ -4422,7 +4420,7 @@ describe("Obj", () => {
 
         it("is case-sensitive", () => {
             // Captured via docs/php-parity/task-06-setops.json ("diff is
-            // case-sensitive"). CollectionTest.php:1590.
+            // case-sensitive"). CollectionTest.php:1602.
             expect(
                 Obj.diff(
                     { 0: "en_GB", 1: "fr", 2: "HR" },
@@ -4712,7 +4710,7 @@ describe("Obj", () => {
         });
 
         it("still matches on key AND value together (must not collapse into intersect)", () => {
-            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1809),
+            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1821),
             // pinned so a future edit cannot collapse it into intersect's value-only rule.
             expect(
                 Obj.intersectAssoc(
@@ -10370,7 +10368,7 @@ describe("Obj", () => {
 
         it("treats a null replacer as a no-op", () => {
             // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
-            // CollectionTest.php:1490.
+            // CollectionTest.php:1502.
             expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
         });
 
@@ -10647,7 +10645,7 @@ describe("Obj", () => {
 
         it("treats a null replacer as a no-op", () => {
             // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
-            // CollectionTest.php:1532.
+            // CollectionTest.php:1544.
             expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
         });
 

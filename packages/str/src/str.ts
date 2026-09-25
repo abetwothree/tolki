@@ -1179,7 +1179,7 @@ export function makePad(padStr: string, needed: number): string {
  * @param numbers Whether to include numbers (default: true)
  * @param symbols Whether to include symbols (default: true)
  * @param spaces Whether to include spaces (default: false)
- * @return The generated password string
+ * @returns The generated password string
  * @throws Error if every character set is turned off.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#password

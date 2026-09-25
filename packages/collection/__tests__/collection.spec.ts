@@ -2839,7 +2839,7 @@ describe("Collection", () => {
 
             it("test intersect collection", () => {
                 // Uses `first_world` (not `first_word`) on the other side — matching
-                // Laravel's actual CollectionTest.php:1775.
+                // Laravel's actual CollectionTest.php:1787.
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c

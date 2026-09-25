@@ -1491,7 +1491,7 @@ const pin = password(6, false, true, false, false);
 // pin is six random digits
 ```
 
-The password includes at least one character from each set you turn on, as long as it is long enough to hold one of each. Turning every set off throws an `Error`.
+The password includes at least one character from each set you turn on, if it is long enough to hold one of each. Turning every set off throws an `Error`.
 
 ### plural
 

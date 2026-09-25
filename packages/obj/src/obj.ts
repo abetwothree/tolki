@@ -5486,7 +5486,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_replace()` / `Collection::replace()`.
  *
  * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
- * is a no-op (`CollectionTest.php:1490`). Writes go through `defineKey` so a
+ * is a no-op (`CollectionTest.php:1502`). Writes go through `defineKey` so a
  * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
  * AGENTS.md:189).
  *
@@ -5537,7 +5537,7 @@ export function replace<T1, T2>(
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
  * Builds a new object at every recursion level rather than mutating `data`. A
- * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1532`). Only
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1544`). Only
  * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
  * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *
