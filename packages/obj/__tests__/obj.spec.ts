@@ -9,12 +9,34 @@ import {
 import { afterEach, assertType, describe, expect, it, vi } from "vitest";
 
 /**
+ * The smallest Collection-like operand: a class instance, since a plain object's `all` member is data.
+ */
+class CollectionLike<T> {
+    /**
+     * Create an operand whose `all()` returns the given items.
+     *
+     * @param items - The items `all()` returns
+     */
+    constructor(private readonly items: T) {}
+
+    /**
+     * Get all of the items, as `Collection::all()` does.
+     *
+     * @returns The items
+     */
+    all(): T {
+        return this.items;
+    }
+}
+
+/**
  * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()` as Laravel does.
  *
  * @param items - The items `all()` returns
- * @returns An object whose `all()` returns the items
+ * @returns A class instance whose `all()` returns the items
  */
-const collectionLike = <T>(items: T) => ({ all: () => items });
+const collectionLike = <T>(items: T): { all: () => T } =>
+    new CollectionLike(items);
 
 /** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
 const caseless = (a: unknown, b: unknown): boolean =>
@@ -4452,7 +4474,7 @@ describe("Obj", () => {
 
         // docs/php-parity/task-17-second-review.json, "diff with a Collection operand"
         it("unwraps a Collection-like operand instead of reading its fields", () => {
-            const enumerable = { all: () => [20] };
+            const enumerable = collectionLike([20]);
             expect(Obj.diff({ a: 10, b: 20 }, enumerable)).toEqual({
                 a: 10,
             });
@@ -4653,7 +4675,7 @@ describe("Obj", () => {
 
         // docs/php-parity/task-17-second-review.json, "intersect with a Collection operand"
         it("intersects against a Collection-like operand's values", () => {
-            const enumerable = { all: () => [20] };
+            const enumerable = collectionLike([20]);
             expect(Obj.intersect({ a: 10, b: 20 }, enumerable)).toEqual({
                 b: 20,
             });

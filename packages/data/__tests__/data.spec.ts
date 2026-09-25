@@ -11,12 +11,34 @@ const strcasecmp = (a: unknown, b: unknown) =>
     String(a).toLowerCase() === String(b).toLowerCase();
 
 /**
- * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()`.
+ * The smallest Collection-like operand: a class instance, since a plain object's `all` member is data.
+ */
+class CollectionLike<T> {
+    /**
+     * Create an operand whose `all()` returns the given items.
+     *
+     * @param items - The items `all()` returns
+     */
+    constructor(private readonly items: T) {}
+
+    /**
+     * Get all of the items, as `Collection::all()` does.
+     *
+     * @returns The items
+     */
+    all(): T {
+        return this.items;
+    }
+}
+
+/**
+ * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()` as Laravel does.
  *
  * @param items - The items `all()` returns
- * @returns An object whose `all()` returns the items
+ * @returns A class instance whose `all()` returns the items
  */
-const collectionLike = <T>(items: T) => ({ all: () => items });
+const collectionLike = <T>(items: T): { all: () => T } =>
+    new CollectionLike(items);
 
 /**
  * Build `["a", <hole>, "c"]`: a three-element list whose middle index is absent.

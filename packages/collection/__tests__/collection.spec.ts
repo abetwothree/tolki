@@ -1309,39 +1309,35 @@ describe("Collection", () => {
             ).toEqual({});
         });
 
-        it("unwraps a Collection-like operand when matching keys and values", () => {
-            // The preceding case shares no key+value pair with its operand either wrapped
-            // or raw, so this key-matching case is what actually pins the unwrap.
+        it("reads a Collection operand's items when matching keys and values", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
-            expect(
-                collect({ id: 1, name: "a" })
-                    .diffAssoc({ all: () => ({ id: 1, name: "b" }) } as never)
-                    .all(),
-            ).toEqual({ name: "a" });
+            const result = collect({ id: 1, name: "a" }).diffAssoc(
+                collect({ id: 1, name: "b" }),
+            );
+
+            expect(result.all()).toEqual({ name: "a" });
+            expect(result.keys().all()).toEqual(["name"]);
+            expect(result.values().all()).toEqual(["a"]);
         });
 
-        it("unwraps a Collection-like operand for diffAssocUsing", () => {
+        it("reads a Collection operand's items for diffAssocUsing", () => {
+            // CollectionTest::testDiffAssocUsing
             // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
             expect(
                 collect({ a: "green", b: "brown", c: "blue", 0: "red" })
                     .diffAssocUsing(
-                        {
-                            all: () => ({ A: "green", 0: "yellow", 1: "red" }),
-                        } as never,
+                        collect({ A: "green", 0: "yellow", 1: "red" }),
                         strcasecmpKeys,
                     )
                     .all(),
             ).toEqual({ b: "brown", c: "blue", 0: "red" });
         });
 
-        it("unwraps a Collection-like operand for diffAssocUsing on a list backing", () => {
+        it("reads a Collection operand's items for diffAssocUsing on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
             expect(
                 collect([1, 2, 3])
-                    .diffAssocUsing(
-                        { all: () => [1, 9, 3] } as never,
-                        strcasecmpKeys,
-                    )
+                    .diffAssocUsing(collect([1, 9, 3]), strcasecmpKeys)
                     .all(),
             ).toEqual([2]);
         });
@@ -1384,26 +1380,27 @@ describe("Collection", () => {
             });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testDiffKeysUsing
             // docs/php-parity/task-23-obj-release-readiness.json, "C22 diffKeysUsing"
-            expect(
-                collect({ id: 1, first_word: "Hello" })
-                    .diffKeysUsing(
-                        { all: () => ({ ID: 123, foo_bar: "Hello" }) } as never,
-                        strcasecmpKeys,
-                    )
-                    .all(),
-            ).toEqual({ first_word: "Hello" });
+            const result = collect({
+                id: 1,
+                first_word: "Hello",
+            }).diffKeysUsing(
+                collect({ ID: 123, foo_bar: "Hello" }),
+                strcasecmpKeys,
+            );
+
+            expect(result.all()).toEqual({ first_word: "Hello" });
+            expect(result.keys().all()).toEqual(["first_word"]);
+            expect(result.values().all()).toEqual(["Hello"]);
         });
 
-        it("unwraps a Collection-like operand on a list backing", () => {
+        it("reads a Collection operand's items on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
             expect(
                 collect([1, 2, 3])
-                    .diffKeysUsing(
-                        { all: () => [9, 9] } as never,
-                        strcasecmpKeys,
-                    )
+                    .diffKeysUsing(collect([9, 9]), strcasecmpKeys)
                     .all(),
             ).toEqual([3]);
         });
@@ -3051,20 +3048,21 @@ describe("Collection", () => {
             ).toEqual({ a: 0 });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testIntersectAssocCollection
             // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-collection"
-            expect(
-                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
-                    .intersectAssoc({
-                        all: () => ({
-                            a: "green",
-                            b: "yellow",
-                            0: "blue",
-                            1: "red",
-                        }),
-                    } as never)
-                    .all(),
-            ).toEqual({ a: "green" });
+            const result = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            }).intersectAssoc(
+                collect({ a: "green", b: "yellow", 0: "blue", 1: "red" }),
+            );
+
+            expect(result.all()).toEqual({ a: "green" });
+            expect(result.keys().all()).toEqual(["a"]);
+            expect(result.values().all()).toEqual(["green"]);
         });
 
         it("takes an operand of the other shape, on either backing", () => {
@@ -3166,23 +3164,22 @@ describe("Collection", () => {
             ).toEqual({ a: 0 });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testIntersectAssocUsingCollection
             // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
-            expect(
-                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
-                    .intersectAssocUsing(
-                        {
-                            all: () => ({
-                                a: "GREEN",
-                                B: "brown",
-                                0: "yellow",
-                                1: "red",
-                            }),
-                        } as never,
-                        strcasecmpKeys,
-                    )
-                    .all(),
-            ).toEqual({ b: "brown" });
+            const result = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            }).intersectAssocUsing(
+                collect({ a: "GREEN", B: "brown", 0: "yellow", 1: "red" }),
+                strcasecmpKeys,
+            );
+
+            expect(result.all()).toEqual({ b: "brown" });
+            expect(result.keys().all()).toEqual(["b"]);
+            expect(result.values().all()).toEqual(["brown"]);
         });
 
         it("takes an operand of the other shape, on either backing", () => {
@@ -3254,19 +3251,20 @@ describe("Collection", () => {
             ).toEqual({ b: 2 });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testIntersectByKeys
             // docs/php-parity/task-23-obj-release-readiness.json, "C19 intersectByKeys 2"
-            expect(
-                collect({ name: "taylor", family: "otwell", age: 26 })
-                    .intersectByKeys({
-                        all: () => ({
-                            height: 180,
-                            name: "amir",
-                            family: "moharami",
-                        }),
-                    } as never)
-                    .all(),
-            ).toEqual({ name: "taylor", family: "otwell" });
+            const result = collect({
+                name: "taylor",
+                family: "otwell",
+                age: 26,
+            }).intersectByKeys(
+                collect({ height: 180, name: "amir", family: "moharami" }),
+            );
+
+            expect(result.all()).toEqual({ name: "taylor", family: "otwell" });
+            expect(result.keys().all()).toEqual(["name", "family"]);
+            expect(result.values().all()).toEqual(["taylor", "otwell"]);
         });
 
         it("takes an operand of the other shape, on either backing", () => {
@@ -4358,14 +4356,16 @@ describe("Collection", () => {
             });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testUnionCollection
             // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
-            const c = collect({ name: "Hello" });
-            expect(
-                c
-                    .union({ all: () => ({ name: "World", id: 1 }) } as never)
-                    .all(),
-            ).toEqual({ name: "Hello", id: 1 });
+            const result = collect({ name: "Hello" }).union(
+                collect({ name: "World", id: 1 }),
+            );
+
+            expect(result.all()).toEqual({ name: "Hello", id: 1 });
+            expect(result.keys().all()).toEqual(["name", "id"]);
+            expect(result.values().all()).toEqual(["Hello", 1]);
         });
 
         it("lets the left operand win even when its value is undefined", () => {
@@ -5786,16 +5786,20 @@ describe("Collection", () => {
                 ).toEqual({ name: "taylor", family: "otwell", age: 26 });
             });
 
-            it("unwraps a Collection-like replacer", () => {
-                // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc"
-                const c = collect({ name: "amir", family: "otwell" });
-                expect(
-                    c
-                        .replace({
-                            all: () => ({ name: "taylor", age: 26 }),
-                        } as never)
-                        .all(),
-                ).toEqual({ name: "taylor", family: "otwell", age: 26 });
+            it("reads a Collection replacer's items", () => {
+                // CollectionTest::testReplaceCollection
+                const result = collect({
+                    name: "amir",
+                    family: "otwell",
+                }).replace(collect({ name: "taylor", age: 26 }));
+
+                expect(result.all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
+                    age: 26,
+                });
+                expect(result.keys().all()).toEqual(["name", "family", "age"]);
+                expect(result.values().all()).toEqual(["taylor", "otwell", 26]);
             });
         });
 

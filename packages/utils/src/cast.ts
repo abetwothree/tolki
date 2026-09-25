@@ -7,6 +7,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPlainObject,
     isUndefined,
     isWeakMap,
     isWeakSet,
@@ -251,10 +252,11 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
  * call `all()`, else `toArray()`, else `toJSON()`, and repeat on the result.
  *
  * @param items - The operand to unwrap
- * @returns The first value in the chain that exposes none of those methods
+ * @returns The first value in the chain that is not a class instance exposing one of those methods
  */
 function unwrapArrayable(items: unknown): unknown {
-    if (!isObject(items)) {
+    // A plain object models a PHP array, so an `all`, `toArray` or `toJSON` member is data, not an interface.
+    if (isPlainObject(items) || !isObject(items)) {
         return items;
     }
 
@@ -270,15 +272,16 @@ function unwrapArrayable(items: unknown): unknown {
 /**
  * Normalize a set-operation operand the way Laravel's
  * `EnumeratesValues::getArrayableItems()` does: nullish becomes an empty array,
- * an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`, an
- * iterable spreads, a plain object contributes its values, anything else
- * becomes a one-element array.
+ * an Enumerable/Arrayable-like class instance unwraps via `all()`/`toArray()`/`toJSON()`,
+ * an iterable spreads, a plain object contributes its values whatever members it
+ * has, anything else becomes a one-element array.
  *
  * @param items - The operand to normalize
  * @returns The operand's values, in iteration order
  *
  * @example
  * arrayableValues({ x: 20 }); -> [20]
+ * arrayableValues(collect([20])); -> [20]
  */
 export function arrayableValues<T>(items: unknown): T[] {
     const unwrapped = unwrapArrayable(items);
@@ -309,15 +312,16 @@ export function arrayableValues<T>(items: unknown): T[] {
 
 /**
  * Normalize a keyed operand the way Laravel's `getArrayableItems()` does:
- * nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`,
+ * nullish becomes `{}`, an Enumerable/Arrayable-like class instance unwraps via `all()`/`toArray()`/`toJSON()`,
  * a Map or other iterable becomes an object, a list becomes an index-keyed object, and a WeakMap or
  * WeakSet, whose entries can't be read, becomes `{}`. A Map's keys are cast as PHP casts an array key.
+ * A plain object is returned as it is, whatever members it has.
  *
  * @param items - The operand to normalize
  * @returns The operand's entries as a plain object
  *
  * @example
- * arrayableItems({ all: () => ({ a: 1 }) }); -> { a: 1 }
+ * arrayableItems(collect({ a: 1 })); -> { a: 1 }
  * arrayableItems(new Map([[1, "a"], ["1", "b"]])); -> { 1: "b" }
  */
 export function arrayableItems(items: unknown): Record<string, unknown> {

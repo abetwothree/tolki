@@ -11,12 +11,34 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 /**
+ * The smallest Collection-like operand: a class instance, since a plain object's `all` member is data.
+ */
+class CollectionLike<T> {
+    /**
+     * Create an operand whose `all()` returns the given items.
+     *
+     * @param items - The items `all()` returns
+     */
+    constructor(private readonly items: T) {}
+
+    /**
+     * Get all of the items, as `Collection::all()` does.
+     *
+     * @returns The items
+     */
+    all(): T {
+        return this.items;
+    }
+}
+
+/**
  * Wrap items in the smallest Collection-like operand, which arr unwraps through `all()` as Laravel does.
  *
  * @param items - The items `all()` returns
- * @returns An object whose `all()` returns the items
+ * @returns A class instance whose `all()` returns the items
  */
-const collectionLike = <T>(items: T) => ({ all: () => items });
+const collectionLike = <T>(items: T): { all: () => T } =>
+    new CollectionLike(items);
 
 /** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
 const caseless = (a: unknown, b: unknown): boolean =>
@@ -715,7 +737,7 @@ describe("Arr", () => {
                 2: "y",
             });
             expect(
-                Arr.combine([1, 2], { all: () => ({ a: "x", b: "y" }) }),
+                Arr.combine([1, 2], collectionLike({ a: "x", b: "y" })),
             ).toEqual({ 1: "x", 2: "y" });
         });
 
@@ -2779,7 +2801,7 @@ describe("Arr", () => {
                 "d",
             ]);
             expect(
-                Arr.union([1, 2], keyed({ all: () => ({ 2: "z" }) })),
+                Arr.union([1, 2], keyed(collectionLike({ 2: "z" }))),
             ).toEqual([1, 2, "z"]);
         });
 
