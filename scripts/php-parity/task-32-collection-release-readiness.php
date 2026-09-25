@@ -24,10 +24,6 @@ use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 
 // ---- Family A ------------------------------------------------------------
 
-// Family A block for scripts/php-parity/task-32-collection-release-readiness.php.
-// Standalone runner: the require/use lines and emit() are for running it here; paste the probe() calls.
-
-
 class C32ASub extends Collection {}
 class C32AArrayableAndJsonSerializable implements Arrayable, JsonSerializable {
     public function toArray() { return ['from' => 'toArray']; }
@@ -184,8 +180,6 @@ probe('C32-B-pop-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->pop
 probe('C32-B-shift-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->shift(1)", function () { $c = collect([1, 2, 3]); return ['returned' => $c->shift(1), 'all' => $c->all()]; });
 
 // ---- Family C ------------------------------------------------------------
-
-// ---- block for scripts/php-parity/task-32-collection-release-readiness.php (family C) ----
 
 enum C32StaffEnum
 {
@@ -345,7 +339,6 @@ probe('C32-C-random-callable-count', '(new Collection([1, 2, 3]))->random(fn ($c
 // ---- Family D ------------------------------------------------------------
 
 /**
- * Family D (filtering & subsets) rows for task-32-collection-release-readiness.php.
  * A non-list result is recorded through `pairs()`, since a JSON object loses key order.
  */
 
@@ -486,7 +479,6 @@ probe('C32-D-takeWhile-null-value', "(new Collection([null, null, 0]))->takeWhil
 probe('C32-D-takeUntil-empty', "(new Collection([]))->takeUntil(1)", fn () => pairs((new Collection([]))->takeUntil(1)));
 probe('C32-D-skipUntil-out-of-order-keys', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->skipUntil('a')", fn () => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->skipUntil('a')));
 
-// Added after the first pass: object truthiness, data_get's path rules, non-transitive ==, Map-order, select over ArrayAccess
 probe('C32-D-filter-keeps-empty-objects', "(new Collection([new DateTime('@0'), new stdClass, new ArrayObject, new SplObjectStorage, 'x']))->filter()->count()", fn () => (new Collection([new DateTime('@0'), new stdClass, new ArrayObject, new SplObjectStorage, 'x']))->filter()->count());
 probe('C32-D-filter-callback-string-zero', "(new Collection([1, 2]))->filter(fn (\$v) => \$v > 1 ? '0' : 'x')", fn () => pairs((new Collection([1, 2]))->filter(fn ($v) => $v > 1 ? '0' : 'x')));
 probe('C32-D-reject-none-empty-objects', "(new Collection([new DateTime('@0'), new stdClass]))->reject()->count()", fn () => (new Collection([new DateTime('@0'), new stdClass]))->reject()->count());
@@ -505,7 +497,6 @@ probe('C32-D-select-prototype-key-names', "(new Collection([['a' => 1]]))->selec
 
 // ---- Family E ------------------------------------------------------------
 
-// ==== BEGIN family E block (paste below the bootstrap in task-32-collection-release-readiness.php) ====
 enum C32E_Pure { case A; }
 enum C32E_Int: int { case A = 1; case B = 2; }
 enum C32E_Str: string { case A = 'A'; case B = 'B'; }
@@ -577,11 +568,8 @@ probe('C32-E-keyed-results-mixed-key-order', "a string key produced before an in
     'flip' => (new Collection(['s', 5]))->flip()->keys()->all(),
 ]);
 probe('C32-E-dot-list-backing', "collect(['a', 'b'])->dot() and collect(['0' => 'a', '1' => 'b'])->undot()", fn () => ['dot' => c32e_pairs(Collection::make(['a', 'b'])->dot()), 'undot' => c32e_pairs(Collection::make(['0' => 'a', '1' => 'b'])->undot()), 'dot-is-list' => array_is_list(Collection::make(['a', 'b'])->dot()->all())]);
-// ==== END family E block ====
 
 // ---- Family F ------------------------------------------------------------
-
-// ---- body to paste into scripts/php-parity/task-32-collection-release-readiness.php ----
 
 $fViews = fn (Collection $c) => ['all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()];
 $fRows = fn (Collection $c) => $c->map(fn ($row) => $row instanceof Collection ? $row->all() : $row)->all();
@@ -642,11 +630,8 @@ probe('C32-F-plain-object-all-member-is-data', "collect(['all' => 1, 'b' => 2])-
     'combineKeys' => collect(['k'])->combine((object) ['all' => fn () => ['v']])->keys()->all(),
 ]);
 
-// ---- end of body ----
-
 // ---- Family G ------------------------------------------------------------
 
-// ---- BEGIN paste block (family G) ----
 // Key-preserving probes return [[key, value], ...] so integer keys and order survive json_encode.
 $pairs = function ($items) use (&$pairs) {
     $out = [];
@@ -764,13 +749,9 @@ probe('C32-G-sliding-subclass', 'get_class of (new SubCollection([1, 2, 3]))->sl
 
     return [get_class($sub->sliding()) === get_class($sub), get_class($sub->sliding()->first()) === get_class($sub)];
 });
-// ---- END paste block ----
 
 // ---- Family H ------------------------------------------------------------
 
-// Harness header (the shared task-32 file already has these two lines).
-
-// ---- BEGIN family H block ----
 class C32HUser { public function __construct(public $email) {} }
 class C32HToString { public function __construct(public $v) {} public function __toString(): string { return 'S:'.$this->v; } }
 
@@ -846,6 +827,5 @@ probe('C32-H-whenEmpty-scalar-return', "(new Collection)->whenEmpty(fn () => 'sc
 
 // mode over array items (B11 confirmation)
 probe('C32-H-mode-array-items', "(new Collection([[1], [1]]))->mode()", fn () => (new Collection([[1], [1]]))->mode());
-// ---- END family H block ----
 
 emit();
