@@ -78,6 +78,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpArrayKey,
     isPlainObject,
     isString,
     isSymbol,
@@ -100,6 +101,7 @@ import {
     toArrayable,
     toJsonable,
     toJsonSerializable,
+    toPhpKeyString,
     typeOf,
 } from "@tolki/utils";
 
@@ -459,23 +461,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
             isArray(item),
         );
 
-        // Merge all arrays/objects with later keys overwriting earlier ones. A plain
-        // Object.assign uses [[Set]], so a "__proto__" source key would reparent the
-        // merge target instead of becoming an entry.
-        const merged: Record<string, unknown> = {};
+        // Later keys overwrite earlier ones where the first one stood, as array_replace keeps them.
+        const merged = new Map<string, unknown>();
         for (const source of Object.values(validResults)) {
             for (const [key, value] of Object.entries(source as object)) {
-                defineKey(merged, key, value);
+                merged.set(key, value);
             }
         }
 
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
         if (allArrays) {
-            return this.newInstance(handOver(Object.values(merged)));
+            return this.newInstance(handOver([...merged.values()]));
         }
 
-        return this.newInstance(handOver(merged));
+        return this.newInstance(merged);
     }
 
     /**
@@ -1069,7 +1069,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({name: 'taylor'}).flip(); -> new Collection({taylor: 'name'})
      */
     flip() {
-        return this.newInstance(handOver(dataFlip(this.items)));
+        const flipped = dataFlip(this.items) as Record<string, unknown>;
+
+        // A plain object re-sorts integer keys, so the flipped pairs are laid out again in the order the values come.
+        return this.newInstance(
+            new Map(
+                this.getItemValues(this.items)
+                    .filter((value) => isPhpArrayKey(value))
+                    .map((value) => [
+                        phpArrayKey(value),
+                        flipped[String(value)],
+                    ]),
+            ),
+        );
     }
 
     /**
@@ -1197,7 +1209,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             groupByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         ) as (value: TValue, key: TKey) => unknown;
 
-        const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
+        const groups = new Map<string | number, Collection<TValue, TKey>>();
 
         // Determine if we should use objects for grouped collections
         // When preserving keys from an object collection, use objects
@@ -1232,13 +1244,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         ),
                 });
 
-                const groups = results as Record<
-                    PropertyKey,
-                    Collection<TValue, TKey>
-                >;
-                let group = Object.hasOwn(groups, groupKey)
-                    ? groups[groupKey]
-                    : undefined;
+                let group = groups.get(groupKey);
 
                 if (!group) {
                     group = (useObjects
@@ -1247,11 +1253,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                         TValue,
                         TKey
                     >;
-                    defineKey(
-                        groups as Record<string, Collection<TValue, TKey>>,
-                        groupKey,
-                        group,
-                    );
+                    groups.set(groupKey, group);
                 }
 
                 group.offsetSet(
@@ -1261,58 +1263,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        const result = this.newInstance(handOver(results));
-
-        if (isArray(nextGroups) && nextGroups.length > 0) {
-            const nestedResult = result.map((group) => {
-                return (group as unknown as Collection<TValue, TKey>).groupBy(
-                    nextGroups,
-                    preserveKeys,
-                );
-            }) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
-
-            // For nested groupBy, we also need to convert to arrays/objects
-            const nestedConvertedResults = {} as Record<
-                TGroupKey,
-                TValue[] | Record<TKey, TValue>
-            >;
-            for (const [groupKey, collection] of Object.entries(
-                nestedResult.items,
-            )) {
-                defineKey(
-                    nestedConvertedResults as Record<
-                        string,
-                        TValue[] | Record<TKey, TValue>
-                    >,
-                    groupKey,
-                    collection.all() as TValue[] | Record<TKey, TValue>,
-                );
-            }
-
-            return this.newInstance(handOver(nestedConvertedResults));
-        }
-
-        // Convert inner collections to arrays/objects to match Laravel's toArray() behavior
-        // This must be done AFTER nested groupBy to keep Collection instances during recursion
-        const convertedResults = {} as Record<
-            TGroupKey,
+        const nested =
+            isArray(nextGroups) && nextGroups.length > 0 ? nextGroups : null;
+        const results = new Map<
+            string | number,
             TValue[] | Record<TKey, TValue>
-        >;
-        for (const [groupKey, collection] of Object.entries(results) as [
-            string,
-            Collection<TValue, TKey>,
-        ][]) {
-            defineKey(
-                convertedResults as Record<
-                    string,
-                    TValue[] | Record<TKey, TValue>
-                >,
+        >();
+
+        // Groups are handed back as their items, each grouped again first when there is another level.
+        for (const [groupKey, group] of groups) {
+            results.set(
                 groupKey,
-                collection.all() as TValue[] | Record<TKey, TValue>,
+                (nested ? group.groupBy(nested, preserveKeys) : group).all() as
+                    | TValue[]
+                    | Record<TKey, TValue>,
             );
         }
 
-        return this.newInstance(handOver(convertedResults));
+        return this.newInstance(results);
     }
 
     /**
@@ -1337,7 +1305,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             keyByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        const results = {} as Record<string, TValue>;
+        const results = new Map<PropertyKey, TValue>();
 
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
@@ -1347,8 +1315,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 phpArrayKey(key) as TKey,
             );
 
-            defineKey(
-                results,
+            results.set(
                 // JS-only: PHP has no symbols; a symbol key is kept as it is, as arr and obj keyBy keep it.
                 isSymbol(resolvedKey)
                     ? resolvedKey
@@ -1361,7 +1328,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return this.newInstance(handOver(results));
+        return this.newInstance(results);
     }
 
     /**
@@ -1899,15 +1866,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: string | PropertyKey | ((item: TValue) => TPluckValue),
         key: PropertyKey | ((item: TValue) => unknown) | null = null,
     ): Collection<TPluckValue, TKey> {
-        return this.newInstance(
-            handOver(
-                dataPluck(
-                    this.items,
-                    value as string | ((item: unknown) => unknown),
-                    key as string | ((item: unknown) => unknown) | null,
+        if (isNull(key) || isUndefined(key)) {
+            return this.newInstance(
+                handOver(
+                    dataPluck(
+                        this.items,
+                        value as string | ((item: unknown) => unknown),
+                        null,
+                    ),
                 ),
-            ),
-        ) as unknown as Collection<TPluckValue, TKey>;
+            ) as unknown as Collection<TPluckValue, TKey>;
+        }
+
+        const results = new Map<string | number, unknown>();
+
+        for (const item of this.orderedValues()) {
+            const pluckedValue = isFunction(value)
+                ? value(item)
+                : itemValue(item, value as PathKey);
+            const pluckedKey = isFunction(key)
+                ? key(item)
+                : itemValue(item, key as PathKey);
+
+            // Arr::pluck casts an object with __toString to its string before PHP casts the array key.
+            results.set(
+                phpComputedKey(pluckedKey, { stringables: true }),
+                pluckedValue,
+            );
+        }
+
+        return this.newInstance(results) as unknown as Collection<
+            TPluckValue,
+            TKey
+        >;
     }
 
     /**
@@ -1952,31 +1943,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
     ) {
-        const dictionary = {} as Record<
-            TMapToDictionaryKey,
-            TMapToDictionaryValue[]
-        >;
-
-        const buckets = dictionary as Record<
-            PropertyKey,
-            TMapToDictionaryValue[]
-        >;
+        const dictionary = new Map<string | number, TMapToDictionaryValue[]>();
 
         const bucket = (name: PropertyKey): TMapToDictionaryValue[] => {
-            const existing = Object.hasOwn(buckets, name)
-                ? buckets[name]
-                : undefined;
+            const key = phpArrayKey(name);
+            const existing = dictionary.get(key);
 
             if (existing) {
                 return existing;
             }
 
             const created: TMapToDictionaryValue[] = [];
-            defineKey(
-                buckets as Record<string, TMapToDictionaryValue[]>,
-                name,
-                created,
-            );
+            dictionary.set(key, created);
 
             return created;
         };
@@ -2009,7 +1987,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        return this.newInstance(handOver(dictionary));
+        return this.newInstance(dictionary);
     }
 
     /**
@@ -2241,12 +2219,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TCombineKey, TCombineValue>
             | Collection<TCombineValue, TCombineKey>,
     ) {
+        const combined = dataCombine(
+            this.items as TValue[],
+            this.getRawItems(values) as TValue[],
+        ) as Record<string, unknown>;
+
+        // A plain object re-sorts integer keys, so the combined pairs are laid out again in the order the keys come.
         return this.newInstance(
-            handOver(
-                dataCombine(
-                    this.items as TValue[],
-                    this.getRawItems(values) as TValue[],
-                ),
+            new Map(
+                this.getItemValues(this.items).map((key) => {
+                    const phpKey = toPhpKeyString(key);
+
+                    return [phpKey, combined[phpKey]];
+                }),
             ),
         );
     }
@@ -4091,7 +4076,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | ((value: TValue, key: TKey) => TCountByResult)
             | PathKey = null,
     ) {
-        const results = {} as Record<string | number, number>;
+        const results = new Map<string | number, number>();
 
         const callback = this.valueRetriever(
             countByValue as
@@ -4106,14 +4091,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 invalid: issetOffset,
             });
 
-            const seen = Object.hasOwn(results, resultKey)
-                ? (results[resultKey] as number)
-                : 0;
-
-            defineKey(results as Record<string, number>, resultKey, seen + 1);
+            results.set(resultKey, (results.get(resultKey) ?? 0) + 1);
         }
 
-        return this.newInstance(handOver(results));
+        return this.newInstance(results);
     }
 
     /**
@@ -4753,18 +4734,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TMapToGroupsKey, TMapToGroupsValue>
             | [TMapToGroupsKey, TMapToGroupsValue],
     ) {
-        const groups = this.mapToDictionary(
+        const dictionary = this.mapToDictionary(
             callback as (
                 value: TValue,
                 key: TKey,
             ) => Record<TMapToGroupsKey, TMapToGroupsValue>,
         );
 
-        return groups.map(
-            (group: unknown) =>
-                this.newInstance(
-                    group as DataItems<TMapToGroupsValue, TMapToGroupsKey>,
-                ) as unknown as Collection<TMapToGroupsValue, TMapToGroupsKey>,
+        // map() reads the plain object, which re-sorts integer keys, so the groups follow the dictionary's order.
+        const entries = (dictionary.orderedEntries() ??
+            Object.entries(dictionary.all())) as Array<[PropertyKey, unknown]>;
+
+        return this.newInstance(
+            new Map(
+                entries.map(([key, group]) => [
+                    key,
+                    this.newInstance(
+                        group as DataItems<TMapToGroupsValue, TMapToGroupsKey>,
+                    ),
+                ]),
+            ),
         );
     }
 
@@ -6204,16 +6193,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: ReadonlyMap<unknown, unknown>,
     ): Array<[TKey, TValue]> {
         return [...items.entries()].map(([key, value]) => {
-            // PHP has no symbol key to cast, and Number(symbol) throws rather than answering NaN.
+            // PHP has no symbol key to cast, so a symbol stays the key it is.
             if (isSymbol(key)) {
                 return [key as TKey, value as TValue];
             }
 
-            const numKey = Number(key);
-            const numeric =
-                !Number.isNaN(numKey) && String(numKey) === String(key);
-
-            return [(numeric ? numKey : key) as TKey, value as TValue];
+            return [phpArrayKey(key) as TKey, value as TValue];
         });
     }
 

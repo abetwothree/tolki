@@ -4025,6 +4025,37 @@ describe("Collection", () => {
             expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
         });
 
+        it("hands both callbacks each item in the collection's order, the value one first", () => {
+            const seen: string[] = [];
+            const rows = new Collection(
+                new Map([
+                    [2, { n: "c", k: "kc" }],
+                    [0, { n: "a", k: "ka" }],
+                    [1, { n: "b", k: "kb" }],
+                ]),
+            );
+
+            const result = rows.pluck(
+                (item) => {
+                    seen.push(`v:${item.n}`);
+
+                    return item.n;
+                },
+                (item) => {
+                    seen.push(`k:${item.n}`);
+
+                    return item.k;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-callback-order"
+            expect(seen).toEqual(["v:c", "k:c", "v:a", "k:a", "v:b", "k:b"]);
+            // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-keyed"
+            expect(result.all()).toEqual({ kc: "c", ka: "a", kb: "b" });
+            expect(result.keys().all()).toEqual(["kc", "ka", "kb"]);
+            expect(result.values().all()).toEqual(["c", "a", "b"]);
+        });
+
         it("plucks wildcard paths the same way for array and object backing", () => {
             // dataPluck routes object input to Obj.pluck and array input to Arr.pluck,
             // and the wildcard target here is a plain object, not a JS array.
@@ -15105,6 +15136,237 @@ describe("Collection", () => {
             ],
         ] as [string, () => unknown, Error][])("%s", (_name, run, failure) => {
             expect(run).toThrow(failure);
+        });
+
+        /** The three views a keyed result pins: its entries, its keys in order and its values in order. */
+        const views = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ) => ({
+            all: collection.toArray(),
+            keys: collection.keys().all(),
+            values: collection.values().toArray(),
+        });
+
+        it.each([
+            [
+                "keyBy keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-int-key-order"
+                () => collect([{ id: 3 }, { id: 1 }, { id: 2 }]).keyBy("id"),
+                {
+                    all: { 3: { id: 3 }, 1: { id: 1 }, 2: { id: 2 } },
+                    keys: [3, 1, 2],
+                    values: [{ id: 3 }, { id: 1 }, { id: 2 }],
+                },
+            ],
+            [
+                "groupBy keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-int-key-order"
+                () => collect([{ r: 2 }, { r: 1 }, { r: 2 }]).groupBy("r"),
+                {
+                    all: { 2: [{ r: 2 }, { r: 2 }], 1: [{ r: 1 }] },
+                    keys: [2, 1],
+                    values: [[{ r: 2 }, { r: 2 }], [{ r: 1 }]],
+                },
+            ],
+            [
+                "groupBy keeps the order its bool keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-bool-key-order"
+                () =>
+                    collect([{ a: true }, { a: false }, { a: true }]).groupBy(
+                        "a",
+                    ),
+                {
+                    all: { 1: [{ a: true }, { a: true }], 0: [{ a: false }] },
+                    keys: [1, 0],
+                    values: [[{ a: true }, { a: true }], [{ a: false }]],
+                },
+            ],
+            [
+                "countBy keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-int-key-order"
+                () => collect([3, 1, 3]).countBy(),
+                { all: { 3: 2, 1: 1 }, keys: [3, 1], values: [2, 1] },
+            ],
+            [
+                "pluck keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-int-key-order"
+                () =>
+                    collect([
+                        { id: 3, n: "c" },
+                        { id: 1, n: "a" },
+                        { id: 2, n: "b" },
+                    ]).pluck("n", "id"),
+                {
+                    all: { 3: "c", 1: "a", 2: "b" },
+                    keys: [3, 1, 2],
+                    values: ["c", "a", "b"],
+                },
+            ],
+            [
+                "mapToDictionary keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-int-key-order"
+                () =>
+                    collect([3, 1, 3, 2]).mapToDictionary((value, key) => ({
+                        [value]: key,
+                    })),
+                {
+                    all: { 3: [0, 2], 1: [1], 2: [3] },
+                    keys: [3, 1, 2],
+                    values: [[0, 2], [1], [3]],
+                },
+            ],
+            [
+                "mapToGroups keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToGroups-int-key-order"
+                () =>
+                    collect([3, 1, 3]).mapToGroups((value, key) => ({
+                        [value]: key,
+                    })),
+                {
+                    all: { 3: [0, 2], 1: [1] },
+                    keys: [3, 1],
+                    values: [[0, 2], [1]],
+                },
+            ],
+            [
+                "flip keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-flip-int-key-order"
+                () => collect({ x: 3, y: 1 }).flip(),
+                { all: { 3: "x", 1: "y" }, keys: [3, 1], values: ["x", "y"] },
+            ],
+            [
+                "flip keeps its order past the values it skips",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-flip-int-key-order"
+                () =>
+                    collect({
+                        string: "taylor",
+                        integer: 1,
+                        null: null,
+                        false: false,
+                        true: true,
+                        float: 1.5,
+                        array: [],
+                        object: {},
+                    }).flip(),
+                {
+                    all: { taylor: "string", 1: "integer" },
+                    keys: ["taylor", 1],
+                    values: ["string", "integer"],
+                },
+            ],
+            [
+                "collapseWithKeys keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-int-key-order"
+                () =>
+                    collect([
+                        { 1: "a" },
+                        { 3: "c" },
+                        { 2: "b" },
+                        "drop",
+                    ]).collapseWithKeys(),
+                {
+                    all: { 1: "a", 3: "c", 2: "b" },
+                    keys: [1, 3, 2],
+                    values: ["a", "c", "b"],
+                },
+            ],
+            [
+                "combine keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-int-key-order"
+                () => collect([3, 1, 2]).combine(["c", "a", "b"]),
+                {
+                    all: { 3: "c", 1: "a", 2: "b" },
+                    keys: [3, 1, 2],
+                    values: ["c", "a", "b"],
+                },
+            ],
+        ] as [
+            string,
+            () => Collection<unknown, PropertyKey>,
+            { all: unknown; keys: unknown; values: unknown },
+        ][])("%s", (_name, run, expected) => {
+            expect(views(run())).toEqual(expected);
+        });
+
+        it.each([
+            [
+                "groupBy",
+                () =>
+                    collect([{ k: "s" }, { k: 5 }])
+                        .groupBy("k")
+                        .keys()
+                        .all(),
+            ],
+            ["countBy", () => collect(["s", 5]).countBy().keys().all()],
+            [
+                "keyBy",
+                () =>
+                    collect([{ k: "s" }, { k: 5 }])
+                        .keyBy("k")
+                        .keys()
+                        .all(),
+            ],
+            [
+                "pluck",
+                () =>
+                    collect([
+                        { k: "s", v: 1 },
+                        { k: 5, v: 2 },
+                    ])
+                        .pluck("v", "k")
+                        .keys()
+                        .all(),
+            ],
+            [
+                "mapToDictionary",
+                () =>
+                    collect(["s", 5])
+                        .mapToDictionary((value) => ({ [value]: value }))
+                        .keys()
+                        .all(),
+            ],
+            [
+                "collapseWithKeys",
+                () =>
+                    collect([{ s: 1 }, { 5: 2 }])
+                        .collapseWithKeys()
+                        .keys()
+                        .all(),
+            ],
+            ["flip", () => collect(["s", 5]).flip().keys().all()],
+        ] as [string, () => PropertyKey[]][])(
+            "%s keeps a string key produced before an integer key first",
+            (_method, run) => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-mixed-key-order"
+                expect(run()).toEqual(["s", 5]);
+            },
+        );
+
+        it("keeps a Map key's type as PHP stores it, as an integer only when canonical", () => {
+            const keys = new Collection(
+                new Map([
+                    ["1.5", "a"],
+                    ["Infinity", "b"],
+                    ["-1", "c"],
+                    ["01", "d"],
+                    ["1e3", "e"],
+                    ["10", "f"],
+                    ["1e+21", "g"],
+                ]),
+            )
+                .keys()
+                .all();
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            expect(keys).toEqual([
+                "1.5",
+                "Infinity",
+                -1,
+                "01",
+                "1e3",
+                10,
+                "1e+21",
+            ]);
         });
     });
 });
