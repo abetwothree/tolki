@@ -73,6 +73,7 @@ import {
     isBoolean,
     isFunction,
     isIntegerLikeKey,
+    isIterable,
     isMap,
     isNull,
     isNumber,
@@ -6248,11 +6249,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The items preserving their original structure
      */
     protected getRawItems(items: unknown): DataItems<TValue, TKey> {
-        if (isNull(items) || isUndefined(items)) {
-            return [] as DataItems<TValue, TKey>;
-        }
-
-        // If it's already a Collection, get its items
         if (items instanceof Collection) {
             return items.all();
         }
@@ -6268,28 +6264,59 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return obj;
         }
 
-        // PHP asks `instanceof Arrayable`, which no plain array of data carries: a plain object
-        // whose `toArray` is merely a member is cast with `(array)` and keeps every key.
-        if (!isPlainObject(items) && toArrayable(items)) {
-            return items.toArray() as DataItems<TValue, TKey>;
-        }
-
         // If it's an empty array, return empty array
         if (isArray(items) && items.length === 0) {
             return [] as DataItems<TValue, TKey>;
         }
 
-        // If it's an array, keep it as an array
-        if (isArray(items)) {
-            return items as TValue[];
+        // A plain object models a PHP array, so a toArray, toJson or jsonSerialize member on one is data.
+        if (isPlainObject(items) || !isObject(items)) {
+            return this.castToItems(items);
         }
 
-        // If it's an object, keep it as an object
-        if (!isNull(items) && isObject(items)) {
-            return items as Record<TKey, TValue>;
+        if (toArrayable(items)) {
+            return this.castToItems(items.toArray());
         }
 
-        // For primitives and other types, wrap in an array
-        return [items as TValue];
+        // PHP's Traversable wins over JsonSerializable; a JS iterator yields no keys, so it gives a list.
+        if (isIterable(items)) {
+            return Array.from(items) as TValue[];
+        }
+
+        if (isFunction(items["toJson"])) {
+            try {
+                return this.castToItems(JSON.parse(String(items["toJson"]())));
+            } catch {
+                return [];
+            }
+        }
+
+        if (toJsonSerializable(items)) {
+            return this.castToItems(items.jsonSerialize());
+        }
+
+        return this.castToItems(items);
+    }
+
+    /**
+     * Read a value as items the way PHP's `(array)` cast does.
+     *
+     * @param value - The value to cast
+     * @returns No items for null, an array or plain object as it is, an object's own fields, else the value wrapped
+     */
+    protected castToItems(value: unknown): DataItems<TValue, TKey> {
+        if (isNull(value) || isUndefined(value)) {
+            return [];
+        }
+
+        if (isArray(value) || isPlainObject(value)) {
+            return value as DataItems<TValue, TKey>;
+        }
+
+        if (isObject(value)) {
+            return { ...value } as Record<TKey, TValue>;
+        }
+
+        return [value as TValue];
     }
 }

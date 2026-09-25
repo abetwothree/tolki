@@ -11,6 +11,7 @@ import { afterEach, assertType, describe, expect, it } from "vitest";
 import {
     TestArrayableObject,
     TestCollectionMapIntoObject,
+    TestIterableWithDifferentJsonSerializeObject,
     TestJsonableObject,
     TestJsonSerializeObject,
     TestJsonSerializeToStringObject,
@@ -245,6 +246,128 @@ describe("Collection", () => {
             // And data preserved
             expect(next.toJson()).toEqual(base.toJson());
         });
+
+        it("wraps a falsy scalar, as PHP's Arr::wrap does", () => {
+            // CollectionTest::testCollectionIsConstructed
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-false"
+            expect(new Collection(false).all()).toEqual([false]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-zero"
+            expect(new Collection(0).all()).toEqual([0]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-empty-string"
+            expect(new Collection("").all()).toEqual([""]);
+        });
+
+        it("builds a list from a Set, as PHP builds one from a Traversable", () => {
+            // CollectionTest::testCollectionFromTraversable
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-traversable-list"
+            const collection = new Collection(new Set([1, 2, 3]));
+
+            expect(collection.all()).toEqual([1, 2, 3]);
+            expect(collection.toArray()).toEqual([1, 2, 3]);
+            expect(collection.count()).toBe(3);
+        });
+
+        it("builds a list from a generator", () => {
+            const generator = (function* () {
+                yield 1;
+                yield 2;
+            })();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-generator-list"
+            expect(new Collection(generator).all()).toEqual([1, 2]);
+        });
+
+        it("builds a keyed collection from a Map, as PHP builds one from a keyed Traversable", () => {
+            // CollectionTest::testCollectionFromTraversableWithKeys
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-traversable-keyed"
+            const collection = new Collection(
+                new Map([
+                    ["foo", 1],
+                    ["bar", 2],
+                    ["baz", 3],
+                ]),
+            );
+
+            expect(collection.toArray()).toEqual({ foo: 1, bar: 2, baz: 3 });
+            expect(collection.keys().all()).toEqual(["foo", "bar", "baz"]);
+            expect(collection.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("reads a class instance's own fields as a record, as PHP casts an object", () => {
+            class Stub {
+                foo = "bar";
+            }
+
+            // CollectionTest::testConstructMethodFromObject
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-stdclass"
+            expect(new Collection(new Stub()).all()).toStrictEqual({
+                foo: "bar",
+            });
+        });
+
+        it("decodes a Jsonable's toJson()", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonable"
+            expect(new Collection(new TestJsonableObject()).all()).toEqual({
+                foo: "bar",
+            });
+        });
+
+        it("builds an empty collection from a Jsonable whose toJson() is not JSON", () => {
+            class NotJson {
+                toJson() {
+                    return "not-json";
+                }
+            }
+
+            // JS-only: PHP keeps json_decode's null as the items, which count() then rejects.
+            expect(new Collection(new NotJson()).all()).toEqual([]);
+        });
+
+        it("reads a JsonSerializable's jsonSerialize()", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable"
+            expect(new Collection(new TestJsonSerializeObject()).all()).toEqual(
+                { foo: "bar" },
+            );
+        });
+
+        it("wraps a JsonSerializable's scalar result", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable-scalar"
+            expect(
+                new Collection(
+                    new TestJsonSerializeWithScalarValueObject(),
+                ).all(),
+            ).toEqual(["foo"]);
+        });
+
+        it("keeps the keys an Arrayable's toArray() returns", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-arrayable-keyed"
+            expect(new Collection(new TestArrayableObject()).all()).toEqual({
+                foo: "bar",
+            });
+        });
+
+        it("iterates a Traversable before serializing it, as PHP does", () => {
+            const items = new TestTraversableAndJsonSerializableObject({
+                a: 1,
+                b: 2,
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-construct-traversable-beats-jsonserializable"
+            // JS-only: iteration wins there too, but an iterator yields no keys, so the row's {a: 1, b: 2} is a list.
+            expect(new Collection(items).all()).toEqual([1, 2]);
+        });
+
+        it("iterates before serializing where the two give different items", () => {
+            // JS-only: PHP's fixture iterates and serializes to the same array; this one tells the two apart.
+            expect(
+                new Collection(
+                    new TestIterableWithDifferentJsonSerializeObject(),
+                ).all(),
+            ).toEqual(["iterated"]);
+        });
     });
 
     describe("Symbol.iterator", () => {
@@ -270,7 +393,9 @@ describe("Collection", () => {
     describe("test helper classes", () => {
         it("TestArrayableObject implements toArray", () => {
             const obj = new TestArrayableObject();
-            expect(obj.toArray()).toEqual([{ foo: "bar" }]);
+
+            // CollectionTest::testGetArrayableItems
+            expect(obj.toArray()).toEqual({ foo: "bar" });
         });
 
         it("TestJsonableObject implements toJson", () => {
@@ -11442,8 +11567,9 @@ describe("Collection", () => {
                     "baz",
                 ]);
 
+                // CollectionTest::testJsonSerialize
                 expect(c.jsonSerialize()).toEqual([
-                    [{ foo: "bar" }],
+                    { foo: "bar" },
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",
@@ -11514,9 +11640,11 @@ describe("Collection", () => {
             ]);
 
             const json = c.toJson();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-php-fixtures"
             expect(json).toBe(
                 JSON.stringify([
-                    [{ foo: "bar" }],
+                    { foo: "bar" },
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",
@@ -11571,9 +11699,11 @@ describe("Collection", () => {
             ]);
 
             const pretty = c.toPrettyJson();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-php-fixtures"
             const expected = JSON.stringify(
                 [
-                    [{ foo: "bar" }],
+                    { foo: "bar" },
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",
@@ -11756,6 +11886,42 @@ describe("Collection", () => {
     });
 
     describe("getArrayableItems", () => {
+        it("test get arrayable items", () => {
+            // CollectionTest::testGetArrayableItems
+            const data = new Collection();
+
+            expect(data["getRawItems"](new TestArrayableObject())).toEqual({
+                foo: "bar",
+            });
+            expect(data["getRawItems"](new TestJsonableObject())).toEqual({
+                foo: "bar",
+            });
+            expect(data["getRawItems"](new TestJsonSerializeObject())).toEqual({
+                foo: "bar",
+            });
+            expect(
+                data["getRawItems"](
+                    new TestJsonSerializeWithScalarValueObject(),
+                ),
+            ).toEqual(["foo"]);
+
+            // Only the iterated items are the subject's own objects; jsonSerialize() would rebuild them.
+            const subject = [{}, {}];
+            const array = data["getRawItems"](
+                new TestTraversableAndJsonSerializableObject(subject),
+            );
+            expect(array).toEqual(subject);
+            expect(array[0]).toBe(subject[0]);
+            expect(array[1]).toBe(subject[1]);
+
+            expect(data["getRawItems"](new Collection({ foo: "bar" }))).toEqual(
+                { foo: "bar" },
+            );
+            expect(data["getRawItems"]({ foo: "bar" })).toEqual({
+                foo: "bar",
+            });
+        });
+
         it("handles hasNumericKeys for order preservation", () => {
             // Create a Map with numeric keys to trigger the hasNumericKeys branch
             const map = new Map<number, string>();
