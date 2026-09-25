@@ -584,6 +584,11 @@
             "value": "{\"2\":\"a\",\"1\":\"b\"}"
         },
         {
+            "label": "C32-A-toJson-list-keys-out-of-order-are-an-object",
+            "php": "collect([1 => 'b', 0 => 'a'])->toJson()",
+            "value": "{\"1\":\"b\",\"0\":\"a\"}"
+        },
+        {
             "label": "C32-A-json-encode-collection",
             "php": "json_encode(collect([1, 2]))",
             "value": "[1,2]"

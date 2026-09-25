@@ -143,6 +143,7 @@ probe('C32-A-toJson-integer-keys-in-order-are-a-list', "collect([0 => 'a', 1 => 
 probe('C32-A-toJson-integer-keys-from-one-are-an-object', "collect([1 => 'a', 2 => 'b'])->toJson()", fn () => collect([1 => 'a', 2 => 'b'])->toJson());
 probe('C32-A-toJson-emptied-keyed-is-a-list', "collect(['a' => 1])->forget('a')->toJson()", fn () => collect(['a' => 1])->forget('a')->toJson());
 probe('C32-A-toJson-integer-keys-out-of-order', "collect([2 => 'a', 1 => 'b'])->toJson()", fn () => collect([2 => 'a', 1 => 'b'])->toJson());
+probe('C32-A-toJson-list-keys-out-of-order-are-an-object', "collect([1 => 'b', 0 => 'a'])->toJson()", fn () => collect([1 => 'b', 0 => 'a'])->toJson());
 probe('C32-A-json-encode-collection', 'json_encode(collect([1, 2]))', fn () => json_encode(collect([1, 2])));
 probe('C32-A-json-encode-nested-collection', "json_encode(['users' => collect([['id' => 1]])])", fn () => json_encode(['users' => collect([['id' => 1]])]));
 probe('C32-A-toJson-escapes-slash-and-unicode', "collect(['a/b', 'é'])->toJson()", fn () => collect(['a/b', 'é'])->toJson());
