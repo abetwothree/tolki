@@ -312,6 +312,14 @@ describe("Utils", () => {
             expect(Utils.compareValues({}, true)).toBe(-1);
         });
 
+        // JS-only: a Map or a Set has no PHP type; it stands in for an array, which is falsy only when empty.
+        it("casts a Map or a Set against null or a boolean as the array it stands for", () => {
+            expect(Utils.compareValues(new Map(), null)).toBe(0);
+            expect(Utils.compareValues(new Set(), true)).toBe(-1);
+            expect(Utils.compareValues(new Map([[1, 2]]), true)).toBe(0);
+            expect(Utils.compareValues(new Set([1]), null)).toBe(1);
+        });
+
         // Recorded divergence, not parity: PHP orders every array above every
         // scalar (task-19-spaceship.json, "spaceship on an int and a
         // one-element array" is -1), where this port keeps JS coercion.
