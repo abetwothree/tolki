@@ -5550,8 +5550,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns An array of the collection's items
      */
     toArray() {
+        // A plain object is data, as a PHP array is, so only an object a class built is Arrayable.
         return this.map((value) =>
-            toArrayable(value) ? value.toArray() : value,
+            !isPlainObject(value) && toArrayable(value)
+                ? value.toArray()
+                : value,
         ).all();
     }
 
@@ -5562,6 +5565,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     jsonSerialize() {
         return this.map((value) => {
+            // A plain object is data, as a PHP array is, whatever conversion members it holds.
+            if (isPlainObject(value)) {
+                return value;
+            }
+
             // If the item is Arrayable, use its array representation
             if (toArrayable(value)) {
                 return value.toArray();

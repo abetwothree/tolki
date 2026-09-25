@@ -12259,6 +12259,15 @@ describe("Collection", () => {
 
             expect(data7.toArray()).toEqual({ a: { test: "value" }, b: 2 });
         });
+
+        it("keeps a plain-object item as data, whatever toArray member it holds", () => {
+            const toArray = () => [9];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toArray-plain-item-members-are-data"
+            expect(collect([{ toArray, b: 2 }]).toArray()).toEqual([
+                { toArray, b: 2 },
+            ]);
+        });
     });
 
     describe("jsonSerialize", () => {
@@ -12331,7 +12340,27 @@ describe("Collection", () => {
             expect(c.jsonSerialize()).toEqual(input);
         });
 
-        //
+        it("keeps a plain-object item as data, whatever conversion members it holds", () => {
+            const toArray = () => [9];
+            const toJson = () => "[1]";
+            const jsonSerialize = () => 1;
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-plain-item-members-are-data"
+            expect(
+                collect([
+                    { toArray, toJson, jsonSerialize, b: 2 },
+                ]).jsonSerialize(),
+            ).toEqual([{ toArray, toJson, jsonSerialize, b: 2 }]);
+        });
+
+        it("keeps a plain object's toJSON member as data, for JSON.stringify to call", () => {
+            const toJSON = () => "x";
+            const collection = collect([{ toJSON, b: 2 }]);
+
+            // JS-only: toJSON is JavaScript's own serialization hook, which PHP has no counterpart for
+            expect(collection.jsonSerialize()).toEqual([{ toJSON, b: 2 }]);
+            expect(collection.toJson()).toBe('["x"]');
+        });
     });
 
     describe("toJson", () => {
