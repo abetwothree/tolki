@@ -560,6 +560,19 @@ describe("Collection", () => {
                 [1, 2, 9, 9],
             ]);
         });
+
+        it.fails("iterates integer keys in the order PHP keeps them", () => {
+            const collection = collect(
+                new Map([
+                    [2, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // Ordered-backing gap: PHP's foreach walks the keys in insertion order, 2 before 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-iterate-integer-keys-out-of-order"
+            expect([...collection]).toEqual(["a", "b"]);
+        });
     });
 
     describe("test helper classes", () => {
@@ -9824,6 +9837,17 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-list"
             expect(Collection.fromJson('["a","b"]').all()).toEqual(["a", "b"]);
         });
+
+        it.fails(
+            "keeps a decoded object's integer keys in their order in the JSON",
+            () => {
+                const collection = Collection.fromJson('{"2":"a","1":"b"}');
+
+                // Ordered-backing gap: PHP's json_decode keeps the keys in document order, 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-integer-keys-out-of-order"
+                expect(collection.keys().all()).toEqual([2, 1]);
+            },
+        );
     });
 
     describe("avg", () => {
@@ -12835,6 +12859,19 @@ describe("Collection", () => {
 
             // JS-only: PHP has no sparse array; a hole holds no item, so the keys are not 0..n-1
             expect(new Collection(holes).toJson()).toBe('{"1":"b"}');
+        });
+
+        it.fails("encodes integer keys in the order PHP keeps them", () => {
+            const collection = collect(
+                new Map([
+                    [2, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // Ordered-backing gap: PHP writes the keys in insertion order, 2 before 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-integer-keys-out-of-order"
+            expect(collection.toJson()).toBe('{"2":"a","1":"b"}');
         });
     });
 
