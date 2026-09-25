@@ -425,7 +425,7 @@ describe("Number", () => {
             expect(Num.currency(-0.4, "", null, 0)).toBe("$0");
             expect(Num.currency(-0.006)).toBe("-$0.01");
             expect(Num.currency(-0.0)).toBe("$0.00");
-            expect(Num.currency(-0.001, "EUR", "de")).toBe("0,00 €");
+            expect(Num.currency(-0.001, "EUR", "de")).toBe("0,00\u00a0€");
         });
     });
 
