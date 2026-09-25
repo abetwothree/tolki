@@ -12981,6 +12981,19 @@ describe("Collection", () => {
             expect(collection.values().all()).toEqual([2, 3]);
         });
 
+        it("rebuilds a list with a hole without inventing an item for the hole", () => {
+            const items: string[] = [];
+            items[1] = "b";
+            const collection = new Collection(items);
+            collection.put("x", "c");
+
+            // JS-only: PHP has no sparse array; a hole holds no item, so the keyed backing gains none there.
+            expect(collection.all()).toStrictEqual({ 1: "b", x: "c" });
+            expect(collection.keys().all()).toEqual([1, "x"]);
+            expect(collection.values().all()).toEqual(["b", "c"]);
+            expect(collection.count()).toBe(2);
+        });
+
         it("transform after a string-key put maps the string key too", () => {
             const collection = collect([1, 2]).put("x", 3);
             collection.transform((value) => value * 10);

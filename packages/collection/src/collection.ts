@@ -6246,7 +6246,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return;
             }
 
-            const items = Object.fromEntries(this.items.entries());
+            // Only the indexes the list owns carry over, so a hole gains no undefined item.
+            const items = Object.fromEntries(Object.entries(this.items));
             defineKey(items, phpKey, value);
             this.items = items as Record<TKey, TValue>;
 
