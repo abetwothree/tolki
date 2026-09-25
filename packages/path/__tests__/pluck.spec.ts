@@ -43,6 +43,27 @@ class AccessTarget {
 }
 
 /**
+ * An ArrayAccess whose `offsetExists` gives the same answer for every key.
+ */
+class AnsweringTarget {
+    constructor(
+        private readonly items: Record<string, unknown>,
+        private readonly answer: unknown,
+    ) {}
+
+    offsetExists(): unknown {
+        return this.answer;
+    }
+
+    offsetGet(key: string): unknown {
+        return this.items[key];
+    }
+}
+
+// PHP casts "0" and [] to false, and every object to true, however empty.
+const answers = ["0", [], new Date(0), "x"];
+
+/**
  * An object with one own field that holds null.
  */
 class Point {
@@ -87,6 +108,18 @@ describe("Path Pluck Functions", () => {
 
             expect(Path.resolvePluckPath(target, ["a"])).toBe(1);
             expect(Path.resolvePluckPath(target, ["missing"])).toBeNull();
+        });
+
+        it("judges an ArrayAccess's offsetExists answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-offset-exists-php-truthiness"
+            expect(
+                answers.map((answer) =>
+                    Path.resolvePluckPath(
+                        new AnsweringTarget({ a: 1 }, answer),
+                        ["a"],
+                    ),
+                ),
+            ).toEqual([null, null, 1, 1]);
         });
 
         it("reads a plain object's own keys, whatever members it has", () => {
@@ -159,6 +192,17 @@ describe("Path Pluck Functions", () => {
 
             expect(Path.hasPluckPath(target, ["n"])).toBe(false);
             expect(Path.hasPluckPath(target, ["a"])).toBe(true);
+        });
+
+        it("judges an ArrayAccess's offsetExists answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-offset-exists-php-truthiness"
+            expect(
+                answers.map((answer) =>
+                    Path.hasPluckPath(new AnsweringTarget({ a: 1 }, answer), [
+                        "a",
+                    ]),
+                ),
+            ).toEqual([false, false, true, true]);
         });
 
         it("finds a key an array or an object holds, even when it holds null", () => {

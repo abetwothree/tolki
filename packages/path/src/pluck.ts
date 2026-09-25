@@ -5,6 +5,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpFalsy,
     isPlainObject,
     isUndefined,
     keyedEntries,
@@ -170,7 +171,7 @@ function readSegment(target: unknown, segment: string): unknown {
         // An Enumerable answers with array_key_exists over its items, so an item holding null still exists.
         const exists = isEnumerable(target)
             ? readSegment(target.all(), segment) !== absent
-            : Boolean(target.offsetExists(segment));
+            : !isPhpFalsy(target.offsetExists(segment));
 
         return exists ? target.offsetGet(segment) : absent;
     }

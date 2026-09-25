@@ -3356,6 +3356,28 @@
             ]
         },
         {
+            "label": "C32-D-data-get-offset-exists-php-truthiness",
+            "php": "[data_get($t, 'a'), data_has($t, 'a')] for $t = new C32D_AnsweringAccess(['a' => 1], $answer), offsetExists answering '0', [], new DateTime('@0') and 'x'",
+            "value": [
+                [
+                    null,
+                    false
+                ],
+                [
+                    null,
+                    false
+                ],
+                [
+                    1,
+                    true
+                ],
+                [
+                    1,
+                    true
+                ]
+            ]
+        },
+        {
             "label": "C32-D-data-get-array-path-dotted-segment",
             "php": "data_get(['a.b' => 1, 'a' => ['b' => 2]], ['a.b'])",
             "value": 1

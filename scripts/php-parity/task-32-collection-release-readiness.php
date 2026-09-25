@@ -676,6 +676,22 @@ probe('C32-D-data-get-arrayaccess-target', "an ArrayAccess that is not Enumerabl
     return [data_get($target, 'a'), data_has($target, 'n'), data_has($target, 'a'), data_get($target, 'missing', 'def')];
 });
 
+/** An ArrayAccess whose offsetExists gives the same answer for every offset. */
+class C32D_AnsweringAccess implements ArrayAccess
+{
+    public function __construct(private array $items, private mixed $answer) {}
+    #[\ReturnTypeWillChange]
+    public function offsetExists(mixed $offset) { return $this->answer; }
+    public function offsetGet(mixed $offset): mixed { return $this->items[$offset]; }
+    public function offsetSet(mixed $offset, mixed $value): void { $this->items[$offset] = $value; }
+    public function offsetUnset(mixed $offset): void { unset($this->items[$offset]); }
+}
+
+probe('C32-D-data-get-offset-exists-php-truthiness', "[data_get(\$t, 'a'), data_has(\$t, 'a')] for \$t = new C32D_AnsweringAccess(['a' => 1], \$answer), offsetExists answering '0', [], new DateTime('@0') and 'x'", fn () => array_map(fn ($answer) => [
+    data_get(new C32D_AnsweringAccess(['a' => 1], $answer), 'a'),
+    data_has(new C32D_AnsweringAccess(['a' => 1], $answer), 'a'),
+], ['0', [], new DateTime('@0'), 'x']));
+
 /** An object with one public property that holds null. */
 class C32D_Point { public $p = null; }
 
