@@ -217,6 +217,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
+    /**
+     * Indicates that the object's string representation should be escaped when toString is invoked.
+     */
+    protected shouldEscapeWhenCastingToString = false;
+
     constructor(items: TValue[]);
     constructor(items: readonly TValue[]);
     constructor(items: Collection<TValue, TKey>);
@@ -4146,6 +4151,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Get a base Support collection instance from this collection.
+     *
+     * @returns A new base Collection holding a copy of the items
+     *
+     * @example
+     *
+     * class Users extends Collection {}
+     * Users.make([1, 2]).toBase(); -> new Collection([1, 2])
+     */
+    toBase() {
+        return new Collection<TValue, TKey>(this);
+    }
+
+    /**
      * Determine if an item exists at an offset.
      *
      * @param offset - The offset to check for existence
@@ -4538,6 +4557,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value?: unknown,
     ) {
         return this.contains(key, operator, value);
+    }
+
+    /**
+     * Dump the items.
+     *
+     * @param args - Further values to dump after the items
+     * @returns The current collection instance
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).dump('one', 'two'); -> logs [1, 2, 3] 'one' 'two'
+     */
+    dump(...args: unknown[]) {
+        console.log(this.all(), ...args);
+
+        return this;
     }
 
     /**
@@ -5627,10 +5662,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Convert the collection to its string representation.
      *
-     * @returns A JSON string representing the collection's items
+     * @returns A JSON string representing the collection's items, HTML-escaped when escapeWhenCastingToString() asked
      */
     toString() {
-        return this.toJson();
+        const json = this.toJson();
+
+        return this.shouldEscapeWhenCastingToString ? escapeHtml(json) : json;
+    }
+
+    /**
+     * Indicate that the collection's string representation should be escaped when toString is invoked.
+     *
+     * @param escape - Whether to escape it
+     * @returns The current collection instance
+     *
+     * @example
+     *
+     * String(new Collection(['<b>']).escapeWhenCastingToString()); -> '[&quot;&lt;b&gt;&quot;]'
+     */
+    escapeWhenCastingToString(escape: boolean = true) {
+        this.shouldEscapeWhenCastingToString = escape;
+
+        return this;
     }
 
     /**
@@ -6467,6 +6520,21 @@ function phpIntegerFormat(key: PropertyKey): number {
     const leading = Number.parseFloat(String(key));
 
     return isFiniteNumber(leading) ? Math.trunc(leading) : 0;
+}
+
+/**
+ * Escape HTML's special characters as Laravel's `e()` helper does, an existing entity included.
+ *
+ * @param value - The text to escape
+ * @returns The text with &, <, >, " and ' written as HTML entities
+ */
+function escapeHtml(value: string): string {
+    return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 /**

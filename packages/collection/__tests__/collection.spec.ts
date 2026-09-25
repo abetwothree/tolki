@@ -8,7 +8,7 @@ import {
     MultipleItemsFoundException,
     UnexpectedValueException,
 } from "@tolki/utils";
-import { afterEach, assertType, describe, expect, it } from "vitest";
+import { afterEach, assertType, describe, expect, it, vi } from "vitest";
 
 import {
     TestArrayableObject,
@@ -9339,6 +9339,34 @@ describe("Collection", () => {
         });
     });
 
+    describe("toBase", () => {
+        it("returns a base Collection holding a subclass's items", () => {
+            class Sub extends Collection<number, number> {}
+
+            const base = Sub.make([1, 2]).toBase();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toBase-is-base-class"
+            expect([base.constructor, base.all()]).toEqual([
+                Collection,
+                [1, 2],
+            ]);
+        });
+
+        it("copies the items rather than sharing them", () => {
+            class Sub extends Collection<number, number> {}
+
+            const sub = Sub.make([1, 2]);
+            const base = sub.toBase();
+            base.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toBase-copies"
+            expect([sub.all(), base.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+    });
+
     describe("offsetExists", () => {
         describe("Laravel Tests", () => {
             it("test offsetExists", () => {
@@ -10007,6 +10035,34 @@ describe("Collection", () => {
 
             const withoutPHPFalsy = collect([1, 2, 3, 4]);
             expect(withoutPHPFalsy.some()).toBe(false); // no PHP-falsy values
+        });
+    });
+
+    describe("dump", () => {
+        it("test dump", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            try {
+                new Collection([1, 2, 3]).dump("one", "two");
+
+                // CollectionTest::testDump
+                expect(log.mock.calls).toEqual([[[1, 2, 3], "one", "two"]]);
+            } finally {
+                log.mockRestore();
+            }
+        });
+
+        it("returns the collection it dumped", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            try {
+                const collection = collect([1]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-dump-returns-same-instance"
+                expect(collection.dump()).toBe(collection);
+            } finally {
+                log.mockRestore();
+            }
         });
     });
 
@@ -12896,6 +12952,47 @@ describe("Collection", () => {
 
             // CollectionTest::testCastingToStringJsonEncodesTheToArrayResult
             expect(c.toString()).toBe('{"a":1,"b":2}');
+        });
+    });
+
+    describe("escapeWhenCastingToString", () => {
+        it("escapes the JSON a string conversion gives, as Laravel's e() does", () => {
+            const collection = collect(["<b>"]).escapeWhenCastingToString();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-to-string"
+            expect(String(collection)).toBe("[&quot;&lt;b&gt;&quot;]");
+            expect(collection.toString()).toBe("[&quot;&lt;b&gt;&quot;]");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-concat"
+            expect(collection + "").toBe("[&quot;&lt;b&gt;&quot;]");
+        });
+
+        it("escapes an ampersand and a single quote too, an entity included", () => {
+            const collection = collect([
+                "&'<>&amp;",
+            ]).escapeWhenCastingToString();
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-escape-when-casting-to-string-all-characters"
+            expect(String(collection)).toBe(
+                "[&quot;&amp;&#039;&lt;&gt;&amp;amp;&quot;]",
+            );
+        });
+
+        it("stops escaping when handed false", () => {
+            const collection = collect(["<b>"])
+                .escapeWhenCastingToString()
+                .escapeWhenCastingToString(false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-to-string-off"
+            expect(String(collection)).toBe('["<b>"]');
+        });
+
+        it("leaves toJson() unescaped", () => {
+            const collection = collect(["<b>"]).escapeWhenCastingToString();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-leaves-toJson"
+            expect(collection.toJson()).toBe('["<b>"]');
         });
     });
 
