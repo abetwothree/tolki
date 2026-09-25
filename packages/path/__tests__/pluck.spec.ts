@@ -109,6 +109,30 @@ describe("Path Pluck Functions", () => {
             ).toBe(1);
         });
 
+        it("reads a Map's entries, as the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-array-row"
+            expect(Path.resolvePluckPath(new Map([["n", 1]]), ["n"])).toBe(1);
+            expect(
+                Path.resolvePluckPath(
+                    new Map<unknown, unknown>([
+                        [1, "one"],
+                        ["01", "zero-one"],
+                    ]),
+                    ["1"],
+                ),
+            ).toBe("one");
+            expect(
+                Path.resolvePluckPath(new Map([["01", "zero-one"]]), ["1"]),
+            ).toBeNull();
+        });
+
+        it("expands a wildcard over a Map's values", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-array-row"
+            expect(Path.resolvePluckPath(new Map([["n", 1]]), ["*"])).toEqual([
+                1,
+            ]);
+        });
+
         it("reads a stored undefined as null", () => {
             // JS-only: PHP has no undefined; a path that reaches one answers null, as a missing key does.
             expect(Path.resolvePluckPath({ a: undefined }, ["a"])).toBeNull();
@@ -144,6 +168,13 @@ describe("Path Pluck Functions", () => {
             expect(Path.hasPluckPath([10], ["01"])).toBe(false);
             expect(Path.hasPluckPath(new Point(), ["p"])).toBe(true);
             expect(Path.hasPluckPath(new Point(), ["q"])).toBe(false);
+        });
+
+        it("finds a key a Map holds, even when it holds null, as the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-array-and-object-targets"
+            expect(Path.hasPluckPath(new Map([["a", null]]), ["a"])).toBe(true);
+            expect(Path.hasPluckPath(new Map([[1, 10]]), ["1"])).toBe(true);
+            expect(Path.hasPluckPath(new Map([[0, 10]]), ["01"])).toBe(false);
         });
 
         it("answers false for no path at all", () => {

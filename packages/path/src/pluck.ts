@@ -1,11 +1,13 @@
 import {
     isArray,
     isFunction,
+    isMap,
     isNull,
     isNumber,
     isObject,
     isPlainObject,
     isUndefined,
+    keyedEntries,
     phpArrayKey,
 } from "@tolki/utils";
 
@@ -24,10 +26,18 @@ const absent = Symbol("absent");
  * @returns The values to recurse into.
  */
 export function getPluckWildcardValues(
-    target: unknown[] | Record<PropertyKey, unknown>,
+    target:
+        | unknown[]
+        | Record<PropertyKey, unknown>
+        | ReadonlyMap<unknown, unknown>,
 ): unknown[] {
     if (isArray(target)) {
         return target;
+    }
+
+    // A Map stands in for a PHP array, so a `*` walks one value per key PHP would store.
+    if (isMap(target)) {
+        return keyedEntries(target).map(([, value]) => value);
     }
 
     return Object.values(target);
@@ -143,6 +153,16 @@ function readSegment(target: unknown, segment: string): unknown {
 
     if (!isObject(target)) {
         return absent;
+    }
+
+    // A Map stands in for a PHP array, so its key is cast as PHP casts one, and a stored null still exists.
+    if (isMap(target)) {
+        const key = String(phpArrayKey(segment));
+        const entry = keyedEntries(target).find(
+            ([entryKey]) => entryKey === key,
+        );
+
+        return entry ? entry[1] : absent;
     }
 
     if (isArrayAccess(target)) {

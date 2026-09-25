@@ -5203,13 +5203,12 @@ describe("Obj", () => {
                 ]);
             });
 
-            it("cannot read a path into a Map among its items", () => {
-                // JS-only: a nested Map is a leaf that a path cannot address, so each path into one
-                // plucks null and a wildcard []. PHP's nested array would give 1 and [1].
+            it("reads a path into a Map among its items, as into the array it stands for", () => {
                 const items = new Map([[0, new Map([["n", 1]])]]);
 
-                expect(Obj.pluck(items, "n")).toEqual([null]);
-                expect(Obj.pluck(items, "*")).toEqual([[]]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-array-row"
+                expect(Obj.pluck(items, "n")).toEqual([1]);
+                expect(Obj.pluck(items, "*")).toEqual([[1]]);
             });
         });
 

@@ -14659,6 +14659,91 @@ describe("Collection", () => {
             expect(run(true)).toEqual(expected.keyed);
         });
 
+        /** The same three rows as Maps, which stand for the PHP arrays of C32-D-array-rows-by-backing. */
+        const mapRows = (keyed: boolean) =>
+            backed(keyed, [
+                new Map<string, string | number>([
+                    ["k", "b"],
+                    ["v", 1],
+                ]),
+                new Map<string, string | number>([
+                    ["k", "a"],
+                    ["v", 2],
+                ]),
+                new Map<string, string | number>([
+                    ["k", "b"],
+                    ["v", 3],
+                ]),
+            ]) as Collection<Map<string, string | number>, PropertyKey>;
+
+        it.each([
+            [
+                "contains",
+                (keyed: boolean) => mapRows(keyed).contains("k", "a"),
+                true,
+            ],
+            [
+                "where",
+                (keyed: boolean) =>
+                    mapRows(keyed).where("k", "b").pluck("v").all(),
+                [1, 3],
+            ],
+            [
+                "firstWhere",
+                (keyed: boolean) => {
+                    const row = mapRows(keyed).firstWhere("k", "a");
+
+                    return row && Object.fromEntries(row);
+                },
+                { k: "a", v: 2 },
+            ],
+            ["value", (keyed: boolean) => mapRows(keyed).value("v"), 1],
+            [
+                "pluck",
+                (keyed: boolean) => [
+                    mapRows(keyed).pluck("v").all(),
+                    mapRows(keyed).pluck("v", "k").all(),
+                ],
+                [[1, 2, 3], { b: 3, a: 2 }],
+            ],
+            [
+                "sortBy",
+                (keyed: boolean) => mapRows(keyed).sortBy("k").pluck("v").all(),
+                [2, 1, 3],
+            ],
+            [
+                "groupBy",
+                (keyed: boolean) =>
+                    mapRows(keyed)
+                        .groupBy("k")
+                        .map((group) => collect(group).pluck("v").all())
+                        .all(),
+                { b: [1, 3], a: [2] },
+            ],
+            [
+                "keyBy",
+                (keyed: boolean) =>
+                    mapRows(keyed)
+                        .keyBy("k")
+                        .map((row) => row.get("v"))
+                        .all(),
+                { b: 3, a: 2 },
+            ],
+            [
+                "whereIn",
+                (keyed: boolean) =>
+                    mapRows(keyed).whereIn("k", ["a"]).pluck("v").all(),
+                [2],
+            ],
+        ] as [string, (keyed: boolean) => unknown, unknown][])(
+            "%s reads a path through Map rows, as through the arrays they stand for",
+            (_method, run, expected) => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-rows-by-backing"
+                expect(run(false)).toEqual(expected);
+                expect(run(true)).toEqual(expected);
+            },
+        );
+
         it("reads a single Collection row through contains, where, firstWhere and value", () => {
             const rows = () => collect([collect({ v: 1 })]);
 
