@@ -1960,6 +1960,32 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ 1: "a" });
         });
+
+        it("keeps every object without a callback, however empty", () => {
+            // Class instances stand in for stdClass, ArrayObject and SplObjectStorage: a plain object, a
+            // Map and a Set model PHP arrays here, which are falsy when empty.
+            const kept = collect([
+                new Date(0),
+                new (class {})(),
+                new (class {})(),
+                new (class {})(),
+                "x",
+            ]).filter();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-keeps-empty-objects"
+            expect(kept.count()).toBe(5);
+        });
+
+        it('drops an item whose callback answers "0"', () => {
+            const filtered = collect([1, 2]).filter((value) =>
+                value > 1 ? "0" : "x",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-callback-string-zero"
+            expect(filtered.all()).toEqual([1]);
+            expect(filtered.keys().all()).toEqual([0]);
+            expect(filtered.values().all()).toEqual([1]);
+        });
     });
 
     describe("first", () => {
@@ -10039,6 +10065,15 @@ describe("Collection", () => {
             const c = collect([{ status: "active" }, { status: "active" }]);
             expect(c.every("status", "=", "active")).toBe(true);
         });
+
+        it("judges a path's value, or the item itself, by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-path-php-falsy"
+            expect([
+                collect([{ a: "0" }]).every("a"),
+                collect([{ a: [] }]).every("a"),
+                collect(["0"]).every(null),
+            ]).toEqual([false, false, false]);
+        });
     });
 
     describe("firstWhere", () => {
@@ -10564,6 +10599,50 @@ describe("Collection", () => {
             expect(truthy.values().all()).toEqual([1, "hello", true]);
             expect(falsy.values().all()).toEqual([0, "", null, false]);
         });
+
+        it("partitions the items themselves by PHP truthiness for a null key", () => {
+            const [passed, failed] = collect([
+                1,
+                0,
+                "",
+                "a",
+                null,
+                [],
+                "0",
+            ]).partition(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-null-key-truthiness"
+            expect([passed.values().all(), failed.values().all()]).toEqual([
+                [1, "a"],
+                [0, "", null, [], "0"],
+            ]);
+        });
+
+        it("counts every object as passing for a null key, however empty", () => {
+            const [passed, failed] = collect([
+                new Date(0),
+                new (class {})(),
+            ]).partition(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-null-empty-objects"
+            expect([passed.count(), failed.count()]).toEqual([2, 0]);
+        });
+
+        it("compares with a false value rather than testing the path's truthiness", () => {
+            const [passed, failed] = collect([
+                { v: false },
+                { v: 0 },
+                { v: null },
+                { v: 1 },
+            ]).partition("v", false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-bool-false-two-arg", whose
+            // keys [0, 1, 2] and [3] name these rows; a list half renumbers its keys, as every removal from a list does
+            expect([passed.pluck("v").all(), failed.pluck("v").all()]).toEqual([
+                [false, 0, null],
+                [1],
+            ]);
+        });
     });
 
     describe("percentage", () => {
@@ -10845,6 +10924,14 @@ describe("Collection", () => {
             const result = c.unless(false);
             expect(result.all()).toEqual([1, 2, 3]);
         });
+
+        it('calls the callback for a "0" or [] condition', () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-unless-php-falsy-values"
+            expect([
+                collect([1]).unless("0", () => "called"),
+                collect([1]).unless([], () => "called"),
+            ]).toEqual(["called", "called"]);
+        });
     });
 
     describe("unlessEmpty", () => {
@@ -11094,6 +11181,16 @@ describe("Collection", () => {
                     { v: 2, g: null },
                 ]);
             });
+        });
+
+        it("keeps no item whose value is an object when given only a key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-one-arg-empty-object": Laravel
+            // answers "=" false for a lone object before comparing, so no truthiness is judged
+            expect(
+                collect([{ v: new Date(0) }, { v: new (class {})() }])
+                    .where("v")
+                    .count(),
+            ).toBe(0);
         });
     });
 
@@ -11798,6 +11895,70 @@ describe("Collection", () => {
             const data7 = collect({ a: "foo", b: "bar", c: "foo" });
             expect(data7.reject("foo").all()).toEqual({ b: "bar" });
         });
+
+        it("keeps the PHP-falsy items without an argument", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-none-php-falsy"
+            expect(
+                collect([[], "0", 0.0, "a", "", null, true])
+                    .reject()
+                    .values()
+                    .all(),
+            ).toEqual([[], "0", 0, "", null]);
+        });
+
+        it("rejects every object without an argument, however empty", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-none-empty-objects"
+            expect(
+                collect([new Date(0), new (class {})()])
+                    .reject()
+                    .count(),
+            ).toBe(0);
+        });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-false-loose"
+                "false",
+                [null, 0, "", "a", [], true, false],
+                false,
+                ["a", true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-null-loose"
+                "null",
+                [0, "", false, [], "a", "0"],
+                null,
+                ["a", "0"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-zero-loose"
+                "0",
+                ["a", "0", 0, null, false, "", "0.0"],
+                0,
+                ["a", ""],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-numeric-string-loose"
+                '"1"',
+                [1, "01", "1.0", true, "1e0", "x"],
+                "1",
+                ["x"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-array-value"
+                "[1, 2]",
+                [[1, 2], [2, 1], ["1", "2"], "x"],
+                [1, 2],
+                [[2, 1], "x"],
+            ],
+        ] as [string, unknown[], unknown, unknown[]][])(
+            "rejects the items loosely equal to %s",
+            (_label, items, value, kept) => {
+                expect(collect(items).reject(value).values().all()).toEqual(
+                    kept,
+                );
+            },
+        );
     });
 
     describe("tap", () => {
@@ -12284,6 +12445,16 @@ describe("Collection", () => {
             // Calling when with only value (callback defaults to null)
             const result = c.when(true);
             expect(result.all()).toEqual([1, 2, 3]);
+        });
+
+        it('skips the callback for a "0" or [] condition', () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-php-falsy-values"
+            expect([
+                c.when("0", () => "called") === c,
+                c.when([], () => "called") === c,
+            ]).toEqual([true, true]);
         });
     });
 
@@ -15694,6 +15865,364 @@ describe("Collection", () => {
                 10,
                 "1e+21",
             ]);
+        });
+    });
+
+    describe("callbacks and conditions are judged by PHP truthiness", () => {
+        /** The items "a" and "b" (or "a" alone), as a list or keyed "x" and "y". */
+        const items = (keyed: boolean, one = false) =>
+            (keyed
+                ? collect(one ? { x: "a" } : { x: "a", y: "b" })
+                : collect(one ? ["a"] : ["a", "b"])) as unknown as Collection<
+                string,
+                PropertyKey
+            >;
+
+        /** A result the way the probe's pairs() records it: a list's values, any other keys as [key, value] pairs. */
+        const pairs = (result: unknown): unknown => {
+            if (!(result instanceof Collection)) {
+                return result;
+            }
+
+            const keys = result.keys().all() as PropertyKey[];
+            const values = (result.values().all() as unknown[]).map(pairs);
+
+            return keys.every((key, index) => key === index)
+                ? values
+                : keys.map((key, index) => [key, values[index]]);
+        };
+
+        /** What `run` answers, or the name of the exception it throws, as the probe records one. */
+        const outcome = (run: () => unknown): unknown => {
+            try {
+                return run();
+            } catch (error) {
+                return (error as Error).name;
+            }
+        };
+
+        // PHP casts "0" and [] to false, and every object to true, however empty.
+        const answers = ["0", [], new Date(0)];
+
+        /** The same expected answers for the list and the keyed backing. */
+        const both = <T>(answer: T) => ({ list: answer, keyed: answer });
+
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+        it.each([
+            [
+                "filter",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).filter(callback)),
+                {
+                    list: [[], [], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                "where",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).where(callback)),
+                {
+                    list: [[], [], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                "reject",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).reject(callback)),
+                {
+                    list: [["a", "b"], ["a", "b"], []],
+                    keyed: [
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [],
+                    ],
+                },
+            ],
+            [
+                "first",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).first(callback),
+                both([null, null, "a"]),
+            ],
+            [
+                "last",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).last(callback),
+                both([null, null, "b"]),
+            ],
+            [
+                "firstWhere",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).firstWhere(callback),
+                both([null, null, "a"]),
+            ],
+            [
+                "firstOrFail",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).firstOrFail(callback),
+                both(["ItemNotFoundException", "ItemNotFoundException", "a"]),
+            ],
+            [
+                "sole",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed, true).sole(callback),
+                both(["ItemNotFoundException", "ItemNotFoundException", "a"]),
+            ],
+            [
+                "every",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).every(callback),
+                both([false, false, true]),
+            ],
+            [
+                "some",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).some(callback),
+                both([false, false, true]),
+            ],
+            [
+                "contains",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).contains(callback),
+                both([false, false, true]),
+            ],
+            [
+                "doesntContain",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).doesntContain(callback),
+                both([true, true, false]),
+            ],
+            [
+                "containsStrict",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).containsStrict(callback),
+                both([false, false, true]),
+            ],
+            [
+                "doesntContainStrict",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).doesntContainStrict(callback),
+                both([true, true, false]),
+            ],
+            [
+                "search",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).search(callback),
+                { list: [false, false, 0], keyed: [false, false, "x"] },
+            ],
+            [
+                // The probe's before callback answers for "b" only, so a match has an item before it.
+                "before",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).before((value) =>
+                        value === "b" ? callback() : false,
+                    ),
+                both([null, null, "a"]),
+            ],
+            [
+                "after",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).after(callback),
+                both([null, null, "b"]),
+            ],
+            [
+                "hasSole",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed, true).hasSole(callback),
+                both([false, false, true]),
+            ],
+            [
+                "containsOneItem",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed, true).containsOneItem(callback),
+                both([false, false, true]),
+            ],
+            [
+                "hasMany",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).hasMany(callback),
+                both([false, false, true]),
+            ],
+            [
+                "containsManyItems",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).containsManyItems(callback),
+                both([false, false, true]),
+            ],
+            [
+                "partition",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).partition(callback)),
+                {
+                    list: [
+                        [[], ["a", "b"]],
+                        [[], ["a", "b"]],
+                        [["a", "b"], []],
+                    ],
+                    keyed: [
+                        [
+                            [],
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                        ],
+                        [
+                            [],
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                        ],
+                        [
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                            [],
+                        ],
+                    ],
+                },
+            ],
+            [
+                // The probe records each chunk's values.
+                "chunkWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed)
+                        .chunkWhile(callback)
+                        .map((chunk) => chunk.values().all())
+                        .all(),
+                both([[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]]]),
+            ],
+            [
+                "percentage",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).percentage(callback),
+                both([0, 0, 100]),
+            ],
+        ] as [
+            string,
+            (callback: () => unknown, keyed: boolean) => unknown,
+            { list: unknown[]; keyed: unknown[] },
+        ][])(
+            "%s judges its callback's result by PHP truthiness on either backing",
+            (_name, run, expected) => {
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, false)),
+                    ),
+                ).toEqual(expected.list);
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, true)),
+                    ),
+                ).toEqual(expected.keyed);
+            },
+        );
+
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness",
+        // which records whether the callback ran
+        it.each([
+            [
+                "when",
+                (condition: unknown, keyed: boolean) => {
+                    let called = false;
+
+                    items(keyed).when(condition, () => {
+                        called = true;
+                    });
+
+                    return called;
+                },
+                both([false, false, true]),
+            ],
+            [
+                "unless",
+                (condition: unknown, keyed: boolean) => {
+                    let called = false;
+
+                    items(keyed).unless(condition, () => {
+                        called = true;
+                    });
+
+                    return called;
+                },
+                both([true, true, false]),
+            ],
+        ] as [
+            string,
+            (condition: unknown, keyed: boolean) => unknown,
+            { list: unknown[]; keyed: unknown[] },
+        ][])(
+            "%s judges its condition by PHP truthiness on either backing",
+            (_name, run, expected) => {
+                expect(answers.map((answer) => run(answer, false))).toEqual(
+                    expected.list,
+                );
+                expect(answers.map((answer) => run(answer, true))).toEqual(
+                    expected.keyed,
+                );
+            },
+        );
+
+        it("first and last judge their callback's result by PHP truthiness on a Map-built backing", () => {
+            const ordered = () =>
+                collect(
+                    new Map([
+                        [2, "a"],
+                        [0, "b"],
+                    ]),
+                );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-C-ordered-first-last-callback-php-truthiness"
+            expect({
+                first: answers.map((answer) => ordered().first(() => answer)),
+                last: answers.map((answer) => ordered().last(() => answer)),
+            }).toEqual({ first: [null, null, "a"], last: [null, null, "b"] });
+        });
+
+        it('finds no match for a callback answering "0" or []', () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-callback-php-truthiness"
+            expect({
+                contains: collect([1]).contains(() => "0"),
+                first: collect([1, 2]).first(() => "0"),
+                "first-array": collect([1, 2]).first(() => []),
+                search: collect([1, 2]).search(() => "0"),
+                every: collect([1, 2]).every(() => "0"),
+                hasSole: collect([1]).hasSole(() => "0"),
+                hasMany: collect([1, 2]).hasMany(() => []),
+            }).toEqual({
+                contains: false,
+                first: null,
+                "first-array": null,
+                search: false,
+                every: false,
+                hasSole: false,
+                hasMany: false,
+            });
         });
     });
 });

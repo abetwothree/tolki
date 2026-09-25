@@ -78,6 +78,7 @@ import {
     isNumber,
     isObject,
     isPhpArrayKey,
+    isPhpFalsy,
     isPlainObject,
     isString,
     isSymbol,
@@ -490,16 +491,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).contains(2); -> true
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
-    contains(key: (value: TValue, index: TKey) => boolean): boolean;
+    contains(key: (value: TValue, index: TKey) => unknown): boolean;
     contains(key: unknown, operator?: unknown, value?: unknown): boolean;
     contains(
-        key: ((value: TValue, index: TKey) => boolean) | unknown,
+        key: ((value: TValue, index: TKey) => unknown) | unknown,
         operator?: unknown,
         value?: unknown,
     ): boolean {
         if (isUndefined(operator) && isUndefined(value)) {
             if (isFunction(key)) {
-                const callback = key as (value: TValue, index: TKey) => boolean;
+                const callback = key as (value: TValue, index: TKey) => unknown;
 
                 return dataContains(this.items, callback);
             }
@@ -550,7 +551,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return (
                 this.first<typeof placeholder>(
-                    key as (value: TValue, index: TKey) => boolean,
+                    key as (value: TValue, index: TKey) => unknown,
                     placeholder,
                 ) !== placeholder
             );
@@ -575,15 +576,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).doesntContain(2); -> false
      * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
      */
-    doesntContain(key: (value: TValue, index: TKey) => boolean): boolean;
+    doesntContain(key: (value: TValue, index: TKey) => unknown): boolean;
     doesntContain(key: unknown, operator?: unknown, value?: unknown): boolean;
     doesntContain(
-        key: ((value: TValue, index: TKey) => boolean) | unknown,
+        key: ((value: TValue, index: TKey) => unknown) | unknown,
         operator?: unknown,
         value?: unknown,
     ): boolean {
         return !this.contains(
-            key as (value: TValue, index: TKey) => boolean,
+            key as (value: TValue, index: TKey) => unknown,
             operator,
             value,
         );
@@ -603,10 +604,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).doesntContainStrict('2'); -> true
      * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
      */
-    doesntContainStrict(key: (value: TValue, index: TKey) => boolean): boolean;
+    doesntContainStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     doesntContainStrict(key: unknown, value?: unknown): boolean;
     doesntContainStrict(
-        key: ((value: TValue, index: TKey) => boolean) | unknown,
+        key: ((value: TValue, index: TKey) => unknown) | unknown,
         value?: unknown,
     ): boolean {
         return !this.containsStrict(
@@ -980,7 +981,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).filter(x => x > 2); -> new Collection([3, 4])
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
-    filter(callback: ((value: TValue, key: TKey) => boolean) | null = null) {
+    filter(callback: ((value: TValue, key: TKey) => unknown) | null = null) {
         if (isNull(callback)) {
             return this.newInstance(handOver(dataFilter(this.items)));
         }
@@ -1012,7 +1013,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3, d: 4}).first(x => x > 2); -> 3
      */
     first<TFirstDefault>(
-        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
     ): TValue | TFirstDefault | null {
         const ordered = this.orderedEntries();
@@ -1029,7 +1030,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // The same union makes obj's row take an `unknown`-valued callback, which
             // rejects a typed one (contravariance).
             callback as
-                | ((value: unknown, key: string | number) => boolean)
+                | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
         ) as TValue | TFirstDefault | null;
@@ -1369,15 +1370,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{age: 2}, {age: 3}]).hasMany(item => item.age > 1); -> true
      */
     hasMany(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
+        key: ((value: TValue, index: TKey) => unknown) | PathKey | null = null,
         operator?: unknown,
         value?: unknown,
     ): boolean {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
+        let filter: ((value: TValue, key: TKey) => unknown) | null;
 
         if (!isUndefined(operator) || !isUndefined(value)) {
             filter = this.operatorForWhere(
-                key as ((value: TValue, index: TKey) => boolean) | PathKey,
+                key as ((value: TValue, index: TKey) => unknown) | PathKey,
                 operator as string | undefined,
                 value,
             );
@@ -1385,13 +1386,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
             filter = isNull(key)
                 ? null
                 : this.useAsCallable(key)
-                  ? (key as (value: TValue, key: TKey) => boolean)
+                  ? (key as (value: TValue, key: TKey) => unknown)
                   : this.operatorForWhere(key);
         }
 
         const collection = isNull(filter)
             ? this
-            : this.filter(filter as (value: TValue, key: TKey) => boolean);
+            : this.filter(filter as (value: TValue, key: TKey) => unknown);
 
         return collection.take(2).count() === 2;
     }
@@ -1412,15 +1413,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{age: 2}, {age: 3}]).hasSole(item => item.age === 2); -> true
      */
     hasSole(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
+        key: ((value: TValue, index: TKey) => unknown) | PathKey | null = null,
         operator?: unknown,
         value?: unknown,
     ): boolean {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
+        let filter: ((value: TValue, key: TKey) => unknown) | null;
 
         if (!isUndefined(operator) || !isUndefined(value)) {
             filter = this.operatorForWhere(
-                key as ((value: TValue, index: TKey) => boolean) | PathKey,
+                key as ((value: TValue, index: TKey) => unknown) | PathKey,
                 operator as string | undefined,
                 value,
             );
@@ -1428,7 +1429,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             filter = isNull(key)
                 ? null
                 : this.useAsCallable(key)
-                  ? (key as (value: TValue, key: TKey) => boolean)
+                  ? (key as (value: TValue, key: TKey) => unknown)
                   : this.operatorForWhere(key);
         }
 
@@ -1701,7 +1702,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).containsOneItem(x => x < 2); -> true
      */
     containsOneItem(
-        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
     ) {
         return this.hasSole(callback);
     }
@@ -1722,7 +1723,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection(['ant', 'bear', 'cat']).containsManyItems(x => x.length === 3); -> true
      */
     containsManyItems(
-        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
     ): boolean {
         return this.hasMany(callback);
     }
@@ -1805,7 +1806,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).last(null, 'default'); -> 'default'
      */
     last<D = null>(
-        callback?: ((value: TValue, key: TKey) => boolean) | null,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
         defaultValue?: D | (() => D),
     ): TValue | D | null {
         const ordered = this.orderedEntries();
@@ -1824,7 +1825,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const result = dataLast(
             this.items,
             callback as
-                | ((value: unknown, key: string | number) => boolean)
+                | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
         ) as TValue | D | null | undefined;
@@ -2816,7 +2817,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).search(4); -> false
      */
     search(
-        value: TValue | ((item: TValue, key: TKey) => boolean),
+        value: TValue | ((item: TValue, key: TKey) => unknown),
         strict: boolean = false,
     ): TKey | number | false {
         return dataSearch(this.items, value, strict);
@@ -2838,7 +2839,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).before(4); -> null
      */
     before(
-        value: TValue | ((item: TValue, key: TKey) => boolean),
+        value: TValue | ((item: TValue, key: TKey) => unknown),
         strict: boolean = false,
     ): TValue | null {
         return dataBefore(this.items, value, strict);
@@ -2860,7 +2861,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).after(4); -> null
      */
     after(
-        value: TValue | ((item: TValue, key: TKey) => boolean),
+        value: TValue | ((item: TValue, key: TKey) => unknown),
         strict: boolean = false,
     ): TValue | null {
         return dataAfter(this.items, value, strict);
@@ -3117,19 +3118,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
      */
     sole(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
+        key: ((value: TValue, index: TKey) => unknown) | PathKey = null,
         operator?: string,
         value?: unknown,
     ) {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
+        let filter: ((value: TValue, key: TKey) => unknown) | null;
         if (isUndefined(operator) && isUndefined(value)) {
             filter = isNull(key)
                 ? key
                 : (this.valueRetriever(
                       key as
                           | PathKey
-                          | ((...args: (TValue | TKey)[]) => boolean),
-                  ) as (value: TValue, key: TKey) => boolean);
+                          | ((...args: (TValue | TKey)[]) => unknown),
+                  ) as (value: TValue, key: TKey) => unknown);
         } else {
             filter = this.operatorForWhere(
                 key,
@@ -3173,19 +3174,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).firstOrFail(); -> throws ItemNotFoundException
      */
     firstOrFail(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
+        key: ((value: TValue, index: TKey) => unknown) | PathKey = null,
         operator?: string,
         value?: unknown,
     ) {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
+        let filter: ((value: TValue, key: TKey) => unknown) | null;
         if (isUndefined(operator) && isUndefined(value)) {
             filter = isNull(key)
                 ? key
                 : (this.valueRetriever(
                       key as
                           | PathKey
-                          | ((...args: (TValue | TKey)[]) => boolean),
-                  ) as (value: TValue, key: TKey) => boolean);
+                          | ((...args: (TValue | TKey)[]) => unknown),
+                  ) as (value: TValue, key: TKey) => unknown);
         } else {
             filter = this.operatorForWhere(
                 key,
@@ -3266,7 +3267,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             value: TValue,
             key: TKey,
             chunk: Collection<TValue, TKey>,
-        ) => boolean,
+        ) => unknown,
     ): Collection<Collection<TValue, TKey>, number> {
         const chunked = dataChunkWhile(
             this.items as TValue[],
@@ -4439,7 +4440,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @see {@link Collection.contains}
      */
     some(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey = null,
         operator?: unknown,
         value?: unknown,
     ) {
@@ -4516,16 +4517,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).every(2); -> false
      */
     every(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey = null,
         operator: unknown = null,
         value: unknown = null,
     ): boolean {
         if (isNull(operator) && isNull(value)) {
             const callback = this.valueRetriever(
-                key as PathKey | ((...args: (TValue | TKey)[]) => boolean),
+                key as PathKey | ((...args: (TValue | TKey)[]) => unknown),
             );
             for (const [key, value] of Object.entries(this.items)) {
-                if (!callback(value as TValue, phpArrayKey(key) as TKey)) {
+                if (
+                    isPhpFalsy(
+                        callback(value as TValue, phpArrayKey(key) as TKey),
+                    )
+                ) {
                     return false;
                 }
             }
@@ -4558,7 +4563,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> undefined
      */
     firstWhere(
-        key: ((value: TValue, key: TKey) => boolean) | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
         operator?: unknown,
         value?: unknown,
     ): TValue | null {
@@ -4845,14 +4850,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A TupleCollection with two collections: the first with items that pass the truth test, the second with items that fail
      */
     partition(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey = null,
         operator?: unknown,
         value?: unknown,
     ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>> {
         let callback;
         if (isUndefined(operator) && isUndefined(value)) {
             callback = this.valueRetriever(
-                key as PathKey | ((...args: (TValue | TKey)[]) => boolean),
+                key as PathKey | ((...args: (TValue | TKey)[]) => unknown),
             );
         } else {
             callback = this.operatorForWhere(
@@ -4863,7 +4868,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         const [passed, failed] = dataPartition(this.items, (item, key) =>
-            Boolean(callback(item as TValue, key as TKey)),
+            callback(item as TValue, key as TKey),
         );
 
         return this.newInstance(
@@ -4892,7 +4897,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The percentage of items that pass the truth test, rounded to the given precision, or null if the collection is empty
      */
     percentage(
-        callback: (value: TValue, key: TKey) => boolean,
+        callback: (value: TValue, key: TKey) => unknown,
         precision: number = 2,
     ) {
         if (this.isEmpty()) {
@@ -5389,7 +5394,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     reject(
         callback:
-            | ((value: TValue, key: TKey) => boolean)
+            | ((value: TValue, key: TKey) => unknown)
             | boolean
             | TValue = true,
     ) {
@@ -5397,19 +5402,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return this.filter((value: TValue, key: TKey) => {
             if (useAsCallable) {
-                return !(callback as (value: TValue, key: TKey) => boolean)(
-                    value,
-                    key,
+                return isPhpFalsy(
+                    (callback as (value: TValue, key: TKey) => unknown)(
+                        value,
+                        key,
+                    ),
                 );
             }
 
-            // When reject() is called without arguments (or with true),
-            // filter out all truthy values (like PHP does)
-            if (callback === true) {
-                return !value;
-            }
-
-            return value != callback;
+            return !looseEqual(value, callback);
         });
     }
 
@@ -5697,7 +5698,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ? (value as (instance: this) => TWhenParameter)(this)
             : (value as TWhenParameter);
 
-        if (resolvedValue) {
+        if (!isPhpFalsy(resolvedValue)) {
             return (callback?.(this, resolvedValue) ?? this) as Collection<
                 TValue,
                 TKey
@@ -5738,7 +5739,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             isFunction(value) ? value(this) : value
         ) as TUnlessParameter;
 
-        if (!resolvedValue) {
+        if (isPhpFalsy(resolvedValue)) {
             return (callback?.(this, resolvedValue) ?? this) as Collection<
                 TValue,
                 TKey
@@ -5916,11 +5917,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected firstOrdered<TFirstDefault>(
         ordered: Array<[TKey, TValue]>,
-        callback?: ((value: TValue, key: TKey) => boolean) | null,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
     ): TValue | TFirstDefault | null {
         const match = callback
-            ? ordered.find(([key, value]) => callback(value, key))
+            ? ordered.find(([key, value]) => !isPhpFalsy(callback(value, key)))
             : ordered[0];
 
         // An empty backing defers to dataFirst, so the thunk-or-value default resolves in one place.
