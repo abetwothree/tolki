@@ -496,6 +496,13 @@ describe("Collection", () => {
             expect(collection.values().all()).toEqual([1, 2]);
         });
 
+        it("keeps its items off its own properties, so an item named then makes no thenable", async () => {
+            const collection = collect({ then: () => {}, x: 1 });
+
+            // JS-only: items are read through offsetGet() and get(), never as properties, which await would call
+            expect(await collection).toBe(collection);
+        });
+
         it("copies only the top level, so a nested array stays shared", () => {
             const nested = [1];
             const collection = collect([nested]);

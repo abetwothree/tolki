@@ -109,8 +109,6 @@ import {
     UnexpectedValueException,
 } from "@tolki/utils";
 
-// import { initProxyHandler } from "./proxy";
-
 // Collection resolves a descriptor's key with data_get, the way
 // Collection::sortByMany does; Arr and Obj resolve with getNestedValue.
 const sortSpecComparator = createSortSpecComparator((item, key) =>
@@ -258,17 +256,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | undefined,
     ) {
         this.items = this.adoptRawItems(items);
-
-        // Return a proxy that intercepts property access
-        // return this.createProxy();
     }
-
-    /**
-     * Create a proxy that intercepts property access for both array and object usage
-     */
-    // private createProxy(): this {
-    //     return new Proxy(this, initProxyHandler<TValue>());
-    // }
 
     /**
      * Make the collection iterable with for...of loops.

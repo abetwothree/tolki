@@ -52,10 +52,6 @@
             "./collection": {
                 "import": "./dist/collection.js",
                 "types": "./dist/collection.d.ts"
-            },
-            "./proxy": {
-                "import": "./dist/proxy.js",
-                "types": "./dist/proxy.d.ts"
             }
         }
     },
