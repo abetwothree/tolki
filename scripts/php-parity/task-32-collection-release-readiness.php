@@ -1512,6 +1512,100 @@ probe('C32-G-sortBy-descriptors-collection-rows', "c32c_rows(list | keyed)->sort
     c32c_rows($keyed)->sortBy([['k', 'asc'], ['v', 'desc']])->pluck('v')->all(),
 ], ['list' => false, 'keyed' => true]));
 
+// Ties and groups over integer keys out of order, which only a Map-built collection holds in JS.
+$gTies = [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']];
+probe('C32-G-sort-comparator-out-of-order', "(new Collection([2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]))->sort(fn (\$a, \$b) => \$a['n'] <=> \$b['n'])",
+    fn () => $pairs((new Collection($gTies))->sort(fn ($a, $b) => $a['n'] <=> $b['n'])));
+probe('C32-G-sort-comparator-int-cast', "(new Collection([3, 1, 2]))->sort(\$comparator)->values()->all() for a comparator answering a fraction below 1, an infinity and NAN, which uasort() casts to 0", fn () => array_map(fn (Closure $comparator) => @(new Collection([3, 1, 2]))->sort($comparator)->values()->all(), [
+    'fraction' => fn ($a, $b) => ($a - $b) / 10,
+    'infinity' => fn ($a, $b) => ($a <=> $b) * INF,
+    'NAN' => fn () => NAN,
+]));
+probe('C32-G-sortBy-out-of-order-ties', "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order", fn () => [
+    'sortBy' => (new Collection($gTies))->sortBy('n')->pluck('id')->all(),
+    'sortByDesc' => (new Collection($gTies))->sortByDesc('n')->pluck('id')->all(),
+    'sortBy descriptors' => (new Collection($gTies))->sortBy(['n'])->pluck('id')->all(),
+]);
+probe('C32-G-sortByMany-desc-direction-forms', "testSortByMany's chain over [['item' => '1'], ['item' => '10'], ['item' => 5], ['item' => 20]]: sortBy(['item']), then sortBy([['item', 'desc']]), sortBy([['item', false]]) and sortBy([['item', SortDirection::Descending]]), each plucked", function () {
+    $data = new Collection([['item' => '1'], ['item' => '10'], ['item' => 5], ['item' => 20]]);
+    $out = [];
+
+    foreach (['asc' => ['item'], 'desc' => [['item', 'desc']], 'false' => [['item', false]], 'Descending' => [['item', SortDirection::Descending]]] as $label => $comparisons) {
+        $data = $data->sortBy($comparisons);
+        $out[$label] = $data->pluck('item')->all();
+    }
+
+    return $out;
+});
+probe('C32-G-sortByMany-two-keys', "sortBy(['first', 'second']) and sortByDesc(['first', 'second']) over four rows, and sortBy(['primary', 'secondary']) over rows tying on the first key, then on both", function () {
+    $four = [['first' => 'b', 'second' => 2], ['first' => 'a', 'second' => 3], ['first' => 'b', 'second' => 1], ['first' => 'a', 'second' => 1]];
+
+    return [
+        'asc' => (new Collection($four))->sortBy(['first', 'second'])->values()->all(),
+        'desc' => (new Collection($four))->sortByDesc(['first', 'second'])->values()->all(),
+        'first-key-ties' => (new Collection([['primary' => 'a', 'secondary' => 3], ['primary' => 'a', 'secondary' => 1], ['primary' => 'b', 'secondary' => 2]]))->sortBy(['primary', 'secondary'])->values()->all(),
+        'both-keys-tie' => (new Collection([['primary' => 'a', 'secondary' => 1], ['primary' => 'a', 'secondary' => 1], ['primary' => 'b', 'secondary' => 2]]))->sortBy(['primary', 'secondary'])->values()->all(),
+    ];
+});
+probe('C32-G-sortBy-descriptor-direction-forms', "sortBy([[\$key, \$direction]]) for SortDirection::Descending, 'Descending', false, SortDirection::Ascending and mixed directions, and sortByDesc([\$comparator]), which leaves a comparator ascending", function () {
+    $people = [['name' => 'alice', 'age' => 30], ['name' => 'bob', 'age' => 25], ['name' => 'carol', 'age' => 35]];
+
+    return [
+        'Descending case' => (new Collection($people))->sortBy([['name', SortDirection::Descending]])->pluck('name')->all(),
+        'Descending string' => (new Collection([['val' => 10], ['val' => 30], ['val' => 20]]))->sortBy([['val', 'Descending']])->pluck('val')->all(),
+        'false' => (new Collection([['val' => 1], ['val' => 3], ['val' => 2]]))->sortBy([['val', false]])->pluck('val')->all(),
+        'Ascending case' => (new Collection([['name' => 'carol'], ['name' => 'alice'], ['name' => 'bob']]))->sortBy([['name', SortDirection::Ascending]])->pluck('name')->all(),
+        'mixed' => (new Collection([['group' => 'a', 'rank' => 2], ['group' => 'a', 'rank' => 1], ['group' => 'b', 'rank' => 3], ['group' => 'b', 'rank' => 4]]))->sortBy([['group', SortDirection::Ascending], ['rank', SortDirection::Descending]])->values()->all(),
+        'sortByDesc comparator' => (new Collection([['age' => 2], ['age' => 10]]))->sortByDesc([fn ($a, $b) => $a['age'] <=> $b['age']])->pluck('age')->all(),
+    ];
+});
+probe('C32-G-split-out-of-order', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->split(2) and (new Collection([2 => 'c', 'x' => 'a', 1 => 'b']))->split(2)", fn () => [
+    'out-of-order' => $pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->split(2)),
+    'mixed' => $pairs((new Collection([2 => 'c', 'x' => 'a', 1 => 'b']))->split(2)),
+]);
+probe('C32-G-splitIn-out-of-order', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->splitIn(2)",
+    fn () => $pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->splitIn(2)));
+
+// Counts: a float reaches array_chunk(), array_slice(), range() or %, each of which casts it or throws.
+probe('C32-G-chunk-counts', "(new Collection([1, 2, 3, 4, 5]))->chunk(\$size) for 1.5, 0.5, NAN, INF, -INF and 1e19, and (new Collection([]))->chunk(NAN): the chunks, or the class and message thrown", fn () => [
+    ...array_map(fn (float $size) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->chunk($size))), ['1.5' => 1.5, '0.5' => 0.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19]),
+    'empty NAN' => c32c_outcome(fn () => $pairs(@(new Collection([]))->chunk(NAN))),
+]);
+probe('C32-G-nth-counts', "(new Collection([1, 2, 3, 4, 5]))->nth(\$step) for 1.5, 2.5, NAN, INF and 1e19, ->nth(1, \$offset) for 1.5, NAN and 1e19, and (new Collection([]))->nth(NAN)", fn () => [
+    'step' => array_map(fn (float $step) => c32c_outcome(fn () => @(new Collection([1, 2, 3, 4, 5]))->nth($step)->all()), ['1.5' => 1.5, '2.5' => 2.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),
+    'offset' => array_map(fn (float $offset) => c32c_outcome(fn () => @(new Collection([1, 2, 3, 4, 5]))->nth(1, $offset)->all()), ['1.5' => 1.5, 'NAN' => NAN, '1e19' => 1e19]),
+    'empty NAN' => c32c_outcome(fn () => @(new Collection([]))->nth(NAN)->all()),
+]);
+probe('C32-G-take-counts', "(new Collection([1, 2, 3, 4, 5, 6]))->take(\$limit) for 1.5, -1.5, NAN, INF, -INF, 1e19 and -1e19", fn () => array_map(
+    fn (float $limit) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5, 6]))->take($limit))),
+    ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19, '-1e19' => -1e19],
+));
+probe('C32-G-slice-counts', "(new Collection([1, 2, 3, 4, 5]))->slice(\$offset) for 1.5, -1.5, NAN and 1e19, and ->slice(0, \$length) for 1.5, NAN and 1e19", fn () => [
+    'offset' => array_map(fn (float $offset) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->slice($offset))), ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, '1e19' => 1e19]),
+    'length' => array_map(fn (float $length) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->slice(0, $length))), ['1.5' => 1.5, 'NAN' => NAN, '1e19' => 1e19]),
+]);
+probe('C32-G-sliding-counts', "(new Collection([1, 2, 3, 4, 5]))->sliding(\$size) for 1.5, 2.5, NAN, INF and 1e19, ->sliding(2, \$step) for 1.5, NAN, INF and 1e19, and (new Collection([]))->sliding(2, INF)", fn () => [
+    'size' => array_map(fn (float $size) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->sliding($size))), ['1.5' => 1.5, '2.5' => 2.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),
+    'step' => array_map(fn (float $step) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->sliding(2, $step))), ['1.5' => 1.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),
+    'empty step INF' => c32c_outcome(fn () => $pairs(@(new Collection([]))->sliding(2, INF))),
+]);
+// split(1e19) is left out: its loop counts to the number of groups, so PHP never returns.
+probe('C32-G-split-counts', "(new Collection([1, 2, 3, 4, 5]))->split(\$groups) for 1.5, 2.5, 5.5 and NAN, and (new Collection([]))->split(\$groups) for NAN and INF", fn () => [
+    'groups' => array_map(fn (float $groups) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->split($groups))), ['1.5' => 1.5, '2.5' => 2.5, '5.5' => 5.5, 'NAN' => NAN]),
+    'empty' => array_map(fn (float $groups) => c32c_outcome(fn () => $pairs(@(new Collection([]))->split($groups))), ['NAN' => NAN, 'INF' => INF]),
+]);
+probe('C32-G-splitIn-counts', "(new Collection([1, 2, 3, 4, 5]))->splitIn(\$groups) for 1.5, NAN, INF and 1e19", fn () => array_map(
+    fn (float $groups) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->splitIn($groups))),
+    ['1.5' => 1.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19],
+));
+probe('C32-G-shuffle-list', "(new Collection(\$items))->shuffle() over ['a' => 1, 'b' => 2, 'c' => 3], [2 => 'c', 0 => 'a', 1 => 'b'] and ['x' => 1, 5 => 2]: array_is_list, the count and the sorted values", fn () => array_map(function (array $items) {
+    $shuffled = (new Collection($items))->shuffle()->all();
+    $values = array_values($shuffled);
+    sort($values);
+
+    return [array_is_list($shuffled), count($shuffled), $values];
+}, ['keyed' => ['a' => 1, 'b' => 2, 'c' => 3], 'out-of-order' => [2 => 'c', 0 => 'a', 1 => 'b'], 'mixed' => ['x' => 1, 5 => 2]]));
+
 // ---- Family H ------------------------------------------------------------
 
 class C32HUser { public function __construct(public $email) {} }
