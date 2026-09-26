@@ -1457,6 +1457,11 @@
             }
         },
         {
+            "label": "C32-B-get-stored-null-beats-default",
+            "php": "collect(['a' => null])->get('a', 'd')",
+            "value": null
+        },
+        {
             "label": "C32-B-put-int-key-onto-string-keyed-order",
             "php": "$c = collect(['a' => 1]); $c->put(0, 'z'); keys/values/last",
             "value": {

@@ -290,7 +290,8 @@ probe('C32-B-pull-array-inside-collection-stays', "\$c = collect(['a' => collect
 probe('C32-B-pull-dot-path-inside-collection-per-segment', "\$c = collect(['a' => collect(['x.y' => 1])]); \$c->pull('a.x.y')", function () { $c = collect(['a' => collect(['x.y' => 1])]); $r = $c->pull('a.x.y'); return ['returned' => $r, 'toArray' => $c->toArray()]; });
 probe('C32-B-forget-repeated-key-on-list', "collect(['a', 'b', 'c'])->forget([1, 1])->all()", fn () => collect(['a', 'b', 'c'])->forget([1, 1])->all());
 probe('C32-B-push-many-onto-string-keyed', "\$c = collect(['a' => 1])->push('y', 'z'); keys/values/last", function () { $c = collect(['a' => 1])->push('y', 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
-probe('C32-B-put-int-key-onto-string-keyed-order', "\$c = collect(['a' => 1]); \$c->put(0, 'z'); keys/values/last", function () { $c = collect(['a' => 1]); $c->put(0, 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
+probe('C32-B-get-stored-null-beats-default', "collect(['a' => null])->get('a', 'd')", fn () => collect(['a' => null])->get('a', 'd'));
+probe('C32-B-put-int-key-onto-string-keyed-order',"\$c = collect(['a' => 1]); \$c->put(0, 'z'); keys/values/last", function () { $c = collect(['a' => 1]); $c->put(0, 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
 
 // ---- Family C ------------------------------------------------------------
 
