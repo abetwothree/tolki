@@ -818,6 +818,16 @@ probe('C32-C-arr-random-fractional-count', "Arr::random over [1, 2, 3] (list) an
     '3.5' => c32c_outcome(fn () => @Arr::random($items, 3.5)),
     '0.5' => c32c_outcome(fn () => @Arr::random($items, 0.5)),
 ], ['list' => [1, 2, 3], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3]]));
+probe('C32-C-containsStrict-two-args-dot-path', "containsStrict('user.id', 2) and ('user.id', '2') over [['user' => ['id' => 1]], ['user' => ['id' => 2]]] (list) and ['r' => ['user' => ['id' => 2]]] (keyed)", fn () => [
+    'list' => [
+        (new Collection([['user' => ['id' => 1]], ['user' => ['id' => 2]]]))->containsStrict('user.id', 2),
+        (new Collection([['user' => ['id' => 1]], ['user' => ['id' => 2]]]))->containsStrict('user.id', '2'),
+    ],
+    'keyed' => [
+        (new Collection(['r' => ['user' => ['id' => 2]]]))->containsStrict('user.id', 2),
+        (new Collection(['r' => ['user' => ['id' => 2]]]))->containsStrict('user.id', '2'),
+    ],
+]);
 
 // ---- Family D ------------------------------------------------------------
 

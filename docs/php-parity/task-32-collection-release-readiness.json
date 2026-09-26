@@ -5454,6 +5454,20 @@
             }
         },
         {
+            "label": "C32-C-containsStrict-two-args-dot-path",
+            "php": "containsStrict('user.id', 2) and ('user.id', '2') over [['user' => ['id' => 1]], ['user' => ['id' => 2]]] (list) and ['r' => ['user' => ['id' => 2]]] (keyed)",
+            "value": {
+                "list": [
+                    true,
+                    false
+                ],
+                "keyed": [
+                    true,
+                    false
+                ]
+            }
+        },
+        {
             "label": "C32-D-reject-none-php-falsy",
             "php": "(new Collection([[], '0', 0.0, 'a', '', null, true]))->reject()->values()",
             "value": [
