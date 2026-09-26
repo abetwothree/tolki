@@ -16,6 +16,7 @@ import {
     readonlyNumbers,
     SerializesList,
     SerializesRecord,
+    SerializesScalar,
     settings,
     Tagged,
 } from "./fixtures";
@@ -151,6 +152,12 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("reads a JsonSerializable's scalar as items no type can know", () => {
+            expectTypeOf(collect(new SerializesScalar())).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+        });
+
         it("reads a Jsonable as items no type can know", () => {
             expectTypeOf(collect(new JsonText())).toEqualTypeOf<
                 Collection<unknown, string | number, "list" | "keyed">
@@ -244,6 +251,30 @@ describe("collection foundation type tests", () => {
         it("takes a list that may be missing", () => {
             expectTypeOf(new Collection(maybeNumbers)).toEqualTypeOf<
                 Collection<number, number, "list">
+            >();
+        });
+
+        it("keys a Map by its own key type", () => {
+            expectTypeOf(new Collection(new Map([["a", 1]]))).toEqualTypeOf<
+                Collection<number, string, "keyed">
+            >();
+        });
+
+        it("reads an Arrayable's list or record", () => {
+            expectTypeOf(new Collection(new ArrayableNumbers())).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(new Collection(new ArrayableRecord())).toEqualTypeOf<
+                Collection<string, "foo", "keyed">
+            >();
+        });
+
+        it("reads a JsonSerializable's list or record", () => {
+            expectTypeOf(new Collection(new SerializesList())).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+            expectTypeOf(new Collection(new SerializesRecord())).toEqualTypeOf<
+                Collection<string, "foo", "keyed">
             >();
         });
 

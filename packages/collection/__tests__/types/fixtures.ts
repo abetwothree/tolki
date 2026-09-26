@@ -100,6 +100,18 @@ export class SerializesRecord {
     }
 }
 
+/** A JsonSerializable whose jsonSerialize() answers a scalar, which the runtime wraps in a list. */
+export class SerializesScalar {
+    /**
+     * Specify the data which should be serialized to JSON.
+     *
+     * @returns The scalar
+     */
+    jsonSerialize(): string {
+        return "foo";
+    }
+}
+
 /** A Jsonable, whose JSON text no type can read. */
 export class JsonText {
     /**
