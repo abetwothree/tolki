@@ -3632,6 +3632,8 @@ describe("Collection", () => {
 
             expect(grouped.get(1)).toBeInstanceOf(Collection);
             expect(grouped.toArray()).toEqual({ 1: [{ r: 1 }, { r: 1 }] });
+            expect(grouped.keys().all()).toEqual([1]);
+            expect(grouped.values().toArray()).toEqual([[{ r: 1 }, { r: 1 }]]);
 
             const byInitial = collect(["apple", "banana", "apricot"]).groupBy(
                 (item) => item[0],
@@ -3643,6 +3645,11 @@ describe("Collection", () => {
                 a: ["apple", "apricot"],
                 b: ["banana"],
             });
+            expect(byInitial.keys().all()).toEqual(["a", "b"]);
+            expect(byInitial.values().toArray()).toEqual([
+                ["apple", "apricot"],
+                ["banana"],
+            ]);
         });
 
         it("hands back the groups of a multi-level grouping as collections at every level", () => {
@@ -13845,13 +13852,14 @@ describe("Collection", () => {
                 ["first", 0],
                 ["second", 1],
             ]);
+            const keyed = collect({ x: "first" })
+                .mapInto(RecordsArguments)
+                .map((object) => object.args);
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-constructor-args-assoc"
-            expect(
-                collect({ x: "first" })
-                    .mapInto(RecordsArguments)
-                    .map((object) => object.args)
-                    .all(),
-            ).toEqual({ x: ["first", "x"] });
+            expect(keyed.all()).toEqual({ x: ["first", "x"] });
+            expect(keyed.keys().all()).toEqual(["x"]);
+            expect(keyed.values().all()).toEqual([["first", "x"]]);
         });
     });
 
