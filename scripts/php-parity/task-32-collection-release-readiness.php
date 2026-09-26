@@ -1643,6 +1643,7 @@ probe('C32-H-min-max-callback-arity', "[min(fn (...\$a) => count(\$a)), max(...)
 probe('C32-H-min-max-strings', "[min, max] of ['b', 'a', 'c']", fn () => [(new Collection(['b', 'a', 'c']))->min(), (new Collection(['b', 'a', 'c']))->max()]);
 probe('C32-H-max-dot-path', "(new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b')", fn () => (new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b'));
 probe('C32-H-min-max-out-of-order-tie', "[min, max] of [2 => '1', 0 => 1]", fn () => [(new Collection([2 => '1', 0 => 1]))->min(), (new Collection([2 => '1', 0 => 1]))->max()]);
+probe('C32-H-min-max-null-items', "[[min, max] of [null, 3, 1], [min, max] of [null]]", fn () => [[(new Collection([null, 3, 1]))->min(), (new Collection([null, 3, 1]))->max()], [(new Collection([null]))->min(), (new Collection([null]))->max()]]);
 
 // median
 probe('C32-H-median-numeric-strings', "[median(['10', '9', '8']), median(['10', '9'])]", fn () => [(new Collection(['10', '9', '8']))->median(), (new Collection(['10', '9']))->median()]);
@@ -1657,6 +1658,13 @@ probe('C32-H-percentage-precision-zero-and-negative', "[percentage(..., 0), perc
 probe('C32-H-percentage-fp-just-below-half-rounds-up', "(new Collection(range(1, 2000)))->percentage(fn (\$v) => \$v <= 3, 1)", fn () => (new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 3, 1));
 probe('C32-H-percentage-scaled-just-short-of-whole', "(new Collection(range(1, 35)))->percentage(fn (\$v) => \$v <= 3, 15)", fn () => (new Collection(range(1, 35)))->percentage(fn ($v) => $v <= 3, 15));
 probe('C32-H-percentage-beyond-double-digits', "(new Collection(range(1, 9)))->percentage(fn (\$v) => \$v === 1, 15)", fn () => (new Collection(range(1, 9)))->percentage(fn ($v) => $v === 1, 15));
+// array_map is an internal caller, so a float precision coerces to an int as non-strict code does (with a deprecation)
+probe('C32-H-percentage-fractional-precision', "array_map([\$c, 'percentage'], [\$cb], [\$precision]) on [1, 1, 2] with \$cb = fn (\$v) => \$v === 1, for 1.5, -1.5, 2.9, -0.0 and 0.5", fn () => array_map(fn (float $precision) => @array_map([new Collection([1, 1, 2]), 'percentage'], [fn ($v) => $v === 1], [$precision])[0], ['1.5' => 1.5, '-1.5' => -1.5, '2.9' => 2.9, '-0.0' => -0.0, '0.5' => 0.5]));
+probe('C32-H-percentage-precision-bounds', "array_map([\$c, 'percentage'], [\$cb], [\$precision]) on [1, 1, 2] for -2**63 and the largest float below 2**63", fn () => array_map(fn (float $precision) => array_map([new Collection([1, 1, 2]), 'percentage'], [fn ($v) => $v === 1], [$precision])[0], ['-2**63' => -9223372036854775808.0, 'below 2**63' => 9223372036854774784.0]));
+probe('C32-H-percentage-non-int-precision', "array_map([\$c, 'percentage'], [\$cb], [\$precision]) on [1, 1, 2] for NAN, INF, -INF, 1e19, -1e19 and 2**63, and on [] for NAN: the class and message thrown", fn () => [
+    'items' => array_map(fn (float $precision) => c32c_outcome(fn () => array_map([new Collection([1, 1, 2]), 'percentage'], [fn ($v) => $v === 1], [$precision])[0]), ['NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19, '-1e19' => -1e19, '2**63' => 9223372036854775808.0]),
+    'empty' => c32c_outcome(fn () => array_map([new Collection([]), 'percentage'], [fn ($v) => $v === 1], [NAN])[0]),
+]);
 probe('C32-H-percentage-extreme-precision', "[percentage(=== 1, -400), percentage(=== 1, 400), percentage(=== 5, 400)] on [1, 1, 2]", fn () => [(new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 1, -400), (new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 1, 400), (new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 5, 400)]);
 
 // implode
@@ -1666,11 +1674,13 @@ probe('C32-H-implode-scalar-casts', "(new Collection([true, false, null, 1.0, 2.
 probe('C32-H-implode-missing-key', "(new Collection([['a' => 1], ['b' => 2]]))->implode('a', ',')", fn () => (new Collection([['a' => 1], ['b' => 2]]))->implode('a', ','));
 probe('C32-H-implode-nested-collections-by-key', "(new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ',')", fn () => (new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ','));
 probe('C32-H-implode-collection-rows-by-backing', "c32c_rows(list | keyed)->implode('k', ',')", fn () => array_map(fn (bool $keyed) => c32c_rows($keyed)->implode('k', ','), ['list' => false, 'keyed' => true]));
+probe('C32-H-implode-float-casts', "(new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->implode(',')", fn () => (new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->implode(','));
 probe('C32-H-implode-callback-casts', "(new Collection([1, 2]))->implode(fn (\$v) => \$v > 1, ',')", fn () => (new Collection([1, 2]))->implode(fn ($v) => $v > 1, ','));
 
 // join
 probe('C32-H-join-null-last-item', "(new Collection(['a', null]))->join(', ', ' and ')", fn () => (new Collection(['a', null]))->join(', ', ' and '));
 probe('C32-H-join-bool-items', "(new Collection([true, false, true]))->join(', ', ' and ')", fn () => (new Collection([true, false, true]))->join(', ', ' and '));
+probe('C32-H-join-float-casts', "(new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->join(', ', ' and ')", fn () => (new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->join(', ', ' and '));
 
 // reduce without an initial value: $initial = null, every item reaches the callback
 probe('C32-H-reduce-no-initial-trace', "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn (\$c, \$v, \$k) => \$v)", function () { $seen = []; (new Collection([10, 20, 30]))->reduce(function ($c, $v, $k) use (&$seen) { $seen[] = [$c, $v, $k]; return $v; }); return $seen; });
