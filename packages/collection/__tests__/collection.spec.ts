@@ -11730,6 +11730,7 @@ describe("Collection", () => {
 
             it("test sort with callback", () => {
                 // CollectionTest::testSortWithCallback
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator"
                 const data = collect([5, 3, 1, 2, 4]).sort((a, b) => a - b);
 
                 expect(Object.values(data.all())).toEqual([1, 2, 3, 4, 5]);
