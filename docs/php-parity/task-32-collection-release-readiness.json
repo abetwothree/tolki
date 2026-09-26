@@ -4490,6 +4490,25 @@
             ]
         },
         {
+            "label": "C32-D-skip-take-callback-index",
+            "php": "(new Collection(['x', 'y', 'z'])): skipUntil(fn ($v, $k) => $k === 1) and takeUntil(fn ($v, $k) => $k === 1)",
+            "value": {
+                "skipUntil": [
+                    [
+                        1,
+                        "y"
+                    ],
+                    [
+                        2,
+                        "z"
+                    ]
+                ],
+                "takeUntil": [
+                    "x"
+                ]
+            }
+        },
+        {
             "label": "C32-D-skip-take-out-of-order-keys",
             "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')",
             "value": {

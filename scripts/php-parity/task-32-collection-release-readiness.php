@@ -962,7 +962,11 @@ probe('C32-D-select-integer-string-key', "(new Collection([['a' => 1, 1 => 'x']]
 probe('C32-D-select-object-falsy-props', "(new Collection([(object) ['a' => null, 'b' => 1, 'c' => 0, 'd' => '']]))->select('a', 'b', 'c', 'd', 'e')", fn () => pairs((new Collection([(object) ['a' => null, 'b' => 1, 'c' => 0, 'd' => '']]))->select('a', 'b', 'c', 'd', 'e')));
 probe('C32-D-select-keyed-collection-arg', "(new Collection([['first' => 'T', 'last' => 'O', 'email' => 'e']]))->select(new Collection(['x' => 'first', 'y' => 'email']))", fn () => pairs((new Collection([['first' => 'T', 'last' => 'O', 'email' => 'e']]))->select(new Collection(['x' => 'first', 'y' => 'email']))));
 probe('C32-D-select-array-then-extra-arg', "(new Collection([['first' => 'T', 'last' => 'O']]))->select(['first'], 'last')", fn () => pairs((new Collection([['first' => 'T', 'last' => 'O']]))->select(['first'], 'last')));
-probe('C32-D-skip-take-out-of-order-keys', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')", fn () => [
+probe('C32-D-skip-take-callback-index', "(new Collection(['x', 'y', 'z'])): skipUntil(fn (\$v, \$k) => \$k === 1) and takeUntil(fn (\$v, \$k) => \$k === 1)", fn () => [
+    'skipUntil' => pairs((new Collection(['x', 'y', 'z']))->skipUntil(fn ($v, $k) => $k === 1)),
+    'takeUntil' => pairs((new Collection(['x', 'y', 'z']))->takeUntil(fn ($v, $k) => $k === 1)),
+]);
+probe('C32-D-skip-take-out-of-order-keys',"(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')", fn () => [
     'skipWhile' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->skipWhile('c')),
     'takeUntil' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->takeUntil('a')),
     'takeWhile' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->takeWhile('c')),
