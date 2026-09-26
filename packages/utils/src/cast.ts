@@ -1,6 +1,7 @@
 import {
     isArray,
     isBoolean,
+    isFiniteNumber,
     isFunction,
     isIterable,
     isMap,
@@ -378,4 +379,25 @@ export function cssListItemToString(value: unknown): string {
     }
 
     return String(value);
+}
+
+/**
+ * Read a number PHP passes to an int parameter, which drops a fraction as PHP's coercion does.
+ *
+ * @param value - The number passed where PHP declares an int
+ * @param message - The TypeError message PHP gives for a number no int can hold
+ * @returns The number without its fraction
+ * @throws TypeError when the number is NAN, infinite or outside PHP's 64-bit int range
+ *
+ * @example
+ * phpIntArgument(7.5, "array_pad(): Argument #2 ($length) must be of type int, float given"); -> 7
+ * phpIntArgument(NaN, "array_pad(): Argument #2 ($length) must be of type int, float given"); -> throws TypeError
+ */
+export function phpIntArgument(value: number, message: string): number {
+    // PHP_INT_MAX (2^63 - 1) rounds up to 2^63 as a double, so the upper bound is exclusive.
+    if (!isFiniteNumber(value) || value < -(2 ** 63) || value >= 2 ** 63) {
+        throw new TypeError(message);
+    }
+
+    return Math.trunc(value);
 }

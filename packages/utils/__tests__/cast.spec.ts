@@ -377,4 +377,35 @@ describe("Utils", () => {
             expect(Utils.toPhpKeyString(-7)).toBe("-7");
         });
     });
+
+    describe("phpIntArgument", () => {
+        const message =
+            "array_slice(): Argument #2 ($offset) must be of type int, float given";
+
+        it("drops a fraction toward zero, as PHP's int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts"
+            expect(Utils.phpIntArgument(1.5, message)).toBe(1);
+            expect(Utils.phpIntArgument(-1.5, message)).toBe(-1);
+            expect(Utils.phpIntArgument(7, message)).toBe(7);
+        });
+
+        it("throws a TypeError with PHP's message for NAN, an infinity or a number past PHP's int range", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts" and
+            // "C32-F-multiply-out-of-int-range-count"
+            for (const value of [NaN, Infinity, -Infinity, 1e19, 2 ** 63]) {
+                expect(() => Utils.phpIntArgument(value, message)).toThrow(
+                    new TypeError(message),
+                );
+            }
+        });
+
+        it("accepts every number PHP holds as an int, down to -2^63", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-out-of-int-range-count"
+            // and "C32-H-percentage-precision-bounds"
+            expect(Utils.phpIntArgument(-(2 ** 63), message)).toBe(-(2 ** 63));
+            expect(Utils.phpIntArgument(9223372036854774784, message)).toBe(
+                9223372036854774784,
+            );
+        });
+    });
 });

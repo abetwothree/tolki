@@ -108,6 +108,7 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
+    phpIntArgument,
     phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
@@ -2093,16 +2094,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).multiply(0); -> new Collection([])
      */
     multiply(multiplier: number) {
-        if (!fitsPhpInt(multiplier)) {
-            throw new TypeError(
-                "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
-            );
-        }
-
+        const times = phpIntArgument(
+            multiplier,
+            "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
+        );
         const newCollection = this.newInstance();
         const values = this.getItemValues(this.items);
 
-        for (let i = 0; i < Math.trunc(multiplier); i++) {
+        for (let i = 0; i < times; i++) {
             newCollection.push(...values);
         }
 
@@ -2934,13 +2933,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).slice(-1.5); -> new Collection([4])
      */
     slice(offset: number, length: number | null = null) {
-        const start = intArgument(
+        const start = phpIntArgument(
             offset,
             "array_slice(): Argument #2 ($offset) must be of type int, float given",
         );
         const count = isNull(length)
             ? null
-            : intArgument(
+            : phpIntArgument(
                   length,
                   "array_slice(): Argument #3 ($length) must be of type ?int, float given",
               );
@@ -3181,7 +3180,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        const length = intArgument(
+        const length = phpIntArgument(
             size,
             "array_chunk(): Argument #2 ($length) must be of type int, float given",
         );
@@ -4939,7 +4938,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         precision: number = 2,
     ) {
         // PHP reads the precision as an int on the way in, so one it refuses throws before the items are looked at.
-        const places = intArgument(
+        const places = phpIntArgument(
             precision,
             "Collection::percentage(): Argument #2 ($precision) must be of type int, float given",
         );
@@ -6753,32 +6752,6 @@ function phpArrayValue(
     }
 
     return value;
-}
-
-/**
- * Whether PHP can pass a number to an int parameter: finite and within the 64-bit range ZEND_DOUBLE_FITS_LONG checks.
- *
- * @param value - The number a caller passed where PHP declares an int
- * @returns True when PHP coerces the number to an int, false when it throws a TypeError instead
- */
-function fitsPhpInt(value: number): boolean {
-    return isFiniteNumber(value) && value >= -(2 ** 63) && value < 2 ** 63;
-}
-
-/**
- * Read a count an internal PHP function takes as an int, which drops a fraction as PHP's coercion does.
- *
- * @param value - The count the caller passed
- * @param message - The TypeError message PHP gives for a count no int can hold
- * @returns The count without its fraction
- * @throws TypeError when the count is NAN, infinite or outside PHP's int range
- */
-function intArgument(value: number, message: string): number {
-    if (!fitsPhpInt(value)) {
-        throw new TypeError(message);
-    }
-
-    return Math.trunc(value);
 }
 
 /**
