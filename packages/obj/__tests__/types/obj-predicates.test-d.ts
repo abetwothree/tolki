@@ -280,6 +280,15 @@ describe("obj predicate type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
+        it("types a callback on data it cannot narrow as unknown values and PHP keys, not any", () => {
+            Obj.containsStrict(unknownObject, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+        });
+
         it("takes a callback answering something other than a boolean on its callback rows", () => {
             // The type arguments drop the untyped fallback rows, so only a callback row can accept these calls.
             expectTypeOf(

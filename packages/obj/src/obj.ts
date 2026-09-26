@@ -138,8 +138,8 @@ type NonBooleanValue =
     | object
     | null
     | undefined;
-// AnyValueOr (skipUntil, skipWhile, takeUntil, takeWhile): every value, as `{} | null | undefined`; a bare `unknown`
-// would absorb the callback member that types an inline callback's parameters.
+// AnyValueOr (containsStrict, skipUntil, skipWhile, takeUntil, takeWhile): every value, as `{} | null | undefined`;
+// a bare `unknown` would absorb the callback member that types an inline callback's parameters.
 type AnyValueOr<TCallback> =
     | TCallback
     | NonNullable<unknown>
@@ -6313,7 +6313,7 @@ export function containsStrict<T extends object>(
 ): boolean;
 export function containsStrict(
     data: unknown,
-    key: unknown,
+    key: AnyValueOr<(value: unknown, key: string | number) => unknown>,
     value?: unknown,
 ): boolean;
 export function containsStrict<TValue>(
