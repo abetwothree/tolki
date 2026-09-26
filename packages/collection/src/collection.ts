@@ -479,13 +479,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
         const results = this.orderedValues().map((value) => {
-            // If it's a Collection, get its raw items
-            if (value instanceof Collection) {
-                return value.all();
-            }
-
             // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
-            if (!isArray(value) && !isPlainObject(value)) {
+            if (
+                !(value instanceof Collection) &&
+                !isArray(value) &&
+                !isPlainObject(value)
+            ) {
                 return null;
             }
 
@@ -500,13 +499,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Check if all valid results are arrays
-        const allArrays = validResults.every((item) => isArray(item));
+        const allArrays = validResults.every((item) =>
+            isArray(item instanceof Collection ? item.all() : item),
+        );
 
         // Later keys overwrite earlier ones where the first one stood, as array_replace keeps them.
-        const merged = new Map<string, unknown>();
+        const merged = new Map<PropertyKey, unknown>();
         for (const source of validResults) {
-            for (const [key, value] of Object.entries(source as object)) {
-                merged.set(key, value);
+            // A collection's own order can hold what its all() cannot: integer keys out of ascending order.
+            const entries =
+                source instanceof Collection
+                    ? source.entriesInOrder()
+                    : Object.entries(source as object);
+
+            for (const [key, value] of entries) {
+                merged.set(phpArrayKey(key), value);
             }
         }
 

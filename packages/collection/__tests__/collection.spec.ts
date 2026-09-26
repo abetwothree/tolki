@@ -1280,6 +1280,34 @@ describe("Collection", () => {
             expect(collapsed.values().all()).toEqual([1, 1, 1]);
         });
 
+        it("merges a Map-built collection item's items in the order it holds them", () => {
+            const collapsed = collect([
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ),
+            ]).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-collection-items"
+            expect(collapsed.all()).toEqual({ 2: "c", 0: "a" });
+            expect(collapsed.keys().all()).toEqual([2, 0]);
+            expect(collapsed.values().all()).toEqual(["c", "a"]);
+        });
+
+        it("replaces a collection item's list with a later list index by index", () => {
+            const collapsed = collect([
+                collect([1, 2]),
+                [3],
+            ]).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-collection-items"
+            expect(collapsed.all()).toEqual([3, 2]);
+            expect(collapsed.keys().all()).toEqual([0, 1]);
+            expect(collapsed.values().all()).toEqual([3, 2]);
+        });
+
         it("collapses an outer collection with string keys", () => {
             // CollectionTest::testCollapseWithKeysWithStringKeys
             // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
