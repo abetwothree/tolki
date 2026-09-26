@@ -2708,7 +2708,8 @@ export function join(
         return "";
     }
 
-    // implode() casts each piece and `.` the last one; PHP hands a lone item back uncast, which join() then answers.
+    // implode() casts each piece and `.` the last one. Where PHP hands a lone item back uncast, join(), which answers
+    // a string, answers the string that item casts to.
     const items = keyedEntries(data).map(([, value]) => phpStringCast(value));
 
     if (finalGlue === "") {

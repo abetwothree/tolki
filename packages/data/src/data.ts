@@ -1943,8 +1943,8 @@ export const dataSortRecursiveDesc = dispatch(
  * @param data - The data to splice. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param offset - The starting index; a fraction is dropped
- * @param length - The number of items to remove, a fraction dropped. Defaults to everything
- * from offset to the end.
+ * @param length - The number of items to remove, a fraction dropped. Null or none removes everything
+ * from offset to the end, as array_splice()'s ?int length reads null.
  * @param replacement - The items to insert
  * @returns The removed items.
  * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
