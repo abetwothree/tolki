@@ -2891,6 +2891,19 @@ describe("Collection", () => {
             expect(fromObject[0]).toBe(map);
             expect(fromObject[1]).toBe(date);
         });
+
+        it.fails(
+            "flattens a Map-built collection in the order it holds its keys",
+            () => {
+                // Ordered-backing gap: PHP flattens in insertion order, the item under key 2 first
+                // docs/php-parity/task-30-map-order.json, "flatten-out-of-order"
+                expect(outOfOrderKeys().flatten().all()).toEqual([
+                    "c",
+                    "a",
+                    "b",
+                ]);
+            },
+        );
     });
 
     describe("flip", () => {
@@ -3696,6 +3709,33 @@ describe("Collection", () => {
                 "": [1, 2, 3],
             });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in each group in the order it holds them",
+            () => {
+                const grouped = collect(
+                    new Map<string | number, string>([
+                        ["x", "p"],
+                        [5, "q"],
+                    ]),
+                ).groupBy(() => "g", true);
+
+                // Ordered-backing gap: PHP keeps a group's keys in insertion order, x before 5
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-preserve-keys-mixed-order"
+                expect(groupPairs(grouped)).toEqual([
+                    [
+                        "g",
+                        "string",
+                        {
+                            Collection: [
+                                ["x", "string", "p"],
+                                [5, "integer", "q"],
+                            ],
+                        },
+                    ],
+                ]);
+            },
+        );
     });
 
     describe("keyBy", () => {
@@ -5245,6 +5285,30 @@ describe("Collection", () => {
                     Pagani: "orange",
                 });
             });
+
+            it.fails("test get pluck value with accessors", () => {
+                // CollectionTest::testGetPluckValueWithAccessors, a class getter standing in for its __get accessor
+                class TestAccessorEloquentTestStub {
+                    readonly #attributes: Record<string, unknown>;
+
+                    constructor(attributes: Record<string, unknown>) {
+                        this.#attributes = attributes;
+                    }
+
+                    get some(): unknown {
+                        return this.#attributes["some"];
+                    }
+                }
+
+                const data = collect([
+                    new TestAccessorEloquentTestStub({ some: "foo" }),
+                    new TestAccessorEloquentTestStub({ some: "bar" }),
+                ]);
+
+                // Deferred: pluck() reads no class getter, the port's stand-in for PHP's __get accessor
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-accessor"
+                expect(data.pluck("some").all()).toEqual(["foo", "bar"]);
+            });
         });
 
         it("plucks array values by key", () => {
@@ -5310,6 +5374,23 @@ describe("Collection", () => {
                 expected,
             );
         });
+
+        it.fails(
+            "plucks a Map-built collection's items in the order it holds them",
+            () => {
+                const rows = collect(
+                    new Map([
+                        [2, { n: "c", k: "kc" }],
+                        [0, { n: "a", k: "ka" }],
+                        [1, { n: "b", k: "kb" }],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP plucks in insertion order, the row under key 2 first
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order"
+                expect(rows.pluck("n").all()).toEqual(["c", "a", "b"]);
+            },
+        );
     });
 
     describe("map", () => {
@@ -5343,6 +5424,20 @@ describe("Collection", () => {
             );
             expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const mapped = outOfOrderKeys().map(
+                    (value, key) => `${value}!${key}`,
+                );
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "map-out-of-order"
+                expect(mapped.keys().all()).toEqual([2, 0, 1]);
+                expect(mapped.values().all()).toEqual(["c!2", "a!0", "b!1"]);
+            },
+        );
     });
 
     describe("mapToDictionary", () => {
@@ -11214,6 +11309,18 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const dotted = outOfOrderKeys().dot();
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "dot-out-of-order"
+                expect(dotted.keys().all()).toEqual([2, 0, 1]);
+                expect(dotted.values().all()).toEqual(["c", "a", "b"]);
+            },
+        );
     });
 
     describe("undot", () => {
@@ -11278,6 +11385,18 @@ describe("Collection", () => {
                 user: { languages: ["PHP", "C#"], name: "Taylor" },
             });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const undotted = outOfOrderKeys().undot();
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "undot-out-of-order"
+                expect(undotted.keys().all()).toEqual([2, 0, 1]);
+                expect(undotted.values().all()).toEqual(["c", "a", "b"]);
+            },
+        );
     });
 
     describe("unique", () => {
@@ -12754,6 +12873,21 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it.fails(
+            "walks a Map-built collection in the order it holds its keys",
+            () => {
+                const keys: PropertyKey[] = [];
+
+                outOfOrderKeys().each((_value, key) => {
+                    keys.push(key);
+                });
+
+                // Ordered-backing gap: PHP's foreach walks the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-out-of-order-keys"
+                expect(keys).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("eachSpread", () => {
@@ -13501,6 +13635,24 @@ describe("Collection", () => {
                 y: "2-b-y",
             });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const mapped = collect(
+                    new Map([
+                        [2, ["c", 1]],
+                        [0, ["a", 2]],
+                        [1, ["b", 3]],
+                    ]),
+                ).mapSpread((...values) => values.join(""));
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "mapSpread-out-of-order"
+                expect(mapped.keys().all()).toEqual([2, 0, 1]);
+                expect(mapped.values().all()).toEqual(["c12", "a20", "b31"]);
+            },
+        );
     });
 
     describe("mapToGroups", () => {
