@@ -216,6 +216,63 @@
             ]
         },
         {
+            "label": "C32-A-construct-from-record-put-copies",
+            "php": "$arr = ['a' => 1]; $c = new Collection($arr); $c->put('b', 2); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "a": 1
+                },
+                "all": {
+                    "a": 1,
+                    "b": 2
+                },
+                "keys": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-record-unshift-copies",
+            "php": "$arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "b": 2
+                },
+                "all": {
+                    "0": 1,
+                    "b": 2
+                },
+                "keys": [
+                    0,
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-array-unshift-copies",
+            "php": "$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
             "label": "C32-A-collect-method-returns-base-class",
             "php": "get_class(C32ASub::make([1])->collect())",
             "value": "Illuminate\\Support\\Collection"
@@ -1331,6 +1388,87 @@
                     2,
                     3
                 ]
+            }
+        },
+        {
+            "label": "C32-B-pull-null-key",
+            "php": "$c = collect([1, 2]); $c->pull(null)",
+            "value": {
+                "returned": [
+                    1,
+                    2
+                ],
+                "all": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-B-pull-array-inside-collection-stays",
+            "php": "$c = collect(['a' => collect(['x' => ['y' => 1, 'z' => 2]])]); @$c->pull('a.x.y')",
+            "value": {
+                "returned": 1,
+                "toArray": {
+                    "a": {
+                        "x": {
+                            "y": 1,
+                            "z": 2
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-dot-path-inside-collection-per-segment",
+            "php": "$c = collect(['a' => collect(['x.y' => 1])]); $c->pull('a.x.y')",
+            "value": {
+                "returned": null,
+                "toArray": {
+                    "a": {
+                        "x.y": 1
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-forget-repeated-key-on-list",
+            "php": "collect(['a', 'b', 'c'])->forget([1, 1])->all()",
+            "value": {
+                "0": "a",
+                "2": "c"
+            }
+        },
+        {
+            "label": "C32-B-push-many-onto-string-keyed",
+            "php": "$c = collect(['a' => 1])->push('y', 'z'); keys/values/last",
+            "value": {
+                "keys": [
+                    "a",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    "y",
+                    "z"
+                ],
+                "last": "z"
+            }
+        },
+        {
+            "label": "C32-B-put-int-key-onto-string-keyed-order",
+            "php": "$c = collect(['a' => 1]); $c->put(0, 'z'); keys/values/last",
+            "value": {
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    "z"
+                ],
+                "last": "z"
             }
         },
         {

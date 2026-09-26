@@ -74,6 +74,9 @@ probe('C32-A-collect-method-copies', '$a = collect([1, 2]); $b = $a->collect(); 
 probe('C32-A-all-returns-a-copy', '$a = collect([1, 2]); $x = $a->all(); $x[] = 3; $a->all()', function () { $a = collect([1, 2]); $x = $a->all(); $x[] = 3; return $a->all(); });
 probe('C32-A-wrap-collection-copies', '$a = collect([1]); $b = Collection::wrap($a); $b->push(2); [$a->all(), $b->all(), $a === $b]', function () { $a = collect([1]); $b = Collection::wrap($a); $b->push(2); return [$a->all(), $b->all(), $a === $b]; });
 probe('C32-A-make-collection-copies', '$a = collect([1]); $b = Collection::make($a); $b->push(2); [$a->all(), $b->all()]', function () { $a = collect([1]); $b = Collection::make($a); $b->push(2); return [$a->all(), $b->all()]; });
+probe('C32-A-construct-from-record-put-copies', "\$arr = ['a' => 1]; \$c = new Collection(\$arr); \$c->put('b', 2); caller/all/keys/values", function () { $arr = ['a' => 1]; $c = new Collection($arr); $c->put('b', 2); return ['caller' => $arr, 'all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
+probe('C32-A-construct-from-record-unshift-copies', "\$arr = ['b' => 2]; \$c = new Collection(\$arr); \$c->unshift(1); caller/all/keys/values", function () { $arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); return ['caller' => $arr, 'all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
+probe('C32-A-construct-from-array-unshift-copies', '$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]', function () { $arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); return [$arr, $c->all()]; });
 
 // --- collect() returns the base class
 probe('C32-A-collect-method-returns-base-class', 'get_class(C32ASub::make([1])->collect())', fn () => get_class(C32ASub::make([1])->collect()));
@@ -281,6 +284,13 @@ probe('C32-B-splice-null-length', "\$c = collect([1, 2, 3, 4]); \$c->splice(1, n
 probe('C32-B-shift-negative-on-empty-throws', "collect([])->shift(-1)", fn () => collect([])->shift(-1));
 probe('C32-B-pop-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->pop(1)", function () { $c = collect([1, 2, 3]); return ['returned' => $c->pop(1), 'all' => $c->all()]; });
 probe('C32-B-shift-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->shift(1)", function () { $c = collect([1, 2, 3]); return ['returned' => $c->shift(1), 'all' => $c->all()]; });
+probe('C32-B-pull-null-key', "\$c = collect([1, 2]); \$c->pull(null)", function () { $c = collect([1, 2]); $r = $c->pull(null); return ['returned' => $r, 'all' => $c->all()]; });
+// PHP takes an ArrayAccess element by value there, so the unset only reaches a copy; the notice is silenced.
+probe('C32-B-pull-array-inside-collection-stays', "\$c = collect(['a' => collect(['x' => ['y' => 1, 'z' => 2]])]); @\$c->pull('a.x.y')", function () { $c = collect(['a' => collect(['x' => ['y' => 1, 'z' => 2]])]); $r = @$c->pull('a.x.y'); return ['returned' => $r, 'toArray' => $c->toArray()]; });
+probe('C32-B-pull-dot-path-inside-collection-per-segment', "\$c = collect(['a' => collect(['x.y' => 1])]); \$c->pull('a.x.y')", function () { $c = collect(['a' => collect(['x.y' => 1])]); $r = $c->pull('a.x.y'); return ['returned' => $r, 'toArray' => $c->toArray()]; });
+probe('C32-B-forget-repeated-key-on-list', "collect(['a', 'b', 'c'])->forget([1, 1])->all()", fn () => collect(['a', 'b', 'c'])->forget([1, 1])->all());
+probe('C32-B-push-many-onto-string-keyed', "\$c = collect(['a' => 1])->push('y', 'z'); keys/values/last", function () { $c = collect(['a' => 1])->push('y', 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
+probe('C32-B-put-int-key-onto-string-keyed-order', "\$c = collect(['a' => 1]); \$c->put(0, 'z'); keys/values/last", function () { $c = collect(['a' => 1]); $c->put(0, 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
 
 // ---- Family C ------------------------------------------------------------
 
