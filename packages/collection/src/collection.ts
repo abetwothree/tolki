@@ -3351,9 +3351,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
-            // PHP's sortBy (Collection.php:1601) discards $descending
-            // entirely for the array form; not passed through here either.
-            // Use sortByDesc/sortByMany's forceDescending to force it.
             return this.sortByMany(callback);
         }
 
@@ -3412,9 +3409,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | PathKey,
     ) {
         if (isArray(callback) && !isFunction(callback)) {
-            // sortBy's array branch discards its own `descending` argument,
-            // so forcing every descriptor descending goes through
-            // sortByMany's forceDescending param (Collection.php:1700).
+            // sortBy() ignores its flag for descriptors, so they are forced descending here, as PHP rewrites each one.
             return this.sortByMany(callback, true);
         }
 
