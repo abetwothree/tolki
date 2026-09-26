@@ -277,7 +277,8 @@ function phpFixedPoint(value: number): string {
     let scaled = Math.abs(value);
     let places = 0;
 
-    while (!isInteger(scaled)) {
+    // Number.isInteger, not the isInteger guard, whose narrowing would leave the loop's number as never.
+    while (!Number.isInteger(scaled)) {
         scaled *= 2;
         places++;
     }
