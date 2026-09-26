@@ -2027,7 +2027,8 @@ describe("Collection", () => {
     describe("duplicates", () => {
         describe("Laravel Tests", () => {
             it("test duplicates", () => {
-                // Keys are preserved! Returns duplicate items with their original indices
+                // CollectionTest::testDuplicates
+                // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
                 // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
                 const c = collect([
                     1,
@@ -2076,8 +2077,9 @@ describe("Collection", () => {
             });
 
             it("test duplicates with keys", () => {
-                // When using a key, Laravel returns the VALUES (not the full objects) at duplicate indices
-                // Laravel: [2 => 'laravel']
+                // CollectionTest::testDuplicatesWithKey
+                // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
+                // Laravel answers each duplicate's value at the key, not the item: [2 => 'laravel']
                 const items = [
                     { framework: "vue" },
                     { framework: "laravel" },
@@ -2098,8 +2100,9 @@ describe("Collection", () => {
             });
 
             it("test duplicates with callback", () => {
-                // When using a callback, Laravel returns the CALLBACK RESULT (not the full objects) at duplicate indices
-                // Laravel: [2 => 'laravel']
+                // CollectionTest::testDuplicatesWithCallback
+                // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
+                // Laravel answers each duplicate's callback result, not the item: [2 => 'laravel']
                 const items = [
                     { framework: "vue" },
                     { framework: "laravel" },
@@ -2111,10 +2114,72 @@ describe("Collection", () => {
                 expect(c).toEqual({ 2: "laravel" });
             });
         });
+
+        it("keeps each duplicate's own key, a list's position or a record's name", () => {
+            const keyed = collect({ a: 1, b: 2, c: 1 }).duplicates();
+            const list = collect(["x", "y", "x"]).duplicates();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-keyed"
+            expect([keyed.keys().all(), keyed.values().all()]).toEqual([
+                ["c"],
+                [1],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-list-first-key"
+            expect([list.keys().all(), list.values().all()]).toEqual([
+                [2],
+                ["x"],
+            ]);
+        });
+
+        it("hands a callback each value and key", () => {
+            const duplicates = collect({ a: 1, b: 2 }).duplicates(
+                (value, key) => (key === "b" ? 1 : value),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-callback-key-arg"
+            expect(duplicates.all()).toEqual({ b: 1 });
+        });
+
+        it("compares loosely, as array_unique's SORT_REGULAR sort does", () => {
+            const duplicates = collect(["a", 0, "b", "0", "a"]).duplicates();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-loose-sort-regular"
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([
+                [3, 4],
+                ["0", "a"],
+            ]);
+        });
+
+        it("appends past the highest position a list's duplicates keep", () => {
+            const pushed = collect(["x", "y", "x"]).duplicates().push("z");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-list-then-push"
+            expect([pushed.keys().all(), pushed.values().all()]).toEqual([
+                [2, 3],
+                ["x", "z"],
+            ]);
+        });
+
+        it("walks mixed types once, keeping the first of each loosely equal run", () => {
+            const duplicates = collect(["abc", "0", false, ""]).duplicates();
+
+            // JS-only: PHP's == is not transitive; array_unique's sorted walk keeps only 'abc' and '0', so PHP also
+            // counts false a duplicate
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-non-transitive-loose"
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([[3], [""]]);
+        });
     });
 
     describe("duplicatesStrict", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDuplicatesWithStrict
+            // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
             // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
             const c = collect([
                 1,
@@ -2173,6 +2238,7 @@ describe("Collection", () => {
 
     describe("except", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testExcept
             const data = collect({
                 first: "Taylor",
                 last: "Otwell",
@@ -2203,16 +2269,64 @@ describe("Collection", () => {
                 email: "taylorotwell@gmail.com",
             });
 
+            // CollectionTest::testExceptSelf
             const data2 = collect({ first: "Taylor", last: "Otwell" });
             expect(data2.except(data2).all()).toEqual({
                 first: "Taylor",
                 last: "Otwell",
             });
         });
+
+        describe("reads its keys as PHP's $keys argument", () => {
+            const person = () =>
+                collect({ first: "Taylor", last: "Otwell", email: "e" });
+
+            it("ignores the arguments after an array of keys", () => {
+                const except = person().except(["first"], "last");
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-array-then-extra-arg"
+                expect(except.keys().all()).toEqual(["last", "email"]);
+                expect(except.values().all()).toEqual(["Otwell", "e"]);
+            });
+
+            it("takes a keyed Collection's values as the keys", () => {
+                const except = person().except(
+                    collect({ x: "first", y: "email" }),
+                );
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-keyed-collection-arg"
+                expect(except.all()).toEqual({ last: "Otwell" });
+                expect(except.keys().all()).toEqual(["last"]);
+            });
+
+            it("keeps every item for an empty array of keys", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-empty-array"
+                expect(person().except([]).all()).toEqual(person().all());
+            });
+        });
+
+        it("removes a literal dotted key before reading it as a path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-dot-key-literal-first"
+            expect(
+                collect({ "a.b": 1, a: { b: 2 } })
+                    .except("a.b")
+                    .all(),
+            ).toEqual({ a: { b: 2 } });
+        });
+
+        it("reads a numeric string as a list's index", () => {
+            const except = collect(["a", "b", "c"]).except("1");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-list-numeric-string", whose
+            // keys 0 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(except.all()).toEqual(["a", "c"]);
+            expect(except.keys().all()).toEqual([0, 1]);
+        });
     });
 
     describe("filter", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testFilter
             const c = collect([
                 { id: 1, name: "Hello" },
                 { id: 2, name: "World" },
@@ -5497,6 +5611,7 @@ describe("Collection", () => {
 
     describe("only", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testOnly
             const c = collect({
                 first: "Taylor",
                 last: "Otwell",
@@ -5595,12 +5710,58 @@ describe("Collection", () => {
                 expect(only.keys().all()).toEqual(["first", "email"]);
                 expect(only.values().all()).toEqual(["Taylor", "e"]);
             });
+
+            it("keeps nothing for an empty array of keys", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-empty-array"
+                expect(person().only([]).all()).toEqual({});
+            });
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-dot-key-literal"
+            expect(
+                collect({ a: { b: 1 }, "a.b": 2 })
+                    .only("a.b")
+                    .all(),
+            ).toEqual({ "a.b": 2 });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-dot-key-nested-miss"
+            expect(
+                collect({ a: { b: 1, c: 2 } })
+                    .only("a.b")
+                    .all(),
+            ).toEqual({});
+        });
+
+        it("hands back a copy for a null key, as except() and select() do", () => {
+            const collection = collect({ a: 1 });
+            const copies = [
+                collection.only(null),
+                collection.except(null),
+                collection.select(null),
+            ];
+
+            for (const copy of copies) {
+                copy.put("b", 2);
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-null-keys-copy"
+            expect([
+                collection.all(),
+                ...copies.map((copy) => copy.all()),
+            ]).toEqual([
+                { a: 1 },
+                { a: 1, b: 2 },
+                { a: 1, b: 2 },
+                { a: 1, b: 2 },
+            ]);
+            expect(collection.keys().all()).toEqual(["a"]);
         });
     });
 
     describe("select", () => {
         describe("Laravel Tests", () => {
             it("test select with arrays", () => {
+                // CollectionTest::testSelectWithArrays
                 const data = collect([
                     {
                         first: "Taylor",
@@ -5662,17 +5823,22 @@ describe("Collection", () => {
             });
 
             it("test select with objects", () => {
+                // CollectionTest::testSelectWithObjects, whose (object) casts a class instance stands in for
+                class Person {
+                    first: string;
+                    last: string;
+                    email: string;
+
+                    constructor(first: string, last: string, email: string) {
+                        this.first = first;
+                        this.last = last;
+                        this.email = email;
+                    }
+                }
+
                 const data = collect([
-                    {
-                        first: "Taylor",
-                        last: "Otwell",
-                        email: "taylorotwell@gmail.com",
-                    },
-                    {
-                        first: "Jess",
-                        last: "Archer",
-                        email: "jessarcher@gmail.com",
-                    },
+                    new Person("Taylor", "Otwell", "taylorotwell@gmail.com"),
+                    new Person("Jess", "Archer", "jessarcher@gmail.com"),
                 ]);
 
                 expect(data.select(null).all()).toEqual(data.all());
@@ -5770,6 +5936,24 @@ describe("Collection", () => {
                     .select("all", "a")
                     .all(),
             ).toEqual([{ a: 1 }]);
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-dot-path-literal"
+            expect(
+                collect([{ id: 1, details: { age: 30, city: "NY" } }])
+                    .select(["id", "details.age"])
+                    .all(),
+            ).toEqual([{ id: 1 }]);
+        });
+
+        it("selects nothing from a scalar item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-scalar-items"
+            expect(collect([1, "x", null]).select("a").all()).toEqual([
+                {},
+                {},
+                {},
+            ]);
         });
 
         it("drops an object's null property, as PHP's isset does, where a plain object's null stays", () => {
@@ -10446,6 +10630,7 @@ describe("Collection", () => {
     describe("unique", () => {
         describe("Laravel Tests", () => {
             it("test unique", () => {
+                // CollectionTest::testUnique
                 const c = collect(["Hello", "World", "World"]);
                 expect(c.unique().all()).toEqual(["Hello", "World"]);
 
@@ -10464,6 +10649,7 @@ describe("Collection", () => {
             });
 
             it("test unique with callback", () => {
+                // CollectionTest::testUniqueWithCallback
                 const c = collect({
                     1: { id: 1, first: "Taylor", last: "Otwell" },
                     2: { id: 2, first: "Taylor", last: "Otwell" },
@@ -10501,6 +10687,84 @@ describe("Collection", () => {
                     2: { id: 2, first: "Taylor", last: "Otwell" },
                 });
             });
+        });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-bool-mix"
+                "1, '1', true and 'a'",
+                [1, "1", true, "a"],
+                [1, "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-zero-strings"
+                "'a', 0, 'b' and '0'",
+                ["a", 0, "b", "0"],
+                ["a", 0, "b"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-falsy"
+                "null, 0, '' and false",
+                [null, 0, "", false],
+                [null],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-numeric-strings"
+                "10, '1e1', 'abc', 'ABC' and '10.0'",
+                [10, "1e1", "abc", "ABC", "10.0"],
+                [10, "abc", "ABC"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-arrays-loose"
+                "[1, 2], ['1', 2] and [1, 2]",
+                [
+                    [1, 2],
+                    ["1", 2],
+                    [1, 2],
+                ],
+                [[1, 2]],
+            ],
+        ] as [string, unknown[], unknown[]][])(
+            "keeps the first of each loosely equal value among %s",
+            (_label, items, kept) => {
+                // The row's keys name the kept items; a list renumbers them, as every removal from a list does
+                expect(collect(items).unique().all()).toEqual(kept);
+            },
+        );
+
+        it("keeps a keyed collection's first key for each value", () => {
+            const unique = collect({ a: 1, b: 1, c: 2 }).unique();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-keyed"
+            expect(unique.all()).toEqual({ a: 1, c: 2 });
+            expect(unique.keys().all()).toEqual(["a", "c"]);
+        });
+
+        it("compares a key's values loosely, a dot path's included", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-key-loose", whose keys 0 and
+            // 3 name these rows; a list renumbers them, as every removal from a list does
+            expect(
+                collect([{ id: 1 }, { id: "1" }, { id: true }, { id: 2 }])
+                    .unique("id")
+                    .all(),
+            ).toEqual([{ id: 1 }, { id: 2 }]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-dot-path", whose keys 0 and 2
+            // name these rows
+            expect(
+                collect([{ a: { b: 1 } }, { a: { b: 1 } }, { a: { b: 2 } }])
+                    .unique("a.b")
+                    .all(),
+            ).toEqual([{ a: { b: 1 } }, { a: { b: 2 } }]);
+        });
+
+        it("walks mixed types once, keeping the first of each loosely equal run", () => {
+            // JS-only: PHP's == is not transitive, and array_unique's sort then drops '' as well
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-non-transitive-loose"
+            expect(collect(["abc", "0", false, ""]).unique().all()).toEqual([
+                "abc",
+                "0",
+                "",
+            ]);
         });
     });
 
@@ -12728,6 +12992,7 @@ describe("Collection", () => {
     describe("partition", () => {
         describe("Laravel Tests", () => {
             it("test partition", () => {
+                // CollectionTest::testPartition
                 const data = collect(Collection.range(1, 10));
 
                 const [firstPartition, secondPartition] = data
@@ -12743,6 +13008,7 @@ describe("Collection", () => {
             });
 
             it("test partition callback with key", () => {
+                // CollectionTest::testPartitionCallbackWithKey
                 const data = collect(["zero", "one", "two", "three"]);
 
                 const [even, odd] = data
@@ -12756,6 +13022,7 @@ describe("Collection", () => {
             });
 
             it("test partition by key", () => {
+                // CollectionTest::testPartitionByKey
                 const courses = collect([
                     { free: true, title: "Basic" },
                     { free: false, title: "Premium" },
@@ -12772,6 +13039,7 @@ describe("Collection", () => {
             });
 
             it("test partition with operators", () => {
+                // CollectionTest::testPartitionWithOperators
                 const data = collect([
                     { name: "Tim", age: 17 },
                     { name: "Agatha", age: 62 },
@@ -12805,6 +13073,7 @@ describe("Collection", () => {
             });
 
             it("test partition preserves keys", () => {
+                // CollectionTest::testPartitionPreservesKeys
                 const courses = collect({
                     a: { free: true },
                     b: { free: false },
@@ -12823,6 +13092,7 @@ describe("Collection", () => {
             });
 
             it("test partition empty collection", () => {
+                // CollectionTest::testPartitionEmptyCollection
                 const data = collect();
 
                 expect(
@@ -12847,6 +13117,21 @@ describe("Collection", () => {
             const [active, inactive] = c.partition("status", "=", "active");
             expect(active.all()).toEqual([{ status: "active" }]);
             expect(inactive.all()).toEqual([{ status: "inactive" }]);
+        });
+
+        it("compares with PHP's != for that operator", () => {
+            const [passed, failed] = collect([
+                { v: 1 },
+                { v: "1" },
+                { v: 2 },
+            ]).partition("v", "!=", 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-not-equal-operator", whose
+            // keys [2] and [0, 1] name these rows; a list half renumbers its keys, as every removal from a list does
+            expect([passed.pluck("v").all(), failed.pluck("v").all()]).toEqual([
+                [2],
+                [1, "1"],
+            ]);
         });
 
         it("reads each half by index, as PHP's $partition[0] and [1] read them", () => {
@@ -13297,6 +13582,7 @@ describe("Collection", () => {
     describe("where", () => {
         describe("Laravel Tests", () => {
             it("test where", () => {
+                // CollectionTest::testWhere
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13358,7 +13644,12 @@ describe("Collection", () => {
                 ]);
                 expect(c.where("v", ">", 3).values().all()).toEqual([{ v: 4 }]);
 
-                const object = { foo: "bar" };
+                // A class instance stands in for PHP's (object) cast, where a plain object would model an array
+                class StdObject {
+                    foo = "bar";
+                }
+
+                const object = new StdObject();
 
                 expect(c.where("v", object).values().all()).toEqual([]);
 
@@ -13489,11 +13780,54 @@ describe("Collection", () => {
                     .count(),
             ).toBe(0);
         });
+
+        it("judges a lone key's value by PHP truthiness", () => {
+            const kept = collect([
+                { v: 1 },
+                { v: "a" },
+                { v: 0 },
+                { v: "0" },
+                { v: "" },
+                { v: null },
+                { v: [] },
+                { v: true },
+                { v: false },
+            ]).where("v");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-one-arg-truthiness", whose
+            // keys [0, 1, 7] name these rows; a list renumbers them, as every removal from a list does
+            expect(kept.pluck("v").all()).toEqual([1, "a", true]);
+        });
+
+        it("compares the item itself for a null key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-null-key-items", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(collect([1, 2, 3, 4]).where(null, ">", 2).all()).toEqual([
+                3, 4,
+            ]);
+        });
+
+        it("compares with null loosely, as PHP's = does", () => {
+            const kept = collect([
+                { v: 0 },
+                { v: "" },
+                { v: false },
+                { v: null },
+                { v: "0" },
+                { v: [] },
+                { v: "a" },
+            ]).where("v", "=", null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-eq-null-loose", whose keys
+            // [0, 1, 2, 3, 5] name these rows; a list renumbers them, as every removal from a list does
+            expect(kept.pluck("v").all()).toEqual([0, "", false, null, []]);
+        });
     });
 
     describe("whereNull", () => {
         describe("Laravel Tests", () => {
             it("test where null", () => {
+                // CollectionTest::testWhereNull
                 const data = collect([
                     { name: "Taylor" },
                     { name: null },
@@ -13508,16 +13842,26 @@ describe("Collection", () => {
             });
 
             it("test where null without key", () => {
+                // CollectionTest::testWhereNullWithoutKey
                 const collection = collect([1, null, 3, "null", false, true]);
 
                 expect(collection.whereNull().all()).toEqual([null]);
             });
+        });
+
+        it("keeps a keyed collection's null items under their keys", () => {
+            const kept = collect({ a: null, b: 0, c: null }).whereNull();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNull-keyed"
+            expect(kept.all()).toEqual({ a: null, c: null });
+            expect(kept.keys().all()).toEqual(["a", "c"]);
         });
     });
 
     describe("whereNotNull", () => {
         describe("Laravel Tests", () => {
             it("test where not null", () => {
+                // CollectionTest::testWhereNotNull
                 const originalData = [
                     { name: "Taylor" },
                     { name: null },
@@ -13538,6 +13882,7 @@ describe("Collection", () => {
             });
 
             it("test where not null without key", () => {
+                // CollectionTest::testWhereNotNullWithoutKey
                 const data = collect([1, null, 3, "null", false, true]);
 
                 expect(data.whereNotNull().all()).toEqual([
@@ -13549,11 +13894,24 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("reads a dot path's value", () => {
+            const kept = collect([
+                { a: { b: null } },
+                { a: { b: 0 } },
+                { a: {} },
+            ]).whereNotNull("a.b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotNull-dot-path", whose key 1
+            // names this row; a list renumbers it, as every removal from a list does
+            expect(kept.all()).toEqual([{ a: { b: 0 } }]);
+        });
     });
 
     describe("whereStrict", () => {
         describe("Laravel Tests", () => {
             it("test where strict", () => {
+                // CollectionTest::testWhereStrict
                 const c = collect([{ v: 3 }, { v: "3" }]);
 
                 expect(c.whereStrict("v", 3).values().all()).toEqual([
@@ -13561,11 +13919,23 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("compares an array by value, as PHP's === does", () => {
+            const kept = collect([
+                { v: [1, 2] },
+                { v: ["1", "2"] },
+                { v: [2, 1] },
+            ]).whereStrict("v", [1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-strict-array-by-value"
+            expect(kept.all()).toEqual([{ v: [1, 2] }]);
+        });
     });
 
     describe("whereIn", () => {
         describe("Laravel Tests", () => {
             it("test where in", () => {
+                // CollectionTest::testWhereIn
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13639,11 +14009,23 @@ describe("Collection", () => {
                 expect(filtered.keys().all()).toEqual(kept.map((_, i) => i));
             },
         );
+
+        it("takes a keyed Collection's values", () => {
+            const filtered = collect([1, 2, 3, 4].map((v) => ({ v }))).whereIn(
+                "v",
+                collect({ a: 1, b: 3 }),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-collection-values", whose
+            // keys 0 and 2 name these rows; a list renumbers them, as every removal from a list does
+            expect(filtered.pluck("v").all()).toEqual([1, 3]);
+        });
     });
 
     describe("whereInStrict", () => {
         describe("Laravel Tests", () => {
             it("test where in strict", () => {
+                // CollectionTest::testWhereInStrict
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13674,6 +14056,7 @@ describe("Collection", () => {
     describe("whereBetween", () => {
         describe("Laravel Tests", () => {
             it("test where between", () => {
+                // CollectionTest::testBetween
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13699,11 +14082,54 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("takes the first and the last of the values as the bounds", () => {
+            const rows = (values: unknown[]) =>
+                collect(values.map((v) => ({ v })));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-three-values", whose
+            // keys [1, 2, 3] name these rows; a list renumbers them, as every removal from a list does
+            expect(
+                rows([0, 1, 2, 3, 4, 5, 6])
+                    .whereBetween("v", [1, 5, 3])
+                    .pluck("v")
+                    .all(),
+            ).toEqual([1, 2, 3]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-keyed-values"
+            expect(
+                rows([0, 1, 2, 3, 4])
+                    .whereBetween("v", { max: 3, min: 1 })
+                    .all(),
+            ).toEqual([]);
+        });
+
+        it("compares null and false as PHP's >= and <= do", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-null-item", whose keys
+            // [0, 1, 2, 4] name these rows; a list renumbers them, as every removal from a list does
+            expect(
+                collect([null, 0, 1, "", false].map((v) => ({ v })))
+                    .whereBetween("v", [0, 2])
+                    .pluck("v")
+                    .all(),
+            ).toEqual([null, 0, 1, false]);
+        });
+
+        it("takes a Collection's values as the bounds", () => {
+            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps no item
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-collection-values"
+            expect(
+                collect([0, 1, 2, 3, 4].map((v) => ({ v })))
+                    .whereBetween("v", collect([1, 3]))
+                    .pluck("v")
+                    .all(),
+            ).toEqual([1, 2, 3]);
+        });
     });
 
     describe("whereNotBetween", () => {
         describe("Laravel Tests", () => {
             it("test where not between", () => {
+                // CollectionTest::testWhereNotBetween
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13760,11 +14186,23 @@ describe("Collection", () => {
                 collect(mixed).whereBetween("v", ["1", "5"]).pluck("v").all(),
             ).toEqual(["1", 5]);
         });
+
+        it("takes a Collection's values as the bounds", () => {
+            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps every item
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotBetween-collection-values"
+            expect(
+                collect([0, 1, 2, 3, 4].map((v) => ({ v })))
+                    .whereNotBetween("v", collect([1, 3]))
+                    .pluck("v")
+                    .all(),
+            ).toEqual([0, 4]);
+        });
     });
 
     describe("whereNotIn", () => {
         describe("Laravel Tests", () => {
             it("test where not in", () => {
+                // CollectionTest::testWhereNotIn
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13821,6 +14259,7 @@ describe("Collection", () => {
     describe("whereNotInStrict", () => {
         describe("Laravel Tests", () => {
             it("test where not in strict", () => {
+                // CollectionTest::testWhereNotInStrict
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -13853,26 +14292,36 @@ describe("Collection", () => {
     describe("whereInstanceOf", () => {
         describe("Laravel Tests", () => {
             it("test where instance of", () => {
+                // CollectionTest::testWhereInstanceOf, whose stdClass and Str these two classes stand in for
+                class StdClass {}
+                class Str {}
+
                 const c = collect([
-                    {},
-                    {},
-                    collect([]),
-                    {},
-                    new Stringable("example"),
+                    new StdClass(),
+                    new StdClass(),
+                    collect(),
+                    new StdClass(),
+                    new Str(),
                 ]);
 
-                expect(
-                    (c.whereInstanceOf(Object).all() as unknown[]).length,
-                ).toBe(5);
-
-                expect(
-                    (c.whereInstanceOf([Collection]).all() as unknown[]).length,
-                ).toBe(1);
-
-                expect(
-                    (c.whereInstanceOf([Stringable]).all() as unknown[]).length,
-                ).toBe(1);
+                expect(c.whereInstanceOf(StdClass).count()).toBe(3);
+                expect(c.whereInstanceOf([StdClass, Str]).count()).toBe(4);
             });
+        });
+
+        it("keeps every object for Object, which no PHP class matches", () => {
+            const c = collect([
+                {},
+                {},
+                collect([]),
+                {},
+                new Stringable("example"),
+            ]);
+
+            // JS-only: every JS object, a plain one included, is an instance of Object
+            expect(c.whereInstanceOf(Object).count()).toBe(5);
+            expect(c.whereInstanceOf([Collection]).count()).toBe(1);
+            expect(c.whereInstanceOf([Stringable]).count()).toBe(1);
         });
 
         it("handles array of types", () => {
@@ -13885,12 +14334,20 @@ describe("Collection", () => {
         });
 
         it("handles object of types", () => {
-            class A {}
-            class B {}
-            class C {}
-            const c = collect([new A(), new B(), new C()]);
-            const result = c.whereInstanceOf({ first: A, second: B });
-            expect(result.count()).toBe(2);
+            class StdClass {}
+            class ArrayObject {}
+            class SplStack {}
+            const kept = collect([
+                new StdClass(),
+                new ArrayObject(),
+                new SplStack(),
+            ]).whereInstanceOf({ a: StdClass, b: SplStack });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInstanceOf-assoc-types", whose
+            // keys 0 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(kept.count()).toBe(2);
+            expect(kept.first()).toBeInstanceOf(StdClass);
+            expect(kept.last()).toBeInstanceOf(SplStack);
         });
     });
 
@@ -14200,13 +14657,9 @@ describe("Collection", () => {
     describe("reject", () => {
         describe("Laravel Tests", () => {
             it("test reject removes elements passing truth test", () => {
+                // CollectionTest::testRejectRemovesElementsPassingTruthTest
                 const c = collect(["foo", "bar"]);
-                expect(
-                    c
-                        .reject((v) => v === "bar")
-                        .values()
-                        .all(),
-                ).toEqual(["foo"]);
+                expect(c.reject("bar").values().all()).toEqual(["foo"]);
 
                 const d = collect(["foo", "bar"]);
                 expect(
@@ -14217,20 +14670,10 @@ describe("Collection", () => {
                 ).toEqual(["foo"]);
 
                 const e = collect(["foo", null]);
-                expect(
-                    e
-                        .reject((v) => v === null)
-                        .values()
-                        .all(),
-                ).toEqual(["foo"]);
+                expect(e.reject(null).values().all()).toEqual(["foo"]);
 
                 const f = collect(["foo", "bar"]);
-                expect(
-                    f
-                        .reject((v) => v === "baz")
-                        .values()
-                        .all(),
-                ).toEqual(["foo", "bar"]);
+                expect(f.reject("baz").values().all()).toEqual(["foo", "bar"]);
 
                 const g = collect(["foo", "bar"]);
                 expect(
@@ -14248,6 +14691,7 @@ describe("Collection", () => {
             });
 
             it("test reject without an argument removes truthy values", () => {
+                // CollectionTest::testRejectWithoutAnArgumentRemovesTruthyValues
                 const data1 = collect([false, true, collect(), 0]);
                 expect(data1.reject().values().all()).toEqual([false, 0]);
 
@@ -14385,6 +14829,7 @@ describe("Collection", () => {
     describe("uniqueStrict", () => {
         describe("Laravel Tests", () => {
             it("test unique strict", () => {
+                // CollectionTest::testUniqueStrict
                 const c = collect([
                     { id: "0", name: "zero" },
                     { id: "00", name: "double zero" },
@@ -14415,6 +14860,27 @@ describe("Collection", () => {
                 { y: 2, x: 1 },
             ]);
             expect(Object.keys(result.all()[1] as object)).toEqual(["y", "x"]);
+        });
+
+        it("compares arrays by value and scalars by type, as PHP's === does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-arrays-strict"
+            expect(
+                collect([
+                    [1, 2],
+                    ["1", 2],
+                    [1, 2],
+                ])
+                    .uniqueStrict()
+                    .all(),
+            ).toEqual([
+                [1, 2],
+                ["1", 2],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-strict-null-key", whose keys
+            // [0, 1, 3] name these items; a list renumbers them, as every removal from a list does
+            expect(collect([1, "1", 1, true]).unique(null, true).all()).toEqual(
+                [1, "1", true],
+            );
         });
     });
 
