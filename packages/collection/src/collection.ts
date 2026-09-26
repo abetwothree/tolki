@@ -4887,7 +4887,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A TupleCollection with two collections: the first with items that pass the truth test, the second with items that fail
      */
     partition(
-        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
         operator?: unknown,
         value?: unknown,
     ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>> {

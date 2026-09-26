@@ -12548,15 +12548,6 @@ describe("Collection", () => {
             expect(inactive.all()).toEqual([{ status: "inactive" }]);
         });
 
-        it("uses default key parameter", () => {
-            // Calling partition without key triggers the default parameter = null
-            // which makes valueRetriever return item itself (partition by truthiness)
-            const c = collect([1, 0, "", "hello", null, true, false]);
-            const [truthy, falsy] = c.partition();
-            expect(truthy.values().all()).toEqual([1, "hello", true]);
-            expect(falsy.values().all()).toEqual([0, "", null, false]);
-        });
-
         it("partitions the items themselves by PHP truthiness for a null key", () => {
             const [passed, failed] = collect([
                 1,
