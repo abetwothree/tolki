@@ -8,13 +8,13 @@ import {
     isNull,
     isNumber,
     isObject,
-    isPlainObject,
     isPrototypeObject,
     isString,
     isSymbol,
     isTruthyObject,
     isUndefined,
 } from "./guards";
+import { phpDebugType } from "./reflect";
 
 /**
  * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`
@@ -179,7 +179,7 @@ export function phpComputedKey(
     if (isIllegalOffset(key)) {
         const invalid = options.invalid ?? illegalOffset;
 
-        throw invalid(offsetTypeName(key));
+        throw invalid(phpDebugType(key));
     }
 
     return phpArrayKey(key);
@@ -230,21 +230,6 @@ export function hasOwnToString(
         isFunction(value["toString"]) &&
         value["toString"] !== Object.prototype.toString
     );
-}
-
-/**
- * The type PHP's illegal-offset message names.
- *
- * @param value - The key PHP cannot store
- * @returns `array` for an array or a plain object, which models one, else the class name
- */
-function offsetTypeName(value: object): string {
-    if (isArray(value) || isPlainObject(value)) {
-        return "array";
-    }
-
-    // PHP names an anonymous class class@anonymous.
-    return value.constructor.name || "class@anonymous";
 }
 
 /**

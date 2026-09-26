@@ -23212,6 +23212,12 @@ describe("Collection", () => {
                 new TypeError("Cannot access offset of type Date on array"),
             ],
             [
+                "pluck throws for a closure key, which PHP names Closure",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key"
+                () => collect([{ v: 1 }]).pluck("v", () => () => 1),
+                new TypeError("Cannot access offset of type Closure on array"),
+            ],
+            [
                 "pluck throws for an enum case key, which it does not unwrap",
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a
                 // plain object here, so the message names the array it models where PHP names the enum's class.

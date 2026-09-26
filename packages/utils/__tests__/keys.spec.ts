@@ -359,11 +359,19 @@ describe("Utils", () => {
             );
         });
 
-        it("throws for a function, which PHP cannot store as a key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key": a JS
-            // function names its own class, where PHP's message names Closure.
+        it("throws for a function, which PHP reads as a Closure and cannot store as a key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key"
             expect(() => Utils.phpComputedKey(() => 1)).toThrow(
-                new TypeError("Cannot access offset of type Function on array"),
+                new TypeError("Cannot access offset of type Closure on array"),
+            );
+        });
+
+        it("names a key with no class by its JavaScript type rather than failing to name it", () => {
+            // JS-only: PHP has no object without a class; the name is the one phpDebugType gives it
+            expect(() =>
+                Utils.phpComputedKey(Object.create(Object.create(null))),
+            ).toThrow(
+                new TypeError("Cannot access offset of type object on array"),
             );
         });
     });
