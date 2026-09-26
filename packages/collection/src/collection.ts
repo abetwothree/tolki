@@ -532,11 +532,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     contains(key: (value: TValue, index: TKey) => unknown): boolean;
     contains(key: unknown, operator?: unknown, value?: unknown): boolean;
     contains(
-        key: ((value: TValue, index: TKey) => unknown) | unknown,
-        operator?: unknown,
-        value?: unknown,
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        if (isUndefined(operator) && isUndefined(value)) {
+        const [key] = args;
+
+        if (args.length < 2) {
             if (isFunction(key)) {
                 const callback = key as (value: TValue, index: TKey) => unknown;
 
@@ -546,13 +550,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return dataContains(this.items, key as TValue);
         }
 
-        return this.contains(
-            this.operatorForWhere(
-                key as PathKey | ((value: TValue, index: TKey) => unknown),
-                operator as string | undefined,
-                value,
-            ),
-        );
+        return this.contains(this.operatorForWhereArgs(args));
     }
 
     /**
@@ -573,11 +571,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     containsStrict(key: unknown, value?: unknown): boolean;
     containsStrict(
-        key: ((value: TValue, index: TKey) => unknown) | unknown,
-        value?: unknown,
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        // PHP takes the two-argument form whenever a second argument is passed, a null one included.
-        if (!isUndefined(value)) {
+        const [key, value = null] = args;
+
+        // PHP takes the two-argument form whenever a second argument is passed, whatever it holds.
+        if (args.length === 2) {
             return this.contains((item) => {
                 return strictEqual(itemValue(item, key as PathKey), value);
             });
@@ -617,15 +619,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     doesntContain(key: (value: TValue, index: TKey) => unknown): boolean;
     doesntContain(key: unknown, operator?: unknown, value?: unknown): boolean;
     doesntContain(
-        key: ((value: TValue, index: TKey) => unknown) | unknown,
-        operator?: unknown,
-        value?: unknown,
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        return !this.contains(
-            key as (value: TValue, index: TKey) => unknown,
-            operator,
-            value,
-        );
+        return !this.contains(...args);
     }
 
     /**
@@ -645,13 +645,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     doesntContainStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     doesntContainStrict(key: unknown, value?: unknown): boolean;
     doesntContainStrict(
-        key: ((value: TValue, index: TKey) => unknown) | unknown,
-        value?: unknown,
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        return !this.containsStrict(
-            key as (value: TValue, index: TKey) => unknown,
-            value,
-        );
+        return !this.containsStrict(...args);
     }
 
     /**
@@ -1438,13 +1437,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{age: 2}, {age: 3}]).hasMany(item => item.age > 1); -> true
      */
     hasMany(
-        key: ((value: TValue, index: TKey) => unknown) | PathKey | null = null,
+        key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
         operator?: unknown,
         value?: unknown,
+    ): boolean;
+    hasMany(
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        return (
-            this.filterUnlessNull(key, operator, value).take(2).count() === 2
-        );
+        return this.filterUnlessNull(args).take(2).count() === 2;
     }
 
     /**
@@ -1464,11 +1468,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{age: 2}, {age: 3}]).hasSole(item => item.age === 2); -> true
      */
     hasSole(
-        key: ((value: TValue, index: TKey) => unknown) | PathKey | null = null,
+        key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
         operator?: unknown,
         value?: unknown,
+    ): boolean;
+    hasSole(
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        return this.filterUnlessNull(key, operator, value).count() === 1;
+        return this.filterUnlessNull(args).count() === 1;
     }
 
     /**
@@ -3095,11 +3106,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
      */
     sole(
-        key: ((value: TValue, index: TKey) => unknown) | PathKey = null,
+        key?: ((value: TValue, index: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
-    ) {
-        const items = this.filterUnlessNull(key, operator, value);
+    ): unknown;
+    sole(
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): unknown {
+        const items = this.filterUnlessNull(args);
 
         const count = items.count();
 
@@ -3132,14 +3150,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).firstOrFail(); -> throws ItemNotFoundException
      */
     firstOrFail(
-        key: ((value: TValue, index: TKey) => unknown) | PathKey = null,
+        key?: ((value: TValue, index: TKey) => unknown) | PathKey,
         operator?: string,
         value?: unknown,
-    ) {
+    ): TValue;
+    firstOrFail(
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey,
+            operator?: string,
+            value?: unknown,
+        ]
+    ): TValue {
         const filter =
-            isUndefined(operator) && isUndefined(value)
-                ? key
-                : this.operatorForWhere(key, operator, value);
+            args.length > 1 ? this.operatorForWhereArgs(args) : args[0];
 
         // PHP hands the filter straight to first()'s ?callable, with no unless() to skip one equal to null.
         if (!isNull(filter) && !isUndefined(filter) && !isFunction(filter)) {
@@ -4445,8 +4468,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
         operator?: unknown,
         value?: unknown,
-    ) {
-        return this.contains(key, operator, value);
+    ): boolean;
+    some(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): boolean {
+        return this.contains(...args);
     }
 
     /**
@@ -4547,9 +4577,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             value?: unknown,
         ]
     ): boolean {
-        // PHP tells the forms apart by func_num_args(), not by null; a given undefined becomes null,
-        // since operatorForWhere reads undefined as an argument never passed.
-        const [key, operator = null, value = null] = args;
+        const [key] = args;
 
         if (args.length < 2) {
             const callback = this.valueRetriever(
@@ -4568,13 +4596,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return true;
         }
 
-        const path = key as PathKey | ((value: TValue, index: TKey) => unknown);
-
-        return this.every(
-            args.length === 2
-                ? this.operatorForWhere(path, operator as string)
-                : this.operatorForWhere(path, operator as string, value),
-        );
+        return this.every(this.operatorForWhereArgs(args));
     }
 
     /**
@@ -4596,10 +4618,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
+    ): TValue | null;
+    firstWhere(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): TValue | null {
-        return this.first(
-            this.operatorForWhere(key, operator as string | undefined, value),
-        ) as TValue | null;
+        return this.first(this.operatorForWhereArgs(args)) as TValue | null;
     }
 
     /**
@@ -5634,6 +5661,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Get an operator checker callback for the arguments a method was given, counted as func_get_args() counts them.
+     *
+     * @param args - The key, then the operator or the value, then the value
+     * @returns A callback that checks if an item matches them
+     */
+    protected operatorForWhereArgs(
+        args: readonly unknown[],
+    ): (value: TValue, index: TKey) => boolean {
+        // operatorForWhere reads undefined as an argument never passed, so a given undefined becomes PHP's null.
+        const [key, operator = null, value = null] = args;
+        const path = key as PathKey | ((value: TValue, index: TKey) => unknown);
+
+        if (args.length < 2) {
+            return this.operatorForWhere(path);
+        }
+
+        return args.length === 2
+            ? this.operatorForWhere(path, operator as string)
+            : this.operatorForWhere(path, operator as string, value);
+    }
+
+    /**
      * Determine if the given value is callable, but not a string.
      *
      * @param value - The value to check
@@ -5686,27 +5735,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Filter the items by what a key-or-callback method was given, as `unless($filter == null)->filter($filter)` does.
      *
-     * @param key - A callback, the key to compare when an operator or value follows, or a lone filter
-     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
-     * @param value - The value to compare against
+     * @param args - A lone filter, or the key, then the operator or the value, then the value
      * @returns The items that pass the filter, or this collection itself when the filter equals null
      * @throws TypeError for a filter that is neither callable nor equal to null, as filter()'s `?callable` rejects it
      */
-    protected filterUnlessNull(
-        key: unknown,
-        operator?: unknown,
-        value?: unknown,
-    ): this {
+    protected filterUnlessNull(args: readonly unknown[]): this {
         const filter =
-            isUndefined(operator) && isUndefined(value)
-                ? key
-                : this.operatorForWhere(
-                      key as
-                          | PathKey
-                          | ((value: TValue, index: TKey) => unknown),
-                      operator as string | undefined,
-                      value,
-                  );
+            args.length > 1 ? this.operatorForWhereArgs(args) : args[0];
 
         // PHP's unless() proxy skips filter() for a filter == null, so a falsy item is still counted.
         if (looseEqual(filter, null)) {

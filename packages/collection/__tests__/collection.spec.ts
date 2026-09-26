@@ -1353,6 +1353,15 @@ describe("Collection", () => {
             expect(collect([{ a: 1 }]).contains("a", null)).toBe(false);
         });
 
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 1 }]).contains("a", undefined),
+            ).toBe(true);
+            expect(collect([{ a: 1 }]).contains("a", undefined)).toBe(false);
+        });
+
         it("compares a unit enum case as the name it is", () => {
             const rows = collect([{ n: StaffEnum.Joe }]);
 
@@ -1512,6 +1521,20 @@ describe("Collection", () => {
                 new Collection([{ x: 1, y: 2 }]).containsStrict({ y: 2, x: 1 }),
             ).toBe(false);
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).containsStrict("a", null),
+                collect([{ a: 1 }]).containsStrict("a", null),
+            ]).toEqual([true, false]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).containsStrict("a", undefined),
+                collect([{ a: 1 }]).containsStrict("a", undefined),
+            ]).toEqual([true, false]);
+        });
     });
 
     describe("doesntContain", () => {
@@ -1569,6 +1592,20 @@ describe("Collection", () => {
 
             expect(j.doesntContain((item) => item === null)).toBe(false);
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContain("a", null),
+                collect([{ a: 1 }]).doesntContain("a", null),
+            ]).toEqual([false, true]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContain("a", undefined),
+                collect([{ a: 1 }]).doesntContain("a", undefined),
+            ]).toEqual([false, true]);
+        });
     });
 
     describe("doesntContainStrict", () => {
@@ -1620,6 +1657,23 @@ describe("Collection", () => {
                     (value) => value === null,
                 ),
             ).toBe(false);
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContainStrict("a", null),
+                collect([{ a: 1 }]).doesntContainStrict("a", null),
+            ]).toEqual([false, true]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContainStrict(
+                    "a",
+                    undefined,
+                ),
+                collect([{ a: 1 }]).doesntContainStrict("a", undefined),
+            ]).toEqual([false, true]);
         });
     });
 
@@ -4222,6 +4276,14 @@ describe("Collection", () => {
             );
         });
 
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 1 }]).hasSole("a", undefined),
+            ).toBe(true);
+        });
+
         it("counts a falsy item when no filter is given", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-hasSole-hasMany-keep-falsy-items"
             expect([collect([0]).hasSole(), collect([null]).hasSole()]).toEqual(
@@ -4323,6 +4385,17 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
             expect(
                 collect([{ a: null }, { a: 0 }, { a: 1 }]).hasMany("a", null),
+            ).toBe(true);
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 0 }, { a: 1 }]).hasMany(
+                    "a",
+                    undefined,
+                ),
             ).toBe(true);
         });
 
@@ -8159,6 +8232,14 @@ describe("Collection", () => {
             });
         });
 
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 1 }]).sole("a", undefined),
+            ).toEqual({ a: null });
+        });
+
         it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
             const collection = collect([{ name: "foo" }]);
             const sole = (key: unknown) => () =>
@@ -8344,6 +8425,17 @@ describe("Collection", () => {
             expect(firstOrFail(0)).toThrowError(TypeError);
             expect(firstOrFail("")).toThrowError(TypeError);
             expect(firstOrFail("0")).toThrowError(TypeError);
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: 1 }, { a: null }]).firstOrFail("a", undefined),
+            ).toEqual({ a: null });
+            expect(() =>
+                collect([{ a: 1 }]).firstOrFail("a", undefined),
+            ).toThrowError(ItemNotFoundException);
         });
     });
 
@@ -11019,6 +11111,20 @@ describe("Collection", () => {
                 ).toBe(true);
             });
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).some("a", null),
+                collect([{ a: 1 }]).some("a", null),
+            ]).toEqual([true, false]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).some("a", undefined),
+                collect([{ a: 1 }]).some("a", undefined),
+            ]).toEqual([true, false]);
+        });
     });
 
     describe("dump", () => {
@@ -11412,6 +11518,14 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
             expect(
                 collect([{ a: 1 }, { a: null }]).firstWhere("a", null),
+            ).toEqual({ a: null });
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: 1 }, { a: null }]).firstWhere("a", undefined),
             ).toEqual({ a: null });
         });
     });
