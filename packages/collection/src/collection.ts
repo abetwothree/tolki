@@ -108,6 +108,7 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
+    phpDebugType,
     phpIntArgument,
     phpTypeName,
     reindexIntegerKeys,
@@ -1191,7 +1192,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (illegal !== -1) {
-            throw unsetOffset(getDebugType(requested[illegal]));
+            throw unsetOffset(phpDebugType(requested[illegal]));
         }
 
         return this;
@@ -4053,7 +4054,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     offsetExists(key: PropertyKey): boolean {
         if (isIllegalOffset(key)) {
-            throw issetOffset(getDebugType(key));
+            throw issetOffset(phpDebugType(key));
         }
 
         const value = this.offsetGet(key);
@@ -4077,7 +4078,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     offsetGet(key: PropertyKey) {
         if (isIllegalOffset(key)) {
-            throw accessOffset(getDebugType(key));
+            throw accessOffset(phpDebugType(key));
         }
 
         const ownKey = this.ownKey(key);
@@ -4109,7 +4110,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     offsetSet(key: PropertyKey | null, value: TValue | unknown) {
         if (isIllegalOffset(key)) {
-            throw accessOffset(getDebugType(key));
+            throw accessOffset(phpDebugType(key));
         }
 
         // A null or undefined offset appends, as PHP's `$items[] = $value` does.
@@ -4133,7 +4134,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     offsetUnset(key: PropertyKey) {
         if (isIllegalOffset(key)) {
-            throw unsetOffset(getDebugType(key));
+            throw unsetOffset(phpDebugType(key));
         }
 
         const ownKey = this.ownKey(key);
@@ -4685,7 +4686,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
 
             throw new UnexpectedValueException(
-                `Collection should only include [${names.join(", ")}] items, but '${getDebugType(item)}' found at position ${phpIntegerFormat(key)}.`,
+                `Collection should only include [${names.join(", ")}] items, but '${phpDebugType(item)}' found at position ${phpIntegerFormat(key)}.`,
             );
         });
     }
@@ -6825,7 +6826,7 @@ function phpAdd(total: number, value: unknown): number {
     }
 
     throw new TypeError(
-        `Unsupported operand types: ${isInteger(total) ? "int" : "float"} + ${getDebugType(value)}`,
+        `Unsupported operand types: ${isInteger(total) ? "int" : "float"} + ${phpDebugType(value)}`,
     );
 }
 
@@ -6893,55 +6894,12 @@ function isOfType(item: unknown, type: unknown): boolean {
         return item instanceof type;
     }
 
-    if (type === getDebugType(item)) {
+    if (type === phpDebugType(item)) {
         return true;
     }
 
     // JS-only: JavaScript's typeof names are accepted too, "object" meaning any object but null and an array.
     return !isNull(item) && type === typeOf(item);
-}
-
-/**
- * Name a value's type as PHP's `get_debug_type()` does, for ensure()'s message.
- *
- * @param value - The value to name
- * @returns null, int, float, string, bool, array, Closure for a function, or the class's name (class@anonymous for an
- * anonymous one), else the JavaScript typeof name
- */
-function getDebugType(value: unknown): string {
-    // The port reads undefined as PHP's null.
-    if (isNull(value) || isUndefined(value)) {
-        return "null";
-    }
-
-    if (typeOf(value) === "number") {
-        return isInteger(value) ? "int" : "float";
-    }
-
-    if (isString(value)) {
-        return "string";
-    }
-
-    if (isBoolean(value)) {
-        return "bool";
-    }
-
-    // A plain object stands in for a PHP array.
-    if (isArray(value) || isPlainObject(value)) {
-        return "array";
-    }
-
-    // Every PHP closure is an instance of the Closure class.
-    if (isFunction(value)) {
-        return "Closure";
-    }
-
-    if (isObject(value) && isFunction(value["constructor"])) {
-        return value["constructor"].name || "class@anonymous";
-    }
-
-    // JS-only: PHP has no symbol, bigint or classless object, so each keeps its typeof name.
-    return typeOf(value);
 }
 
 /**
@@ -7155,7 +7113,7 @@ function unsetOffset(type: string): TypeError {
  */
 function notCallable(method: string, argument: unknown): TypeError {
     return new TypeError(
-        `Collection::${method}(): Argument #1 ($callback) must be of type ?callable, ${getDebugType(argument)} given`,
+        `Collection::${method}(): Argument #1 ($callback) must be of type ?callable, ${phpDebugType(argument)} given`,
     );
 }
 
@@ -7166,7 +7124,7 @@ function notCallable(method: string, argument: unknown): TypeError {
  * @returns The Error PHP throws, naming the value's type as get_debug_type() does
  */
 function notCallableValue(value: unknown): Error {
-    return new Error(`Value of type ${getDebugType(value)} is not callable`);
+    return new Error(`Value of type ${phpDebugType(value)} is not callable`);
 }
 
 /**
@@ -7270,7 +7228,7 @@ function phpStringCast(value: unknown): string {
 
     if (isObject(value) || isFunction(value)) {
         throw new Error(
-            `Object of class ${getDebugType(value)} could not be converted to string`,
+            `Object of class ${phpDebugType(value)} could not be converted to string`,
         );
     }
 

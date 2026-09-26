@@ -1,9 +1,13 @@
 import {
     isArray,
+    isBoolean,
     isFunction,
     isInteger,
     isNull,
     isNumber,
+    isObject,
+    isPlainObject,
+    isString,
     isUndefined,
 } from "./guards";
 
@@ -85,4 +89,53 @@ export function phpTypeName(value: unknown): string {
     }
 
     return typeof value;
+}
+
+/**
+ * Name a value's type as PHP's `get_debug_type()` does, for messages that name what they were given.
+ *
+ * @param value - The value to name
+ * @returns null, int, float, string, bool, array, Closure for a function, or the class's name (class@anonymous for an
+ * anonymous one), else the JavaScript typeof name
+ *
+ * @example
+ * phpDebugType(1.5); -> "float"
+ * phpDebugType({ a: 1 }); -> "array"
+ * phpDebugType(() => 1); -> "Closure"
+ * phpDebugType(new Date()); -> "Date"
+ */
+export function phpDebugType(value: unknown): string {
+    // The port reads undefined as PHP's null.
+    if (isNull(value) || isUndefined(value)) {
+        return "null";
+    }
+
+    if (typeOf(value) === "number") {
+        return isInteger(value) ? "int" : "float";
+    }
+
+    if (isString(value)) {
+        return "string";
+    }
+
+    if (isBoolean(value)) {
+        return "bool";
+    }
+
+    // A plain object stands in for a PHP array.
+    if (isArray(value) || isPlainObject(value)) {
+        return "array";
+    }
+
+    // Every PHP closure is an instance of the Closure class.
+    if (isFunction(value)) {
+        return "Closure";
+    }
+
+    if (isObject(value) && isFunction(value["constructor"])) {
+        return value["constructor"].name || "class@anonymous";
+    }
+
+    // JS-only: PHP has no symbol, bigint or classless object, so each keeps its typeof name.
+    return typeOf(value);
 }
