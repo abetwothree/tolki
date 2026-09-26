@@ -4870,6 +4870,60 @@ describe("Data", () => {
         });
     });
 
+    describe("dataSkipUntil", () => {
+        it("is array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Data.dataSkipUntil([1, 2, 3, 4], 3)).toEqual([3, 4]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-keyed"
+            expect(Data.dataSkipUntil({ a: 1, b: 2, c: 3 }, 2)).toEqual({
+                b: 2,
+                c: 3,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-out-of-order-keys"
+            expect(Data.dataSkipUntil(map, "a")).toEqual({ 0: "a", 1: "b" });
+        });
+    });
+
+    describe("dataSkipWhile", () => {
+        it("is array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Data.dataSkipWhile([1, 1, 2, 1], 1)).toEqual([2, 1]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-keyed"
+            expect(Data.dataSkipWhile({ a: 1, b: 2, c: 1 }, 1)).toEqual({
+                b: 2,
+                c: 1,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Data.dataSkipWhile(map, "c")).toEqual({ 0: "a", 1: "b" });
+        });
+    });
+
     describe("dataSlice", () => {
         it("is object", () => {
             const result = Data.dataSlice(
@@ -5910,6 +5964,58 @@ describe("Data", () => {
                 [0, "a"],
                 [1, "b"],
             ]);
+        });
+    });
+
+    describe("dataTakeUntil", () => {
+        it("is array", () => {
+            // CollectionTest::testTakeUntilUsingValue
+            expect(Data.dataTakeUntil([1, 2, 3, 4], 3)).toEqual([1, 2]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-keyed"
+            expect(Data.dataTakeUntil({ a: 1, b: 2, c: 3 }, 3)).toEqual({
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Data.dataTakeUntil(map, "a")).toEqual({ 2: "c" });
+        });
+    });
+
+    describe("dataTakeWhile", () => {
+        it("is array", () => {
+            // CollectionTest::testTakeWhileUsingValue
+            expect(Data.dataTakeWhile([1, 1, 2, 2, 3, 3], 1)).toEqual([1, 1]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-keyed"
+            expect(Data.dataTakeWhile({ a: 1, b: 1, c: 2, d: 1 }, 1)).toEqual({
+                a: 1,
+                b: 1,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Data.dataTakeWhile(map, "c")).toEqual({ 2: "c" });
         });
     });
 

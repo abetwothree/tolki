@@ -60,6 +60,8 @@ import {
     set as arrSet,
     shift as arrShift,
     shuffle as arrShuffle,
+    skipUntil as arrSkipUntil,
+    skipWhile as arrSkipWhile,
     slice as arrSlice,
     sole as arrSole,
     some as arrSome,
@@ -70,6 +72,8 @@ import {
     splice as arrSplice,
     string as arrString,
     take as arrTake,
+    takeUntil as arrTakeUntil,
+    takeWhile as arrTakeWhile,
     toCssClasses as arrToCssClasses,
     toCssStyles as arrToCssStyles,
     undot as arrUndot,
@@ -143,6 +147,8 @@ import {
     set as objSet,
     shift as objShift,
     shuffle as objShuffle,
+    skipUntil as objSkipUntil,
+    skipWhile as objSkipWhile,
     slice as objSlice,
     sole as objSole,
     some as objSome,
@@ -153,6 +159,8 @@ import {
     splice as objSplice,
     string as objString,
     take as objTake,
+    takeUntil as objTakeUntil,
+    takeWhile as objTakeWhile,
     toCssClasses as objToCssClasses,
     toCssStyles as objToCssStyles,
     undot as objUndot,
@@ -1768,6 +1776,42 @@ export const dataShuffle = dispatch(
 );
 
 /**
+ * Skip items in the data until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to skip items of
+ * @param value - The value to skip until, or a callback answering whether an item meets the condition
+ * @returns The items from the first that meets the condition on, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataSkipUntil([1, 2, 3, 4], 3); -> [3, 4]
+ * dataSkipUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'b'); -> {b: 2, c: 3}
+ * dataSkipUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {0: 'a', 1: 'b'}
+ */
+export const dataSkipUntil = dispatch(arrSkipUntil, objSkipUntil);
+
+/**
+ * Skip items in the data while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to skip items of
+ * @param value - The value to skip while items equal it, or a callback answering whether an item meets the condition
+ * @returns The items from the first that fails the condition on, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataSkipWhile([1, 1, 2, 1], 1); -> [2, 1]
+ * dataSkipWhile({a: 1, b: 2, c: 1}, 1); -> {b: 2, c: 1}
+ * dataSkipWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {0: 'a', 1: 'b'}
+ */
+export const dataSkipWhile = dispatch(arrSkipWhile, objSkipWhile);
+
+/**
  * Slice the underlying data items
  *
  * A Map is sliced by its insertion order, so the offset and length count the items PHP's
@@ -1908,6 +1952,42 @@ export const dataSplice = dispatch(
     toPositionalBacking,
     copyKeyedData,
 );
+
+/**
+ * Take items in the data until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to take items from
+ * @param value - The value to take until, or a callback answering whether an item meets the condition
+ * @returns The items before the first that meets the condition, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataTakeUntil([1, 2, 3, 4], 3); -> [1, 2]
+ * dataTakeUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'c'); -> {a: 1, b: 2}
+ * dataTakeUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {2: 'c'}
+ */
+export const dataTakeUntil = dispatch(arrTakeUntil, objTakeUntil);
+
+/**
+ * Take items in the data while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to take items from
+ * @param value - The value to take while items equal it, or a callback answering whether an item meets the condition
+ * @returns The items before the first that fails the condition, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataTakeWhile([1, 1, 2, 2, 3, 3], 1); -> [1, 1]
+ * dataTakeWhile({a: 1, b: 1, c: 2, d: 1}, 1); -> {a: 1, b: 1}
+ * dataTakeWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {2: 'c'}
+ */
+export const dataTakeWhile = dispatch(arrTakeWhile, objTakeWhile);
 
 /**
  * Get a string value from data.
