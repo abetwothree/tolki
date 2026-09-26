@@ -4221,7 +4221,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 
     if (requested > count) {
         throw new InvalidArgumentException(
-            `You requested ${requested} items, but there are only ${count} items available.`,
+            `You requested ${toPhpKeyString(requested)} items, but there are only ${count} items available.`,
         );
     }
 

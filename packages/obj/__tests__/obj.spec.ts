@@ -7574,6 +7574,19 @@ describe("Obj", () => {
                 ),
             );
         });
+
+        it("names an infinite count INF, as PHP prints it, and picks nothing for -INF", () => {
+            const data = { a: 1, b: 2, c: 3 };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => Obj.random(data, Infinity)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Obj.random(data, Infinity)).toThrow(
+                "You requested INF items, but there are only 3 items available.",
+            );
+            expect(Obj.random(data, -Infinity)).toEqual({});
+        });
     });
 
     describe("shift", () => {

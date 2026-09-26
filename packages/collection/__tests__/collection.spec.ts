@@ -6886,6 +6886,19 @@ describe("Collection", () => {
             expect(collect([1, 2, 3]).random(-1).all()).toEqual([]);
         });
 
+        it("names an infinite count INF, as PHP prints it, and picks nothing for -INF", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => collection.random(Infinity)).toThrowError(
+                InvalidArgumentException,
+            );
+            expect(() => collection.random(Infinity)).toThrowError(
+                "You requested INF items, but there are only 3 items available.",
+            );
+            expect(collection.random(-Infinity).all()).toEqual([]);
+        });
+
         it("reindexes from zero by default into a list, either backing", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-record-count-is-list"
             for (const picked of [
