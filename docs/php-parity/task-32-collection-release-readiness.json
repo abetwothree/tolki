@@ -12835,6 +12835,14 @@
             }
         },
         {
+            "label": "C32-H-join-lone-object-item",
+            "php": "whether (new Collection([new stdClass]))->join(', ', ' and ') and Arr::join([new stdClass], ', ', ' and ') hand the object back as it is",
+            "value": {
+                "Collection::join": true,
+                "Arr::join": true
+            }
+        },
+        {
             "label": "C32-H-reduce-no-initial-trace",
             "php": "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn ($c, $v, $k) => $v)",
             "value": [

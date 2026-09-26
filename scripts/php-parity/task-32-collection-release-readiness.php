@@ -1985,6 +1985,14 @@ probe('C32-H-arr-join-pieces', "Arr::join() casting each piece as implode() does
     'lone array' => Arr::join([[1, 2]], ', ', ' and '),
     'lone bool' => Arr::join([true], ', ', ' and '),
 ]);
+probe('C32-H-join-lone-object-item', "whether (new Collection([new stdClass]))->join(', ', ' and ') and Arr::join([new stdClass], ', ', ' and ') hand the object back as it is", function () {
+    $object = new stdClass;
+
+    return [
+        'Collection::join' => (new Collection([$object]))->join(', ', ' and ') === $object,
+        'Arr::join' => Arr::join([$object], ', ', ' and ') === $object,
+    ];
+});
 
 // reduce without an initial value: $initial = null, every item reaches the callback
 probe('C32-H-reduce-no-initial-trace', "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn (\$c, \$v, \$k) => \$v)", function () { $seen = []; (new Collection([10, 20, 30]))->reduce(function ($c, $v, $k) use (&$seen) { $seen[] = [$c, $v, $k]; return $v; }); return $seen; });
