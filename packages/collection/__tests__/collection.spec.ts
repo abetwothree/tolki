@@ -6050,7 +6050,8 @@ describe("Collection", () => {
                 const c = collect(["foo", "bar"]);
 
                 expect(c.pull(0)).toBe("foo");
-                expect(c.pull(1)).toBe("bar");
+                // PHP leaves "bar" at key 1; a list backing reindexes where PHP keeps a gap, so it is pulled from 0.
+                expect(c.pull(0)).toBe("bar");
 
                 const c2 = collect(["foo", "bar"]);
 
@@ -6061,9 +6062,10 @@ describe("Collection", () => {
             it("test pull removes item from collection", () => {
                 const c = collect(["foo", "bar"]);
                 c.pull(0);
-                expect(c.all()).toEqual({ 1: "bar" });
-                c.pull(1);
-                expect(c.all()).toEqual({});
+                // PHP leaves "bar" at key 1; a list backing reindexes where PHP keeps a gap, so it is pulled from 0.
+                expect(c.all()).toEqual(["bar"]);
+                c.pull(0);
+                expect(c.all()).toEqual([]);
             });
 
             it("test pull removes item from nested collection", () => {
@@ -6156,10 +6158,11 @@ describe("Collection", () => {
             expect(c8b.pull("joe@example.com")).toBe("Joe");
             expect(c8b.all()).toEqual({ "jane@localhost": "Jane" });
 
-            // Test pulling from array with simple numeric index (already covered but ensuring)
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-string-index-on-list"
+            // PHP keeps the gap ({0: 10, 2: 30}); a list backing reindexes, as a JS array holds no sparse keys.
             const c9 = collect([10, 20, 30]);
             expect(c9.pull(1)).toBe(20);
-            expect(c9.all()).toEqual({ 0: 10, 2: 30 });
+            expect(c9.all()).toEqual([10, 30]);
 
             // Test pulling from mixed object (string and numeric keys)
             const c10 = collect({
@@ -6203,23 +6206,130 @@ describe("Collection", () => {
             expect(c15.pull("y")).toBe("other");
             expect(c15.all()).toEqual({ x: "val" });
 
-            // Test pulling from array with STRING key that is a valid numeric
-            // This covers delete (items as unknown[])[numKey]
-            // When this.items is array BUT key is string (not number type), we enter else branch
-            // but items is still an array
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-string-index-on-list"
             const c16 = collect(["a", "b", "c"]);
-            expect(c16.pull("1")).toBe("b"); // String "1", not number 1
-            expect(c16.all()).toEqual(["a", undefined, "c"]); // Array with deleted element
+            expect(c16.pull("1")).toBe("b");
+            expect(c16.all()).toEqual(["a", "c"]);
         });
 
         it("handles array with string numeric key", () => {
             const c = collect(["a", "b", "c"]);
-            // Pass string "1" instead of number 1 to trigger else branch
-            expect(c.pull("1")).toBe("b");
-            expect(c.all()).toEqual(["a", undefined, "c"]);
+            const returned = c.pull("1");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-string-index-on-list"
+            // PHP keeps the gap ({0: "a", 2: "c"}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect({ returned, all: c.all(), count: c.count() }).toEqual({
+                returned: "b",
+                all: ["a", "c"],
+                count: 2,
+            });
+            expect(c.keys().all()).toEqual([0, 1]);
+            expect(c.values().all()).toEqual(["a", "c"]);
+        });
+
+        it("keeps a list a list when the key is missing", () => {
+            const c = collect(["foo", "bar"]);
+            const returned = [c.pull(2), c.pull(-1)];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-missing-on-list-keeps-list"
+            expect({ returned, all: c.all(), json: c.toJson() }).toEqual({
+                returned: [null, null],
+                all: ["foo", "bar"],
+                json: '["foo","bar"]',
+            });
+            expect(c.keys().all()).toEqual([0, 1]);
+            expect(c.values().all()).toEqual(["foo", "bar"]);
+        });
+
+        it("hands back every item for a null key and removes nothing", () => {
+            const c = collect([1, 2]);
+            const returned = c.pull(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-null-key"
+            expect({ returned, all: c.all() }).toEqual({
+                returned: [1, 2],
+                all: [1, 2],
+            });
+
+            // JS-only: the items come back copied, as PHP hands its array back by value
+            expect(returned).not.toBe(c.all());
+        });
+
+        it("leaves the collections it holds as collections", () => {
+            const c = collect({ a: collect([1]), b: 2 });
+            c.pull("b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-keeps-sibling-collections"
+            expect(c.get("a")).toBeInstanceOf(Collection);
+        });
+
+        it("hands back a collection it holds as that collection", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-returns-stored-collection"
+            expect(collect({ a: collect({ x: 1 }) }).pull("a")).toBeInstanceOf(
+                Collection,
+            );
+        });
+
+        it("pulls a dot path out of a collection it holds", () => {
+            const c = collect({ a: collect({ x: 1, y: 2 }) });
+            const returned = c.pull("a.x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-dot-into-nested-collection"
+            expect({
+                returned,
+                nestedIsCollection: c.get("a") instanceof Collection,
+                toArray: c.toArray(),
+            }).toEqual({
+                returned: 1,
+                nestedIsCollection: true,
+                toArray: { a: { y: 2 } },
+            });
+        });
+
+        it("reads a collection it holds one segment at a time, never by a literal dotted key", () => {
+            const c = collect({ a: collect({ "x.y": 1 }) });
+            const returned = c.pull("a.x.y");
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-dot-path-inside-collection-per-segment"
+            expect({ returned, toArray: c.toArray() }).toEqual({
+                returned: null,
+                toArray: { a: { "x.y": 1 } },
+            });
+        });
+
+        it("pulls through an array into a collection the array holds", () => {
+            const c = collect({ a: { b: collect({ x: 1, y: 2 }) } });
+            const returned = c.pull("a.b.x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-through-array-into-collection"
+            // toArray() leaves a collection an array holds as it is, so the row reads it as JSON encodes it.
+            expect({
+                returned,
+                toArray: JSON.parse(JSON.stringify(c.toArray())),
+            }).toEqual({
+                returned: 1,
+                toArray: { a: { b: { y: 2 } } },
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-through-array-keeps-the-collection"
+            expect(c.get("a")).toEqual({ b: expect.any(Collection) });
+        });
+
+        it("reads an array a held collection holds, but removes nothing from it", () => {
+            const c = collect({ a: collect({ x: { y: 1, z: 2 } }) });
+            const returned = c.pull("a.x.y");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-array-inside-collection-stays"
+            expect({ returned, toArray: c.toArray() }).toEqual({
+                returned: 1,
+                toArray: { a: { x: { y: 1, z: 2 } } },
+            });
         });
 
         it("ignores __proto__ as final segment in nested pull path", () => {
+            // JS-only: a path segment is an own key, so "__proto__" never reaches Object.prototype
             const c = collect({ a: { b: "value" } });
             c.pull("a.__proto__");
             expect(({} as Record<string, unknown>)["__proto__"]).toBeDefined(); // Object.prototype untouched
@@ -6227,6 +6337,7 @@ describe("Collection", () => {
         });
 
         it("ignores __proto__ as mid-path segment in nested pull path", () => {
+            // JS-only: a path segment is an own key, so "__proto__" never reaches Object.prototype
             const c = collect({ a: { b: "value" } });
             c.pull("__proto__.polluted");
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
@@ -15661,19 +15772,27 @@ describe("Collection", () => {
         });
 
         it("pull, either backing (Collection's own implementation)", () => {
-            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}
-            // — unset, not array_splice, so nothing is renumbered.
+            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}: the record keeps those keys,
+            // and a list backing reindexes where PHP keeps a gap ("C32-B-pull-string-index-on-list").
             const fromArray = new Collection(nums());
             const fromObject = new Collection(numsObj());
 
             expect(fromArray.pull(1)).toBe(20);
             expect(fromObject.pull(1)).toBe(20);
-            expect(entriesOf(fromObject.all())).toEqual([
-                ["0", 10],
-                ["2", 30],
-                ["3", 40],
-            ]);
-            expect(Object.values(fromArray.all())).toEqual([10, 30, 40]);
+            agree(
+                fromArray.all(),
+                fromObject.all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                    ["2", 40],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                    ["3", 40],
+                ],
+            );
         });
 
         it("undot, a list given dotted keys by put and the record it becomes", () => {

@@ -18,7 +18,6 @@ import {
     dataFilter,
     dataFirst,
     dataFlatten,
-    dataGet,
     dataIntersect,
     dataIntersectAssoc,
     dataIntersectAssocUsing,
@@ -85,7 +84,6 @@ import {
     isTruthy,
     isTruthyObject,
     isUndefined,
-    isUnsafeKey,
     ItemNotFoundException,
     looseEqual,
     MultipleItemsFoundException,
@@ -2631,10 +2629,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Get a value from the array, and remove it.
+     * Get and remove an item from the collection.
      *
-     * @param key - The key path to pull
-     * @param defaultValue - The default value to return if the key does not exist
+     * The key is read as `Arr::pull` reads it: a key the items hold first, even one with dots, then a dot path into
+     * the arrays, plain objects and collections they hold.
+     *
+     * @param key - The key or dot path of the item to pull
+     * @param defaultValue - The default value to return if the key does not exist, or a callback that returns it
      * @returns The value at the specified key, or the default value
      *
      * @example
@@ -2642,92 +2643,45 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * const collection = new Collection({a: 1, b: 2, c: 3});
      * collection.pull('b', 0); -> 2
      * collection.pull('d', 0); -> 0
+     * new Collection({a: {b: 1, c: 2}}).pull('a.b'); -> 1, collection is now {a: {c: 2}}
      */
     pull<TPullDefault>(
         key: PathKey,
         defaultValue?: TPullDefault | (() => TPullDefault),
-    ) {
-        // Convert nested Collections to plain objects for path operations
-        const items = this.recursivelyConvertCollections(this.items);
-
-        // Get the value first
-        const value = dataGet(items, key, defaultValue);
-
-        // Handle simple numeric key on array - convert to object to preserve keys
-        if (
-            isArray(this.items) &&
-            typeof key === "number" &&
-            !String(key).includes(".")
-        ) {
-            // Convert array to object to preserve keys when removing (PHP behavior)
-            const obj: Record<number, TValue> = {};
-            for (let i = 0; i < (this.items as TValue[]).length; i++) {
-                if (i !== key) {
-                    obj[i] = (this.items as TValue[])[i] as TValue;
-                }
-            }
-            this.items = obj as unknown as DataItems<TValue, TKey>;
-        } else {
-            // For objects or path-based keys, manually remove the path.
-            // A literal key wins over dot-path traversal even when it
-            // contains dots (mirrors Arr::exists being checked first).
-            const keyStr = String(key);
-
-            if (isObject(items) && Object.hasOwn(items, keyStr)) {
-                delete (items as Record<PropertyKey, unknown>)[keyStr];
-                this.items = items as DataItems<TValue, TKey>;
-
-                return value;
-            }
-
-            const segments = keyStr.split(".");
-
-            if (segments.length === 1) {
-                // Simple key - just delete it
-                if (isObject(items)) {
-                    delete (items as Record<PropertyKey, unknown>)[
-                        key as PropertyKey
-                    ];
-                } else {
-                    const numKey = Number(key);
-                    if (!isNaN(numKey)) {
-                        delete (items as unknown[])[numKey];
-                    }
-                }
-            } else {
-                // Nested path - navigate to parent and delete the final segment
-                let current: unknown = items;
-                for (let i = 0; i < segments.length - 1; i++) {
-                    const segment = segments[i] as string;
-                    if (isUnsafeKey(segment)) {
-                        current = undefined;
-                        break;
-                    }
-                    if (isObject(current) || isArray(current)) {
-                        current = (current as Record<PropertyKey, unknown>)[
-                            segment
-                        ];
-                    } else {
-                        break;
-                    }
-                }
-
-                // Delete the final segment
-                const finalSegment = segments[segments.length - 1] as string;
-                if (
-                    (isObject(current) || isArray(current)) &&
-                    !isUnsafeKey(finalSegment)
-                ) {
-                    delete (current as Record<PropertyKey, unknown>)[
-                        finalSegment
-                    ];
-                }
-            }
-
-            this.items = items as DataItems<TValue, TKey>;
+    ): TValue | TPullDefault | null {
+        // Arr::get answers the whole array for a null key, and Arr::forget removes nothing for one.
+        if (isNull(key) || isUndefined(key)) {
+            return this.castToItems(this.items) as unknown as TValue;
         }
 
-        return value;
+        const ownKey = this.ownKey(key);
+
+        if (!isUndefined(ownKey)) {
+            const value = (this.items as Record<PropertyKey, TValue>)[ownKey];
+            this.offsetUnset(ownKey);
+
+            return value as TValue;
+        }
+
+        const [segment, ...path] = String(key).split(".");
+        const itemKey = this.ownKey(segment);
+
+        if (path.length === 0 || isUndefined(itemKey)) {
+            return resolveDefault(defaultValue);
+        }
+
+        const item = (this.items as Record<PropertyKey, TValue>)[itemKey];
+        const [value, pulled] = pullPath(
+            item,
+            path as [string, ...string[]],
+            defaultValue,
+        );
+
+        if (pulled !== item) {
+            this.putKey(itemKey, pulled as TValue);
+        }
+
+        return value as TValue | TPullDefault | null;
     }
 
     /**
@@ -5936,49 +5890,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Recursively convert all Collection instances to their raw values.
-     * This is needed for operations like flatten that need to handle nested Collections.
-     *
-     * @param data - The data to convert
-     * @returns The data with all Collection instances converted to raw values
-     */
-    protected recursivelyConvertCollections<
-        T,
-        K extends PropertyKey = PropertyKey,
-    >(data: T[] | Record<K, T> | Collection<T, K>): T[] | Record<K, T> {
-        if (data instanceof Collection) {
-            return this.recursivelyConvertCollections(data.all());
-        }
-
-        if (isArray(data)) {
-            return data.map((item) =>
-                this.recursivelyConvertCollections(
-                    item as unknown as T[] | Record<K, T> | Collection<T, K>,
-                ),
-            ) as T[];
-        }
-
-        if (isObject(data)) {
-            const result: Record<string, unknown> = {};
-            for (const [key, value] of Object.entries(data)) {
-                defineKey(
-                    result,
-                    key,
-                    this.recursivelyConvertCollections(
-                        value as unknown as
-                            | T[]
-                            | Record<K, T>
-                            | Collection<T, K>,
-                    ),
-                );
-            }
-            return result as Record<K, T>;
-        }
-
-        return data as T[] | Record<K, T>;
-    }
-
-    /**
      * Create a new instance of the collection using the runtime constructor.
      * This preserves subclass behavior (equivalent to PHP's `new static()`).
      *
@@ -6711,4 +6622,82 @@ function pathSegments(path: PathKey | readonly PathKey[]): string[] {
     return explodePluckPath(
         isNull(path) || isUndefined(path) ? null : String(path),
     );
+}
+
+/**
+ * Pull a dot path out of an item, the way `Arr::pull` reads and removes one below the collection's own keys.
+ *
+ * @param target - The item the path is read in
+ * @param path - The path's segments, each read as a literal key
+ * @param defaultValue - What to answer when the path holds nothing, resolved if it is a callback
+ * @returns What the path held, or the default, and the target with that removed: a changed copy of an array or a
+ * plain object, or the same collection, changed in place
+ */
+function pullPath(
+    target: unknown,
+    path: readonly [string, ...string[]],
+    defaultValue: unknown,
+): [unknown, unknown] {
+    const [segment, ...rest] = path;
+
+    if (target instanceof Collection) {
+        if (!target.has(segment)) {
+            return [resolveDefault(defaultValue), target];
+        }
+
+        const child: unknown = target.offsetGet(segment);
+
+        if (rest.length === 0) {
+            target.offsetUnset(segment);
+
+            return [child, target];
+        }
+
+        // PHP writes below an ArrayAccess element on a copy it discards, so only a collection further down changes.
+        return [
+            pullPath(child, rest as [string, ...string[]], defaultValue)[0],
+            target,
+        ];
+    }
+
+    const key = isArray(target) ? phpArrayKey(segment) : segment;
+    // A list's own keys are its indexes alone; its length is no item.
+    const found = isArray(target)
+        ? isNumber(key) && Object.hasOwn(target, key)
+        : isPlainObject(target) && Object.hasOwn(target, key);
+
+    if (!found) {
+        return [resolveDefault(defaultValue), target];
+    }
+
+    const child = (target as Record<PropertyKey, unknown>)[key];
+
+    if (rest.length > 0) {
+        const [value, pulled] = pullPath(
+            child,
+            rest as [string, ...string[]],
+            defaultValue,
+        );
+
+        if (pulled === child) {
+            return [value, target];
+        }
+
+        // An array and a plain object are PHP arrays, which are values, so the change lands on a copy.
+        const copy = isArray(target)
+            ? target.slice()
+            : { ...(target as Record<PropertyKey, unknown>) };
+        defineKey(copy as Record<PropertyKey, unknown>, key, pulled);
+
+        return [value, copy];
+    }
+
+    if (isArray(target)) {
+        return [child, target.filter((_, index) => index !== key)];
+    }
+
+    const copy = { ...(target as Record<PropertyKey, unknown>) };
+    delete copy[key];
+
+    return [child, copy];
 }
