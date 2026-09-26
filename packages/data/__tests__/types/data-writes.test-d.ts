@@ -137,46 +137,49 @@ describe("data writes type tests", () => {
         });
     });
 
-    describe("dataPrepend, which stays hand-written", () => {
-        // Standing control: no dispatch pair is possible while `arr.prepend` declares
-        // `key?: number` and returns `TValue[]`, which cannot express PHP's keyed answer at
-        // all. Only the non-integer key's entry vanishing is an arr defect, arr.prepend's to fix.
+    describe("dataPrepend", () => {
+        it("matches arr.prepend for a list", () => {
+            expectTypeOf(Data.dataPrepend(numberList, 9)).toEqualTypeOf(
+                Arr.prepend(numberList, 9),
+            );
+        });
 
-        it("still has an arr delegate that answers a list for any key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
-            expectTypeOf(Arr.prepend(["b", "c"], "a", 0)).toExtend<string[]>();
-            expectTypeOf(Data.dataPrepend(["b", "c"], "a", "k")).not.toExtend<
+        it("matches arr.prepend for a list given a key, which makes it keyed unless the key is 0", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key". Hoisted: written inline,
+            // the delegate infers its value and key from toEqualTypeOf's Mismatch parameter instead.
+            const keyed = Arr.prepend(["b", "c"], "a", "k");
+            expectTypeOf(Data.dataPrepend(["b", "c"], "a", "k")).toEqualTypeOf(
+                keyed,
+            );
+            // Stated too: the pin above would still hold if both sides answered the same wrong shape.
+            expectTypeOf(Data.dataPrepend(["b", "c"], "a", "k")).toEqualTypeOf<{
+                [x: number]: string;
+                k: string;
+            }>();
+            expectTypeOf(Data.dataPrepend(["b", "c"], "a", 0)).toEqualTypeOf<
                 string[]
             >();
         });
 
-        it("still admits each delegate's answer, one direction only", () => {
-            // Downgraded to assignability: the hand-written return is a DataItems union,
-            // which no delegate's exact answer can equal, so the pin is a lower bound.
-            const listOut = Data.dataPrepend(numberList, 9);
-            expectTypeOf(Arr.prepend(numberList, 9)).toExtend<typeof listOut>();
-
-            const recordOut = Data.dataPrepend(abc, 9, "z");
-            expectTypeOf(Obj.prepend(abc, 9, "z")).toExtend<typeof recordOut>();
+        it("matches obj.prepend for a record", () => {
+            expectTypeOf(Data.dataPrepend(abc, 9, "z")).toEqualTypeOf(
+                Obj.prepend(abc, 9, "z"),
+            );
+            expectTypeOf(Data.dataPrepend(abc, 9)).toEqualTypeOf(
+                Obj.prepend(abc, 9),
+            );
         });
 
-        it("types a Map as the record obj.prepend builds from it", () => {
-            // A Map always comes back as that plain record, keyed as PHP stores each key, not
-            // as a DataItems of the Map's own members, whose `size` and `get` it lacks.
-            expectTypeOf(Data.dataPrepend(numberMap, 9)).toEqualTypeOf(
-                Obj.prepend(numberMap, 9),
-            );
-            expectTypeOf(Data.dataPrepend(numberMap, "z", "k")).toEqualTypeOf<
-                Record<string, number | string>
+        it("types a Map from obj's widest row", () => {
+            // JS-only: PHP has no Map. As for every forwarded helper, dispatch types a Map from obj's widest row.
+            const widest = Obj.prepend(opaque, 9);
+
+            expectTypeOf(Data.dataPrepend(numberMap, 9)).toEqualTypeOf<
+                typeof widest
             >();
-            expectTypeOf(
-                Data.dataPrepend(
-                    new Map([[2, "c"]]) as
-                        | Map<number, string>
-                        | Map<string, boolean>,
-                    0,
-                ),
-            ).toEqualTypeOf<Record<string, string | boolean | number>>();
+            expectTypeOf(Data.dataPrepend(numberMap, "z", "k")).toEqualTypeOf<
+                typeof widest
+            >();
         });
     });
 
@@ -221,12 +224,9 @@ describe("data writes type tests", () => {
                 Arr.pull(readonlyNumberList, 0),
             );
 
-            // Assignability, not equality: dataPrepend stays hand-written and answers the
-            // DataItems union, which no delegate's exact answer can equal.
-            const prepended = Data.dataPrepend(readonlyNumberList, 9);
-            expectTypeOf(Arr.prepend(readonlyNumberList, 9)).toExtend<
-                typeof prepended
-            >();
+            expectTypeOf(Data.dataPrepend(readonlyNumberList, 9)).toEqualTypeOf(
+                Arr.prepend(readonlyNumberList, 9),
+            );
         });
     });
 

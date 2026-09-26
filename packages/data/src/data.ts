@@ -723,9 +723,8 @@ export function dataUnion<TValue>(
                 ? listWhenIndexed(merged, result, operand)
                 : merged;
         },
-        // Array.from, as toIndexedRecord uses for the other three list backings: a
-        // TRAILING hole declares no own key, so arr.union alone would shorten the answer
-        // where the dense list it stands for keeps its length.
+        // Array.from, as the list backings of prepend, replace and replaceRecursive are read: a TRAILING hole
+        // declares no own key, so arr.union alone would shorten the answer where the dense list keeps its length.
         arrUnion(Array.from(toPositionalBacking(backing) as ArrayLike<TValue>)),
     );
 }
@@ -1335,9 +1334,9 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
- * @param rest - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
+ * @param key - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
  * A list given any key but 0 comes back as an object, as PHP's `[$key => $value] + $list` is keyed
- * @returns Data with prepended value
+ * @returns Data with prepended value, matching the delegate's own result
  *
  * @example
  *
@@ -1345,45 +1344,7 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
  * dataPrepend(new Map([[2, 'c'], [0, 'a']]), 'z'); -> {0: 'z', 1: 'c', 2: 'a'}
  */
-// A Map always comes back as the plain record obj.prepend builds, keyed as PHP stores each key.
-export function dataPrepend<TMap, V>(
-    data: MapData<TMap>,
-    value: V,
-    ...rest: [key?: PropertyKey | null]
-): Record<string, MapEntryValue<TMap> | V>;
-export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    value: TValue,
-    ...rest: [key?: PropertyKey | null]
-): DataItems<TValue, TKey>;
-export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    value: TValue,
-    ...rest: [key?: PropertyKey | null]
-): DataItems<TValue, TKey> {
-    // Not a dispatch pair: `arr.prepend` takes `key?: number` and returns `TValue[]`, so it cannot express PHP's keyed
-    // answer.
-    if (isKeyedData(data)) {
-        return objPrepend(
-            data as Record<TKey, TValue>,
-            value,
-            ...rest,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    const backing = toPositionalBacking(data) as TValue[];
-
-    if (rest.length === 0) {
-        return arrPrepend(backing, value) as DataItems<TValue>;
-    }
-
-    // [$key => $value] + $list starts with the key, so it stays a list only when the key casts to 0.
-    const prepended = objPrepend(toIndexedRecord(backing), value, ...rest);
-
-    return (
-        phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended
-    ) as DataItems<TValue, TKey>;
-}
+export const dataPrepend = dispatch(arrPrepend, objPrepend);
 
 /**
  * Pull and remove a value from data.

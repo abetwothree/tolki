@@ -2385,10 +2385,10 @@ export class Collection<
             if (ordered) {
                 this.unshiftOrdered(ordered, [value as unknown as TValue]);
             } else {
-                this.items = dataPrepend(
-                    this.items,
-                    value as unknown as TValue,
-                );
+                this.items = dataPrepend(this.items, value) as DataItems<
+                    TValue,
+                    TKey
+                >;
             }
 
             return this;
@@ -2398,7 +2398,10 @@ export class Collection<
         const ownKey = phpArrayKey(key ?? null);
         const prepended = ordered
             ? undefined
-            : dataPrepend(this.items, value as unknown as TValue, key ?? null);
+            : (dataPrepend(this.items, value, key ?? null) as DataItems<
+                  TValue,
+                  TKey
+              >);
 
         // A plain object sorts its integer keys first, so it holds PHP's order only when the new key leads there.
         if (
