@@ -16056,6 +16056,14 @@ describe("Collection", () => {
             expect(collect(["b", "a", "c"]).min()).toBe("a");
         });
 
+        it("keeps the first of two arrays neither orders, as PHP's < does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-uncomparable-arrays"
+            expect([
+                collect([[1], { a: 1 }]).min(),
+                collect([{ a: 1 }, [1]]).min(),
+            ]).toEqual([[1], { a: 1 }]);
+        });
+
         it("hands the callback the value alone, as PHP does", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
             expect(collect({ a: 1 }).min((...args) => args.length)).toBe(1);
@@ -16130,6 +16138,14 @@ describe("Collection", () => {
         it("compares other strings as text, and never throws", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
             expect(collect(["b", "a", "c"]).max()).toBe("c");
+        });
+
+        it("keeps the first of two arrays neither orders, as PHP's > does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-uncomparable-arrays"
+            expect([
+                collect([[1], { a: 1 }]).max(),
+                collect([{ a: 1 }, [1]]).max(),
+            ]).toEqual([[1], { a: 1 }]);
         });
 
         it("hands the callback the value alone, as PHP does", () => {

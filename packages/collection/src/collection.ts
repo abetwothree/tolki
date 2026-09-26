@@ -4779,7 +4779,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ).reduce(
             ((carry: number | null, item: TValue) => {
                 const value = callbackValue(item as TValue | TKey) as number;
-                if (isNull(carry) || compareValues(value, carry) > 0) {
+
+                // PHP compiles $value > $result as $result < $value, which differs where <=> answers 1 both ways.
+                if (isNull(carry) || compareValues(carry, value) < 0) {
                     return value;
                 }
 
