@@ -21,6 +21,7 @@ import type {
     ReindexedObject,
     SetObjectPath,
     Simplify,
+    SpreadArgs,
     SpreadObjects,
     TruthyObject,
     UnionToIntersection,
@@ -455,6 +456,58 @@ describe("object helper types", () => {
             expectTypeOf<
                 UnionToIntersection<{ a: 1 } | { b: 2 }>
             >().toEqualTypeOf<{ a: 1 } & { b: 2 }>();
+        });
+    });
+
+    describe("SpreadArgs", () => {
+        it("spreads a tuple row as a tuple, then appends the key", () => {
+            expectTypeOf<SpreadArgs<[number, string], "x">>().toEqualTypeOf<
+                [number, string, "x"]
+            >();
+        });
+
+        it("zips same-length tuple rows position by position", () => {
+            expectTypeOf<
+                SpreadArgs<readonly [1, "a"] | readonly [2, "b"], "x" | "y">
+            >().toEqualTypeOf<[1 | 2, "a" | "b", "x" | "y"]>();
+        });
+
+        it("types each argument as any item or the key when a row's length varies", () => {
+            expectTypeOf<SpreadArgs<number[], number>>().toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf<SpreadArgs<string[], number>>().toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf<SpreadArgs<[1] | [1, 2], "k">>().toEqualTypeOf<
+                (1 | 2 | "k")[]
+            >();
+        });
+
+        it("spreads an object row's values", () => {
+            expectTypeOf<
+                SpreadArgs<{ x: number; y: string }, "p">
+            >().toEqualTypeOf<(number | string | "p")[]>();
+        });
+
+        it("reads a Collection-like row through all()", () => {
+            expectTypeOf<
+                SpreadArgs<{ all(): number[] }, number>
+            >().toEqualTypeOf<number[]>();
+            expectTypeOf<
+                SpreadArgs<{ all(): Record<string, boolean> }, "k">
+            >().toEqualTypeOf<(boolean | "k")[]>();
+        });
+
+        it("passes a scalar or function row whole", () => {
+            expectTypeOf<SpreadArgs<string, 0>>().toEqualTypeOf<[string, 0]>();
+            expectTypeOf<SpreadArgs<() => void, 1>>().toEqualTypeOf<
+                [() => void, 1]
+            >();
+        });
+
+        it("types every argument as unknown for an unknown row", () => {
+            expectTypeOf<SpreadArgs<unknown, "k">>().toEqualTypeOf<unknown[]>();
         });
     });
 

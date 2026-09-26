@@ -586,6 +586,51 @@ type FlatLeafValue<T, D extends number> = T extends readonly (infer E)[]
       : T;
 
 /**
+ * The items a spread callback receives from one row: a list row's own items, a Collection-like row's items read
+ * through `all()`, an object row's values, and any other row whole. An unknown or keyless object row may hold any.
+ */
+type SpreadRowItems<V> = unknown extends V
+    ? unknown[]
+    : V extends readonly unknown[]
+      ? V
+      : V extends (...args: never[]) => unknown
+        ? [V]
+        : V extends { all: (...args: never[]) => infer R }
+          ? SpreadRowItems<R>
+          : V extends object
+            ? [keyof V] extends [never]
+                ? unknown[]
+                : ObjectValue<V>[]
+            : [V];
+
+/** Rows of one fixed length zip into one tuple; rows of differing or open length give `false`. */
+type SpreadZip<
+    S extends readonly unknown[],
+    A extends unknown[] = [],
+> = S["length"] extends A["length"]
+    ? A
+    : A["length"] extends S["length"]
+      ? false
+      : SpreadZip<S, [...A, S[A["length"]]]>;
+
+/**
+ * The arguments `mapSpread` and `eachSpread` hand their callback for one row: the row's items, then its key.
+ * Rows of one fixed length spread as a tuple, so a callback may leave off the key; otherwise the key's position
+ * varies, so every argument may be any item or the key.
+ *
+ * @example
+ * SpreadArgs<[number, string], "x">  // [number, string, "x"]
+ * SpreadArgs<number[], number>       // number[]
+ * SpreadArgs<{ all(): string[] }, 0> // (string | 0)[]
+ */
+export type SpreadArgs<TRow, TKey> =
+    SpreadRowItems<TRow> extends infer S extends readonly unknown[]
+        ? SpreadZip<S> extends infer Z extends unknown[]
+            ? [...Z, TKey]
+            : (S[number] | TKey)[]
+        : never;
+
+/**
  * The object members of a resolved type, falling back to a loose record when
  * it has none — `objectItem` throws for a non-object at runtime.
  *

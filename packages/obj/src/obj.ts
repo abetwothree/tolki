@@ -46,6 +46,7 @@ import type {
     SetObjectPath,
     Simplify,
     SortSpec,
+    SpreadArgs,
     SpreadItems,
     SpreadObjects,
     TruthyObject,
@@ -160,36 +161,6 @@ type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
  * which also reads a Map typed by a type parameter, then a `MapData<TMap>` row, which reads a union of Maps; then an
  * empty-result `NonKeyedItems` row and a `NonObjectItems` row, the widest result, for a union like `Map | string[]`.
  */
-
-// Mirrors mapSpread's runtime: a list spreads its items, an object its values, and anything else (a function
-// included, which isObject rejects) passes whole. An unknown or bare `object` row may be a list of any length.
-type MapSpreadItems<V> = unknown extends V
-    ? unknown[]
-    : V extends readonly unknown[]
-      ? V
-      : V extends (...args: never[]) => unknown
-        ? [V]
-        : V extends object
-          ? [keyof V] extends [never]
-              ? unknown[]
-              : ObjectValue<V>[]
-          : [V];
-// Same-length tuple rows zip into one tuple so a callback may leave off the key;
-// rows of differing or open length give `false`, because the key's position then varies by row.
-type SpreadZip<
-    S extends readonly unknown[],
-    A extends unknown[] = [],
-> = S["length"] extends A["length"]
-    ? A
-    : A["length"] extends S["length"]
-      ? false
-      : SpreadZip<S, [...A, S[A["length"]]]>;
-type SpreadArgs<V, K> =
-    MapSpreadItems<V> extends infer S extends readonly unknown[]
-        ? SpreadZip<S> extends infer Z extends unknown[]
-            ? [...Z, K]
-            : (S[number] | K)[]
-        : never;
 
 // A default value, or a closure that produces one, as the guard helpers accept.
 type Default<TDefault> = TDefault | (() => TDefault);

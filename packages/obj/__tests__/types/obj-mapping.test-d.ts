@@ -17,6 +17,13 @@ import {
     unknownObject,
 } from "./fixtures";
 
+/** A Collection-like row: a class instance whose items sit behind all(). */
+class Bag {
+    all(): number[] {
+        return [1, 2];
+    }
+}
+
 describe("obj mapping type tests", () => {
     describe("map", () => {
         it("infers the value and key, and keeps the keys", () => {
@@ -257,6 +264,16 @@ describe("obj mapping type tests", () => {
                 expectTypeOf(y).toEqualTypeOf<number | "p">();
 
                 return x;
+            });
+        });
+
+        it("spreads a Collection-like row's items, which the runtime reads through all()", () => {
+            Obj.mapSpread({ x: new Bag() }, (first, second, key) => {
+                expectTypeOf(first).toEqualTypeOf<number | "x">();
+                expectTypeOf(second).toEqualTypeOf<number | "x">();
+                expectTypeOf(key).toEqualTypeOf<number | "x">();
+
+                return first;
             });
         });
 
