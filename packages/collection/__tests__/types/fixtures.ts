@@ -5,15 +5,6 @@
 
 import { collect, Collection } from "@tolki/collection";
 
-/**
- * The shape a collection's type declares, read off its type arguments. `toEqualTypeOf` skips a type argument no
- * member reads, as no member reads the shape, so inference from the type arguments is what tells two shapes apart.
- */
-export type DeclaredShape<TCollection> =
-    TCollection extends Collection<infer _TValue, infer _TKey, infer TShape>
-        ? TShape
-        : never;
-
 /** A read-only list: `TValue[]` rejects it, `readonly TValue[]` accepts it. */
 export const readonlyNumbers: readonly number[] = [1, 2, 3];
 

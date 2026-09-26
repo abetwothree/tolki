@@ -303,6 +303,11 @@ export class Collection<
     protected shouldEscapeWhenCastingToString = false;
 
     /**
+     * The shape the type declares, never set: it lets the type system tell shapes apart before all() reads the shape.
+     */
+    declare protected readonly collectionShape?: TShape;
+
+    /**
      * Create a new collection.
      *
      * @param items - The items, read the way collect() reads them
@@ -715,7 +720,7 @@ export class Collection<
         // Collection<unknown, PropertyKey> breaks when passing typed collections.
         ...items: Array<
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined
         >
@@ -744,7 +749,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined,
     ) {
@@ -769,7 +774,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined,
         callback: (a: TValue, b: TValue) => boolean | number,
@@ -809,7 +814,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined,
     ) {
@@ -835,7 +840,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
@@ -871,7 +876,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined,
     ) {
@@ -897,7 +902,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items:
             | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
@@ -1020,7 +1025,7 @@ export class Collection<
         ...keys: (
             | PathKey
             | PathKey[]
-            | Collection<TExceptValue, TExceptKey>
+            | Collection<TExceptValue, TExceptKey, CollectionShape>
             | null
             | undefined
         )[]
@@ -1167,7 +1172,7 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
     forget<T, K extends PropertyKey = PropertyKey>(
-        keys: PathKeys | Collection<T, K>,
+        keys: PathKeys | Collection<T, K, CollectionShape>,
     ) {
         const requested = Object.values(this.getRawItems(keys));
         // PHP unsets each key in turn, so the keys before one it cannot hold are gone when it throws.
@@ -1567,7 +1572,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
     intersect<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
     ) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
@@ -1596,7 +1601,7 @@ export class Collection<
      * new Collection(['apple', 'banana']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
      */
     intersectUsing<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
         callback: (a: TValue, b: TValue) => boolean | number,
     ) {
         if (isNull(items)) {
@@ -1632,7 +1637,7 @@ export class Collection<
      * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
      */
     intersectAssoc<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
     ) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
@@ -1662,7 +1667,7 @@ export class Collection<
      * new Collection({a: 'x', b: 'y'}).intersectAssocUsing({A: 'X', B: 'y'}, strcasecmp); -> new Collection({b: 'y'})
      */
     intersectAssocUsing<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         if (isNull(items)) {
@@ -1697,7 +1702,7 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2])
      */
     intersectByKeys<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
     ) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
@@ -2055,7 +2060,7 @@ export class Collection<
         items:
             | TMergeValue[]
             | Record<TMergeKey, TMergeValue>
-            | Collection<TMergeValue, TMergeKey>
+            | Collection<TMergeValue, TMergeKey, CollectionShape>
             | null,
     ) {
         const merged = renumberIntegerKeys<unknown>([
@@ -2086,7 +2091,7 @@ export class Collection<
         items:
             | TMergeRecursiveValue[]
             | Record<TMergeKey, TMergeRecursiveValue>
-            | Collection<TMergeRecursiveValue, TMergeKey>
+            | Collection<TMergeRecursiveValue, TMergeKey, CollectionShape>
             | null,
     ): this | Collection<TValue | TMergeRecursiveValue, TKey> {
         // The receiver goes in first, so its own integer keys renumber as array_merge_recursive copies it.
@@ -2142,7 +2147,7 @@ export class Collection<
         values:
             | TCombineValue[]
             | Record<TCombineKey, TCombineValue>
-            | Collection<TCombineValue, TCombineKey>
+            | Collection<TCombineValue, TCombineKey, CollectionShape>
             | null
             | undefined,
     ) {
@@ -2185,7 +2190,7 @@ export class Collection<
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
     union<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
     ) {
         const operand = this.operandEntries(items);
 
@@ -2243,7 +2248,7 @@ export class Collection<
      * new Collection(['a', 'b', 'c', 'd']).only([3, 1]); -> new Collection(['b', 'd'])
      */
     only<T, K extends PropertyKey>(
-        ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
+        ...keys: PathKey[] | PathKeys[] | Collection<T, K, CollectionShape>[]
     ) {
         const keysToKeep = this.keysArgument(keys);
 
@@ -2271,7 +2276,12 @@ export class Collection<
      * new Collection([{id: 1, details: {age: 30}}]).select(['id', 'details.age']); -> new Collection([{id: 1}])
      * new Collection([[10, 20, 30]]).select([0, 2]); -> new Collection([{0: 10, 2: 30}])
      */
-    select(...keys: PathKey[] | PathKeys[] | Collection<string, number>[]) {
+    select(
+        ...keys:
+            | PathKey[]
+            | PathKeys[]
+            | Collection<string, number, CollectionShape>[]
+    ) {
         const keysToSelect = this.keysArgument(keys);
 
         if (isNull(keysToSelect)) {
@@ -2484,7 +2494,7 @@ export class Collection<
         source:
             | TConcatValue[]
             | Record<TConcatKey, TConcatValue>
-            | Collection<TConcatValue, TConcatKey>,
+            | Collection<TConcatValue, TConcatKey, CollectionShape>,
     ) {
         // PHP's `new static($this)` copies the array, because an array is a value there.
         // A JS backing is a reference, so without a copy every `push` below would append
@@ -2605,7 +2615,7 @@ export class Collection<
     random(
         count?: ((collection: this) => number) | number | string | null,
         preserveKeys: boolean = false,
-    ): TValue | Collection<TValue, TKey> {
+    ): unknown {
         if (isNull(count) || isUndefined(count)) {
             return dataRandom(this.items) as TValue;
         }
@@ -2642,7 +2652,7 @@ export class Collection<
      * new Collection({a: 1}).replace(['x']); -> new Collection({a: 1, 0: 'x'})
      */
     replace<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
     ) {
         const operand = this.operandEntries(items);
 
@@ -2667,7 +2677,7 @@ export class Collection<
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
     replaceRecursive<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
+        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
     ) {
         const operand = this.operandEntries(items);
 
@@ -3567,7 +3577,7 @@ export class Collection<
         length?: number | null,
         replacement?:
             | DataItems<TReplace, TKeyReplace>
-            | Collection<TReplace, TKeyReplace>,
+            | Collection<TReplace, TKeyReplace, CollectionShape>,
     ) {
         // array_splice inserts the replacement's values in its own order, which a Map read as a record would lose.
         const values = isUndefined(replacement)
@@ -3828,7 +3838,7 @@ export class Collection<
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         ...list: AtLeastOne<
             | DataItems<TZipValue, PropertyKey>
-            | Collection<any, any>
+            | Collection<any, any, CollectionShape>
             | null
             | undefined
         >
@@ -4262,7 +4272,7 @@ export class Collection<
         value:
             | TWrapValue
             | DataItems<TWrapValue, TWrapKey>
-            | Collection<TWrapValue, TWrapKey>,
+            | Collection<TWrapValue, TWrapKey, CollectionShape>,
         ...args: unknown[]
     ) {
         const Static = this as CollectionClass<TWrapValue, TWrapKey>;
@@ -4295,7 +4305,7 @@ export class Collection<
      */
     static unwrap<TUnwrapValue, TUnwrapKey extends PropertyKey = PropertyKey>(
         value:
-            | Collection<TUnwrapValue, TUnwrapKey>
+            | Collection<TUnwrapValue, TUnwrapKey, CollectionShape>
             | DataItems<TUnwrapValue, TUnwrapKey>,
     ) {
         if (value instanceof Collection) {
@@ -4779,7 +4789,7 @@ export class Collection<
             value: TValue,
             key: TKey,
         ) =>
-            | Collection<TFlatMapValue, TFlatMapKey>
+            | Collection<TFlatMapValue, TFlatMapKey, CollectionShape>
             | DataItems<TFlatMapValue, TFlatMapKey>,
     ) {
         return this.map(callback).collapse();
@@ -5147,7 +5157,7 @@ export class Collection<
         key: PathKey,
         values:
             | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey>,
+            | Collection<TSetValue, TSetKey, CollectionShape>,
         strict: boolean = false,
     ) {
         const isIn = inArrayTest(
@@ -5169,7 +5179,7 @@ export class Collection<
         key: PathKey,
         values:
             | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey>,
+            | Collection<TSetValue, TSetKey, CollectionShape>,
     ) {
         return this.whereIn(key, values, true);
     }
@@ -5185,7 +5195,7 @@ export class Collection<
         key: PathKey,
         values:
             | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey>,
+            | Collection<TSetValue, TSetKey, CollectionShape>,
     ) {
         const valueSet = this.getRawItems(values);
         const valuesArray = Object.values(valueSet);
@@ -5208,7 +5218,7 @@ export class Collection<
         key: PathKey,
         values:
             | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey>,
+            | Collection<TSetValue, TSetKey, CollectionShape>,
     ) {
         return this.filter((item: TValue) => {
             const retrieved = itemValue(item, key);
@@ -5235,7 +5245,7 @@ export class Collection<
         key: PathKey,
         values:
             | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey>,
+            | Collection<TSetValue, TSetKey, CollectionShape>,
         strict: boolean = false,
     ) {
         const isIn = inArrayTest(
@@ -5257,7 +5267,7 @@ export class Collection<
         key: PathKey,
         values:
             | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey>,
+            | Collection<TSetValue, TSetKey, CollectionShape>,
     ) {
         return this.whereNotIn(key, values, true);
     }

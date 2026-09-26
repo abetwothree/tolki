@@ -6,7 +6,6 @@ import { describe, expectTypeOf, it } from "vitest";
 import {
     ArrayableNumbers,
     ArrayableRecord,
-    type DeclaredShape,
     JsonText,
     listCollection,
     listOrRecord,
@@ -23,330 +22,178 @@ import {
 describe("collection foundation type tests", () => {
     describe("collect", () => {
         it("types a list as a list of its values", () => {
-            const collection = collect([1, 2, 3]);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect([1, 2, 3])).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("takes a read-only list", () => {
-            const collection = collect(readonlyNumbers);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(readonlyNumbers)).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("keys a record by its literal keys", () => {
-            const collection = collect({ a: 1, b: 2 });
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect({ a: 1, b: 2 })).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("takes an interface-typed record, which has no index signature", () => {
-            const collection = collect(settings);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(settings)).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("keys a Map by the keys PHP stores", () => {
-            const collection = collect(new Map([["a", 1]]));
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new Map([["a", 1]]))).toEqualTypeOf<
                 Collection<number, MapArrayKey<string>, "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("lists a Set's values", () => {
-            const collection = collect(new Set([1, 2]));
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new Set([1, 2]))).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("lists a generator's values", () => {
-            const collection = collect(numbers());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(numbers())).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("keeps another collection's types", () => {
-            const collection = collect(listCollection);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(listCollection)).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("keeps a keyed collection's shape, though its keys are numbers", () => {
-            const collection = collect(numberKeyedCollection);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(numberKeyedCollection)).toEqualTypeOf<
                 Collection<string, number, "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("takes a collection's all(), which is a list or a record", () => {
-            const collection = collect(listCollection.all());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(listCollection.all())).toEqualTypeOf<
                 Collection<number, number, "list" | "keyed">
-            >();
-            expectTypeOf<DeclaredShape<typeof collection>>().toEqualTypeOf<
-                "list" | "keyed"
             >();
         });
 
         it("takes a value that may be a list or a record", () => {
-            const collection = collect(listOrRecord);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(listOrRecord)).toEqualTypeOf<
                 Collection<number, number | "a" | "b", "list" | "keyed">
-            >();
-            expectTypeOf<DeclaredShape<typeof collection>>().toEqualTypeOf<
-                "list" | "keyed"
             >();
         });
 
         it("wraps a scalar in a list, as PHP's Arr::wrap does", () => {
-            const strings = collect("abc");
-            const counts = collect(1);
-            const flags = collect(true);
-            const symbols = collect(Symbol("s"));
-
-            expectTypeOf(strings).toEqualTypeOf<
+            expectTypeOf(collect("abc")).toEqualTypeOf<
                 Collection<string, number, "list">
             >();
-            expectTypeOf(counts).toEqualTypeOf<
+            expectTypeOf(collect(1)).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf(flags).toEqualTypeOf<
+            expectTypeOf(collect(true)).toEqualTypeOf<
                 Collection<boolean, number, "list">
             >();
-            expectTypeOf(symbols).toEqualTypeOf<
+            expectTypeOf(collect(Symbol("s"))).toEqualTypeOf<
                 Collection<symbol, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof strings>
-            >().toEqualTypeOf<"list">();
-            expectTypeOf<
-                DeclaredShape<typeof counts>
-            >().toEqualTypeOf<"list">();
-            expectTypeOf<DeclaredShape<typeof flags>>().toEqualTypeOf<"list">();
-            expectTypeOf<
-                DeclaredShape<typeof symbols>
-            >().toEqualTypeOf<"list">();
         });
 
         it("builds an empty list from null or nothing", () => {
-            const fromNull = collect(null);
-            const fromUndefined = collect(undefined);
-            const fromNothing = collect();
-
-            expectTypeOf(fromNull).toEqualTypeOf<
+            expectTypeOf(collect(null)).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
-            expectTypeOf(fromUndefined).toEqualTypeOf<
+            expectTypeOf(collect(undefined)).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
-            expectTypeOf(fromNothing).toEqualTypeOf<
+            expectTypeOf(collect()).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof fromNull>
-            >().toEqualTypeOf<"list">();
-            expectTypeOf<
-                DeclaredShape<typeof fromUndefined>
-            >().toEqualTypeOf<"list">();
-            expectTypeOf<
-                DeclaredShape<typeof fromNothing>
-            >().toEqualTypeOf<"list">();
         });
 
         it("reads an Arrayable's list", () => {
-            const collection = collect(new ArrayableNumbers());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new ArrayableNumbers())).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("reads an Arrayable's record", () => {
-            const collection = collect(new ArrayableRecord());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new ArrayableRecord())).toEqualTypeOf<
                 Collection<string, "foo", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("reads a JsonSerializable's list", () => {
-            const collection = collect(new SerializesList());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new SerializesList())).toEqualTypeOf<
                 Collection<string, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("reads a JsonSerializable's record", () => {
-            const collection = collect(new SerializesRecord());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new SerializesRecord())).toEqualTypeOf<
                 Collection<string, "foo", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("reads a Jsonable as items no type can know", () => {
-            const collection = collect(new JsonText());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new JsonText())).toEqualTypeOf<
                 Collection<unknown, string | number, "list" | "keyed">
-            >();
-            expectTypeOf<DeclaredShape<typeof collection>>().toEqualTypeOf<
-                "list" | "keyed"
             >();
         });
 
         it("reads a class instance as the record of its fields", () => {
-            const collection = collect(new Point());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(collect(new Point())).toEqualTypeOf<
                 Collection<number, "x" | "y", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
     });
 
     describe("make", () => {
         it("keys a record by its literal keys", () => {
-            const collection = Collection.make({ a: 1 });
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(Collection.make({ a: 1 })).toEqualTypeOf<
                 Collection<number, "a", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("reads a class instance as the record of its fields", () => {
-            const collection = Collection.make(new Point());
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(Collection.make(new Point())).toEqualTypeOf<
                 Collection<number, "x" | "y", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("types every input collect() takes the same way", () => {
-            const list = Collection.make(readonlyNumbers);
-            const map = Collection.make(new Map([["a", 1]]));
-            const set = Collection.make(new Set([1, 2]));
-            const copy = Collection.make(numberKeyedCollection);
-            const either = Collection.make(listOrRecord);
-            const text = Collection.make("abc");
-            const empty = Collection.make(null);
-            const arrayable = Collection.make(new ArrayableRecord());
-            const serializable = Collection.make(new SerializesList());
-            const jsonable = Collection.make(new JsonText());
-
-            expectTypeOf(list).toEqualTypeOf<
+            expectTypeOf(Collection.make(readonlyNumbers)).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf(map).toEqualTypeOf<
+            expectTypeOf(Collection.make(new Map([["a", 1]]))).toEqualTypeOf<
                 Collection<number, MapArrayKey<string>, "keyed">
             >();
-            expectTypeOf(set).toEqualTypeOf<
+            expectTypeOf(Collection.make(new Set([1, 2]))).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf(copy).toEqualTypeOf<
+            expectTypeOf(Collection.make(numberKeyedCollection)).toEqualTypeOf<
                 Collection<string, number, "keyed">
             >();
-            expectTypeOf(either).toEqualTypeOf<
+            expectTypeOf(Collection.make(listOrRecord)).toEqualTypeOf<
                 Collection<number, number | "a" | "b", "list" | "keyed">
             >();
-            expectTypeOf(text).toEqualTypeOf<
+            expectTypeOf(Collection.make("abc")).toEqualTypeOf<
                 Collection<string, number, "list">
             >();
-            expectTypeOf(empty).toEqualTypeOf<
+            expectTypeOf(Collection.make(null)).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
-            expectTypeOf(arrayable).toEqualTypeOf<
+            expectTypeOf(Collection.make(new ArrayableRecord())).toEqualTypeOf<
                 Collection<string, "foo", "keyed">
             >();
-            expectTypeOf(serializable).toEqualTypeOf<
+            expectTypeOf(Collection.make(new SerializesList())).toEqualTypeOf<
                 Collection<string, number, "list">
             >();
-            expectTypeOf(jsonable).toEqualTypeOf<
+            expectTypeOf(Collection.make(new JsonText())).toEqualTypeOf<
                 Collection<unknown, string | number, "list" | "keyed">
-            >();
-            expectTypeOf<DeclaredShape<typeof list>>().toEqualTypeOf<"list">();
-            expectTypeOf<DeclaredShape<typeof map>>().toEqualTypeOf<"keyed">();
-            expectTypeOf<DeclaredShape<typeof set>>().toEqualTypeOf<"list">();
-            expectTypeOf<DeclaredShape<typeof copy>>().toEqualTypeOf<"keyed">();
-            expectTypeOf<DeclaredShape<typeof either>>().toEqualTypeOf<
-                "list" | "keyed"
-            >();
-            expectTypeOf<DeclaredShape<typeof text>>().toEqualTypeOf<"list">();
-            expectTypeOf<DeclaredShape<typeof empty>>().toEqualTypeOf<"list">();
-            expectTypeOf<
-                DeclaredShape<typeof arrayable>
-            >().toEqualTypeOf<"keyed">();
-            expectTypeOf<
-                DeclaredShape<typeof serializable>
-            >().toEqualTypeOf<"list">();
-            expectTypeOf<DeclaredShape<typeof jsonable>>().toEqualTypeOf<
-                "list" | "keyed"
             >();
         });
 
@@ -359,80 +206,71 @@ describe("collection foundation type tests", () => {
 
     describe("constructor", () => {
         it("types a list as a list of its values", () => {
-            const collection = new Collection([1, 2]);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(new Collection([1, 2])).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("builds an empty list from null or nothing", () => {
-            const fromNull = new Collection(null);
-            const fromNothing = new Collection();
-
-            expectTypeOf(fromNull).toEqualTypeOf<
+            expectTypeOf(new Collection(null)).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
-            expectTypeOf(fromNothing).toEqualTypeOf<
+            expectTypeOf(new Collection()).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof fromNull>
-            >().toEqualTypeOf<"list">();
-            expectTypeOf<
-                DeclaredShape<typeof fromNothing>
-            >().toEqualTypeOf<"list">();
         });
 
         it("keeps another collection's types", () => {
-            const collection = new Collection(numberKeyedCollection);
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(new Collection(numberKeyedCollection)).toEqualTypeOf<
                 Collection<string, number, "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("keys a record by its literal keys", () => {
-            const collection = new Collection({ a: 1, b: 2 });
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(new Collection({ a: 1, b: 2 })).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"keyed">();
         });
 
         it("lists an iterable's values", () => {
-            const collection = new Collection(new Set(["a"]));
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(new Collection(new Set(["a"]))).toEqualTypeOf<
                 Collection<string, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("wraps a scalar in a list, as PHP's Arr::wrap does", () => {
-            const collection = new Collection("abc");
-
-            expectTypeOf(collection).toEqualTypeOf<
+            expectTypeOf(new Collection("abc")).toEqualTypeOf<
                 Collection<string, number, "list">
             >();
-            expectTypeOf<
-                DeclaredShape<typeof collection>
-            >().toEqualTypeOf<"list">();
         });
 
         it("keeps a subclass assignable where the base collection is expected", () => {
             expectTypeOf(new Tagged()).toExtend<Collection<number, number>>();
+        });
+    });
+
+    describe("shape", () => {
+        it("tells a list from a keyed collection", () => {
+            expectTypeOf(collect([1, 2, 3])).toEqualTypeOf<
+                // @ts-expect-error - a list is not keyed
+                Collection<number, number, "keyed">
+            >();
+        });
+
+        it("keeps a named shape assignable where its key type's default shape is expected", () => {
+            expectTypeOf<Collection<number, number, "list">>().toExtend<
+                Collection<number, number>
+            >();
+            expectTypeOf<Collection<number, "a", "keyed">>().toExtend<
+                Collection<number, "a">
+            >();
+        });
+
+        it("refuses a keyed collection where a list is expected", () => {
+            expectTypeOf<Collection<number, "a", "keyed">>().toExtend<
+                // @ts-expect-error - a keyed collection is not a list
+                Collection<number, "a", "list">
+            >();
         });
     });
 

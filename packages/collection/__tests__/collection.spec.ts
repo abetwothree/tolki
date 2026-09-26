@@ -93,8 +93,12 @@ const outOfOrderKeys = () =>
     );
 
 /** A collection's three views, which a keyed result has to agree on. */
-const viewsOf = <TValue, TKey extends PropertyKey>(
-    collection: Collection<TValue, TKey>,
+const viewsOf = <
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+>(
+    collection: Collection<TValue, TKey, TShape>,
 ) => ({
     all: collection.all(),
     keys: collection.keys().all(),
@@ -179,7 +183,9 @@ describe("Collection", () => {
                 ]),
             );
 
-            assertType<Collection<{ id: number; name: string }, number>>(data);
+            assertType<
+                Collection<{ id: number; name: string }, number, "keyed">
+            >(data);
         });
     });
 
@@ -3605,8 +3611,12 @@ describe("Collection", () => {
 
     describe("groupBy", () => {
         /** Each entry as the probes write it, [key, its PHP type, value], a group as { Collection: its entries }. */
-        const groupPairs = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const groupPairs = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ): unknown[] => {
             const values = [...collection.values()];
 
@@ -10618,8 +10628,12 @@ describe("Collection", () => {
         });
 
         it("hands back a list whatever keys the items had, as Arr::shuffle does", () => {
-            const pinShuffled = <TValue, TKey extends PropertyKey>(
-                collection: Collection<TValue, TKey>,
+            const pinShuffled = <
+                TValue,
+                TKey extends PropertyKey,
+                TShape extends CollectionShape,
+            >(
+                collection: Collection<TValue, TKey, TShape>,
                 members: TValue[],
             ) => {
                 const shuffled = collection.shuffle();
@@ -13714,8 +13728,12 @@ describe("Collection", () => {
                     [1, "b"],
                 ]);
 
-            const views = <TValue, TKey extends PropertyKey>(
-                collection: Collection<TValue, TKey>,
+            const views = <
+                TValue,
+                TKey extends PropertyKey,
+                TShape extends CollectionShape,
+            >(
+                collection: Collection<TValue, TKey, TShape>,
             ) => ({
                 all: collection.all(),
                 keys: collection.keys().all(),
@@ -20147,8 +20165,12 @@ describe("Collection", () => {
             ]);
 
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -20580,8 +20602,12 @@ describe("Collection", () => {
             ]);
 
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -20769,8 +20795,12 @@ describe("Collection", () => {
     // Each row pins all seven views its probe records: a key that only some of them see is the failure.
     describe("keyed writes onto a list backing", () => {
         /** The seven views each probe row records, read at the key the row wrote. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
             key: string | number,
         ) => ({
             all: collection.all(),
@@ -21011,8 +21041,12 @@ describe("Collection", () => {
     // count is 3, so the append overwrote an entry that was already there.
     describe("a null key appends where PHP's $array[] = does", () => {
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -21157,8 +21191,12 @@ describe("Collection", () => {
     // read-only call wrote the receiver a fresh view built from somebody else's keys.
     describe("reading an operand never writes the receiver's ordered view", () => {
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -21321,8 +21359,12 @@ describe("Collection", () => {
             ]);
 
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -23413,8 +23455,12 @@ describe("Collection", () => {
         });
 
         /** The three views a keyed result pins: its entries, its keys in order and its values in order. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.toArray(),
             keys: collection.keys().all(),
@@ -23628,7 +23674,10 @@ describe("Collection", () => {
             ["countBy", () => collect<string>([]).countBy()],
             ["keyBy", () => collect<string>([]).keyBy("x")],
             ["flip", () => collect<string>([]).flip()],
-        ] as [string, () => Collection<unknown, PropertyKey>][])(
+        ] as [
+            string,
+            () => Collection<unknown, PropertyKey, CollectionShape>,
+        ][])(
             "%s writes an empty result as PHP's empty array",
             (_method, run) => {
                 const result = run();
