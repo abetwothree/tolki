@@ -918,6 +918,22 @@ describe("Collection", () => {
                 collect(["10", "9"]).median(),
             ]).toEqual(["9", 9.5]);
         });
+        it.fails(
+            "sorts a tie in a Map-built collection's insertion order",
+            () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-out-of-order-tie"
+                // Ordered-backing gap: PHP's stable sort keeps the '5' under key 2 ahead of key 0's 5, in the middle
+                expect(
+                    collect(
+                        new Map<number, string | number>([
+                            [2, "5"],
+                            [0, 5],
+                            [1, 1],
+                        ]),
+                    ).median(),
+                ).toBe("5");
+            },
+        );
         it("reads a key given as an array of path segments", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-array-key"
             expect(
@@ -16017,6 +16033,22 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
             expect(collect({ a: 1 }).min((...args) => args.length)).toBe(1);
         });
+
+        it.fails(
+            "keeps the value it meets first through a tie, walking a Map-built collection in order",
+            () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-out-of-order-tie"
+                // Ordered-backing gap: PHP meets the '1' under key 2 first and keeps it through its tie with key 0's 1
+                expect(
+                    collect(
+                        new Map<number, string | number>([
+                            [2, "1"],
+                            [0, 1],
+                        ]),
+                    ).min(),
+                ).toBe("1");
+            },
+        );
     });
 
     describe("max", () => {
@@ -16064,6 +16096,22 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
             expect(collect({ a: 1 }).max((...args) => args.length)).toBe(1);
         });
+
+        it.fails(
+            "keeps the value it meets first through a tie, walking a Map-built collection in order",
+            () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-out-of-order-tie"
+                // Ordered-backing gap: PHP meets the '1' under key 2 first and keeps it through its tie with key 0's 1
+                expect(
+                    collect(
+                        new Map<number, string | number>([
+                            [2, "1"],
+                            [0, 1],
+                        ]),
+                    ).max(),
+                ).toBe("1");
+            },
+        );
 
         it("reads a dot path through each item", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-dot-path"
