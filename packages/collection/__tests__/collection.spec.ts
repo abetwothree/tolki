@@ -10566,6 +10566,52 @@ describe("Collection", () => {
             });
         });
 
+        it("splits as PHP does for a fractional number of groups, whose % drops the fraction", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-counts"
+            expect(
+                numbers
+                    .split(1.5)
+                    .map((group) => group.all())
+                    .all(),
+            ).toEqual([
+                [1, 2, 3],
+                [4, 5],
+            ]);
+            expect(
+                numbers
+                    .split(2.5)
+                    .map((group) => group.all())
+                    .all(),
+            ).toEqual([[1, 2, 3], [4, 5], []]);
+            expect(numbers.split(5.5).all()).toEqual([]);
+        });
+
+        it("divides by zero for a NAN or infinite number of groups, unless the collection is empty", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-counts"
+            expect(() => collect([1, 2, 3, 4, 5]).split(NaN)).toThrowError(
+                "Modulo by zero",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-infinite-groups"
+            expect(() => collect([1, 2, 3]).split(Infinity)).toThrowError(
+                "Modulo by zero",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-counts"
+            expect(collect([]).split(NaN).all()).toEqual([]);
+            expect(collect([]).split(Infinity).all()).toEqual([]);
+        });
+
+        it("stops once every group left would be empty, however many groups it is asked for", () => {
+            // JS-only: PHP's loop counts up to the number of groups, so split(1e19) never returns
+            expect(
+                collect([1, 2, 3])
+                    .split(1e19)
+                    .map((group) => group.all())
+                    .all(),
+            ).toEqual([[1], [2], [3]]);
+        });
+
         it("renumbers the integer keys in each group, as array_slice does without preserve_keys", () => {
             const groups = collect({ 5: "a", 6: "b", 7: "c" }).split(2);
 

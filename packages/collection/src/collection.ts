@@ -2954,8 +2954,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Split a collection into a certain number of groups.
      *
      * @param numberOfGroups - The number of groups to split into
-     * @returns A new collection with the split groups
+     * @returns A new collection with the split groups, each group's integer keys renumbered from 0
      * @throws InvalidArgumentException if numberOfGroups is less than 1
+     * @throws Error when numberOfGroups is NAN or infinite and there are items, as PHP's `%` divides by zero
      *
      * @example
      *
@@ -2982,9 +2983,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         const entries = this.entriesInOrder();
+        // PHP's % casts the number of groups to an int, which makes NAN or an infinity 0.
+        const divisor = phpInt(numberOfGroups);
+
+        if (divisor === 0) {
+            throw new Error("Modulo by zero");
+        }
+
         const groupSize = Math.floor(entries.length / numberOfGroups);
 
-        const remain = entries.length % numberOfGroups;
+        const remain = entries.length % divisor;
 
         let start = 0;
 
@@ -2995,20 +3003,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 size += 1;
             }
 
-            if (size > 0) {
-                // array_slice() without preserve_keys renumbers each group's integer keys from 0.
-                const group = renumberIntegerKeys(
-                    entries.slice(start, start + size),
-                );
-
-                groups.push(
-                    this.newInstance(
-                        inPhpOrder(group),
-                    ) as unknown as Collection<TValue, TKey>,
-                );
-
-                start += size;
+            // Every group after an empty one is empty too, so PHP's loop adds nothing more, however far it counts.
+            if (size === 0) {
+                break;
             }
+
+            // array_slice() without preserve_keys renumbers each group's integer keys from 0.
+            const group = renumberIntegerKeys(
+                entries.slice(start, start + size),
+            );
+
+            groups.push(
+                this.newInstance(inPhpOrder(group)) as unknown as Collection<
+                    TValue,
+                    TKey
+                >,
+            );
+
+            start += size;
         }
 
         return groups;
