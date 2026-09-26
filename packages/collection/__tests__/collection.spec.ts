@@ -17468,7 +17468,8 @@ describe("Collection", () => {
                 [1, "1", "1.0", 2, "02", 3, "3", 4, "abc", 0.5, ".5"],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-integer-strings-past-2-53-loose"
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-D-whereIn-integer-strings-past-2-53-loose"
                 "an integer string past 2^53",
                 [
                     9007199254740992,
@@ -17743,7 +17744,8 @@ describe("Collection", () => {
                 [0, "", null, "0"],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotIn-numbers-and-strings-loose"
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-D-whereNotIn-numbers-and-strings-loose"
                 "a number and a plain string",
                 [1, "1", "abc", "ABC", 2, true],
                 [1, "abc"],
