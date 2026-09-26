@@ -6702,9 +6702,9 @@ function equalityTest<TLeft, TRight>(
     return (left, right) => {
         const answer = callback(left, right);
 
-        // PHP casts the answer to an int, which drops a fraction and turns NAN or an infinity into 0.
+        // PHP casts the answer to an int, so a number means equal only where that cast makes it 0.
         if (typeOf(answer) === "number") {
-            return !isFiniteNumber(answer) || Math.trunc(answer) === 0;
+            return phpInt(answer as number) === 0;
         }
 
         return answer as boolean;
