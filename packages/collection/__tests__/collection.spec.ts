@@ -20361,28 +20361,40 @@ describe("Collection", () => {
 
             // JS-only: PHP has no symbol key, so each set operation reads only the keys a PHP array can hold,
             // and the order its integer keys come in survives
+            const renumbered = {
+                all: { a: 1, 0: "x", 1: "y" },
+                values: [1, "x", "y"],
+                keys: ["a", 0, 1],
+            };
+            const kept = {
+                all: { a: 1, 3: "x", 1: "y" },
+                values: [1, "x", "y"],
+                keys: ["a", 3, 1],
+            };
             const results = [
-                ["merge", receiver().merge(operand()), ["a", 0, 1]],
+                ["merge", receiver().merge(operand()), renumbered],
                 [
                     "mergeRecursive",
                     receiver().mergeRecursive(operand()),
-                    ["a", 0, 1],
+                    renumbered,
                 ],
-                ["union", receiver().union(operand()), ["a", 3, 1]],
-                ["replace", receiver().replace(operand()), ["a", 3, 1]],
+                ["union", receiver().union(operand()), kept],
+                ["replace", receiver().replace(operand()), kept],
                 [
                     "replaceRecursive",
                     receiver().replaceRecursive(operand()),
-                    ["a", 3, 1],
+                    kept,
                 ],
             ] as const;
 
-            for (const [name, result, keys] of results) {
+            for (const [name, result, expected] of results) {
                 expect({
                     name,
                     symbols: Object.getOwnPropertySymbols(result.all()),
+                    all: result.all(),
+                    values: result.values().all(),
                     keys: result.keys().all(),
-                }).toEqual({ name, symbols: [], keys });
+                }).toEqual({ name, symbols: [], ...expected });
             }
         });
     });
