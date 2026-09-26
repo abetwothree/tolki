@@ -1154,26 +1154,30 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get an item from the collection by key.
      *
-     * Diverges from PHP, whose `Collection::get` is a literal `array_key_exists`: this
-     * resolves a dot path, so `get('a.b')` reads a nested value where PHP answers the
-     * default. `has` and `getOrPut` carry the same extension; the policy is not settled.
+     * The key is looked up literally, as PHP's `array_key_exists` does: a dotted key never reads a nested value,
+     * and a null key reads the `""` key.
      *
      * @param key - The key to get
-     * @param defaultValue - The default value to return if key doesn't exist
+     * @param defaultValue - The default value to return if key doesn't exist, or a callback that returns it
      * @returns The value at the key or default value
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).get('b'); -> 2
      * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); -> 'default'
+     * new Collection({a: {b: 1}}).get('a.b', 'default'); -> 'default'
      */
     get<TGetDefault = null>(
         key: PathKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
     ): TValue | TGetDefault | null {
-        // `?? null` only pins the delegate's TDefault: both delegates already read an
-        // omitted default as null, so the value handed back is unchanged.
-        return dataGet(this.items as TValue[], key, defaultValue ?? null);
+        const ownKey = this.ownKey(key ?? "");
+
+        if (isUndefined(ownKey)) {
+            return resolveDefault(defaultValue);
+        }
+
+        return (this.items as Record<PropertyKey, TValue>)[ownKey] as TValue;
     }
 
     /**

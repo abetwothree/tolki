@@ -2532,6 +2532,44 @@ describe("Collection", () => {
     });
 
     describe("get", () => {
+        describe("Laravel Tests", () => {
+            it("test get with null returns null", () => {
+                // CollectionTest::testGetWithNullReturnsNull
+                const data = new Collection([1, 2, 3]);
+                expect(data.get(null)).toBeNull();
+            });
+
+            it("test get with callback as default value", () => {
+                // CollectionTest::testGetWithCallbackAsDefaultValue
+                const data = new Collection({
+                    name: "taylor",
+                    framework: "laravel",
+                });
+                const result = data.get("email", () => "taylor@example.com");
+                expect(result).toBe("taylor@example.com");
+            });
+        });
+
+        it("reads a null key as the empty-string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-null-on-list"
+            expect(collect([1, 2, 3]).get(null)).toBeNull();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-null-empty-string-key"
+            expect(collect({ "": "x" }).get(null)).toBe("x");
+
+            // JS-only: an undefined key reads as null does
+            expect(collect([1, 2, 3]).get(undefined)).toBeNull();
+            expect(collect({ "": "x" }).get(undefined)).toBe("x");
+        });
+
+        it("answers a stored null rather than the default", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-stored-null-beats-default"
+            expect(collect({ a: null }).get("a", "d")).toBeNull();
+
+            // JS-only: a stored undefined is an item, as a stored null is
+            expect(collect({ a: undefined }).get("a", "d")).toBeUndefined();
+        });
+
         it("gets value by key in object", () => {
             const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.get("b")).toBe(2);
@@ -2552,23 +2590,18 @@ describe("Collection", () => {
             expect(collection.get(5, "default")).toBe("default");
         });
 
-        it("get() resolves a literal dotted key before traversing, through the object backing", () => {
+        it("get() reads a literal dotted key, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
             // — literal dotted key wins".
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.get("products.desk")).toEqual({ price: 100 });
         });
 
-        it("traverses a nested list with numeric segments, through the object backing", () => {
-            // JS-only: PHP's Collection::get is a literal array_key_exists
-            // lookup, not Arr::get's dot-path traversal; this pins the JS dot-path extension.
-            const collection = collect({
-                products: [{ name: "desk" }, { name: "chair" }],
-            });
-
-            expect(collection.get("products.0.name")).toBe("desk");
-            expect(collection.get("products.1.name")).toBe("chair");
-            expect(collection.get("products.2.name", "none")).toBe("none");
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-26-collection-order.json, "get-dot-path-is-a-literal-key"
+            expect(collect({ a: { b: 1 } }).get("a.b", "fallback")).toBe(
+                "fallback",
+            );
         });
 
         it("returns the default for a non-canonical index on a list backing", () => {
@@ -15524,12 +15557,13 @@ describe("Collection", () => {
         });
 
         it("get and has, either backing", () => {
-            // JS-only: both resolve a dot path, where PHP's are a literal array_key_exists
-            // ("get-dot-path-is-a-literal-key" / "has-dot-path-is-a-literal-key" in
-            // docs/php-parity/task-26-collection-order.json). Recorded, not settled: see get's docblock.
+            // docs/php-parity/task-26-collection-order.json, "get-dot-path-is-a-literal-key"
             expect(new Collection({ a: { b: 1 } }).get("a.b", "fallback")).toBe(
-                1,
+                "fallback",
             );
+
+            // JS-only: has() resolves a dot path, where PHP's is a literal array_key_exists
+            // ("has-dot-path-is-a-literal-key" in docs/php-parity/task-26-collection-order.json).
             expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(true);
 
             // docs/php-parity/task-26-collection-order.json, "getOrPut-dot-path-is-a-literal-key"
