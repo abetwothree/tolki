@@ -131,6 +131,18 @@ $rangeOutcome = function (array $arguments) {
 };
 probe('C32-A-range-non-finite-arguments-throw', 'Collection::range() given NAN, INF or -INF as the step, the start or the end', fn () => array_map($rangeOutcome, [[1, 5, NAN], [1, 5, INF], [1, 5, -INF], [NAN, 5], [INF, 5], [-INF, 5], [0, NAN], [0, INF], [0, -INF]]));
 probe('C32-A-range-checks-the-step-first', 'Collection::range(NAN, NAN, NAN) and Collection::range(NAN, 5, 0)', fn () => array_map($rangeOutcome, [[NAN, NAN, NAN], [NAN, 5, 0]]));
+// range() refuses a size past the maximum array size, printing an integer range's bounds or a float range's
+probe('C32-A-range-past-maximum-array-size', "Collection::range(\$start, \$end, \$step) past the maximum array size, for integer and float bounds either way round: the class and message thrown", fn () => array_map($rangeOutcome, [
+    '1..1073741824' => [1, 1073741824],
+    '0..1073741824' => [0, 1073741824],
+    '2147483648..1' => [2147483648, 1],
+    '1..2147483648 step 2' => [1, 2147483648, 2],
+    '1..1e19' => [1, 1e19],
+    '1e19..1' => [1e19, 1],
+    '0..2147483648 step 0.5' => [0, 2147483648, 0.5],
+    '0.5..1e10' => [0.5, 1e10],
+    '1..1e22' => [1, 1e22],
+]));
 
 // --- times
 probe('C32-A-times-fractional-count', 'Collection::times(2.7)->all()', fn () => Collection::times(2.7)->all());
@@ -141,6 +153,7 @@ probe('C32-A-times-non-finite-count', 'Collection::times(NAN), times(INF) and ti
         return [get_class($e), $e->getMessage()];
     }
 }, [NAN, INF, -INF]));
+probe('C32-A-times-past-maximum-array-size', 'Collection::times(1e19), times(2147483648) and times(1073741824): the class and message thrown', fn () => array_map(fn ($count) => c32c_outcome(fn () => Collection::times($count)->all()), ['1e19' => 1e19, '2147483648' => 2147483648, '1073741824' => 1073741824]));
 
 // --- fromJson
 probe('C32-A-fromJson-invalid-is-empty', "Collection::fromJson('{bad')->all()", fn () => Collection::fromJson('{bad')->all());
@@ -242,6 +255,10 @@ probe('C32-A-ensure-closure-and-anonymous-class-names', "the message collect([\$
     ...array_map(fn ($item) => c32c_outcome(fn () => collect([$item])->ensure('int')), [new class {}, fn () => 1]),
     collect([fn () => 1])->ensure(Closure::class)->count(),
 ]);
+probe('C32-A-ensure-anonymous-subclass-name', "the message collect([\$item])->ensure('int') throws for new class extends C32AParent {} and new class extends C32AChild {}", fn () => array_map(fn ($item) => c32c_outcome(fn () => collect([$item])->ensure('int')), [new class extends C32AParent {}, new class extends C32AChild {}]));
+
+// --- Arr::from refuses a scalar with the class its @throws names
+probe('C32-A-arr-from-scalar-throws', 'Arr::from(123)', fn () => Arr::from(123));
 
 // ---- Family B ------------------------------------------------------------
 
@@ -376,6 +393,50 @@ probe('C32-B-offset-illegal-key', "offsetGet(\$key), offsetExists(\$key) and off
     'offsetUnset' => $overBackings(fn (Collection $c) => $c->offsetUnset($key)),
 ], $illegalKeys));
 probe('C32-B-pull-illegal-key', "pull(\$key) over both backings, for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => $overBackings(fn (Collection $c) => $c->pull($key)), $illegalKeys));
+
+// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
+// of items over a NAN; range() refuses a float end less than one step from 1
+$takeOutcome = function (string $method, array $items, $count) {
+    $c = collect($items);
+    $returned = c32c_outcome(function () use ($c, $method, $count) {
+        $result = $c->$method($count);
+
+        return $result instanceof Collection ? $result->all() : $result;
+    });
+
+    return ['returned' => $returned, 'all' => $c->all()];
+};
+$takeCounts = ['2.5' => 2.5, '1.5' => 1.5, '0.5' => 0.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19];
+foreach (['shift', 'pop'] as $takeMethod) {
+    probe("C32-B-{$takeMethod}-fractional-and-non-finite-counts", "{$takeMethod}(\$count) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 2.5, 1.5, 0.5, NAN, INF and 1e19, and over collect([9]) and collect([]) for 1.5: what it returns, or the class and message thrown, and what the collection holds after", fn () => [
+        'list' => array_map(fn ($count) => $takeOutcome($takeMethod, [1, 2, 3, 4], $count), $takeCounts),
+        'keyed' => array_map(fn ($count) => $takeOutcome($takeMethod, ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4], $count), $takeCounts),
+        'one item' => $takeOutcome($takeMethod, [9], 1.5),
+        'empty' => $takeOutcome($takeMethod, [], 1.5),
+    ]);
+}
+
+// array_pad() and array_splice() read their counts as int parameters: a fraction is dropped (with a deprecation,
+// silenced here), and a float no int can hold is refused before anything changes
+$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
+$padSizes = ['7.5' => 7.5, '-7.5' => -7.5, '0.5' => 0.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19, '-1e19' => -1e19];
+probe('C32-B-pad-fractional-and-non-int-sizes', "pad(\$size, 0) over collect([1, 2, 3]) and collect(['a' => 1, 'b' => 2, 'c' => 3]) for 7.5, -7.5, 0.5, NAN, INF, -INF, 1e19 and -1e19: the keys and values, or the class and message thrown", fn () => array_map(fn (array $items) => array_map(fn ($size) => c32c_outcome(fn () => $keysAndValues(@collect($items)->pad($size, 0))), $padSizes), ['list' => [1, 2, 3], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3]]));
+probe('C32-B-pad-past-maximum-array-size', "collect([1, 2, 3])->pad(\$size, 0) for 1073741825, -1073741825 and 1e18: the class and message thrown", fn () => array_map(fn ($size) => c32c_outcome(fn () => collect([1, 2, 3])->pad($size, 0)->all()), ['1073741825' => 1073741825, '-1073741825' => -1073741825, '1e18' => 1e18]));
+$spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
+    $c = collect($items);
+    $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
+
+    return ['removed' => $removed] + $keysAndValues($c);
+};
+$spliceBackings = ['list' => [1, 2, 3, 4], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]];
+probe('C32-B-splice-fractional-and-non-finite-offsets', "splice(\$offset) and splice(\$offset, 1) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 1.5, -1.5, NAN, INF and 1e19: the keys and values removed, or the class and message thrown, and the keys and values left", fn () => array_map(fn (array $items) => array_map(fn ($offset) => [
+    'offset only' => $spliceOutcome($items, [$offset]),
+    'length 1' => $spliceOutcome($items, [$offset, 1]),
+], ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]), $spliceBackings));
+probe('C32-B-splice-fractional-and-non-finite-lengths', "splice(1, \$length) and splice(1, \$length, ['x']) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 1.5, -1.5, NAN, INF, -INF and 1e19: the keys and values removed, or the class and message thrown, and the keys and values left", fn () => array_map(fn (array $items) => array_map(fn ($length) => [
+    'no replacement' => $spliceOutcome($items, [1, $length]),
+    'replacement' => $spliceOutcome($items, [1, $length, ['x']]),
+], ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19]), $spliceBackings));
 
 // ---- Family C ------------------------------------------------------------
 
@@ -1278,6 +1339,7 @@ probe('C32-E-pluck-enum-key', "(new Collection([['v' => 1]]))->pluck('v', fn () 
 probe('C32-E-pluck-stringable-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new Stringable('Lara'))->all());
 probe('C32-E-pluck-tostring-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => an object with __toString)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class { public function __toString() { return 'Framework'; } })->all());
 probe('C32-E-pluck-closure-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)->all());
+probe('C32-E-pluck-anonymous-subclass-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})->all());
 probe('C32-E-pluck-nested-array-row', "(new Collection([['n' => 1]]))->pluck('n') and ->pluck('*')", fn () => ['path' => (new Collection([['n' => 1]]))->pluck('n')->all(), 'wildcard' => (new Collection([['n' => 1]]))->pluck('*')->all()]);
 probe('C32-E-keyed-results-out-of-order-receiver', "a receiver whose integer keys run 2, 0: keyBy('id'), groupBy('g') and countBy() keys, mapToDictionary(fn => [\$v => \$k]), and flip() over 'x', 'y', 'x'", fn () => [
     'keyBy' => (new Collection([2 => ['id' => 5], 0 => ['id' => 4]]))->keyBy('id')->keys()->all(),
