@@ -2174,6 +2174,23 @@ describe("Collection", () => {
                 duplicates.values().all(),
             ]).toEqual([[3], [""]]);
         });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const duplicates = collect(
+                new Map([
+                    [2, "a"],
+                    [0, "b"],
+                    [1, "a"],
+                ]),
+            ).duplicates();
+
+            // Ordered-backing gap: PHP walks key 2 first, so the a under key 1 is the duplicate
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-out-of-order"
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([[1], ["a"]]);
+        });
     });
 
     describe("duplicatesStrict", () => {
@@ -2446,6 +2463,37 @@ describe("Collection", () => {
             expect(filtered.keys().all()).toEqual([0]);
             expect(filtered.values().all()).toEqual([1]);
         });
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().filter((_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                // Ordered-backing gap: PHP calls the callback in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "filter-out-of-order-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
+
+        it.fails(
+            "keeps what a counting callback passes in a Map-built collection's insertion order",
+            () => {
+                let calls = 0;
+                const kept = outOfOrderKeys().filter(() => ++calls <= 2);
+
+                // Ordered-backing gap: PHP's first two calls see c under 2 and a under 0, and keep them in that order
+                // docs/php-parity/task-30-map-order.json, "filter-out-of-order-first-two-visits"
+                expect([kept.keys().all(), kept.values().all()]).toEqual([
+                    [2, 0],
+                    ["c", "a"],
+                ]);
+            },
+        );
     });
 
     describe("first", () => {
