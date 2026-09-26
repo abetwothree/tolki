@@ -5757,6 +5757,21 @@ describe("Collection", () => {
             ]);
         });
 
+        it("selects a Collection item by its items' keys, never its methods", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-rows"
+            expect(
+                collect([collect({ a: 1, b: 2 })])
+                    .select("a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-method-name"
+            expect(
+                collect([collect({ a: 1 })])
+                    .select("all", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
         it("drops an object's null property, as PHP's isset does, where a plain object's null stays", () => {
             class Row {
                 a = null;
