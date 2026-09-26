@@ -3147,9 +3147,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Chunk the collection into chunks of the given size.
      *
-     * @param size - The size of each chunk
-     * @param preserveKeys - Whether to preserve the original keys, defaults to false
-     * @returns A new collection with the chunked items
+     * @param size - The size of each chunk; a fraction is dropped, as array_chunk()'s int parameter drops it
+     * @param preserveKeys - Whether to preserve the original keys, defaults to true
+     * @returns A new collection with the chunked items, or an empty one for a size of 0 or below
+     * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_chunk() refuses it
+     * @throws Error when the size drops to 0, as array_chunk() refuses it
      *
      * @example
      *
@@ -3161,16 +3163,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
         size: number,
         preserveKeys: boolean = true,
     ): Collection<Collection<TValue, TKey>, number> {
-        if (size < 0) {
-            return this.newInstance() as unknown as Collection<
+        if (size <= 0) {
+            return this.newInstance(handOver([])) as unknown as Collection<
                 Collection<TValue, TKey>,
                 number
             >;
         }
 
+        const length = intArgument(
+            size,
+            "array_chunk(): Argument #2 ($length) must be of type int, float given",
+        );
+
+        // A size between 0 and 1 drops to 0, which array_chunk() refuses with a ValueError.
+        if (length === 0) {
+            throw new Error(
+                "array_chunk(): Argument #2 ($length) must be greater than 0",
+            );
+        }
+
         const chunkedData = dataChunk(
             this.items as TValue[],
-            size,
+            length,
             preserveKeys,
         );
 

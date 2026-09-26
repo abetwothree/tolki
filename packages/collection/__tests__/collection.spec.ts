@@ -11032,6 +11032,60 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("drops a fraction from the size, as array_chunk's int parameter does", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-fractional-size"
+            expect(
+                numbers
+                    .chunk(2.5)
+                    .map((chunk) => [chunk.keys().all(), chunk.values().all()])
+                    .all(),
+            ).toEqual([
+                [
+                    [0, 1],
+                    [1, 2],
+                ],
+                [
+                    [2, 3],
+                    [3, 4],
+                ],
+                [[4], [5]],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            expect(
+                numbers
+                    .chunk(1.5)
+                    .map((chunk) => chunk.values().all())
+                    .all(),
+            ).toEqual([[1], [2], [3], [4], [5]]);
+        });
+
+        it("throws array_chunk's error for a size that drops to 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            expect(() => collect([1, 2, 3, 4, 5]).chunk(0.5)).toThrowError(
+                "array_chunk(): Argument #2 ($length) must be greater than 0",
+            );
+        });
+
+        it("throws array_chunk's TypeError for a size that is NAN, infinite or beyond PHP's int range", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            for (const numbers of [collect([1, 2, 3, 4, 5]), collect([])]) {
+                for (const size of [NaN, Infinity, 1e19]) {
+                    expect(() => numbers.chunk(size)).toThrowError(TypeError);
+                    expect(() => numbers.chunk(size)).toThrowError(
+                        "array_chunk(): Argument #2 ($length) must be of type int, float given",
+                    );
+                }
+            }
+        });
+
+        it("chunks nothing for a size of -INF, as for any size at or below 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            expect(collect([1, 2, 3, 4, 5]).chunk(-Infinity).all()).toEqual([]);
+        });
     });
 
     describe("chunkWhile", () => {
