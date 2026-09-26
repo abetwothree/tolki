@@ -84,6 +84,7 @@ import {
     isFiniteNumber,
     isFloat,
     isFunction,
+    isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
     isIterable,
@@ -1134,6 +1135,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param keys - The key or keys to remove, or a collection of keys
      * @returns The collection instance after removing the specified keys
+     * @throws TypeError for an array, object or function key, once the keys before it are unset, as unset() refuses one
      *
      * @example
      *
@@ -1148,9 +1150,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     forget<T, K extends PropertyKey = PropertyKey>(
         keys: PathKeys | Collection<T, K>,
     ) {
+        const requested = Object.values(this.getRawItems(keys));
+        // PHP unsets each key in turn, so the keys before one it cannot hold are gone when it throws.
+        const illegal = requested.findIndex((key) => isIllegalOffset(key));
         const ownKeys = new Set<string | number>();
 
-        for (const key of Object.values(this.getRawItems(keys))) {
+        for (const key of illegal === -1
+            ? requested
+            : requested.slice(0, illegal)) {
             const ownKey = this.ownKey(key);
 
             if (!isUndefined(ownKey)) {
@@ -1167,6 +1174,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             this.offsetUnset(key);
         }
 
+        if (illegal !== -1) {
+            throw unsetOffset(getDebugType(requested[illegal]));
+        }
+
         return this;
     }
 
@@ -1179,6 +1190,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key to get
      * @param defaultValue - The default value to return if key doesn't exist, or a callback that returns it
      * @returns The value at the key or default value
+     * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
      *
@@ -1190,7 +1202,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
     ): TValue | TGetDefault | null {
-        const ownKey = this.ownKey(key ?? "");
+        const ownKey = this.existingKey(key);
 
         if (isUndefined(ownKey)) {
             return resolveDefault(defaultValue);
@@ -1205,6 +1217,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key to get or add
      * @param value - The value to add if the key does not exist, or a callback function that returns the value
      * @returns The value at the key or the newly added value
+     * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
      *
@@ -1216,7 +1229,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         value: TGetOrPutValue | (() => TGetOrPutValue),
     ): TValue | TGetOrPutValue {
-        const ownKey = this.ownKey(key ?? "");
+        const ownKey = this.existingKey(key);
 
         if (!isUndefined(ownKey)) {
             return (this.items as Record<PropertyKey, TValue>)[
@@ -1367,6 +1380,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param keys - The keys to check for, as arguments or as one array given first, which ignores the rest
      * @returns True if all keys exist, false otherwise
+     * @throws TypeError for an array, object or function key it reaches, as array_key_exists() refuses one
      *
      * @example
      *
@@ -1380,7 +1394,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // PHP reads an array first argument as the whole key list, and any other call's arguments as its keys.
         const list: readonly unknown[] = isArray(key) ? key : [key, ...rest];
 
-        return list.every((each) => !isUndefined(this.ownKey(each ?? "")));
+        return list.every((each) => !isUndefined(this.existingKey(each)));
     }
 
     /**
@@ -1390,6 +1404,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param keys - The keys to check for, as arguments or as one array given first, which ignores the rest
      * @returns True if any key exists, false otherwise
+     * @throws TypeError for an array, object or function key it reaches, as array_key_exists() refuses one
      *
      * @example
      *
@@ -1405,7 +1420,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const [key, ...rest] = keys;
         const list: readonly unknown[] = isArray(key) ? key : [key, ...rest];
 
-        return list.some((each) => !isUndefined(this.ownKey(each ?? "")));
+        return list.some((each) => !isUndefined(this.existingKey(each)));
     }
 
     /**
@@ -2471,6 +2486,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key or dot path of the item to pull
      * @param defaultValue - The default value to return if the key does not exist, or a callback that returns it
      * @returns The value at the specified key, or the default value
+     * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
      *
@@ -2489,7 +2505,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Arr::exists checks a float key as its string form; the read and the unset that follow cast it to an integer.
-        if (!isUndefined(this.ownKey(isFloat(key) ? String(key) : key))) {
+        if (!isUndefined(this.existingKey(isFloat(key) ? String(key) : key))) {
             const value = this.offsetGet(key);
             this.offsetUnset(key);
 
@@ -2523,6 +2539,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key to set the value at
      * @param value - The value to set
      * @returns The collection instance for chaining
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
      * @example
      *
@@ -3999,6 +4016,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param offset - The offset to check for existence
      * @returns True if an item exists at the offset, false otherwise
+     * @throws TypeError for an array, object or function key, as isset() refuses one
      *
      * @example
      *
@@ -4008,6 +4026,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetExists('c'); -> false
      */
     offsetExists(key: PropertyKey): boolean {
+        if (isIllegalOffset(key)) {
+            throw issetOffset(getDebugType(key));
+        }
+
         const value = this.offsetGet(key);
 
         return !isNull(value) && !isUndefined(value);
@@ -4018,6 +4040,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param offset - The offset to get the item from
      * @returns The item at the given offset, or undefined if not found
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
      * @example
      *
@@ -4027,6 +4050,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetGet('c'); -> undefined
      */
     offsetGet(key: PropertyKey) {
+        if (isIllegalOffset(key)) {
+            throw accessOffset(getDebugType(key));
+        }
+
         const ownKey = this.ownKey(key);
 
         if (isUndefined(ownKey)) {
@@ -4042,6 +4069,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param offset - The offset to set the item at, or null to append
      * @param value - The item to set at the given offset
      * @returns Void
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
      * @example
      *
@@ -4054,6 +4082,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
      */
     offsetSet(key: PropertyKey | null, value: TValue | unknown) {
+        if (isIllegalOffset(key)) {
+            throw accessOffset(getDebugType(key));
+        }
+
         // A null or undefined offset appends, as PHP's `$items[] = $value` does.
         this.putKey(key ?? null, value as TValue);
     }
@@ -4063,6 +4095,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param offset - The offset to unset the item at
      * @returns Void
+     * @throws TypeError for an array, object or function key, as unset() refuses one
      *
      * @example
      *
@@ -4073,6 +4106,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * objCollection.offsetUnset('b'); -> collection is now {a: 1, c: 3}
      */
     offsetUnset(key: PropertyKey) {
+        if (isIllegalOffset(key)) {
+            throw unsetOffset(getDebugType(key));
+        }
+
         const ownKey = this.ownKey(key);
 
         if (isUndefined(ownKey)) {
@@ -6227,6 +6264,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * The key an offset names among the backing's own entries, looked up as PHP's `array_key_exists` looks one up.
+     *
+     * @param key - The key to look up; null reads the "" key
+     * @returns The key the backing holds the entry under, or undefined when it holds none
+     * @throws TypeError for a key no PHP array can hold, as array_key_exists() refuses one
+     */
+    protected existingKey(key: unknown): string | number | undefined {
+        if (isIllegalOffset(key)) {
+            throw arrayKeyExistsError();
+        }
+
+        return this.ownKey(key ?? "");
+    }
+
+    /**
      * The key an offset names among the backing's own entries, cast as PHP casts an array key.
      *
      * @param key - The offset to look up
@@ -7012,7 +7064,7 @@ function nonFiniteRangeArgument(argument: string, value: number): Error {
  */
 function unconvertibleKey(type: string): Error {
     if (type === "array") {
-        return new TypeError("Cannot access offset of type array on array");
+        return accessOffset(type);
     }
 
     return new Error(
@@ -7030,6 +7082,26 @@ function issetOffset(type: string): TypeError {
     return new TypeError(
         `Cannot access offset of type ${type} in isset or empty`,
     );
+}
+
+/**
+ * The error PHP throws when it reads or writes an array's entry under a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function accessOffset(type: string): TypeError {
+    return new TypeError(`Cannot access offset of type ${type} on array`);
+}
+
+/**
+ * The error PHP throws when it unsets an array's entry under a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function unsetOffset(type: string): TypeError {
+    return new TypeError(`Cannot unset offset of type ${type} on array`);
 }
 
 /**

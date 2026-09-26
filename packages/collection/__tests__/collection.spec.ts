@@ -2,6 +2,7 @@ import * as Arr from "@tolki/arr";
 import { collect, Collection } from "@tolki/collection";
 import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
+import type { PathKey } from "@tolki/types";
 import {
     InvalidArgumentException,
     isString,
@@ -23126,6 +23127,145 @@ describe("Collection", () => {
                 10,
                 "1e+21",
             ]);
+        });
+    });
+
+    describe("keyed access refuses a key no PHP array can hold", () => {
+        class stdClass {}
+
+        const list = () => collect(["a", "b"]);
+        const keyed = () => collect({ a: 1, b: 2 });
+        /** Each key PHP cannot store, and the type its messages name; a plain object stands in for an array. */
+        const illegal: [string, unknown][] = [
+            ["array", ["a"]],
+            ["array", { a: 1 }],
+            ["stdClass", new stdClass()],
+            ["Closure", () => 1],
+        ];
+        const keyExists = new TypeError(
+            "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+        );
+        /** A key list holding what the signatures refuse, as PHP's array of keys may. */
+        const keysOf = (...keys: unknown[]) => keys as PathKey[];
+
+        it("throws from put() and offsetSet() before writing anything", () => {
+            for (const [type, key] of illegal) {
+                const failure = new TypeError(
+                    `Cannot access offset of type ${type} on array`,
+                );
+                const [listed, keys] = [list(), keyed()];
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-illegal-key"
+                expect(() => listed.put(key, 9)).toThrow(failure);
+                expect(() => keys.put(key, 9)).toThrow(failure);
+                expect(() => listed.offsetSet(key as PropertyKey, 9)).toThrow(
+                    failure,
+                );
+                expect(() => keys.offsetSet(key as PropertyKey, 9)).toThrow(
+                    failure,
+                );
+                expect([listed.all(), keys.all()]).toEqual([
+                    ["a", "b"],
+                    { a: 1, b: 2 },
+                ]);
+            }
+        });
+
+        it("throws array_key_exists()'s TypeError from get() and getOrPut()", () => {
+            for (const [, key] of illegal) {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-illegal-key"
+                expect(() => list().get(key as PathKey)).toThrow(keyExists);
+                expect(() => keyed().get(key as PathKey)).toThrow(keyExists);
+                expect(() => list().getOrPut(key as PathKey, 9)).toThrow(
+                    keyExists,
+                );
+                expect(() => keyed().getOrPut(key as PathKey, 9)).toThrow(
+                    keyExists,
+                );
+            }
+        });
+
+        it("throws array_key_exists()'s TypeError from has() once it reaches the key, as array_all() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-illegal-key"
+            expect(() => list().has(keysOf(["a"]))).toThrow(keyExists);
+            expect(() => keyed().has(keysOf(["a"]))).toThrow(keyExists);
+            expect(() => list().has(keysOf(0, ["b"]))).toThrow(keyExists);
+            expect(() => keyed().has(keysOf("a", ["b"]))).toThrow(keyExists);
+            expect(list().has(keysOf("zz", ["b"]))).toBe(false);
+            expect(keyed().has(keysOf("zz", ["b"]))).toBe(false);
+        });
+
+        it("throws array_key_exists()'s TypeError from hasAny() once it reaches the key, as array_any() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-illegal-key"
+            expect(() => list().hasAny(keysOf(["a"]))).toThrow(keyExists);
+            expect(() => keyed().hasAny(keysOf(["a"]))).toThrow(keyExists);
+            expect(list().hasAny(keysOf(0, ["b"]))).toBe(true);
+            expect(keyed().hasAny(keysOf("a", ["b"]))).toBe(true);
+            expect(() => list().hasAny(keysOf("zz", ["b"]))).toThrow(keyExists);
+            expect(() => keyed().hasAny(keysOf("zz", ["b"]))).toThrow(
+                keyExists,
+            );
+            expect(collect([]).hasAny(keysOf(["a"]))).toBe(false);
+        });
+
+        it("throws from forget() after unsetting the keys before it, as PHP's loop does", () => {
+            for (const [type, key] of illegal) {
+                const failure = new TypeError(
+                    `Cannot unset offset of type ${type} on array`,
+                );
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-illegal-key"
+                expect(() => list().forget(keysOf(key))).toThrow(failure);
+                expect(() => keyed().forget(keysOf(key))).toThrow(failure);
+            }
+
+            const [listed, keys] = [list(), keyed()];
+
+            expect(() => listed.forget(keysOf(0, ["b"]))).toThrow(
+                new TypeError("Cannot unset offset of type array on array"),
+            );
+            expect(() => keys.forget(keysOf("a", ["b"]))).toThrow(
+                new TypeError("Cannot unset offset of type array on array"),
+            );
+            // PHP keeps the list's key 1; a list backing reindexes, as a JS array holds no sparse keys.
+            expect([listed.all(), keys.all()]).toEqual([["b"], { b: 2 }]);
+        });
+
+        it("throws from offsetGet(), offsetExists() and offsetUnset(), each with its own message", () => {
+            for (const [type, key] of illegal) {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offset-illegal-key"
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        collection.offsetGet(key as PropertyKey),
+                    ).toThrow(
+                        new TypeError(
+                            `Cannot access offset of type ${type} on array`,
+                        ),
+                    );
+                    expect(() =>
+                        collection.offsetExists(key as PropertyKey),
+                    ).toThrow(
+                        new TypeError(
+                            `Cannot access offset of type ${type} in isset or empty`,
+                        ),
+                    );
+                    expect(() =>
+                        collection.offsetUnset(key as PropertyKey),
+                    ).toThrow(
+                        new TypeError(
+                            `Cannot unset offset of type ${type} on array`,
+                        ),
+                    );
+                }
+            }
+        });
+
+        it("throws array_key_exists()'s TypeError from pull()", () => {
+            for (const [, key] of illegal) {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-illegal-key"
+                expect(() => list().pull(key as PathKey)).toThrow(keyExists);
+                expect(() => keyed().pull(key as PathKey)).toThrow(keyExists);
+            }
         });
     });
 
