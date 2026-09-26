@@ -6892,6 +6892,15 @@ describe("Collection", () => {
             expect(united.all()).toEqual([1, 2]);
         });
 
+        it("keeps the receiver's keys for a null operand, where merge() renumbers them", () => {
+            const united = collect({ 5: "a", k: "b" }).union(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-union-null-keeps-keys"
+            expect(united.all()).toEqual({ 5: "a", k: "b" });
+            expect(united.keys().all()).toEqual([5, "k"]);
+            expect(united.values().all()).toEqual(["a", "b"]);
+        });
+
         it("lets the left operand win even when its value is undefined", () => {
             // docs/php-parity/task-07-pad-union.json, "Collection::union"
             // JS-only: undefined stands in for PHP's null, which the left operand keeps
