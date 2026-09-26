@@ -5673,6 +5673,22 @@ describe("Collection", () => {
             expect(c8.all()).toEqual([1, 2, 3, 4]);
         });
 
+        it("reads the value pushed past a string key last", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-onto-string-keyed-last"
+            expect(collect({ a: 1 }).push("z").last()).toBe("z");
+        });
+
+        it("keeps values pushed past a string key in the order they arrive", () => {
+            const collection = collect({ a: 1 }).push("y", "z");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-many-onto-string-keyed"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({ keys: ["a", 0, 1], values: [1, "y", "z"], last: "z" });
+        });
+
         describe("push key classification", () => {
             // docs/php-parity/task-17-second-review.json, "push onto a {\"01\"}-keyed array"
             // docs/php-parity/task-17-second-review.json, "push onto a {\"1e2\"}-keyed array"
@@ -6400,6 +6416,18 @@ describe("Collection", () => {
                 has: true,
                 last: 0,
             });
+        });
+
+        it.fails("keeps an integer key put after a string key last", () => {
+            const collection = collect({ a: 1 }).put(0, "z");
+
+            // Ordered-backing gap: PHP keeps a key put past the string keys last, 0 after a
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-int-key-onto-string-keyed-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({ keys: ["a", 0], values: [1, "z"], last: "z" });
         });
 
         // docs/php-parity/task-17-second-review.json: "Arr::set writes a
@@ -9677,7 +9705,7 @@ describe("Collection", () => {
             c.add("home");
 
             // docs/php-parity/task-26-collection-order.json,
-            // "append-key-with-no-integer-key-is-zero": no integer key means the append lands on 0,
+            // "append-key-with-no-integer-key-is-zero": no integer key means the append lands on 0, and last,
             // whatever else the backing holds — here seven string keys instead of the row's one.
             expect(c.all()).toEqual({
                 a: 5,
@@ -9689,6 +9717,26 @@ describe("Collection", () => {
                 g: "name",
                 0: "home",
             });
+            expect(c.keys().all()).toEqual([
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "g",
+                0,
+            ]);
+            expect(c.values().all()).toEqual([
+                5,
+                2,
+                "",
+                null,
+                false,
+                [],
+                "name",
+                "home",
+            ]);
         });
     });
 
@@ -14507,6 +14555,39 @@ describe("Collection", () => {
             expect(collection.values().all()).toEqual([2, 3]);
         });
 
+        it("push after a string-key put appends last", () => {
+            const collection = collect([1, 2]).put("x", 3).push(4);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-push"
+            expect(collection.all()).toEqual({ 0: 1, 1: 2, x: 3, 2: 4 });
+            expect(collection.keys().all()).toEqual([0, 1, "x", 2]);
+            expect(collection.values().all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("push after a key named like a method appends last, as data", () => {
+            const collection = collect([1, 2]).put("push", 9).push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-method-name-then-push"
+            expect(collection.all()).toEqual({ 0: 1, 1: 2, push: 9, 2: 3 });
+            expect(collection.keys().all()).toEqual([0, 1, "push", 2]);
+            expect(collection.values().all()).toEqual([1, 2, 9, 3]);
+        });
+
+        it("pop after a string-key put takes the string key's value", () => {
+            const collection = collect([1, 2]);
+            collection.put("x", 3);
+            const returned = collection.pop();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-pop"
+            expect(returned).toBe(3);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, 2]);
+            expect(collection.toJson()).toBe("[1,2]");
+
+            // JS-only: the backing stays a record once a string key was written, where PHP's array is a list again
+            expect(collection.all()).toEqual({ 0: 1, 1: 2 });
+        });
+
         it("rebuilds a list with a hole without inventing an item for the hole", () => {
             const items: string[] = [];
             items[1] = "b";
@@ -14562,9 +14643,26 @@ describe("Collection", () => {
             // docs/php-parity/task-26-collection-order.json, "append-key-skips-an-occupied-slot"
             expect(collection.all()).toEqual({ x: 1, 3: "b", y: 2, 4: "z" });
 
-            // JS-only: a plain object iterates its integer keys first, so the views read them first.
-            expect(collection.values().all()).toEqual(["b", "z", 1, 2]);
-            expect(collection.keys().all()).toEqual([3, 4, "x", "y"]);
+            // JS-only: the object literal already holds 3 ahead of x, as a plain object sorts its integer keys first;
+            // the appended key still lands last.
+            expect(collection.values().all()).toEqual(["b", 1, 2, "z"]);
+            expect(collection.keys().all()).toEqual([3, "x", "y", 4]);
+
+            const ordered = collect(
+                new Map<string | number, string | number>([
+                    ["x", 1],
+                    [3, "b"],
+                    ["y", 2],
+                ]),
+            );
+            ordered.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-skips-an-occupied-slot"
+            expect(views(ordered)).toEqual({
+                all: { x: 1, 3: "b", y: 2, 4: "z" },
+                values: [1, "b", 2, "z"],
+                keys: ["x", 3, "y", 4],
+            });
         });
 
         it("a backing with no integer key appends at 0", () => {
@@ -14572,7 +14670,11 @@ describe("Collection", () => {
             collection.add("z");
 
             // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
-            expect(collection.all()).toEqual({ a: 1, 0: "z" });
+            expect(views(collection)).toEqual({
+                all: { a: 1, 0: "z" },
+                values: [1, "z"],
+                keys: ["a", 0],
+            });
         });
 
         it("an empty object backing appends at 0", () => {
@@ -14818,10 +14920,12 @@ describe("Collection", () => {
 
             expect(result.all()).not.toBe(receiver.all());
 
-            // docs/php-parity/task-27-carried-fixes.json, "concat-keyed-result" —
-            // PHP holds `['a' => 1, 'b' => 2, 0 => 'z']`, and a JS object iterates its
-            // integer keys first, so only the ENTRIES can match, not their order.
-            expect(result.all()).toEqual({ a: 1, b: 2, 0: "z" });
+            // docs/php-parity/task-27-carried-fixes.json, "concat-keyed-result"
+            expect(views(result)).toEqual({
+                all: { a: 1, b: 2, 0: "z" },
+                values: [1, 2, "z"],
+                keys: ["a", "b", 0],
+            });
 
             // docs/php-parity/task-27-carried-fixes.json, "concat-list-result"
             expect(views(collect([1, 2, 3]).concat(["z"]))).toEqual({

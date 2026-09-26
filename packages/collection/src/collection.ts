@@ -6210,6 +6210,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to append, in order
      */
     protected appendItems(values: readonly TValue[]): void {
+        if (values.length === 0) {
+            return;
+        }
+
         if (isArray(this.items)) {
             for (const value of values) {
                 this.items.push(value);
@@ -6218,14 +6222,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return;
         }
 
+        const items = this.items as Record<string, TValue>;
+        const previous = this.itemsWithOrder ?? this.entriesInOrder();
         let key = this.nextAppendKey();
 
         for (const value of values) {
-            defineKey(this.items as Record<string, TValue>, key++, value);
+            defineKey(items, key++, value);
         }
 
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
+        // PHP appends last, where a plain object sorts an integer key ahead of every string key.
+        if (
+            this.itemsWithOrder ||
+            Object.keys(items).at(-1) !== String(key - 1)
+        ) {
+            this.reorderAfterMutation(previous);
         }
     }
 
