@@ -17384,6 +17384,46 @@ describe("Collection", () => {
                     ["1", "2"],
                 ],
             ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-numbers-and-strings-loose"
+                "numbers, numeric strings and plain strings",
+                [
+                    1,
+                    "1",
+                    "1.0",
+                    2,
+                    "02",
+                    3,
+                    "3",
+                    4,
+                    "ABC",
+                    "abc",
+                    0.5,
+                    ".5",
+                    "5",
+                ],
+                [1, "2", " 3", "4 ", "abc", "0.5"],
+                [1, "1", "1.0", 2, "02", 3, "3", 4, "abc", 0.5, ".5"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-integer-strings-past-2-53-loose"
+                "an integer string past 2^53",
+                [
+                    9007199254740992,
+                    "9007199254740993",
+                    "9007199254740993.0",
+                    "9007199254740992",
+                ],
+                ["9007199254740993"],
+                ["9007199254740993", "9007199254740993.0"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-inf-loose"
+                '"INF" and "1e999"',
+                [Infinity, "INF", "1e999", "1e1000", "inf"],
+                ["INF", "1e999"],
+                [Infinity, "INF", "1e999"],
+            ],
         ] as [string, unknown[], unknown[], unknown[]][])(
             "keeps the items PHP's in_array finds loosely equal to %s",
             (_label, values, set, kept) => {
@@ -17438,6 +17478,17 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInStrict-array"
             expect(filtered.all()).toEqual([{ v: [1, 2] }]);
             expect(filtered.keys().all()).toEqual([0]);
+        });
+
+        it("compares scalars by type and value, as PHP's === does, so NAN matches nothing", () => {
+            const filtered = collect(
+                [1, "1", 2, "2", null, false, NaN].map((v) => ({ v })),
+            ).whereInStrict("v", [1, "2", null, NaN]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInStrict-scalars", whose keys
+            // 0, 3 and 4 name these rows; a list renumbers them, as every removal from a list does
+            expect(filtered.pluck("v").all()).toEqual([1, "2", null]);
+            expect(filtered.keys().all()).toEqual([0, 1, 2]);
         });
     });
 
@@ -17628,6 +17679,13 @@ describe("Collection", () => {
                 ["x", 1, 0, "", null, "0", [1]],
                 [true],
                 [0, "", null, "0"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotIn-numbers-and-strings-loose"
+                "a number and a plain string",
+                [1, "1", "abc", "ABC", 2, true],
+                [1, "abc"],
+                ["ABC", 2],
             ],
         ] as [string, unknown[], unknown[], unknown[]][])(
             "drops the items PHP's in_array finds loosely equal to %s",

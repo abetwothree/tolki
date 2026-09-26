@@ -88,7 +88,9 @@ import {
     isPhpAccessible,
     isPhpArrayKey,
     isPhpFalsy,
+    isPhpNumeric,
     isPlainObject,
+    isPrimitive,
     isString,
     isStringable,
     isSymbol,
@@ -5064,11 +5066,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TSetValue, TSetKey>,
         strict: boolean = false,
     ) {
-        const valueSet = Object.values(this.getRawItems(values));
-
-        return this.filter((item: TValue) =>
-            inArray(itemValue(item, key), valueSet, strict),
+        const isIn = inArrayTest(
+            Object.values(this.getRawItems(values)),
+            strict,
         );
+
+        return this.filter((item: TValue) => isIn(itemValue(item, key)));
     }
 
     /**
@@ -5151,11 +5154,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TSetValue, TSetKey>,
         strict: boolean = false,
     ) {
-        const valueSet = Object.values(this.getRawItems(values));
-
-        return this.reject((item: TValue) =>
-            inArray(itemValue(item, key), valueSet, strict),
+        const isIn = inArrayTest(
+            Object.values(this.getRawItems(values)),
+            strict,
         );
+
+        return this.reject((item: TValue) => isIn(itemValue(item, key)));
     }
 
     /**
@@ -7038,21 +7042,68 @@ function notCallableValue(value: unknown): Error {
 }
 
 /**
- * Determine whether a value is among the given values, as PHP's `in_array` compares them.
+ * Build a test of whether a value is among the given values, as PHP's `in_array` compares them.
  *
- * @param needle - The value to look for
  * @param haystack - The values to look among
  * @param strict - Whether to compare with PHP's `===` rather than its `==`
- * @returns True when a value in the haystack equals the needle
+ * @returns A test answering whether a value in the haystack equals the one it is given
  */
-function inArray(
-    needle: unknown,
+function inArrayTest(
     haystack: readonly unknown[],
     strict: boolean,
-): boolean {
+): (needle: unknown) => boolean {
     const equals = strict ? strictEqual : looseEqual;
+    const keyOf = strict ? strictKey : looseKey;
+    const keyed = new Set<unknown>();
+    const unkeyed: unknown[] = [];
 
-    return haystack.some((value) => equals(needle, value));
+    for (const value of haystack) {
+        const key = keyOf(value);
+
+        if (isUndefined(key)) {
+            unkeyed.push(value);
+        } else {
+            keyed.add(key);
+        }
+    }
+
+    return (needle) => {
+        const key = keyOf(needle);
+
+        if (isUndefined(key)) {
+            return haystack.some((value) => equals(needle, value));
+        }
+
+        return keyed.has(key) || unkeyed.some((value) => equals(needle, value));
+    };
+}
+
+/**
+ * The key two values share exactly when PHP's `===` holds between them.
+ *
+ * @param value - The value to key
+ * @returns The value itself when it is a primitive, else undefined; NAN, which equals nothing, has no key
+ */
+function strictKey(value: unknown): unknown {
+    return isPrimitive(value) ? value : undefined;
+}
+
+/**
+ * The key two values share exactly when PHP's `==` holds between them, for the values it can key.
+ *
+ * @param value - The value to key
+ * @returns A string that is not numeric, the number a number or numeric string stands for, else undefined
+ */
+function looseKey(value: unknown): string | number | undefined {
+    if (isString(value) && !isPhpNumeric(value)) {
+        return value;
+    }
+
+    const number =
+        isNumber(value) || isString(value) ? Number(value) : Number.NaN;
+
+    // Past 2^53 a double drops the digits PHP compares an integer string by, and INF compares by rules of its own.
+    return Math.abs(number) <= Number.MAX_SAFE_INTEGER ? number : undefined;
 }
 
 /**
