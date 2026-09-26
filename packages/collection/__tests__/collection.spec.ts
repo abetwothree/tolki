@@ -13378,6 +13378,27 @@ describe("Collection", () => {
                 expect(mapped.get(0)!.value).toBe("first");
                 expect(mapped.get(1)!.value).toBe("second");
             });
+
+            it("test map into with int backed enums", () => {
+                // CollectionTest::testMapIntoWithIntBackedEnums
+                const data = collect([1, 2]).mapInto(TestBackedEnum);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-backed-enums": each
+                // from() builds a new case object, so a case compares by value where PHP's is the same instance
+                expect(data.get(0)).toEqual(TestBackedEnum.from(1));
+                expect(data.get(1)).toEqual(TestBackedEnum.from(2));
+                expect(data.pluck("name").all()).toEqual(["A", "B"]);
+            });
+
+            it("test map into with string backed enums", () => {
+                // CollectionTest::testMapIntoWithStringBackedEnums
+                const data = collect(["A", "B"]).mapInto(TestStringBackedEnum);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-backed-enums"
+                expect(data.get(0)).toEqual(TestStringBackedEnum.from("A"));
+                expect(data.get(1)).toEqual(TestStringBackedEnum.from("B"));
+                expect(data.pluck("name").all()).toEqual(["A", "B"]);
+            });
         });
 
         it("hands the class each value and its key", () => {

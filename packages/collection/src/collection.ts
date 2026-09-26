@@ -4814,12 +4814,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Map the values into a new class.
      *
-     * @param className - The class to map the values into, whose constructor receives each value and its key
+     * @param className - The class to map the values into, whose constructor receives each value and its key, or an
+     * `@tolki/enum` definition, whose from() resolves each value to its case as a backed enum's does
      * @returns A new collection with the values mapped into the new class
+     *
+     * @example
+     *
+     * new Collection(['first']).mapInto(Wrapper); -> new Collection([new Wrapper('first', 0)])
+     *
+     * const Status = defineEnum({A: 1, B: 2, _cases: ['A', 'B']});
+     * new Collection([1, 2]).mapInto(Status); -> new Collection([Status.from(1), Status.from(2)])
      */
     mapInto<TMapIntoValue>(
-        className: new (...args: unknown[]) => TMapIntoValue,
+        className:
+            | (new (...args: unknown[]) => TMapIntoValue)
+            | EnumDefinition<TValue>,
     ): Collection<TMapIntoValue, TKey> {
+        if (isEnumDefinition(className)) {
+            return this.map((value) =>
+                className.from(value),
+            ) as unknown as Collection<TMapIntoValue, TKey>;
+        }
+
         return this.map(
             (value, key) => new className(value, key),
         ) as unknown as Collection<TMapIntoValue, TKey>;
@@ -6491,6 +6507,12 @@ type CollectionClass<TValue, TKey extends PropertyKey> = new (
     ...args: unknown[]
 ) => Collection<TValue, TKey>;
 
+/** An `@tolki/enum` definition, whose from() resolves a backing value to its case, as BackedEnum::from() does. */
+type EnumDefinition<TValue> = {
+    // A method signature, so a definition typed for its own case values still takes the collection's values.
+    from(value: TValue): unknown;
+};
+
 /** Items a builder created for a new instance; the constructor adopts them instead of copying. */
 const owned = new WeakSet<object>();
 
@@ -6577,6 +6599,16 @@ function phpIntegerFormat(key: PropertyKey): number {
     const leading = Number.parseFloat(String(key));
 
     return isFiniteNumber(leading) ? Math.trunc(leading) : 0;
+}
+
+/**
+ * Determine whether mapInto() was handed an `@tolki/enum` definition rather than a class.
+ *
+ * @param value - The class or the enum definition
+ * @returns True for an object whose from() resolves a value to its case
+ */
+function isEnumDefinition(value: unknown): value is EnumDefinition<never> {
+    return isObject(value) && isFunction(value["from"]);
 }
 
 /**
