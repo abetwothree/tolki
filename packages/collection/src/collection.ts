@@ -39,10 +39,14 @@ import {
     dataSelect,
     dataShift,
     dataShuffle,
+    dataSkipUntil,
+    dataSkipWhile,
     dataSlice,
     dataSort,
     dataSortDesc,
     dataSplice,
+    dataTakeUntil,
+    dataTakeWhile,
     dataUndot,
     dataUnion,
     dataUnshift,
@@ -2961,6 +2965,37 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Skip items in the collection until the given condition is met.
+     *
+     * @param value - The value to skip until, compared with PHP's `===`, or a callback judged by PHP truthiness
+     * @returns A new collection of the items from the first that meets the condition on
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3, 4]).skipUntil(3); -> new Collection([3, 4])
+     * new Collection({a: 1, b: 2, c: 3}).skipUntil((value) => value >= 2); -> new Collection({b: 2, c: 3})
+     */
+    skipUntil(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+        return this.newInstance(handOver(dataSkipUntil(this.items, value)));
+    }
+
+    /**
+     * Skip items in the collection while the given condition is met.
+     *
+     * @param value - The value to skip while items equal it, compared with PHP's `===`, or a callback judged by PHP
+     * truthiness
+     * @returns A new collection of the items from the first that fails the condition on
+     *
+     * @example
+     *
+     * new Collection([1, 1, 2, 1]).skipWhile(1); -> new Collection([2, 1])
+     * new Collection({a: 1, b: 2, c: 3}).skipWhile((value) => value < 3); -> new Collection({c: 3})
+     */
+    skipWhile(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+        return this.newInstance(handOver(dataSkipWhile(this.items, value)));
+    }
+
+    /**
      * Slice the underlying collection data.
      *
      * @param offset - The offset to start the slice
@@ -3668,6 +3703,37 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.slice(0, limit);
+    }
+
+    /**
+     * Take items in the collection until the given condition is met.
+     *
+     * @param value - The value to take until, compared with PHP's `===`, or a callback judged by PHP truthiness
+     * @returns A new collection of the items before the first that meets the condition
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3, 4]).takeUntil(3); -> new Collection([1, 2])
+     * new Collection({a: 1, b: 2, c: 3}).takeUntil((value, key) => key === 'c'); -> new Collection({a: 1, b: 2})
+     */
+    takeUntil(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+        return this.newInstance(handOver(dataTakeUntil(this.items, value)));
+    }
+
+    /**
+     * Take items in the collection while the given condition is met.
+     *
+     * @param value - The value to take while items equal it, compared with PHP's `===`, or a callback judged by PHP
+     * truthiness
+     * @returns A new collection of the items before the first that fails the condition
+     *
+     * @example
+     *
+     * new Collection([1, 1, 2, 2, 3, 3]).takeWhile(1); -> new Collection([1, 1])
+     * new Collection({a: 1, b: 2, c: 3}).takeWhile((value) => value < 3); -> new Collection({a: 1, b: 2})
+     */
+    takeWhile(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+        return this.newInstance(handOver(dataTakeWhile(this.items, value)));
     }
 
     /**

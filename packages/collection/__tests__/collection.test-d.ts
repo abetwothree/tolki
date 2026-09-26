@@ -26,6 +26,47 @@ describe("collection type tests", () => {
         });
     });
 
+    describe("skipUntil / skipWhile / takeUntil / takeWhile", () => {
+        it("keep the collection's own type for a value or a callback", () => {
+            const numbers = collect([1, 2, 3]);
+
+            expectTypeOf(numbers.skipUntil(2)).toEqualTypeOf<
+                Collection<number, number>
+            >();
+            expectTypeOf(numbers.skipWhile(1)).toEqualTypeOf<
+                Collection<number, number>
+            >();
+            expectTypeOf(numbers.takeUntil(() => true)).toEqualTypeOf<
+                Collection<number, number>
+            >();
+            expectTypeOf(collect({ a: 1 }).takeWhile(1)).toEqualTypeOf<
+                Collection<number, string>
+            >();
+        });
+
+        it("type the callback's value and key", () => {
+            collect([1, 2]).skipUntil((value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+
+                return "0";
+            });
+            collect({ a: "x" }).takeWhile((value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<string>();
+
+                return [];
+            });
+        });
+
+        it("reject a value of another type, which no item is identical to", () => {
+            // @ts-expect-error - a string is === to no number
+            collect([1, 2]).skipUntil("1");
+            // @ts-expect-error - a string is === to no number
+            collect([1, 2]).takeWhile("1");
+        });
+    });
+
     describe("chunkWhile / chunkBy", () => {
         // first()/last() take a default-type parameter that widens to `unknown` when omitted,
         // so assert on the outer collection type rather than on what first() returns.

@@ -8118,6 +8118,157 @@ describe("Collection", () => {
         });
     });
 
+    describe("skipUntil", () => {
+        describe("Laravel Tests", () => {
+            it("test skip until", () => {
+                // CollectionTest::testSkipUntil
+                let data = collect([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                expect(data.skipUntil(1).values().all()).toEqual([
+                    1, 1, 2, 2, 3, 3, 4, 4,
+                ]);
+                expect(data.skipUntil(3).values().all()).toEqual([3, 3, 4, 4]);
+                expect(data.skipUntil(5).values().all()).toEqual([]);
+
+                data = data.skipUntil((value) => value <= 1).values();
+                expect(data.all()).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                data = data.skipUntil((value) => value >= 3).values();
+                expect(data.all()).toEqual([3, 3, 4, 4]);
+
+                data = data.skipUntil((value) => value >= 5).values();
+                expect(data.all()).toEqual([]);
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const skipped = collect({ a: 1, b: 2, c: 3 }).skipUntil(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-keyed"
+            expect(skipped.all()).toEqual({ b: 2, c: 3 });
+            expect(skipped.keys().all()).toEqual(["b", "c"]);
+            expect(skipped.values().all()).toEqual([2, 3]);
+        });
+
+        it("renumbers a list's keys, as every removal from a list does", () => {
+            const skipped = collect([1, 2, 3, 4]).skipUntil(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // and 3 name these items
+            expect(skipped.all()).toEqual([3, 4]);
+            expect(skipped.keys().all()).toEqual([0, 1]);
+            expect(skipped.values().all()).toEqual([3, 4]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-strict-value"
+            expect(collect(items).skipUntil("3").all()).toEqual([]);
+        });
+
+        it("hands a callback each value and key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-callback-key"
+            expect(
+                collect({ a: 1, b: 2, c: 3 })
+                    .skipUntil((_value, key) => key === "b")
+                    .all(),
+            ).toEqual({ b: 2, c: 3 });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(
+                collect(["x", "y", "z"])
+                    .skipUntil((_value, key) => key === 1)
+                    .all(),
+            ).toEqual(["y", "z"]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const skipped = outOfOrderKeys().skipUntil("a");
+
+            // Ordered-backing gap: PHP walks key 2 first, so skipping until a keeps a and b under keys 0 and 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-out-of-order-keys"
+            expect([skipped.keys().all(), skipped.values().all()]).toEqual([
+                [0, 1],
+                ["a", "b"],
+            ]);
+        });
+    });
+
+    describe("skipWhile", () => {
+        describe("Laravel Tests", () => {
+            it("test skip while", () => {
+                // CollectionTest::testSkipWhile
+                let data = collect([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                expect(data.skipWhile(1).values().all()).toEqual([
+                    2, 2, 3, 3, 4, 4,
+                ]);
+                expect(data.skipWhile(5).values().all()).toEqual([
+                    1, 1, 2, 2, 3, 3, 4, 4,
+                ]);
+                expect(data.skipWhile(2).values().all()).toEqual([
+                    1, 1, 2, 2, 3, 3, 4, 4,
+                ]);
+
+                data = data.skipWhile((value) => value >= 5).values();
+                expect(data.all()).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                data = data.skipWhile((value) => value >= 2).values();
+                expect(data.all()).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                data = data.skipWhile((value) => value < 3).values();
+                expect(data.all()).toEqual([3, 3, 4, 4]);
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const skipped = collect({ a: 1, b: 2, c: 1 }).skipWhile(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-keyed"
+            expect(skipped.all()).toEqual({ b: 2, c: 1 });
+            expect(skipped.keys().all()).toEqual(["b", "c"]);
+            expect(skipped.values().all()).toEqual([2, 1]);
+        });
+
+        it("renumbers a list's keys, as every removal from a list does", () => {
+            const skipped = collect([1, 1, 2, 1]).skipWhile(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // and 3 name these items
+            expect(skipped.all()).toEqual([2, 1]);
+            expect(skipped.keys().all()).toEqual([0, 1]);
+            expect(skipped.values().all()).toEqual([2, 1]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-strict-value"
+            expect(collect(items).skipWhile("1").all()).toEqual([1, 1, 2]);
+        });
+
+        it("hands a callback each value and key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key", whose keys
+            // 1 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(
+                collect(["x", "y", "z"])
+                    .skipWhile((_value, key) => key < 1)
+                    .all(),
+            ).toEqual(["y", "z"]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const skipped = outOfOrderKeys().skipWhile("c");
+
+            // Ordered-backing gap: PHP walks key 2 first, so skipping while c keeps a and b under keys 0 and 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect([skipped.keys().all(), skipped.values().all()]).toEqual([
+                [0, 1],
+                ["a", "b"],
+            ]);
+        });
+    });
+
     describe("slice", () => {
         describe("Laravel Tests", () => {
             it("test slice offset", () => {
@@ -9983,6 +10134,156 @@ describe("Collection", () => {
                     "shawn",
                 ]);
             });
+        });
+    });
+
+    describe("takeUntil", () => {
+        describe("Laravel Tests", () => {
+            it("test take until using value", () => {
+                // CollectionTest::testTakeUntilUsingValue
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeUntil(3).toArray()).toEqual([1, 2]);
+            });
+
+            it("test take until using callback", () => {
+                // CollectionTest::testTakeUntilUsingCallback
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeUntil((item) => item >= 3).toArray()).toEqual([
+                    1, 2,
+                ]);
+            });
+
+            it("test take until returns all items for unmet value", () => {
+                // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeUntil(99).toArray()).toEqual(data.toArray());
+                expect(data.takeUntil((item) => item >= 99).toArray()).toEqual(
+                    data.toArray(),
+                );
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const taken = collect({ a: 1, b: 2, c: 3 }).takeUntil(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-keyed"
+            expect(taken.all()).toEqual({ a: 1, b: 2 });
+            expect(taken.keys().all()).toEqual(["a", "b"]);
+            expect(taken.values().all()).toEqual([1, 2]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-strict-value"
+            expect(collect(items).takeUntil("3").all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("hands a callback each value and key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-callback-key"
+            expect(
+                collect({ a: 1, b: 2, c: 3 })
+                    .takeUntil((_value, key) => key === "c")
+                    .all(),
+            ).toEqual({ a: 1, b: 2 });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(
+                collect(["x", "y", "z"])
+                    .takeUntil((_value, key) => key === 1)
+                    .all(),
+            ).toEqual(["x"]);
+        });
+
+        it("takes nothing from an empty collection", () => {
+            const none: number[] = [];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-empty"
+            expect(collect(none).takeUntil(1).all()).toEqual([]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const taken = outOfOrderKeys().takeUntil("a");
+
+            // Ordered-backing gap: PHP walks key 2 first, so taking until a keeps c under key 2
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect([taken.keys().all(), taken.values().all()]).toEqual([
+                [2],
+                ["c"],
+            ]);
+        });
+    });
+
+    describe("takeWhile", () => {
+        describe("Laravel Tests", () => {
+            it("test take while using value", () => {
+                // CollectionTest::testTakeWhileUsingValue
+                const data = collect([1, 1, 2, 2, 3, 3]);
+
+                expect(data.takeWhile(1).toArray()).toEqual([1, 1]);
+            });
+
+            it("test take while using callback", () => {
+                // CollectionTest::testTakeWhileUsingCallback
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeWhile((item) => item < 3).toArray()).toEqual([
+                    1, 2,
+                ]);
+            });
+
+            it("test take while returns no items for unmet value", () => {
+                // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeWhile(2).toArray()).toEqual([]);
+                expect(data.takeWhile((item) => item === 99).toArray()).toEqual(
+                    [],
+                );
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const taken = collect({ a: 1, b: 1, c: 2, d: 1 }).takeWhile(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-keyed"
+            expect(taken.all()).toEqual({ a: 1, b: 1 });
+            expect(taken.keys().all()).toEqual(["a", "b"]);
+            expect(taken.values().all()).toEqual([1, 1]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-strict-value"
+            expect(collect(items).takeWhile("1").all()).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-null-value"
+            expect(collect([null, null, 0]).takeWhile(null).all()).toEqual([
+                null,
+                null,
+            ]);
+        });
+
+        it("hands a callback each value and key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key"
+            expect(
+                collect(["x", "y", "z"])
+                    .takeWhile((_value, key) => key < 2)
+                    .all(),
+            ).toEqual(["x", "y"]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const taken = outOfOrderKeys().takeWhile("c");
+
+            // Ordered-backing gap: PHP walks key 2 first, so taking while c keeps c under key 2
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect([taken.keys().all(), taken.values().all()]).toEqual([
+                [2],
+                ["c"],
+            ]);
         });
     });
 
@@ -18675,6 +18976,90 @@ describe("Collection", () => {
                                 ["y", "b"],
                             ],
                             [],
+                        ],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "skipUntil",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).skipUntil(callback)),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "skipWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).skipWhile(callback)),
+                {
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [],
+                        [],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "takeUntil",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).takeUntil(callback)),
+                {
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [],
+                        [],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "takeWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).takeWhile(callback)),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
                         ],
                     ],
                 },
