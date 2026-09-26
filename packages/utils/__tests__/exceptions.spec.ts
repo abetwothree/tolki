@@ -38,7 +38,8 @@ describe("exceptions", () => {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe("2 items were found.");
         expect(error.name).toBe("MultipleItemsFoundException");
-        expect(error.count).toBe(2);
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+        expect([error.count, error.getCount()]).toEqual([2, 2]);
 
         expect(new MultipleItemsFoundException(3).message).toBe(
             "3 items were found.",

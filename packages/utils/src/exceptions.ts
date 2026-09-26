@@ -55,6 +55,15 @@ export class MultipleItemsFoundException extends Error {
         this.name = "MultipleItemsFoundException";
         this.count = count;
     }
+
+    /**
+     * Get the number of items found.
+     *
+     * @returns The number of items the lookup matched
+     */
+    getCount(): number {
+        return this.count;
+    }
 }
 
 /**

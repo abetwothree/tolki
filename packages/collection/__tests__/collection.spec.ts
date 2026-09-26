@@ -8021,10 +8021,17 @@ describe("Collection", () => {
                 expect(() => {
                     c.where("name", "foo").sole();
                 }).toThrowError("2 items were found.");
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
-                expect(() => {
+
+                let found: MultipleItemsFoundException | null = null;
+                try {
                     c.where("name", "foo").sole();
-                }).toThrowError(expect.objectContaining({ count: 2 }));
+                } catch (error) {
+                    if (error instanceof MultipleItemsFoundException) {
+                        found = error;
+                    }
+                }
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+                expect([found?.count, found?.getCount()]).toEqual([2, 2]);
             });
 
             // CollectionTest::testSoleReturnsFirstItemInCollectionIfOnlyOneExistsWithCallback
@@ -8065,14 +8072,23 @@ describe("Collection", () => {
                     });
 
                 expect(sole).toThrowError(MultipleItemsFoundException);
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
                 expect(sole).toThrowError(
                     expect.objectContaining({
                         name: "MultipleItemsFoundException",
                         message: "2 items were found.",
-                        count: 2,
                     }),
                 );
+
+                let found: MultipleItemsFoundException | null = null;
+                try {
+                    sole();
+                } catch (error) {
+                    if (error instanceof MultipleItemsFoundException) {
+                        found = error;
+                    }
+                }
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+                expect([found?.count, found?.getCount()]).toEqual([2, 2]);
             });
         });
 
