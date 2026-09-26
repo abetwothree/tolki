@@ -735,7 +735,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2, 3]).diffUsing([2], (a, b) => a - b); -> new Collection([1, 3])
-     * new Collection({a: 'apple', b: 'banana'}).diffUsing(['banana'], (a, b) => a === b); -> new Collection({a: 'apple'})
+     * new Collection({a: 'x', b: 'y'}).diffUsing(['y'], (a, b) => a === b); -> new Collection({a: 'x'})
      */
     diffUsing(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
