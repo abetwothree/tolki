@@ -459,7 +459,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     collapse() {
         // Arr::collapse merges the items alone, so the receiver's own keys never shape the result.
-        return this.newInstance(handOver(dataCollapse(this.orderedValues())));
+        const items = this.orderedValues().map((item) =>
+            item instanceof Collection ? item.renumberedItems() : item,
+        );
+
+        return this.newInstance(handOver(dataCollapse(items)));
     }
 
     /**
@@ -6084,6 +6088,30 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 ([key, value]) => [phpArrayKey(key), value] as [TKey, TValue],
             )
         );
+    }
+
+    /**
+     * The items as array_merge() appends them: integer keys renumbered from 0, in the order this collection holds them.
+     *
+     * @returns The values when every key is an integer, otherwise a record keeping the string keys
+     */
+    protected renumberedItems(): TValue[] | Record<string, TValue> {
+        const entries = renumberPhpIntegerKeys<TValue>(
+            this.entriesInOrder().map(([key, value]) => [String(key), value]),
+        );
+
+        // all() cannot express integer keys out of ascending order, so a list is handed over as its values.
+        if (entries.every(([key], index) => key === String(index))) {
+            return entries.map(([, value]) => value);
+        }
+
+        const items: Record<string, TValue> = {};
+
+        for (const [key, value] of entries) {
+            defineKey(items, key, value);
+        }
+
+        return items;
     }
 
     /**
