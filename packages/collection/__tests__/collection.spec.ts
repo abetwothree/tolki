@@ -5849,6 +5849,17 @@ describe("Collection", () => {
             });
         });
 
+        it("hands back a new instance for a null operand", () => {
+            const collection = collect([1]);
+            const merged = collection.merge(null);
+            merged.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-null-is-a-new-instance"
+            expect(merged).not.toBe(collection);
+            expect(collection.all()).toEqual([1]);
+            expect(merged.all()).toEqual([1, 2]);
+        });
+
         it("merge object items with array", () => {
             const c = collect({ a: 1, b: 2 });
             expect(c.merge([3, 4]).all()).toEqual({
@@ -5896,6 +5907,17 @@ describe("Collection", () => {
                     meta: { tags: ["a", "b", "c"], roles: ["admin", "editor"] },
                 });
             });
+        });
+
+        it("hands back a new instance for a null operand", () => {
+            const collection = collect([1]);
+            const merged = collection.mergeRecursive(null);
+            merged.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-null-is-a-new-instance"
+            expect(merged).not.toBe(collection);
+            expect(collection.all()).toEqual([1]);
+            expect(merged.all()).toEqual([1, 2]);
         });
 
         it("test target is array and source is not", () => {
@@ -6156,6 +6178,17 @@ describe("Collection", () => {
                 expect(united.keys().all()).toEqual(["name", "id"]);
                 expect(united.values().all()).toEqual(["Hello", 1]);
             });
+        });
+
+        it("hands back a new instance for a null operand", () => {
+            const collection = collect([1]);
+            const united = collection.union(null);
+            united.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-union-null-is-a-new-instance"
+            expect(united).not.toBe(collection);
+            expect(collection.all()).toEqual([1]);
+            expect(united.all()).toEqual([1, 2]);
         });
 
         it("lets the left operand win even when its value is undefined", () => {

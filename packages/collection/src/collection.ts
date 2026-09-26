@@ -2013,10 +2013,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TMergeValue, TMergeKey>
             | null,
     ) {
-        if (isNull(items)) {
-            return this;
-        }
-
         const rawItems = this.getRawItems(items);
 
         if (isArray(this.items) && isArray(rawItems)) {
@@ -2050,10 +2046,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TMergeRecursiveValue, TMergeKey>
             | null,
     ) {
-        if (isNull(items)) {
-            return this;
-        }
-
         const otherItems = this.getRawItems(items);
 
         // Helper function to recursively merge two values
@@ -2213,10 +2205,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
     union<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
-        if (isNull(items)) {
-            return this;
-        }
-
         return this.newInstance(
             handOver(dataUnion(this.items, this.getRawItems(items))),
         );
