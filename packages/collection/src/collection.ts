@@ -465,11 +465,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Collapse the collection of items into a single array while preserving its keys.
      *
-     * @return A new collection with collapsed items
+     * @returns A new collection with collapsed items, a later item's key replacing an earlier one's
      *
      * @example
      *
-     * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([1, 2, 3, 4])
+     * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
      */
     collapseWithKeys() {
@@ -4529,10 +4529,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Determine if all items pass the given truth test.
+     * Execute a callback over each nested chunk of items.
      *
-     * @param callback - The callback to execute, receives the value(s) as arguments
-     * @return True if all items pass the truth test, false otherwise
+     * @param callback - The callback to execute, receiving a chunk's values and then its key; false stops the loop
+     * @returns The current collection instance
+     *
+     * @example
+     *
+     * new Collection([[1, 'a'], [2, 'b']]).eachSpread((n, s, k) => console.log(n, s, k)); -> logs "1 a 0", "2 b 1"
      */
     eachSpread(callback: (...values: TValue[]) => unknown) {
         return this.each((chunk, key) => {
