@@ -1481,6 +1481,24 @@
             "value": null
         },
         {
+            "label": "C32-B-pad-past-a-string-key-order",
+            "php": "$c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); keys/values",
+            "value": {
+                "keys": [
+                    0,
+                    "x",
+                    1,
+                    2
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    0,
+                    0
+                ]
+            }
+        },
+        {
             "label": "C32-B-put-int-key-onto-string-keyed-order",
             "php": "$c = collect(['a' => 1]); $c->put(0, 'z'); keys/values/last",
             "value": {
