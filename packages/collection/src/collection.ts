@@ -2085,7 +2085,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param multiplier - The number of times to repeat the items; a fraction is dropped, as PHP's int parameter does
      * @returns A new collection with the items' values repeated, as a list
-     * @throws TypeError when the multiplier is NAN or infinite, which PHP's int parameter cannot hold
+     * @throws TypeError when the multiplier is NAN, infinite or outside PHP's int range, as its int parameter refuses
      *
      * @example
      *
@@ -2095,7 +2095,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).multiply(0); -> new Collection([])
      */
     multiply(multiplier: number) {
-        if (!isFiniteNumber(multiplier)) {
+        if (!fitsPhpInt(multiplier)) {
             throw new TypeError(
                 "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
             );
@@ -6631,6 +6631,16 @@ function phpArrayValue(
     }
 
     return value;
+}
+
+/**
+ * Whether PHP can pass a number to an int parameter: finite and within the 64-bit range ZEND_DOUBLE_FITS_LONG checks.
+ *
+ * @param value - The number a caller passed where PHP declares an int
+ * @returns True when PHP coerces the number to an int, false when it throws a TypeError instead
+ */
+function fitsPhpInt(value: number): boolean {
+    return isFiniteNumber(value) && value >= -(2 ** 63) && value < 2 ** 63;
 }
 
 /**

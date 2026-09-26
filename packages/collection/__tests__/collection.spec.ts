@@ -6675,27 +6675,41 @@ describe("Collection", () => {
             expect(collect([1, 2]).multiply(2.5).all()).toEqual([1, 2, 1, 2]);
         });
 
-        it("throws PHP's TypeError for a NAN or infinite count, before repeating anything", () => {
-            // A push that throws turns an endless repeat into a plain failure, since the count must be refused first
-            class Unrepeatable extends Collection<number, number> {
-                override push(): this {
-                    throw new Error("repeated before the count was checked");
-                }
+        // A push that throws turns an endless repeat into a plain failure, since a count must be refused first
+        class Unrepeatable extends Collection<number, number> {
+            override push(): this {
+                throw new Error("repeated before the count was checked");
             }
+        }
 
+        const refusedCount = expect.objectContaining({
+            name: "TypeError",
+            message:
+                "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
+        });
+
+        it("throws PHP's TypeError for a NAN or infinite count, before repeating anything", () => {
             const collection = new Unrepeatable([1, 2]);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-non-finite-count", whose
             // class the port names without PHP's namespace
             for (const count of [NaN, Infinity, -Infinity]) {
                 expect(() => collection.multiply(count)).toThrowError(
-                    expect.objectContaining({
-                        name: "TypeError",
-                        message:
-                            "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
-                    }),
+                    refusedCount,
                 );
             }
+        });
+
+        it("throws PHP's TypeError for a count outside PHP's int range, before repeating anything", () => {
+            const collection = new Unrepeatable([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-out-of-int-range-count"
+            for (const count of [1e19, -1e19, 2 ** 63, -(2 ** 63) - 2048]) {
+                expect(() => collection.multiply(count)).toThrowError(
+                    refusedCount,
+                );
+            }
+            expect(collection.multiply(-(2 ** 63)).all()).toEqual([]);
         });
 
         it.fails(
