@@ -63,7 +63,6 @@ import {
     resolvePluckPath,
 } from "@tolki/path";
 import type {
-    ArrayableItems,
     ArrayItems,
     CaseValue,
     DataItems,
@@ -173,13 +172,50 @@ type ItemsCollection<TItems> = Collection<
 /** Anything PHP's getArrayableItems() accepts as a second collection. */
 type Operand = object | null | undefined;
 
-/** The values an operand holds once getArrayableItems() reads it: a collection's items, a Map's values. */
-type OperandValue<TOperand> =
-    ArrayableItems<TOperand> extends infer TItems
-        ? TItems extends unknown
-            ? ObjectValue<TItems>
-            : never
-        : never;
+/**
+ * The values an operand hands over, read in getRawItems()'s order. Own fields are the non-function members, since
+ * TypeScript cannot tell a field from a method, so a record of closures loses its function values.
+ * A plain object is typed like a class by its toArray, toJson or jsonSerialize member, which the runtime reads as data.
+ */
+type OperandValue<TOperand> = TOperand extends null | undefined
+    ? never
+    : TOperand extends Collection<infer _TValue, infer _TKey, infer _TShape>
+      ? TOperand extends Iterable<infer TValue>
+          ? TValue
+          : never
+      : TOperand extends ReadonlyMap<unknown, infer TValue>
+        ? TValue
+        : TOperand extends readonly (infer TValue)[]
+          ? TValue
+          : TOperand extends { toArray(...args: never[]): infer TItems }
+            ? CastValues<TItems>
+            : TOperand extends Iterable<infer TValue>
+              ? TValue
+              : TOperand extends { toJson(...args: never[]): unknown }
+                ? unknown
+                : TOperand extends {
+                        jsonSerialize(...args: never[]): infer TItems;
+                    }
+                  ? CastValues<TItems>
+                  : FieldValues<TOperand>;
+
+/** The values castToItems() reads: none from null, a list's items, an object's own fields, else the value itself. */
+type CastValues<TItems> = TItems extends null | undefined
+    ? never
+    : TItems extends readonly (infer TValue)[]
+      ? TValue
+      : TItems extends object
+        ? FieldValues<TItems>
+        : TItems;
+
+/** The values of an object's own fields, typed as its members that are neither functions nor keyed by a symbol. */
+type FieldValues<TItems> = {
+    [TField in keyof TItems]-?: TField extends symbol
+        ? never
+        : TItems[TField] extends (...args: never[]) => unknown
+          ? never
+          : TItems[TField];
+}[keyof TItems];
 
 /**
  * Create a collection from the given value.

@@ -138,6 +138,20 @@ export class JsonText {
     }
 }
 
+/** A class with JavaScript's toJSON(), which an operand read never calls: the runtime copies its own field instead. */
+export class ConvertsToJSON {
+    c = 1;
+
+    /**
+     * Convert the object for JSON.stringify().
+     *
+     * @returns The JSON value
+     */
+    toJSON(): string {
+        return "c";
+    }
+}
+
 /** A subclass carrying state of its own, which passes its items on to the base constructor. */
 export class Tagged extends Collection<number, number> {
     constructor(

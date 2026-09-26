@@ -1,7 +1,18 @@
 import { collect, Collection } from "@tolki/collection";
 import { describe, expectTypeOf, it } from "vitest";
 
+import {
+    ArrayableRecord,
+    ConvertsToJSON,
+    JsonText,
+    numbers,
+    SerializesRecord,
+    SerializesScalar,
+    Tagged,
+} from "./fixtures";
+
 declare const strings: Collection<string, "a">;
+declare const dates: Map<"p" | "q", Date>;
 
 describe("collection set operation type tests", () => {
     const list = collect([1, 2, 3]);
@@ -34,6 +45,104 @@ describe("collection set operation type tests", () => {
                 expectTypeOf(b).toEqualTypeOf<{ id: number }>();
 
                 return a.id === b.id;
+            });
+        });
+
+        it("types b as a collection's items, a subclass's too", () => {
+            list.diffUsing(strings, (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<string>();
+
+                return true;
+            });
+            list.diffUsing(new Tagged([4]), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+
+        it("types b as a Map's values, which a literal key never leaves undefined", () => {
+            list.diffUsing(dates, (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<Date>();
+
+                return true;
+            });
+        });
+
+        it("types b as a list's items", () => {
+            list.diffUsing(["x"], (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<string>();
+
+                return true;
+            });
+        });
+
+        it("types b as an Arrayable's items", () => {
+            list.diffUsing(new ArrayableRecord(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<string>();
+
+                return true;
+            });
+        });
+
+        it("types b as a generator's values", () => {
+            list.diffUsing(numbers(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+
+        it("types b as unknown for a Jsonable, whose JSON text no type can read", () => {
+            list.diffUsing(new JsonText(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<unknown>();
+
+                return true;
+            });
+        });
+
+        it("types b as a JsonSerializable's answer, or the answer itself when it is a scalar", () => {
+            list.diffUsing(new SerializesRecord(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<string>();
+
+                return true;
+            });
+            list.diffUsing(new SerializesScalar(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<string>();
+
+                return true;
+            });
+        });
+
+        it("types b as a class's own fields, never its toJSON() answer", () => {
+            list.diffUsing(new ConvertsToJSON(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+
+        it("types b as never for a Date, which has no own fields", () => {
+            list.diffUsing(new Date(), (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<never>();
+
+                return true;
+            });
+        });
+
+        it("types b as a record's values", () => {
+            list.diffUsing({ x: 1, y: "s" }, (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<number | string>();
+
+                return true;
+            });
+        });
+
+        it("types b as never for null, which holds no items", () => {
+            list.diffUsing(null, (_a, b) => {
+                expectTypeOf(b).toEqualTypeOf<never>();
+
+                return true;
             });
         });
     });
