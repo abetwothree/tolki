@@ -4682,6 +4682,13 @@ describe("Collection", () => {
                 ",1",
             );
         });
+
+        it("prints a float as PHP's (string) cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-float-casts"
+            expect(collect([0.1 + 0.2, 1.0, 1e25, -0.0]).implode(",")).toBe(
+                "0.3,1,1.0E+25,-0",
+            );
+        });
     });
 
     describe("intersect", () => {
@@ -5745,6 +5752,13 @@ describe("Collection", () => {
                 collect(["a", null]).join(", ", " and "),
                 collect([true, false, true]).join(", ", " and "),
             ]).toEqual(["a and ", "1,  and 1"]);
+        });
+
+        it("prints a float as PHP's (string) cast does, the last item too", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-float-casts"
+            expect(
+                collect([0.1 + 0.2, 1.0, 1e25, -0.0]).join(", ", " and "),
+            ).toBe("0.3, 1, 1.0E+25 and -0");
         });
     });
 
