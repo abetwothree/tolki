@@ -2665,10 +2665,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get one or a specified number of items randomly from the collection.
      *
-     * @param count - The number of items to retrieve, a callback to determine the count, or null for a single item
+     * @param count - The number of items to retrieve, a fraction truncated, a callback that answers it, or null for
+     * a single item
      * @param preserveKeys - Whether to preserve the original keys, defaults to false
      * @returns A single random item or a new collection with the random items
      * @throws InvalidArgumentException when more items are requested than the collection holds
+     * @throws TypeError for a NAN count or a string that is not numeric, as PHP's Randomizer rejects it
+     * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it
      *
      * @example
      *
