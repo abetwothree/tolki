@@ -292,7 +292,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new Collection instance containing the range of numbers
      * @throws Error when an argument is not a finite number, or the step is 0, negative on an increasing range,
-     * or longer than the range
+     * or longer than the range, or when the range would hold 2^30 items or more, as PHP's range() throws its ValueError
      *
      * @example
      *
@@ -340,9 +340,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const descending = to < from;
         const sized = span / stride + 1;
+        // A number is one of PHP's ints exactly when PHP can store it as an array key: an integer within 64 bits.
+        const isFloatRange = ![from, to, step].every((bound) =>
+            isPhpArrayKey(bound),
+        );
+
+        if (sized >= PHP_MAX_ARRAY_SIZE) {
+            throw rangeTooLarge(
+                Math.min(from, to),
+                Math.max(from, to),
+                stride,
+                isFloatRange,
+            );
+        }
+
         const whole = Math.floor(sized);
-        const isFloatRange =
-            !isInteger(from) || !isInteger(to) || !isInteger(step);
         // PHP rounds a float range's size half up, where an integer range's is floored.
         const size = isFloatRange && sized - whole >= 0.5 ? whole + 1 : whole;
         const items: number[] = [];
@@ -7023,6 +7035,51 @@ function jsonSerializeItem(value: unknown): unknown {
     }
 
     return value;
+}
+
+/** The most items a PHP array holds: HT_MAX_SIZE on a 64-bit build. */
+const PHP_MAX_ARRAY_SIZE = 2 ** 30;
+
+/**
+ * The ValueError PHP's range() throws for a range past the maximum array size, as a plain Error.
+ *
+ * @param low - The range's lower bound
+ * @param high - The range's upper bound
+ * @param stride - The step, without its sign
+ * @param isFloatRange - Whether PHP holds any of the bound or the step as a float, which prints each with a decimal
+ * @returns The error to throw
+ */
+function rangeTooLarge(
+    low: number,
+    high: number,
+    stride: number,
+    isFloatRange: boolean,
+): Error {
+    if (isFloatRange) {
+        const size = (high - low) / stride + 1;
+
+        return new Error(
+            `The supplied range exceeds the maximum array size by ${phpFixedPoint(size - PHP_MAX_ARRAY_SIZE)} elements: start=${phpFixedPoint(low)}, end=${phpFixedPoint(high)}, step=${phpFixedPoint(stride)}. Max size: ${PHP_MAX_ARRAY_SIZE}`,
+        );
+    }
+
+    // Integer division, as PHP's is, exact past 2^53 where a double's would round.
+    const calculated = (BigInt(high) - BigInt(low)) / BigInt(stride);
+
+    return new Error(
+        `The supplied range exceeds the maximum array size by ${calculated + 1n - BigInt(PHP_MAX_ARRAY_SIZE)} elements: start=${low}, end=${high}, step=${stride}. Calculated size: ${calculated}. Maximum size: ${PHP_MAX_ARRAY_SIZE}.`,
+    );
+}
+
+/**
+ * Print a float the way PHP's `%.1f` does, every digit of a large one included.
+ *
+ * @param value - The finite float to print
+ * @returns The number with one decimal
+ */
+function phpFixedPoint(value: number): string {
+    // toFixed() switches to an exponent from 1e21 on, where %.1f keeps printing digits; such a double is an integer.
+    return Math.abs(value) < 1e21 ? value.toFixed(1) : `${BigInt(value)}.0`;
 }
 
 /**
