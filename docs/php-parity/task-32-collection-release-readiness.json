@@ -899,6 +899,21 @@
             "value": 1
         },
         {
+            "label": "C32-A-ensure-closure-and-anonymous-class-names",
+            "php": "the message collect([$item])->ensure('int') throws for new class {} and fn () => 1, then collect([fn () => 1])->ensure(Closure::class)->count()",
+            "value": [
+                [
+                    "UnexpectedValueException",
+                    "Collection should only include [int] items, but 'class@anonymous' found at position 0."
+                ],
+                [
+                    "UnexpectedValueException",
+                    "Collection should only include [int] items, but 'Closure' found at position 0."
+                ],
+                1
+            ]
+        },
+        {
             "label": "C32-B-put-string-key-on-list",
             "php": "$c = collect([1, 2]); $c->put('x', 3); views",
             "value": {
@@ -1603,6 +1618,925 @@
                     "z"
                 ],
                 "last": "z"
+            }
+        },
+        {
+            "label": "C32-B-splice-keyed-order",
+            "php": "splice(1, 0, ['p', 'q']) on collect(['a' => 1, 'b' => 2]) and splice(1, 1, ['p']) on collect(['a' => 1, 'b' => 2, 'c' => 3]): keys/values/first and the removed items",
+            "value": [
+                {
+                    "keys": [
+                        "a",
+                        0,
+                        1,
+                        "b"
+                    ],
+                    "values": [
+                        1,
+                        "p",
+                        "q",
+                        2
+                    ],
+                    "first": 1,
+                    "removed": []
+                },
+                {
+                    "keys": [
+                        "a",
+                        0,
+                        "c"
+                    ],
+                    "values": [
+                        1,
+                        "p",
+                        3
+                    ],
+                    "first": 1,
+                    "removed": {
+                        "b": 2
+                    }
+                }
+            ]
+        },
+        {
+            "label": "C32-B-splice-replacement-order",
+            "php": "splice(1, 0, [2 => 'c', 0 => 'a', 1 => 'b']) on collect(['x', 'y']) and on collect(['a' => 1, 'b' => 2]): keys/values",
+            "value": [
+                {
+                    "keys": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4
+                    ],
+                    "values": [
+                        "x",
+                        "c",
+                        "a",
+                        "b",
+                        "y"
+                    ]
+                },
+                {
+                    "keys": [
+                        "a",
+                        0,
+                        1,
+                        2,
+                        "b"
+                    ],
+                    "values": [
+                        1,
+                        "c",
+                        "a",
+                        "b",
+                        2
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "C32-B-pull-dot-path-through-nested-arrays",
+            "php": "pull('a.b'), pull('a.b.c'), pull('a.2') and pull('a.z', 'd') through the array under 'a': what each returns, and the keys and values 'a' holds after",
+            "value": [
+                {
+                    "returned": 1,
+                    "keys": [
+                        "c"
+                    ],
+                    "values": [
+                        2
+                    ]
+                },
+                {
+                    "returned": 1,
+                    "keys": [
+                        "b"
+                    ],
+                    "values": [
+                        {
+                            "d": 2
+                        }
+                    ]
+                },
+                {
+                    "returned": "x",
+                    "keys": [
+                        0,
+                        1
+                    ],
+                    "values": [
+                        "y",
+                        "z"
+                    ]
+                },
+                {
+                    "returned": "d",
+                    "keys": [
+                        "b"
+                    ],
+                    "values": [
+                        1
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "C32-B-put-illegal-key",
+            "php": "put($key, 9) and offsetSet($key, 9) over collect(['a', 'b']) and collect(['a' => 1, 'b' => 2]), for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": {
+                    "put": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetSet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "object": {
+                    "put": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetSet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "closure": {
+                    "put": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetSet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-B-get-illegal-key",
+            "php": "get($key) and getOrPut($key, 9) over both backings, for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": {
+                    "get": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "getOrPut": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "object": {
+                    "get": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "getOrPut": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "closure": {
+                    "get": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "getOrPut": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-B-has-illegal-key",
+            "php": "has([['a']]), has([$first, ['b']]) and has(['zz', ['b']]) over both backings, $first the backing's first key",
+            "value": [
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": false,
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": false,
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ]
+            ]
+        },
+        {
+            "label": "C32-B-hasAny-illegal-key",
+            "php": "hasAny([['a']]), hasAny([$first, ['b']]) and hasAny(['zz', ['b']]) over both backings, $first the backing's first key, then hasAny([['a']]) over collect([])",
+            "value": [
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": true,
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": true,
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                false
+            ]
+        },
+        {
+            "label": "C32-B-forget-illegal-key",
+            "php": "forget([$key]) over both backings for $key = ['a'], new stdClass and fn () => 1, then forget([$first, ['b']]) with $first the backing's first key",
+            "value": {
+                "keys": {
+                    "array": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "object": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "closure": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "after-a-legal-key": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "Cannot unset offset of type array on array"
+                        ],
+                        "all": {
+                            "1": "b"
+                        }
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "Cannot unset offset of type array on array"
+                        ],
+                        "all": {
+                            "b": 2
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-B-offset-illegal-key",
+            "php": "offsetGet($key), offsetExists($key) and offsetUnset($key) over both backings, for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": {
+                    "offsetGet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetExists": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array in isset or empty"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type array in isset or empty"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetUnset": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type array on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "object": {
+                    "offsetGet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetExists": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass in isset or empty"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type stdClass in isset or empty"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetUnset": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type stdClass on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                },
+                "closure": {
+                    "offsetGet": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetExists": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure in isset or empty"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot access offset of type Closure in isset or empty"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ],
+                    "offsetUnset": [
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": [
+                                "a",
+                                "b"
+                            ]
+                        },
+                        {
+                            "outcome": [
+                                "TypeError",
+                                "Cannot unset offset of type Closure on array"
+                            ],
+                            "all": {
+                                "a": 1,
+                                "b": 2
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-B-pull-illegal-key",
+            "php": "pull($key) over both backings, for $key = ['a'], new stdClass and fn () => 1",
+            "value": {
+                "array": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                "object": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ],
+                "closure": [
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "outcome": [
+                            "TypeError",
+                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type"
+                        ],
+                        "all": {
+                            "a": 1,
+                            "b": 2
+                        }
+                    }
+                ]
             }
         },
         {
@@ -2990,6 +3924,57 @@
                     2,
                     3
                 ]
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-numbers-and-strings-loose",
+            "php": "whereIn('v', [1, '2', ' 3', '4 ', 'abc', '0.5']) over v = 1, '1', '1.0', 2, '02', 3, '3', 4, 'ABC', 'abc', 0.5, '.5', '5'",
+            "value": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                9,
+                10,
+                11
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-integer-strings-past-2-53-loose",
+            "php": "whereIn('v', ['9007199254740993']) over v = 9007199254740992, '9007199254740993', '9007199254740993.0', '9007199254740992'",
+            "value": [
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-whereIn-inf-loose",
+            "php": "whereIn('v', ['INF', '1e999']) over v = INF, 'INF', '1e999', '1e1000', 'inf'",
+            "value": [
+                0,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-D-whereNotIn-numbers-and-strings-loose",
+            "php": "whereNotIn('v', [1, 'abc']) over v = 1, '1', 'abc', 'ABC', 2, true",
+            "value": [
+                3,
+                4
+            ]
+        },
+        {
+            "label": "C32-D-whereInStrict-scalars",
+            "php": "whereInStrict('v', [1, '2', null, NAN]) over v = 1, '1', 2, '2', null, false, NAN",
+            "value": [
+                0,
+                3,
+                4
             ]
         },
         {
@@ -7741,6 +8726,24 @@
             }
         },
         {
+            "label": "C32-F-concat-map-order",
+            "php": "collect(['x'])->concat($m)->all() and collect(['x'])->concat(collect($m))->all(), $m = [2 => 'c', 0 => 'a', 1 => 'b']",
+            "value": [
+                [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ],
+                [
+                    "x",
+                    "c",
+                    "a",
+                    "b"
+                ]
+            ]
+        },
+        {
             "label": "C32-G-sort-comparator",
             "php": "(new Collection([5, 3, 1, 2, 4]))->sort(fn ($a, $b) => $a <=> $b)->values()->all()",
             "value": [
@@ -7861,6 +8864,22 @@
                 "z",
                 "e",
                 "b"
+            ]
+        },
+        {
+            "label": "C32-G-sortKeysUsing-fractional-answers",
+            "php": "(new Collection(['c' => 1, 'a' => 2, 'b' => 3]))->sortKeysUsing(fn ($x, $y) => $x < $y ? -$step : ($x > $y ? $step : 0))->keys()->all() for $step = 0.5 and 1.5",
+            "value": [
+                [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                [
+                    "a",
+                    "b",
+                    "c"
+                ]
             ]
         },
         {
@@ -9466,6 +10485,12 @@
             "message": "Unsupported operand types: float + string"
         },
         {
+            "label": "C32-H-sum-closure-item",
+            "php": "(new Collection([1, fn () => 1]))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + Closure"
+        },
+        {
             "label": "C32-H-avg-non-numeric-string",
             "php": "(new Collection([10, 'house', 20]))->avg()",
             "threw": "TypeError",
@@ -9727,6 +10752,49 @@
             "value": ",1"
         },
         {
+            "label": "C32-H-implode-date-items-are-plucked",
+            "php": "(new Collection([new DateTime('@0'), new DateTime('@1')]))->implode(', ')",
+            "value": ""
+        },
+        {
+            "label": "C32-H-implode-array-pieces",
+            "php": "@implode(',') of [1, [2, 3]] and ['a', ['b' => 1]], @implode(fn ($v) => [$v], ',') of [1, 2], and @implode('a', ',') of [['a' => [1]], ['a' => 2]]",
+            "value": [
+                "1,Array",
+                "a,Array",
+                "Array,Array",
+                "Array,2"
+            ]
+        },
+        {
+            "label": "C32-H-implode-object-pieces",
+            "php": "implode(',') of [1, new stdClass], [1, new DateTime('@0')], [1, fn () => 1], [1, new C32HToString('T')] and [1, new Collection([2])], then implode(fn () => new stdClass, ',') of [1, 2] and implode('a', ',') of [['a' => new stdClass]]",
+            "value": [
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                [
+                    "Error",
+                    "Object of class DateTime could not be converted to string"
+                ],
+                [
+                    "Error",
+                    "Object of class Closure could not be converted to string"
+                ],
+                "1,S:T",
+                "1,[2]",
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ]
+            ]
+        },
+        {
             "label": "C32-H-join-null-last-item",
             "php": "(new Collection(['a', null]))->join(', ', ' and ')",
             "value": "a and "
@@ -9740,6 +10808,18 @@
             "label": "C32-H-join-float-casts",
             "php": "(new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->join(', ', ' and ')",
             "value": "0.3, 1, 1.0E+25 and -0"
+        },
+        {
+            "label": "C32-H-join-array-and-object-pieces",
+            "php": "@join(', ', ' and ') of [1, [2]] and [1, [2], 3], then join(', ', ' and ') of [1, new stdClass]",
+            "value": [
+                "1 and Array",
+                "1, Array and 3",
+                [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ]
+            ]
         },
         {
             "label": "C32-H-reduce-no-initial-trace",

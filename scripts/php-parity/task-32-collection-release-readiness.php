@@ -238,6 +238,10 @@ probe('C32-A-ensure-debug-type-names', "the message collect([\$item])->ensure('s
 }, [1, 1.5, NAN, true, ['a' => 1]]));
 probe('C32-A-ensure-array-accepts-assoc', "collect([['a' => 1]])->ensure('array')->count()", fn () => collect([['a' => 1]])->ensure('array')->count());
 probe('C32-A-ensure-class-name-string', "collect([new C32AChild])->ensure('C32AChild')->count()", fn () => collect([new C32AChild])->ensure('C32AChild')->count());
+probe('C32-A-ensure-closure-and-anonymous-class-names', "the message collect([\$item])->ensure('int') throws for new class {} and fn () => 1, then collect([fn () => 1])->ensure(Closure::class)->count()", fn () => [
+    ...array_map(fn ($item) => c32c_outcome(fn () => collect([$item])->ensure('int')), [new class {}, fn () => 1]),
+    collect([fn () => 1])->ensure(Closure::class)->count(),
+]);
 
 // ---- Family B ------------------------------------------------------------
 
@@ -309,6 +313,68 @@ probe('C32-B-pull-float-key-exists-as-its-string-form', "@pull(1.5) on collect([
 });
 probe('C32-B-pad-past-a-string-key-order', "\$c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); keys/values", function () { $c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
 probe('C32-B-put-int-key-onto-string-keyed-order', "\$c = collect(['a' => 1]); \$c->put(0, 'z'); keys/values/last", function () { $c = collect(['a' => 1]); $c->put(0, 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
+
+// splice: a keyed backing and a replacement, each in the order PHP's array holds it
+probe('C32-B-splice-keyed-order', "splice(1, 0, ['p', 'q']) on collect(['a' => 1, 'b' => 2]) and splice(1, 1, ['p']) on collect(['a' => 1, 'b' => 2, 'c' => 3]): keys/values/first and the removed items", fn () => array_map(function (array $call) {
+    [$items, $length, $replacement] = $call;
+    $c = collect($items);
+    $removed = $c->splice(1, $length, $replacement);
+
+    return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'first' => $c->first(), 'removed' => $removed->all()];
+}, [[['a' => 1, 'b' => 2], 0, ['p', 'q']], [['a' => 1, 'b' => 2, 'c' => 3], 1, ['p']]]));
+probe('C32-B-splice-replacement-order', "splice(1, 0, [2 => 'c', 0 => 'a', 1 => 'b']) on collect(['x', 'y']) and on collect(['a' => 1, 'b' => 2]): keys/values", fn () => array_map(function (array $items) {
+    $c = collect($items);
+    $c->splice(1, 0, [2 => 'c', 0 => 'a', 1 => 'b']);
+
+    return ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
+}, [['x', 'y'], ['a' => 1, 'b' => 2]]));
+
+// pull: a dot path read and removed through the array an item holds
+probe('C32-B-pull-dot-path-through-nested-arrays', "pull('a.b'), pull('a.b.c'), pull('a.2') and pull('a.z', 'd') through the array under 'a': what each returns, and the keys and values 'a' holds after", fn () => array_map(function (array $call) {
+    [$items, $key, $default] = $call;
+    $c = collect($items);
+    $returned = $c->pull($key, $default);
+
+    return ['returned' => $returned, 'keys' => array_keys($c->get('a')), 'values' => array_values($c->get('a'))];
+}, [
+    [['a' => ['b' => 1, 'c' => 2]], 'a.b', null],
+    [['a' => ['b' => ['c' => 1, 'd' => 2]]], 'a.b.c', null],
+    [['a' => [2 => 'x', 0 => 'y', 1 => 'z']], 'a.2', null],
+    [['a' => ['b' => 1]], 'a.z', 'd'],
+]));
+
+// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
+$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
+$illegalKeys = ['array' => ['a'], 'object' => new stdClass, 'closure' => fn () => 1];
+probe('C32-B-put-illegal-key', "put(\$key, 9) and offsetSet(\$key, 9) over collect(['a', 'b']) and collect(['a' => 1, 'b' => 2]), for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => [
+    'put' => $overBackings(fn (Collection $c) => $c->put($key, 9)->all()),
+    'offsetSet' => $overBackings(fn (Collection $c) => $c->offsetSet($key, 9)),
+], $illegalKeys));
+probe('C32-B-get-illegal-key', "get(\$key) and getOrPut(\$key, 9) over both backings, for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => [
+    'get' => $overBackings(fn (Collection $c) => $c->get($key)),
+    'getOrPut' => $overBackings(fn (Collection $c) => $c->getOrPut($key, 9)),
+], $illegalKeys));
+probe('C32-B-has-illegal-key', "has([['a']]), has([\$first, ['b']]) and has(['zz', ['b']]) over both backings, \$first the backing's first key", fn () => [
+    $overBackings(fn (Collection $c) => $c->has([['a']])),
+    $overBackings(fn (Collection $c) => $c->has([$c->keys()->first(), ['b']])),
+    $overBackings(fn (Collection $c) => $c->has(['zz', ['b']])),
+]);
+probe('C32-B-hasAny-illegal-key', "hasAny([['a']]), hasAny([\$first, ['b']]) and hasAny(['zz', ['b']]) over both backings, \$first the backing's first key, then hasAny([['a']]) over collect([])", fn () => [
+    $overBackings(fn (Collection $c) => $c->hasAny([['a']])),
+    $overBackings(fn (Collection $c) => $c->hasAny([$c->keys()->first(), ['b']])),
+    $overBackings(fn (Collection $c) => $c->hasAny(['zz', ['b']])),
+    collect([])->hasAny([['a']]),
+]);
+probe('C32-B-forget-illegal-key', "forget([\$key]) over both backings for \$key = ['a'], new stdClass and fn () => 1, then forget([\$first, ['b']]) with \$first the backing's first key", fn () => [
+    'keys' => array_map(fn ($key) => $overBackings(fn (Collection $c) => $c->forget([$key])->all()), $illegalKeys),
+    'after-a-legal-key' => $overBackings(fn (Collection $c) => $c->forget([$c->keys()->first(), ['b']])->all()),
+]);
+probe('C32-B-offset-illegal-key', "offsetGet(\$key), offsetExists(\$key) and offsetUnset(\$key) over both backings, for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => [
+    'offsetGet' => $overBackings(fn (Collection $c) => $c->offsetGet($key)),
+    'offsetExists' => $overBackings(fn (Collection $c) => $c->offsetExists($key)),
+    'offsetUnset' => $overBackings(fn (Collection $c) => $c->offsetUnset($key)),
+], $illegalKeys));
+probe('C32-B-pull-illegal-key', "pull(\$key) over both backings, for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => $overBackings(fn (Collection $c) => $c->pull($key)), $illegalKeys));
 
 // ---- Family C ------------------------------------------------------------
 
@@ -714,6 +780,11 @@ probe('C32-D-whereNotIn-true-loose', "whereNotIn('v', [true]) over v = 'x', 1, 0
 probe('C32-D-whereNotInStrict-array', "whereNotInStrict('v', [[1, 2]]) over v = [1, 2], ['1', '2']", fn () => $vs([[1, 2], ['1', '2']])->whereNotInStrict('v', [[1, 2]])->keys()->all());
 probe('C32-D-whereIn-collection-values', "whereIn('v', new Collection(['a' => 1, 'b' => 3])) over v = 1..4", fn () => $vs([1, 2, 3, 4])->whereIn('v', new Collection(['a' => 1, 'b' => 3]))->keys()->all());
 probe('C32-D-whereIn-null-key', "(new Collection([1, 2, 3]))->whereIn(null, [1, 3])", fn () => pairs((new Collection([1, 2, 3]))->whereIn(null, [1, 3])));
+probe('C32-D-whereIn-numbers-and-strings-loose', "whereIn('v', [1, '2', ' 3', '4 ', 'abc', '0.5']) over v = 1, '1', '1.0', 2, '02', 3, '3', 4, 'ABC', 'abc', 0.5, '.5', '5'", fn () => $vs([1, '1', '1.0', 2, '02', 3, '3', 4, 'ABC', 'abc', 0.5, '.5', '5'])->whereIn('v', [1, '2', ' 3', '4 ', 'abc', '0.5'])->keys()->all());
+probe('C32-D-whereIn-integer-strings-past-2-53-loose', "whereIn('v', ['9007199254740993']) over v = 9007199254740992, '9007199254740993', '9007199254740993.0', '9007199254740992'", fn () => $vs([9007199254740992, '9007199254740993', '9007199254740993.0', '9007199254740992'])->whereIn('v', ['9007199254740993'])->keys()->all());
+probe('C32-D-whereIn-inf-loose', "whereIn('v', ['INF', '1e999']) over v = INF, 'INF', '1e999', '1e1000', 'inf'", fn () => $vs([INF, 'INF', '1e999', '1e1000', 'inf'])->whereIn('v', ['INF', '1e999'])->keys()->all());
+probe('C32-D-whereNotIn-numbers-and-strings-loose', "whereNotIn('v', [1, 'abc']) over v = 1, '1', 'abc', 'ABC', 2, true", fn () => $vs([1, '1', 'abc', 'ABC', 2, true])->whereNotIn('v', [1, 'abc'])->keys()->all());
+probe('C32-D-whereInStrict-scalars', "whereInStrict('v', [1, '2', null, NAN]) over v = 1, '1', 2, '2', null, false, NAN", fn () => $vs([1, '1', 2, '2', null, false, NAN])->whereInStrict('v', [1, '2', null, NAN])->keys()->all());
 
 // whereBetween: reset()/end() on the given values
 probe('C32-D-whereBetween-three-values', "whereBetween('v', [1, 5, 3]) over v = 0..6", fn () => $vs([0, 1, 2, 3, 4, 5, 6])->whereBetween('v', [1, 5, 3])->keys()->all());
@@ -1384,6 +1455,11 @@ probe('C32-F-operand-out-of-order', "collect([1])->crossJoin([2 => 'c', 0 => 'a'
     'combine' => $fKeysValues(collect(['x', 'y'])->combine([2 => 'c', 0 => 'a'])),
 ]);
 
+probe('C32-F-concat-map-order', "collect(['x'])->concat(\$m)->all() and collect(['x'])->concat(collect(\$m))->all(), \$m = [2 => 'c', 0 => 'a', 1 => 'b']", fn () => [
+    collect(['x'])->concat([2 => 'c', 0 => 'a', 1 => 'b'])->all(),
+    collect(['x'])->concat(collect([2 => 'c', 0 => 'a', 1 => 'b']))->all(),
+]);
+
 // ---- Family G ------------------------------------------------------------
 
 // Key-preserving probes return [[key, value], ...] so integer keys and order survive json_encode.
@@ -1441,6 +1517,10 @@ probe('C32-G-sortKeysUsing-key-types', "(new Collection(['a', 'b', 'c']))->sortK
 });
 probe('C32-G-sortKeysUsing-int-keys-desc', "(new Collection([5 => 'e', 2 => 'b', 9 => 'z']))->sortKeysUsing(fn (\$a, \$b) => \$b <=> \$a)->values()->all()",
     fn () => (new Collection([5 => 'e', 2 => 'b', 9 => 'z']))->sortKeysUsing(fn ($a, $b) => $b <=> $a)->values()->all());
+probe('C32-G-sortKeysUsing-fractional-answers', "(new Collection(['c' => 1, 'a' => 2, 'b' => 3]))->sortKeysUsing(fn (\$x, \$y) => \$x < \$y ? -\$step : (\$x > \$y ? \$step : 0))->keys()->all() for \$step = 0.5 and 1.5", fn () => array_map(
+    fn (float $step) => (new Collection(['c' => 1, 'a' => 2, 'b' => 3]))->sortKeysUsing(fn ($x, $y) => $x < $y ? -$step : ($x > $y ? $step : 0))->keys()->all(),
+    [0.5, 1.5],
+));
 probe('C32-G-split-int-keys-renumber', "(new Collection([5 => 'a', 6 => 'b', 7 => 'c']))->split(2)",
     fn () => $pairs((new Collection([5 => 'a', 6 => 'b', 7 => 'c']))->split(2)));
 probe('C32-G-split-assoc-keys', "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->split(2)",
@@ -1631,6 +1711,7 @@ probe('C32-H-sum-leading-numeric-string', "@(new Collection([1, '2abc']))->sum()
 probe('C32-H-sum-array-items', "(new Collection([[1], [2]]))->sum()", fn () => (new Collection([[1], [2]]))->sum());
 probe('C32-H-sum-object-item', "(new Collection([new stdClass]))->sum()", fn () => (new Collection([new stdClass]))->sum());
 probe('C32-H-sum-float-total-non-numeric-string', "(new Collection([1.5, 'a']))->sum()", fn () => (new Collection([1.5, 'a']))->sum());
+probe('C32-H-sum-closure-item', "(new Collection([1, fn () => 1]))->sum()", fn () => (new Collection([1, fn () => 1]))->sum());
 
 // avg
 probe('C32-H-avg-non-numeric-string', "(new Collection([10, 'house', 20]))->avg()", fn () => (new Collection([10, 'house', 20]))->avg());
@@ -1681,11 +1762,32 @@ probe('C32-H-implode-nested-collections-by-key', "(new Collection([new Collectio
 probe('C32-H-implode-collection-rows-by-backing', "c32c_rows(list | keyed)->implode('k', ',')", fn () => array_map(fn (bool $keyed) => c32c_rows($keyed)->implode('k', ','), ['list' => false, 'keyed' => true]));
 probe('C32-H-implode-float-casts', "(new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->implode(',')", fn () => (new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->implode(','));
 probe('C32-H-implode-callback-casts', "(new Collection([1, 2]))->implode(fn (\$v) => \$v > 1, ',')", fn () => (new Collection([1, 2]))->implode(fn ($v) => $v > 1, ','));
+probe('C32-H-implode-date-items-are-plucked', "(new Collection([new DateTime('@0'), new DateTime('@1')]))->implode(', ')", fn () => (new Collection([new DateTime('@0'), new DateTime('@1')]))->implode(', '));
+probe('C32-H-implode-array-pieces', "@implode(',') of [1, [2, 3]] and ['a', ['b' => 1]], @implode(fn (\$v) => [\$v], ',') of [1, 2], and @implode('a', ',') of [['a' => [1]], ['a' => 2]]", fn () => [
+    @(new Collection([1, [2, 3]]))->implode(','),
+    @(new Collection(['a', ['b' => 1]]))->implode(','),
+    @(new Collection([1, 2]))->implode(fn ($v) => [$v], ','),
+    @(new Collection([['a' => [1]], ['a' => 2]]))->implode('a', ','),
+]);
+probe('C32-H-implode-object-pieces', "implode(',') of [1, new stdClass], [1, new DateTime('@0')], [1, fn () => 1], [1, new C32HToString('T')] and [1, new Collection([2])], then implode(fn () => new stdClass, ',') of [1, 2] and implode('a', ',') of [['a' => new stdClass]]", fn () => [
+    c32c_outcome(fn () => (new Collection([1, new stdClass]))->implode(',')),
+    c32c_outcome(fn () => (new Collection([1, new DateTime('@0')]))->implode(',')),
+    c32c_outcome(fn () => (new Collection([1, fn () => 1]))->implode(',')),
+    (new Collection([1, new C32HToString('T')]))->implode(','),
+    (new Collection([1, new Collection([2])]))->implode(','),
+    c32c_outcome(fn () => (new Collection([1, 2]))->implode(fn () => new stdClass, ',')),
+    c32c_outcome(fn () => (new Collection([['a' => new stdClass]]))->implode('a', ',')),
+]);
 
 // join
 probe('C32-H-join-null-last-item', "(new Collection(['a', null]))->join(', ', ' and ')", fn () => (new Collection(['a', null]))->join(', ', ' and '));
 probe('C32-H-join-bool-items', "(new Collection([true, false, true]))->join(', ', ' and ')", fn () => (new Collection([true, false, true]))->join(', ', ' and '));
 probe('C32-H-join-float-casts', "(new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->join(', ', ' and ')", fn () => (new Collection([0.1 + 0.2, 1.0, 1e25, -0.0]))->join(', ', ' and '));
+probe('C32-H-join-array-and-object-pieces', "@join(', ', ' and ') of [1, [2]] and [1, [2], 3], then join(', ', ' and ') of [1, new stdClass]", fn () => [
+    @(new Collection([1, [2]]))->join(', ', ' and '),
+    @(new Collection([1, [2], 3]))->join(', ', ' and '),
+    c32c_outcome(fn () => (new Collection([1, new stdClass]))->join(', ', ' and ')),
+]);
 
 // reduce without an initial value: $initial = null, every item reaches the callback
 probe('C32-H-reduce-no-initial-trace', "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn (\$c, \$v, \$k) => \$v)", function () { $seen = []; (new Collection([10, 20, 30]))->reduce(function ($c, $v, $k) use (&$seen) { $seen[] = [$c, $v, $k]; return $v; }); return $seen; });
