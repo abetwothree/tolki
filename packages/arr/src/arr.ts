@@ -30,14 +30,20 @@ import type {
     ArrayResolvePathOrDefault,
     ArrayResolvePathOrNull,
     CaseValue,
+    CollapsedObject,
     EnsureArray,
     FlatArrayValue,
+    MapArrayKey,
     NonNullableArray,
+    NonObjectItems,
+    ObjectFlatValue,
+    ObjectValue,
     PathKey,
     PathKeys,
     PluckValue,
     SetObjectPath,
     SortSpec,
+    SpreadArgs,
     TruthyArray,
     UndotArrayKey,
     UndotResult,
@@ -183,6 +189,22 @@ type ArraySetPathResult<
               : (TValue | ArraySetPathElement<TValue, TRest, TSetValue>)[]
           : ArraySetPathListElement<TValue>
     : TValue[];
+
+// DotLeaf (dot): with no depth, dot() walks every list and plain object down to its leaves, keeping a Date, Map, Set,
+// Promise or function whole; a keyless object type may hold anything. A type can't tell a class instance, which the
+// walk also keeps whole, from a plain object, so it walks one.
+type DotLeaf<T, D extends number = 5> = [D] extends [never]
+    ? unknown
+    : T extends readonly (infer E)[]
+      ? DotLeaf<E, DotDepth[D]>
+      : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+        ? T
+        : T extends object
+          ? [keyof T] extends [never]
+              ? unknown
+              : DotLeaf<ObjectValue<T>, DotDepth[D]>
+          : T;
+type DotDepth = [never, 0, 1, 2, 3, 4];
 
 const sortSpecComparator = createSortSpecComparator((item, key) =>
     getNestedValue(item, key as PropertyKey),
@@ -587,12 +609,13 @@ export function chunkBy<TValue>(
  * collapse([[1, 2], { x: 1 }]) -> { 0: 1, 1: 2, x: 1 }
  */
 export function collapse<TValue>(data: TValue[][]): TValue[];
-export function collapse<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: Record<TKey, TValue>[],
-): Record<TKey, TValue>;
 export function collapse<TValue extends ArrayItems<ArrayItems<unknown>>>(
     data: TValue,
 ): ArrayInnerValue<TValue[number]>[];
+// A plain object among the items hands the whole list to obj.collapse, so it answers what that answers for a list.
+export function collapse<TItem extends object>(
+    data: ArrayItems<TItem>,
+): CollapsedObject<Record<number, TItem>>;
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[];
@@ -745,7 +768,7 @@ export function divide<TValue>(array: readonly TValue[]): [number[], TValue[]] {
 export function dot<TValue>(
     data: readonly TValue[],
     prepend?: string,
-): Record<string, FlatArrayValue<TValue>>;
+): Record<string, DotLeaf<TValue>>;
 export function dot<TValue>(
     data: readonly TValue[],
     prepend: string,
@@ -1350,7 +1373,11 @@ export function take<TValue>(
  * flatten([1, [2, [3, 4]], 5]); -> [1, 2, 3, 4, 5]
  * flatten([1, [2, [3, 4]], 5], 1); -> [1, 2, [3, 4], 5]
  */
-export function flatten<TValue>(data: TValue[][], depth?: number): TValue[];
+// With no depth every level flattens, a plain object to its values. The depth rows below still answer one level.
+export function flatten<TValue>(
+    data: ArrayItems<TValue>,
+): ObjectFlatValue<TValue>[];
+export function flatten<TValue>(data: TValue[][], depth: number): TValue[];
 // Overload: readonly-of-readonly 2D array → flattened one level, matching
 // the mutable `TValue[][]` overload above. Must sit above the single-level
 // `TValue[]` overload below, which would otherwise catch it by inferring
@@ -1358,9 +1385,9 @@ export function flatten<TValue>(data: TValue[][], depth?: number): TValue[];
 // un-flattened at the type level.
 export function flatten<TValue>(
     data: ArrayItems<ArrayItems<TValue>>,
-    depth?: number,
+    depth: number,
 ): TValue[];
-export function flatten<TValue>(data: TValue[], depth?: number): TValue[];
+export function flatten<TValue>(data: TValue[], depth: number): TValue[];
 export function flatten(
     data: readonly unknown[] | null | undefined,
     depth?: number,
@@ -2046,13 +2073,23 @@ export function join<TValue>(
  * keyBy([{name: 'John'}, {name: 'Jane'}], (item) => item.name); -> {John: {name: 'John'}, Jane: {name: 'Jane'}}
  * keyBy([{name: 'John'}], (item, index) => `k${index}`); -> {k0: {name: 'John'}}
  */
-// Overload: array type with callback for proper type inference
-export function keyBy<TValue extends object>(
+// The callback row comes before the path row: there a callback would also be inferred to the bare `P`, which then
+// falls back to the whole `string`.
+export function keyBy<
+    TValue extends object,
+    R extends string | number | null | undefined,
+>(
     data: ArrayItems<TValue>,
-    keyBy:
-        | ((item: TValue, key: number) => string | number | null | undefined)
-        | string,
-): Record<string, TValue>;
+    keyBy: (item: TValue, key: number) => R,
+): Record<MapArrayKey<R>, TValue>;
+export function keyBy<
+    TValue extends object,
+    R extends string | number | null | undefined = never,
+    P extends string = never,
+>(
+    data: ArrayItems<TValue>,
+    keyBy: P | ((item: TValue, key: number) => R),
+): Record<MapArrayKey<R | PluckValue<TValue, P>>, TValue>;
 // Overload: untyped array or nullish fallback. `Record<string, unknown>`, not the
 // unresolved `TValue`: that row answered `Record<string, object>`, which permits no read.
 export function keyBy<TValue extends object>(
@@ -2585,6 +2622,11 @@ export function mapSpread<T1, T2, T3, T4, T5, TMapReturn>(
         arg5: T5,
         index: number,
     ) => TMapReturn,
+): TMapReturn[];
+// Any other list row: one fixed length spreads by position; otherwise each argument may be any item or the index.
+export function mapSpread<TRow extends readonly unknown[], TMapReturn>(
+    data: ArrayItems<TRow>,
+    callback: (...args: SpreadArgs<TRow, number>) => TMapReturn,
 ): TMapReturn[];
 export function mapSpread<TMapReturn>(
     data: readonly unknown[] | null | undefined,

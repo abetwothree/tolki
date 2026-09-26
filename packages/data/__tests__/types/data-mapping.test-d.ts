@@ -212,6 +212,32 @@ describe("data mapping type tests", () => {
                 return 1;
             });
         });
+
+        it("hands each backing's callback its rows' items and then the key, for rows of open length", () => {
+            const grid: number[][] = [[1, 2], [3]];
+            const gridById: Record<"g1" | "g2", number[]> = {
+                g1: [1, 2],
+                g2: [3],
+            };
+
+            expectTypeOf(
+                Data.dataMapSpread(grid, (first, second) => first + second),
+            ).toEqualTypeOf(
+                Arr.mapSpread(grid, (first, second) => first + second),
+            );
+            // The key's position varies with the row's length, so each argument may be either.
+            Data.dataMapSpread(grid, (first, second, index) => {
+                expectTypeOf(first).toEqualTypeOf<number>();
+                expectTypeOf(second).toEqualTypeOf<number>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+                return first;
+            });
+            Data.dataMapSpread(gridById, (first, second) => {
+                expectTypeOf(first).toEqualTypeOf<number | "g1" | "g2">();
+                expectTypeOf(second).toEqualTypeOf<number | "g1" | "g2">();
+                return first;
+            });
+        });
     });
 
     describe("dataMapWithKeys, which dispatch cannot serve yet", () => {

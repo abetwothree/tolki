@@ -1,4 +1,5 @@
 import * as Arr from "@tolki/arr";
+import * as Obj from "@tolki/obj";
 import type { UndotValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -1852,7 +1853,38 @@ describe("arr type tests", () => {
             });
         });
 
-        describe("array of records → merged record (overload 2: Record<TKey, TValue>[] → Record<TKey, TValue>)", () => {
+        describe("array of records → the record obj.collapse merges them into", () => {
+            it("merges a list of records into one record of their keys, each optional", () => {
+                expectTypeOf(
+                    Arr.collapse([{ a: 1 }, { b: "x" }]),
+                ).toEqualTypeOf<{
+                    a?: number;
+                    b?: string;
+                }>();
+            });
+
+            it("answers what obj.collapse answers for the list the runtime hands it", () => {
+                const rows: { id: number; name: string }[] = [
+                    { id: 1, name: "Ada" },
+                ];
+
+                expectTypeOf(Arr.collapse(rows)).toEqualTypeOf(
+                    Obj.collapse(rows),
+                );
+                expectTypeOf(Arr.collapse(rows)).toEqualTypeOf<{
+                    id?: number;
+                    name?: string;
+                }>();
+            });
+
+            it("answers a loose record once a list sits among the records", () => {
+                const data: (number[] | { x: number })[] = [[1], { x: 2 }];
+
+                expectTypeOf(Arr.collapse(data)).toEqualTypeOf<
+                    Record<string | number, unknown>
+                >();
+            });
+
             it("merges explicitly typed Record array into single record", () => {
                 const data: Record<string, number>[] = [
                     { a: 1, b: 2 },
@@ -1891,14 +1923,17 @@ describe("arr type tests", () => {
                 >();
             });
 
-            it("merges inline objects with same-shape keys via broadest overload", () => {
+            it("merges inline objects with different keys into one record", () => {
                 const result = Arr.collapse([
                     { a: 1, b: 2 },
                     { c: 3, d: 4 },
                 ]);
-                expectTypeOf(result).toExtend<
-                    Record<string, unknown> | unknown[]
-                >();
+                expectTypeOf(result).toEqualTypeOf<{
+                    a?: number;
+                    b?: number;
+                    c?: number;
+                    d?: number;
+                }>();
             });
         });
 
@@ -2810,15 +2845,25 @@ describe("arr type tests", () => {
                     { name: "Bob", age: 25 },
                 ]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, { name: string; age: number }>
+                    Record<string, string | number>
                 >();
             });
 
             it("flattens nested array of objects without depth", () => {
                 const result = Arr.dot([[{ id: 1 }], [{ id: 2 }]]);
-                expectTypeOf(result).toEqualTypeOf<
-                    Record<string, { id: number }>
+                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+            });
+
+            it("reaches the leaves of objects and lists nested in each other", () => {
+                expectTypeOf(Arr.dot([{ a: [1, { b: "x" }] }])).toEqualTypeOf<
+                    Record<string, number | string>
                 >();
+            });
+
+            it("keeps a Date or a Map inside an object as a leaf, as the walk does", () => {
+                expectTypeOf(
+                    Arr.dot([{ d: new Date(), m: new Map<string, number>() }]),
+                ).toEqualTypeOf<Record<string, Date | Map<string, number>>>();
             });
         });
 
@@ -2866,7 +2911,7 @@ describe("arr type tests", () => {
                 ];
                 const result = Arr.dot(items);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, { id: number; name: string }>
+                    Record<string, number | string>
                 >();
             });
 
@@ -2936,7 +2981,7 @@ describe("arr type tests", () => {
             it("handles deeply nested mixed structures without depth", () => {
                 const result = Arr.dot([1, ["hello", [true, [{ id: 1 }]]]]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number | string | boolean | { id: number }>
+                    Record<string, number | string | boolean>
                 >();
             });
         });
@@ -5919,7 +5964,7 @@ describe("arr type tests", () => {
         });
 
         describe("object arrays", () => {
-            it("returns object type[] for array of objects", () => {
+            it("flattens an array of objects to their values", () => {
                 interface User {
                     id: number;
                     name: string;
@@ -5931,16 +5976,17 @@ describe("arr type tests", () => {
                     ],
                 ];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<User[]>();
+                // A plain object flattens to its values, as PHP's array does.
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
             });
 
-            it("returns Record[] for array of records", () => {
+            it("flattens an array of records to their values", () => {
                 const data: Record<string, number>[][] = [[{ a: 1 }, { b: 2 }]];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>[]>();
+                expectTypeOf(result).toEqualTypeOf<number[]>();
             });
 
-            it("returns deeply nested object types", () => {
+            it("flattens deeply nested objects to their leaves", () => {
                 interface Order {
                     id: number;
                     items: { product: string; qty: number }[];
@@ -5956,12 +6002,12 @@ describe("arr type tests", () => {
                     ],
                 ];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<Order[]>();
+                expectTypeOf(result).toEqualTypeOf<(number | string)[]>();
             });
         });
 
         describe("complex data structures", () => {
-            it("returns tuple[] for array of tuple arrays", () => {
+            it("flattens an array of tuple arrays to the tuples' items", () => {
                 const data: [string, number][][] = [
                     [
                         ["a", 1],
@@ -5969,7 +6015,7 @@ describe("arr type tests", () => {
                     ],
                 ];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<[string, number][]>();
+                expectTypeOf(result).toEqualTypeOf<(string | number)[]>();
             });
 
             it("returns Map[] for array of Map arrays", () => {
@@ -6008,7 +6054,7 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<Promise<string>[]>();
             });
 
-            it("handles discriminated union arrays", () => {
+            it("flattens discriminated union rows to their values", () => {
                 type Shape =
                     | { kind: "circle"; radius: number }
                     | { kind: "square"; side: number };
@@ -6017,7 +6063,9 @@ describe("arr type tests", () => {
                     [{ kind: "square", side: 10 }],
                 ];
                 const result = Arr.flatten(data);
-                expectTypeOf(result).toEqualTypeOf<Shape[]>();
+                expectTypeOf(result).toEqualTypeOf<
+                    ("circle" | "square" | number)[]
+                >();
             });
         });
 
@@ -6040,14 +6088,22 @@ describe("arr type tests", () => {
                 expectTypeOf(result).toEqualTypeOf<string[]>();
             });
 
-            it("from 3D infers as inner-2D type via 2D overload", () => {
+            it("flattens 3D number arrays all the way to number[]", () => {
                 const data: number[][][] = [
                     [[1, 2], [3]],
                     [[4, 5], [6]],
                 ];
                 const result = Arr.flatten(data);
-                // 2D overload matches: TValue = number[], returns number[][]
-                expectTypeOf(result).toEqualTypeOf<number[][]>();
+                expectTypeOf(result).toEqualTypeOf<number[]>();
+            });
+
+            it("flattens mixed nesting all the way down", () => {
+                expectTypeOf(Arr.flatten([[1, [2, [3]]]])).toEqualTypeOf<
+                    number[]
+                >();
+                expectTypeOf(Arr.flatten([[1, [2, { a: "x" }]]])).toEqualTypeOf<
+                    (number | string)[]
+                >();
             });
         });
 
@@ -6072,8 +6128,8 @@ describe("arr type tests", () => {
         });
 
         describe("generic type propagation", () => {
-            it("preserves generic type through wrapper function", () => {
-                function flattenItems<T>(items: T[][]): T[] {
+            it("carries a generic type through a wrapper function", () => {
+                function flattenItems<T>(items: T[][]) {
                     return Arr.flatten(items);
                 }
                 const result = flattenItems([
@@ -6084,7 +6140,7 @@ describe("arr type tests", () => {
             });
 
             it("works with inferred generic", () => {
-                function flatWrapper<T>(data: T[]): T[] {
+                function flatWrapper<T>(data: T[]) {
                     return Arr.flatten(data);
                 }
                 const result = flatWrapper(["x", "y", "z"]);

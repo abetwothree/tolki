@@ -182,6 +182,36 @@ describe("arr mapping type tests", () => {
             >();
         });
 
+        it("types each argument as any item or the index for rows of open length", () => {
+            const data: number[][] = [
+                [1, 2],
+                [3, 4],
+            ];
+            const result = Arr.mapSpread(data, (first, second, index) => {
+                expectTypeOf(first).toEqualTypeOf<number>();
+                expectTypeOf(second).toEqualTypeOf<number>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+                return first;
+            });
+            expectTypeOf(result).toEqualTypeOf<number[]>();
+
+            const words: string[][] = [["a", "b"]];
+            Arr.mapSpread(words, (first, second) => {
+                expectTypeOf(first).toEqualTypeOf<string | number>();
+                expectTypeOf(second).toEqualTypeOf<string | number>();
+                return first;
+            });
+        });
+
+        it("types each argument as any item or the index for rows of differing lengths", () => {
+            const data: ([number] | [number, string])[] = [[1], [2, "b"]];
+            Arr.mapSpread(data, (first, second) => {
+                expectTypeOf(first).toEqualTypeOf<number | string>();
+                expectTypeOf(second).toEqualTypeOf<number | string>();
+                return first;
+            });
+        });
+
         it("falls back to the variadic overload beyond five elements", () => {
             const data: number[][] = [[1, 2, 3, 4, 5, 6]];
             const result = Arr.mapSpread(

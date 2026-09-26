@@ -24,10 +24,13 @@ describe("arr keying type tests", () => {
             >();
         });
 
-        it("preserves the element type with a string key", () => {
-            const result = Arr.keyBy(users, "id");
-            expectTypeOf(result).toEqualTypeOf<
-                Record<string, { id: number; name: string }>
+        it("keys by a field's value as PHP stores that key, keeping the element type", () => {
+            expectTypeOf(Arr.keyBy(users, "id")).toEqualTypeOf<
+                Record<number, { id: number; name: string }>
+            >();
+            // A string value such as "10" is stored as the integer 10.
+            expectTypeOf(Arr.keyBy(users, "name")).toEqualTypeOf<
+                Record<string | number, { id: number; name: string }>
             >();
         });
 
@@ -38,7 +41,23 @@ describe("arr keying type tests", () => {
                 return item.name;
             });
             expectTypeOf(result).toEqualTypeOf<
-                Record<string, { name: string }>
+                Record<string | number, { name: string }>
+            >();
+        });
+
+        it("keys by a callback's answer as PHP stores that key", () => {
+            expectTypeOf(
+                Arr.keyBy(users, (item) => (item.id > 1 ? item.id : null)),
+            ).toEqualTypeOf<
+                Record<number | "", { id: number; name: string }>
+            >();
+        });
+
+        it("takes a field or a callback held in one value", () => {
+            const keyer = "id" as "id" | ((item: { id: number }) => string);
+
+            expectTypeOf(Arr.keyBy(idObjects, keyer)).toEqualTypeOf<
+                Record<string | number, { id: number }>
             >();
         });
 
@@ -52,7 +71,7 @@ describe("arr keying type tests", () => {
         it("preserves nested object element types", () => {
             const result = Arr.keyBy(metaTagItems, "id");
             expectTypeOf(result).toEqualTypeOf<
-                Record<string, { id: number; meta: { tag: string } }>
+                Record<number, { id: number; meta: { tag: string } }>
             >();
         });
 
@@ -60,14 +79,14 @@ describe("arr keying type tests", () => {
             const data = [{ meta: { id: 1 } }];
             const result = Arr.keyBy(data, "meta.id");
             expectTypeOf(result).toEqualTypeOf<
-                Record<string, { meta: { id: number } }>
+                Record<number, { meta: { id: number } }>
             >();
         });
 
         it("accepts a readonly array", () => {
             const data: readonly { id: number }[] = idObjects;
             expectTypeOf(Arr.keyBy(data, "id")).toEqualTypeOf<
-                Record<string, { id: number }>
+                Record<number, { id: number }>
             >();
         });
     });

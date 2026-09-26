@@ -34,6 +34,19 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataKeyBy(rowList, "id")).toEqualTypeOf(
                 Arr.keyBy(rowList, "id"),
             );
+            // Stated too: the pin above would still hold if both sides answered the same wrong key.
+            expectTypeOf(Data.dataKeyBy(rowList, "id")).toEqualTypeOf<
+                Record<number, Row>
+            >();
+        });
+
+        it("matches arr.keyBy for a list given a callback", () => {
+            expectTypeOf(
+                Data.dataKeyBy(rowList, (row) => row.name),
+            ).toEqualTypeOf(Arr.keyBy(rowList, (row) => row.name));
+            expectTypeOf(
+                Data.dataKeyBy(rowList, (row) => row.name),
+            ).toEqualTypeOf<Record<string | number, Row>>();
         });
 
         it("matches obj.keyBy for a record", () => {
@@ -107,6 +120,16 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataDot(nestedRecord, "p", 1)).toEqualTypeOf(
                 Obj.dot(nestedRecord, "p", 1),
             );
+        });
+
+        it("matches arr.dot for a list of records, whose leaves are the records' values", () => {
+            expectTypeOf(Data.dataDot(rowList)).toEqualTypeOf(Arr.dot(rowList));
+            expectTypeOf(Data.dataDot(rowList)).toEqualTypeOf<
+                Record<string, number | string>
+            >();
+            expectTypeOf(Data.dataDot([{ a: 1 }])).toEqualTypeOf<
+                Record<string, number>
+            >();
         });
 
         it("matches arr.dot for a list given a prefix and a depth", () => {

@@ -14,6 +14,7 @@ import {
     numberMapAsRecord,
     opaque,
     readonlyNumberList,
+    rowList,
     settings,
     stringList,
     unionItems,
@@ -336,6 +337,20 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataCollapse(nestedRecord)).toEqualTypeOf(
                 Obj.collapse(nestedRecord),
             );
+        });
+
+        it("matches arr.collapse for a list of records, merging their keys", () => {
+            expectTypeOf(Data.dataCollapse(rowList)).toEqualTypeOf(
+                Arr.collapse(rowList),
+            );
+            // Stated too: the pin above would still hold if both sides answered the same wrong record.
+            expectTypeOf(Data.dataCollapse(rowList)).toEqualTypeOf<{
+                id?: number;
+                name?: string;
+            }>();
+            expectTypeOf(
+                Data.dataCollapse([{ a: 1 }, { b: "x" }]),
+            ).toEqualTypeOf<{ a?: number; b?: string }>();
         });
 
         it("takes data no shape can be read off, which DataItems rejects", () => {

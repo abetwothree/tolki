@@ -403,6 +403,18 @@ describe("data slicing type tests", () => {
             );
         });
 
+        it("matches arr.flatten for a list nested more than one level deep", () => {
+            const deep = [[1, [2, [3, { a: "x" }]]]];
+
+            expectTypeOf(Data.dataFlatten(deep)).toEqualTypeOf(
+                Arr.flatten(deep),
+            );
+            // Stated too: the pin above would still hold if both sides stopped one level down.
+            expectTypeOf(Data.dataFlatten(deep)).toEqualTypeOf<
+                (number | string)[]
+            >();
+        });
+
         it("matches each backing at a bounded depth", () => {
             // The default depth is Infinity, a settled contract, so a bounded depth
             // is pinned separately to prove the argument reaches both delegates.
