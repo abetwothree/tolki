@@ -2811,6 +2811,7 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-keyed-collection-arg"
                 expect(except.all()).toEqual({ last: "Otwell" });
                 expect(except.keys().all()).toEqual(["last"]);
+                expect(except.values().all()).toEqual(["Otwell"]);
             });
 
             it("keeps every item for an empty array of keys", () => {
@@ -9218,6 +9219,8 @@ describe("Collection", () => {
                 const data = collect({ name: "taylor", email: "foo" });
                 data.put("name", "dayle");
                 expect(data.all()).toEqual({ name: "dayle", email: "foo" });
+                expect(data.keys().all()).toEqual(["name", "email"]);
+                expect(data.values().all()).toEqual(["dayle", "foo"]);
             });
 
             it("test put with no key", () => {
@@ -13905,6 +13908,7 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-keyed"
             expect(unique.all()).toEqual({ a: 1, c: 2 });
             expect(unique.keys().all()).toEqual(["a", "c"]);
+            expect(unique.values().all()).toEqual([1, 2]);
         });
 
         it("compares a key's values loosely, a dot path's included", () => {
@@ -14287,13 +14291,23 @@ describe("Collection", () => {
                     bar: 2,
                     foobar: 1,
                 });
+                expect(c.countBy().keys().all()).toEqual([
+                    "foo",
+                    "bar",
+                    "foobar",
+                ]);
+                expect(c.countBy().values().all()).toEqual([3, 2, 1]);
 
                 const d = collect([true, true, false, false, false]);
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-bools"
                 expect(d.countBy().all()).toEqual({ 1: 2, 0: 3 });
+                expect(d.countBy().keys().all()).toEqual([1, 0]);
+                expect(d.countBy().values().all()).toEqual([2, 3]);
 
                 const e = collect([1, 5, 1, 5, 5, 1]);
                 expect(e.countBy().all()).toEqual({ 1: 3, 5: 3 });
+                expect(e.countBy().keys().all()).toEqual([1, 5]);
+                expect(e.countBy().values().all()).toEqual([3, 3]);
 
                 const f = collect([
                     StaffEnum.from("James"),
@@ -14306,6 +14320,12 @@ describe("Collection", () => {
                     Joe: 1,
                     Taylor: 1,
                 });
+                expect(f.countBy().keys().all()).toEqual([
+                    "James",
+                    "Joe",
+                    "Taylor",
+                ]);
+                expect(f.countBy().values().all()).toEqual([1, 1, 1]);
             });
 
             it("test count by with key", () => {
@@ -14320,6 +14340,8 @@ describe("Collection", () => {
                     { key: "b" },
                 ]);
                 expect(c.countBy("key").all()).toEqual({ a: 4, b: 3 });
+                expect(c.countBy("key").keys().all()).toEqual(["a", "b"]);
+                expect(c.countBy("key").values().all()).toEqual([4, 3]);
 
                 const d = collect([
                     { key: TestBackedEnum.from(1) },
@@ -14328,6 +14350,8 @@ describe("Collection", () => {
                 ]);
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-key-backed-enum"
                 expect(d.countBy("key").all()).toEqual({ 1: 1, 2: 2 });
+                expect(d.countBy("key").keys().all()).toEqual([1, 2]);
+                expect(d.countBy("key").values().all()).toEqual([1, 2]);
             });
 
             it("test count by with callback", () => {
@@ -17512,6 +17536,7 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNull-keyed"
             expect(kept.all()).toEqual({ a: null, c: null });
             expect(kept.keys().all()).toEqual(["a", "c"]);
+            expect(kept.values().all()).toEqual([null, null]);
         });
     });
 
