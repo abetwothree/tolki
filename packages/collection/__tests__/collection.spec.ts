@@ -11139,6 +11139,55 @@ describe("Collection", () => {
                 // Note: JavaScript doesn't have SORT_NATURAL flag like PHP, so we skip this test case
                 // Natural sorting would require a different implementation with localeCompare numeric option
             });
+
+            it("test sort with callback", () => {
+                // CollectionTest::testSortWithCallback
+                const data = collect([5, 3, 1, 2, 4]).sort((a, b) => a - b);
+
+                expect(Object.values(data.all())).toEqual([1, 2, 3, 4, 5]);
+            });
+        });
+
+        it("runs a callback as a comparator of two items, as uasort does", () => {
+            const sorted = collect([5, 3, 1, 2, 4]).sort((a, b) => b - a);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-desc"
+            expect(sorted.values().all()).toEqual([5, 4, 3, 2, 1]);
+            // JS-only: the sort family renumbers integer keys, so a list stays a list
+            expect(sorted.all()).toEqual([5, 4, 3, 2, 1]);
+            expect(sorted.keys().all()).toEqual([0, 1, 2, 3, 4]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-rows"
+            expect(
+                collect([{ n: 2 }, { n: 1 }, { n: 3 }])
+                    .sort((a, b) => a.n - b.n)
+                    .values()
+                    .all(),
+            ).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
+        });
+
+        it("keeps string keys through a comparator sort", () => {
+            const sorted = collect({ a: 3, b: 1, c: 2 }).sort((x, y) => x - y);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-assoc"
+            expect(sorted.all()).toEqual({ b: 1, c: 2, a: 3 });
+            expect(sorted.keys().all()).toEqual(["b", "c", "a"]);
+            expect(sorted.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("keeps a Map-built collection's ties in the order it holds them", () => {
+            const sorted = collect(
+                new Map([
+                    [2, { n: 1, id: "p" }],
+                    [0, { n: 1, id: "q" }],
+                    [1, { n: 0, id: "r" }],
+                ]),
+            ).sort((a, b) => a.n - b.n);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-out-of-order"
+            expect(sorted.pluck("id").all()).toEqual(["r", "p", "q"]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 1, 2 and 0
+            expect(sorted.keys().all()).toEqual([0, 1, 2]);
         });
 
         // task-19-spaceship.json, "Collection::sort orders numeric strings

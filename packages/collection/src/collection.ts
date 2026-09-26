@@ -3216,22 +3216,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * reordered at once, so they're renumbered over the sorted sequence (same
      * policy as `sortBy`/`sortDesc`/`reverse`/`pad`/`splice`).
      *
-     * @param callback - The value extractor callback, a path key to get values from, or null for default sort
+     * @param callback - A comparator answering below, at or above zero for two items, as uasort() takes one, or null
+     * to sort the values themselves
      * @returns A new collection with the sorted items
      *
      * @example
      *
      * new Collection([3, 1, 2]).sort(); -> new Collection([1, 2, 3])
+     * new Collection([5, 3, 1, 2, 4]).sort((a, b) => b - a); -> new Collection([5, 4, 3, 2, 1])
+     * new Collection({a: 3, b: 1, c: 2}).sort((x, y) => x - y); -> new Collection({b: 1, c: 2, a: 3})
      */
-    sort(
-        callback:
-            | ((value: TValue, key: PropertyKey) => unknown)
-            | string
-            | null = null,
-    ) {
-        return this.newInstance(
-            handOver(dataSort(this.items as TValue[], callback)),
+    sort(callback: ((a: TValue, b: TValue) => number) | null = null) {
+        if (!isFunction(callback)) {
+            return this.newInstance(handOver(dataSort(this.items as TValue[])));
+        }
+
+        const entries = this.entriesInOrder().sort(([, a], [, b]) =>
+            callback(a, b),
         );
+
+        return this.newInstance(this.sortedItems(entries));
     }
 
     /**
@@ -5882,6 +5886,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const Ctor = this.constructor as new (items?: TItems) => this;
 
         return new Ctor(items);
+    }
+
+    /**
+     * Lay sorted entries out as the sort family hands them back: a list stays a list, and any other backing
+     * renumbers its integer keys over the sorted order, which a plain object cannot hold out of order.
+     *
+     * @param entries - The entries in their sorted order, each key as PHP stores it
+     * @returns The sorted items, ready for the next instance to adopt
+     */
+    protected sortedItems(
+        entries: Array<[TKey, TValue]>,
+    ): DataItems<TValue, TKey> {
+        if (isArray(this.items)) {
+            return handOver(entries.map(([, value]) => value));
+        }
+
+        return handOver(
+            sortedIntoItems(
+                entries.map(([key, value]) => [String(key), value]),
+            ) as DataItems<TValue, TKey>,
+        );
     }
 
     /**
