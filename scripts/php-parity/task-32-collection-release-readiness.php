@@ -1627,6 +1627,10 @@ probe('C32-H-sum-key-numeric-strings', "(new Collection([['foo' => '4'], ['foo' 
 probe('C32-H-sum-non-numeric-string', "(new Collection([1, 'a']))->sum()", fn () => (new Collection([1, 'a']))->sum());
 probe('C32-H-sum-null-and-bools', "[sum([1, null, 2]), sum([true, true, false])]", fn () => [(new Collection([1, null, 2]))->sum(), (new Collection([true, true, false]))->sum()]);
 probe('C32-H-sum-dot-path', "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]]]))->sum('a.b')", fn () => (new Collection([['a' => ['b' => 1]], ['a' => ['b' => 2]]]))->sum('a.b'));
+probe('C32-H-sum-leading-numeric-string', "@(new Collection([1, '2abc']))->sum()", fn () => @(new Collection([1, '2abc']))->sum());
+probe('C32-H-sum-array-items', "(new Collection([[1], [2]]))->sum()", fn () => (new Collection([[1], [2]]))->sum());
+probe('C32-H-sum-object-item', "(new Collection([new stdClass]))->sum()", fn () => (new Collection([new stdClass]))->sum());
+probe('C32-H-sum-float-total-non-numeric-string', "(new Collection([1.5, 'a']))->sum()", fn () => (new Collection([1.5, 'a']))->sum());
 
 // avg
 probe('C32-H-avg-non-numeric-string', "(new Collection([10, 'house', 20]))->avg()", fn () => (new Collection([10, 'house', 20]))->avg());
@@ -1643,10 +1647,15 @@ probe('C32-H-max-dot-path', "(new Collection([['a' => ['b' => 3]], ['a' => ['b' 
 probe('C32-H-median-numeric-strings', "[median(['10', '9', '8']), median(['10', '9'])]", fn () => [(new Collection(['10', '9', '8']))->median(), (new Collection(['10', '9']))->median()]);
 probe('C32-H-median-rows-without-key', "(new Collection([['value' => 1, 'age' => 20], ['value' => 3, 'age' => 30], ['value' => 2, 'age' => 25]]))->median()", fn () => (new Collection([['value' => 1, 'age' => 20], ['value' => 3, 'age' => 30], ['value' => 2, 'age' => 25]]))->median());
 probe('C32-H-median-array-key', "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 9]], ['a' => ['b' => 5]]]))->median(['a', 'b'])", fn () => (new Collection([['a' => ['b' => 1]], ['a' => ['b' => 9]], ['a' => ['b' => 5]]]))->median(['a', 'b']));
+probe('C32-H-median-non-numeric-middle-values', "(new Collection(['b', 'a']))->median()", fn () => (new Collection(['b', 'a']))->median());
 
-// percentage: PHP round() on the exact double; JS Math.round(x * 10^p) re-rounds after scaling.
+// percentage: PHP's round() compares the value with the double nearest its midpoint; toFixed() and Math.round() do not.
 probe('C32-H-percentage-fp-below-half', "(new Collection(range(1, 2000)))->percentage(fn (\$v) => \$v <= 9, 1)", fn () => (new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 9, 1));
 probe('C32-H-percentage-precision-zero-and-negative', "[percentage(..., 0), percentage(..., -1)] on [1, 1, 2]", fn () => [(new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 1, 0), (new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 1, -1)]);
+probe('C32-H-percentage-fp-just-below-half-rounds-up', "(new Collection(range(1, 2000)))->percentage(fn (\$v) => \$v <= 3, 1)", fn () => (new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 3, 1));
+probe('C32-H-percentage-scaled-just-short-of-whole', "(new Collection(range(1, 35)))->percentage(fn (\$v) => \$v <= 3, 15)", fn () => (new Collection(range(1, 35)))->percentage(fn ($v) => $v <= 3, 15));
+probe('C32-H-percentage-beyond-double-digits', "(new Collection(range(1, 9)))->percentage(fn (\$v) => \$v === 1, 15)", fn () => (new Collection(range(1, 9)))->percentage(fn ($v) => $v === 1, 15));
+probe('C32-H-percentage-extreme-precision', "[percentage(=== 1, -400), percentage(=== 1, 400), percentage(=== 5, 400)] on [1, 1, 2]", fn () => [(new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 1, -400), (new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 1, 400), (new Collection([1, 1, 2]))->percentage(fn ($v) => $v === 5, 400)]);
 
 // implode
 probe('C32-H-implode-class-instances-by-key', "(new Collection([new C32HUser('foo'), new C32HUser('bar')]))->implode('email', ',')", fn () => (new Collection([new C32HUser('foo'), new C32HUser('bar')]))->implode('email', ','));
@@ -1654,6 +1663,8 @@ probe('C32-H-implode-tostring-objects-are-plucked', "(new Collection([new C32HTo
 probe('C32-H-implode-scalar-casts', "(new Collection([true, false, null, 1.0, 2.50, 0]))->implode(',')", fn () => (new Collection([true, false, null, 1.0, 2.50, 0]))->implode(','));
 probe('C32-H-implode-missing-key', "(new Collection([['a' => 1], ['b' => 2]]))->implode('a', ',')", fn () => (new Collection([['a' => 1], ['b' => 2]]))->implode('a', ','));
 probe('C32-H-implode-nested-collections-by-key', "(new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ',')", fn () => (new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ','));
+probe('C32-H-implode-collection-rows-by-backing', "c32c_rows(list | keyed)->implode('k', ',')", fn () => array_map(fn (bool $keyed) => c32c_rows($keyed)->implode('k', ','), ['list' => false, 'keyed' => true]));
+probe('C32-H-implode-callback-casts', "(new Collection([1, 2]))->implode(fn (\$v) => \$v > 1, ',')", fn () => (new Collection([1, 2]))->implode(fn ($v) => $v > 1, ','));
 
 // join
 probe('C32-H-join-null-last-item', "(new Collection(['a', null]))->join(', ', ' and ')", fn () => (new Collection(['a', null]))->join(', ', ' and '));
@@ -1662,6 +1673,11 @@ probe('C32-H-join-bool-items', "(new Collection([true, false, true]))->join(', '
 // reduce without an initial value: $initial = null, every item reaches the callback
 probe('C32-H-reduce-no-initial-trace', "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn (\$c, \$v, \$k) => \$v)", function () { $seen = []; (new Collection([10, 20, 30]))->reduce(function ($c, $v, $k) use (&$seen) { $seen[] = [$c, $v, $k]; return $v; }); return $seen; });
 probe('C32-H-reduce-no-initial-single', "(new Collection([5]))->reduce(fn (\$c, \$v) => [\$c, \$v])", fn () => (new Collection([5]))->reduce(fn ($c, $v) => [$c, $v]));
+probe('C32-H-reduce-family-out-of-order', "[reduce, reduceInto, reduceSpread] joining each key and value of [2 => 'c', 0 => 'a', 1 => 'b'] onto ''", fn () => [
+    (new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->reduce(fn ($c, $v, $k) => $c.$k.$v, ''),
+    (new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->reduceInto('', function (&$c, $v, $k) { $c .= $k.$v; }),
+    (new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->reduceSpread(fn ($c, $v, $k) => [$c.$k.$v], ''),
+]);
 
 // reduceSpread
 probe('C32-H-reduceSpread-throws-boolean', "(new Collection([1]))->reduceSpread(fn () => false, null)", fn () => (new Collection([1]))->reduceSpread(fn () => false, null));
@@ -1682,6 +1698,7 @@ probe('C32-H-when-php-falsy-values', "[when('0', ...) === \$c, when([], ...) ===
 probe('C32-H-unless-php-falsy-values', "[unless('0', fn () => 'called'), unless([], fn () => 'called')]", fn () => [(new Collection([1]))->unless('0', fn () => 'called'), (new Collection([1]))->unless([], fn () => 'called')]);
 probe('C32-H-when-null-callback-throws', "(new Collection([1]))->when(true, null)", fn () => (new Collection([1]))->when(true, null));
 probe('C32-H-unless-null-callback-throws', "(new Collection([1]))->unless(false, null)", fn () => (new Collection([1]))->unless(false, null));
+probe('C32-H-when-unless-null-callback-untaken', "[\$c->when(false, null) === \$c, \$c->unless(true, null) === \$c]", function () { $c = new Collection([1]); return [$c->when(false, null) === $c, $c->unless(true, null) === $c]; });
 probe('C32-H-when-default-receives-value', "(new Collection([1]))->when(0, fn () => 'cb', fn (\$c, \$v) => var_export(\$v, true))", fn () => (new Collection([1]))->when(0, fn () => 'cb', fn ($c, $v) => var_export($v, true)));
 probe('C32-H-when-callback-returns-scalar', "[when(true, fn () => false), when(true, fn () => 42)]", fn () => [(new Collection([1]))->when(true, fn () => false), (new Collection([1]))->when(true, fn () => 42)]);
 probe('C32-H-when-closure-value', "(new Collection([1, 2]))->when(fn (\$c) => \$c->count(), fn (\$c, \$v) => \$v * 10)", fn () => (new Collection([1, 2]))->when(fn ($c) => $c->count(), fn ($c, $v) => $v * 10));

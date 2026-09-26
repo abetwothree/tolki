@@ -9443,6 +9443,29 @@
             "value": 3
         },
         {
+            "label": "C32-H-sum-leading-numeric-string",
+            "php": "@(new Collection([1, '2abc']))->sum()",
+            "value": 3
+        },
+        {
+            "label": "C32-H-sum-array-items",
+            "php": "(new Collection([[1], [2]]))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + array"
+        },
+        {
+            "label": "C32-H-sum-object-item",
+            "php": "(new Collection([new stdClass]))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + stdClass"
+        },
+        {
+            "label": "C32-H-sum-float-total-non-numeric-string",
+            "php": "(new Collection([1.5, 'a']))->sum()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: float + string"
+        },
+        {
             "label": "C32-H-avg-non-numeric-string",
             "php": "(new Collection([10, 'house', 20]))->avg()",
             "threw": "TypeError",
@@ -9506,6 +9529,12 @@
             "value": 5
         },
         {
+            "label": "C32-H-median-non-numeric-middle-values",
+            "php": "(new Collection(['b', 'a']))->median()",
+            "threw": "TypeError",
+            "message": "Unsupported operand types: int + string"
+        },
+        {
             "label": "C32-H-percentage-fp-below-half",
             "php": "(new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 9, 1)",
             "value": 0.4
@@ -9516,6 +9545,30 @@
             "value": [
                 67,
                 70
+            ]
+        },
+        {
+            "label": "C32-H-percentage-fp-just-below-half-rounds-up",
+            "php": "(new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 3, 1)",
+            "value": 0.2
+        },
+        {
+            "label": "C32-H-percentage-scaled-just-short-of-whole",
+            "php": "(new Collection(range(1, 35)))->percentage(fn ($v) => $v <= 3, 15)",
+            "value": 8.571428571428573
+        },
+        {
+            "label": "C32-H-percentage-beyond-double-digits",
+            "php": "(new Collection(range(1, 9)))->percentage(fn ($v) => $v === 1, 15)",
+            "value": 11.11111111111111
+        },
+        {
+            "label": "C32-H-percentage-extreme-precision",
+            "php": "[percentage(=== 1, -400), percentage(=== 1, 400), percentage(=== 5, 400)] on [1, 1, 2]",
+            "value": [
+                0,
+                66.66666666666666,
+                0
             ]
         },
         {
@@ -9542,6 +9595,19 @@
             "label": "C32-H-implode-nested-collections-by-key",
             "php": "(new Collection([new Collection(['a' => 'x']), new Collection(['a' => 'y'])]))->implode('a', ',')",
             "value": "x,y"
+        },
+        {
+            "label": "C32-H-implode-collection-rows-by-backing",
+            "php": "c32c_rows(list | keyed)->implode('k', ',')",
+            "value": {
+                "list": "b,a,b",
+                "keyed": "b,a,b"
+            }
+        },
+        {
+            "label": "C32-H-implode-callback-casts",
+            "php": "(new Collection([1, 2]))->implode(fn ($v) => $v > 1, ',')",
+            "value": ",1"
         },
         {
             "label": "C32-H-join-null-last-item",
@@ -9580,6 +9646,17 @@
             "value": [
                 null,
                 5
+            ]
+        },
+        {
+            "label": "C32-H-reduce-family-out-of-order",
+            "php": "[reduce, reduceInto, reduceSpread] joining each key and value of [2 => 'c', 0 => 'a', 1 => 'b'] onto ''",
+            "value": [
+                "2c0a1b",
+                "2c0a1b",
+                [
+                    "2c0a1b"
+                ]
             ]
         },
         {
@@ -9670,6 +9747,14 @@
             "php": "(new Collection([1]))->unless(false, null)",
             "threw": "Error",
             "message": "Value of type null is not callable"
+        },
+        {
+            "label": "C32-H-when-unless-null-callback-untaken",
+            "php": "[$c->when(false, null) === $c, $c->unless(true, null) === $c]",
+            "value": [
+                true,
+                true
+            ]
         },
         {
             "label": "C32-H-when-default-receives-value",
