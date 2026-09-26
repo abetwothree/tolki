@@ -172,12 +172,17 @@ type ItemsCollection<TItems> = Collection<
 /** Anything PHP's getArrayableItems() accepts as a second collection. */
 type Operand = object | null | undefined;
 
+/** The values an operand hands over, and any for an operand typed any, so a comparator declared for them still fits. */
+type OperandValue<TOperand> =
+    // `0 extends 1 & TOperand` misses an any argument here, where TOperand has a constraint; this check does not.
+    unknown extends TOperand ? TOperand : RawValues<TOperand>;
+
 /**
- * The values an operand hands over, read in getRawItems()'s order. Own fields are the non-function members, since
+ * The values an operand holds, read in getRawItems()'s order. Own fields are the non-function members, since
  * TypeScript cannot tell a field from a method, so a record of closures loses its function values.
  * A plain object is typed like a class by its toArray, toJson or jsonSerialize member, which the runtime reads as data.
  */
-type OperandValue<TOperand> = TOperand extends null | undefined
+type RawValues<TOperand> = TOperand extends null | undefined
     ? never
     : TOperand extends Collection<infer _TValue, infer _TKey, infer _TShape>
       ? TOperand extends Iterable<infer TValue>

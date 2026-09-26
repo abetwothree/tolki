@@ -145,6 +145,12 @@ describe("collection set operation type tests", () => {
                 return true;
             });
         });
+
+        it("takes a declared comparator for an operand typed any, as JSON.parse() answers", () => {
+            const compare = (a: number, b: number) => a - b;
+
+            list.diffUsing(JSON.parse("[2]"), compare);
+        });
     });
 
     describe("diffAssoc", () => {
