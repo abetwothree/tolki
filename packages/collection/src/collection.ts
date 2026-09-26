@@ -4889,8 +4889,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Calculate the percentage of items that pass a given truth test.
      *
      * @param callback - The callback to execute, receives the value and key as arguments
-     * @param precision - Decimal places to round to (default 2)
-     * @returns The percentage of items that pass the truth test, rounded to the given precision, or null if the collection is empty
+     * @param precision - Decimal places to round to (default 2); a negative precision rounds to tens, hundreds and on
+     * @returns The percentage of items that pass the truth test, rounded as PHP's round() rounds it, or null if the
+     * collection is empty
      */
     percentage(
         callback: (value: TValue, key: TKey) => unknown,
@@ -4900,13 +4901,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return null;
         }
 
-        const ratio = this.filter(callback).count() / this.count();
-        const percent = ratio * 100;
-
-        // Round to the specified precision (matches Laravel's round(..., precision))
-        const factor = Math.pow(10, precision);
-
-        return Math.round(percent * factor) / factor;
+        return phpRound(
+            (this.filter(callback).count() / this.count()) * 100,
+            precision,
+        );
     }
 
     /**
@@ -6774,6 +6772,37 @@ function phpAdd(total: number, value: unknown): number {
 
     throw new TypeError(
         `Unsupported operand types: ${isInteger(total) ? "int" : "float"} + ${getDebugType(value)}`,
+    );
+}
+
+/**
+ * Round a number as PHP's round() does in its default mode, half away from zero.
+ *
+ * @param value - The number to round, which is never negative, as no percentage is
+ * @param precision - The decimal places to keep; a negative precision rounds to tens, hundreds and on
+ * @returns The rounded number, or the number itself once a double has no digits left to round at the precision
+ */
+function phpRound(value: number, precision: number): number {
+    // 10 ** 309 is INF, and 0 × INF is NaN; the largest finite power gives PHP's answers past it.
+    const exponent = 10 ** Math.min(Math.abs(precision), 308);
+    const toScale = (amount: number) =>
+        precision > 0 ? amount * exponent : amount / exponent;
+    const fromScale = (amount: number) =>
+        precision > 0 ? amount / exponent : amount * exponent;
+    let integral = Math.floor(toScale(value));
+
+    // Scaling can fall just short of the whole number that maps back onto the value, which PHP takes instead.
+    if (fromScale(integral + 1) === value) {
+        integral += 1;
+    }
+
+    if (integral >= 1e16) {
+        return value;
+    }
+
+    // PHP compares with the double nearest the midpoint, not the exact midpoint, so 0.285 rounds up to 0.29.
+    return fromScale(
+        value >= fromScale(integral + 0.5) ? integral + 1 : integral,
     );
 }
 

@@ -16253,6 +16253,38 @@ describe("Collection", () => {
                 expect(c.percentage((value) => value === 1)).toBeNull();
             });
         });
+
+        it("rounds up from the double nearest the midpoint, as PHP's round() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-fp-below-half" and
+            // "C32-H-percentage-fp-just-below-half-rounds-up"
+            expect([
+                Collection.range(1, 2000).percentage((value) => value <= 9, 1),
+                Collection.range(1, 2000).percentage((value) => value <= 3, 1),
+            ]).toEqual([0.4, 0.2]);
+        });
+
+        it("rounds past fifteen places as PHP's round() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-beyond-double-digits"
+            // and "C32-H-percentage-scaled-just-short-of-whole"
+            expect([
+                Collection.range(1, 9).percentage((value) => value === 1, 15),
+                Collection.range(1, 35).percentage((value) => value <= 3, 15),
+            ]).toEqual([11.11111111111111, 8.571428571428573]);
+        });
+
+        it("rounds to tens for a negative precision, and past the largest power of ten a double holds", () => {
+            const c = collect([1, 1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-precision-zero-and-negative"
+            // and "C32-H-percentage-extreme-precision"
+            expect([
+                c.percentage((value) => value === 1, 0),
+                c.percentage((value) => value === 1, -1),
+                c.percentage((value) => value === 1, -400),
+                c.percentage((value) => value === 1, 400),
+                c.percentage((value) => value === 5, 400),
+            ]).toEqual([67, 70, 0, 66.66666666666666, 0]);
+        });
     });
 
     describe("sum", () => {
