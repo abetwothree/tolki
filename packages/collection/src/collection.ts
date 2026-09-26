@@ -305,7 +305,7 @@ export class Collection<
     /**
      * The shape the type declares, never set: it lets the type system tell shapes apart before all() reads the shape.
      */
-    declare protected readonly collectionShape?: TShape;
+    declare protected readonly collectionShape: TShape;
 
     /**
      * Create a new collection.
