@@ -13765,6 +13765,18 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("returns a list from a record receiver whose callback returns lists", () => {
+            const flattened = collect({ a: 1, b: 2 }).flatMap((value) => [
+                value,
+                value * 10,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-flatMap-record-receiver"
+            expect(flattened.all()).toEqual([1, 10, 2, 20]);
+            expect(flattened.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(flattened.values().all()).toEqual([1, 10, 2, 20]);
+        });
     });
 
     describe("mapInto", () => {
