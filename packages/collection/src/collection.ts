@@ -2136,8 +2136,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     union<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
+        const operand = this.operandEntries(items);
+
         return this.newInstance(
-            handOver(dataUnion(this.items, this.getRawItems(items))),
+            this.inKeyOrder(dataUnion(this.items, new Map(operand)), operand),
         );
     }
 
@@ -6425,6 +6427,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
             phpArrayKey(key),
             value,
         ]);
+    }
+
+    /**
+     * Lay a result out in PHP's key order: the keys this collection holds, in its order, then those the operand adds.
+     *
+     * @param result - The result's items, which hold each key's value
+     * @param operand - The operand's entries, in the order PHP's array holds them
+     * @returns A list result as it is, whose keys already run in order, otherwise a Map in PHP's key order
+     */
+    protected inKeyOrder(
+        result: unknown,
+        operand: Array<[PropertyKey, unknown]>,
+    ): unknown {
+        if (isArray(result)) {
+            return handOver(result);
+        }
+
+        const values = result as Record<PropertyKey, unknown>;
+        const ordered = new Map<PropertyKey, unknown>();
+
+        for (const [key] of [...this.entriesInOrder(), ...operand]) {
+            ordered.set(key, values[key]);
+        }
+
+        return ordered;
     }
 
     /**

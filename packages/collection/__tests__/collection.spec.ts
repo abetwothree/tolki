@@ -6394,6 +6394,44 @@ describe("Collection", () => {
             ]);
         });
 
+        it("keeps the receiver's keys first, then those the operand adds", () => {
+            const united = collect({ a: 1 }).union([5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-union-assoc-then-list"
+            expect(united.all()).toEqual({ a: 1, 0: 5 });
+            expect(united.keys().all()).toEqual(["a", 0]);
+            expect(united.values().all()).toEqual([1, 5]);
+        });
+
+        it("adds an operand's keys in the order it holds them", () => {
+            const united = collect([1, 2, 3]).union(
+                new Map([
+                    [7, "x"],
+                    [3, "y"],
+                ]),
+            );
+
+            // docs/php-parity/task-26-collection-order.json, "order-union-result"
+            expect(united.all()).toEqual({ 0: 1, 1: 2, 2: 3, 7: "x", 3: "y" });
+            expect(united.keys().all()).toEqual([0, 1, 2, 7, 3]);
+            expect(united.values().all()).toEqual([1, 2, 3, "x", "y"]);
+        });
+
+        it("keeps a Map-built receiver's keys in the order it holds them", () => {
+            const united = outOfOrderKeys().union({ 3: "d", k: "e" });
+
+            // docs/php-parity/task-30-map-order.json, "union-out-of-order"
+            expect(united.all()).toEqual({
+                0: "a",
+                1: "b",
+                2: "c",
+                3: "d",
+                k: "e",
+            });
+            expect(united.keys().all()).toEqual([2, 0, 1, 3, "k"]);
+            expect(united.values().all()).toEqual(["c", "a", "b", "d", "e"]);
+        });
+
         it("keeps its own items when one is a function stored under an all or toJSON key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
             let calls = 0;
