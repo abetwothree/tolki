@@ -8715,6 +8715,30 @@ describe("Collection", () => {
                 expect(actual).toEqual(expected);
             });
         });
+
+        it("appends a Map operand's values in the order it holds them", () => {
+            const operand = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-concat-map-order"
+            for (const concatenated of [
+                collect(["x"]).concat(operand()),
+                collect(["x"]).concat(collect(operand())),
+            ]) {
+                expect(concatenated.all()).toEqual(["x", "c", "a", "b"]);
+                expect(concatenated.keys().all()).toEqual([0, 1, 2, 3]);
+                expect(concatenated.values().all()).toEqual([
+                    "x",
+                    "c",
+                    "a",
+                    "b",
+                ]);
+            }
+        });
     });
 
     describe("pull", () => {

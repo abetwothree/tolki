@@ -2450,7 +2450,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // to this collection as well as to the result.
         const result = this.detachedCopy();
 
-        result.appendItems(Object.values(this.getRawItems(source)));
+        result.appendItems(
+            this.operandEntries(source).map(([, value]) => value as TValue),
+        );
 
         return result;
     }
