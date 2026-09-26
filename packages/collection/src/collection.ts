@@ -3036,9 +3036,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3]).splitIn(2); -> new Collection([ new Collection([1, 2]), new Collection({2: 3}) ])
+     * new Collection([1, 2, 3]).splitIn(2); -> new Collection([ new Collection({0: 1, 1: 2}), new Collection({2: 3}) ])
      * new Collection({a: 1, b: 2, c: 3, d: 4}).splitIn(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
-     * new Collection([1, 2]).splitIn(5); -> new Collection([ new Collection([1]), new Collection({1: 2}) ])
+     * new Collection([1, 2]).splitIn(5); -> new Collection([ new Collection({0: 1}), new Collection({1: 2}) ])
      */
     splitIn(numberOfGroups: number) {
         if (numberOfGroups < 1) {
@@ -3159,9 +3159,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3]).chunk(2); -> new Collection([ new Collection([1, 2]), new Collection({2: 3}) ])
+     * new Collection([1, 2, 3]).chunk(2); -> new Collection([ new Collection({0: 1, 1: 2}), new Collection({2: 3}) ])
      * new Collection({a: 1, b: 2, c: 3, d: 4}).chunk(2, true); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
-     * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection([1, 2, 3]) ])
+     * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection({0: 1, 1: 2, 2: 3}) ])
      */
     chunk(
         size: number,
