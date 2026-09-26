@@ -4752,7 +4752,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Get the min value of a given key.
      *
      * @param callback - The key or callback to determine the value to min, or null to min the items directly
-     * @returns The min value, or null if no numeric values found
+     * @returns The smallest value that is not null, compared as PHP's `<` compares them, or null when none is
      */
     min(
         callback:
@@ -4769,7 +4769,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             .reject((value: TValue) => isNull(value))
             .reduce(
                 ((carry: number | null, value: unknown) => {
-                    if (isNull(carry) || (value as number) < carry) {
+                    if (isNull(carry) || compareValues(value, carry) < 0) {
                         return value as number;
                     }
 
@@ -4787,7 +4787,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Get the max value of a given key.
      *
      * @param callback - The key or callback to determine the value to max, or null to max the items directly
-     * @returns The max value, or null if no numeric values found
+     * @returns The largest value of an item that is not null, compared as PHP's `>` compares them, or null when none is
      */
     max(callback: ((value: TValue, key: TKey) => number) | PathKey = null) {
         const callbackValue = this.valueRetriever(
@@ -4797,7 +4797,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.reject((value: TValue) => isNull(value)).reduce(
             ((carry: number | null, item: TValue) => {
                 const value = callbackValue(item as TValue | TKey) as number;
-                if (isNull(carry) || value > carry) {
+                if (isNull(carry) || compareValues(value, carry) > 0) {
                     return value;
                 }
 

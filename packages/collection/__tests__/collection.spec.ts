@@ -15866,6 +15866,11 @@ describe("Collection", () => {
                 expect(i.min()).toBeNull();
             });
         });
+
+        it("compares numeric strings as numbers, as PHP's < does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-numeric-strings"
+            expect(collect(["10", "9", "8"]).min()).toBe("8");
+        });
     });
 
     describe("max", () => {
@@ -15896,6 +15901,11 @@ describe("Collection", () => {
             // and "max-key-keeps-earlier-larger-value"
             expect(collect([3, 1, 2]).max()).toBe(3);
             expect(collect([{ foo: 20 }, { foo: 10 }]).max("foo")).toBe(20);
+        });
+
+        it("compares numeric strings as numbers, as PHP's > does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-numeric-strings"
+            expect(collect(["10", "9", "8"]).max()).toBe("10");
         });
     });
 
