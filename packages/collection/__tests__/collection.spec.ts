@@ -81,6 +81,16 @@ const stringKeyFirst = () =>
         ]),
     );
 
+/** PHP's [2 => 'c', 0 => 'a', 1 => 'b'], whose integer keys only a Map keeps out of order in JS. */
+const outOfOrderKeys = () =>
+    collect(
+        new Map([
+            [2, "c"],
+            [0, "a"],
+            [1, "b"],
+        ]),
+    );
+
 describe("Collection", () => {
     describe("assert constructor types", () => {
         it("arrays", () => {
@@ -1372,6 +1382,22 @@ describe("Collection", () => {
                 rows.contains("n", "!=", "Joe"),
             ]).toEqual([true, true, false]);
         });
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().contains((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP calls the callback in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "contains-out-of-order-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("containsStrict", () => {
@@ -4291,6 +4317,23 @@ describe("Collection", () => {
             );
         });
 
+        it.fails(
+            "filters a Map-built collection in its insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().hasSole((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP filters in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-filtered-predicates-out-of-order-visits"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
+
         it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
             const collection = collect([{ name: "foo" }]);
             const hasSole = (key: unknown) => () =>
@@ -4403,6 +4446,23 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-hasSole-hasMany-keep-falsy-items"
             expect(collect([0, null]).hasMany()).toBe(true);
         });
+
+        it.fails(
+            "filters a Map-built collection in its insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().hasMany((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP filters in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-filtered-predicates-out-of-order-visits"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
 
         it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
             const collection = collect([{ name: "foo" }, { name: "bar" }]);
@@ -7036,6 +7096,25 @@ describe("Collection", () => {
             expect(picked.values().all()).toEqual([1, 2, 3]);
             expect(Array.isArray(data.random(2, true).all())).toBe(false);
         });
+
+        it.fails(
+            "picks a Map-built collection whole in its insertion order",
+            () => {
+                const kept = outOfOrderKeys().random(3, true);
+
+                // Ordered-backing gap: PHP picks in insertion order, c before a and b, and keeps the keys 2, 0, 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-out-of-order-full-count"
+                expect([
+                    outOfOrderKeys().random(3).all(),
+                    kept.keys().all(),
+                    kept.values().all(),
+                ]).toEqual([
+                    ["c", "a", "b"],
+                    [2, 0, 1],
+                    ["c", "a", "b"],
+                ]);
+            },
+        );
     });
 
     describe("replace", () => {
@@ -7329,6 +7408,39 @@ describe("Collection", () => {
             // PHP's gettype() says integer where typeof says number
             expect([typeof key, key]).toEqual(["number", 1]);
         });
+
+        it.fails(
+            "finds the first key holding a value in a Map-built collection's insertion order",
+            () => {
+                const duplicates = collect(
+                    new Map([
+                        [2, "x"],
+                        [0, "x"],
+                        [1, "y"],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP searches in insertion order, so key 2 comes before 0
+                // docs/php-parity/task-30-map-order.json, "search-out-of-order-duplicate-value"
+                expect(duplicates.search("x")).toBe(2);
+            },
+        );
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().search((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP calls the callback in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "search-out-of-order-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("before", () => {
@@ -8278,6 +8390,29 @@ describe("Collection", () => {
                 Reflect.apply(collection.sole, collection, [""]),
             ]).toEqual([{ name: "foo" }, { name: "foo" }]);
         });
+
+        it.fails(
+            "filters a Map-built collection in its insertion order",
+            () => {
+                const seen: number[] = [];
+                expect(() =>
+                    outOfOrderKeys().sole((_value, key) => {
+                        seen.push(key);
+
+                        return false;
+                    }),
+                ).toThrowError(ItemNotFoundException);
+                let calls = 0;
+
+                // Ordered-backing gap: PHP filters in insertion order, so its first call sees c, under key 2
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-filtered-predicates-out-of-order-visits"
+                expect([
+                    seen,
+                    outOfOrderKeys().sole(() => ++calls === 1),
+                ]).toEqual([[2, 0, 1], "c"]);
+            },
+        );
     });
 
     describe("firstOrFail", () => {
@@ -11468,6 +11603,22 @@ describe("Collection", () => {
                 collect(["0"]).every(null),
             ]).toEqual([false, false, false]);
         });
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().every((_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                // Ordered-backing gap: PHP walks the keys in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-27-carried-fixes.json, "every-out-of-order-key-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("firstWhere", () => {
