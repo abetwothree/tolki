@@ -973,8 +973,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).except(['a', 'c']); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).except('a', 'c'); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).except(new Collection(['a', 'c'])); -> new Collection({b: 2})
-     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection({1: 2, 3: 4})
-     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection({1: 2, 3: 4})
+     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([2, 4])
+     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([2, 4])
      */
     except<TExceptValue, TExceptKey extends PropertyKey>(
         ...keys: (
@@ -2316,6 +2316,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).only(0, 2); -> new Collection([1, 3])
      * new Collection([1, 2, 3]).only(1); -> new Collection([2])
      * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
+     * new Collection(['a', 'b', 'c', 'd']).only([3, 1]); -> new Collection(['b', 'd'])
      */
     only<T, K extends PropertyKey>(
         ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
@@ -2343,7 +2344,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([{id: 1, name: 'John', age: 30}, {id: 2, name: 'Jane', age: 25}]).select('id', 'name'); -> new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}])
      * new Collection({a: {id: 1, name: 'John'}, b: {id: 2, name: 'Jane'}}).select('id'); -> new Collection({a: {id: 1}, b: {id: 2}})
-     * new Collection([{id: 1, details: {age: 30, city: 'NY'}}, {id: 2, details: {age: 25, city: 'LA'}}]).select(['id', 'details.age']); -> new Collection([{id: 1, details: {age: 30}}, {id: 2, details: {age: 25}}])
+     * new Collection([{id: 1, details: {age: 30}}]).select(['id', 'details.age']); -> new Collection([{id: 1}])
+     * new Collection([[10, 20, 30]]).select([0, 2]); -> new Collection([{0: 10, 2: 30}])
      */
     select(...keys: PathKey[] | PathKeys[] | Collection<string, number>[]) {
         const keysToSelect = this.keysArgument(keys);
