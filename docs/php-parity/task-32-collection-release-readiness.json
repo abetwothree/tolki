@@ -9516,6 +9516,36 @@
             ]
         },
         {
+            "label": "C32-H-min-max-uncomparable-arrays",
+            "php": "[max, min] of [[1], ['a' => 1]] and of [['a' => 1], [1]], two arrays each of which PHP's <=> calls larger",
+            "value": {
+                "max": [
+                    [
+                        1
+                    ],
+                    {
+                        "a": 1
+                    }
+                ],
+                "min": [
+                    [
+                        1
+                    ],
+                    {
+                        "a": 1
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-H-max-null-callback-answers",
+            "php": "[max(fn () => null), max(fn ($v) => $v === 1 ? null : 0)] on [1, 2]",
+            "value": [
+                null,
+                0
+            ]
+        },
+        {
             "label": "C32-H-min-max-null-items",
             "php": "[[min, max] of [null, 3, 1], [min, max] of [null]]",
             "value": [
@@ -9786,6 +9816,12 @@
             "php": "(new Collection([1]))->reduceSpread(fn () => new stdClass, null)",
             "threw": "UnexpectedValueException",
             "message": "Collection::reduceSpread expects reducer to return an array, but got a 'object' instead."
+        },
+        {
+            "label": "C32-H-reduceSpread-subclass-message",
+            "php": "(new C32ASub([1]))->reduceSpread(fn () => false, null)",
+            "threw": "UnexpectedValueException",
+            "message": "C32ASub::reduceSpread expects reducer to return an array, but got a 'boolean' instead."
         },
         {
             "label": "C32-H-reduceSpread-list-key-type",

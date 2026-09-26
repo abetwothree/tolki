@@ -1643,6 +1643,11 @@ probe('C32-H-min-max-callback-arity', "[min(fn (...\$a) => count(\$a)), max(...)
 probe('C32-H-min-max-strings', "[min, max] of ['b', 'a', 'c']", fn () => [(new Collection(['b', 'a', 'c']))->min(), (new Collection(['b', 'a', 'c']))->max()]);
 probe('C32-H-max-dot-path', "(new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b')", fn () => (new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b'));
 probe('C32-H-min-max-out-of-order-tie', "[min, max] of [2 => '1', 0 => 1]", fn () => [(new Collection([2 => '1', 0 => 1]))->min(), (new Collection([2 => '1', 0 => 1]))->max()]);
+probe('C32-H-min-max-uncomparable-arrays', "[max, min] of [[1], ['a' => 1]] and of [['a' => 1], [1]], two arrays each of which PHP's <=> calls larger", fn () => [
+    'max' => [(new Collection([[1], ['a' => 1]]))->max(), (new Collection([['a' => 1], [1]]))->max()],
+    'min' => [(new Collection([[1], ['a' => 1]]))->min(), (new Collection([['a' => 1], [1]]))->min()],
+]);
+probe('C32-H-max-null-callback-answers', "[max(fn () => null), max(fn (\$v) => \$v === 1 ? null : 0)] on [1, 2]", fn () => [(new Collection([1, 2]))->max(fn () => null), (new Collection([1, 2]))->max(fn ($v) => $v === 1 ? null : 0)]);
 probe('C32-H-min-max-null-items', "[[min, max] of [null, 3, 1], [min, max] of [null]]", fn () => [[(new Collection([null, 3, 1]))->min(), (new Collection([null, 3, 1]))->max()], [(new Collection([null]))->min(), (new Collection([null]))->max()]]);
 
 // median
@@ -1698,6 +1703,7 @@ probe('C32-H-reduceSpread-throws-double', "(new Collection([1]))->reduceSpread(f
 probe('C32-H-reduceSpread-throws-null', "(new Collection([1]))->reduceSpread(fn () => null, null)", fn () => (new Collection([1]))->reduceSpread(fn () => null, null));
 probe('C32-H-reduceSpread-throws-string', "(new Collection([1]))->reduceSpread(fn () => 'x', null)", fn () => (new Collection([1]))->reduceSpread(fn () => 'x', null));
 probe('C32-H-reduceSpread-throws-object', "(new Collection([1]))->reduceSpread(fn () => new stdClass, null)", fn () => (new Collection([1]))->reduceSpread(fn () => new stdClass, null));
+probe('C32-H-reduceSpread-subclass-message', "(new C32ASub([1]))->reduceSpread(fn () => false, null)", fn () => (new C32ASub([1]))->reduceSpread(fn () => false, null));
 probe('C32-H-reduceSpread-list-key-type', "(new Collection(['a', 'b']))->reduceSpread(fn (\$acc, \$v, \$k) => [\$acc.gettype(\$k).\$k], '')", fn () => (new Collection(['a', 'b']))->reduceSpread(fn ($acc, $v, $k) => [$acc.gettype($k).$k], ''));
 probe('C32-H-reduceSpread-empty', "(new Collection([]))->reduceSpread(fn () => false, 1, 2)", fn () => (new Collection([]))->reduceSpread(fn () => false, 1, 2));
 
