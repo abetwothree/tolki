@@ -4693,6 +4693,147 @@
             }
         },
         {
+            "label": "C32-D-except-forget-null-key",
+            "php": "except(null), except([null]), except('a', null) and except(new Collection([null])), then forget(null) and forget([null]), over ['' => 1, 'a' => 2]",
+            "value": {
+                "except-null": [
+                    [
+                        "",
+                        1
+                    ],
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "except-list": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "except-later": [],
+                "except-collection": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "forget-null": [
+                    [
+                        "",
+                        1
+                    ],
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "forget-list": [
+                    [
+                        "a",
+                        2
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-arr-except-null-key",
+            "php": "Arr::except(['' => 1, 'a' => 2], null), Arr::except(['' => 1, 'a' => 2], [null]) and Arr::except(['a' => ['' => 1]], [null])",
+            "value": {
+                "bare": [
+                    [
+                        "",
+                        1
+                    ],
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "list": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "nested": [
+                    [
+                        "a",
+                        [
+                            [
+                                "",
+                                1
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-except-float-key",
+            "php": "except([1.5]) over ['1.5' => 'a', 1 => 'b', 'c' => 'd'], ['1.5' => 'a', 'c' => 'd'] and [1 => ['5' => 'x', 6 => 'y']], and forget([1.5]) over ['1.5' => 'a', 1 => 'b']",
+            "value": {
+                "both": [
+                    [
+                        "1.5",
+                        "a"
+                    ],
+                    [
+                        "c",
+                        "d"
+                    ]
+                ],
+                "string-only": [
+                    [
+                        "1.5",
+                        "a"
+                    ],
+                    [
+                        "c",
+                        "d"
+                    ]
+                ],
+                "nested": [
+                    [
+                        1,
+                        [
+                            [
+                                6,
+                                "y"
+                            ]
+                        ]
+                    ]
+                ],
+                "forget-both": [
+                    [
+                        "1.5",
+                        "a"
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-D-arr-except-float-list-path",
+            "php": "Arr::except([['a', 'b', 'c', 'd', 'e', 'f']], [0.5]) and Arr::except(['a', 'b', 'c'], [1.5])",
+            "value": [
+                [
+                    [
+                        "a",
+                        "b",
+                        "c",
+                        "d",
+                        "e"
+                    ]
+                ],
+                [
+                    "a",
+                    "b",
+                    "c"
+                ]
+            ]
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
