@@ -3067,6 +3067,25 @@ describe("Collection", () => {
     });
 
     describe("groupBy", () => {
+        /** Each entry as the probes write it: [key, its PHP type, value], with a group as { Collection: its entries }. */
+        const groupPairs = <TValue, TKey extends PropertyKey>(
+            collection: Collection<TValue, TKey>,
+        ): unknown[] => {
+            const values = [...collection.values()];
+
+            return [...collection.keys()].map((key, index) => {
+                const value = values[index];
+
+                return [
+                    key,
+                    isString(key) ? "string" : "integer",
+                    value instanceof Collection
+                        ? { Collection: groupPairs(value) }
+                        : value,
+                ];
+            });
+        };
+
         describe("Laravel Tests", () => {
             it("test group by attribute", () => {
                 const data = collect([
@@ -3076,7 +3095,7 @@ describe("Collection", () => {
                 ]);
 
                 const resultByRating = data.groupBy("rating");
-                expect(resultByRating.all()).toEqual({
+                expect(resultByRating.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -3085,7 +3104,7 @@ describe("Collection", () => {
                 });
 
                 const resultByUrl = data.groupBy("url");
-                expect(resultByUrl.all()).toEqual({
+                expect(resultByUrl.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -3166,7 +3185,7 @@ describe("Collection", () => {
                 ]);
 
                 const resultByRating = data.groupBy((item) => item.rating);
-                expect(resultByRating.all()).toEqual({
+                expect(resultByRating.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -3175,7 +3194,7 @@ describe("Collection", () => {
                 });
 
                 const resultByUrl = data.groupBy((item) => item.url);
-                expect(resultByUrl.all()).toEqual({
+                expect(resultByUrl.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -3203,7 +3222,7 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have single group", () => {
@@ -3223,7 +3242,7 @@ describe("Collection", () => {
                     2: [{ rating: 2, url: "2" }],
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have single group preserving keys", () => {
@@ -3245,7 +3264,7 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have multiple groups", () => {
@@ -3267,7 +3286,7 @@ describe("Collection", () => {
                     Role_3: [{ user: 1, roles: ["Role_1", "Role_3"] }],
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have multiple groups preserving keys", () => {
@@ -3293,7 +3312,7 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by multi-level and closure preserving keys", () => {
@@ -3356,7 +3375,7 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by null", () => {
@@ -3368,7 +3387,7 @@ describe("Collection", () => {
                 const data = collect(payload);
 
                 const result = data.groupBy("url");
-                expect(result.all()).toEqual({
+                expect(result.toArray()).toEqual({
                     1: [payload[0]],
                     "": [payload[1], payload[2]],
                 });
@@ -3386,7 +3405,7 @@ describe("Collection", () => {
         it("group key is boolean", () => {
             const collection = collect([{ active: true }, { active: false }]);
             const grouped = collection.groupBy("active");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 1: [{ active: true }],
                 0: [{ active: false }],
             });
@@ -3395,7 +3414,7 @@ describe("Collection", () => {
         it("group key is null", () => {
             const collection = collect([{ value: null }, { value: 1 }]);
             const grouped = collection.groupBy("value");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 "": [{ value: null }],
                 1: [{ value: 1 }],
             });
@@ -3404,7 +3423,7 @@ describe("Collection", () => {
         it("group key is undefined", () => {
             const collection = collect([{ value: undefined }, { value: 1 }]);
             const grouped = collection.groupBy("value");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 "": [{ value: undefined }],
                 1: [{ value: 1 }],
             });
@@ -3416,27 +3435,128 @@ describe("Collection", () => {
                 { tags: ["tag2", "tag3"] },
             ]);
             const grouped = collection.groupBy("tags");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 tag1: [{ tags: ["tag1", "tag2"] }],
                 tag2: [{ tags: ["tag1", "tag2"] }, { tags: ["tag2", "tag3"] }],
                 tag3: [{ tags: ["tag2", "tag3"] }],
             });
         });
 
-        it("handles isArray(this.items) branch", () => {
-            // Use array-based collection to trigger array branch
-            const c = collect(["apple", "banana", "apricot"]);
-            const grouped = c.groupBy((item) => item[0]);
-            // get returns the raw array value directly
-            expect(grouped.get("a")).toEqual(["apple", "apricot"]);
-            expect(grouped.get("b")).toEqual(["banana"]);
+        it("hands back each group as a collection", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-groups-are-collections"
+            const grouped = collect([{ r: 1 }, { r: 1 }]).groupBy("r");
+
+            expect(grouped.get(1)).toBeInstanceOf(Collection);
+            expect(grouped.toArray()).toEqual({ 1: [{ r: 1 }, { r: 1 }] });
+
+            const byInitial = collect(["apple", "banana", "apricot"]).groupBy(
+                (item) => item[0],
+            );
+
+            expect(byInitial.get("a")).toBeInstanceOf(Collection);
+            expect(byInitial.get("b")).toBeInstanceOf(Collection);
+            expect(byInitial.toArray()).toEqual({
+                a: ["apple", "apricot"],
+                b: ["banana"],
+            });
+        });
+
+        it("hands back the groups of a multi-level grouping as collections at every level", () => {
+            const rows = {
+                10: { user: 1, skilllevel: 1, roles: ["Role_1", "Role_3"] },
+                20: { user: 2, skilllevel: 1, roles: ["Role_1", "Role_2"] },
+                30: { user: 3, skilllevel: 2, roles: ["Role_1"] },
+                40: { user: 4, skilllevel: 2, roles: ["Role_2"] },
+            };
+
+            const result = collect(rows).groupBy(
+                ["skilllevel", (item) => item.roles],
+                true,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-multilevel-shape", with each
+            // row where the probe writes its user
+            expect(groupPairs(result)).toEqual([
+                [
+                    1,
+                    "integer",
+                    {
+                        Collection: [
+                            [
+                                "Role_1",
+                                "string",
+                                {
+                                    Collection: [
+                                        [10, "integer", rows[10]],
+                                        [20, "integer", rows[20]],
+                                    ],
+                                },
+                            ],
+                            [
+                                "Role_3",
+                                "string",
+                                { Collection: [[10, "integer", rows[10]]] },
+                            ],
+                            [
+                                "Role_2",
+                                "string",
+                                { Collection: [[20, "integer", rows[20]]] },
+                            ],
+                        ],
+                    },
+                ],
+                [
+                    2,
+                    "integer",
+                    {
+                        Collection: [
+                            [
+                                "Role_1",
+                                "string",
+                                { Collection: [[30, "integer", rows[30]]] },
+                            ],
+                            [
+                                "Role_2",
+                                "string",
+                                { Collection: [[40, "integer", rows[40]]] },
+                            ],
+                        ],
+                    },
+                ],
+            ]);
+        });
+
+        it("keeps a list's own keys in each group when preserving keys", () => {
+            const grouped = collect(["a", "b", "c"]).groupBy(
+                (_value, key) => (key % 2 ? "odd" : "even"),
+                true,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-preserve-keys-list-backing"
+            expect(groupPairs(grouped)).toEqual([
+                [
+                    "even",
+                    "string",
+                    {
+                        Collection: [
+                            [0, "integer", "a"],
+                            [2, "integer", "c"],
+                        ],
+                    },
+                ],
+                ["odd", "string", { Collection: [[1, "integer", "b"]] }],
+            ]);
+            expect(grouped.toArray()).toEqual({
+                even: { 0: "a", 2: "c" },
+                odd: { 1: "b" },
+            });
         });
 
         it("groups items under an empty string key when callback returns null or undefined", () => {
             const c = collect(["apple", "", "banana"]);
             // Empty string's first char is undefined
             const grouped = c.groupBy((item) => item[0]);
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 a: ["apple"],
                 "": [""],
                 b: ["banana"],
@@ -3445,7 +3565,7 @@ describe("Collection", () => {
             // Test with explicit null return
             const c2 = collect([1, 2, 3, 4, 5]);
             const grouped2 = c2.groupBy((item) => (item > 3 ? "big" : null));
-            expect(grouped2.all()).toEqual({
+            expect(grouped2.toArray()).toEqual({
                 big: [4, 5],
                 "": [1, 2, 3],
             });
@@ -17508,6 +17628,26 @@ describe("Collection", () => {
             expect(padded.tag).toBe("my-tag");
         });
 
+        it("preserves subclass type and extra state through groupBy, at every level", () => {
+            const levels: unknown[] = [];
+            let level: unknown = new TestCollectionWithExtraState(
+                [{ a: 1, b: "x" }],
+                "my-tag",
+            ).groupBy(["a", "b"]);
+
+            while (level instanceof Collection) {
+                levels.push(level);
+                level = level.first();
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-groups-keep-subclass"
+            expect(levels).toHaveLength(3);
+            for (const each of levels) {
+                expect(each).toBeInstanceOf(TestCollectionWithExtraState);
+                expect(each).toHaveProperty("tag", "my-tag");
+            }
+        });
+
         it("test static factory methods forward extra arguments", () => {
             // CollectionTest::testStaticFactoryMethodsForwardExtraArguments
             const made = TestCollectionWithExtraState.make(
@@ -19989,7 +20129,8 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             () =>
                 new Collection(JSON.parse('{"__proto__":{"k":"z"}}'))
                     .groupBy("k", true)
-                    .all()["z"],
+                    .get("z")
+                    .all(),
         ],
         [
             "groupBy (nested)",

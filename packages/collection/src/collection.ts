@@ -1217,7 +1217,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param groupByValue - The key to group by, a callback function, or an array of keys/callbacks for nested grouping
      * @param preserveKeys - Whether to preserve the original keys in the grouped collections
-     * @returns A new collection with grouped items
+     * @returns A new collection of the groups, each a collection of its items, at every level
      */
     groupBy<TGroupKey extends PropertyKey = PropertyKey>(
         groupByValue:
@@ -1297,21 +1297,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const nested =
             isArray(nextGroups) && nextGroups.length > 0 ? nextGroups : null;
-        const results = new Map<
-            string | number,
-            TValue[] | Record<TKey, TValue>
-        >();
 
-        for (const [groupKey, group] of groups) {
-            results.set(
-                groupKey,
-                (nested ? group.groupBy(nested, preserveKeys) : group).all() as
-                    | TValue[]
-                    | Record<TKey, TValue>,
-            );
+        if (nested) {
+            for (const [groupKey, group] of groups) {
+                groups.set(groupKey, group.groupBy(nested, preserveKeys));
+            }
         }
 
-        return this.newInstance(results);
+        return this.newInstance(groups);
     }
 
     /**
