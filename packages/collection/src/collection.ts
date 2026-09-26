@@ -3471,7 +3471,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort the collection keys using a callback.
      *
-     * @param callback - The callback to determine the sort order of keys
+     * @param callback - A comparator answering below, at or above zero for two keys, its answer cast to an int as
+     * uksort() casts it
      * @returns A new collection with the items sorted by keys using the callback
      *
      * @example
@@ -3482,8 +3483,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     sortKeysUsing(callback: (a: TKey, b: TKey) => number) {
         const keys = Object.keys(this.items);
 
+        // uksort() casts the comparator's answer to an int, as uasort() does for sort().
         keys.sort((a, b) =>
-            callback(phpArrayKey(a) as TKey, phpArrayKey(b) as TKey),
+            phpInt(callback(phpArrayKey(a) as TKey, phpArrayKey(b) as TKey)),
         );
 
         const entries = keys.map(

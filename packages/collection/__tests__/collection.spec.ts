@@ -13063,6 +13063,22 @@ describe("Collection", () => {
             expect(sorted.all()).toEqual(["c", "b", "a"]);
             expect(Array.isArray(sorted.all())).toBe(true);
         });
+
+        it("casts the comparator's answer to an int, as uksort() does, so a fraction below 1 ties", () => {
+            const keyed = collect({ c: 1, a: 2, b: 3 });
+            const by = (step: number) => (x: string, y: string) =>
+                x < y ? -step : x > y ? step : 0;
+            const tied = keyed.sortKeysUsing(by(0.5));
+            const sorted = keyed.sortKeysUsing(by(1.5));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-fractional-answers"
+            expect(tied.all()).toEqual({ c: 1, a: 2, b: 3 });
+            expect(tied.keys().all()).toEqual(["c", "a", "b"]);
+            expect(tied.values().all()).toEqual([1, 2, 3]);
+            expect(sorted.all()).toEqual({ a: 2, b: 3, c: 1 });
+            expect(sorted.keys().all()).toEqual(["a", "b", "c"]);
+            expect(sorted.values().all()).toEqual([2, 3, 1]);
+        });
     });
 
     describe("sortKeys integer-key policy", () => {
