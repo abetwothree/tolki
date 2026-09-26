@@ -8817,6 +8817,29 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ 0: "z", 1: "b", x: "c" });
         });
+
+        it("keeps the receiver's keys first, then those the replacer adds", () => {
+            const replaced = collect({ a: 1 }).replaceRecursive(["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replaceRecursive-assoc-then-list"
+            expect(replaced.all()).toEqual({ a: 1, 0: "x" });
+            expect(replaced.keys().all()).toEqual(["a", 0]);
+            expect(replaced.values().all()).toEqual([1, "x"]);
+        });
+
+        it("adds a replacer's keys in the order it holds them", () => {
+            const replaced = collect(["a"]).replaceRecursive(
+                new Map([
+                    [2, "c"],
+                    [1, "b"],
+                ]),
+            );
+
+            // docs/php-parity/task-30-map-order.json, "replaceRecursive-list-out-of-order-operand"
+            expect(replaced.all()).toEqual({ 0: "a", 1: "b", 2: "c" });
+            expect(replaced.keys().all()).toEqual([0, 2, 1]);
+            expect(replaced.values().all()).toEqual(["a", "c", "b"]);
+        });
     });
 
     describe("reverse", () => {

@@ -2633,10 +2633,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Recursively replace the collection items with the given items.
      *
-     * A `null` `items` is a no-op regardless of backing, for the same
-     * reason as `replace` above.
+     * As in `replace`, a key the replacer adds comes after the rest.
      *
-     * @param items - The items to replace with
+     * @param items - The items to replace with; `null` replaces nothing
      * @returns A new collection with the recursively replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
@@ -2649,14 +2648,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     replaceRecursive<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
+        const operand = this.operandEntries(items);
+
         return this.newInstance(
-            handOver(
-                dataReplaceRecursive(
-                    this.items,
-                    isNull(items) || isUndefined(items)
-                        ? items
-                        : this.getRawItems(items),
-                ),
+            this.inKeyOrder(
+                dataReplaceRecursive(this.items, new Map(operand)),
+                operand,
             ),
         );
     }
