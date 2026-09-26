@@ -63,6 +63,7 @@ import {
     resolvePluckPath,
 } from "@tolki/path";
 import type {
+    ArrayableItems,
     ArrayItems,
     CaseValue,
     DataItems,
@@ -168,6 +169,17 @@ type ItemsCollection<TItems> = Collection<
     TItems extends readonly unknown[] ? number : ObjectKey<TItems>,
     TItems extends readonly unknown[] ? "list" : "keyed"
 >;
+
+/** Anything PHP's getArrayableItems() accepts as a second collection. */
+type Operand = object | null | undefined;
+
+/** The values an operand holds once getArrayableItems() reads it: a collection's items, a Map's values. */
+type OperandValue<TOperand> =
+    ArrayableItems<TOperand> extends infer TItems
+        ? TItems extends unknown
+            ? ObjectValue<TItems>
+            : never
+        : never;
 
 /**
  * Create a collection from the given value.
@@ -724,16 +736,7 @@ export class Collection<
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      */
-    crossJoin(
-        // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
-        // Collection<unknown, PropertyKey> breaks when passing typed collections.
-        ...items: Array<
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined
-        >
-    ) {
+    crossJoin<TOperands extends Operand[]>(...items: TOperands) {
         // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
         // is one dimension too, never obj.crossJoin's dimension per key.
         const results = dataCrossJoin(
@@ -754,14 +757,7 @@ export class Collection<
      *
      * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection([1, 3])
      */
-    diff(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined,
-    ) {
+    diff<TOperand extends Operand>(items: TOperand) {
         return this.sameInstance(
             handOver(dataDiff(this.items, this.getRawItems(items))),
         );
@@ -779,14 +775,9 @@ export class Collection<
      * new Collection([1, 2, 3]).diffUsing([2], (a, b) => a - b); -> new Collection([1, 3])
      * new Collection({a: 'x', b: 'y'}).diffUsing(['y'], (a, b) => a === b); -> new Collection({a: 'x'})
      */
-    diffUsing(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined,
-        callback: (a: TValue, b: TValue) => boolean | number,
+    diffUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
     ) {
         return this.sameInstance(
             handOver(
@@ -819,14 +810,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 3}); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({d: 4}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    diffAssoc(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined,
-    ) {
+    diffAssoc<TOperand extends Operand>(items: TOperand) {
         return this.sameInstance(
             handOver(dataDiffAssoc(this.items, this.getRawItems(items))),
         );
@@ -845,13 +829,8 @@ export class Collection<
      * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
-    diffAssocUsing(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined,
+    diffAssocUsing<TOperand extends Operand>(
+        items: TOperand,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         return this.sameInstance(
@@ -881,14 +860,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
      * new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]); -> new Collection([7, 8])
      */
-    diffKeys(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined,
-    ) {
+    diffKeys<TOperand extends Operand>(items: TOperand) {
         return this.sameInstance(
             handOver(dataDiffKeys(this.items, this.getRawItems(items))),
         );
@@ -907,13 +879,8 @@ export class Collection<
      * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
      */
-    diffKeysUsing(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined,
+    diffKeysUsing<TOperand extends Operand>(
+        items: TOperand,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         return this.sameInstance(
@@ -1580,9 +1547,7 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection([2, 4])
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
-    intersect<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-    ) {
+    intersect<TOperand extends Operand>(items: TOperand) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
@@ -1609,9 +1574,9 @@ export class Collection<
      * new Collection([1, 2, 3]).intersectUsing([2, 3], (a, b) => a - b); -> new Collection([2, 3])
      * new Collection(['apple', 'banana']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
      */
-    intersectUsing<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-        callback: (a: TValue, b: TValue) => boolean | number,
+    intersectUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
     ) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
@@ -1645,9 +1610,7 @@ export class Collection<
      * new Collection({a: 'green', b: 'brown', c: 'blue'}).intersectAssoc({a: 'green', b: 'yellow', c: 'blue'}); -> new Collection({a: 'green', c: 'blue'})
      * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
      */
-    intersectAssoc<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-    ) {
+    intersectAssoc<TOperand extends Operand>(items: TOperand) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
@@ -1675,8 +1638,8 @@ export class Collection<
      * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({a: 'x', b: 'y'}).intersectAssocUsing({A: 'X', B: 'y'}, strcasecmp); -> new Collection({b: 'y'})
      */
-    intersectAssocUsing<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
+    intersectAssocUsing<TOperand extends Operand>(
+        items: TOperand,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         if (isNull(items)) {
@@ -1710,9 +1673,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).intersectByKeys({b: 2, d: 4}); -> new Collection({b: 2})
      * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2])
      */
-    intersectByKeys<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-    ) {
+    intersectByKeys<TOperand extends Operand>(items: TOperand) {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
@@ -2065,13 +2026,7 @@ export class Collection<
      * new Collection([1, 2]).merge({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({5: 'a'}).merge({5: 'b'}); -> new Collection(['a', 'b'])
      */
-    merge<TMergeValue, TMergeKey extends PropertyKey>(
-        items:
-            | TMergeValue[]
-            | Record<TMergeKey, TMergeValue>
-            | Collection<TMergeValue, TMergeKey, CollectionShape>
-            | null,
-    ) {
+    merge<TOperand extends Operand>(items: TOperand) {
         const merged = renumberIntegerKeys<unknown>([
             ...this.entriesInOrder(),
             ...this.operandEntries(items),
@@ -2096,13 +2051,9 @@ export class Collection<
      * new Collection([1, [2, 3]]).mergeRecursive([4, [5]]); -> new Collection([1, [2, 3], 4, [5]])
      * new Collection({a: 1}).mergeRecursive({a: [2, 3]}); -> new Collection({a: [1, 2, 3]})
      */
-    mergeRecursive<TMergeRecursiveValue, TMergeKey extends PropertyKey>(
-        items:
-            | TMergeRecursiveValue[]
-            | Record<TMergeKey, TMergeRecursiveValue>
-            | Collection<TMergeRecursiveValue, TMergeKey, CollectionShape>
-            | null,
-    ): this | Collection<TValue | TMergeRecursiveValue, TKey> {
+    mergeRecursive<TOperand extends Operand>(
+        items: TOperand,
+    ): this | Collection<TValue | OperandValue<TOperand>, TKey> {
         // The receiver goes in first, so its own integer keys renumber as array_merge_recursive copies it.
         const receiver = mergeRecursively(new Map(), this.entriesInOrder());
 
@@ -2152,14 +2103,7 @@ export class Collection<
      *
      * new Collection([1, 2]).combine([3, 4]); -> new Collection({1: 3, 2: 4})
      */
-    combine<TCombineValue, TCombineKey extends PropertyKey>(
-        values:
-            | TCombineValue[]
-            | Record<TCombineKey, TCombineValue>
-            | Collection<TCombineValue, TCombineKey, CollectionShape>
-            | null
-            | undefined,
-    ) {
+    combine<TOperand extends Operand>(values: TOperand) {
         const keys = this.orderedValues();
         const combined = dataCombine(
             keys,
@@ -2198,9 +2142,7 @@ export class Collection<
      * new Collection([1, 2]).union({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    union<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-    ) {
+    union<TOperand extends Operand>(items: TOperand) {
         const operand = this.operandEntries(items);
 
         return this.sameInstance(
@@ -2499,12 +2441,7 @@ export class Collection<
      * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
      * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
-    concat<TConcatValue, TConcatKey extends PropertyKey = PropertyKey>(
-        source:
-            | TConcatValue[]
-            | Record<TConcatKey, TConcatValue>
-            | Collection<TConcatValue, TConcatKey, CollectionShape>,
-    ) {
+    concat<TOperand extends Operand>(source: TOperand) {
         // PHP's `new static($this)` copies the array, because an array is a value there.
         // A JS backing is a reference, so without a copy every `push` below would append
         // to this collection as well as to the result.
@@ -2660,9 +2597,7 @@ export class Collection<
      * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
      * new Collection({a: 1}).replace(['x']); -> new Collection({a: 1, 0: 'x'})
      */
-    replace<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-    ) {
+    replace<TOperand extends Operand>(items: TOperand) {
         const operand = this.operandEntries(items);
 
         return this.sameInstance(
@@ -2685,9 +2620,7 @@ export class Collection<
      * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5, 3]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
-    replaceRecursive<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K, CollectionShape> | null,
-    ) {
+    replaceRecursive<TOperand extends Operand>(items: TOperand) {
         const operand = this.operandEntries(items);
 
         return this.sameInstance(
@@ -3569,7 +3502,7 @@ export class Collection<
      * @param offset - The offset to start the splice; a fraction is dropped, as array_splice()'s int parameter drops it
      * @param length - The number of items to remove, a fraction dropped; null or none removes everything from the
      * offset on
-     * @param replacement - The items to insert in place of the removed items
+     * @param replacement - The items to insert in place of the removed items, or a scalar, which becomes one item
      * @returns A new collection with the removed items
      * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, as array_splice()
      * refuses it
@@ -3581,12 +3514,10 @@ export class Collection<
      * new Collection([1, 2, 3]).splice(1, 1, [4, 5]); -> new Collection([2]), original collection is now [1, 4, 5, 3]
      * new Collection({a: 1, b: 2, c: 3}).splice(1); -> new Collection({b: 2, c: 3}), original collection is now {a: 1}
      */
-    splice<TReplace, TKeyReplace extends PropertyKey>(
+    splice<TOperand extends Operand>(
         offset: number,
         length?: number | null,
-        replacement?:
-            | DataItems<TReplace, TKeyReplace>
-            | Collection<TReplace, TKeyReplace, CollectionShape>,
+        replacement?: TOperand | TValue,
     ) {
         // array_splice inserts the replacement's values in its own order, which a Map read as a record would lose.
         const values = isUndefined(replacement)
@@ -3843,21 +3774,16 @@ export class Collection<
      * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b'], [null, 'c']])
      * new Collection({a: 1, b: 2}).zip({x: 'a'}); -> new Collection([[1, 'a'], [2, null]])
      */
-    zip<TZipValue>(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        ...list: AtLeastOne<
-            | DataItems<TZipValue, PropertyKey>
-            | Collection<any, any, CollectionShape>
-            | null
-            | undefined
-        >
-    ): Collection<Collection<TValue | TZipValue, number>, number> {
+    zip<TOperands extends AtLeastOne<Operand>>(
+        ...list: TOperands
+    ): Collection<
+        Collection<TValue | OperandValue<TOperands[number]>, number>,
+        number
+    > {
         const columns: unknown[][] = [
             this.getItemValues(this.items),
             ...list.map((items) => {
-                const rawItems = this.getRawItems(
-                    items,
-                ) as DataItems<TZipValue>;
+                const rawItems = this.getRawItems(items);
 
                 return isArray(rawItems) ? rawItems : Object.values(rawItems);
             }),
@@ -3874,7 +3800,7 @@ export class Collection<
         );
 
         return this.sameInstance(handOver(zipped)) as unknown as Collection<
-            Collection<TValue | TZipValue, number>,
+            Collection<TValue | OperandValue<TOperands[number]>, number>,
             number
         >;
     }
@@ -5166,11 +5092,9 @@ export class Collection<
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that match any of the given values for the specified key
      */
-    whereIn<TSetValue, TSetKey extends PropertyKey>(
+    whereIn<TOperand extends Operand>(
         key: PathKey,
-        values:
-            | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey, CollectionShape>,
+        values: TOperand,
         strict: boolean = false,
     ) {
         const isIn = inArrayTest(
@@ -5188,12 +5112,7 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that match any of the given values for the specified key using strict comparison
      */
-    whereInStrict<TSetValue, TSetKey extends PropertyKey>(
-        key: PathKey,
-        values:
-            | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey, CollectionShape>,
-    ) {
+    whereInStrict<TOperand extends Operand>(key: PathKey, values: TOperand) {
         return this.whereIn(key, values, true);
     }
 
@@ -5204,12 +5123,7 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key between the given values
      */
-    whereBetween<TSetValue, TSetKey extends PropertyKey>(
-        key: PathKey,
-        values:
-            | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey, CollectionShape>,
-    ) {
+    whereBetween<TOperand extends Operand>(key: PathKey, values: TOperand) {
         const valueSet = this.getRawItems(values);
         const valuesArray = Object.values(valueSet);
 
@@ -5227,12 +5141,7 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key not between the given values
      */
-    whereNotBetween<TSetValue, TSetKey extends PropertyKey>(
-        key: PathKey,
-        values:
-            | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey, CollectionShape>,
-    ) {
+    whereNotBetween<TOperand extends Operand>(key: PathKey, values: TOperand) {
         return this.filter((item: TValue) => {
             const retrieved = itemValue(item, key);
             const valueSet = this.getRawItems(values);
@@ -5254,11 +5163,9 @@ export class Collection<
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that do not match any of the given values for the specified key
      */
-    whereNotIn<TSetValue, TSetKey extends PropertyKey>(
+    whereNotIn<TOperand extends Operand>(
         key: PathKey,
-        values:
-            | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey, CollectionShape>,
+        values: TOperand,
         strict: boolean = false,
     ) {
         const isIn = inArrayTest(
@@ -5276,12 +5183,7 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that do not match any of the given values for the specified key using strict comparison
      */
-    whereNotInStrict<TSetValue, TSetKey extends PropertyKey>(
-        key: PathKey,
-        values:
-            | DataItems<unknown, PropertyKey>
-            | Collection<TSetValue, TSetKey, CollectionShape>,
-    ) {
+    whereNotInStrict<TOperand extends Operand>(key: PathKey, values: TOperand) {
         return this.whereNotIn(key, values, true);
     }
 

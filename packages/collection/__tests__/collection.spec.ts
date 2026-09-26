@@ -6607,8 +6607,12 @@ describe("Collection", () => {
                 });
 
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-scalar-operand"
+                // A scalar is outside merge()'s operand types; PHP's runtime casts it to an array holding it
                 const d = collect(["hello"]);
-                expect(d.merge(1).all()).toEqual(["hello", 1]);
+                expect(Reflect.apply(d.merge, d, [1]).all()).toEqual([
+                    "hello",
+                    1,
+                ]);
             });
 
             it("test merge collection", () => {
@@ -6903,8 +6907,13 @@ describe("Collection", () => {
         });
 
         it("appends a scalar operand as one item", () => {
+            const collection = collect([1]);
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-operand"
-            expect(collect([1]).mergeRecursive(2).all()).toEqual([1, 2]);
+            // A scalar is outside mergeRecursive()'s operand types; PHP's runtime casts it to an array holding it
+            expect(
+                Reflect.apply(collection.mergeRecursive, collection, [2]).all(),
+            ).toEqual([1, 2]);
         });
 
         it("keeps a record's string keys before the list it appends", () => {
