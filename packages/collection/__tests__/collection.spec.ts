@@ -10655,17 +10655,6 @@ describe("Collection", () => {
                 ).toBe(true);
             });
         });
-
-        it("uses default key parameter", () => {
-            // Calling some without key triggers the default parameter = null
-            // which makes contains check if any value loosely equals null (PHP-style)
-            // In PHP loose equality, null == 0 == '' == false == []
-            const withPHPFalsy = collect([1, 2, 0, 4]); // 0 loosely equals null in PHP
-            expect(withPHPFalsy.some()).toBe(true); // 0 loosely equals null
-
-            const withoutPHPFalsy = collect([1, 2, 3, 4]);
-            expect(withoutPHPFalsy.some()).toBe(false); // no PHP-falsy values
-        });
     });
 
     describe("dump", () => {
@@ -10953,16 +10942,6 @@ describe("Collection", () => {
             expect(c.every((v) => v > 2)).toBe(false);
         });
 
-        it("uses default key parameter", () => {
-            // Calling every without key triggers the default parameter = null
-            // which makes valueRetriever return item itself (check truthiness)
-            const truthy = collect([1, 2, "hello", true]);
-            expect(truthy.every()).toBe(true);
-
-            const withFalsy = collect([1, 2, "", true]);
-            expect(withFalsy.every()).toBe(false);
-        });
-
         it("uses operatorForWhere when operator provided", () => {
             const c = collect([{ status: "active" }, { status: "active" }]);
             expect(c.every("status", "=", "active")).toBe(true);
@@ -11016,14 +10995,6 @@ describe("Collection", () => {
         it("uses operatorForWhere", () => {
             const c = collect([{ id: 1 }, { id: 2 }, { id: 3 }]);
             expect(c.firstWhere("id", ">=", 2)).toEqual({ id: 2 });
-        });
-
-        it("uses default key parameter", () => {
-            // Calling firstWhere without key triggers the default parameter = null
-            // which makes operatorForWhere return items based on truthiness
-            const c = collect([0, "", null, "hello", 42]);
-            const first = c.firstWhere();
-            expect(first).toBe("hello");
         });
     });
 

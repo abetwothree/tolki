@@ -4499,7 +4499,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @see {@link Collection.contains}
      */
     some(
-        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
         operator?: unknown,
         value?: unknown,
     ) {
@@ -4592,7 +4592,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).every(2); -> false
      */
     every(
-        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
         operator: unknown = null,
         value: unknown = null,
     ): boolean {
@@ -4638,7 +4638,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> undefined
      */
     firstWhere(
-        key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
     ): TValue | null {
