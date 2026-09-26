@@ -724,12 +724,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Get the items in the collection that are not present in the given items, using the callback.
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to determine equality
+     * @param callback - A comparator answering 0 for equal values, as PHP's `strcasecmp` and `<=>` do, or true
      * @returns A new collection with the difference
      *
      * @example
      *
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).diffUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 1}, {id: 3}])
+     * new Collection([1, 2, 3]).diffUsing([2], (a, b) => a - b); -> new Collection([1, 3])
      * new Collection({a: 'apple', b: 'banana'}).diffUsing(['banana'], (a, b) => a === b); -> new Collection({a: 'apple'})
      */
     diffUsing(
@@ -739,7 +739,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<any, any>
             | null
             | undefined,
-        callback: (a: TValue, b: TValue) => boolean,
+        callback: (a: TValue, b: TValue) => boolean | number,
     ) {
         return this.newInstance(
             handOver(
@@ -748,7 +748,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     this.getRawItems(items),
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes `unknown` and rejects a typed callback (contravariance).
-                    callback as (a: unknown, b: unknown) => boolean,
+                    equalityTest(callback) as (
+                        a: unknown,
+                        b: unknown,
+                    ) => boolean,
                 ),
             ),
         );
@@ -783,18 +786,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback is used to compare keys (case-insensitively, for example), while values are compared strictly.
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
      * @returns A new collection with the difference
      *
      * @example
      *
-     * const strcasecmp = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
     diffAssocUsing(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
-        callback: (keyA: TKey, keyB: TKey) => boolean,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         return this.newInstance(
             handOver(
@@ -803,7 +806,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     this.getRawItems(items),
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes a bare key and rejects a typed callback (contravariance).
-                    callback as (
+                    equalityTest(callback) as (
                         keyA: string | number,
                         keyB: string | number,
                     ) => boolean,
@@ -837,18 +840,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback is used to compare keys only (ignoring values).
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
      * @returns A new collection with the difference
      *
      * @example
      *
-     * const strcasecmp = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
      */
     diffKeysUsing(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
-        callback: (keyA: TKey, keyB: TKey) => boolean,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         return this.newInstance(
             handOver(
@@ -857,7 +860,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     this.getRawItems(items),
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes a bare key and rejects a typed callback (contravariance).
-                    callback as (
+                    equalityTest(callback) as (
                         keyA: string | number,
                         keyB: string | number,
                     ) => boolean,
@@ -1546,17 +1549,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Intersect the collection with the given items, using the callback.
      *
      * @param items - The items to intersect with
-     * @param callback - The callback function to determine equality
+     * @param callback - A comparator answering 0 for equal values, as PHP's `strcasecmp` and `<=>` do, or true
      * @returns A new collection with the intersected items
      *
      * @example
      *
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).intersectUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 2}])
-     * new Collection(['apple', 'banana', 'cherry']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
+     * new Collection([1, 2, 3]).intersectUsing([2, 3], (a, b) => a - b); -> new Collection([2, 3])
+     * new Collection(['apple', 'banana']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
      */
     intersectUsing<T, K extends PropertyKey = PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
-        callback: (a: TValue, b: TValue) => boolean,
+        callback: (a: TValue, b: TValue) => boolean | number,
     ) {
         if (isNull(items)) {
             return this.newInstance(handOver(isArray(this.items) ? [] : {}));
@@ -1569,7 +1572,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     this.getRawItems(items) as DataItems<TValue, TKey>,
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes `unknown` and rejects a typed callback (contravariance).
-                    callback as (a: unknown, b: unknown) => boolean,
+                    equalityTest(callback) as (
+                        a: unknown,
+                        b: unknown,
+                    ) => boolean,
                 ),
             ),
         );
@@ -1609,17 +1615,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback is used to compare keys, while values are compared strictly.
      *
      * @param items - The items to intersect with
-     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
      * @returns A new collection with the intersected items
      *
      * @example
      *
-     * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
-     * new Collection({a: 'green', b: 'brown'}).intersectAssocUsing({A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> new Collection({b: 'brown'})
+     * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
+     * new Collection({a: 'x', b: 'y'}).intersectAssocUsing({A: 'X', B: 'y'}, strcasecmp); -> new Collection({b: 'y'})
      */
     intersectAssocUsing<T, K extends PropertyKey = PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
-        callback: (keyA: TKey, keyB: TKey) => boolean,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         if (isNull(items)) {
             return this.newInstance(handOver(isArray(this.items) ? [] : {}));
@@ -1632,7 +1638,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     this.getRawItems(items) as DataItems<TValue, TKey>,
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes a bare key and rejects a typed callback (contravariance).
-                    callback as (
+                    equalityTest(callback) as (
                         keyA: string | number,
                         keyB: string | number,
                     ) => boolean,
@@ -6529,6 +6535,22 @@ function handOver<TItems extends object>(items: TItems): TItems {
     owned.add(items);
 
     return items;
+}
+
+/**
+ * Read a `*Using` callback as the equality test the data helpers take, so a PHP comparator gives PHP's answer.
+ *
+ * @param callback - A comparator answering a number, which means equal only at 0, or a test answering a boolean
+ * @returns A test answering whether its two arguments are equal
+ */
+function equalityTest<TLeft, TRight>(
+    callback: (left: TLeft, right: TRight) => boolean | number,
+): (left: TLeft, right: TRight) => boolean {
+    return (left, right) => {
+        const answer = callback(left, right);
+
+        return isNumber(answer) ? answer === 0 : answer;
+    };
 }
 
 /**

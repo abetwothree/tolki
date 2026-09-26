@@ -22,17 +22,17 @@ import {
     TestTraversableAndJsonSerializableObject,
 } from "./test-classes";
 
-// Case-insensitive string comparison (like PHP's strcasecmp)
-// Returns true if items are equal (should be excluded from diff)
-const strcasecmp = (a: unknown, b: unknown): boolean => {
-    if (typeof a === "string" && typeof b === "string") {
-        return a.toLowerCase() === b.toLowerCase();
-    }
-    return a === b;
-};
+// PHP's strcasecmp(), the comparator the *Using tests pass: 0 for strings equal but for case, else -1 or 1.
+const strcasecmp = (a: unknown, b: unknown): number => {
+    const left = String(a).toLowerCase();
+    const right = String(b).toLowerCase();
 
-const strcasecmpKeys = (a: unknown, b: unknown) =>
-    String(a).toLowerCase() === String(b).toLowerCase();
+    if (left === right) {
+        return 0;
+    }
+
+    return left < right ? -1 : 1;
+};
 
 const strnatcasecmp = (a: unknown, b: unknown): number => {
     if (typeof a === "string" && typeof b === "string") {
@@ -1987,6 +1987,18 @@ describe("Collection", () => {
             expect(diffed.values().all()).toEqual(["b", "c"]);
         });
 
+        it("reads a comparator's 0 as equal, as PHP's <=> answers", () => {
+            const diffed = collect([1, 2, 3]).diffUsing([2], (a, b) =>
+                Math.sign(a - b),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffUsing-spaceship-comparator"
+            // PHP keeps the gap ({0: 1, 2: 3}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(diffed.all()).toEqual([1, 3]);
+            expect(diffed.keys().all()).toEqual([0, 1]);
+            expect(diffed.values().all()).toEqual([1, 3]);
+        });
+
         it("keeps a record's keys", () => {
             const diffed = collect({
                 a: "green",
@@ -2041,7 +2053,7 @@ describe("Collection", () => {
             // 'b' has no case-insensitive match → included
             // 'c' has no case-insensitive match → included
             // index 0 exists in both BUT different value ('red' vs 'yellow') → included
-            expect(c3.diffAssocUsing(c4, strcasecmpKeys).all()).toEqual({
+            expect(c3.diffAssocUsing(c4, strcasecmp).all()).toEqual({
                 b: "brown",
                 c: "blue",
                 0: "red",
@@ -2088,7 +2100,7 @@ describe("Collection", () => {
                 collect({ a: "green", b: "brown", c: "blue", 0: "red" })
                     .diffAssocUsing(
                         collect({ A: "green", 0: "yellow", 1: "red" }),
-                        strcasecmpKeys,
+                        strcasecmp,
                     )
                     .all(),
             ).toEqual({ b: "brown", c: "blue", 0: "red" });
@@ -2098,7 +2110,7 @@ describe("Collection", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
             expect(
                 collect([1, 2, 3])
-                    .diffAssocUsing(collect([1, 9, 3]), strcasecmpKeys)
+                    .diffAssocUsing(collect([1, 9, 3]), strcasecmp)
                     .all(),
             ).toEqual([2]);
         });
@@ -2145,7 +2157,7 @@ describe("Collection", () => {
             const c1 = collect({ id: 1, first_word: "Hello" });
             const c2 = { ID: 123, foo_bar: "Hello" } as Record<string, unknown>;
 
-            expect(c1.diffKeysUsing(c2, strcasecmpKeys).all()).toEqual({
+            expect(c1.diffKeysUsing(c2, strcasecmp).all()).toEqual({
                 first_word: "Hello",
             });
         });
@@ -2158,7 +2170,7 @@ describe("Collection", () => {
                 first_word: "Hello",
             }).diffKeysUsing(
                 collect({ ID: 123, foo_bar: "Hello" }),
-                strcasecmpKeys,
+                strcasecmp,
             );
 
             expect(result.all()).toEqual({ first_word: "Hello" });
@@ -2170,7 +2182,7 @@ describe("Collection", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
             expect(
                 collect([1, 2, 3])
-                    .diffKeysUsing(collect([9, 9]), strcasecmpKeys)
+                    .diffKeysUsing(collect([9, 9]), strcasecmp)
                     .all(),
             ).toEqual([3]);
         });
@@ -4374,6 +4386,19 @@ describe("Collection", () => {
                 ).toEqual(["green", "brown"]);
             });
         });
+
+        it("reads a comparator's 0 as equal, as PHP's <=> answers", () => {
+            const intersected = collect([1, 2, 3]).intersectUsing(
+                [2, 3],
+                (a, b) => Math.sign(a - b),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-intersectUsing-spaceship-comparator"
+            // PHP keeps the keys ({1: 2, 2: 3}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(intersected.all()).toEqual([2, 3]);
+            expect(intersected.keys().all()).toEqual([0, 1]);
+            expect(intersected.values().all()).toEqual([2, 3]);
+        });
     });
 
     describe("intersectUsing operand handling", () => {
@@ -4510,7 +4535,7 @@ describe("Collection", () => {
                 });
 
                 expect(
-                    array1.intersectAssocUsing(null, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(null, strcasecmp).all(),
                 ).toEqual({});
             });
 
@@ -4529,7 +4554,7 @@ describe("Collection", () => {
                 });
 
                 expect(
-                    array1.intersectAssocUsing(array2, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(array2, strcasecmp).all(),
                 ).toEqual({ b: "brown" });
             });
         });
@@ -4539,7 +4564,7 @@ describe("Collection", () => {
                 const array1 = collect(["green", "brown", "blue", "red"]);
 
                 expect(
-                    array1.intersectAssocUsing(null, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(null, strcasecmp).all(),
                 ).toEqual([]);
             });
 
@@ -4548,7 +4573,7 @@ describe("Collection", () => {
                 const array2 = collect(["GREEN", "brown", "yellow", "red"]);
 
                 expect(
-                    array1.intersectAssocUsing(array2, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(array2, strcasecmp).all(),
                 ).toEqual(["brown", "red"]);
             });
         });
@@ -4559,7 +4584,7 @@ describe("Collection", () => {
             const shared = { id: 1 };
             expect(
                 new Collection({ a: shared })
-                    .intersectAssocUsing({ A: shared }, strcasecmpKeys)
+                    .intersectAssocUsing({ A: shared }, strcasecmp)
                     .all(),
             ).toEqual({ a: shared });
         });
@@ -4572,7 +4597,7 @@ describe("Collection", () => {
             ]);
             expect(
                 new Collection({ a: "green", b: "brown" })
-                    .intersectAssocUsing(map as never, strcasecmpKeys)
+                    .intersectAssocUsing(map as never, strcasecmp)
                     .all(),
             ).toEqual({ a: "green" });
         });
@@ -4596,7 +4621,7 @@ describe("Collection", () => {
                 0: "red",
             }).intersectAssocUsing(
                 collect({ a: "GREEN", B: "brown", 0: "yellow", 1: "red" }),
-                strcasecmpKeys,
+                strcasecmp,
             );
 
             expect(result.all()).toEqual({ b: "brown" });
