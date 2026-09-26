@@ -3301,15 +3301,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             callback as PathKey | ((...args: (TValue | TKey)[]) => TSortValue),
         );
 
-        // Create array of [key, value, sortValue] tuples
-        const entries: Array<[TKey, TValue, TSortValue]> = [];
-        for (const [key, value] of Object.entries(this.items)) {
-            const sortValue = callbackFn(
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            ) as TSortValue;
-            entries.push([key as TKey, value as TValue, sortValue]);
-        }
+        // Read in the order PHP holds the items, so a tie keeps it: the sort below is stable.
+        const entries = this.entriesInOrder().map(
+            ([key, value]) =>
+                [key, value, callbackFn(value, key) as TSortValue] as const,
+        );
 
         // Sort by the sort values
         entries.sort(([, , a], [, , b]) => {
@@ -3369,10 +3365,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             ),
         );
 
-        const entries = Object.entries(this.items);
+        const entries = this.entriesInOrder();
         entries.sort(([, a], [, b]) => {
             for (const comparator of comparators) {
-                const result = comparator(a as TValue, b as TValue);
+                const result = comparator(a, b);
 
                 if (result !== 0) {
                     return result;
@@ -3382,9 +3378,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return 0;
         });
 
-        return this.newInstance(
-            this.sortedItems(entries as Array<[TKey, TValue]>),
-        );
+        return this.newInstance(this.sortedItems(entries));
     }
 
     /**

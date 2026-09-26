@@ -11322,6 +11322,34 @@ describe("Collection", () => {
             );
         });
 
+        it("keeps a Map-built collection's ties in the order it holds them", () => {
+            const rows = () =>
+                collect(
+                    new Map([
+                        [2, { n: 1, id: "p" }],
+                        [0, { n: 1, id: "q" }],
+                        [1, { n: 0, id: "r" }],
+                    ]),
+                );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-out-of-order-ties"
+            expect(rows().sortBy("n").pluck("id").all()).toEqual([
+                "r",
+                "p",
+                "q",
+            ]);
+            expect(rows().sortByDesc("n").pluck("id").all()).toEqual([
+                "p",
+                "q",
+                "r",
+            ]);
+            expect(rows().sortBy(["n"]).pluck("id").all()).toEqual([
+                "r",
+                "p",
+                "q",
+            ]);
+        });
+
         it("keeps ties in their original relative order through sortByDesc", () => {
             const items = collect([
                 { id: "a", k: 2 },
