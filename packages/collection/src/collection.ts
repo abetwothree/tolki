@@ -20,9 +20,6 @@ import {
     dataFlatten,
     dataForget,
     dataGet,
-    dataHas,
-    dataHasAll,
-    dataHasAny,
     dataIntersect,
     dataIntersectAssoc,
     dataIntersectAssocUsing,
@@ -1365,7 +1362,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Determine if an item exists in the collection by key.
      *
-     * @param key - The key or keys to check for
+     * Each key is looked up literally, as PHP's `array_key_exists` does, and a null key reads the `""` key.
+     *
+     * @param keys - The keys to check for, as arguments or as one array given first, which ignores the rest
      * @returns True if all keys exist, false otherwise
      *
      * @example
@@ -1373,19 +1372,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).has('a'); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
+     * new Collection({a: {b: 1}}).has('a.b'); -> false
      */
     has(...keys: PathKey[] | PathKeys[]): boolean {
-        if (keys.length > 1) {
-            return dataHasAll(this.items, keys.flat() as PathKeys);
-        }
+        const [key, ...rest] = keys;
+        // PHP reads an array first argument as the whole key list, and any other call's arguments as its keys.
+        const list: readonly unknown[] = isArray(key) ? key : [key, ...rest];
 
-        return dataHas(this.items, keys[0]);
+        return list.every((each) => !isUndefined(this.ownKey(each ?? "")));
     }
 
     /**
      * Determine if any of the keys exist in the collection.
      *
-     * @param key - The key or keys to check for
+     * Each key is looked up literally, as PHP's `array_key_exists` does, and a null key reads the `""` key.
+     *
+     * @param keys - The keys to check for, as arguments or as one array given first, which ignores the rest
      * @returns True if any key exists, false otherwise
      *
      * @example
@@ -1399,7 +1401,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return false;
         }
 
-        return dataHasAny(this.items, keys.flat() as PathKeys);
+        const [key, ...rest] = keys;
+        const list: readonly unknown[] = isArray(key) ? key : [key, ...rest];
+
+        return list.some((each) => !isUndefined(this.ownKey(each ?? "")));
     }
 
     /**
@@ -6262,7 +6267,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The offset to look up
      * @returns The key the backing holds the entry under, or undefined when it holds none
      */
-    protected ownKey(key: PropertyKey): string | number | undefined {
+    protected ownKey(key: unknown): string | number | undefined {
         const phpKey = phpArrayKey(key);
 
         // A list's entries are its indexes alone; its `length` and its methods are no items.

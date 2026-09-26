@@ -3312,6 +3312,41 @@ describe("Collection", () => {
             const collection = collect({ "": "some" });
             expect(collection.has([null])).toBe(true);
         });
+
+        it("test has returns valid results", () => {
+            // CollectionTest::testHasReturnsValidResults
+            const data = new Collection({ foo: "one", bar: "two", 1: "three" });
+            expect(data.has("foo")).toBe(true);
+            expect(data.has("foo", "bar", 1)).toBe(true);
+            expect(data.has("foo", "bar", 1, "baz")).toBe(false);
+            expect(data.has("baz")).toBe(false);
+        });
+
+        it("reads a null key as the empty-string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-null-key"
+            expect([
+                collect({ a: 1 }).has(null),
+                collect({ "": 1 }).has(null),
+            ]).toEqual([false, true]);
+        });
+
+        it("answers true for an empty key list, as no key in it is missing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-empty-key-list"
+            expect([collect({ a: 1 }).has([]), collect([]).has([])]).toEqual([
+                true,
+                true,
+            ]);
+        });
+
+        it("reads an array first argument as the whole key list, ignoring the rest", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-array-ignores-extra-args"
+            expect(collect({ first: 1 }).has(["first"], "third")).toBe(true);
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-26-collection-order.json, "has-dot-path-is-a-literal-key"
+            expect(collect({ a: { b: 1 } }).has("a.b")).toBe(false);
+        });
     });
 
     describe("hasAny", () => {
@@ -3329,6 +3364,30 @@ describe("Collection", () => {
 
         it("test has any if collection is empty", () => {
             expect(collect().hasAny("key", "any", [0, 1], "test")).toBe(false);
+        });
+
+        it("reads a null key as the empty-string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-null-key"
+            expect([
+                collect({ "": 1 }).hasAny(null),
+                collect({ a: 1 }).hasAny(null),
+                collect({ "": 1 }).hasAny([null]),
+            ]).toEqual([true, false, true]);
+        });
+
+        it("reads an array first argument as the whole key list, ignoring the rest", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-array-ignores-extra-args"
+            expect(collect({ first: 1 }).hasAny(["third"], "first")).toBe(
+                false,
+            );
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-dot-path-is-literal"
+            expect([
+                collect({ a: { b: 1 } }).hasAny("a.b"),
+                collect({ "a.b": 1 }).hasAny("a.b"),
+            ]).toEqual([false, true]);
         });
     });
 
@@ -15562,9 +15621,8 @@ describe("Collection", () => {
                 "fallback",
             );
 
-            // JS-only: has() resolves a dot path, where PHP's is a literal array_key_exists
-            // ("has-dot-path-is-a-literal-key" in docs/php-parity/task-26-collection-order.json).
-            expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(true);
+            // docs/php-parity/task-26-collection-order.json, "has-dot-path-is-a-literal-key"
+            expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(false);
 
             // docs/php-parity/task-26-collection-order.json, "getOrPut-dot-path-is-a-literal-key"
             const nested = new Collection({ a: { b: 1 } });
