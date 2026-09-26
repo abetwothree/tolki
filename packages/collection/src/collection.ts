@@ -997,7 +997,7 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    except<TExceptValue, TExceptKey extends PropertyKey>(
+    except<TExceptValue extends PathKey, TExceptKey extends PropertyKey>(
         ...keys: (
             | PathKey
             | PathKey[]
@@ -1147,7 +1147,7 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    forget<T, K extends PropertyKey = PropertyKey>(
+    forget<T extends PathKey, K extends PropertyKey = PropertyKey>(
         keys: PathKeys | Collection<T, K, CollectionShape>,
     ) {
         const requested = Object.values(this.getRawItems(keys));
@@ -2198,7 +2198,7 @@ export class Collection<
      * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
      * new Collection(['a', 'b', 'c', 'd']).only([3, 1]); -> new Collection(['b', 'd'])
      */
-    only<T, K extends PropertyKey>(
+    only<T extends PathKey, K extends PropertyKey>(
         ...keys: PathKey[] | PathKeys[] | Collection<T, K, CollectionShape>[]
     ) {
         const keysToKeep = this.keysArgument(keys);

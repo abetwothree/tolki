@@ -95,4 +95,43 @@ describe("collection set operation type tests", () => {
             >();
         });
     });
+
+    describe("only", () => {
+        it("takes a collection of key names", () => {
+            expectTypeOf(record.only(collect(["a"]))).toEqualTypeOf<
+                Collection<number, "a" | "b", "keyed">
+            >();
+        });
+
+        it("rejects a collection whose values are not key names", () => {
+            // @ts-expect-error - PHP's parameter is Enumerable<array-key, TKey>
+            record.only(collect([{ a: 1 }]));
+        });
+    });
+
+    describe("except", () => {
+        it("takes a collection of key names", () => {
+            expectTypeOf(record.except(collect(["a"]))).toEqualTypeOf<
+                Collection<number, "a" | "b", "keyed">
+            >();
+        });
+
+        it("rejects a collection whose values are not key names", () => {
+            // @ts-expect-error - PHP's parameter is Enumerable<array-key, TKey>
+            record.except(collect([{ a: 1 }]));
+        });
+    });
+
+    describe("forget", () => {
+        it("takes a collection of key names", () => {
+            expectTypeOf(record.forget(collect(["a"]))).toEqualTypeOf<
+                Collection<number, "a" | "b", "keyed">
+            >();
+        });
+
+        it("rejects a collection whose values are not key names", () => {
+            // @ts-expect-error - PHP's parameter is iterable<array-key, TKey>
+            record.forget(collect([{ a: 1 }]));
+        });
+    });
 });
