@@ -15863,18 +15863,33 @@ describe("Collection", () => {
             expect(collect([undefined]).ensure("undefined").count()).toBe(1);
         });
 
+        it("names a closure and an anonymous class as get_debug_type() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-ensure-closure-and-anonymous-class-names"
+            expect(() => collect([new (class {})()]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'class@anonymous' found at position 0.",
+                ),
+            );
+            expect(() => collect([() => 1]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'Closure' found at position 0.",
+                ),
+            );
+            expect(
+                collect([() => 1])
+                    .ensure("Closure")
+                    .count(),
+            ).toBe(1);
+        });
+
         it("names what PHP has no type for by its JavaScript type", () => {
             const orphan: unknown = Object.create(Object.create(null));
 
-            // JS-only: a function, a symbol, a bigint and an object with no class have no PHP type name
+            // JS-only: a symbol, a bigint and an object with no class have no PHP type name
             expect(() => collect([orphan]).ensure("string")).toThrow(
                 new UnexpectedValueException(
                     "Collection should only include [string] items, but 'object' found at position 0.",
-                ),
-            );
-            expect(() => collect([() => 1]).ensure("string")).toThrow(
-                new UnexpectedValueException(
-                    "Collection should only include [string] items, but 'function' found at position 0.",
                 ),
             );
             expect(() => collect([Symbol("s")]).ensure("string")).toThrow(
@@ -16769,6 +16784,10 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-float-total-non-numeric-string"
             expect(() => collect([1.5, "a"]).sum()).toThrow(
                 new TypeError("Unsupported operand types: float + string"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-closure-item"
+            expect(() => collect([1, () => 1]).sum()).toThrow(
+                new TypeError("Unsupported operand types: int + Closure"),
             );
         });
 

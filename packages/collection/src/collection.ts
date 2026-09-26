@@ -6848,7 +6848,8 @@ function isOfType(item: unknown, type: unknown): boolean {
  * Name a value's type as PHP's `get_debug_type()` does, for ensure()'s message.
  *
  * @param value - The value to name
- * @returns null, int, float, string, bool, array or the class's name, else the JavaScript typeof name
+ * @returns null, int, float, string, bool, array, Closure for a function, or the class's name (class@anonymous for an
+ * anonymous one), else the JavaScript typeof name
  */
 function getDebugType(value: unknown): string {
     // The port reads undefined as PHP's null.
@@ -6873,11 +6874,16 @@ function getDebugType(value: unknown): string {
         return "array";
     }
 
-    if (isObject(value) && isFunction(value["constructor"])) {
-        return value["constructor"].name;
+    // Every PHP closure is an instance of the Closure class.
+    if (isFunction(value)) {
+        return "Closure";
     }
 
-    // JS-only: PHP has no function, symbol, bigint or classless object, so each keeps its typeof name.
+    if (isObject(value) && isFunction(value["constructor"])) {
+        return value["constructor"].name || "class@anonymous";
+    }
+
+    // JS-only: PHP has no symbol, bigint or classless object, so each keeps its typeof name.
     return typeOf(value);
 }
 
