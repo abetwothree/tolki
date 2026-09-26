@@ -3394,12 +3394,48 @@ describe("Collection", () => {
             });
         });
 
-        it("throw error when no groupBy is undefined", () => {
-            const collection = collect([1, 2, 3]);
-            expect(() => {
-                // @ts-expect-error testing invalid input
-                collection.groupBy([undefined]);
-            }).toThrowError();
+        it("groups by the values themselves when the list of groupings is empty or names null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-empty-and-null-array-arg"
+            const expected = [
+                [
+                    1,
+                    "integer",
+                    {
+                        Collection: [
+                            [0, "integer", 1],
+                            [1, "integer", 1],
+                        ],
+                    },
+                ],
+                [2, "integer", { Collection: [[0, "integer", 2]] }],
+            ];
+
+            expect(groupPairs(collect([1, 2, 1]).groupBy([]))).toEqual(
+                expected,
+            );
+            expect(groupPairs(collect([1, 2, 1]).groupBy([null]))).toEqual(
+                expected,
+            );
+        });
+
+        it("groups by the values themselves when the list of groupings names undefined", () => {
+            // JS-only: undefined is read as PHP's null, so this gives the "null" answer of
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-empty-and-null-array-arg"
+            expect(groupPairs(collect([1, 2, 1]).groupBy([undefined]))).toEqual(
+                [
+                    [
+                        1,
+                        "integer",
+                        {
+                            Collection: [
+                                [0, "integer", 1],
+                                [1, "integer", 1],
+                            ],
+                        },
+                    ],
+                    [2, "integer", { Collection: [[0, "integer", 2]] }],
+                ],
+            );
         });
 
         it("group key is boolean", () => {

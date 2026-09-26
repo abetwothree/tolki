@@ -1222,30 +1222,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
     groupBy<TGroupKey extends PropertyKey = PropertyKey>(
         groupByValue:
             | ((value: TValue, index: TKey) => unknown)
-            | Array<TGroupKey | ((value: TValue, index: TKey) => unknown)>
+            | Array<
+                  | TGroupKey
+                  | PathKey
+                  | ((value: TValue, index: TKey) => unknown)
+              >
             | TGroupKey
             | PathKey,
         preserveKeys: boolean = false,
     ) {
         let nextGroups: Array<
-            TGroupKey | ((value: TValue, index: TKey) => unknown)
-        > | null = null;
+            TGroupKey | PathKey | ((value: TValue, index: TKey) => unknown)
+        > = [];
 
+        // PHP shifts this level's grouping off the list, and an empty list shifts null, which groups by the values.
         if (!isFunction(groupByValue) && isArray(groupByValue)) {
-            // Make a copy of the array so we don't mutate the original
-            nextGroups = [...groupByValue];
-
-            const shiftedValue = nextGroups.shift();
-
-            if (isUndefined(shiftedValue)) {
-                throw new Error(
-                    "groupBy requires at least one callback or key",
-                );
-            }
-
-            groupByValue = shiftedValue as
-                | ((value: TValue, index: TKey) => unknown)
-                | PathKey;
+            [groupByValue = null, ...nextGroups] = groupByValue;
         }
 
         groupByValue = this.valueRetriever(
@@ -1295,12 +1287,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
         }
 
-        const nested =
-            isArray(nextGroups) && nextGroups.length > 0 ? nextGroups : null;
-
-        if (nested) {
+        if (nextGroups.length > 0) {
             for (const [groupKey, group] of groups) {
-                groups.set(groupKey, group.groupBy(nested, preserveKeys));
+                groups.set(groupKey, group.groupBy(nextGroups, preserveKeys));
             }
         }
 
