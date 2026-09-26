@@ -5925,6 +5925,14 @@ describe("Arr", () => {
     });
 
     describe("sort", () => {
+        it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator"
+            // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
+            expect(
+                Arr.sort([3, 1, 2], [(a: number, b: number) => a > b]),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("sort", () => {
             // Natural sorting
             expect(Arr.sort([3, 1, 4, 1, 5])).toEqual([1, 1, 3, 4, 5]);
@@ -6243,6 +6251,14 @@ describe("Arr", () => {
     });
 
     describe("sortDesc", () => {
+        it("sorts by a comparator answering a bool, which the descending direction never reverses", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-bool-comparator"
+            // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
+            expect(
+                Arr.sortDesc([3, 1, 2], [(a: number, b: number) => a > b]),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("hands the callback the key, the same way sort does", () => {
             const seen: number[] = [];
 

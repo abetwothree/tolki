@@ -80,6 +80,7 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
+    phpSortComparator,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
@@ -3356,17 +3357,20 @@ function sortByComparators<TValue>(
         sortSpecComparator<TValue>(spec, forceDescending),
     );
 
-    return result.sort((a, b) => {
-        for (const comparator of comparators) {
-            const comparison = comparator(a, b);
+    // Collection::sortByMany hands uasort() its closure's whole answer, a comparator's bool included.
+    return result.sort(
+        phpSortComparator((a, b) => {
+            for (const comparator of comparators) {
+                const comparison = comparator(a, b);
 
-            if (comparison !== 0) {
-                return comparison;
+                if (comparison !== 0) {
+                    return comparison;
+                }
             }
-        }
 
-        return 0;
-    });
+            return 0;
+        }),
+    );
 }
 
 /**

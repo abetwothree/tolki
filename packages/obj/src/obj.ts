@@ -91,6 +91,7 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
+    phpSortComparator,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
@@ -4991,17 +4992,20 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
             (spec) => sortSpecComparator<TValue>(spec, false),
         );
 
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const comparison = comparator(a as TValue, b as TValue);
+        // Collection::sortByMany hands uasort() its closure's whole answer, a comparator's bool included.
+        entries.sort(
+            phpSortComparator(([, a], [, b]) => {
+                for (const comparator of comparators) {
+                    const comparison = comparator(a as TValue, b as TValue);
 
-                if (comparison !== 0) {
-                    return comparison;
+                    if (comparison !== 0) {
+                        return comparison;
+                    }
                 }
-            }
 
-            return 0;
-        });
+                return 0;
+            }),
+        );
     } else if (isFalsy(callback)) {
         // asort() on raw values: -1 sorts before 0, so falsiness must not
         // pre-empt the comparison. Same predicate and comparator as
@@ -5122,17 +5126,20 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
             (spec) => sortSpecComparator<TValue>(spec, true),
         );
 
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const comparison = comparator(a as TValue, b as TValue);
+        // Collection::sortByMany hands uasort() its closure's whole answer, a comparator's bool included.
+        entries.sort(
+            phpSortComparator(([, a], [, b]) => {
+                for (const comparator of comparators) {
+                    const comparison = comparator(a as TValue, b as TValue);
 
-                if (comparison !== 0) {
-                    return comparison;
+                    if (comparison !== 0) {
+                        return comparison;
+                    }
                 }
-            }
 
-            return 0;
-        });
+                return 0;
+            }),
+        );
     } else if (isFalsy(callback)) {
         // arsort() on raw values. Same predicate as Arr.sortDesc and as both
         // packages' sort, which is what keeps the four in agreement — PHP

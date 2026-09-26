@@ -12268,6 +12268,22 @@ describe("Collection", () => {
     });
 
     describe("sort", () => {
+        it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+            const list = collect([3, 1, 2]).sort((a, b) => a > b);
+
+            expect(list.values().all()).toEqual([1, 2, 3]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 1, 2 and 0
+            expect(list.all()).toEqual([1, 2, 3]);
+            expect(list.keys().all()).toEqual([0, 1, 2]);
+
+            const keyed = collect({ x: 3, y: 1, z: 2 }).sort((a, b) => a > b);
+
+            expect(keyed.all()).toEqual({ y: 1, z: 2, x: 3 });
+            expect(keyed.keys().all()).toEqual(["y", "z", "x"]);
+            expect(keyed.values().all()).toEqual([1, 2, 3]);
+        });
+
         describe("Laravel Tests", () => {
             it("test sort", () => {
                 // CollectionTest::testSort
@@ -12472,6 +12488,50 @@ describe("Collection", () => {
     });
 
     describe("sortBy", () => {
+        it("reads a comparator's answer as uasort() reads the whole closure's, a bool falling back and a fraction tying", () => {
+            type Row = { x: number; y?: number };
+            const tied = (): Row[] => [
+                { x: 1, y: 2 },
+                { x: 1, y: 1 },
+            ];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator"
+            expect(
+                collect<Row>([{ x: 3 }, { x: 1 }, { x: 2 }])
+                    .sortBy([(p: Row, q: Row) => p.x > q.x])
+                    .values()
+                    .all(),
+            ).toEqual([{ x: 1 }, { x: 2 }, { x: 3 }]);
+            expect(
+                collect(tied())
+                    .sortBy([(p: Row, q: Row) => p.x > q.x, "y"])
+                    .values()
+                    .all(),
+            ).toEqual(tied());
+            expect(
+                collect(tied())
+                    .sortBy([() => 0, "y"])
+                    .values()
+                    .all(),
+            ).toEqual([
+                { x: 1, y: 1 },
+                { x: 1, y: 2 },
+            ]);
+            expect(
+                collect(tied())
+                    .sortBy([() => 0.5, "y"])
+                    .values()
+                    .all(),
+            ).toEqual(tied());
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-bool-comparator"
+            expect(
+                collect([3, 1, 2])
+                    .sortByDesc([(a: number, b: number) => a > b])
+                    .values()
+                    .all(),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("orders numbers and numeric strings by value", () => {
             // CollectionTest::testSortByManyWithNumericFlagComparesFractionalValues, without SORT_NUMERIC, which orders
             // this data the same. docs/php-parity/task-31-laravel-13-33-sync.json, "sortBy-many-default-flag-asc",
@@ -13302,6 +13362,17 @@ describe("Collection", () => {
     });
 
     describe("testSortKeysUsing", () => {
+        it("sorts the keys by a comparator answering a bool, as uksort() falls back for one", () => {
+            const sorted = collect({ c: 1, a: 2, b: 3 }).sortKeysUsing(
+                (a, b) => a > b,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+            expect(sorted.all()).toEqual({ a: 2, b: 3, c: 1 });
+            expect(sorted.keys().all()).toEqual(["a", "b", "c"]);
+            expect(sorted.values().all()).toEqual([2, 3, 1]);
+        });
+
         describe("Laravel Tests", () => {
             it("test sort keys using", () => {
                 // CollectionTest::testSortKeysUsing

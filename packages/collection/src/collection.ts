@@ -110,6 +110,7 @@ import {
     phpComputedKey,
     phpDebugType,
     phpIntArgument,
+    phpSortComparator,
     phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
@@ -3242,8 +3243,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * reordered at once, so they're renumbered over the sorted sequence (same
      * policy as `sortBy`/`sortDesc`/`reverse`/`pad`/`splice`).
      *
-     * @param callback - A comparator answering below, at or above zero for two items, as uasort() takes one, or null
-     * to sort the values themselves
+     * @param callback - A comparator answering below, at or above zero for two items, read as uasort() reads it: cast
+     * to an int, and a bool deprecated but still sorting; or null to sort the values themselves
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3252,14 +3253,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([5, 3, 1, 2, 4]).sort((a, b) => b - a); -> new Collection([5, 4, 3, 2, 1])
      * new Collection({a: 3, b: 1, c: 2}).sort((x, y) => x - y); -> new Collection({b: 1, c: 2, a: 3})
      */
-    sort(callback: ((a: TValue, b: TValue) => number) | null = null) {
+    sort(callback: ((a: TValue, b: TValue) => number | boolean) | null = null) {
         if (!isFunction(callback)) {
             return this.newInstance(handOver(dataSort(this.items as TValue[])));
         }
 
-        // uasort() casts the comparator's answer to an int, so a fraction below 1 or a non-finite answer is a tie.
-        const entries = this.entriesInOrder().sort(([, a], [, b]) =>
-            phpInt(callback(a, b)),
+        const entries = this.entriesInOrder().sort(
+            phpSortComparator(([, a], [, b]) => callback(a, b)),
         );
 
         return this.newInstance(this.sortedItems(entries));
@@ -3448,8 +3448,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort the collection keys using a callback.
      *
-     * @param callback - A comparator answering below, at or above zero for two keys, its answer cast to an int as
-     * uksort() casts it
+     * @param callback - A comparator answering below, at or above zero for two keys, read as uksort() reads it: cast to
+     * an int, and a bool deprecated but still sorting
      * @returns A new collection with the items sorted by keys using the callback
      *
      * @example
@@ -3457,12 +3457,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => a.localeCompare(b)); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => b.localeCompare(a)); -> new Collection({c: 3, b: 2, a: 1})
      */
-    sortKeysUsing(callback: (a: TKey, b: TKey) => number) {
+    sortKeysUsing(callback: (a: TKey, b: TKey) => number | boolean) {
         const keys = Object.keys(this.items);
 
-        // uksort() casts the comparator's answer to an int, as uasort() does for sort().
-        keys.sort((a, b) =>
-            phpInt(callback(phpArrayKey(a) as TKey, phpArrayKey(b) as TKey)),
+        keys.sort(
+            phpSortComparator((a, b) =>
+                callback(phpArrayKey(a) as TKey, phpArrayKey(b) as TKey),
+            ),
         );
 
         const entries = keys.map(
@@ -5890,17 +5891,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         const entries = this.entriesInOrder();
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const result = comparator(a, b);
 
-                if (result !== 0) {
-                    return result;
+        // PHP hands uasort() the closure's whole answer, so a comparator's bool or fraction ends the comparison there.
+        entries.sort(
+            phpSortComparator(([, a], [, b]) => {
+                for (const comparator of comparators) {
+                    const result = comparator(a, b);
+
+                    if (result !== 0) {
+                        return result;
+                    }
                 }
-            }
 
-            return 0;
-        });
+                return 0;
+            }),
+        );
 
         return this.newInstance(this.sortedItems(entries));
     }

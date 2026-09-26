@@ -1,5 +1,5 @@
 import type { PathKey, SortSpec } from "@tolki/types";
-import { createSortSpecComparator } from "@tolki/utils";
+import { createSortSpecComparator, phpSortComparator } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
 type Row = { age: number };
@@ -77,5 +77,48 @@ describe("createSortSpecComparator", () => {
         const byAge = (a: Row, b: Row) => a.age - b.age;
 
         expect(comparatorFor([byAge] as never, true)).toBe(byAge);
+    });
+});
+
+describe("phpSortComparator", () => {
+    it("sorts by a comparator answering a bool, as PHP's usort() falls back for one", () => {
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+        expect(
+            [3, 1, 2].sort(phpSortComparator((a: number, b: number) => a > b)),
+        ).toEqual([1, 2, 3]);
+        expect(
+            [3, 1, 2].sort(phpSortComparator((a: number, b: number) => a < b)),
+        ).toEqual([3, 2, 1]);
+        expect(
+            [5, 3, 9, 1, 7, 2, 8].sort(
+                phpSortComparator((a: number, b: number) => a > b),
+            ),
+        ).toEqual([1, 2, 3, 5, 7, 8, 9]);
+        expect([3, 1, 2].sort(phpSortComparator(() => false))).toEqual([
+            3, 1, 2,
+        ]);
+    });
+
+    it("casts a number to an int, so a fraction below 1, NAN or an infinity ties", () => {
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-int-cast"
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator((a: number, b: number) => (a - b) / 10),
+            ),
+        ).toEqual([3, 1, 2]);
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator(
+                    (a: number, b: number) => Math.sign(a - b) * Infinity,
+                ),
+            ),
+        ).toEqual([3, 1, 2]);
+        expect([3, 1, 2].sort(phpSortComparator(() => NaN))).toEqual([3, 1, 2]);
+        // CollectionTest::testSortWithCallback
+        expect(
+            [5, 3, 1, 2, 4].sort(
+                phpSortComparator((a: number, b: number) => a - b),
+            ),
+        ).toEqual([1, 2, 3, 4, 5]);
     });
 });

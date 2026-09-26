@@ -8754,6 +8754,16 @@ describe("Obj", () => {
     });
 
     describe("sort", () => {
+        it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
+            const sorted = Obj.sort({ c: 3, a: 1, b: 2 }, [
+                (a: number, b: number) => a > b,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator"
+            expect(Object.keys(sorted)).toEqual(["a", "b", "c"]);
+            expect(Object.values(sorted)).toEqual([1, 2, 3]);
+        });
+
         describe("sort.objects", () => {
             it("should sort by values", () => {
                 const obj = { c: 3, a: 1, b: 2 };
@@ -9387,6 +9397,16 @@ describe("Obj", () => {
     });
 
     describe("sortDesc", () => {
+        it("sorts by a comparator answering a bool, which the descending direction never reverses", () => {
+            const sorted = Obj.sortDesc({ c: 3, a: 1, b: 2 }, [
+                (a: number, b: number) => a > b,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-bool-comparator"
+            expect(Object.keys(sorted)).toEqual(["a", "b", "c"]);
+            expect(Object.values(sorted)).toEqual([1, 2, 3]);
+        });
+
         it("should handle non-object data", () => {
             expect(Obj.sortDesc(null)).toEqual({});
             expect(Obj.sortDesc([])).toEqual({});
