@@ -6742,20 +6742,46 @@ describe("Collection", () => {
             });
 
             it("test random on empty collection with no count throws", () => {
-                // Documented at Collection.random's JSDoc: with no count,
-                // one item is requested, and an empty collection cannot
-                // supply it — same error Arr.random raises.
+                // docs/php-parity/task-08-arr-parity.json, "Arr::random on empty", the call random() makes
+                expect(() => collect([]).random()).toThrowError(
+                    InvalidArgumentException,
+                );
                 expect(() => collect([]).random()).toThrowError(
                     "You requested 1 items, but there are only 0 items available.",
                 );
             });
 
             it("test random throws an exception using amount bigger than collection size", () => {
+                // CollectionTest::testRandomThrowsAnExceptionUsingAmountBiggerThanCollectionSize
                 const data = collect([1, 2, 3]);
                 expect(() => {
                     data.random(4);
-                }).toThrowError();
+                }).toThrowError(InvalidArgumentException);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-too-many-count"
+                expect(() => {
+                    data.random(4);
+                }).toThrowError(
+                    "You requested 4 items, but there are only 3 items available.",
+                );
             });
+        });
+
+        it("hands a count callback the collection and takes the count it answers", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-callable-count"
+            expect(
+                collection
+                    .random((items) => (items instanceof Collection ? 2 : 0))
+                    .count(),
+            ).toBe(2);
+            expect(collection.random(() => 0).all()).toEqual([]);
+            expect(() => collection.random(() => 5)).toThrowError(
+                InvalidArgumentException,
+            );
+            expect(() => collection.random(() => 5)).toThrowError(
+                "You requested 5 items, but there are only 3 items available.",
+            );
         });
 
         // Arr.php:971 defaults $preserveKeys = false. Array- and object-backed

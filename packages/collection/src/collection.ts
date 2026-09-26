@@ -2657,6 +2657,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param count - The number of items to retrieve, a callback to determine the count, or null for a single item
      * @param preserveKeys - Whether to preserve the original keys, defaults to false
      * @returns A single random item or a new collection with the random items
+     * @throws InvalidArgumentException when more items are requested than the collection holds
      *
      * @example
      *
@@ -2664,7 +2665,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).random(2); -> new Collection([1, 3])
      * new Collection({a: 1, b: 2, c: 3}).random(2, true); -> new Collection({a: 1, c: 3})
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
-     * new Collection([]).random(); -> throws Error (no items available)
+     * new Collection([]).random(); -> throws InvalidArgumentException (no items available)
      */
     random(count?: null, preserveKeys?: boolean): TValue;
     random(

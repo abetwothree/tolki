@@ -56,6 +56,7 @@ import {
     createSortSpecComparator,
     cssListItemToString,
     defineKey,
+    InvalidArgumentException,
     isArray,
     isBoolean,
     isFalsy,
@@ -4100,7 +4101,7 @@ export function query(data: unknown): string {
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
- * @throws Error if more items are requested than available, even against an empty object (Arr.php:977).
+ * @throws InvalidArgumentException if more items are requested than available, even against an empty object (Arr.php:977).
  *
  * @example
  *
@@ -4217,7 +4218,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
     if (requested > count) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `You requested ${requested} items, but there are only ${count} items available.`,
         );
     }

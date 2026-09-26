@@ -2,6 +2,7 @@ import * as Arr from "@tolki/arr";
 import { defineEnum, SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import {
+    InvalidArgumentException,
     isString,
     ItemNotFoundException,
     MultipleItemsFoundException,
@@ -7445,6 +7446,7 @@ describe("Obj", () => {
 
         it("throws when requesting two items from an empty object", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "random-empty-2"
+            expect(() => Obj.random({}, 2)).toThrow(InvalidArgumentException);
             expect(() => Obj.random({}, 2)).toThrow(
                 "You requested 2 items, but there are only 0 items available.",
             );

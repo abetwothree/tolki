@@ -51,6 +51,7 @@ import {
     cssListItemToString,
     defineKey,
     getAccessibleValues,
+    InvalidArgumentException,
     isArray,
     isBoolean,
     isFalsy,
@@ -2830,7 +2831,7 @@ export function query(data: unknown): string {
  * @param number - The number of items to return. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
  * @returns A single random item, an array of random items, an empty array when zero or fewer items are requested, or null when no count is given and the input isn't array-like.
- * @throws Error if more items are requested than are available, including requesting a single item (or any positive count) from an empty array.
+ * @throws InvalidArgumentException if more items are requested than are available, including requesting a single item (or any positive count) from an empty array.
  *
  * @example
  *
@@ -2838,8 +2839,8 @@ export function query(data: unknown): string {
  * random([1, 2, 3], 2); -> [1, 3] (two random items, in the array's order)
  * random(['a', 'b', 'c'], 2, true); -> {1: 'b', 2: 'c'} (with original keys)
  * random([], 0); -> [] (explicitly requesting zero items)
- * random([]); -> throws Error (no items available)
- * random([1, 2], 5); -> throws Error
+ * random([]); -> throws InvalidArgumentException (no items available)
+ * random([1, 2], 5); -> throws InvalidArgumentException
  */
 export function random<TValue>(data: ArrayItems<TValue>): TValue | null;
 export function random<TValue>(
@@ -2876,7 +2877,7 @@ export function random<TValue>(
     const requested = numberProvided ? (number as number) : 1;
 
     if (requested > count) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `You requested ${requested} items, but there are only ${count} items available.`,
         );
     }

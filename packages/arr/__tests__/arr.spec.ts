@@ -4,6 +4,7 @@ import * as Obj from "@tolki/obj";
 import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
 import {
+    InvalidArgumentException,
     isArray,
     ItemNotFoundException,
     MultipleItemsFoundException,
@@ -5316,13 +5317,19 @@ describe("Arr", () => {
         });
 
         it("throws when requesting more items than are available, even from an empty array", () => {
-            // Ported from Laravel's testRandomThrowsAnErrorWhenRequestingMoreItemsThanAreAvailable
+            // ArrTest::testRandomThrowsAnErrorWhenRequestingMoreItemsThanAreAvailable
+            expect(() => Arr.random([])).toThrow(InvalidArgumentException);
+            expect(() => Arr.random([], 1)).toThrow(InvalidArgumentException);
+            expect(() => Arr.random([], 2)).toThrow(InvalidArgumentException);
+            // docs/php-parity/task-08-arr-parity.json, "Arr::random on empty"
             expect(() => Arr.random([])).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
             );
+            // docs/php-parity/task-11-cross-backing.json, "X23 random throws before the empty guard"
             expect(() => Arr.random([], 1)).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
             );
+            // docs/php-parity/task-23-obj-release-readiness.json, "random-empty-2"
             expect(() => Arr.random([], 2)).toThrow(
                 "You requested 2 items, but there are only 0 items available.",
             );
