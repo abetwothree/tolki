@@ -9499,6 +9499,23 @@ describe("Collection", () => {
                 expect(reversed2.keys().all()).toEqual(["framework", "name"]);
             });
         });
+
+        it.fails(
+            "reverses a Map-built collection in the order it holds its items",
+            () => {
+                const reversed = outOfOrderKeys().reverse();
+
+                // Ordered-backing gap: PHP reverses 2 => c, 0 => a, 1 => b into 1 => b, 0 => a, 2 => c
+                // docs/php-parity/task-30-map-order.json, "reverse-out-of-order"
+                expect([
+                    reversed.keys().all(),
+                    reversed.values().all(),
+                ]).toEqual([
+                    [1, 0, 2],
+                    ["b", "a", "c"],
+                ]);
+            },
+        );
     });
 
     describe("search", () => {
@@ -10865,6 +10882,30 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([[1], [2], [3], [4], [5]]);
         });
+
+        it.fails(
+            "splits a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().splitIn(2);
+
+                // Ordered-backing gap: PHP's first chunk holds 2 => c then 0 => a, and its second 1 => b
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-out-of-order"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [
+                        [2, 0],
+                        ["c", "a"],
+                    ],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
     });
 
     describe("sole", () => {
@@ -11342,6 +11383,44 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
             expect(collect([1, 2, 3, 4, 5]).chunk(-Infinity).all()).toEqual([]);
         });
+
+        it.fails(
+            "chunks a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().chunk(2);
+
+                // Ordered-backing gap: PHP's first chunk holds 2 => c then 0 => a, and its second 1 => b
+                // docs/php-parity/task-30-map-order.json, "chunk-out-of-order"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [
+                        [2, 0],
+                        ["c", "a"],
+                    ],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
+
+        it.fails(
+            "chunks a Map-built collection's values in the order it holds them when it does not preserve keys",
+            () => {
+                const chunks = outOfOrderKeys().chunk(2, false);
+
+                // Ordered-backing gap: PHP's chunks are the lists [c, a] and [b], in the order the items are held
+                // docs/php-parity/task-30-map-order.json, "chunk-out-of-order-renumbered"
+                expect(chunks.map((chunk) => chunk.all()).all()).toEqual([
+                    ["c", "a"],
+                    ["b"],
+                ]);
+            },
+        );
     });
 
     describe("chunkWhile", () => {
@@ -11433,6 +11512,28 @@ describe("Collection", () => {
             expect(data).toBeInstanceOf(Collection);
             expect(data.count()).toBe(0);
         });
+
+        it.fails(
+            "walks a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().chunkWhile(() => false);
+
+                // Ordered-backing gap: PHP chunks 2 => c first, then 0 => a, then 1 => b
+                // docs/php-parity/task-30-map-order.json, "chunkWhile-out-of-order-never"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [[2], ["c"]],
+                    [[0], ["a"]],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
     });
 
     describe("chunkBy", () => {
@@ -11573,6 +11674,28 @@ describe("Collection", () => {
             );
             expect(fromObject.get(0)!.toArray()).toEqual({ a: 1, b: 1 });
         });
+
+        it.fails(
+            "walks a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().chunkBy((value) => value);
+
+                // Ordered-backing gap: PHP chunks 2 => c first, then 0 => a, then 1 => b
+                // docs/php-parity/task-30-map-order.json, "chunkBy-out-of-order"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [[2], ["c"]],
+                    [[0], ["a"]],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
     });
 
     describe("sort", () => {
