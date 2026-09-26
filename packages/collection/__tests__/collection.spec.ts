@@ -11175,6 +11175,30 @@ describe("Collection", () => {
             expect(sorted.values().all()).toEqual([1, 2, 3]);
         });
 
+        it("casts a comparator's answer to an int, as uasort does, so a fraction or a non-finite answer ties", () => {
+            const numbers = collect([3, 1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-int-cast"
+            expect(
+                numbers
+                    .sort((a, b) => (a - b) / 10)
+                    .values()
+                    .all(),
+            ).toEqual([3, 1, 2]);
+            expect(
+                numbers
+                    .sort((a, b) => Math.sign(a - b) * Infinity)
+                    .values()
+                    .all(),
+            ).toEqual([3, 1, 2]);
+            expect(
+                numbers
+                    .sort(() => NaN)
+                    .values()
+                    .all(),
+            ).toEqual([3, 1, 2]);
+        });
+
         it("keeps a Map-built collection's ties in the order it holds them", () => {
             const sorted = collect(
                 new Map([

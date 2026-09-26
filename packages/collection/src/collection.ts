@@ -3231,8 +3231,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(handOver(dataSort(this.items as TValue[])));
         }
 
+        // uasort() casts the comparator's answer to an int, so a fraction below 1 or a non-finite answer is a tie.
         const entries = this.entriesInOrder().sort(([, a], [, b]) =>
-            callback(a, b),
+            phpInt(callback(a, b)),
         );
 
         return this.newInstance(this.sortedItems(entries));
@@ -6676,6 +6677,17 @@ function phpArrayValue(
  */
 function fitsPhpInt(value: number): boolean {
     return isFiniteNumber(value) && value >= -(2 ** 63) && value < 2 ** 63;
+}
+
+/**
+ * Cast a number to an int as PHP's (int) does: the fraction is dropped, and NAN or an infinity becomes 0.
+ *
+ * @param value - The number PHP casts, such as a comparator's answer or the divisor of a `%`
+ * @returns The number without its fraction, or 0 when it is not finite; one beyond PHP's int range, which PHP
+ * wraps round, is kept as it is
+ */
+function phpInt(value: number): number {
+    return isFiniteNumber(value) ? Math.trunc(value) : 0;
 }
 
 /**
