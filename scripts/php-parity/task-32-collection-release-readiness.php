@@ -588,6 +588,10 @@ probe('C32-C-every-null-operator', "(new Collection([['x' => 5], ['x' => '5']]))
     (new Collection([['x' => 5], ['x' => 6]]))->every('x', null, 5),
 ]);
 probe('C32-C-random-too-many-count', '(new Collection([1, 2, 3]))->random(4)', fn () => (new Collection([1, 2, 3]))->random(4));
+probe('C32-C-random-preserved-string-keys', "(new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->random(3, true)->all() / array_is_list(random(2, true)->all())", fn () => [
+    (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->random(3, true)->all(),
+    array_is_list((new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->random(2, true)->all()),
+]);
 probe('C32-C-arr-random-fractional-count', "Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed), deprecations silenced: how many it picks for 1.2, 2.9 and 1.5 with keys preserved, and what 3.5 and 0.5 throw", fn () => array_map(fn (array $items) => [
     '1.2' => count(@Arr::random($items, 1.2)),
     '2.9' => count(@Arr::random($items, 2.9)),
