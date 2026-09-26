@@ -1228,6 +1228,20 @@ probe('C32-E-each-out-of-order-keys', "collect([2 => 'c', 0 => 'a', 1 => 'b'])->
     return $seen;
 });
 probe('C32-E-collapseWithKeys-out-of-order', "collect([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]])->collapseWithKeys()", fn () => c32e_pairs((new Collection([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]]))->collapseWithKeys()));
+probe('C32-E-mapInto-pure-enum', "(new Collection(['A']))->mapInto(C32E_Pure::class)", fn () => (new Collection(['A']))->mapInto(C32E_Pure::class)->all());
+probe('C32-E-collapseWithKeys-collection-items', "collect([collect([2 => 'c', 0 => 'a'])]) and collect([collect([1, 2]), [3]]), each ->collapseWithKeys()", fn () => [
+    'out-of-order' => c32e_pairs((new Collection([new Collection([2 => 'c', 0 => 'a'])]))->collapseWithKeys()),
+    'collection-then-list' => c32e_pairs((new Collection([new Collection([1, 2]), [3]]))->collapseWithKeys()),
+]);
+probe('C32-E-collapse-out-of-order-collection-item', "collect([collect([2 => 'c', 0 => 'a'])])->collapse(), and whether it is a list", fn () => [
+    'pairs' => c32e_pairs((new Collection([new Collection([2 => 'c', 0 => 'a'])]))->collapse()),
+    'is-list' => array_is_list((new Collection([new Collection([2 => 'c', 0 => 'a'])]))->collapse()->all()),
+]);
+probe('C32-E-flatMap-record-receiver', "collect(['a' => 1, 'b' => 2])->flatMap(fn (\$v) => [\$v, \$v * 10]), and whether it is a list", fn () => [
+    'pairs' => c32e_pairs((new Collection(['a' => 1, 'b' => 2]))->flatMap(fn ($v) => [$v, $v * 10])),
+    'is-list' => array_is_list((new Collection(['a' => 1, 'b' => 2]))->flatMap(fn ($v) => [$v, $v * 10])->all()),
+]);
+probe('C32-E-mapWithKeys-out-of-order-return', "collect([1])->mapWithKeys(fn () => [2 => 'c', 0 => 'a'])", fn () => c32e_pairs((new Collection([1]))->mapWithKeys(fn () => [2 => 'c', 0 => 'a'])));
 
 // ---- Family F ------------------------------------------------------------
 

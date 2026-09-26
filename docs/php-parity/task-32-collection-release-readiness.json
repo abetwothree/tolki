@@ -6409,6 +6409,106 @@
             ]
         },
         {
+            "label": "C32-E-mapInto-pure-enum",
+            "php": "(new Collection(['A']))->mapInto(C32E_Pure::class)",
+            "threw": "Error",
+            "message": "Cannot instantiate enum C32E_Pure"
+        },
+        {
+            "label": "C32-E-collapseWithKeys-collection-items",
+            "php": "collect([collect([2 => 'c', 0 => 'a'])]) and collect([collect([1, 2]), [3]]), each ->collapseWithKeys()",
+            "value": {
+                "out-of-order": [
+                    [
+                        2,
+                        "integer",
+                        "c"
+                    ],
+                    [
+                        0,
+                        "integer",
+                        "a"
+                    ]
+                ],
+                "collection-then-list": [
+                    [
+                        0,
+                        "integer",
+                        3
+                    ],
+                    [
+                        1,
+                        "integer",
+                        2
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-E-collapse-out-of-order-collection-item",
+            "php": "collect([collect([2 => 'c', 0 => 'a'])])->collapse(), and whether it is a list",
+            "value": {
+                "pairs": [
+                    [
+                        0,
+                        "integer",
+                        "c"
+                    ],
+                    [
+                        1,
+                        "integer",
+                        "a"
+                    ]
+                ],
+                "is-list": true
+            }
+        },
+        {
+            "label": "C32-E-flatMap-record-receiver",
+            "php": "collect(['a' => 1, 'b' => 2])->flatMap(fn ($v) => [$v, $v * 10]), and whether it is a list",
+            "value": {
+                "pairs": [
+                    [
+                        0,
+                        "integer",
+                        1
+                    ],
+                    [
+                        1,
+                        "integer",
+                        10
+                    ],
+                    [
+                        2,
+                        "integer",
+                        2
+                    ],
+                    [
+                        3,
+                        "integer",
+                        20
+                    ]
+                ],
+                "is-list": true
+            }
+        },
+        {
+            "label": "C32-E-mapWithKeys-out-of-order-return",
+            "php": "collect([1])->mapWithKeys(fn () => [2 => 'c', 0 => 'a'])",
+            "value": [
+                [
+                    2,
+                    "integer",
+                    "c"
+                ],
+                [
+                    0,
+                    "integer",
+                    "a"
+                ]
+            ]
+        },
+        {
             "label": "C32-F-merge-null-is-a-new-instance",
             "php": "$a = collect([1]); $b = $a->merge(null); $b->push(2);",
             "value": {
