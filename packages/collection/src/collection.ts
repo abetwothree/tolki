@@ -7004,7 +7004,7 @@ const PHP_MAX_ARRAY_SIZE = 2 ** 30;
  * @param low - The range's lower bound
  * @param high - The range's upper bound
  * @param stride - The step, without its sign
- * @param isFloatRange - Whether PHP holds any of the bound or the step as a float, which prints each with a decimal
+ * @param isFloatRange - Whether PHP holds a bound or the step as a float, which prints all three with a decimal
  * @returns The error to throw
  */
 function rangeTooLarge(
