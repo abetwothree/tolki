@@ -16,6 +16,9 @@ import {
     unionItems,
 } from "./fixtures";
 
+/** A depth the caller may leave out, which flattens every level. */
+declare const maybeDepth: number | undefined;
+
 /** A non-literal default, so `TDefault` infers the same on both sides of a pin. */
 const fallback: string = "fallback";
 
@@ -424,6 +427,41 @@ describe("data slicing type tests", () => {
             expectTypeOf(Data.dataFlatten(nestedRecord, 1)).toEqualTypeOf(
                 Obj.flatten(nestedRecord, 1),
             );
+            // Stated too: the pins above would still hold if both sides answered the same wrong values.
+            expectTypeOf(Data.dataFlatten(nestedList, 1)).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(Data.dataFlatten(nestedRecord, 1)).toEqualTypeOf<
+                ({ x: number } | { y: string } | number | string)[]
+            >();
+        });
+
+        it("matches arr.flatten for a list a depth may stop inside", () => {
+            const deep = [[[1]]];
+
+            expectTypeOf(Data.dataFlatten(deep, 2)).toEqualTypeOf(
+                Arr.flatten(deep, 2),
+            );
+            expectTypeOf(Data.dataFlatten(deep, 2)).toEqualTypeOf<
+                (number | number[])[]
+            >();
+        });
+
+        it("matches each backing for a depth that may be missing", () => {
+            expectTypeOf(
+                Data.dataFlatten(nestedList, maybeDepth),
+            ).toEqualTypeOf(Arr.flatten(nestedList, maybeDepth));
+            expectTypeOf(
+                Data.dataFlatten(nestedList, maybeDepth),
+            ).toEqualTypeOf<number[]>();
+            // obj's depth rows take a number, so a depth that may be missing reaches its widest row.
+            const widest = Obj.flatten(nestedRecord, maybeDepth);
+            expectTypeOf(
+                Data.dataFlatten(nestedRecord, maybeDepth),
+            ).toEqualTypeOf<typeof widest>();
+            expectTypeOf(
+                Data.dataFlatten(nestedRecord, maybeDepth),
+            ).toEqualTypeOf<unknown[]>();
         });
     });
 

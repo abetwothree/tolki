@@ -3,6 +3,9 @@ import * as Obj from "@tolki/obj";
 import type { UndotValue } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
+/** A depth the caller may leave out, which flattens every level. */
+declare const maybeDepth: number | undefined;
+
 describe("arr type tests", () => {
     describe("accessible", () => {
         it("returns boolean for any input", () => {
@@ -2788,6 +2791,21 @@ describe("arr type tests", () => {
         });
 
         describe("with depth specified", () => {
+            it("answers every value a depth may leave, an object item's inner values included", () => {
+                expectTypeOf(Arr.dot([{ a: { b: 1 } }], "", 1)).toEqualTypeOf<
+                    Record<
+                        string,
+                        { a: { b: number } } | { b: number } | number
+                    >
+                >();
+            });
+
+            it("answers every level for a depth that may be missing", () => {
+                expectTypeOf(Arr.dot([1, [2]], "", maybeDepth)).toEqualTypeOf<
+                    Record<string, number | number[]>
+                >();
+            });
+
             it("depth 0: preserves original element types", () => {
                 const result = Arr.dot(["a", ["b"]], "", 0);
                 expectTypeOf(result).toEqualTypeOf<
@@ -2795,31 +2813,49 @@ describe("arr type tests", () => {
                 >();
             });
 
-            it("depth 1: preserves one level of nesting in type", () => {
+            it("depth 1: types every value any depth may leave, each nested list included", () => {
                 const result = Arr.dot([1, [2, [3, [4]]]], "", 1);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number | (number | (number | number[])[])[]>
+                    Record<
+                        string,
+                        | number
+                        | number[]
+                        | (number | number[])[]
+                        | (number | (number | number[])[])[]
+                    >
                 >();
             });
 
-            it("depth 2: preserves two levels of nesting in type", () => {
+            it("depth 2: types the same values, since the depth is a runtime number", () => {
                 const result = Arr.dot([1, [2, [3, [4]]]], "", 2);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number | (number | (number | number[])[])[]>
+                    Record<
+                        string,
+                        | number
+                        | number[]
+                        | (number | number[])[]
+                        | (number | (number | number[])[])[]
+                    >
                 >();
             });
 
-            it("depth Infinity: keeps original element types (depth is runtime number)", () => {
+            it("depth Infinity: types the same values, since the depth is a runtime number", () => {
                 const result = Arr.dot([1, [2, [3, [4]]]], "", Infinity);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number | (number | (number | number[])[])[]>
+                    Record<
+                        string,
+                        | number
+                        | number[]
+                        | (number | number[])[]
+                        | (number | (number | number[])[])[]
+                    >
                 >();
             });
 
-            it("depth 1 with prepend: preserves element types", () => {
+            it("depth 1 with prepend: types every value any depth may leave", () => {
                 const result = Arr.dot(["a", [["b"]]], "prefix", 1);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, string | string[][]>
+                    Record<string, string | string[] | string[][]>
                 >();
             });
 
@@ -5960,6 +5996,21 @@ describe("arr type tests", () => {
             it("accepts Infinity as depth", () => {
                 const result = Arr.flatten([["a", "b"], ["c"]], Infinity);
                 expectTypeOf(result).toEqualTypeOf<string[]>();
+            });
+
+            it("answers every value a depth may leave, never an item it unwraps", () => {
+                expectTypeOf(Arr.flatten([[[1]]], 2)).toEqualTypeOf<
+                    (number | number[])[]
+                >();
+                expectTypeOf(Arr.flatten([{ a: 1 }], 1)).toEqualTypeOf<
+                    number[]
+                >();
+            });
+
+            it("answers every level for a depth that may be missing", () => {
+                expectTypeOf(Arr.flatten([[1], [2]], maybeDepth)).toEqualTypeOf<
+                    number[]
+                >();
             });
         });
 

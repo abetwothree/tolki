@@ -33,7 +33,8 @@ import type {
     CaseValue,
     CollapsedObject,
     EnsureArray,
-    FlatArrayValue,
+    FlattenItemReach,
+    FlattenReach,
     MapArrayKey,
     NonNullableArray,
     NonObjectItems,
@@ -806,11 +807,12 @@ export function dot<TValue>(
     data: readonly TValue[],
     prepend?: string,
 ): Record<string, DotLeaf<TValue>>;
+// A depth may stop at any level, a depth of 0 before the items themselves, so each may be a value.
 export function dot<TValue>(
     data: readonly TValue[],
     prepend: string,
-    depth: number,
-): Record<string, TValue | FlatArrayValue<TValue>>;
+    depth?: number,
+): Record<string, FlattenReach<TValue>>;
 export function dot<TValue>(
     data: readonly unknown[] | null | undefined,
     prepend?: string,
@@ -1410,21 +1412,15 @@ export function take<TValue>(
  * flatten([1, [2, [3, 4]], 5]); -> [1, 2, 3, 4, 5]
  * flatten([1, [2, [3, 4]], 5], 1); -> [1, 2, [3, 4], 5]
  */
-// With no depth every level flattens, a plain object to its values. The depth rows below still answer one level.
+// With no depth every level flattens, a plain object to its values. A depth may stop sooner, so each item may then
+// leave any value below it.
 export function flatten<TValue>(
     data: ArrayItems<TValue>,
 ): ObjectFlatValue<TValue>[];
-export function flatten<TValue>(data: TValue[][], depth: number): TValue[];
-// Overload: readonly-of-readonly 2D array → flattened one level, matching
-// the mutable `TValue[][]` overload above. Must sit above the single-level
-// `TValue[]` overload below, which would otherwise catch it by inferring
-// TValue as the inner (readonly) array type itself, leaving the result
-// un-flattened at the type level.
 export function flatten<TValue>(
-    data: ArrayItems<ArrayItems<TValue>>,
-    depth: number,
-): TValue[];
-export function flatten<TValue>(data: TValue[], depth: number): TValue[];
+    data: ArrayItems<TValue>,
+    depth?: number,
+): FlattenItemReach<TValue>[];
 export function flatten(
     data: readonly unknown[] | null | undefined,
     depth?: number,

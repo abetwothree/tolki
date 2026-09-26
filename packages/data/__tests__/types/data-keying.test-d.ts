@@ -120,6 +120,10 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataDot(nestedRecord, "p", 1)).toEqualTypeOf(
                 Obj.dot(nestedRecord, "p", 1),
             );
+            // Stated too: the pin above would still hold if both sides answered the same wrong values.
+            expectTypeOf(Data.dataDot(nestedRecord, "p", 1)).toEqualTypeOf<
+                Record<string, { x: number } | { y: string } | number | string>
+            >();
         });
 
         it("matches arr.dot for a list of records, whose leaves are the records' values", () => {
@@ -136,6 +140,13 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataDot(nestedList, "p", 1)).toEqualTypeOf(
                 Arr.dot(nestedList, "p", 1),
             );
+            expectTypeOf(Data.dataDot(nestedList, "p", 1)).toEqualTypeOf<
+                Record<string, number | number[]>
+            >();
+            // A depth may stop at an object item's inner record, which is then a value.
+            expectTypeOf(Data.dataDot([{ a: { b: 1 } }], "", 1)).toEqualTypeOf<
+                Record<string, { a: { b: number } } | { b: number } | number>
+            >();
         });
     });
 
