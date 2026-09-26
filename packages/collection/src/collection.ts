@@ -1990,11 +1990,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         for (const [key, value] of this.entriesInOrder()) {
             const result = callback(value, key);
-            // PHP's foreach walks a collection by its items, never by its own fields.
+            // PHP's foreach walks a collection by its items, never by its own fields; a Map stands for an array.
             const pairs =
                 result instanceof Collection
                     ? result.entriesInOrder()
-                    : Object.entries(result);
+                    : isMap(result)
+                      ? [...result]
+                      : Object.entries(result);
 
             for (const [newKey, newValue] of pairs) {
                 map.set(

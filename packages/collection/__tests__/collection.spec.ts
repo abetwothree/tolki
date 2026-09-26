@@ -5705,6 +5705,22 @@ describe("Collection", () => {
             expect(mapped.values().all()).toEqual([1, 2]);
         });
 
+        it("walks a Map the callback returns in its insertion order", () => {
+            const mapped = collect([1]).mapWithKeys(
+                () =>
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+            );
+
+            // JS-only: PHP has no Map, which stands for the array the callback returns in
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-out-of-order-return"
+            expect(mapped.all()).toEqual({ 2: "c", 0: "a" });
+            expect(mapped.keys().all()).toEqual([2, 0]);
+            expect(mapped.values().all()).toEqual(["c", "a"]);
+        });
+
         it("passes each source's own key shape to the callback", () => {
             // Array-backed: numeric index, matching arrMapWithKeys.
             const arraySeenKeys: unknown[] = [];
