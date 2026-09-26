@@ -8,6 +8,9 @@ import { collect, Collection } from "@tolki/collection";
 /** A read-only list: `TValue[]` rejects it, `readonly TValue[]` accepts it. */
 export const readonlyNumbers: readonly number[] = [1, 2, 3];
 
+/** A list that may be missing, as an optional property's is. */
+export const maybeNumbers: number[] | undefined = [1, 2];
+
 /** An interface-typed record: an interface has no implicit index signature. */
 export interface Settings {
     a: number;

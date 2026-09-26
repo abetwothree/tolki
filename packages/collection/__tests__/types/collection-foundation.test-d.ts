@@ -9,6 +9,7 @@ import {
     JsonText,
     listCollection,
     listOrRecord,
+    maybeNumbers,
     numberKeyedCollection,
     numbers,
     Point,
@@ -120,6 +121,12 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("takes a list that may be missing", () => {
+            expectTypeOf(collect(maybeNumbers)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
         it("reads an Arrayable's list", () => {
             expectTypeOf(collect(new ArrayableNumbers())).toEqualTypeOf<
                 Collection<number, number, "list">
@@ -192,6 +199,9 @@ describe("collection foundation type tests", () => {
             expectTypeOf(Collection.make(null)).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
+            expectTypeOf(Collection.make(maybeNumbers)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
             expectTypeOf(
                 Collection.make<string, number>(
                     new Map<number, string>([[1, "a"]]),
@@ -228,6 +238,12 @@ describe("collection foundation type tests", () => {
             >();
             expectTypeOf(new Collection()).toEqualTypeOf<
                 Collection<never, number, "list">
+            >();
+        });
+
+        it("takes a list that may be missing", () => {
+            expectTypeOf(new Collection(maybeNumbers)).toEqualTypeOf<
+                Collection<number, number, "list">
             >();
         });
 

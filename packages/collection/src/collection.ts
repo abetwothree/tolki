@@ -219,6 +219,9 @@ export function collect(
 export function collect(
     items?: null | undefined,
 ): Collection<never, number, "list">;
+export function collect<TValue>(
+    items: readonly TValue[] | null | undefined,
+): Collection<TValue, number, "list">;
 export function collect(items: string): Collection<string, number, "list">;
 export function collect(items: number): Collection<number, number, "list">;
 export function collect(items: boolean): Collection<boolean, number, "list">;
@@ -324,6 +327,7 @@ export class Collection<
     constructor(items: { jsonSerialize(): readonly TValue[] });
     constructor(items: { jsonSerialize(): Record<TKey, TValue> });
     constructor(items?: null | undefined);
+    constructor(items: readonly TValue[] | null | undefined);
     constructor(items: TValue & (string | number | boolean | symbol));
     constructor(items: Record<TKey, TValue>);
     // A subclass hands on whatever its own constructor took, which may be any of the above.
@@ -4225,6 +4229,10 @@ export class Collection<
         items?: null | undefined,
         ...args: unknown[]
     ): Collection<never, number, "list">;
+    static make<TMakeValue>(
+        items: readonly TMakeValue[] | null | undefined,
+        ...args: unknown[]
+    ): Collection<TMakeValue, number, "list">;
     static make(
         items: string,
         ...args: unknown[]
