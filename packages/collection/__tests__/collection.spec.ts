@@ -5554,6 +5554,48 @@ describe("Collection", () => {
             expect(only.all()).toEqual(["b", "d"]);
             expect(only.keys().all()).toEqual([0, 1]);
         });
+
+        describe("reads its keys as PHP's $keys argument", () => {
+            const person = () =>
+                collect({ first: "Taylor", last: "Otwell", email: "e" });
+
+            it("keeps every item when the first argument is null, whatever follows", () => {
+                const only = person().only(null, "first");
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-null-first-arg"
+                expect(only.all()).toEqual({
+                    first: "Taylor",
+                    last: "Otwell",
+                    email: "e",
+                });
+                expect(only.keys().all()).toEqual(["first", "last", "email"]);
+                expect(only.values().all()).toEqual(["Taylor", "Otwell", "e"]);
+            });
+
+            it("keeps every item for an undefined key, as except() does", () => {
+                // CollectionTest::testOnly
+                // JS-only: undefined stands for PHP's null, which only() answers with every item
+                expect(person().only(undefined).all()).toEqual(person().all());
+            });
+
+            it("ignores the arguments after an array of keys", () => {
+                const only = person().only(["first"], "last");
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-array-then-extra-arg"
+                expect(only.all()).toEqual({ first: "Taylor" });
+                expect(only.keys().all()).toEqual(["first"]);
+                expect(only.values().all()).toEqual(["Taylor"]);
+            });
+
+            it("takes a keyed Collection's values as the keys", () => {
+                const only = person().only(collect({ x: "first", y: "email" }));
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-keyed-collection-arg"
+                expect(only.all()).toEqual({ first: "Taylor", email: "e" });
+                expect(only.keys().all()).toEqual(["first", "email"]);
+                expect(only.values().all()).toEqual(["Taylor", "e"]);
+            });
+        });
     });
 
     describe("select", () => {

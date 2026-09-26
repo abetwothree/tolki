@@ -981,27 +981,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | undefined
         )[]
     ) {
-        // Handle null/undefined - return all items
-        if (keys.length === 0 || isNull(keys[0]) || isUndefined(keys[0])) {
+        const keysToExcept = this.keysArgument(keys);
+
+        if (isNull(keysToExcept)) {
             return this.newInstance(this.items);
-        }
-
-        let keysToExcept: PathKey[];
-
-        // If first argument is a Collection, extract its items
-        if (keys[0] instanceof Collection) {
-            const collectionItems = keys[0].all();
-            keysToExcept = isArray(collectionItems)
-                ? collectionItems
-                : Object.values(collectionItems);
-        }
-        // If first argument is an array, use it directly
-        else if (isArray(keys[0])) {
-            keysToExcept = keys[0];
-        }
-        // Otherwise, treat all arguments as individual keys
-        else {
-            keysToExcept = keys as PathKey[];
         }
 
         return this.newInstance(handOver(dataExcept(this.items, keysToExcept)));
@@ -2333,17 +2316,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     only<T, K extends PropertyKey>(
         ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
     ) {
-        if (keys.every((key) => isNull(key))) {
+        const keysToKeep = this.keysArgument(keys);
+
+        if (isNull(keysToKeep)) {
             return this.newInstance(this.items);
         }
 
-        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
-        // that flatMap cannot infer an element type from; the cast below names it anyway.
-        const keysParam = keys.flatMap((key): unknown[] =>
-            arrWrap(this.getRawItems(key)),
-        ) as PathKey[];
-
-        return this.newInstance(handOver(dataOnly(this.items, keysParam)));
+        return this.newInstance(handOver(dataOnly(this.items, keysToKeep)));
     }
 
     /**
@@ -5758,6 +5737,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.filter(filter as (value: TValue, key: TKey) => unknown);
+    }
+
+    /**
+     * Read the keys except, only and select take, as each reads its `$keys` argument.
+     *
+     * @param keys - The arguments: an array or a collection of keys first, else the keys themselves
+     * @returns The keys, a collection's values among them, or null when the first argument is null
+     */
+    protected keysArgument(keys: readonly unknown[]): PathKey[] | null {
+        const [first] = keys;
+
+        if (isNull(first) || isUndefined(first)) {
+            return null;
+        }
+
+        if (first instanceof Collection) {
+            return first.values().all() as PathKey[];
+        }
+
+        return (isArray(first) ? first : keys) as PathKey[];
     }
 
     /**
