@@ -3024,12 +3024,14 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Select an object of values from each item in the object.
  *
- * An item PHP reads as an array (a list, a plain object or a Map) gives its own keys, as PHP stores each; any other
- * object gives only the properties PHP's `isset` finds, so a null one is left out.
+ * An item PHP reads as an array (a list, a plain object or a Map) gives its own keys, as PHP stores each. An
+ * ArrayAccess item answers through `offsetExists` and `offsetGet` first; a key they miss, like a key of any other
+ * object, gives only a property PHP's `isset` finds, so a null one is left out, and an Enumerable gives none.
  *
  * @param data - The object to select from.
  * @param keys - The key or keys to select from each item.
  * @returns A new object with selected key/value pairs from each item.
+ * @throws TypeError for an array or object key over an item PHP reads as an array, as `array_key_exists` does.
  *
  * @example
  *
