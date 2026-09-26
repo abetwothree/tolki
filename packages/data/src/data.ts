@@ -177,6 +177,7 @@ import {
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
 import type {
+    ArrayItems,
     DataItems,
     MapData,
     MapEntryKey,
@@ -1186,8 +1187,8 @@ export const dataSelect = dispatch(
  * -> {key_0: 2, key_1: 4}
  * dataMapWithKeys(new Map([[2, 'c'], [0, 'a']]), (value, key) => [`k${key}`, value]); -> {k2: 'c', k0: 'a'}
  */
-// The tuple row comes first: one row taking `[K, V] | Record<K, V>` would read a tuple as a record
-// too, and infer V as the union of every member the array has.
+// Each tuple row comes before its record row: one row taking `[K, V] | Record<K, V>` would read a tuple as a
+// record too, and infer V as the union of every member the array has.
 export function dataMapWithKeys<
     TMap,
     TMapWithKeysKey extends PropertyKey,
@@ -1210,19 +1211,52 @@ export function dataMapWithKeys<
         key: MapEntryKey<TMap>,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
+// A list's rows answer as arr.mapWithKeys does, handing the callback an index; a keyed backing's, as obj's does.
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysKey extends PropertyKey,
+    TMapWithKeysValue,
+>(
+    data: ArrayItems<TValue>,
+    callback: (
+        value: TValue,
+        index: number,
+    ) => readonly [TMapWithKeysKey, TMapWithKeysValue],
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysValue,
+    TMapWithKeysKey extends string = string,
+>(
+    data: ArrayItems<TValue>,
+    callback: (
+        value: TValue,
+        index: number,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysKey extends PropertyKey,
+    TMapWithKeysValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
+    data: Record<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+    ) => readonly [TMapWithKeysKey, TMapWithKeysValue],
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
 export function dataMapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends PropertyKey = PropertyKey,
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
-    data: DataItems<TValue, TKey>,
+    data: Record<TKey, TValue>,
     callback: (
         value: TValue,
         key: TKey,
-    ) =>
-        | [TMapWithKeysKey, TMapWithKeysValue]
-        | Record<TMapWithKeysKey, TMapWithKeysValue>,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
 export function dataMapWithKeys<
     TValue,
