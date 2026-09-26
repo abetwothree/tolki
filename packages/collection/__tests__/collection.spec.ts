@@ -5870,6 +5870,48 @@ describe("Collection", () => {
                 ]);
             });
 
+            it("test select with array access", () => {
+                // CollectionTest::testSelectWithArrayAccess, whose ArrayAccess rows a Collection stands in for
+                const data = collect([
+                    collect({
+                        first: "Taylor",
+                        last: "Otwell",
+                        email: "taylorotwell@gmail.com",
+                    }),
+                    collect({
+                        first: "Jess",
+                        last: "Archer",
+                        email: "jessarcher@gmail.com",
+                    }),
+                ]);
+                const firstAndEmail = [
+                    { first: "Taylor", email: "taylorotwell@gmail.com" },
+                    { first: "Jess", email: "jessarcher@gmail.com" },
+                ];
+
+                expect(data.select(null).all()).toEqual(data.all());
+                expect(data.select(["first", "missing"]).all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+                expect(data.select("first", "missing").all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+                expect(
+                    data.select(collect(["first", "missing"])).all(),
+                ).toEqual([{ first: "Taylor" }, { first: "Jess" }]);
+                expect(data.select(["first", "email"]).all()).toEqual(
+                    firstAndEmail,
+                );
+                expect(data.select("first", "email").all()).toEqual(
+                    firstAndEmail,
+                );
+                expect(data.select(collect(["first", "email"])).all()).toEqual(
+                    firstAndEmail,
+                );
+            });
+
             it("test select with objects", () => {
                 // CollectionTest::testSelectWithObjects, whose (object) casts a class instance stands in for
                 class Person {
