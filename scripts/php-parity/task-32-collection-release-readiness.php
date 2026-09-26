@@ -155,6 +155,12 @@ probe('C32-A-range-size-message-infinite', "Collection::range(\$start, \$end, \$
     '-1e308..1e308' => [-1e308, 1e308],
     '0..1e308 step 1e-10' => [0, 1e308, 1e-10],
 ]));
+probe('C32-A-range-size-message-signs-and-carries', "Collection::range(\$start, 1e10) past the maximum array size for a start of -0.0, -0.04, 0.05 and 99.95: the class and message thrown", fn () => array_map($rangeOutcome, [
+    '-0.0' => [-0.0, 1e10],
+    '-0.04' => [-0.04, 1e10],
+    '0.05' => [0.05, 1e10],
+    '99.95' => [99.95, 1e10],
+]));
 
 // --- times
 probe('C32-A-times-fractional-count', 'Collection::times(2.7)->all()', fn () => Collection::times(2.7)->all());

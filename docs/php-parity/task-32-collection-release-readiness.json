@@ -637,6 +637,28 @@
             }
         },
         {
+            "label": "C32-A-range-size-message-signs-and-carries",
+            "php": "Collection::range($start, 1e10) past the maximum array size for a start of -0.0, -0.04, 0.05 and 99.95: the class and message thrown",
+            "value": {
+                "-0.0": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=0.0, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "-0.04": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=-0.0, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "0.05": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=0.1, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "99.95": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258077.0 elements: start=100.0, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ]
+            }
+        },
+        {
             "label": "C32-A-times-fractional-count",
             "php": "Collection::times(2.7)->all()",
             "value": [
