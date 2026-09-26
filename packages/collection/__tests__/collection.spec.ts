@@ -1249,6 +1249,7 @@ describe("Collection", () => {
 
     describe("contains", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContains and CollectionTest::testContainsWithOperator
             const c = new Collection([1, 3, 5]);
 
             expect(c.contains(1)).toBe(true);
@@ -1256,9 +1257,9 @@ describe("Collection", () => {
             expect(c.contains(2)).toBe(false);
             expect(c.contains("2")).toBe(false);
 
-            const d = collect([1]);
-            expect(d.contains(1)).toBe(true);
+            const d = collect(["1"]);
             expect(d.contains("1")).toBe(true);
+            expect(d.contains(1)).toBe(true);
 
             const e = collect([null]);
             expect(e.contains(false)).toBe(true);
@@ -1330,16 +1331,37 @@ describe("Collection", () => {
             expect(collection.contains((item) => item.id === 2)).toBe(true);
             expect(collection.contains((item) => item.id === 3)).toBe(false);
         });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(collect([{ a: null }, { a: 1 }]).contains("a", null)).toBe(
+                true,
+            );
+            expect(collect([{ a: 1 }]).contains("a", null)).toBe(false);
+        });
+
+        it("compares a unit enum case as the name it is", () => {
+            const rows = collect([{ n: StaffEnum.Joe }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-contains-unit-enum-operand"
+            expect([
+                rows.contains("n", "Joe"),
+                rows.contains("n", StaffEnum.Joe),
+                rows.contains("n", "!=", "Joe"),
+            ]).toEqual([true, true, false]);
+        });
     });
 
     describe("containsStrict", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContainsStrict
             const c = new Collection([1, 3, 5, "02"]);
             expect(c.containsStrict(1)).toBe(true);
             expect(c.containsStrict("1")).toBe(false);
             expect(c.containsStrict(2)).toBe(false);
             expect(c.containsStrict("2")).toBe(false);
             expect(c.containsStrict("02")).toBe(true);
+            expect(c.containsStrict(true)).toBe(false);
             // @ts-expect-error - operator < on string | number union
             expect(c.containsStrict((item) => item < 5)).toBe(true);
             // @ts-expect-error - operator > on string | number union
@@ -1378,6 +1400,7 @@ describe("Collection", () => {
         });
 
         it("counts a callback match holding null, as array_any does", () => {
+            // CollectionTest::testContainsStrict
             // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-list-null-callback",
             // "containsStrict-list-zero-callback" and "containsStrict-null-first-callback"
             const c = collect([1, null, 2]);
@@ -1480,6 +1503,7 @@ describe("Collection", () => {
 
     describe("doesntContain", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDoesntContain
             const c = collect([1, 3, 5]);
 
             expect(c.doesntContain(1)).toBe(false);
@@ -1536,12 +1560,14 @@ describe("Collection", () => {
 
     describe("doesntContainStrict", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDoesntContainStrict
             const c = collect([1, 3, 5, "02"]);
             expect(c.doesntContainStrict(1)).toBe(false);
             expect(c.doesntContainStrict("1")).toBe(true);
             expect(c.doesntContainStrict(2)).toBe(true);
             expect(c.doesntContainStrict("2")).toBe(true);
             expect(c.doesntContainStrict("02")).toBe(false);
+            expect(c.doesntContainStrict(true)).toBe(true);
             // @ts-expect-error - operator < on string | number union
             expect(c.doesntContainStrict((item) => item < 5)).toBe(false);
             // @ts-expect-error - operator > on string | number union
@@ -2218,11 +2244,13 @@ describe("Collection", () => {
     describe("first", () => {
         describe("Laravel Tests", () => {
             it("test first returns first item in collection", () => {
+                // CollectionTest::testFirstReturnsFirstItemInCollection
                 const c = collect(["foo", "bar"]);
                 expect(c.first()).toBe("foo");
             });
 
             it("test first with callback", () => {
+                // CollectionTest::testFirstWithCallback
                 const c = collect(["foo", "bar", "baz"]);
                 expect(
                     c.first((value) => {
@@ -2232,6 +2260,7 @@ describe("Collection", () => {
             });
 
             it("test first with callback and default", () => {
+                // CollectionTest::testFirstWithCallbackAndDefault
                 const c = collect(["foo", "bar"]);
                 expect(
                     c.first((value) => {
@@ -2241,6 +2270,7 @@ describe("Collection", () => {
             });
 
             it("test first with default and without callback", () => {
+                // CollectionTest::testFirstWithDefaultAndWithoutCallback
                 const c = collect();
                 expect(c.first(null, "default")).toBe("default");
 
@@ -2289,6 +2319,14 @@ describe("Collection", () => {
             expect(collection.first((value) => value > 5, "default")).toBe(
                 "default",
             );
+        });
+
+        it("answers null when empty, and a stored null over the default", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-first-empty-no-default"
+            expect([
+                collect([]).first(),
+                collect({ a: null }).first(null, "d"),
+            ]).toEqual([null, null]);
         });
     });
 
@@ -4011,6 +4049,7 @@ describe("Collection", () => {
 
     describe("containsOneItem", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContainsOneItem
             expect(collect([]).containsOneItem()).toBe(false);
             expect(collect([1]).containsOneItem()).toBe(true);
             expect(collect([1, 2]).containsOneItem()).toBe(false);
@@ -4053,6 +4092,7 @@ describe("Collection", () => {
 
     describe("containsManyItems", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContainsManyItems
             expect(collect([]).containsManyItems()).toBe(false);
             expect(collect([1]).containsManyItems()).toBe(false);
             expect(collect([1, 2]).containsManyItems()).toBe(true);
@@ -4079,6 +4119,7 @@ describe("Collection", () => {
         });
 
         it("test with objects", () => {
+            // CollectionTest::testContainsManyItems, over a record
             expect(collect({}).containsManyItems()).toBe(false);
             expect(collect({ a: 1 }).containsManyItems()).toBe(false);
             expect(collect({ a: 1, b: 2 }).containsManyItems()).toBe(true);
@@ -4111,6 +4152,7 @@ describe("Collection", () => {
 
     describe("hasSole", () => {
         it("Laravel tests", () => {
+            // CollectionTest::testHasSole
             const collection = collect([{ age: 2 }, { age: 3 }]);
 
             expect(collection.hasSole()).toBe(false);
@@ -4160,6 +4202,20 @@ describe("Collection", () => {
             expect(c.hasSole("status", "=", "active")).toBe(true);
         });
 
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(collect([{ a: null }, { a: 1 }]).hasSole("a", null)).toBe(
+                true,
+            );
+        });
+
+        it("counts a falsy item when no filter is given", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-hasSole-hasMany-keep-falsy-items"
+            expect([collect([0]).hasSole(), collect([null]).hasSole()]).toEqual(
+                [true, true],
+            );
+        });
+
         it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
             const collection = collect([{ name: "foo" }]);
             const hasSole = (key: unknown) => () =>
@@ -4192,6 +4248,7 @@ describe("Collection", () => {
 
     describe("hasMany", () => {
         it("Laravel tests", () => {
+            // CollectionTest::testHasMany
             const collection = collect([{ age: 2 }, { age: 3 }]);
 
             expect(collection.hasMany()).toBe(true);
@@ -4247,6 +4304,18 @@ describe("Collection", () => {
                 { status: "inactive" },
             ]);
             expect(c.hasMany("status", "=", "active")).toBe(true);
+        });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(
+                collect([{ a: null }, { a: 0 }, { a: 1 }]).hasMany("a", null),
+            ).toBe(true);
+        });
+
+        it("counts falsy items when no filter is given", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-hasSole-hasMany-keep-falsy-items"
+            expect(collect([0, null]).hasMany()).toBe(true);
         });
 
         it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
@@ -4325,6 +4394,7 @@ describe("Collection", () => {
     describe("last", () => {
         describe("Laravel Tests", () => {
             it("test last returns last item in collection", () => {
+                // CollectionTest::testLastReturnsLastItemInCollection
                 const c = collect(["foo", "bar"]);
                 expect(c.last()).toBe("bar");
 
@@ -4333,6 +4403,7 @@ describe("Collection", () => {
             });
 
             it("test last with callback", () => {
+                // CollectionTest::testLastWithCallback
                 const c = collect([100, 200, 300]);
                 expect(c.last((value) => value < 250)).toBe(200);
 
@@ -4341,7 +4412,8 @@ describe("Collection", () => {
                 expect(c.last((value) => value > 300)).toBeNull();
             });
 
-            it("test last with default and without callback", () => {
+            it("test last with callback and default", () => {
+                // CollectionTest::testLastWithCallbackAndDefault
                 const c = collect(["foo", "bar"]);
                 expect(c.last((value) => value === "baz", "default")).toBe(
                     "default",
@@ -4354,6 +4426,7 @@ describe("Collection", () => {
             });
 
             it("test last with default and without callback", () => {
+                // CollectionTest::testLastWithDefaultAndWithoutCallback
                 const c = collect();
                 expect(c.last(null, "default")).toBe("default");
             });
@@ -4389,7 +4462,8 @@ describe("Collection", () => {
             expect(collection.last(null, "default")).toBe("default");
         });
 
-        it("returns undefined converted to null", () => {
+        it("returns null for an empty collection", () => {
+            // CollectionTest::testLastReturnsLastItemInCollection
             const c = collect([]);
             expect(c.last()).toBeNull();
         });
@@ -6629,6 +6703,7 @@ describe("Collection", () => {
     describe("random", () => {
         describe("Laravel Tests", () => {
             it("test random", () => {
+                // CollectionTest::testRandom
                 const data = collect([1, 2, 3, 4, 5, 6]);
                 const random = data.random();
                 expect(typeof random).toBe("number");
@@ -6731,6 +6806,7 @@ describe("Collection", () => {
             });
 
             it("test random on empty collection", () => {
+                // CollectionTest::testRandomOnEmptyCollection
                 const data = collect([]);
                 const random = data.random(0);
                 expect(random).toBeInstanceOf(Collection);
@@ -6790,6 +6866,11 @@ describe("Collection", () => {
                 collect([1, 2, 3]).random(1.2).count(),
                 collect([1, 2, 3]).random(2.9).count(),
             ]).toEqual([1, 2]);
+        });
+
+        it("picks nothing for a negative count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-negative-count"
+            expect(collect([1, 2, 3]).random(-1).all()).toEqual([]);
         });
 
         it("reindexes from zero by default into a list, either backing", () => {
@@ -7037,6 +7118,7 @@ describe("Collection", () => {
     describe("search", () => {
         describe("Laravel Tests", () => {
             it("test search returns index of first found item", () => {
+                // CollectionTest::testSearchReturnsIndexOfFirstFoundItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7065,22 +7147,20 @@ describe("Collection", () => {
             });
 
             it("test search in strict mode", () => {
-                // Note: In JavaScript, we must search for the same array reference
-                // because strict comparison uses === which checks reference equality
-                // for objects and arrays
-                const emptyArray: unknown[] = [];
-                const c = collect([false, 0, 1, emptyArray, ""]);
+                // CollectionTest::testSearchInStrictMode
+                const c = collect([false, 0, 1, [], ""]);
 
                 expect(c.search("false", true)).toBe(false);
                 expect(c.search("1", true)).toBe(false);
                 expect(c.search(false, true)).toBe(0);
                 expect(c.search(0, true)).toBe(1);
                 expect(c.search(1, true)).toBe(2);
-                expect(c.search(emptyArray, true)).toBe(3);
+                expect(c.search([], true)).toBe(3);
                 expect(c.search("", true)).toBe(4);
             });
 
             it("test search returns false when item is not found", () => {
+                // CollectionTest::testSearchReturnsFalseWhenItemIsNotFound
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7105,11 +7185,20 @@ describe("Collection", () => {
                 ).toBe(false);
             });
         });
+
+        it("answers a numeric-string record key as the integer PHP stores it as", () => {
+            const key = collect({ 1: "a", x: "b" }).search("a");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-search-numeric-string-record-key":
+            // PHP's gettype() says integer where typeof says number
+            expect([typeof key, key]).toEqual(["number", 1]);
+        });
     });
 
     describe("before", () => {
         describe("Laravel Tests", () => {
             it("test before returns item before the given item", () => {
+                // CollectionTest::testBeforeReturnsItemBeforeTheGivenItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7140,6 +7229,7 @@ describe("Collection", () => {
             });
 
             it("test before in strict mode", () => {
+                // CollectionTest::testBeforeInStrictMode
                 const emptyArray: unknown[] = [];
                 const c = collect([false, 0, 1, emptyArray, ""]);
 
@@ -7153,6 +7243,7 @@ describe("Collection", () => {
             });
 
             it("test before returns null when item is not found", () => {
+                // CollectionTest::testBeforeReturnsNullWhenItemIsNotFound
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7178,6 +7269,7 @@ describe("Collection", () => {
             });
 
             it("test before returns null when item on the first item", () => {
+                // CollectionTest::testBeforeReturnsNullWhenItemOnTheFirstitem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7194,12 +7286,6 @@ describe("Collection", () => {
                         return value < 2 && typeof value === "number";
                     }),
                 ).toBeNull();
-
-                // In JavaScript, object keys with numeric names are always ordered first,
-                // so we cannot replicate PHP's behavior of ['foo' => 'bar', 1, 2, 3, 4, 5]
-                // where 'foo' would be the first key. Instead, we test with all string keys.
-                const c2 = collect({ a: "first", b: "second", c: "third" });
-                expect(c2.before("first")).toBeNull();
             });
         });
     });
@@ -7207,22 +7293,7 @@ describe("Collection", () => {
     describe("after", () => {
         describe("Laravel Tests", () => {
             it("test after returns item after the given item", () => {
-                // $c = new $collection([1, 2, 3, 4, 2, 5, 'name' => 'taylor', 'framework' => 'laravel']);
-
-                // $this->assertEquals(2, $c->after(1));
-                // $this->assertEquals(3, $c->after(2));
-                // $this->assertEquals(4, $c->after(3));
-                // $this->assertEquals(2, $c->after(4));
-                // $this->assertEquals('taylor', $c->after(5));
-                // $this->assertEquals('laravel', $c->after('taylor'));
-
-                // $this->assertEquals(4, $c->after(function ($value) {
-                //     return $value > 2;
-                // }));
-                // $this->assertEquals('laravel', $c->after(function ($value) {
-                //     return ! is_numeric($value);
-                // }));
-
+                // CollectionTest::testAfterReturnsItemAfterTheGivenItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7255,6 +7326,7 @@ describe("Collection", () => {
             });
 
             it("test after in strict mode", () => {
+                // CollectionTest::testAfterInStrictMode
                 const emptyArray: unknown[] = [];
                 const c = collect([false, 0, 1, emptyArray, ""]);
 
@@ -7267,6 +7339,7 @@ describe("Collection", () => {
             });
 
             it("test after returns null when item is not found", () => {
+                // CollectionTest::testAfterReturnsNullWhenItemIsNotFound
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7292,6 +7365,7 @@ describe("Collection", () => {
             });
 
             it("test after returns null when item on the last item", () => {
+                // CollectionTest::testAfterReturnsNullWhenItemOnTheLastItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -7308,12 +7382,6 @@ describe("Collection", () => {
                         return value > 4 && typeof value !== "number";
                     }),
                 ).toBeNull();
-
-                // In JavaScript, object keys with numeric names are always ordered first,
-                // so we cannot replicate PHP's behavior of ['foo' => 'bar', 1, 2, 3, 4, 5]
-                // where '5' would be the last key. Instead, we test with all string keys.
-                const c2 = collect({ a: "first", b: "second", c: "third" });
-                expect(c2.after("third")).toBeNull();
             });
         });
     });
@@ -7871,6 +7939,7 @@ describe("Collection", () => {
 
     describe("sole", () => {
         describe("Laravel Tests", () => {
+            // CollectionTest::testSoleReturnsFirstItemInCollectionIfOnlyOneExists
             it("test sole returns first item in collection if only one exists", () => {
                 const c = collect([{ name: "foo" }, { name: "bar" }]);
 
@@ -7903,8 +7972,13 @@ describe("Collection", () => {
                 expect(() => {
                     c.where("name", "foo").sole();
                 }).toThrowError("2 items were found.");
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+                expect(() => {
+                    c.where("name", "foo").sole();
+                }).toThrowError(expect.objectContaining({ count: 2 }));
             });
 
+            // CollectionTest::testSoleReturnsFirstItemInCollectionIfOnlyOneExistsWithCallback
             it("test sole returns first item in collection if only one exists with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
 
@@ -7915,23 +7989,41 @@ describe("Collection", () => {
                 expect(result).toBe("bar");
             });
 
+            // CollectionTest::testSoleThrowsExceptionIfNoItemsExistWithCallback
             it("test sole throws exception if no items exist with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
-                expect(() => {
+                const sole = () =>
                     data.sole((value) => {
                         return value === "invalid";
                     });
-                }).toThrowError();
+
+                expect(sole).toThrowError(ItemNotFoundException);
+                // docs/php-parity/task-23-obj-release-readiness.json, "sole-none"
+                expect(sole).toThrowError(
+                    expect.objectContaining({
+                        name: "ItemNotFoundException",
+                        message: "",
+                    }),
+                );
             });
 
-            it("test solr throws exception if more than one item exists with callback", () => {
+            // CollectionTest::testSoleThrowsExceptionIfMoreThanOneItemExistsWithCallback
+            it("test sole throws exception if more than one item exists with callback", () => {
                 const data = collect(["foo", "bar", "bar"]);
-
-                expect(() => {
+                const sole = () =>
                     data.sole((value) => {
                         return value === "bar";
                     });
-                }).toThrowError();
+
+                expect(sole).toThrowError(MultipleItemsFoundException);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+                expect(sole).toThrowError(
+                    expect.objectContaining({
+                        name: "MultipleItemsFoundException",
+                        message: "2 items were found.",
+                        count: 2,
+                    }),
+                );
             });
         });
 
@@ -7953,6 +8045,13 @@ describe("Collection", () => {
                     message: "3 items were found.",
                 }),
             );
+        });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(collect([{ a: null }, { a: 1 }]).sole("a", null)).toEqual({
+                a: null,
+            });
         });
 
         it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
@@ -7987,6 +8086,7 @@ describe("Collection", () => {
 
     describe("firstOrFail", () => {
         describe("Laravel Tests", () => {
+            // CollectionTest::testFirstOrFailReturnsFirstItemInCollection
             it("test first or fail returns first item in collection", () => {
                 const c = collect([{ name: "foo" }, { name: "bar" }]);
 
@@ -8008,6 +8108,7 @@ describe("Collection", () => {
                 }).toThrowError(ItemNotFoundException);
             });
 
+            // CollectionTest::testFirstOrFailDoesntThrowExceptionIfMoreThanOneItemExists
             it("test first or fail doesnt throw exception if more than one item exists", () => {
                 const c = collect([
                     { name: "foo" },
@@ -8020,6 +8121,7 @@ describe("Collection", () => {
                 });
             });
 
+            // CollectionTest::testFirstOrFailReturnsFirstItemInCollectionIfOnlyOneExistsWithCallback
             it("test first or fail returns first item in collection if only one exists with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
                 const result = data.firstOrFail((value) => {
@@ -8054,6 +8156,7 @@ describe("Collection", () => {
                 );
             });
 
+            // CollectionTest::testFirstOrFailDoesntThrowExceptionIfMoreThanOneItemExistsWithCallback
             it("test first or fail doesn't throw exception if more than one item exists with callback", () => {
                 const data = collect(["foo", "bar", "bar"]);
 
@@ -8064,6 +8167,7 @@ describe("Collection", () => {
                 ).toBe("bar");
             });
 
+            // CollectionTest::testFirstOrFailStopsIteratingAtFirstMatch
             it("test first or fail stops iterating at first match", () => {
                 const data = collect([
                     () => {
@@ -10758,6 +10862,7 @@ describe("Collection", () => {
     describe("some", () => {
         describe("Laravel Tests", () => {
             it("test some", () => {
+                // CollectionTest::testSome
                 const c = collect([1, 3, 5]);
 
                 expect(c.some(1)).toBe(true);
@@ -10772,6 +10877,11 @@ describe("Collection", () => {
                         return value > 5;
                     }),
                 ).toBe(false);
+
+                const rows = collect([{ v: 1 }, { v: 3 }, { v: 5 }]);
+
+                expect(rows.some("v", 1)).toBe(true);
+                expect(rows.some("v", 2)).toBe(false);
 
                 const d = collect(["date", "class", { foo: 50 }]);
 
@@ -11142,6 +11252,7 @@ describe("Collection", () => {
     describe("firstWhere", () => {
         describe("Laravel Tests", () => {
             it("test first where", () => {
+                // CollectionTest::testFirstWhere
                 const data = collect([
                     { material: "paper", type: "book" },
                     { material: "rubber", type: "gasket" },
@@ -11172,17 +11283,38 @@ describe("Collection", () => {
                     data.firstWhere((value) => value.nonexistent === "key"),
                 ).toBeNull();
             });
+
+            it("test first where using enum", () => {
+                // CollectionTest::testFirstWhereUsingEnum, whose unit enum cases are their names here
+                const data = collect([
+                    { id: 1, name: StaffEnum.Taylor },
+                    { id: 2, name: StaffEnum.Joe },
+                    { id: 3, name: StaffEnum.James },
+                ]);
+
+                expect(data.firstWhere("name", "Taylor")?.id).toBe(1);
+                expect(data.firstWhere("name", StaffEnum.Joe)?.id).toBe(2);
+                expect(data.firstWhere("name", StaffEnum.James)?.id).toBe(3);
+            });
         });
 
         it("uses operatorForWhere", () => {
             const c = collect([{ id: 1 }, { id: 2 }, { id: 3 }]);
             expect(c.firstWhere("id", ">=", 2)).toEqual({ id: 2 });
         });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(
+                collect([{ a: 1 }, { a: null }]).firstWhere("a", null),
+            ).toEqual({ a: null });
+        });
     });
 
     describe("value", () => {
         describe("Laravel Tests", () => {
             it("test value", () => {
+                // CollectionTest::testValue
                 const c = collect([
                     { id: 1, name: "Hello" },
                     { id: 2, name: "World" },
@@ -11201,7 +11333,19 @@ describe("Collection", () => {
                 expect(d.where("id", 2).value("pivot.value")).toBe("bar");
             });
 
+            it("test value using enum", () => {
+                // CollectionTest::testValueUsingEnum, whose unit enum cases are their names here
+                const c = collect([
+                    { id: 1, name: StaffEnum.Taylor },
+                    { id: 2, name: StaffEnum.Joe },
+                ]);
+
+                expect(c.value("name")).toBe(StaffEnum.Taylor);
+                expect(c.where("id", 2).value("name")).toBe(StaffEnum.Joe);
+            });
+
             it("test value with negative value", () => {
+                // CollectionTest::testValueWithNegativeValue
                 const c = collect([
                     { id: 1, balance: 0 },
                     { id: 2, balance: 200 },
@@ -11237,6 +11381,7 @@ describe("Collection", () => {
             });
 
             it("test value with objects", () => {
+                // CollectionTest::testValueWithObjects
                 const c = collect([
                     { id: 1 },
                     { id: 2, balance: "" },
@@ -11253,6 +11398,15 @@ describe("Collection", () => {
 
                 expect(d.value("balance.value")).toBe(0);
             });
+        });
+
+        it("resolves the default when no item holds the key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-value-default"
+            expect([
+                collect([{ a: 1 }]).value("b", () => "d"),
+                collect([{ a: 1 }]).value("b", "d"),
+                collect([]).value("a"),
+            ]).toEqual(["d", "d", null]);
         });
     });
 
@@ -14576,7 +14730,7 @@ describe("Collection", () => {
                 "fallback",
             );
 
-            // JS-only: PHP's `value()` unwraps a Closure default; so does this port's.
+            // docs/php-parity/task-23-obj-release-readiness.json, "first-assoc-closure-default"
             expect(
                 collect(outOfOrder()).first(
                     () => false,
