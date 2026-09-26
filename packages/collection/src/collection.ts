@@ -455,10 +455,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([[1, 2], [3, 4]]).collapse(); -> new Collection([1, 2, 3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
+     * new Collection({a: [1, 2], b: [3]}).collapse(); -> new Collection([1, 2, 3])
      */
     collapse() {
+        // Arr::collapse merges the items alone, so the receiver's own keys never shape the result.
         return this.newInstance(
-            handOver(dataCollapse(this.itemsToRawValues() as TValue[])),
+            handOver(dataCollapse(this.getItemValues(this.items))),
         );
     }
 
@@ -5926,20 +5928,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected getItemValues(items: DataItems<TValue, TKey>): TValue[] {
         return isArray(items) ? items : Object.values(items);
-    }
-
-    /**
-     * Get the raw values of all items.
-     * Basically, if an item is a collection, get the underlying raw items.
-     */
-    protected itemsToRawValues() {
-        return dataMap(this.items, (item) => {
-            if (item instanceof Collection) {
-                return item.all();
-            }
-
-            return item;
-        });
     }
 
     /**

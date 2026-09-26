@@ -1144,6 +1144,15 @@ describe("Collection", () => {
             expect(result.values().all()).toEqual([1, 2]);
         });
 
+        it("collapses a record of lists into a list", () => {
+            const collapsed = collect({ a: [1, 2], b: [3] }).collapse();
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-of-lists"
+            expect(collapsed.all()).toEqual([1, 2, 3]);
+            expect(collapsed.keys().all()).toEqual([0, 1, 2]);
+            expect(collapsed.values().all()).toEqual([1, 2, 3]);
+        });
+
         it("renumbers a negative integer key on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
             expect(
