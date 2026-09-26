@@ -65,7 +65,7 @@ The package reads variable names only, one line at a time, with these rules:
 - Only names that start with `VITE_` are kept. Everything else, such as `APP_NAME` and `DB_CONNECTION`, is ignored.
 - The names are sorted alphabetically, and duplicates are removed.
 
-::: warning `export` prefixes
+::: warning `export` Prefixes
 A line written as `export VITE_APP_NAME=MyApp` is skipped, because its name doesn't start with `VITE_`. Remove the `export` prefix to include the variable.
 :::
 
@@ -83,4 +83,4 @@ To leave a variable out, don't prefix it with `VITE_`. Vite won't expose it to c
 
 ## Configuration Reference
 
-The [Configuration Reference](./configuration-reference.md#vite-environment-vite-env) lists every `vite_env.*` key.
+The [Configuration Reference](./configuration-reference.md#vite-env-vite-env) lists every `vite_env.*` key.

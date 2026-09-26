@@ -23,7 +23,7 @@ The package reuses a class's cached output only while nothing it depends on has 
 
 - **Its PHP files**: the class's own file, or any PHP file the package read to generate it, including parent classes, traits, interfaces, and related models.
 - **Its routes**: for a controller, any route that points at it, including its URI, HTTP methods, name, domain, controller method, and middleware. Adding or removing a route counts too, so you don't need `--fresh` after editing routes.
-- **Its metadata**: for a [model metadata](./model-metadata.md) companion, the provider class, or the values it returns for that model. A new morph map alias set in a service provider counts.
+- **Its metadata**: for a [model metadata](./model-metadata.md#cache) companion, the provider class, or the values it returns for that model. A new morph map alias set in a service provider counts.
 - **Its output files**: if you delete a file the class wrote on an earlier run, the class is rebuilt even though its source didn't change.
 
 The whole cache clears, and the next run rebuilds everything, when any of these change:
@@ -34,8 +34,8 @@ The whole cache clears, and the next run rebuilds everything, when any of these 
 
 Classes you delete from your app drop out of the cache on the next run.
 
-::: warning Partial runs drop the skipped features
-A run limited by an `--only-*` flag keeps cache entries only for the features it publishes. The next full run rebuilds the features it skipped. This includes the `--only-functional` run the [Vite plugin](./vite-plugin.md) makes on `vite build`.
+::: warning Partial Runs Drop the Skipped Features
+A run limited by an `--only-*` flag keeps cache entries only for the features it publishes. The next full run rebuilds the features it skipped. This includes the `--only-functional` run the [Vite plugin](./vite-plugin.md#production-builds) makes on `vite build`.
 :::
 
 ## What the Cache Can't Detect
@@ -43,6 +43,7 @@ A run limited by an `--only-*` flag keeps cache entries only for the features it
 Some changes don't touch any file the cache tracks. The cache misses these:
 
 - **Database schema changes**: a model's columns come from your database, not a source file. The automatic post-migration republish always runs with `--fresh`, so it picks up the new schema. If you change the schema another way, run `php artisan ts:publish --fresh`.
+- **Edits to published templates**: the cache doesn't track Blade views, so a class whose PHP hasn't changed keeps its old output. After you edit a [published template](./customizing-the-pipeline.md#publishing-and-editing-templates), run `php artisan ts:publish --fresh`.
 - **Edits to generated files**: if you edit a generated `.ts` file by hand without changing its source, the cache doesn't notice and won't overwrite it. Run `php artisan ts:publish --fresh`, or delete the file, to restore it.
 - **Values that can't be serialized**: if your `ts-publish` config holds a value such as a closure, every run rebuilds everything. A model metadata provider that returns such a value rebuilds its companions on every run.
 
@@ -96,7 +97,7 @@ The package checks the signature before it reads an entry. An entry with a missi
 
 If neither `cache.key` nor `app.key` is set, entries are stored unsigned, and the package can't detect a tampered entry. In practice, that means an app that hasn't run `php artisan key:generate`.
 
-::: warning Using a shared or untrusted cache store
+::: warning Using a Shared or Untrusted Cache Store
 When `cache.store` points at a Laravel cache store (`redis`, `database`, `file`, and so on), the store unserializes its own values when it reads them. By default, when Laravel's `cache.serializable_classes` is unset, it allows PHP classes, and it does this before the package checks the signature. The signature still protects the data, but it can't stop object creation at the cache layer. If the store is shared or not fully trusted, set Laravel's `cache.serializable_classes` to `false` or to an allowlist, or use a dedicated, trusted store. The default file backend isn't affected.
 :::
 

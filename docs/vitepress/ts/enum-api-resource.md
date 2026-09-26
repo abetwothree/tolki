@@ -42,9 +42,9 @@ class UserResource extends JsonResource
 ```
 
 ::: tip
-Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource) in the API Resources docs.
+Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties With `EnumResource`](./api-resources.md#enum-properties-with-enumresource) on the API Resources page.
 
-The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. A shared key whose ternary picks between two different enums isn't rewritten. It publishes as `RoleType | StatusType` with neither enum imported, so TypeScript reports both names as missing (`TS2304`). Give both arms the same enum. See the note under [Inertia](./inertia.md).
+The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. A shared key whose ternary picks between two different enums isn't rewritten. It publishes as `RoleType | StatusType` with neither enum imported, so TypeScript reports both names as missing (`TS2304`). Give both arms the same enum. See the `EnumResource` note in [How the Augmentation File Is Generated](./inertia.md#how-the-augmentation-file-is-generated).
 :::
 
 `EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object.
@@ -97,12 +97,12 @@ That call returns this response:
 
 `EnumResource` follows the same rules as the `ts:publish` command. See [Enums](./enums.md) for the full attribute and auto-include reference. In practice:
 
-- Only methods marked with `#[TsEnumMethod]` or `#[TsEnumStaticMethod]` are included, or every public method when auto-include is on.
+- By default, only methods marked with `#[TsEnumMethod]` or `#[TsEnumStaticMethod]` are included. With auto-include on, public methods are included automatically.
 - A method with required parameters and no `params` on its attribute is left out.
-- `enums.method_case` sets the casing of the method keys in the response. See [Casing Configurations](./casing-configuration.md).
-- `#[TsExclude]` on a method removes it from both the TypeScript output and the response. See [Excluding Content](./excluding-content.md).
+- `enums.method_case` sets the casing of the method keys in the response. See [`enums.method_case`](./casing-configuration.md#enums-method-case) on the Casing Configurations page.
+- `#[TsExclude]` on a method removes it from both the TypeScript output and the response. See [Excluding Enum Methods](./excluding-content.md#excluding-enum-methods).
 
-Because both follow the same rules, the JSON response matches the TypeScript types this package publishes, with no second serializer to keep in sync.
+Because both follow the same rules, the JSON response has the same keys as the TypeScript enum this package publishes, with no second serializer to keep in sync.
 
 ## Typing API Responses With `AsEnum`
 
@@ -139,7 +139,7 @@ if (article.status.value === 0) {
 }
 ```
 
-The [Type Reference](./enums.md#type-reference) in the Enums docs lists the full `AsEnum` signature next to every other `@tolki/ts` export.
+The [Type Reference](./enums.md#type-reference) on the Enums page lists the full `AsEnum` signature next to every other `@tolki/ts` export.
 
 ## Auto-Generated `{Model}Resource` Interfaces
 
@@ -200,7 +200,7 @@ export interface PostMutatorsResource extends Omit<PostMutators, "due_notice"> {
 }
 ```
 
-When two enums share a class name, both imports get a namespace prefix, for the type and for the const. `App\Enums\Status` and `App\Crm\Enums\Status` import as `EnumsStatus` and `CrmStatus`, with `EnumsStatusType` and `CrmStatusType` for the types. See [Enum-Typed Columns](./models.md#enum-typed-columns-model-resource) in the Models docs for how the main and `Resource` interfaces differ.
+When two enums share a class name, both imports get a namespace prefix, for the type and for the const. `App\Enums\Status` and `App\Crm\Enums\Status` import as `EnumsStatus` and `CrmStatus`, with `EnumsStatusType` and `CrmStatusType` for the types. See [Enum-Typed Columns](./models.md#enum-typed-columns-model-resource) on the Models page for how the main and `Resource` interfaces differ.
 
 ## Configuration Reference
 

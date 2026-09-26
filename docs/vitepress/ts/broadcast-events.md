@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates a TypeScript interface for each event that implements `ShouldBroadcast` or `ShouldBroadcastNow`, so the payloads your frontend receives through Laravel Echo are typed. It also writes a combined `broadcast-events.ts` index, with a `BroadcastEvent` union and a flat `BroadcastEvents` const of every Echo event name. An optional module augmentation types Laravel Echo's `Events` interface.
 
-As [Installation & Usage](./index.md) notes, broadcast events don't need the `@tolki/ts` runtime. The output is plain TypeScript interfaces and a plain `const` object.
+Broadcast events don't need the `@tolki/ts` runtime. The output is plain TypeScript interfaces and a plain `const` object. See [Installing `@tolki/ts`](./index.md#installing-tolki-ts) for the features that do.
 
 ## How Broadcast Event Types Are Generated
 
@@ -138,7 +138,7 @@ export interface PostScheduled {
 
 The body still wins wherever it types a value. The docblock only fills a key the body left `unknown`, so a stale `@return` can't overwrite a type the body already found. A `key?:` entry in the docblock makes that key optional.
 
-A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, gives the payload an index signature. When the helper's body can't type the values, its `@return array<string, V>` docblock types them. [API Resources § Interpolated Keys](./api-resources.md#interpolated-keys) describes how the event's `#[TsCasts]` and `extends` clause then apply.
+A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, gives the payload an index signature. When the helper's body can't type the values, its `@return array<string, V>` docblock types them. [Interpolated Keys](./api-resources.md#interpolated-keys) on the API Resources page describes how the event's `#[TsCasts]` and `extends` clause then apply.
 
 When an event has `broadcastWith()`, including one inherited from a parent class or a trait, only that method shapes the payload. The public properties aren't read. A key it renames, computes or drops shows up exactly that way. `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }`, with no `teamId`.
 
@@ -390,7 +390,7 @@ The file augments Laravel Echo's own `Events` interface. `Echo.private(channel).
 The package picks the `declare module` target in this order:
 
 1. The `broadcast_events.echo_augmentation.echo_package` config value, if set.
-2. The first of `@laravel/echo-vue`, `@laravel/echo-react` and `@laravel/echo-svelte` in your `package.json` dependencies or dev dependencies.
+2. The first one your `package.json` dependencies or dev dependencies list, checked in this order: `@laravel/echo-vue`, `@laravel/echo-react`, `@laravel/echo-svelte`.
 3. `@laravel/echo`, the base package every Echo setup depends on.
 
 The file uses the same import-conflict aliasing as the index, so same-named events from different namespaces resolve correctly. If your app has no broadcast events, the package writes no augmentation file.

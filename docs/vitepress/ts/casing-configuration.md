@@ -25,12 +25,12 @@ For a relation method named `ownedTeams()`, each value gives these names:
 Only the relation name is cased. The `_count` and `_exists` suffixes are added as they are, so `'camel'` gives you `ownedTeams_count`, not `ownedTeamsCount`.
 
 ::: info Count and exists properties
-For every relation on a model, the package also publishes a `_count` and an `_exists` property. They type the attributes that Laravel's [`withCount` and `withExists`](https://laravel.com/docs/eloquent-relationships#counting-related-models) add, and they appear in every generated model's interfaces.
+For every relation on a model, the package also publishes a `_count` and an `_exists` property. They type the attributes that Laravel's [`withCount` and `withExists`](https://laravel.com/docs/eloquent-relationships#counting-related-models) add, and they appear in every generated model's interfaces. Laravel always names these attributes in snake case, such as `owned_teams_count`. Under `'camel'` or `'pascal'`, the published `_count` and `_exists` names don't match them.
 :::
 
 ## `enums.method_case`
 
-This option sets the casing of enum method and static method keys in the generated output. See [Enums](./enums.md) for which methods publish, through `#[TsEnumMethod]`, `#[TsEnumStaticMethod]`, and the `auto_include_methods` and `auto_include_static_methods` settings.
+This option sets the casing of enum method and static method keys in the generated output. See [Enum Attributes](./enums.md#enum-attributes) and [Auto-Including All Enum Methods](./enums.md#auto-including-all-enum-methods) for which methods publish, through `#[TsEnumMethod]`, `#[TsEnumStaticMethod]`, and the `auto_include_methods` and `auto_include_static_methods` settings.
 
 ```php
 // config/ts-publish.php
@@ -49,7 +49,7 @@ For a method named `getLabel()` and a static method named `AllLabels()`, each va
 | `'pascal'`   | `GetLabel`          | `AllLabels`                 |
 
 ::: tip Renamed methods are cased too
-The setting applies to every published enum method, instance or static, however it was included. You can rename one method with the `name` parameter of `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`, but that name goes through this setting as well: under the default `'camel'`, `#[TsEnumMethod(name: 'get_label')]` publishes `getLabel`. Write the name in your configured casing to keep it as written. A case renamed with `#[TsCase(name:)]` isn't affected, and publishes exactly as written.
+The setting applies to every published enum method, instance or static, however it was included. You can rename one method with the `name` parameter of `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`. That name goes through this setting as well, so under the default `'camel'`, `#[TsEnumMethod(name: 'get_label')]` publishes `getLabel`. Write the name in your configured casing to keep it as written. A case renamed with `#[TsCase(name:)]` isn't affected, and publishes exactly as written.
 :::
 
 ## `routes.method_casing`

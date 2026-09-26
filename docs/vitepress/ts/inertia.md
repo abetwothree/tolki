@@ -137,7 +137,7 @@ export type TeamsPageProps = Inertia.SharedData & {
 };
 ```
 
-`JsonResourcePaginator<T>` types its `data` as `T[]` (see [API Resources](./api-resources.md)), so a key-preserving collection can't use it as is. The page-props type drops the array `data` with `Omit` and adds a keyed `Record<string, T>` in its place.
+`JsonResourcePaginator<T>` types its `data` as `T[]` (see [Paginated Collections](./api-resources.md#paginated-collections) on the API Resources page), so a key-preserving collection can't use it as is. The page-props type drops the array `data` with `Omit` and adds a keyed `Record<string, T>` in its place.
 
 A named collection that wraps its items in a `data` key, such as `new TeamCollection($paginator)`, doesn't need this. Its page prop is the collection's own interface plus pagination (`TeamCollection & ResourcePagination`), and that interface already types `data` as `Record<string, T>` when the collection keeps keys, paginated or not. Only the flat collection and the anonymous `Resource::collection()` form need the `Omit<...> & { data: Record<...> }` shape.
 

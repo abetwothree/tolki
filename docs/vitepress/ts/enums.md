@@ -31,7 +31,7 @@ Status.label.Active; // 'Active User'
 Status.from("active").label; // 'Active User', a PHP-like enum "instance"
 ```
 
-`@tolki/ts` works together with the files this package generates and isn't meant to be used on its own. [Installation & Usage](./index.md) covers installing it. To send one enum case to the frontend as a full object, return it through [`EnumResource`](./enum-api-resource.md).
+`@tolki/ts` works together with the files this package generates and isn't meant to be used on its own. See [Installing `@tolki/ts`](./index.md#installing-tolki-ts) to add it to your project. To send one enum case to the frontend as a full object, return it through [`EnumResource`](./enum-api-resource.md).
 
 ## How Enums Are Generated
 
@@ -320,7 +320,7 @@ To keep the metadata but drop the wrapper, turn off `enums.use_tolki_package` in
 The setting controls every `AsEnum<>` type the package publishes:
 
 - **Models**: the `{Model}Resource` interfaces and the `import { type AsEnum }` line aren't generated. The main `{Model}` interface uses `{Enum}Type` for enum columns either way. See [Enum-Typed Columns](./models.md#enum-typed-columns-model-resource).
-- **API resources**: an `EnumResource::make()` property publishes as `StatusType` instead of `AsEnum<typeof Status>`, and the enum is imported as a type (`import type { StatusType }`) instead of a value (`import { Status }`). See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource).
+- **API resources**: an `EnumResource::make()` property publishes as `StatusType` instead of `AsEnum<typeof Status>`, and the enum is imported as a type (`import type { StatusType }`) instead of a value (`import { Status }`). See [Enum Properties With `EnumResource`](./api-resources.md#enum-properties-with-enumresource).
 - **Inertia shared data**: an `EnumResource` prop shared from `HandleInertiaRequests::share()` publishes as `RoleType` with a type import, instead of `AsEnum<typeof Role>` with a value import. See [Inertia](./inertia.md).
 
 Leave it on unless your enums must not depend on `@tolki/ts` at runtime. [Routes](./routing.md) import `@tolki/ts` whatever this setting is.
@@ -370,11 +370,11 @@ Enums use the same include and exclude settings as models, resources and the oth
 ],
 ```
 
-`#[TsExclude]` on the enum class excludes the whole enum. On a method, it excludes only that method, even when auto-include or an attribute would otherwise publish it. See [Excluding Content](./excluding-content.md) for how `#[TsExclude]` works across models, resources and routes.
+`#[TsExclude]` on the enum class excludes the whole enum. On a method, it excludes only that method, even when auto-include or an attribute would otherwise publish it. See [Excluding Enum Methods](./excluding-content.md#excluding-enum-methods) on the Excluding Content page, which also covers models, resources and routes.
 
 ## Casing
 
-`enums.method_case` sets the casing of published method keys: `'camel'` (default), `'snake'` or `'pascal'`. It doesn't rename your PHP methods, and it also applies to a key set with the attributes' `name` parameter. See [Casing Configurations](./casing-configuration.md) for examples.
+`enums.method_case` sets the casing of published method keys: `'camel'` (default), `'snake'` or `'pascal'`. It doesn't rename your PHP methods, and it also applies to a key set with the attributes' `name` parameter. See [`enums.method_case`](./casing-configuration.md#enums-method-case) on the Casing Configurations page for examples.
 
 ## Runtime Utilities
 
@@ -386,7 +386,7 @@ Enums use the same include and exclude settings as models, resources and the oth
 
 </div>
 
-### cases
+### `cases`
 
 Like PHP's [cases](https://www.php.net/manual/en/unitenum.cases.php) method, `cases` returns an array with one resolved instance per case:
 
@@ -397,7 +397,7 @@ import { Status } from "@js/types/data/app/enums";
 const result = cases(Status); // one resolved instance per case in Status
 ```
 
-### defineEnum
+### `defineEnum`
 
 The published files wrap each enum in `defineEnum`, which binds `from`, `tryFrom` and `cases` to the enum object:
 
@@ -417,7 +417,7 @@ Status.from("active");
 Status.tryFrom("non-valid-key"); // null
 ```
 
-### from
+### `from`
 
 Like PHP's [from](https://www.php.net/manual/en/backedenum.from.php), `from` returns the enum instance for a value, and throws if the value matches no case:
 
@@ -429,7 +429,7 @@ const result = from(Status, "active");
 from(Status, "non-valid-key"); // throws
 ```
 
-### tryFrom
+### `tryFrom`
 
 Like PHP's [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), `tryFrom` works like `from` but returns `null` for a value that matches no case:
 

@@ -85,7 +85,7 @@ The collected-files manifest tells the plugin which files to watch. It doesn't t
 
 When `ts:publish` rewrites `resources/js/types/data/laravel-ts-collected-files.json`, the plugin refreshes its watched-file list and continues. It doesn't run `ts:publish` again for that write, which prevents a publish loop.
 
-::: tip Starting from a fresh clone
+::: tip Starting From a Fresh Clone
 If the manifest doesn't exist when `vite dev` starts, the plugin logs `Manifest not found` and has no files to watch. This happens after a fresh clone when the output directory is in `.gitignore`. Run `php artisan ts:publish` once, then start Vite.
 :::
 

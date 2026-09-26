@@ -30,7 +30,9 @@ The hook runs before anything else in `ts:publish`, before the command reads `--
 | `php artisan ts:publish --preview=true`                   | Yes       |
 | Automatic republish after `migrate` (`run_after_migrate`) | Yes       |
 
-The closure receives no arguments, so it can't tell which invocation started it. That matters for `--source` reruns, which the [Vite plugin](./vite-plugin.md) runs each time you save a PHP file during `vite dev`. To skip expensive work on those reruns, such as a filesystem scan, check a condition the closure can see for itself. A cached scan result or an environment variable both work.
+The closure receives no arguments, so it can't tell which invocation started it. That matters for `--source` reruns. The Vite plugin runs one each time you save a PHP file during `vite dev`, as [Single-File Republishing](./vite-plugin.md#single-file-republishing) describes.
+
+To skip expensive work on those reruns, such as a filesystem scan, check a condition the closure can see for itself. A cached scan result or an environment variable both work.
 
 ## Registration Behavior
 
@@ -43,7 +45,7 @@ The hook follows these rules:
 
 ## Resetting the Hook Between Tests
 
-A registered closure stays registered for the rest of the PHP process, even when Laravel boots a fresh application for each test. A closure registered in a service provider's `boot()` is registered again on each boot, which replaces the previous one. A closure you register inside a test stays active for every test after it.
+A registered closure stays registered for the rest of the PHP process, even when Laravel boots a fresh application for each test. A closure registered in a service provider's `boot()` is registered again on each boot, which replaces the previous one. A closure you register inside a test stays active until something registers another closure.
 
 To clear it after each test, register a closure that does nothing:
 

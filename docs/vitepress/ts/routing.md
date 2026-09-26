@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates a TypeScript route helper for every controller action your routes point to. A helper builds the action's URL, binds its parameters, adds query strings and spoofs form methods, so your frontend never hand-writes a URL. The helpers follow [Laravel Wayfinder](https://github.com/laravel/wayfinder)'s conventions and work with Inertia the same way.
 
-The generated files stay small. Each action is one call to [`defineRoute`](#anatomy-of-defineroute), and the URL-building logic lives once in the `@tolki/ts` runtime instead of being repeated for every route. Install `@tolki/ts` alongside the Laravel package, as [Installation & Usage](./index.md) describes.
+The generated files stay small. Each action is one call to [`defineRoute`](#anatomy-of-defineroute), and the URL-building logic lives once in the `@tolki/ts` runtime instead of being repeated for every route. Install `@tolki/ts` alongside the Laravel package, as [Installing `@tolki/ts`](./index.md#installing-tolki-ts) describes.
 
 This is how you call the helper generated for a `PostController`:
 
@@ -131,7 +131,7 @@ CustomRouteKeyController.show(post); // post = { slug: 'hello-world', ... }
 
 The parameter's type comes from the `args` metadata alone. It accepts the key's value, or any object with that key or an `id`, so binding a model never imports the model's TypeScript type into the route file. A route file imports a model type only when an Inertia page prop names it, as [Inertia Integration](#inertia-integration) shows.
 
-The key is the one Laravel binds by. A `{post:slug}` segment names it directly. Otherwise it's whatever the model's `getRouteKeyName()` returns, so overriding `getRouteKeyName()`, `getKeyName()` or `$primaryKey` changes it. So does the Laravel 13 `#[RouteKey('slug')]` attribute on its own. See [Laravel 13 Model Attributes](./models.md#laravel-13-model-attributes).
+The key is the one Laravel binds by. A `{post:slug}` segment names it directly. Otherwise it's whatever the model's `getRouteKeyName()` returns, so overriding `getRouteKeyName()`, `getKeyName()` or `$primaryKey` changes it. So does the `#[RouteKey('slug')]` attribute on its own (Laravel 13.21 and later). See [Laravel 13 Model Attributes](./models.md#laravel-13-model-attributes).
 
 ## Enum Binding
 
@@ -206,7 +206,8 @@ Values are encoded the way Laravel reads query input:
 When a query key has the same name as a route parameter, put it under `_query`:
 
 ```typescript
-PostController.index.url({ sort: "created_at", _query: { sort: "desc" } });
+// PostController.sorted is the route /posts/sort/{sort}
+PostController.sorted.url({ sort: "created_at", _query: { sort: "desc" } });
 // '/posts/sort/created_at?sort=desc'
 ```
 
@@ -338,6 +339,8 @@ public function show(Post $post, Request $request): Response
     ]);
 }
 ```
+
+This generates:
 
 ```typescript
 export type ShowPageProps = Inertia.SharedData & {

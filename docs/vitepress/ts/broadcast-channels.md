@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) compiles every channel you register in `routes/channels.php` into one `broadcast-channels.ts` file. The file holds a `BroadcastChannel` union of template literal types, and a `BroadcastChannels` const with an accessor for every dynamic segment. You build a channel name the way you call a route helper, instead of typing `{placeholder}` strings by hand.
 
-As [Installation & Usage](./index.md) notes, broadcast channels don't need the `@tolki/ts` runtime. The output is a plain union type and a plain object of strings and accessor functions.
+Broadcast channels don't need the `@tolki/ts` runtime. The output is a plain union type and a plain object of strings and accessor functions. See [Installing `@tolki/ts`](./index.md#installing-tolki-ts) for the features that do.
 
 ## How Broadcast Channel Types Are Generated
 

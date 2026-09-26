@@ -1,8 +1,152 @@
 # Upgrade Guide
 
-This guide covers upgrading the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) from version 1.x to version 2. Version 2 aims to match everything Laravel Wayfinder provides, with a few things done differently.
+This guide lists the changes in each release that can change your generated types or break a custom class, newest first.
 
-## New in Version 2
+## Upgrading to 2.5 From 2.4
+
+Version 2.5.0 replaced the package's type engine. Your first publish after upgrading changes many generated files, even if you change nothing, so run `php artisan ts:publish` once and review the diff before you commit it.
+
+### Removed Dependencies
+
+#### `laravel/surveyor` and `laravel/ranger`
+
+The package no longer requires `laravel/surveyor` or `laravel/ranger`. If your app uses either package directly, add it to your own `composer.json`.
+
+### Published Templates
+
+#### `inertia-config.blade.php`
+
+If you published the views and share an `EnumResource` through Inertia, update your copy of `inertia-config.blade.php`. A copy published before 2.5.0 drops the enum value imports that the shared prop needs, and nothing reports the problem. Merge the new import block from the package's template into your copy, or publish the views again.
+
+### Single-Class Republishing
+
+#### `--source` Applies the Model Filters
+
+`--source` now applies `models.included` and `models.excluded` to a model, and the `model_metadata` filters to its metadata companion. When the filters leave out both, the command reports the model and exits with an error. Before 2.5.0, it published the model anyway.
+
+If a script republishes a model that your filters leave out, change the filters to allow it, or remove the call. The Vite plugin isn't affected, because it only republishes classes the package collected.
+
+### API Resources
+
+#### Classes That Share a Name Get the Right Alias
+
+A property that named the same class name more times than it had distinct classes could get the wrong import alias. It could also get a bare name with no import, which failed in your app with `TS2304 Cannot find name`. Each occurrence now uses the alias of its own class. You don't need to change anything.
+
+### Float Values
+
+#### Floats Keep Full Precision
+
+The package now writes a PHP float at full round-trip precision, instead of rounding it to PHP's `precision` setting. That covers floats such as a value an enum method returns for a case, or a value in a form request rule. For example, `0.1 + 0.2` now publishes as `0.30000000000000004` instead of `0.3`. Review the float literals in your first publish after upgrading, and update any frontend code that compared against a rounded value.
+
+### Custom Pipeline Classes
+
+If you extended one of these classes before 2.5.0, check your overrides.
+
+#### `BroadcastEventTransformer`
+
+The constructor now takes one argument, like every other transformer:
+
+```php
+public function __construct(string $findable);
+```
+
+A subclass that passes a second argument to `parent::__construct()` must drop it. The protected methods changed as well:
+
+- **Removed**: `convertType()`, `resolveArrayType()`, and the `$analyzed` property. An override of a removed method loads without error but never runs. A subclass that mapped a custom value object through `convertType()` keeps loading while its event types change.
+- **Changed**: `runAnalysis()`, `resolveBroadcastName()`, `resolveProperties()`, `convertClassType()`, and `collectPropertyFqcns()` take or return different types. PHP rejects an incompatible override when the class loads, so you see these right away.
+
+#### `ResourceTransformer`
+
+`modelFromDocblock()`, `modelFromAncestorDocblock()`, `guessModelFromConvention()`, `guessModelFromUseResourceAttribute()`, and `substituteEnumResourceType()` are gone. An override of one of them still loads, but it never runs, and nothing reports an error. A resource that one of the four model methods covered is typed against the model the package finds on its own. An override of `substituteEnumResourceType()` no longer changes how a property that returns an `EnumResource` is typed. No method that remains changed its signature, so none of these overrides fails when the class loads.
+
+To keep a custom convention, override `resolveModelClass()`. Set `$this->modelClass` and return `$this`:
+
+```php
+protected function resolveModelClass(): self
+{
+    parent::resolveModelClass();
+
+    $this->modelClass ??= MyConvention::modelFor($this->reflectionResource);
+
+    return $this;
+}
+```
+
+`resolveModelClass()` changes what `ts:publish` writes. [`AstEngine::analyze()`](./analyzer-api.md) doesn't use your transformer, so it still finds the model the default way. Pass the model as its third argument to choose it yourself.
+
+#### Renamed Constant
+
+`SurveyorTypeMapper` was removed. Its `TOLKI_TYPES_MAP` constant, the map of PHP classes that `@tolki/types` has TypeScript types for, is now `AbeTwoThree\LaravelTsPublish\Support\TolkiTypes::MAP`. The contents are the same.
+
+#### Bound `LaravelTsPublish` Subclasses
+
+The helpers on `LaravelTsPublish` that emit JavaScript, handle type strings, and name files moved to three classes: `Support\JsEmitter`, `Support\TsTypeString`, and `Support\TsNaming`. Every `LaravelTsPublish::` call you make still works, with the same signature. The package itself calls the new classes, though. If you bound a `LaravelTsPublish` subclass in the container to override one of those helpers, the override no longer runs, and nothing reports it. Bind a subclass of the matching `Support` class instead. These classes are internal, so check your override after each upgrade.
+
+#### Custom Barrel Writers
+
+A `barrel_writer_class` that overrides `writeModular()` must now override `writeModularPreserving()` the same way, or some runs write the default barrel format. [Shared & Combined Writers](./customizing-the-pipeline.md#shared-combined-writers) explains which runs use it.
+
+## Upgrading to 2.4 From 2.3
+
+### API Resources
+
+#### Relation `except()` Publishes `Pick<>`
+
+A relation's `except()` used to publish `Omit<Post, "created_at" | "updated_at">`, which widened under a model template whose interface also carries mutators, relations, and counts. It now picks the remaining columns, as in `Pick<Post, "id" | "title" | "content" | "user_id">`. Under the default template, both carry the same columns, so you don't need to change anything.
+
+#### A Child Resource Inherits Its Parent's `toArray()`
+
+A child resource with no `toArray()` of its own used to publish an empty interface when no model resolved for it. It now inherits its parent's `toArray()`. If you added a pass-through `toArray()` only to work around that, you can delete it.
+
+#### A Guessed `toResource()` Class Must Be Published
+
+When `toResource()` guesses a resource class by naming convention, the package now accepts the guess only when it publishes that resource. A guessed resource it doesn't publish used to be imported anyway, which failed in your app with `TS2307 Cannot find module`. That property now publishes `unknown`. To type it, publish the guessed resource. [`toResource()` and `toResourceCollection()`](./api-resources.md#toresource-and-toresourcecollection) lists the ways the package finds the class.
+
+### Form Requests
+
+#### String-Form `in:` Rules Set the Field Type
+
+A string-form `in:` rule now sets the field's type wherever it appears in the rule list, as `Rule::in()` already did. Before 2.4.0, a type rule listed ahead of it won: `['required', 'string', 'in:user,admin']` published `string`, and it now publishes `'user' | 'admin'`.
+
+When a sibling rule declares the field numeric (`integer`, `int`, `numeric`, `decimal`, `digits`, or `digits_between`), the values also lose their quotes: `['required', 'integer', 'in:1,2,3']` publishes `1 | 2 | 3`. A value that doesn't read back as the same text, such as `007`, keeps its quotes.
+
+TypeScript now flags code that assigns an unlisted value to one of these fields, or compares a numeric field to a quoted string. Use a listed value, and change `=== '1'` to `=== 1`. See [Numeric `in:` Literals](./form-requests.md#numeric-in-literals).
+
+## Upgrading to 2.3 From 2.2
+
+### API Resources
+
+#### Relation `except()` Publishes Database Columns Only
+
+A relation's `except()` used to publish every accessor and relation of the related model, minus the named keys, even though `Model::except()` never returns them. It now publishes the model's database columns only. If your frontend read an accessor or a relation from an `except()` result, switch that property to `only([...])`, or give the key its own entry in `toArray()`. TypeScript reports every place that reads a key that's gone.
+
+### Models
+
+#### A Bare `tinyint` Is Now `number`
+
+Only `tinyint(1)` publishes as `boolean`. It's what Laravel's `boolean()` column creates on MySQL and SQLite, so real boolean columns are unaffected. A column created with `tinyInteger()` used to publish as [`boolean`](./models.md#booleans) and now publishes as [`number`](./models.md#numbers).
+
+The same change fixes some real boolean columns. Their sized `tinyint(1)` type didn't match the map before, so they published as `number`, and they now publish as `boolean`.
+
+If you compare a `tinyInteger()` column with `=== true`, or use it directly in a condition, compare it with a number instead. TypeScript flags every place that needs the change.
+
+#### The `As*ArrayObject` Casts Also Allow Arrays
+
+`AsArrayObject`, `AsEncryptedArrayObject`, and `AsEnumArrayObject` publish as [`unknown[] | Record<string, unknown>`](./models.md#arrays-objects) instead of `Record<string, unknown>` alone. An `ArrayObject` filled from a list serializes as a JSON array, so the old type rejected valid payloads from your API.
+
+Narrow the value before you treat it as an object: `Object.keys(x.meta)` no longer compiles on its own, so check `Array.isArray(x.meta)` first. You can also pin the property to the shape your column holds with [`#[TsCasts]`](./models.md#tscasts).
+
+### JSON Definitions File
+
+#### Entries Are Keyed by Fully-Qualified Class Name
+
+Before 2.3.0, the [JSON definitions file](./publishing.md#json-definitions-file) keyed its entries by short class name, so two classes with the same short name overwrote each other. Each top-level object is now keyed by fully-qualified class name, and each entry has a `name` field that holds the short name. Update code that reads the file to look entries up by fully-qualified name, and to read `name` for display.
+
+## Upgrading to 2.0 From 1.x
+
+Version 2 aims to match everything Laravel Wayfinder provides, with a few things done differently.
+
+### New in Version 2
 
 Version 2 adds these features:
 
@@ -15,9 +159,9 @@ Version 2 adds these features:
 - A Vite env augmentation file, built from the `.env` settings prefixed with `VITE_`
 - A generation cache that makes reruns of the full `ts:publish` command faster
 
-For concrete examples of the new output, see the [generated output examples](https://github.com/abetwothree/laravel-ts-publish/tree/main/workbench/resources/js/types/data).
+Each feature's page in these docs shows the TypeScript it generates.
 
-## Recommended Upgrade Flow
+### Recommended Upgrade Flow
 
 Follow these steps in order:
 
@@ -29,13 +173,13 @@ Follow these steps in order:
 6. Run a fresh publish with `php artisan ts:publish --fresh`.
 7. Fix the import paths in your app code to match the modular namespace output. See [Modular Publishing Only](#modular-publishing-only).
 
-## Breaking Changes
+### Breaking Changes
 
-### Configuration Changes
+#### Configuration Changes
 
-The version 1 configuration was mostly flat. Version 2 has more features, so each main feature has its own configuration group.
+The version 1 configuration was mostly flat. Version 2 has more features, so each main feature has its own config block.
 
-Most version 1 settings move into their group, and the group name leaves the key: `enum_template` becomes `enums.template`, and `publish_models` becomes `models.enabled`.
+Most version 1 settings move into their block, and the block name leaves the key: `enum_template` becomes `enums.template`, and `publish_models` becomes `models.enabled`.
 
 If you published the config file, republish it with the `--force` flag:
 
@@ -43,15 +187,15 @@ If you published the config file, republish it with the `--force` flag:
 php artisan vendor:publish --tag="ts-publish-config" --force
 ```
 
-#### Full Configuration Update List
+##### Full Configuration Update List
 
-The tables below map every key from the flat version 1 config to its version 2 group. The recommended path is to republish the config file, then use your project's git diff to find the customizations you need to reapply.
+The tables below map every key from the flat version 1 config to its version 2 block. The recommended path is to republish the config file, then use your project's git diff to find the customizations you need to reapply.
 
-::: details Show the full key-by-key migration table
+::: details Show the Full Key-by-Key Migration Table
 
-##### 1) Pipeline Class Overrides Moved Under Each Feature Group
+###### 1) Pipeline Class Overrides Moved Under Each Feature Group
 
-| Old key                      | New grouped key               |
+| Old key                      | New key                       |
 | ---------------------------- | ----------------------------- |
 | `model_collector_class`      | `models.collector_class`      |
 | `model_generator_class`      | `models.generator_class`      |
@@ -66,18 +210,18 @@ The tables below map every key from the flat version 1 config to its version 2 g
 | `resource_transformer_class` | `resources.transformer_class` |
 | `resource_writer_class`      | `resources.writer_class`      |
 
-##### 2) Shared Writer Overrides Renamed or Grouped
+###### 2) Shared Writer Overrides Renamed or Grouped
 
-| Old key                     | New grouped key                                                        |
+| Old key                     | New key                                                                |
 | --------------------------- | ---------------------------------------------------------------------- |
 | `barrel_writer_class`       | `barrel_writer_class` (same key, still supported as a shared override) |
 | `globals_writer_class`      | `globals.writer_class`                                                 |
 | `json_writer_class`         | `json.writer_class`                                                    |
 | `watcher_json_writer_class` | `watcher.writer_class`                                                 |
 
-##### 3) Template Key Migration
+###### 3) Template Key Migration
 
-| Old key             | New grouped key      |
+| Old key             | New key              |
 | ------------------- | -------------------- |
 | `model_template`    | `models.template`    |
 | `enum_template`     | `enums.template`     |
@@ -95,9 +239,9 @@ Version 2 also adds template keys for the new features:
 | `broadcast_events.index_template`             |
 | `broadcast_events.echo_augmentation.template` |
 
-##### 4) Feature Enable Flags Moved From Flat Keys to Grouped Keys
+###### 4) Feature Enable Flags Moved From Flat Keys to Grouped Keys
 
-| Old key                       | New grouped key     |
+| Old key                       | New key             |
 | ----------------------------- | ------------------- |
 | `publish_enums`               | `enums.enabled`     |
 | `publish_models`              | `models.enabled`    |
@@ -118,9 +262,9 @@ Version 2 adds these feature toggles:
 | `vite_env.enabled`           |
 | `cache.enabled`              |
 
-##### 5) Namespace and Casing Options Moved Under Feature Groups
+###### 5) Namespace and Casing Options Moved Under Feature Groups
 
-| Old key                    | New grouped key                   |
+| Old key                    | New key                           |
 | -------------------------- | --------------------------------- |
 | `models_namespace`         | `models.namespace`                |
 | `enums_namespace`          | `enums.namespace`                 |
@@ -132,9 +276,9 @@ Version 2 adds these feature toggles:
 
 The `*.namespace` keys have no effect in version 2. The globals file names each namespace after the class's PHP namespace, as described in [Modular Publishing Only](#modular-publishing-only).
 
-##### 6) Include, Exclude, and Additional Directories Migrated per Feature
+###### 6) Include, Exclude, and Additional Directories Migrated Per Feature
 
-| Old key                           | New grouped key                    |
+| Old key                           | New key                            |
 | --------------------------------- | ---------------------------------- |
 | `additional_model_directories`    | `models.additional_directories`    |
 | `included_models`                 | `models.included`                  |
@@ -146,25 +290,25 @@ The `*.namespace` keys have no effect in version 2. The globals file names each 
 | `included_resources`              | `resources.included`               |
 | `excluded_resources`              | `resources.excluded`               |
 
-These new version 2 groups use the same include, exclude, and additional directories pattern:
+These new version 2 blocks use the same include, exclude, and additional directories pattern:
 
-| New v2 groups using same pattern |
-| -------------------------------- |
-| `form_requests.*`                |
-| `broadcast_events.*`             |
+| New v2 blocks using the same pattern |
+| ------------------------------------ |
+| `form_requests.*`                    |
+| `broadcast_events.*`                 |
 
-##### 7) Enum Metadata and Options Renamed and Regrouped
+###### 7) Enum Metadata and Options Renamed and Regrouped
 
-| Old key                            | New grouped key                     |
+| Old key                            | New key                             |
 | ---------------------------------- | ----------------------------------- |
 | `enum_metadata_enabled`            | `enums.metadata_enabled`            |
 | `enums_use_tolki_package`          | `enums.use_tolki_package`           |
 | `auto_include_enum_methods`        | `enums.auto_include_methods`        |
 | `auto_include_enum_static_methods` | `enums.auto_include_static_methods` |
 
-##### 8) Output File Naming and Output Directory Keys Grouped
+###### 8) Output File Naming and Output Directory Keys Grouped
 
-| Old key                                 | New grouped key            |
+| Old key                                 | New key                    |
 | --------------------------------------- | -------------------------- |
 | `global_filename`                       | `globals.filename`         |
 | `global_directory`                      | `globals.output_directory` |
@@ -173,17 +317,17 @@ These new version 2 groups use the same include, exclude, and additional directo
 | `collected_files_json_filename`         | `watcher.filename`         |
 | `collected_files_json_output_directory` | `watcher.output_directory` |
 
-##### 9) Modular Publishing Setting Removed
+###### 9) Modular Publishing Setting Removed
 
 | Old key              | Status in v2                          |
 | -------------------- | ------------------------------------- |
 | `modular_publishing` | Removed. Modular output is always on. |
 
-##### 10) New Top-Level Config Groups in v2
+###### 10) New Top-Level Config Groups in v2
 
-These groups did not exist in the version 1 config:
+These blocks did not exist in the version 1 config:
 
-| New v2 top-level group |
+| New v2 top-level block |
 | ---------------------- |
 | `cache.*`              |
 | `routes.*`             |
@@ -193,13 +337,13 @@ These groups did not exist in the version 1 config:
 | `inertia.*`            |
 | `vite_env.*`           |
 
-Version 2 also adds this nested group:
+Version 2 also adds this nested block:
 
-| New v2 nested group                    |
+| New v2 nested block                    |
 | -------------------------------------- |
 | `broadcast_events.echo_augmentation.*` |
 
-##### 11) Keys That Stayed the Same
+###### 11) Keys That Stayed the Same
 
 These keys are still top-level and need no migration:
 
@@ -221,7 +365,7 @@ These keys are still top-level and need no migration:
 
 :::
 
-### New npm Package
+#### New npm Package
 
 To support functional routing as well as functional enums, install the new `@tolki/ts` package that goes with this Laravel package:
 
@@ -243,7 +387,7 @@ import { laravelTsPublish } from "@tolki/ts/vite";
 
 The build flag changed too. The Vite plugin from `@tolki/enum` calls `ts:publish` with the `--only-enums` option. The `@tolki/ts` Vite plugin calls it with `--only-functional` instead, which skips model and resource interfaces when building assets.
 
-### Templates
+#### Templates
 
 If you published and modified the Blade templates, publish them again and reapply your changes:
 
@@ -251,7 +395,7 @@ If you published and modified the Blade templates, publish them again and reappl
 php artisan vendor:publish --tag="laravel-ts-publish-views" --force
 ```
 
-### `TsResourceCasts` Attribute Removed
+#### `TsResourceCasts` Attribute Removed
 
 The `TsResourceCasts` attribute (`AbeTwoThree\LaravelTsPublish\Attributes\TsResourceCasts`) has been removed.
 
@@ -267,11 +411,11 @@ use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
 #[TsCasts(['field' => 'string'])]
 ```
 
-### Pipeline Customization
+#### Pipeline Customization
 
-If you changed or extended a collector, generator, transformer, writer, or template in version 1, check that your changes still work with version 2. Then register your classes under the new grouped `*_class` config keys to override the package defaults. See [Customizing the Pipeline](./customizing-the-pipeline.md).
+If you changed or extended a collector, generator, transformer, writer, or template in version 1, check that your changes still work with version 2. Then register your classes under the new `*_class` keys in each feature's block to override the package defaults. See [Customizing the Pipeline](./customizing-the-pipeline.md).
 
-### Modular Publishing Only
+#### Modular Publishing Only
 
 In version 1, the default output was a flat directory, with a setting for modular publishing. Version 2 always publishes in the modular format, and there's no setting for a flat directory. With 7 large groups of features instead of 3, supporting both layouts was error-prone, so version 2 keeps only the modular one.
 
@@ -304,7 +448,7 @@ import type { User } from "@data/app/models/users";
 
 If you use the globals file, its namespaces follow your PHP namespaces too. A version 1 flat-mode type such as `models.User` becomes `app.models.users.User` for the model above. See [Global Declaration File](./publishing.md#global-declaration-file).
 
-## New Command Options and Behavior
+### New Command Options and Behavior
 
 Version 2 adds more selective `ts:publish` flags and a cache control:
 
@@ -328,11 +472,11 @@ These flags follow three rules:
 - `--only-functional` takes precedence and ignores other `--only-*` flags.
 - `--fresh` forces a full regeneration and cache rebuild.
 
-See [Publishing Types](./publishing.md) for every flag.
+See [Limiting a Single Run With Flags](./publishing.md#limiting-a-single-run-with-flags) for every flag.
 
-## New Config Groups in v2
+### New Config Groups in v2
 
-Besides reorganizing the existing model, enum, and resource keys, version 2 adds these config groups:
+Besides reorganizing the existing model, enum, and resource keys, version 2 adds these config blocks:
 
 - `routes.*`
 - `form_requests.*`
@@ -342,9 +486,9 @@ Besides reorganizing the existing model, enum, and resource keys, version 2 adds
 - `vite_env.*`
 - `cache.*`
 
-If you published a version 1 config, republish it and reapply your customizations to the new grouped structure.
+If you published a version 1 config, republish it and reapply your customizations to the new block structure.
 
-## New Generated Files You Should Expect
+### New Generated Files You Should Expect
 
 Depending on which features are enabled, version 2 generates these files beyond enums, models, and resources:
 
@@ -359,7 +503,7 @@ Depending on which features are enabled, version 2 generates these files beyond 
 
 Make sure your `tsconfig.json` include patterns cover these generated declaration files.
 
-## Generation Cache
+### Generation Cache
 
 Version 2 adds a generation cache that skips unchanged classes after the first run:
 

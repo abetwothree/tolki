@@ -22,12 +22,12 @@ $result = resolve(AstEngine::class)->analyze(App\Services\CartSummary::class, 't
 
 `analyze()` takes four arguments:
 
-| Argument             | Default     | Description                                                                                                                                                                                                                       |
-| -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `$class`             | required    | The class to analyze.                                                                                                                                                                                                             |
-| `$method`            | `'toArray'` | The method whose return value is analyzed.                                                                                                                                                                                        |
-| `$modelClass`        | `null`      | The Eloquent model that `$this->...` reads resolve against. Leave it `null` to bind no model, or to let a `JsonResource` subclass find its own.                                                                                   |
-| `$fromNamespacePath` | `''`        | The namespace path of the file you're writing, such as `app/services`. Import paths come back relative to it, the same way [Modular Publishing](./modular-publishing.md) computes them. Pass `''` for a file at your output root. |
+| Argument             | Default     | Description                                                                                                                                                                                                                                            |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `$class`             | required    | The class to analyze.                                                                                                                                                                                                                                  |
+| `$method`            | `'toArray'` | The method whose return value is analyzed.                                                                                                                                                                                                             |
+| `$modelClass`        | `null`      | The Eloquent model that `$this->...` reads resolve against. Leave it `null` to bind no model, or to let a `JsonResource` subclass find its own.                                                                                                        |
+| `$fromNamespacePath` | `''`        | The namespace path of the file you're writing, such as `app/services`. Import paths come back relative to it, as [Automatic Relative Imports](./modular-publishing.md#automatic-relative-imports) describes. Pass `''` for a file at your output root. |
 
 `analyze()` writes nothing to disk. The file, its formatting, and any barrel entry are up to you.
 
@@ -81,7 +81,9 @@ Call `analyze()` with a `JsonResource` subclass and leave the other arguments at
 $result = resolve(AstEngine::class)->analyze(App\Http\Resources\PostResource::class);
 ```
 
-Every pattern in [API Resources](./api-resources.md) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a `$wrap = null` collection, class-level and model-level `#[TsCasts]`, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
+`analyze()` doesn't use a custom `resources.transformer_class`, so a [`resolveModelClass()` override](./customizing-the-pipeline.md#changing-how-a-resource-finds-its-model) doesn't apply here. To choose the model yourself, pass it as the third argument.
+
+Every pattern in [API Resources](./api-resources.md) gives the same properties, imports, and optionality as a publish. That includes the `when()` family of conditional methods, `EnumResource::make()`, nested and collection resources, `merge()` and `mergeWhen()`, and relation filters such as `$this->author->only([...])`. The exceptions are a `morphTo` union, a `$wrap = null` collection, class-level and model-level `#[TsCasts]`, a `toResource()` guess by naming convention, and the filled index signature of an interpolated key. [What It Cannot Do](#what-it-cannot-do) covers each one.
 
 ### Models
 
@@ -95,7 +97,7 @@ If you leave the third argument `null`, all three properties come back empty.
 
 ### Broadcast Events
 
-`analyze($event, 'broadcastWith')` returns the payload that [Broadcast Events](./broadcast-events.md) publishes for that event. A `broadcastWith()` inherited from a parent class counts, as it does when Laravel dispatches the event. The result doesn't include two things a publish adds on top: the event's class-level `#[TsCasts]` overrides, and `Partial<Model>` for a model property.
+`analyze($event, 'broadcastWith')` returns the payload the package publishes for that event, as [Broadcast Data](./broadcast-events.md#broadcast-data) describes. A `broadcastWith()` inherited from a parent class counts, as it does when Laravel dispatches the event. The result doesn't include two things a publish adds on top: the event's class-level `#[TsCasts]` overrides, and `Partial<Model>` for a model property.
 
 An event with no `broadcastWith()` anywhere in its class hierarchy is published from its public properties. `analyze()` never falls back to them, so on such an event it returns an empty result, imports included. Only `ts:publish` produces that shape.
 
@@ -125,9 +127,9 @@ On a `#[TsExtends]` resource, `analyze()` returns ``[key: `${string}_tag`]: stri
 
 Outside those cases, `analyze()` runs the same inference that resources, broadcast events, model metadata, Inertia page props, and Inertia shared data publish from. What each of those features adds on top is on its own page, linked above.
 
-`analyze()` and `ts:publish` both type the patterns these docs describe. Anything else, such as an expression neither can follow or a local you reassign, comes back `unknown` rather than a guess.
+`analyze()` and `ts:publish` both type the patterns these docs describe. Anything else, such as an expression neither can follow or [a local you reassign](./api-resources.md#local-variables-and-narrowing), comes back `unknown` rather than a guess.
 
-Two cases don't widen to `unknown`. A conditional's default that can't be typed leaves the value's own type in place. A ternary or `?:` arm that can't be typed is left out, so `$cond ? $untypable : null` publishes `null`. See [Local Variables and Narrowing](./api-resources.md#local-variables-and-narrowing) for how this looks in a resource.
+Two cases don't widen to `unknown`. [A conditional's default that can't be typed](./api-resources.md#passing-a-default-argument) leaves the value's own type in place. [A ternary or `?:` arm that can't be typed is left out](./api-resources.md#typing-a-variable-with-var), so `$cond ? $untypable : null` publishes `null`.
 
 ## Configuration Reference
 

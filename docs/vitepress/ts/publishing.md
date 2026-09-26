@@ -18,7 +18,7 @@ The first run caches its work, so later runs rebuild only the classes whose sour
 php artisan ts:publish --fresh
 ```
 
-[Cache Generation](./generating-cache.md) explains what counts as a change.
+[When a Class Is Rebuilt](./generating-cache.md#when-a-class-is-rebuilt) explains what counts as a change.
 
 The command rewrites a file only when its content changes. Unchanged files keep their modification time, so Vite doesn't reload for them.
 
@@ -30,7 +30,7 @@ Pass `--preview=true` to print the generated TypeScript in the console without w
 php artisan ts:publish --preview=true
 ```
 
-::: warning Write `--preview=true`, not `--preview`
+::: warning Write `--preview=true`, Not `--preview`
 The `=true` is required. A bare `--preview` flag doesn't turn preview mode on, so the command writes real files.
 :::
 
@@ -46,16 +46,17 @@ php artisan ts:publish --source="app/Enums/Status.php"
 php artisan ts:publish --source="App\Http\Resources\UserResource"
 ```
 
-The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, or a broadcast event. On a large project, a single-class run is much faster than a full publish. The [Vite plugin](./vite-plugin.md) uses it during development to republish only the file that changed.
+The class can be an enum, a model, an API resource, a controller with at least one registered route, a form request, or a broadcast event. On a large project, a single-class run is much faster than a full publish. The [Vite plugin](./vite-plugin.md#single-file-republishing) uses it during development to republish only the file that changed.
 
 A single-class run differs from a full run in these ways:
 
 - **Cache**: it never reads or writes the cache.
 - **Barrels and shared files**: it writes only the class's own files. Barrel `index.ts` files, the globals and JSON files, and the collected files manifest stay as they are.
 - **Model filters**: for a model, it checks the `included` and `excluded` settings of `models` and `model_metadata` separately. It can publish the interface, the metadata companion, or both.
+- **Other filters**: for a class that isn't a model, it doesn't check `included` or `excluded`, so it publishes a class those settings leave out.
 - **Directories**: `additional_directories` only affects discovery, so the class doesn't need to be in a listed directory.
 
-The command fails with an error when it has nothing to publish. That happens when the class doesn't exist, isn't a kind the package publishes, has `#[TsExclude]`, or belongs to a feature that is disabled in config. A model also fails when the `models` and `model_metadata` filters both leave it out.
+The command fails with an error when it has nothing to publish. That happens when the class doesn't exist, isn't a class the package publishes, has `#[TsExclude]`, or belongs to a feature that is disabled in config. A model also fails when the `models` and `model_metadata` filters both leave it out.
 
 ## Publishing After Migrations
 
@@ -96,7 +97,7 @@ Each feature in the table has three settings in `config/ts-publish.php`:
 | Key                      | Effect                                                                  |
 | ------------------------ | ----------------------------------------------------------------------- |
 | `included`               | Publish only these classes. An empty array publishes every class found. |
-| `excluded`               | Never publish these classes.                                            |
+| `excluded`               | Leave these classes out.                                                |
 | `additional_directories` | Also search these directories.                                          |
 
 This example limits model publishing to two models, skips one, and searches a module directory:
@@ -161,12 +162,14 @@ Pass one `--only-*` flag to publish a single feature for one run:
 | `--only-broadcast-events`   | Broadcast events                                           |
 | `--only-functional`         | Every enabled feature except model and resource interfaces |
 
+For example:
+
 ```bash
 php artisan ts:publish --only-enums
 php artisan ts:publish --only-functional
 ```
 
-The flags can't be combined, and passing two of them returns an error. `--only-functional` is the exception. Combined with another `--only-*` flag, it wins, and the other flag is ignored. The [Vite plugin](./vite-plugin.md) appends `--only-functional` on `vite build`, because model and resource interfaces are erased at compile time.
+The flags can't be combined, and passing two of them returns an error. `--only-functional` is the exception. Combined with another `--only-*` flag, it wins, and the other flag is ignored. The [Vite plugin](./vite-plugin.md#production-builds) appends `--only-functional` on `vite build`, because model and resource interfaces are erased at compile time.
 
 ### When a Flag Requests a Disabled Feature
 
@@ -178,37 +181,26 @@ If every feature is disabled in config and no flag overrides one, the command pr
 
 A run rewrites the barrel `index.ts` files of each feature it publishes. A feature the run skips keeps its barrel files as they are.
 
-Models and model metadata share one barrel in each namespace directory, and each export in it belongs to one of the two features. Companion files end in `_meta`. When a run rewrites a shared barrel, these rules apply:
-
-- A feature the run publishes replaces its own exports, so a removed model's export disappears.
-- A feature that is enabled in config but skipped by a flag keeps its exports.
-- A feature that is disabled in config loses its exports.
-- A model whose metadata provider throws keeps its last companion export, and the command exits with an error.
-
-Barrels are generated files. A rewrite never keeps comments, or any other line that isn't an `export * from './file';` statement. [Barrel Files](./modular-publishing.md#barrel-files) shows the barrel layout.
-
-::: tip Custom barrel writers
-A `barrel_writer_class` that extends `BarrelWriter` without overriding anything keeps these rules. If you override `writeModular()` to change the barrel format, override `writeModularPreserving()` the same way. Partial runs call `writeModularPreserving()`, so the inherited version would write the default format on exactly those runs.
-:::
+Models and model metadata share one barrel in each namespace directory. [Barrel Files](./modular-publishing.md#barrel-files) lists which exports a run keeps in it.
 
 ### Other Files in Partial Runs
 
-Every run except a `--source` run writes these files when their feature is enabled, whatever `--only-*` flag you pass:
+Every run except a `--source` or `--preview=true` run writes these files when their feature is enabled, whatever `--only-*` flag you pass:
 
 - `vite-env.d.ts`
 - `inertia-config.d.ts`
 - The collected files manifest, which always lists the files of every enabled feature
 - The globals and JSON files
 
-::: warning The globals and JSON files follow the run
+::: warning The Globals and JSON Files Follow the Run
 The globals and JSON files list only the classes the current run publishes. A partial run, including the `--only-functional` run the Vite plugin makes on `vite build`, rewrites them without the features it skipped. Run a full `ts:publish` to restore them.
 :::
 
 ## Output Files
 
-`output_to_files` controls whether a run writes anything to disk. It's `true` by default. When it's `false`, runs write no files, and the post-migration run is off.
+`output_to_files` is `true` by default. Setting it to `false` turns off the post-migration run. It doesn't stop `ts:publish`, which writes its files on every run unless you pass `--preview=true`.
 
-You can turn three more outputs on or off independently:
+You can turn these three outputs on or off independently:
 
 | Config key        | Default | Output                                                                  |
 | ----------------- | ------- | ----------------------------------------------------------------------- |
@@ -270,10 +262,6 @@ The file has one top-level object per feature: `models`, `enums`, `resources`, `
 ```
 
 Look entries up by fully-qualified name, and read `name` for display. Two classes can share a short name in different namespaces, such as `App\Models\User` and `Crm\Models\User`, and a short-name key would let one overwrite the other.
-
-::: warning Changed in v2.3.0
-Before v2.3.0, the file was keyed by short class name. Code written against that format needs to switch to fully-qualified keys.
-:::
 
 ### Collected Files Manifest
 

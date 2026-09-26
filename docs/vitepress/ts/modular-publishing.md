@@ -2,10 +2,6 @@
 
 The package writes every TypeScript file into a directory tree that mirrors your PHP namespaces. There's no flat-output mode, and no setting to turn this off. Modular and domain-driven apps, such as those built with [InterNACHI/modular](https://github.com/InterNACHI/modular), keep each module's types together, and a single-namespace app gets one `app/` tree. Models, enums, resources, form requests, broadcast events, and routes all follow the same rule.
 
-::: info Upgrading from V1
-In V1, modular output was an opt-in setting beside a default flat mode. V2 removed the flat mode, so output always follows your namespaces. If you're upgrading from V1, see [Modular Publishing Only](./upgrade-guide.md#modular-publishing-only) in the upgrade guide.
-:::
-
 ## Output Structure
 
 An app with an `App` namespace and a second `Accounting` module produces a tree like this:
@@ -53,8 +49,7 @@ resources/js/types/data/
 ├── echo-broadcast-events.d.ts
 ├── inertia-config.d.ts
 ├── vite-env.d.ts
-├── laravel-ts-collected-files.json
-└── laravel-ts-global.ts
+└── laravel-ts-collected-files.json
 ```
 
 Each namespace directory gets a barrel `index.ts` that exports every file in it. See [Barrel Files](#barrel-files).
@@ -76,7 +71,7 @@ The files at the root of the tree combine output from many classes, so they don'
 | `laravel-ts-global.ts`            | `globals.enabled`                            | Off     |
 | `laravel-ts-definitions.json`     | `json.enabled`                               | Off     |
 
-A file with nothing to declare isn't written. The two broadcast event files need at least one broadcast event. `inertia-config.d.ts` needs the package to find your Inertia middleware, and `vite-env.d.ts` needs a `VITE_` variable in your env file.
+Three of these files are skipped when there's nothing to declare. `echo-broadcast-events.d.ts` needs at least one broadcast event, `inertia-config.d.ts` needs the package to find your Inertia middleware, and `vite-env.d.ts` needs a `VITE_` variable in your env file. With no channels or no events, `broadcast-channels.ts` and `broadcast-events.ts` are still written, each as an empty module (`export {};`).
 
 The Echo augmentation declares types for the Echo package your `package.json` has: `@laravel/echo-vue`, `@laravel/echo-react`, or `@laravel/echo-svelte`, falling back to `@laravel/echo`. To pick one yourself, set `broadcast_events.echo_augmentation.echo_package`.
 
@@ -189,11 +184,12 @@ Models, enums, resources, form requests, broadcast events, and routes each write
 `ts:publish --preview=true` prints each barrel's contents under its own label, such as `Model Barrel Files:` or `Enum Barrel Files:`, next to the per-class files. A verbose run, `ts:publish -v`, lists each barrel file's path in its Extras table.
 :::
 
-Model interfaces and [model metadata](./model-metadata.md) companions (`_meta` files) share their namespace directory, so they share one barrel. Each export in it belongs to one of the two, and a run rebuilds the exports of each one it publishes:
+Model interfaces and [model metadata](./model-metadata.md) companions (`_meta` files) share their namespace directory, so they share one barrel. Each export in it belongs to one of the two, and a run rebuilds the exports of each one it publishes. These rules decide which exports a run keeps:
 
 - An export for a model you removed disappears on the next run.
 - If an `--only-*` flag skips one of the two while it's enabled in config, its exports stay.
 - If one of the two is disabled in config, its exports are removed.
+- If a model's metadata provider throws, that model keeps its previous companion export, and the command exits with an error. See [Failures](./model-metadata.md#failures).
 
 Barrels are generated files. The package doesn't keep comments or lines you add to them, and `--source` runs never change them.
 

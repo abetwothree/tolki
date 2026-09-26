@@ -2,20 +2,20 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can publish a small runtime companion beside each generated model interface. The companion, `{model}_meta.ts`, exports a `{Model}ModelMetadata` object whose values come from a provider class you control. The default provider publishes the model's morph class, so the frontend can build polymorphic payloads such as `commentable_type` without hard-coding PHP class names.
 
-A [model interface](./models.md) is type-only and disappears at compile time. A companion is a real module you read at runtime, so the frontend can use values the backend owns instead of hard-coding them. Companions count as functional output, so the [Vite plugin](./vite-plugin.md) regenerates them on `vite build`, and they don't need the `@tolki/ts` runtime.
+A [model interface](./models.md) is type-only and disappears at compile time. A companion is a real module you read at runtime, so the frontend can use values the backend owns instead of hard-coding them. Companions count as functional output, so the [Vite plugin](./vite-plugin.md#production-builds) regenerates them on `vite build`, and they don't need the `@tolki/ts` runtime.
 
 ## How Model Metadata Is Generated
 
-Model metadata is its own publishing phase:
+Model metadata is its own publishing feature:
 
-- **Separate settings**: the phase is configured under `model_metadata.*` and is off by default. `models.enabled` and `--only-models` control model interfaces only. `model_metadata.enabled` and `--only-model-metadata` control companions, and `--only-functional` includes them.
-- **The same models**: the phase finds the same models as model publishing, and inherits `models.included`, `models.excluded` and `models.additional_directories` unless you set the matching `model_metadata.*` key. A value you set wins, even an empty array.
+- **Separate settings**: the feature is configured under `model_metadata.*` and is off by default. `models.enabled` and `--only-models` control model interfaces only. `model_metadata.enabled` and `--only-model-metadata` control companions, and `--only-functional` includes them.
+- **The same models**: the feature finds the same models as model publishing, and inherits `models.included`, `models.excluded` and `models.additional_directories` unless you set the matching `model_metadata.*` key. A value you set wins, even an empty array.
 - **One provider call per model**: the provider's `provide(Model $model)` receives a model instance from the container, not a record from the database, and returns the payload. The package runs `provide()` to get the values, and reads its docblock and code to type them. See [How Each Key Is Typed](#how-each-key-is-typed).
 - **One file per model**: `{model}_meta.ts` is written beside the model interface, and the namespace's `index.ts` barrel exports it. See [Barrels](#barrels).
 
 ## Anatomy of a Generated Companion
 
-The phase ships with `'enabled' => false`, so turn it on in your config:
+The `model_metadata` block ships with `'enabled' => false`, so turn it on in your config:
 
 ```php
 // config/ts-publish.php
@@ -116,7 +116,7 @@ Each returned key's TypeScript type comes from the first of these that applies:
 
 Marking a key optional decides whether the payload has to return it, not how the key is written once it's returned. The `satisfies` type lists exactly the keys the payload returned, each one required.
 
-Two kinds of value always need `#[TsCasts]`. The first is a class or enum named in the docblock, because a docblock string carries no import path. The second is any value typed as a model. A metadata value doesn't have to match the model's interface, so the package never imports a model for one.
+Two kinds of value always need `#[TsCasts]`. The first is a class or enum named in the docblock, because a docblock string carries no import path. The second is any value typed as a model or a resource. A metadata value doesn't have to match either interface, so the package never imports one for it.
 
 Every returned key must end up with a type, and every required key must be returned. Otherwise the companion fails, and the error names the model and the keys.
 
@@ -129,11 +129,11 @@ A provider can return these values:
 - `stdClass` objects
 - Objects that implement `Arrayable` or `JsonSerializable`
 
-Keys must be strings, and nested values follow the same rules.
+The payload's top-level keys must be strings. Nested values follow the same value rules.
 
 Instead of writing invalid TypeScript, the companion fails, naming the model and the property path (such as `property [limits.maximum]`), when a value is:
 
-- A closure, a resource, or any other object
+- A closure, or any other object
 - A float that isn't finite
 - An integer outside JavaScript's safe range (±2⁵³−1), which you can return as a string instead
 - A circular object
@@ -150,16 +150,7 @@ PHP can't tell an empty list from an empty object, and TypeScript rejects `[]` w
 
 ## Barrels
 
-Companions live in the same namespace directory as model interfaces, so both phases share one `index.ts` barrel. The `_meta` suffix decides which phase owns each export, and a run rebuilds the exports of each phase it publishes:
-
-| Phase this run                                   | Its exports in the barrel                                          |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| Published                                        | Exactly what was generated, so a removed model's export disappears |
-| Enabled in config, skipped by an `--only-*` flag | Kept from the existing file                                        |
-| Disabled in config                               | Dropped, so turning metadata off prunes its companions             |
-| Published, but one model's provider failed       | That model's previous companion export is kept                     |
-
-Barrels are generated files, so comments or lines you add to them aren't kept. `--source` runs never touch barrels. See [Modular Publishing](./modular-publishing.md#barrel-files).
+Companions share their namespace directory's `index.ts` barrel with the model interfaces. [Barrel Files](./modular-publishing.md#barrel-files) lists which exports each run keeps.
 
 ## Failures
 
@@ -169,7 +160,7 @@ The package checks the provider, generator and transformer classes before it wri
 
 ## Filtering & Excluding
 
-The phase takes the same finder settings as models:
+The feature takes the same finder settings as models:
 
 ```php
 // config/ts-publish.php
@@ -196,7 +187,7 @@ Two cases aren't handled for you:
 
 ## Customizing the Pipeline
 
-`model_metadata.provider_class` is the extension point most apps need. The phase also has the standard swappable classes, `collector_class`, `generator_class`, `transformer_class` and `writer_class`, and a `template` key (`laravel-ts-publish::model-meta`) for the Blade view that renders the companion. A custom generator or transformer must extend the package's default. A custom `transformer_class` can type each key the same way the package does by resolving `ModelMetadataAnalyzer`, an [analyzer](./analyzer-api.md), from the container. See [Customizing the Pipeline](./customizing-the-pipeline.md).
+`model_metadata.provider_class` is the extension point most apps need. The feature also has the standard swappable classes, `collector_class`, `generator_class`, `transformer_class` and `writer_class`, and a `template` key (`laravel-ts-publish::model-meta`) for the Blade view that renders the companion. A custom generator or transformer must extend the package's default. See [Customizing the Pipeline](./customizing-the-pipeline.md).
 
 ## Configuration Reference
 

@@ -5,7 +5,7 @@ The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-pub
 There are two ways to add an `extends` clause, and they combine when you use both:
 
 - **The `#[TsExtends]` attribute**: applies to one class, and to any class that extends it or uses the trait it's on.
-- **The `ts_extends.*` config arrays**: apply to every generated interface of one kind, such as every model.
+- **The `ts_extends.*` config arrays**: apply to every generated interface of one feature, such as every model.
 
 ## `#[TsExtends]` Attribute
 
@@ -72,7 +72,7 @@ export interface Warehouse
 
 On a model, the clause goes on the main interface, which holds the columns. The model's `WarehouseAll` interface extends that one, so it gets the clause too.
 
-`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. That doesn't work for a clause that wraps the type in a generic, such as `Pick<>`, `Omit<>`, or `Partial<>`, so list those names in `types`. Without `types`, a generic clause imports nothing.
+`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. Without `types`, the package can't pick the names out of a generic clause, such as `Pick<>`, `Omit<>`, or `Partial<>`, so the import comes out missing or broken. Always list them in `types`.
 
 An entry with no `import` is treated as a global type that's already available, such as one declared in your own global `.d.ts` file.
 
@@ -163,7 +163,7 @@ export interface ChildSharedResource extends SharedInterface {}
 
 ## Global Config: `ts_extends.*`
 
-To extend a shared interface on every generated interface of one kind, use the `ts_extends` config array instead of adding `#[TsExtends]` to each class. It has one key per kind: `models`, `resources`, `form_requests`, and `broadcast_events`.
+To extend a shared interface on every generated interface of one feature, use the `ts_extends` config array instead of adding `#[TsExtends]` to each class. It has one key per feature: `models`, `resources`, `form_requests`, and `broadcast_events`.
 
 ```php
 // config/ts-publish.php
@@ -246,7 +246,7 @@ The package applies these rules in order:
 
 ## Configuration Reference
 
-Each `ts_extends` key applies to one kind of interface:
+Each `ts_extends` key applies to one feature's interfaces:
 
 | Config Key                    | Type    | Default | Description                                               |
 | ----------------------------- | ------- | ------- | --------------------------------------------------------- |

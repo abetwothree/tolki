@@ -25,12 +25,14 @@ If this compiles without an error, the type resolved to `any`, and you're affect
 
 The affected versions ship declaration files that import types from another `@tolki/*` package through a relative path into the Tolki source repository, instead of through the package name. That path doesn't exist in your `node_modules`, so the import resolves nowhere.
 
-You can spot it in the package's `.d.ts` files. An affected version has an import like the first one below, and a fixed version has the second:
+You can spot it in the package's `.d.ts` files. An affected version has an import like this one:
 
 ```typescript
 // Affected: a relative path that exists only in the Tolki source repository
 import { AsEnum, DefineEnumResult } from "../packages/types/src/index.ts";
 ```
+
+A fixed version imports through the package name:
 
 ```typescript
 // Fixed: the package name, resolved through node_modules

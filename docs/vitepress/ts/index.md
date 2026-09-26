@@ -48,7 +48,7 @@ pnpm add @tolki/ts
 
 :::
 
-Published routes need `@tolki/ts` at runtime. Published enums use it too, unless you set `enums.use_tolki_package` to `false` in the config file, which removes their runtime dependency on it. See [Enums](./enums.md) for what changes when it's off.
+Published routes need `@tolki/ts` at runtime. Published enums use it too, unless you set `enums.use_tolki_package` to `false` in the config file, which removes their runtime dependency on it. See [Disabling Metadata or the `@tolki/ts` Wrapper](./enums.md#disabling-metadata-or-the-tolki-ts-wrapper) for what changes when it's off.
 
 ## Recommended Directory Structure
 
@@ -120,7 +120,7 @@ php artisan ts:publish
 
 [Publishing Types](./publishing.md) covers preview mode, republishing a single class, filtering classes, and publishing only some features.
 
-## Automatic Publishing with the Vite Plugin
+## Automatic Publishing With the Vite Plugin
 
 The Vite plugin from `@tolki/ts` republishes for you. During `vite dev`, it watches the PHP files the package collected and republishes when one of them changes. During `vite build`, it publishes once before bundling. Add it to `vite.config.ts`:
 
@@ -143,7 +143,7 @@ laravelTsPublish({
 });
 ```
 
-See [Vite Plugin](./vite-plugin.md) for single-file republishing during `vite dev`, manifest handling, and every option.
+See [Single-File Republishing](./vite-plugin.md#single-file-republishing) for how the plugin republishes one file during `vite dev`, and [Plugin Options](./vite-plugin.md#plugin-options) for every option.
 
 ## Automatic Publishing on Composer Update
 

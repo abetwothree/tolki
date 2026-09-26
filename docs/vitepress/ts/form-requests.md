@@ -2,7 +2,7 @@
 
 The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) turns each `FormRequest` into a TypeScript interface for its payload, built from the rules your `rules()` method returns. The shape of a `useForm()` call, an Axios body or a route's [request payload type](./routing.md#form-request-payload-types) then matches your validation rules. You don't maintain a second type by hand.
 
-As [Installation & Usage](./index.md) notes, form requests don't need the `@tolki/ts` runtime. Each one publishes as a plain TypeScript interface, or as a `Record<string, unknown>` alias for a [dynamic request](#dynamic-requests).
+Form requests don't need the `@tolki/ts` runtime. Each one publishes as a plain TypeScript interface, or as a `Record<string, unknown>` alias for a [dynamic request](#dynamic-requests). See [Installing `@tolki/ts`](./index.md#installing-tolki-ts) for the features that do.
 
 ## How Form Request Types Are Generated
 
@@ -103,10 +103,6 @@ A sibling rule that declares the field numeric makes the values unquoted. Those 
 'decimal_tier' => ['decimal:1', 'in:1.5,2.5'],                // 1.5 | 2.5
 'legacy_code' => ['required', 'string', 'in:1,2,3'],          // '1' | '2' | '3'
 ```
-
-::: tip Upgrading From an Earlier Release
-Earlier releases unquoted `in:` values only for `integer`, `int` and `numeric`, so `['digits:1', 'in:1,2,3']` published `'1' | '2' | '3'` while typing the field `number`. It now publishes `1 | 2 | 3`. If you compared one of these fields to a quoted string, TypeScript flags each comparison to change from `=== '1'` to `=== 1`.
-:::
 
 A value loses its quotes only when it reads back as the same text. Laravel's `in` rule compares the raw input string against each listed value, so a padded or reformatted value stays a string. Publishing it as a number would describe a value Laravel rejects:
 
@@ -248,6 +244,8 @@ For example, an `exists` rule adds a `@constraint` tag:
 'category_id' => ['required', 'integer', 'exists:categories,id'],
 ```
 
+The field publishes with the tag:
+
 ```typescript
 /** @constraint exists */
 category_id: number;
@@ -260,17 +258,15 @@ An annotation on a nested rule isn't lost when the rule [composes into its paren
 'products.*.contact_email' => ['required', 'email'],
 ```
 
-```typescript
-/** @format uuid order.id */
-order: {
-  id: string; /* … */
-}
+Each annotation moves to its parent's comment:
 
-/** @format email products.*.contact_email */
-products: {
-  contact_email: string; /* … */
+```typescript
+export interface StoreOrderRequest {
+  /** @format uuid order.id */
+  order: { id: string /* … */ };
+  /** @format email products.*.contact_email */
+  products: { contact_email: string /* … */ }[];
 }
-[];
 ```
 
 A `prohibited` nested key is the exception. It and everything under it leave the type, so their annotations go too.

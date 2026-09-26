@@ -96,7 +96,7 @@ class ExcludedController
 
 ## Excluding Enum Methods
 
-A method-level `#[TsExclude]` matters in two cases. With `enums.auto_include_methods` or `enums.auto_include_static_methods` on, every public method publishes, and the attribute opts one method back out. On a method that also has `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`, the exclusion still wins:
+A method-level `#[TsExclude]` matters in two cases. With `enums.auto_include_methods` or `enums.auto_include_static_methods` on, public methods publish automatically, and the attribute opts one method back out. On a method that also has `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`, the exclusion still wins:
 
 ```php
 enum ExcludableEnum: string
@@ -150,7 +150,7 @@ export type ExcludableEnumType = "alpha" | "beta";
 export type ExcludableEnumKind = "Alpha" | "Beta";
 ```
 
-`overridden()` and `overriddenStatic()` have attributes that would include them whatever the auto-include settings, but `#[TsExclude]` removes them. `label()` and `secret()` are missing because auto-include is off. Turn on `enums.auto_include_methods`, and `label()` publishes while `secret()` stays out. See [Enums](./enums.md) for the full rules on which methods publish.
+`overridden()` and `overriddenStatic()` have attributes that would include them whatever the auto-include settings, but `#[TsExclude]` removes them. `label()` and `secret()` are missing because auto-include is off. Turn on `enums.auto_include_methods`, and `label()` publishes while `secret()` stays out. See [Auto-Including All Enum Methods](./enums.md#auto-including-all-enum-methods) for which methods auto-include adds.
 
 ## Excluding Model Accessors and Relations
 
@@ -265,4 +265,4 @@ The `secret` action is missing from the generated file, and `show` publishes as 
 
 ## Configuration Reference
 
-`#[TsExclude]` has no config key. Each feature also has its own filtering settings, such as `included`, `excluded`, and `additional_directories`. See each feature's page ([Enums](./enums.md), [Models](./models.md), [API Resources](./api-resources.md), [Form Requests](./form-requests.md), [Broadcast Events](./broadcast-events.md), and [Routing](./routing.md#filtering-excluding-routes)), or the [Configuration Reference](./configuration-reference.md).
+`#[TsExclude]` has no config key. Each feature also has its own filtering settings, such as `included`, `excluded`, and `additional_directories`. See the filtering section for [enums](./enums.md#filtering-excluding-enums), [models](./models.md#filtering-excluding-models), [API resources](./api-resources.md#filtering-excluding), [form requests](./form-requests.md#filtering-excluding-form-requests), [broadcast events](./broadcast-events.md#filtering-excluding), and [routes](./routing.md#filtering-excluding-routes), or the [Configuration Reference](./configuration-reference.md).

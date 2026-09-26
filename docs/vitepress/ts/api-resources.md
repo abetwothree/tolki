@@ -6,7 +6,7 @@ Use it when your frontend reads JSON from API resources. Each publish regenerate
 
 By default, the package looks for resources in the `app/Http/Resources` directory. To change that, see [Filtering & Excluding](#filtering-excluding).
 
-Resources need the `@tolki/ts` runtime package only when they use `EnumResource::make()`, which publishes that package's `AsEnum<typeof Enum>` type. See [Installation & Usage](./index.md) and [Enums](./enums.md).
+Resources need the `@tolki/ts` runtime package only when they use `EnumResource::make()`, which publishes that package's `AsEnum<typeof Enum>` type. See [Installing `@tolki/ts`](./index.md#installing-tolki-ts) and [Enums](./enums.md).
 
 ## Anatomy of a Generated Resource
 
@@ -112,7 +112,7 @@ If no model resolves, a property read from the model, such as `$this->id`, publi
 
 ## Supported `toArray()` Patterns
 
-The package reads the Laravel resource features below in `toArray()`. Each section shows the PHP you write and the TypeScript it produces.
+These sections cover the Laravel resource features you use in `toArray()`. Each one shows the PHP you write and the TypeScript it produces.
 
 ### Direct Property Access
 
@@ -158,7 +158,7 @@ To see when `whenLoaded()` adds `| null`, read [Nullable Relations](#nullable-re
 
 #### `unless()` Is `when()` With the Condition Negated
 
-`unless($condition, $value, $default)` includes `$value` when `$condition` is false. The package types it exactly like `when()`, including the default argument:
+`unless($condition, $value, $default)` includes `$value` when `$condition` is false. It publishes exactly what `when()` would, including with a default argument:
 
 ```php
 'status' => $this->unless($this->is_draft, $this->status),          // optional
@@ -334,7 +334,7 @@ Wrap an enum-cast property in `EnumResource::make()` to send the enum as an obje
 'currency' => EnumResource::make($this->currency),
 ```
 
-See [Enum API Resource](./enum-api-resource.md) for what the object holds. With `enums.use_tolki_package` enabled, which is the default, these publish `AsEnum<typeof Status>` and `AsEnum<typeof Currency>`, and the package imports each enum. With it disabled, they publish the enum's type alias, such as `StatusType`.
+See [Response Shape](./enum-api-resource.md#response-shape) on the Enum API Resource page for what the object holds. With `enums.use_tolki_package` enabled, which is the default, these publish `AsEnum<typeof Status>` and `AsEnum<typeof Currency>`, and the package imports each enum. With it disabled, they publish the enum's type alias, such as `StatusType`.
 
 `EnumResource::collection()` does the same for a list, and publishes `AsEnum<typeof Status>[]`.
 
@@ -425,11 +425,11 @@ This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNu
 
 ## Method Calls, Variables, and Collections
 
-The package also types values you compute in `toArray()`: method calls, property reads on other objects, local variables, and collection chains.
+Values you compute in `toArray()` get types too: method calls, property reads on other objects, local variables, and collection chains.
 
 ### Method Return Types
 
-The package types a method call from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. It follows calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
+A method call takes its type from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. This works for calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
 
 ```php
 public function toArray(Request $request): array
@@ -467,7 +467,7 @@ Some of Laravel's own methods declare loose types, so the package reads the mode
 
 #### Methods Declared as a Bare `array`
 
-A method declared `: array` with no `@return` docblock says nothing about its keys. For these methods, the package reads the array the method body returns:
+A method declared `: array` with no `@return` docblock says nothing about its keys. For these methods, the array the body returns sets the type:
 
 ```php
 final class PriceQuoteService
@@ -505,14 +505,14 @@ Integer keys, written literally or as a constant such as `self::TIER_BASIC`, pub
 
 A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
 
-The package keeps the vague declaration, and the property publishes `unknown`, in these cases:
+In these cases, the package can't use the method body, and the property publishes `unknown`:
 
 - The method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows. Returning another method call, a generator, or a bare `return;` all count.
-- A value in the array is an enum or a model. The package can't add the import these need from a method body. Give the method a native return type, or a `@return array{...}` docblock, to type it.
+- A value in the array is an enum or a model. A method body can't supply the import these need. Give the method a native return type, or a `@return array{...}` docblock, to type it.
 
 A model's own `toArray()`, called as a value, also publishes `unknown`, because the relations it includes depend on what's loaded at runtime. Spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
 
-An `only()` or `except()` call is the exception to the enum-and-model rule. The package writes its result without a class name, so the rest of the shape survives:
+An `only()` or `except()` call is the exception to the enum-and-model rule. Its result names no class, so the rest of the shape survives:
 
 - A literal key list publishes its inline shape, with any enum- or model-typed member left `unknown`.
 - A runtime key list publishes `Record<string, unknown>`.
@@ -543,7 +543,7 @@ summary: { id: number; author: { id: number; name: string }; author_role: { id: 
 
 ### Local Variables and Narrowing
 
-A variable you assign once keeps the type of its value, so you don't need to inline the expression:
+A variable you assign once keeps the type of its value, so you don't need to inline the expression. Assign it in a statement at the top level of the method or of a closure body:
 
 ```php
 public function toArray(Request $request): array
@@ -570,7 +570,7 @@ public function toArray(Request $request): array
 }
 ```
 
-A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, and changes through `.=`, `++`, or a reference. Variables assigned inside a closure body follow the same rules within that closure.
+A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, and changes through `.=`, `++`, or a reference. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure.
 
 To type a variable the package can't read, annotate its assignment. See [Typing a Variable With `@var`](#typing-a-variable-with-var).
 
@@ -610,6 +610,7 @@ export interface AttachmentResource {
 
 A guard narrows a variable only when all of these hold:
 
+- The `if` sits at the top level of the method or closure body.
 - The `if` has no `else` or `elseif`, and its body ends with `return` or `throw`.
 - The condition is a negated test such as `! $parent instanceof Post`, alone or in an `||` chain. A chain joined with `&&` narrows nothing.
 - The test reads a local variable or a closure parameter, not a property such as `$this->author`.
@@ -666,7 +667,7 @@ return [
 ];
 ```
 
-It also restores a value the package would otherwise drop. The package leaves out a ternary arm it can't type, so without the annotation, `$picked` below publishes `null`:
+It also restores a value the package would otherwise drop. Without the annotation, `$picked` below publishes `null`, because the package leaves out a ternary arm it can't type:
 
 ```php
 /** @var string|null $picked */
@@ -681,7 +682,7 @@ The annotation follows these rules:
 
 A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`. When `$x` is a closure parameter or a `foreach` variable bound to a model, `$x->prop` and `$x->m()` keep reading that model, even after an annotated reassignment.
 
-The package reads the type only when it's built from these forms, and when every part of it resolves:
+The annotation's type counts only when it's built from these forms, and when every part of it resolves:
 
 - Scalars: `int`, `string`, `bool`, `float`, `null`, `true`, and `false`
 - A class, interface, or enum that the file imports or writes in full
@@ -719,7 +720,7 @@ export interface PostResource {
 }
 ```
 
-The package reads these helpers and methods as follows:
+These helpers and methods publish as follows:
 
 - **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. `values()` restores sequential keys and removes that arm.
 - **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`.
@@ -730,7 +731,7 @@ The package reads these helpers and methods as follows:
 
 ## Spreads and Inheritance
 
-A resource can build its array from its parent class, its traits, and its own helper methods. The package follows each of these and adds their properties to the interface.
+A resource can build its array from its parent class, its traits, and its own helper methods. Each one adds its properties to the interface.
 
 ### Parent `toArray()` Spread
 
@@ -799,7 +800,7 @@ export interface BodylessOrderResource {
 }
 ```
 
-The package walks up the parent chain to the nearest class that declares a `toArray()`, so inheritance several levels deep works. The backing model comes from the parent chain too: a resource with no `@mixin` or `@extends` tag of its own uses the nearest ancestor's, as step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes. That keeps the inherited properties typed from their columns.
+The nearest class up the parent chain that declares a `toArray()` provides the shape, so inheritance several levels deep works. The backing model comes from the parent chain too: a resource with no `@mixin` or `@extends` tag of its own uses the nearest ancestor's, as step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes. That keeps the inherited properties typed from their columns.
 
 If no class in the chain declares a `toArray()`, the resource publishes the model's properties, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. With no model either, the interface is empty, apart from any types `#[TsExtends]` adds. A `ResourceCollection` subclass with no `toArray()` still finds its element type as [Resource Collections](#resource-collections) describes.
 
@@ -835,11 +836,11 @@ class UserResource extends JsonResource
 }
 ```
 
-The package finds the model as [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes. When no model resolves, the resource publishes an empty interface.
+[How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes how the package finds the model. When no model resolves, the resource publishes an empty interface.
 
 ### Trait Method Spread
 
-Spread a trait method's return into `toArray()` with `...$this->method()`. The package reads the method's body the same way it reads `toArray()`. The method's `@return array{...}` docblock types the keys the body can't:
+Spread a trait method's return into `toArray()` with `...$this->method()`. Its body publishes the same types it would in `toArray()`, and its `@return array{...}` docblock types the keys the body can't:
 
 ```php
 trait IncludesMorphValue
@@ -933,7 +934,7 @@ public function toArray(Request $request): array
 }
 ```
 
-The package follows the chain of calls until it reaches an array literal, or an `only()` or `except()` filter as described in [Attribute Filters](#attribute-filters-only-except):
+A chain of several calls works too, as long as it ends at an array literal, or at an `only()` or `except()` filter as described in [Attribute Filters](#attribute-filters-only-except):
 
 ```php
 class TeamResource extends JsonResource
@@ -1021,7 +1022,7 @@ export interface PostPermissionsResource {
 }
 ```
 
-The package reads both forms of `@return`:
+Both forms of `@return` count:
 
 - **An `array{...}` shape**: each key gets its own type, and a key written `key?:` also becomes optional. A string or number literal type, such as `'draft'|'live'` or `1|2|3`, publishes as written.
 - **`array<string, V>`**: `V` types every key the body left `unknown`.
@@ -1030,9 +1031,9 @@ The package reads both forms of `@return`:
 
 The body always wins. The docblock fills only a key the body left `unknown`, or an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`, so a stale `@return` can't overwrite a type the package already knows.
 
-A shape value that names a PHP class or enum is skipped, because a docblock can't carry its import. Type that key with `#[TsCasts]` and an `import` instead. A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written.
+A shape value that names a PHP class or enum is skipped, because a docblock can't carry its import. Type that key with `#[TsCasts]` and an `import` instead. A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
 
-The branches count only while every `return` in the method is an array literal, `[]`, or a variable the method builds. Otherwise, the package reads only the method's first `return`.
+The branches count only while every `return` in the method is an array literal, `[]`, or a variable the method builds. Otherwise, only the method's first `return` counts.
 
 ### Interpolated Keys
 
@@ -1089,7 +1090,11 @@ TypeScript checks an index signature against every named key its pattern matches
 
 A signature keeps only the value its body gives it, which is `unknown | undefined` when only the docblock typed it, in these cases:
 
-- **A key that can't join**: a key the pattern matches, or one of the signature's own entries, has a top-level `unknown`, names a class or any type other than a primitive, `Record`, or `Date`, is a template literal type, or holds a string literal with a backslash. A key that brings a class import can't join either, unless the import comes from `#[TsCasts]`.
+- **A key that can't join**: a key the pattern matches, or one of the signature's own entries, can't join the union when any of these holds:
+  - its type has a top-level `unknown`, or is a template literal type
+  - its type names a class, or any type other than a primitive, `Record`, or `Date`
+  - its type holds a string literal with a backslash
+  - it brings a class import, unless the import comes from `#[TsCasts]`
 - **An overlapping pattern**: another signature's pattern may overlap its own. A plain `[key: string]` or `[key: number]` signature always counts as overlapping.
 - **An extends clause**: the interface extends a type, through `#[TsExtends]` or a `ts_extends` config entry, whose keys the package can't see.
 
@@ -1159,7 +1164,7 @@ A model that declares its own typed `only()` or `except()` publishes that method
 `$this->resource->only([...])` and `$this->resource->except([...])` are the same calls, so they publish the same types, spread or not. The same holds for every relation filter below: `$this->resource->author->only([...])` publishes what `$this->author->only([...])` does.
 
 ::: tip
-The package reads only `only()` and `except()` as attribute filters. If you need another method, [open an issue](https://github.com/abetwothree/laravel-ts-publish/issues) or send a pull request.
+`only()` and `except()` are the only attribute filters the package reads. If you need another method, [open an issue](https://github.com/abetwothree/laravel-ts-publish/issues) or send a pull request.
 :::
 
 ### Relation Filters
@@ -1228,7 +1233,11 @@ These members publish `unknown` instead:
 
 - An `AsEnumCollection` column
 - A collection-cast column read through anything other than `$this` or `$this->resource`, such as a relation's column in `$this->author->options->only([...])`, or a local variable that holds the model
-- A collection class that overrides `only()` or `except()`, such as a class you pass to `AsCollection::using()`, a returned subclass that overrides them, a cast that builds an Eloquent collection, or a method that returns an Eloquent collection
+- A collection class that overrides `only()` or `except()`, such as:
+  - a class you pass to `AsCollection::using()`
+  - a returned subclass that overrides them
+  - a cast that builds an Eloquent collection
+  - a method that returns an Eloquent collection
 
 A single relation filtered by a runtime key list, such as `$this->author->only($request->input('fields'))`, names nothing to pick, so it publishes `Record<string, unknown>`.
 
@@ -1315,7 +1324,7 @@ export interface UserCollection {
 }
 ```
 
-The package finds the singular resource by checking, in order:
+The singular resource comes from the first of these that applies:
 
 1. The `#[Collects(UserResource::class)]` attribute on the collection. This attribute needs Laravel 13.
 2. The `$collects` property.
@@ -1397,7 +1406,7 @@ With `public static $wrap = null;` as well, the collection publishes the alias `
 
 ### Paginated Collections
 
-A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead. See [Inertia](./inertia.md).
+A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead. See [Paginating Inline in the Render Call](./inertia.md#paginating-inline-in-the-render-call) on the Inertia page.
 
 ## Resource Attributes
 
@@ -1439,7 +1448,7 @@ The attribute takes three optional parameters:
 
 ### Overriding Property Types With `#[TsCasts]`
 
-::: tip Before you add `#[TsCasts]`
+::: tip Before You Add `#[TsCasts]`
 The package already types these shapes without an override:
 
 - A method call on an enum, a date, a model, or a service, and a property read on any of those or on a value object. See [Method Return Types](#method-return-types).
@@ -1544,12 +1553,12 @@ To change the strategy for a relation type, use `models.relation_nullability_map
 The valid strategies are `'nullable'`, `'never'`, `'fk'`, and `'morph'`.
 
 ::: info
-Resources and [models](./models.md) share these `models.*` settings, because a resource takes its relation types from its backing model.
+Resources and models share these `models.*` settings, because a resource takes its relation types from its backing model. See [Nullable Relations](./models.md#nullable-relations) on the Models page.
 :::
 
 ## Filtering & Excluding
 
-Choose which resources are published with the same include and exclude settings that [enums](./enums.md) and [models](./models.md) use:
+Choose which resources are published with the same include and exclude settings that [enums](./enums.md#filtering-excluding-enums) and [models](./models.md#filtering-excluding-models) use:
 
 ```php
 // config/ts-publish.php
@@ -1596,17 +1605,6 @@ php artisan ts:publish --only-resources
 ```
 
 `--only-resources` fails when you combine it with another `--only-*` flag, such as `--only-enums` or `--only-models`. `--only-functional` is the exception: it overrides every other `--only-*` flag, and it skips resources.
-
-## Upgrading From an Earlier Version
-
-The [Upgrade Guide](./upgrade-guide.md) covers every change from version 1. These changes to resources can also change your generated types:
-
-- **`#[TsResourceCasts]` was removed**: use `#[TsCasts]` instead, with the same syntax.
-- **Relation `except()` publishes database columns only**: it used to include every accessor and relation of the related model, minus the named keys, which `Model::except()` never returns. If your frontend read an accessor or a relation from an `except()` result, switch that property to `only([...])`, or give the key its own entry in `toArray()`. TypeScript reports every place that reads a key that's gone.
-- **Relation `except()` publishes `Pick<>`**: it used to publish `Omit<Post, "created_at" | "updated_at">`, which widened under a model template whose interface also carries mutators, relations, and counts. It now picks the remaining columns, as in `Pick<Post, "id" | "title" | "content" | "user_id">`. Under the default template, both carry the same columns, so you don't need to change anything.
-- **A child resource with no `toArray()` inherits its parent's**: it used to publish an empty interface when no model resolved for it. If you added a pass-through `toArray()` only to work around that, you can delete it.
-- **A guessed `toResource()` class must be published**: a guessed resource that the package doesn't publish used to be imported anyway, which failed in your app with `TS2307 Cannot find module`. It now publishes `unknown`.
-- **Classes that share a name get the right alias**: a property that named the same class name more times than it had distinct classes could use the wrong alias, or leave a bare name with no import, which failed with `TS2304 Cannot find name`. Each occurrence now uses the alias of its own class.
 
 ## Configuration Reference
 
