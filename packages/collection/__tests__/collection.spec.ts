@@ -888,9 +888,7 @@ describe("Collection", () => {
                 { value: 3, age: 30 },
                 { value: 2, age: 25 },
             ]);
-            // After sorting by JSON string representation, the order is:
-            // {"age":20,"value":1}, {"age":25,"value":2}, {"age":30,"value":3}
-            // So the median (middle item) is {"age":25,"value":2}
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-rows-without-key"
             expect(collection.median()).toEqual({
                 age: 25,
                 value: 2,
@@ -909,9 +907,26 @@ describe("Collection", () => {
             expect(collection.median(0)).toBe(3);
             expect(collection.median(1)).toBe(4);
         });
-        it("test when count is not % === 2", () => {
+        it("averages the two middle values of an even count", () => {
             const collection = collect([1, 2, 3, 4, 5, 6]);
             expect(collection.median()).toBe(3.5);
+        });
+        it("sorts numeric strings as numbers, and answers an odd count's middle one as it is", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-numeric-strings"
+            expect([
+                collect(["10", "9", "8"]).median(),
+                collect(["10", "9"]).median(),
+            ]).toEqual(["9", 9.5]);
+        });
+        it("reads a key given as an array of path segments", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-array-key"
+            expect(
+                collect([
+                    { a: { b: 1 } },
+                    { a: { b: 9 } },
+                    { a: { b: 5 } },
+                ]).median(["a", "b"]),
+            ).toBe(5);
         });
         it("skips undefined as it skips null", () => {
             // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it
@@ -927,6 +942,9 @@ describe("Collection", () => {
             );
         });
         it("Laravel tests", () => {
+            // CollectionTest::testMedianValueWithArrayCollection, CollectionTest::testMedianValueByKey,
+            // CollectionTest::testMedianOnCollectionWithNull, CollectionTest::testEvenMedianCollection,
+            // CollectionTest::testMedianOutOfOrderCollection and CollectionTest::testMedianOnEmptyCollectionReturnsNull
             expect(collect([1, 2, 2, 4]).median()).toBe(2);
 
             expect(
@@ -959,6 +977,8 @@ describe("Collection", () => {
 
     describe("mode", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testModeOnNullCollection, CollectionTest::testMode, CollectionTest::testModeValueByKey
+            // and CollectionTest::testWithMultipleModeValues
             expect(collect().mode()).toBeNull();
 
             const data = collect([1, 2, 3, 4, 4, 5]);
@@ -1003,6 +1023,7 @@ describe("Collection", () => {
             expect(result).toEqual(["apple"]);
         });
 
+        // CollectionTest::testModeOnCollectionWithNull and CollectionTest::testModeOnCollectionWithOnlyNullsReturnsNull
         it("skips null items", () => {
             // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-key-with-nulls", "mode-null-and-value",
             // "mode-only-nulls" and "mode-missing-key"
@@ -4479,6 +4500,7 @@ describe("Collection", () => {
     describe("implode", () => {
         describe("Laravel Tests", () => {
             it("test implode", () => {
+                // CollectionTest::testImplode
                 const data = collect([
                     { name: "taylor", email: "foo" },
                     { name: "dayle", email: "bar" },
@@ -5690,6 +5712,7 @@ describe("Collection", () => {
 
     describe("join", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testJoin
             expect(collect(["a", "b", "c"]).join(", ")).toBe("a, b, c");
             expect(collect(["a", "b", "c"]).join(", ", " and ")).toBe(
                 "a, b and c",
@@ -14664,6 +14687,7 @@ describe("Collection", () => {
     describe("avg", () => {
         describe("Laravel Tests", () => {
             it("test getting avg items from collection", () => {
+                // CollectionTest::testGettingAvgItemsFromCollection, but for its ->avg->foo proxies, not ported
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
                 expect(
                     c.avg((item) => {
@@ -14733,11 +14757,18 @@ describe("Collection", () => {
                 ]).avg("foo"),
             ).toThrow(new TypeError("Unsupported operand types: int + string"));
         });
+
+        it("hands the callback the key as well as the value", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-callback-arity" counts PHP's one
+            // JS-only: the key is an extra argument, which never changes what a callback PHP accepts answers
+            expect(collect({ a: 1 }).avg((...args) => args.length)).toBe(2);
+        });
     });
 
     describe("average", () => {
         describe("Laravel Tests", () => {
             it("test average method", () => {
+                // CollectionTest::testGettingAvgItemsFromCollection, through the average() alias
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
                 expect(
                     c.average((item) => {
@@ -14806,7 +14837,7 @@ describe("Collection", () => {
                 { val: 20 },
                 { val: undefined },
             ]);
-            // Should only average 10 and 20
+            // JS-only: undefined stands for a value PHP does not have, so it is skipped with null
             expect(c.average("val")).toBe(15);
         });
 
@@ -15942,6 +15973,7 @@ describe("Collection", () => {
     describe("min", () => {
         describe("Laravel Tests", () => {
             it("test min", () => {
+                // CollectionTest::testGettingMinItemsFromCollection, but for its ->min->foo proxies, not ported
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
 
                 expect(c.min((item) => item.foo)).toBe(10);
@@ -15975,11 +16007,22 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-numeric-strings"
             expect(collect(["10", "9", "8"]).min()).toBe("8");
         });
+
+        it("compares other strings as text, and never throws", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
+            expect(collect(["b", "a", "c"]).min()).toBe("a");
+        });
+
+        it("hands the callback the value alone, as PHP does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
+            expect(collect({ a: 1 }).min((...args) => args.length)).toBe(1);
+        });
     });
 
     describe("max", () => {
         describe("Laravel Tests", () => {
             it("test max", () => {
+                // CollectionTest::testGettingMaxItemsFromCollection, but for its ->max->foo proxies, not ported
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
 
                 expect(c.max((item) => item.foo)).toBe(20);
@@ -16010,6 +16053,23 @@ describe("Collection", () => {
         it("compares numeric strings as numbers, as PHP's > does", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-numeric-strings"
             expect(collect(["10", "9", "8"]).max()).toBe("10");
+        });
+
+        it("compares other strings as text, and never throws", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
+            expect(collect(["b", "a", "c"]).max()).toBe("c");
+        });
+
+        it("hands the callback the value alone, as PHP does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
+            expect(collect({ a: 1 }).max((...args) => args.length)).toBe(1);
+        });
+
+        it("reads a dot path through each item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-dot-path"
+            expect(collect([{ a: { b: 3 } }, { a: { b: 7 } }]).max("a.b")).toBe(
+                7,
+            );
         });
     });
 
@@ -16282,31 +16342,17 @@ describe("Collection", () => {
     describe("percentage", () => {
         describe("Laravel Tests", () => {
             it("test percentage with flat collection", () => {
+                // CollectionTest::testPercentageWithFlatCollection
                 const c = collect([1, 1, 2, 2, 2, 3]);
 
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 1)?.toFixed(2) || "0",
-                    ),
-                ).toBe(33.33);
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 2)?.toFixed(2) || "0",
-                    ),
-                ).toBe(50.0);
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 3)?.toFixed(2) || "0",
-                    ),
-                ).toBe(16.67);
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 5)?.toFixed(2) || "0",
-                    ),
-                ).toBe(0.0);
+                expect(c.percentage((value) => value === 1)).toBe(33.33);
+                expect(c.percentage((value) => value === 2)).toBe(50.0);
+                expect(c.percentage((value) => value === 3)).toBe(16.67);
+                expect(c.percentage((value) => value === 5)).toBe(0.0);
             });
 
-            it("test percetage with nested collection", () => {
+            it("test percentage with nested collection", () => {
+                // CollectionTest::testPercentageWithNestedCollection
                 const c = collect([
                     { name: "Taylor", foo: "foo" },
                     { name: "Nuno", foo: "bar" },
@@ -16314,37 +16360,14 @@ describe("Collection", () => {
                     { name: "Jess", foo: "baz" },
                 ]);
 
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "foo")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(25.0);
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "bar")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(50.0);
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "baz")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(25.0);
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "test")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(0.0);
+                expect(c.percentage((value) => value.foo === "foo")).toBe(25.0);
+                expect(c.percentage((value) => value.foo === "bar")).toBe(50.0);
+                expect(c.percentage((value) => value.foo === "baz")).toBe(25.0);
+                expect(c.percentage((value) => value.foo === "test")).toBe(0.0);
             });
 
             it("test percentage returns null for empty collections", () => {
+                // CollectionTest::testPercentageReturnsNullForEmptyCollections
                 const c = collect([]);
 
                 expect(c.percentage((value) => value === 1)).toBeNull();
@@ -16386,13 +16409,10 @@ describe("Collection", () => {
 
     describe("sum", () => {
         describe("Laravel Tests", () => {
-            it("test sum from from collection", () => {
+            it("test getting sum from collection", () => {
+                // CollectionTest::testGettingSumFromCollection
                 const c = collect([{ foo: 50 }, { foo: 50 }]);
-                expect(
-                    c.sum((item) => {
-                        return item.foo;
-                    }),
-                ).toBe(100);
+                expect(c.sum("foo")).toBe(100);
 
                 const d = collect([{ foo: 50 }, { foo: 50 }]);
                 expect(
@@ -16403,14 +16423,23 @@ describe("Collection", () => {
             });
 
             it("test can sum values without a callback", () => {
+                // CollectionTest::testCanSumValuesWithoutACallback
                 const c = collect([1, 2, 3, 4, 5]);
                 expect(c.sum()).toBe(15);
             });
 
             it("test getting sum from empty collection", () => {
+                // CollectionTest::testGettingSumFromEmptyCollection
                 const c = collect();
                 expect(c.sum("foo")).toBe(0);
             });
+        });
+
+        it("reads a dot path through each item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-dot-path"
+            expect(collect([{ a: { b: 1 } }, { a: { b: 2 } }]).sum("a.b")).toBe(
+                3,
+            );
         });
 
         it("adds numeric strings as numbers, as PHP's + does", () => {
@@ -16466,6 +16495,7 @@ describe("Collection", () => {
     describe("whenEmpty", () => {
         describe("Laravel Tests", () => {
             it("test when empty", () => {
+                // CollectionTest::testWhenEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenEmpty(() => {
@@ -16486,6 +16516,7 @@ describe("Collection", () => {
             });
 
             it("test when empty default", () => {
+                // CollectionTest::testWhenEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenEmpty(
@@ -16500,11 +16531,23 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "taylor"]);
             });
         });
+
+        it("hands the callback true as the condition, and answers what it returns", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-whenEmpty-callback-receives-true" and
+            // "C32-H-whenEmpty-scalar-return"
+            expect([
+                collect().whenEmpty((_collection, empty) =>
+                    JSON.stringify(empty),
+                ),
+                collect().whenEmpty(() => "scalar"),
+            ]).toEqual(["true", "scalar"]);
+        });
     });
 
     describe("whenNotEmpty", () => {
         describe("Laravel Tests", () => {
             it("test when not empty", () => {
+                // CollectionTest::testWhenNotEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenNotEmpty((col) => {
@@ -16523,6 +16566,7 @@ describe("Collection", () => {
             });
 
             it("test when not empty default", () => {
+                // CollectionTest::testWhenNotEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenNotEmpty(
@@ -16537,10 +16581,21 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
         });
+
+        it("hands the default false as the condition", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-whenNotEmpty-default-receives-false"
+            expect(
+                collect().whenNotEmpty(
+                    () => "cb",
+                    (_collection, notEmpty) => JSON.stringify(notEmpty),
+                ),
+            ).toBe("false");
+        });
     });
 
     describe("unless", () => {
         it("calls callback when value is falsy", () => {
+            // CollectionTest::testUnless, its falsy condition
             const data = collect([1, 2, 3]);
 
             const result = data.unless(false, (col) => {
@@ -16551,6 +16606,7 @@ describe("Collection", () => {
         });
 
         it("returns self when value is truthy and no defaultCallback", () => {
+            // CollectionTest::testUnless, its truthy condition
             const data = collect([1, 2, 3]);
 
             const result = data.unless(true, (col) => {
@@ -16561,7 +16617,7 @@ describe("Collection", () => {
         });
 
         it("calls defaultCallback when value is truthy", () => {
-            // This test covers the defaultCallback branch when value is truthy
+            // CollectionTest::testUnlessDefault
             const data = collect([1, 2, 3]);
 
             const result = data.unless(
@@ -16600,16 +16656,6 @@ describe("Collection", () => {
             expect(Reflect.apply(c.unless, c, [true, null])).toBe(c);
         });
 
-        it("calls defaultCallback when value is truthy", () => {
-            const c = collect([1, 2, 3]);
-            const result = c.unless(
-                true,
-                (col) => col.map((x) => x * 2),
-                (col) => col.map((x) => x + 10),
-            );
-            expect(result.all()).toEqual([11, 12, 13]);
-        });
-
         it("returns self when defaultCallback returns null", () => {
             const c = collect([1, 2, 3]);
             const result = c.unless(
@@ -16618,15 +16664,6 @@ describe("Collection", () => {
                 () => null, // defaultCallback returns null, should fall back to this
             );
             expect(result.all()).toEqual([1, 2, 3]);
-        });
-
-        it("resolves value from function", () => {
-            const c = collect([1, 2, 3]);
-            const result = c.unless(
-                () => false, // Resolves to false (falsy), so callback is called
-                (col) => col.map((x) => x * 2),
-            );
-            expect(result.all()).toEqual([2, 4, 6]);
         });
 
         it("returns self when callback returns null", () => {
@@ -16638,7 +16675,7 @@ describe("Collection", () => {
 
         it("returns self when callback returns undefined", () => {
             const c = collect([1, 2, 3]);
-            // callback returns undefined, so ?? this should be triggered
+            // JS-only: undefined stands for the null that PHP's ?? $this replaces
             const result = c.unless(false, () => undefined);
             expect(result.all()).toEqual([1, 2, 3]);
         });
@@ -16655,6 +16692,7 @@ describe("Collection", () => {
     describe("unlessEmpty", () => {
         describe("Laravel Tests", () => {
             it("test unless empty", () => {
+                // CollectionTest::testUnlessEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessEmpty((col) => {
@@ -16673,6 +16711,7 @@ describe("Collection", () => {
             });
 
             it("test unless empty default", () => {
+                // CollectionTest::testUnlessEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessEmpty(
@@ -16692,6 +16731,7 @@ describe("Collection", () => {
     describe("unlessNotEmpty", () => {
         describe("Laravel Tests", () => {
             it("test unless not empty", () => {
+                // CollectionTest::testUnlessNotEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessNotEmpty(() => {
@@ -16710,6 +16750,7 @@ describe("Collection", () => {
             });
 
             it("test unless not empty default", () => {
+                // CollectionTest::testUnlessNotEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessNotEmpty(
@@ -17501,6 +17542,7 @@ describe("Collection", () => {
     describe("pipe", () => {
         describe("Laravel Tests", () => {
             it("test pipe", () => {
+                // CollectionTest::testPipe
                 const data = collect([1, 2, 3]);
 
                 expect(
@@ -17515,6 +17557,7 @@ describe("Collection", () => {
     describe("pipeInto", () => {
         describe("Laravel Tests", () => {
             it("test pipe into", () => {
+                // CollectionTest::testPipeInto
                 const data = collect(["first", "second"]);
 
                 class TestCollectionMapIntoObject {
@@ -17548,6 +17591,24 @@ describe("Collection", () => {
 
                 expect(result).toBe(15);
             });
+        });
+
+        it("hands each callback what the one before it returned", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-pipeThrough-order"
+            expect(
+                collect(["a"]).pipeThrough([
+                    (data) => data.push("b"),
+                    (data) => data.implode(""),
+                    (value) => String(value).toUpperCase(),
+                ]),
+            ).toBe("AB");
+        });
+
+        it("answers the collection itself for no callbacks", () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-pipeThrough-empty-returns-receiver"
+            expect(c.pipeThrough([])).toBe(c);
         });
     });
 
@@ -17681,8 +17742,8 @@ describe("Collection", () => {
     describe("reduceInto", () => {
         describe("Laravel Tests", () => {
             it("test reduce into", () => {
-                // PHP mutates primitives by reference; in JS the callback
-                // returns the new accumulator value instead
+                // CollectionTest::testReduceInto
+                // JS-only: PHP writes a primitive accumulator through its reference; here the callback returns it
                 const data = collect([1, 2, 3]);
 
                 expect(
@@ -17716,6 +17777,7 @@ describe("Collection", () => {
 
         describe("mutating the accumulator in place", () => {
             it("keeps the accumulator when the callback returns undefined", () => {
+                // JS-only: PHP ignores what the callback returns; here only undefined leaves the accumulator in place
                 const grouped = collect([1, 2, 3, 4]).reduceInto(
                     { even: [] as number[], odd: [] as number[] },
                     (result, value) => {
@@ -17764,6 +17826,7 @@ describe("Collection", () => {
     describe("reduceSpread", () => {
         describe("Laravel Tests", () => {
             it("test reduce spread", () => {
+                // CollectionTest::testReduceSpread, whose PHP_INT_MIN and PHP_INT_MAX the safe integers stand in for
                 const data = collect([-1, 0, 1, 2, 3, 4, 5]);
 
                 const [sum, max, min] = data.reduceSpread(
@@ -17834,6 +17897,19 @@ describe("Collection", () => {
             );
         });
 
+        it("answers the initial values for an empty collection, without calling the reducer", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-empty"
+            expect(
+                collect([]).reduceSpread(
+                    () => {
+                        throw new Error("called");
+                    },
+                    1,
+                    2,
+                ),
+            ).toEqual([1, 2]);
+        });
+
         it("walks a Map-built collection in its insertion order", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
             expect(
@@ -17846,7 +17922,7 @@ describe("Collection", () => {
     });
 
     describe("reduceWithKeys", () => {
-        describe("Laravel Tests", () => {
+        describe("reducing with the keys and an initial value", () => {
             it("test reduce with keys", () => {
                 const data = collect({ a: 1, b: 2, c: 3 });
 
@@ -18056,6 +18132,7 @@ describe("Collection", () => {
     describe("tap", () => {
         describe("Laravel Tests", () => {
             it("test tap", () => {
+                // CollectionTest::testTap
                 const data = collect([1, 2, 3]);
 
                 const fromTap: number[] = [];
@@ -18767,7 +18844,27 @@ describe("Collection", () => {
     });
 
     describe("when", () => {
+        it("test when", () => {
+            // CollectionTest::testWhen
+            let data = collect(["michael", "tom"]);
+
+            data = data.when("adam", (collection, newName) => {
+                return collection.concat([newName]);
+            });
+
+            expect(data.toArray()).toEqual(["michael", "tom", "adam"]);
+
+            data = collect(["michael", "tom"]);
+
+            data = data.when(false, (collection) => {
+                return collection.concat(["adam"]);
+            });
+
+            expect(data.toArray()).toEqual(["michael", "tom"]);
+        });
+
         it("calls defaultCallback when value is falsy", () => {
+            // CollectionTest::testWhenDefault
             const c = collect([1, 2, 3]);
             const result = c.when(
                 false,
@@ -18808,7 +18905,7 @@ describe("Collection", () => {
 
         it("returns self when callback returns undefined", () => {
             const c = collect([1, 2, 3]);
-            // callback returns undefined, so ?? this should be triggered
+            // JS-only: undefined stands for the null that PHP's ?? $this replaces
             const result = c.when(true, () => undefined);
             expect(result.all()).toEqual([1, 2, 3]);
         });
@@ -18853,6 +18950,32 @@ describe("Collection", () => {
                 c.when("0", () => "called") === c,
                 c.when([], () => "called") === c,
             ]).toEqual([true, true]);
+        });
+
+        it("hands the default the value, and answers a callback's scalar as it is", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-default-receives-value" and
+            // "C32-H-when-callback-returns-scalar"
+            expect([
+                collect([1]).when(
+                    0,
+                    () => "cb",
+                    (_collection, value) => JSON.stringify(value),
+                ),
+                collect([1]).when(true, () => false),
+                collect([1]).when(true, () => 42),
+            ]).toEqual(["0", false, 42]);
+        });
+
+        it("calls a closure value with the collection, but never a string that names a function", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-closure-value" and
+            // "C32-H-when-callable-string-value-not-invoked"
+            expect([
+                collect([1, 2]).when(
+                    (collection) => collection.count(),
+                    (_collection, value) => value * 10,
+                ),
+                collect([1]).when("strlen", (_collection, value) => value),
+            ]).toEqual([20, "strlen"]);
         });
     });
 
