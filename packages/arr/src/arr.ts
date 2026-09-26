@@ -2,6 +2,7 @@ import { SortDirection } from "@tolki/enum";
 import {
     collapse as objCollapse,
     crossJoin as objCrossJoin,
+    prepend as objPrepend,
     replaceRecursive as objReplaceRecursive,
     select as objSelect,
     union as objUnion,
@@ -42,6 +43,7 @@ import type {
     PathKeys,
     PluckValue,
     SetObjectPath,
+    Simplify,
     SortSpec,
     SpreadArgs,
     TruthyArray,
@@ -205,6 +207,36 @@ type DotLeaf<T, D extends number = 5> = [D] extends [never]
               : DotLeaf<ObjectValue<T>, DotDepth[D]>
           : T;
 type DotDepth = [never, 0, 1, 2, 3, 4];
+
+// ListPrepend (prepend): `[$key => $value] + $list` stays a list only while the key PHP stores is 0, which replaces
+// the first item; a key that may be stored as 0 may give either, and any other key gives a record.
+type ListPrepend<TValue, TPrependValue, TPrependKey> = [
+    MapArrayKey<TPrependKey>,
+] extends [0]
+    ? (TValue | TPrependValue)[]
+    : 0 extends MapArrayKey<TPrependKey>
+      ?
+            | (TValue | TPrependValue)[]
+            | Record<string | number, TValue | TPrependValue>
+      : ListPrependRecord<TValue, TPrependValue, MapArrayKey<TPrependKey>>;
+// An integer key lands among the list's own indices; any other key sits beside them.
+type ListPrependRecord<TValue, TPrependValue, TStoredKey> = [
+    Exclude<TStoredKey, number>,
+] extends [never]
+    ? Record<number, TValue | TPrependValue>
+    : Simplify<
+          Record<
+              number,
+              | TValue
+              | ([Extract<TStoredKey, number>] extends [never]
+                    ? never
+                    : TPrependValue)
+          > &
+              Record<
+                  Extract<Exclude<TStoredKey, number>, PropertyKey>,
+                  TPrependValue
+              >
+      >;
 
 const sortSpecComparator = createSortSpecComparator((item, key) =>
     getNestedValue(item, key as PropertyKey),
@@ -2669,42 +2701,60 @@ export function mapSpread<TMapReturn>(
  *
  * @param data - The array to prepend to.
  * @param value - The value to prepend.
- * @param key - Optional key: `[$key => $value] + $array`, read by key as `union` reads it, so key 0 replaces the
- * first item and another key holds the value at that index.
- * @returns A new array with the value prepended.
+ * @param key - The key, cast as PHP casts an array key (null or undefined becomes ""); omit it to unshift, as
+ * `Arr::prepend` does with two arguments. `[$key => $value] + $list` stays a list only for key 0, which replaces the
+ * first item; any other key makes the result an object, as PHP's array is then keyed.
+ * @returns A new array with the value prepended, or the object PHP's keyed array becomes.
  *
  * @example
  *
  * prepend(['b', 'c'], 'a'); -> ['a', 'b', 'c']
  * prepend([1, 2, 3], 0); -> [0, 1, 2, 3]
  * prepend(['b', 'c'], 'a', 0); -> ['a', 'c']
+ * prepend(['b', 'c'], 'a', 'k'); -> { k: 'a', 0: 'b', 1: 'c' }
  */
-// Overload: typed array → array with the value prepended, element type preserved
+// Overload: no key → array_unshift, element type preserved
 export function prepend<TValue>(
     data: ArrayItems<TValue>,
     value: TValue,
-    key?: number,
 ): TValue[];
+// Overload: a key → PHP's `[$key => $value] + $list`
+export function prepend<
+    TValue,
+    TPrependValue,
+    TPrependKey extends PropertyKey | null | undefined,
+>(
+    data: ArrayItems<TValue>,
+    value: TPrependValue,
+    key: TPrependKey,
+): ListPrepend<TValue, TPrependValue, TPrependKey>;
 // Overload: untyped array or nullish fallback
 export function prepend<TValue>(
     data: readonly unknown[] | null | undefined,
     value: TValue,
-    key?: number,
 ): TValue[];
+export function prepend(
+    data: readonly unknown[] | null | undefined,
+    value: unknown,
+    key: PropertyKey | null | undefined,
+): unknown[] | Record<string | number, unknown>;
 // Implementation
 export function prepend<TValue>(
     data: ArrayItems<TValue> | unknown,
     value: TValue,
-    key?: number,
-): TValue[] {
+    ...rest: [key?: PropertyKey | null]
+): unknown[] | Record<string | number, unknown> {
     const values = getAccessibleValues(data) as TValue[];
 
-    if (!isUndefined(key)) {
-        // PHP's [$key => $value] + $array is a key union with the prepended entry winning its key.
-        return unionValues({ [phpArrayKey(key)]: value }, values) as TValue[];
+    if (rest.length === 0) {
+        return [value, ...values];
     }
 
-    return [value, ...values];
+    // PHP's key union starts with the new key, so it stays a list only when that key casts to 0. Array.from keeps a
+    // hole as undefined, as arr.union does, where `{ ...list }` would drop it.
+    const prepended = objPrepend({ ...Array.from(values) }, value, ...rest);
+
+    return phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended;
 }
 
 /**

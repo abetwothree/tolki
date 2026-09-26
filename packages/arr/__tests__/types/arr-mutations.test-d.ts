@@ -290,8 +290,31 @@ describe("arr mutations type tests", () => {
             >();
         });
 
-        it("preserves element type when a key is given", () => {
+        it("stays a list for a key stored as 0, which replaces the first item", () => {
             expectTypeOf(Arr.prepend([2, 3], 1, 0)).toEqualTypeOf<number[]>();
+            expectTypeOf(Arr.prepend([2, 3], "a", "0")).toEqualTypeOf<
+                (number | string)[]
+            >();
+        });
+
+        it("answers PHP's keyed record for a key stored as anything but 0", () => {
+            expectTypeOf(Arr.prepend(["b", "c"], "a", "k")).toEqualTypeOf<{
+                [x: number]: string;
+                k: string;
+            }>();
+            expectTypeOf(Arr.prepend([2, 3], "a", 5)).toEqualTypeOf<
+                Record<number, number | string>
+            >();
+            expectTypeOf(Arr.prepend([2, 3], 1, null)).toEqualTypeOf<{
+                [x: number]: number;
+                "": number;
+            }>();
+        });
+
+        it("answers a list or a record for a key that may be stored as 0", () => {
+            expectTypeOf(Arr.prepend([2, 3], "a", maybeKey)).toEqualTypeOf<
+                (number | string)[] | Record<string | number, number | string>
+            >();
         });
 
         it("accepts a readonly array", () => {

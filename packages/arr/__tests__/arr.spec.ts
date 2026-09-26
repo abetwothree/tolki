@@ -4417,20 +4417,41 @@ describe("Arr", () => {
             ]);
         });
 
-        it("reads a key the way union reads a keyed operand, so key 0 replaces the first item", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key": PHP's other results are
-            // keyed; a list holds each key by index, with undefined in a gap, as arr.union does.
-            expect(Arr.prepend(["b", "c"], "a", 0)).toEqual(["a", "c"]);
-            expect(Arr.prepend(["b", "c"], "a", 1)).toEqual(["b", "a"]);
-            expect(Arr.prepend(["b", "c"], "a", 1.5)).toEqual(["b", "a"]);
-            expect(Arr.prepend(["b", "c"], "a", 5)).toEqual([
-                "b",
-                "c",
-                undefined,
-                undefined,
-                undefined,
-                "a",
-            ]);
+        it("returns PHP's keyed result for a list given a key, which stays a list only for key 0", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
+            expect(Arr.prepend(["b", "c"], "a", 0)).toStrictEqual(["a", "c"]);
+            expect(Arr.prepend(["b", "c"], "a", 1)).toStrictEqual({
+                1: "a",
+                0: "b",
+            });
+            expect(Arr.prepend(["b", "c"], "a", 1.5)).toStrictEqual({
+                1: "a",
+                0: "b",
+            });
+            expect(Arr.prepend(["b", "c"], "a", 5)).toStrictEqual({
+                5: "a",
+                0: "b",
+                1: "c",
+            });
+            expect(Arr.prepend(["b", "c"], "a", "k")).toStrictEqual({
+                k: "a",
+                0: "b",
+                1: "c",
+            });
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-null-empty-key"
+            expect(Arr.prepend(["one", "two"], null, "")).toStrictEqual({
+                "": null,
+                0: "one",
+                1: "two",
+            });
+        });
+
+        it("reads an undefined key as null, so a third argument is always a key", () => {
+            // JS-only: PHP has no undefined. It counts its arguments, and obj.prepend stores this key as "" too.
+            expect(Arr.prepend(["b"], "a", undefined)).toStrictEqual({
+                "": "a",
+                0: "b",
+            });
         });
     });
 
