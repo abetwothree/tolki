@@ -10329,6 +10329,31 @@ describe("Collection", () => {
                 new Collection({ a: 1, b: 2, c: 3 }).slice(0, -5).all(),
             ).toEqual({});
         });
+
+        it("drops a fraction from an offset or a length, as array_slice's int parameters do", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts"
+            expect(numbers.slice(1.5).values().all()).toEqual([2, 3, 4, 5]);
+            expect(numbers.slice(-1.5).values().all()).toEqual([5]);
+            expect(numbers.slice(0, 1.5).values().all()).toEqual([1]);
+        });
+
+        it("throws array_slice's TypeError for an offset or a length that is NAN, infinite or beyond PHP's int range", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts"
+            for (const count of [NaN, Infinity, 1e19]) {
+                expect(() => numbers.slice(count)).toThrowError(TypeError);
+                expect(() => numbers.slice(count)).toThrowError(
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                );
+                expect(() => numbers.slice(0, count)).toThrowError(TypeError);
+                expect(() => numbers.slice(0, count)).toThrowError(
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+                );
+            }
+        });
     });
 
     describe("split", () => {

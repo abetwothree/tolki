@@ -2921,9 +2921,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Slice the underlying collection data.
      *
-     * @param offset - The offset to start the slice
-     * @param length - The length of the slice, or null to slice to the end
+     * @param offset - The offset to start the slice; a fraction is dropped, as array_slice()'s int parameter drops it
+     * @param length - The length of the slice, a fraction dropped likewise, or null to slice to the end
      * @returns A new collection with the sliced items
+     * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, as array_slice()
+     * refuses it
      *
      * @example
      *
@@ -2931,24 +2933,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).slice(1, 2); -> new Collection([2, 3])
      * new Collection({a: 1, b: 2, c: 3}).slice(1); -> new Collection({b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
+     * new Collection([1, 2, 3, 4]).slice(-1.5); -> new Collection([4])
      */
     slice(offset: number, length: number | null = null) {
+        const start = intArgument(
+            offset,
+            "array_slice(): Argument #2 ($offset) must be of type int, float given",
+        );
+        const count = isNull(length)
+            ? null
+            : intArgument(
+                  length,
+                  "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+              );
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            const { start, end } = resolveSliceRange(
-                ordered.length,
-                offset,
-                length,
-            );
+            const range = resolveSliceRange(ordered.length, start, count);
 
             // array_slice($items, $offset, $length, true): positional, and keys survive.
-            return this.newInstance(new Map(ordered.slice(start, end)));
+            return this.newInstance(
+                new Map(ordered.slice(range.start, range.end)),
+            );
         }
 
-        return this.newInstance(
-            handOver(dataSlice(this.items, offset, length)),
-        );
+        return this.newInstance(handOver(dataSlice(this.items, start, count)));
     }
 
     /**
@@ -6683,6 +6692,22 @@ function phpArrayValue(
  */
 function fitsPhpInt(value: number): boolean {
     return isFiniteNumber(value) && value >= -(2 ** 63) && value < 2 ** 63;
+}
+
+/**
+ * Read a count an internal PHP function takes as an int, which drops a fraction as PHP's coercion does.
+ *
+ * @param value - The count the caller passed
+ * @param message - The TypeError message PHP gives for a count no int can hold
+ * @returns The count without its fraction
+ * @throws TypeError when the count is NAN, infinite or outside PHP's int range
+ */
+function intArgument(value: number, message: string): number {
+    if (!fitsPhpInt(value)) {
+        throw new TypeError(message);
+    }
+
+    return Math.trunc(value);
 }
 
 /**
