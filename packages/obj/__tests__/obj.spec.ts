@@ -6730,6 +6730,16 @@ describe("Obj", () => {
             expect(Obj.select(data, null)).toEqual({ a: {}, b: {} });
         });
 
+        it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
+            const data = { r: { "": "e", a: 1 } };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-key-cast"
+            expect(Obj.select(data, [null, "a"])).toEqual({
+                r: { "": "e", a: 1 },
+            });
+            expect(Obj.select(data, null)).toEqual({ r: {} });
+        });
+
         it("selects a list item by index, reading a numeric string as one and length as none", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
             expect(Obj.select({ r: [10, 20, 30] }, [0, 2])).toEqual({

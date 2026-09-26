@@ -3641,6 +3641,14 @@ describe("Arr", () => {
             ).toEqual([{ a: 1 }]);
         });
 
+        it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
+            const rows = [{ "": "e", a: 1 }];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-key-cast"
+            expect(Arr.select(rows, [null])).toEqual([{ "": "e" }]);
+            expect(Arr.select(rows, null)).toEqual([{}]);
+        });
+
         it("selects a list item by index, reading a numeric string as one and length as none", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
             expect(Arr.select([[10, 20, 30]], [0, 2])).toEqual([

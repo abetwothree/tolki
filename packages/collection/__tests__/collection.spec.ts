@@ -6082,6 +6082,18 @@ describe("Collection", () => {
                 expect(data.select(undefined).all()).toEqual(data.all());
             });
 
+            it("reads a null among the keys as the '' key, as Arr::exists casts it", () => {
+                const rows = collect([{ "": "e", a: 1 }]);
+                const trailing = rows.select("a", null).all();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-key-cast"
+                expect(rows.select([null, "a"]).all()).toEqual([
+                    { "": "e", a: 1 },
+                ]);
+                expect(trailing).toEqual([{ a: 1, "": "e" }]);
+                expect(Object.keys(trailing[0] ?? {})).toEqual(["a", ""]);
+            });
+
             it("ignores the arguments after an array of keys", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-then-extra-arg"
                 expect(

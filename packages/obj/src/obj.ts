@@ -3067,12 +3067,10 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
     }
 
     const obj = data as Record<PropertyKey, TValue>;
+    // Arr::wrap makes a bare null no keys at all; a null among the keys is a key, which selectItem casts.
     const keyList = (
-        (isArray(keys) ? keys : [keys]) as readonly PathKey[]
-    ).filter((key: unknown) => !isNull(key) && !isUndefined(key)) as (
-        | string
-        | number
-    )[];
+        isNull(keys) || isUndefined(keys) ? [] : isArray(keys) ? keys : [keys]
+    ) as readonly PathKey[];
     const result: Record<PropertyKey, Record<PropertyKey, unknown>> = {};
 
     for (const [objKey, item] of Object.entries(obj)) {
@@ -7184,7 +7182,7 @@ export function intersectByKeys<T1, T2 = T1>(
  */
 function selectItem(
     item: unknown,
-    keys: readonly (string | number)[],
+    keys: readonly PathKey[],
 ): Record<string, unknown> {
     const selected: Record<string, unknown> = {};
 
@@ -7197,13 +7195,15 @@ function selectItem(
     const readsIsset = !isPhpAccessible(item);
 
     for (const key of keys) {
-        const value = entries.get(String(key));
+        // Arr::exists casts a null key to '', the key it then names.
+        const name = isNull(key) || isUndefined(key) ? "" : String(key);
+        const value = entries.get(name);
 
         if (
-            entries.has(String(key)) &&
+            entries.has(name) &&
             !(readsIsset && (isNull(value) || isUndefined(value)))
         ) {
-            defineKey(selected, key, value);
+            defineKey(selected, name, value);
         }
     }
 
