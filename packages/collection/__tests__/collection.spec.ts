@@ -16584,10 +16584,20 @@ describe("Collection", () => {
             expect(result.all()).toEqual([2, 4, 6]);
         });
 
-        it("returns self when callback is null", () => {
+        it("throws PHP's error for a null callback on the branch it takes", () => {
             const c = collect([1, 2, 3]);
-            const result = c.unless(false, null);
-            expect(result.all()).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-unless-null-callback-throws"
+            expect(() => Reflect.apply(c.unless, c, [false, null])).toThrow(
+                new Error("Value of type null is not callable"),
+            );
+        });
+
+        it("keeps the collection when the branch with a null callback is not taken", () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-unless-null-callback-untaken"
+            expect(Reflect.apply(c.unless, c, [true, null])).toBe(c);
         });
 
         it("calls defaultCallback when value is truthy", () => {
@@ -16630,13 +16640,6 @@ describe("Collection", () => {
             const c = collect([1, 2, 3]);
             // callback returns undefined, so ?? this should be triggered
             const result = c.unless(false, () => undefined);
-            expect(result.all()).toEqual([1, 2, 3]);
-        });
-
-        it("uses default callback parameter when not provided", () => {
-            const c = collect([1, 2, 3]);
-            // Calling unless with only value (callback defaults to null)
-            const result = c.unless(false);
             expect(result.all()).toEqual([1, 2, 3]);
         });
 
@@ -18774,10 +18777,20 @@ describe("Collection", () => {
             expect(result.all()).toEqual([11, 12, 13]);
         });
 
-        it("returns self when callback is null", () => {
+        it("throws PHP's error for a null callback on the branch it takes", () => {
             const c = collect([1, 2, 3]);
-            const result = c.when(true, null);
-            expect(result.all()).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-null-callback-throws"
+            expect(() => Reflect.apply(c.when, c, [true, null])).toThrow(
+                new Error("Value of type null is not callable"),
+            );
+        });
+
+        it("keeps the collection when the branch with a null callback is not taken", () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-unless-null-callback-untaken"
+            expect(Reflect.apply(c.when, c, [false, null])).toBe(c);
         });
 
         it("returns self when no callbacks match", () => {
@@ -18829,13 +18842,6 @@ describe("Collection", () => {
                 (col) => col.map((x) => x * 2),
                 () => null,
             );
-            expect(result.all()).toEqual([1, 2, 3]);
-        });
-
-        it("uses default callback parameter when not provided (default branch)", () => {
-            const c = collect([1, 2, 3]);
-            // Calling when with only value (callback defaults to null)
-            const result = c.when(true);
             expect(result.all()).toEqual([1, 2, 3]);
         });
 

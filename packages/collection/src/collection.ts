@@ -5705,6 +5705,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute if the value is truthy
      * @param defaultCallback - The callback to execute if the value is falsy
      * @returns The result of the callback if executed, otherwise the current instance
+     * @throws Error `Value of type null is not callable` when the value is truthy and the callback null, as PHP's
      *
      * @example
      *
@@ -5713,9 +5714,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     when<TWhenParameter, TWhenReturnType>(
         value: ((instance: this) => TWhenParameter) | TWhenParameter | null,
-        callback:
-            | ((instance: this, value: TWhenParameter) => TWhenReturnType)
-            | null = null,
+        callback: (instance: this, value: TWhenParameter) => TWhenReturnType,
         defaultCallback:
             | ((instance: this, value: TWhenParameter) => TWhenReturnType)
             | null = null,
@@ -5725,7 +5724,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             : (value as TWhenParameter);
 
         if (!isPhpFalsy(resolvedValue)) {
-            return (callback?.(this, resolvedValue) ?? this) as Collection<
+            if (!isFunction(callback)) {
+                throw notCallableValue(callback);
+            }
+
+            return (callback(this, resolvedValue) ?? this) as Collection<
                 TValue,
                 TKey
             >;
@@ -5746,6 +5749,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute if the value is falsy
      * @param defaultCallback - The callback to execute if the value is truthy
      * @returns The result of the callback if executed, otherwise the current instance
+     * @throws Error `Value of type null is not callable` when the value is falsy and the callback null, as PHP's
      *
      * @example
      *
@@ -5754,9 +5758,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     unless<TUnlessParameter, TUnlessReturnType>(
         value: ((instance: this) => TUnlessParameter) | TUnlessParameter | null,
-        callback:
-            | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
-            | null = null,
+        callback: (
+            instance: this,
+            value: TUnlessParameter,
+        ) => TUnlessReturnType,
         defaultCallback:
             | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
             | null = null,
@@ -5766,7 +5771,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ) as TUnlessParameter;
 
         if (isPhpFalsy(resolvedValue)) {
-            return (callback?.(this, resolvedValue) ?? this) as Collection<
+            if (!isFunction(callback)) {
+                throw notCallableValue(callback);
+            }
+
+            return (callback(this, resolvedValue) ?? this) as Collection<
                 TValue,
                 TKey
             >;
@@ -6984,6 +6993,16 @@ function notCallable(method: string, argument: unknown): TypeError {
     return new TypeError(
         `Collection::${method}(): Argument #1 ($callback) must be of type ?callable, ${getDebugType(argument)} given`,
     );
+}
+
+/**
+ * The error PHP throws when it calls a value that is not callable, as when() and unless() call a null callback.
+ *
+ * @param value - The value called
+ * @returns The Error PHP throws, naming the value's type as get_debug_type() does
+ */
+function notCallableValue(value: unknown): Error {
+    return new Error(`Value of type ${getDebugType(value)} is not callable`);
 }
 
 /**
