@@ -4643,6 +4643,11 @@ describe("Collection", () => {
             );
         });
 
+        it("plucks from Date items, as PHP plucks from DateTime ones, which have no __toString", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-date-items-are-plucked"
+            expect(collect([new Date(0), new Date(1)]).implode(", ")).toBe("");
+        });
+
         it("converts non-string items to string", () => {
             // When items are numbers
             const c = collect([1, 2, 3]);

@@ -71,6 +71,7 @@ import {
     compareValues,
     createSortSpecComparator,
     defineKey,
+    hasOwnToString,
     InvalidArgumentException,
     isArray,
     isBoolean,
@@ -92,7 +93,6 @@ import {
     isPlainObject,
     isPrimitive,
     isString,
-    isStringable,
     isSymbol,
     isTruthyObject,
     isUndefined,
@@ -7116,13 +7116,13 @@ function looseKey(value: unknown): string | number | undefined {
  * Determine whether implode() joins an item as it is, as PHP's does an Illuminate\Support\Stringable, over plucking it.
  *
  * @param item - The collection's first item, an object
- * @returns True for an object with its own toString, but for a collection, whose toString is its JSON
+ * @returns True for an object with its own toString, as hasOwnToString() reads one, so never a Date, unless it is a
+ * collection, whose toString is its JSON
  */
 function joinsAsString(item: unknown): boolean {
     // JS-only: any object with its own toString is exempt; @tolki/str is not a dependency
     return (
-        isStringable(item) &&
-        item.toString !== Object.prototype.toString &&
+        hasOwnToString(item) &&
         // PHP plucks a collection, which is no Illuminate\Support\Stringable.
         !(item instanceof Collection)
     );
