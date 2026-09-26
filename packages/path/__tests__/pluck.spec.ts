@@ -232,4 +232,23 @@ describe("Path Pluck Functions", () => {
             expect(Path.hasPluckPath({ "a.b": 1 }, ["a", "b"])).toBe(false);
         });
     });
+
+    describe("readPluckKey", () => {
+        it("tells a key that holds null from a missing one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-array-and-object-targets"
+            expect(Path.readPluckKey({ a: null }, "a")).toEqual([true, null]);
+            expect(Path.readPluckKey({ a: 1 }, "b")).toEqual([
+                false,
+                undefined,
+            ]);
+        });
+
+        it("reads an ArrayAccess that is not Enumerable through offsetExists", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-arrayaccess-target"
+            const target = new AccessTarget({ a: 1, n: null });
+
+            expect(Path.readPluckKey(target, "a")).toEqual([true, 1]);
+            expect(Path.readPluckKey(target, "n")).toEqual([false, undefined]);
+        });
+    });
 });

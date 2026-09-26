@@ -6761,6 +6761,39 @@ describe("Obj", () => {
             expect(Object.keys(selected.r ?? {})).toEqual(["a", "n", "p"]);
         });
 
+        it("asks an ArrayAccess item offsetExists once per key and offsetGet once per hit", () => {
+            class Counting {
+                readonly calls = { exists: 0, gets: 0 };
+
+                offsetExists(offset: string): boolean {
+                    this.calls.exists++;
+
+                    return offset === "a";
+                }
+
+                offsetGet(offset: string): unknown {
+                    this.calls.gets++;
+
+                    return offset === "a" ? 1 : undefined;
+                }
+            }
+
+            const one = new Counting();
+            const two = new Counting();
+            const selectedOne = Obj.select({ r: one }, ["a"]);
+            const selectedTwo = Obj.select({ r: two }, ["a", "missing"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-call-counts"
+            expect([selectedOne, one.calls]).toEqual([
+                { r: { a: 1 } },
+                { exists: 1, gets: 1 },
+            ]);
+            expect([selectedTwo, two.calls]).toEqual([
+                { r: { a: 1 } },
+                { exists: 2, gets: 1 },
+            ]);
+        });
+
         it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
             const data = { r: { "": "e", a: 1 } };
 

@@ -112,6 +112,22 @@ export function hasPluckPath(
 }
 
 /**
+ * Read one key of a target the way `data_get` steps into it, telling a key that holds null from a missing one.
+ *
+ * @param target - The value to read the key from.
+ * @param segment - The key, read as one literal segment.
+ * @returns `[true, value]` when the target holds the key, else `[false, undefined]`.
+ */
+export function readPluckKey(
+    target: unknown,
+    segment: string,
+): [boolean, unknown] {
+    const value = readSegment(target, segment);
+
+    return value === absent ? [false, undefined] : [true, value];
+}
+
+/**
  * Split a pluck value or key argument into path segments the way Laravel's
  * `explodePluckParameters` does: strings split on dots, arrays pass
  * through, and `null` (the "keep the whole item" value form) yields no

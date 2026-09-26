@@ -6,8 +6,8 @@ import {
     getNestedValue,
     getObjectValue,
     hasMixed,
-    hasPluckPath,
     isArrayAccess,
+    readPluckKey,
     resolvePluckPath,
     setObjectValue,
     undotExpandObject,
@@ -7201,10 +7201,14 @@ function selectItem(
         const name = isNull(key) || isUndefined(key) ? "" : String(key);
 
         // An ArrayAccess item answers through its offsets first, as Arr::exists asks it; only a miss reads a property.
-        if (isArrayAccess(item) && hasPluckPath(item, [name])) {
-            defineKey(selected, name, item.offsetGet(name));
+        if (isArrayAccess(item)) {
+            const [held, offsetValue] = readPluckKey(item, name);
 
-            continue;
+            if (held) {
+                defineKey(selected, name, offsetValue);
+
+                continue;
+            }
         }
 
         const value = entries.get(name);
