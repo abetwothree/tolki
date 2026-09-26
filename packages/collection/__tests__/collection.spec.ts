@@ -9989,6 +9989,24 @@ describe("Collection", () => {
             expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
             expect(Object.keys(shuffled)).toEqual(["0", "1", "2", "3", "4"]);
         });
+
+        it("hands back a list whatever keys the items had, as Arr::shuffle does", () => {
+            const pinShuffled = <TValue, TKey extends PropertyKey>(
+                collection: Collection<TValue, TKey>,
+                members: TValue[],
+            ) => {
+                const shuffled = collection.shuffle();
+
+                expect(Array.isArray(shuffled.all())).toBe(true);
+                expect(shuffled.count()).toBe(members.length);
+                expect(Object.values(shuffled.all()).sort()).toEqual(members);
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-shuffle-list"
+            pinShuffled(collect({ a: 1, b: 2, c: 3 }), [1, 2, 3]);
+            pinShuffled(outOfOrderKeys(), ["a", "b", "c"]);
+            pinShuffled(collect({ x: 1, 5: 2 }), [1, 2]);
+        });
     });
 
     describe("sliding", () => {

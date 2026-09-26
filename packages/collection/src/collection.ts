@@ -2801,15 +2801,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Shuffle the items in the collection.
      *
-     * @returns A new collection with the items shuffled
+     * @returns A new collection with the items shuffled, as a list whatever keys they had
      *
      * @example
      *
      * new Collection([1, 2, 3]).shuffle(); -> new Collection([3, 1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({0: 2, 1: 3, 2: 1})
+     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection([2, 3, 1])
      */
     shuffle() {
-        return this.newInstance(handOver(dataShuffle(this.items)));
+        return this.newInstance(handOver(dataShuffle(this.orderedValues())));
     }
 
     /**
