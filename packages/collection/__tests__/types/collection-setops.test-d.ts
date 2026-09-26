@@ -191,6 +191,14 @@ describe("collection set operation type tests", () => {
                 return a.id === b.id;
             });
         });
+
+        it("types b as a collection operand's items", () => {
+            rows.intersectUsing(collect([{ id: 1 }]), (a, b) => {
+                expectTypeOf(b).toEqualTypeOf<{ id: number }>();
+
+                return a.id === b.id;
+            });
+        });
     });
 
     describe("merge", () => {
@@ -200,13 +208,50 @@ describe("collection set operation type tests", () => {
         });
     });
 
+    describe("mergeRecursive", () => {
+        it("widens the values it may return with the operand's", () => {
+            expectTypeOf(list.mergeRecursive(["x"])).toEqualTypeOf<
+                | Collection<number, number, "list">
+                | Collection<number | string, number, "list">
+            >();
+        });
+    });
+
     describe("zip", () => {
+        it("takes a collection's items as a list", () => {
+            expectTypeOf(list.zip(collect(["a", "b", "c"]))).toEqualTypeOf<
+                Collection<Collection<number | string, number>, number>
+            >();
+        });
+
         it("takes lists of different value types", () => {
             expectTypeOf(list.zip(["a"], [true])).toEqualTypeOf<
                 Collection<
                     Collection<number | string | boolean, number>,
                     number
                 >
+            >();
+        });
+    });
+
+    describe("splice", () => {
+        it("takes one value of the collection's type as the replacement", () => {
+            expectTypeOf(list.splice(0, 0, 4)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("rejects one value of another type", () => {
+            // @ts-expect-error - PHP's replacement is array<array-key, TValue>
+            list.splice(0, 0, "x");
+        });
+    });
+
+    describe("crossJoin", () => {
+        it("takes lists of different value types", () => {
+            // Deferred: crossJoin() still declares the receiver's type, not the rows of values it builds
+            expectTypeOf(list.crossJoin(["a"], [true])).toEqualTypeOf<
+                Collection<number, number, "list">
             >();
         });
     });
