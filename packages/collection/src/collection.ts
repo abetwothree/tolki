@@ -3546,8 +3546,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Take the first or last {$limit} items.
      *
-     * @param limit - The number of items to take, positive for first items, negative for last items
+     * @param limit - The number of items to take, positive for first items, negative for last items; a fraction is
+     * dropped, as array_slice()'s int parameters drop it
      * @returns A new collection with the taken items
+     * @throws TypeError when the limit is NAN, infinite or outside PHP's int range, as array_slice() refuses it
      *
      * @example
      *
@@ -3558,7 +3560,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     take(limit: number) {
         if (limit < 0) {
-            return this.slice(Math.max(0, this.count() + limit));
+            return this.slice(limit, Math.abs(limit));
         }
 
         return this.slice(0, limit);

@@ -12338,6 +12338,33 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("drops a fraction from the limit, taking the last items through slice(limit, abs(limit))", () => {
+            const numbers = collect([1, 2, 3, 4, 5, 6]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-take-counts"
+            expect(numbers.take(1.5).values().all()).toEqual([1]);
+            expect(numbers.take(-1.5).values().all()).toEqual([6]);
+        });
+
+        it("throws array_slice's TypeError for a limit that is NAN, infinite or beyond PHP's int range", () => {
+            const numbers = collect([1, 2, 3, 4, 5, 6]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-take-counts"
+            for (const limit of [NaN, Infinity, 1e19]) {
+                expect(() => numbers.take(limit)).toThrowError(TypeError);
+                expect(() => numbers.take(limit)).toThrowError(
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+                );
+            }
+
+            for (const limit of [-Infinity, -1e19]) {
+                expect(() => numbers.take(limit)).toThrowError(TypeError);
+                expect(() => numbers.take(limit)).toThrowError(
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                );
+            }
+        });
     });
 
     describe("takeUntil", () => {
