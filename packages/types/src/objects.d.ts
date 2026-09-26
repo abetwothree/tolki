@@ -585,6 +585,42 @@ type FlatLeafValue<T, D extends number> = T extends readonly (infer E)[]
           : ObjectFlatValue<ObjectValue<T>, ObjectDepth[D]>
       : T;
 
+/**
+ * Every value `flatten()` may push for `T` at some depth: `T` itself, or any value below it. At each level a
+ * Collection-like value is read through `all()` first, and a `Date`, `RegExp`, `Map`, `Set`, `Promise` or function is
+ * kept whole. `ObjectPathValue` cannot stand in: it drops `undefined` and never reads through `all()`.
+ *
+ * @example
+ * FlattenReach<{ a: [1, { b: "x" }] }> // { a: [1, { b: "x" }] } | [1, { b: "x" }] | 1 | { b: "x" } | "x"
+ */
+export type FlattenReach<T, D extends number = 5> = [D] extends [never]
+    ? unknown
+    : T | FlattenItemReach<T, D>;
+
+/**
+ * Every value flattening the item `T` may push, at any depth: the values a list or plain object holds at every level
+ * below it (read through `all()` first), or `T` itself when it is neither, so never a container it unwraps.
+ *
+ * @example
+ * FlattenItemReach<number[][]> // number[] | number
+ * FlattenItemReach<{ a: 1 }>   // 1
+ */
+export type FlattenItemReach<T, D extends number = 5> = FlattenReachOf<
+    T extends { all: (...args: never[]) => infer R } ? R : T,
+    D
+>;
+
+/** What lies below a value `flatten()` has read through `all()`: a list's or object's values, each reached in turn. */
+type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
+    ? FlattenReach<E, ObjectDepth[D]>
+    : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+      ? T
+      : T extends object
+        ? [keyof T] extends [never]
+            ? unknown
+            : FlattenReach<ObjectValue<T>, ObjectDepth[D]>
+        : T;
+
 /** collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection. */
 type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
 

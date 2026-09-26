@@ -20,6 +20,7 @@ import type {
     CollapsedObject,
     DeepMergeObjects,
     EnsureObject,
+    FlattenReach,
     FlipObject,
     IsBareObject,
     MapArrayKey,
@@ -283,27 +284,6 @@ type PluckKey<TItem> =
     | string
     | readonly (string | number)[]
     | ((item: TItem) => unknown);
-
-// At a depth, flatten() pushes a nested value as it is or reads it through all() first; ObjectPathValue (get()'s
-// reach) can't stand in, because it drops undefined and never unwraps all().
-type FlattenReach<T, D extends number = 5> = [D] extends [never]
-    ? unknown
-    :
-          | T
-          | FlattenReachOf<
-                T extends { all: (...args: never[]) => infer R } ? R : T,
-                D
-            >;
-type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
-    ? FlattenReach<E, FlattenDepth[D]>
-    : T extends NonObjectItems | Date | RegExp | Promise<unknown>
-      ? T
-      : T extends object
-        ? [keyof T] extends [never]
-            ? unknown
-            : FlattenReach<ObjectValue<T>, FlattenDepth[D]>
-        : T;
-type FlattenDepth = [never, 0, 1, 2, 3, 4];
 
 // crossJoin walks each dimension like PHP's foreach: a list's items, a Map's or other iterable's values, an object's
 // own values; a string or other scalar gives none.

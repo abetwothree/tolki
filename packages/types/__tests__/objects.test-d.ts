@@ -3,6 +3,8 @@ import type {
     CollapsedObject,
     DeepMergeObjects,
     EnsureObject,
+    FlattenItemReach,
+    FlattenReach,
     FlipObject,
     MapArrayKey,
     MapData,
@@ -457,6 +459,29 @@ describe("object helper types", () => {
             expectTypeOf<
                 UnionToIntersection<{ a: 1 } | { b: 2 }>
             >().toEqualTypeOf<{ a: 1 } & { b: 2 }>();
+        });
+    });
+
+    describe("FlattenReach and FlattenItemReach", () => {
+        it("reaches a value itself and every value below it", () => {
+            expectTypeOf<FlattenReach<{ a: [1, { b: "x" }] }>>().toEqualTypeOf<
+                { a: [1, { b: "x" }] } | [1, { b: "x" }] | 1 | { b: "x" } | "x"
+            >();
+        });
+
+        it("reaches what flattening one item can push, never a container it unwraps", () => {
+            expectTypeOf<FlattenItemReach<number[][]>>().toEqualTypeOf<
+                number[] | number
+            >();
+            expectTypeOf<FlattenItemReach<{ a: 1 }>>().toEqualTypeOf<1>();
+            expectTypeOf<FlattenItemReach<"s">>().toEqualTypeOf<"s">();
+        });
+
+        it("keeps a Date whole and reads a Collection-like item through all()", () => {
+            expectTypeOf<FlattenItemReach<Date>>().toEqualTypeOf<Date>();
+            expectTypeOf<
+                FlattenItemReach<{ all(): number[] }>
+            >().toEqualTypeOf<number>();
         });
     });
 
