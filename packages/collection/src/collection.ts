@@ -427,7 +427,7 @@ export class Collection<
             return values.get(middle);
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver([values.get(middle - 1), values.get(middle)]),
         ).average() as TValue;
     }
@@ -494,7 +494,7 @@ export class Collection<
             item instanceof Collection ? item.renumberedItems() : item,
         );
 
-        return this.newInstance(handOver(dataCollapse(items)));
+        return this.sameInstance(handOver(dataCollapse(items)));
     }
 
     /**
@@ -509,7 +509,7 @@ export class Collection<
      */
     collapseWithKeys() {
         if (this.isEmpty()) {
-            return this.newInstance();
+            return this.sameInstance();
         }
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
@@ -530,7 +530,7 @@ export class Collection<
         const validResults = results.filter((item) => item !== null);
 
         if (validResults.length === 0) {
-            return this.newInstance();
+            return this.sameInstance();
         }
 
         // Check if all valid results are arrays
@@ -555,10 +555,10 @@ export class Collection<
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
         if (allArrays) {
-            return this.newInstance(handOver([...merged.values()]));
+            return this.sameInstance(handOver([...merged.values()]));
         }
 
-        return this.newInstance(merged);
+        return this.sameInstance(merged);
     }
 
     /**
@@ -727,7 +727,7 @@ export class Collection<
             ...items.map((item) => this.getRawItems(item)),
         );
 
-        return this.newInstance(handOver(results));
+        return this.sameInstance(handOver(results));
     }
 
     /**
@@ -748,7 +748,7 @@ export class Collection<
             | null
             | undefined,
     ) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(dataDiff(this.items, this.getRawItems(items))),
         );
     }
@@ -774,7 +774,7 @@ export class Collection<
             | undefined,
         callback: (a: TValue, b: TValue) => boolean | number,
     ) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataDiffUsing(
                     this.items,
@@ -813,7 +813,7 @@ export class Collection<
             | null
             | undefined,
     ) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(dataDiffAssoc(this.items, this.getRawItems(items))),
         );
     }
@@ -840,7 +840,7 @@ export class Collection<
             | undefined,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataDiffAssocUsing(
                     this.items,
@@ -875,7 +875,7 @@ export class Collection<
             | null
             | undefined,
     ) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(dataDiffKeys(this.items, this.getRawItems(items))),
         );
     }
@@ -902,7 +902,7 @@ export class Collection<
             | undefined,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataDiffKeysUsing(
                     this.items,
@@ -973,7 +973,7 @@ export class Collection<
         }
 
         // Laravel preserves keys for both arrays and objects
-        return this.newInstance(handOver(duplicatesItems));
+        return this.sameInstance(handOver(duplicatesItems));
     }
 
     /**
@@ -1028,10 +1028,12 @@ export class Collection<
         const keysToExcept = this.keysArgument(keys);
 
         if (isNull(keysToExcept)) {
-            return this.newInstance(this.items);
+            return this.sameInstance(this.items);
         }
 
-        return this.newInstance(handOver(dataExcept(this.items, keysToExcept)));
+        return this.sameInstance(
+            handOver(dataExcept(this.items, keysToExcept)),
+        );
     }
 
     /**
@@ -1047,12 +1049,12 @@ export class Collection<
      */
     filter(callback: ((value: TValue, key: TKey) => unknown) | null = null) {
         if (isNull(callback)) {
-            return this.newInstance(handOver(dataFilter(this.items)));
+            return this.sameInstance(handOver(dataFilter(this.items)));
         }
 
         // `Items` is a union, so the delegates hand the callback their own widest
         // value type; the collection's own generics are the narrower truth here.
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataFilter(this.items, (value, key) =>
                     callback(value as TValue, key as TKey),
@@ -1119,7 +1121,7 @@ export class Collection<
      */
     flatten(depth: number = Infinity) {
         // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
-        return this.newInstance(handOver(dataFlatten(this.items, depth)));
+        return this.sameInstance(handOver(dataFlatten(this.items, depth)));
     }
 
     /**
@@ -1142,7 +1144,7 @@ export class Collection<
             }
         }
 
-        return this.newInstance(flipped);
+        return this.sameInstance(flipped);
     }
 
     /**
@@ -1326,8 +1328,8 @@ export class Collection<
 
                 if (!group) {
                     group = (useObjects
-                        ? this.newInstance(handOver({}))
-                        : this.newInstance()) as unknown as Collection<
+                        ? this.sameInstance(handOver({}))
+                        : this.sameInstance()) as unknown as Collection<
                         TValue,
                         TKey
                     >;
@@ -1344,7 +1346,7 @@ export class Collection<
             }
         }
 
-        return this.newInstance(groups);
+        return this.sameInstance(groups);
     }
 
     /**
@@ -1387,7 +1389,7 @@ export class Collection<
             );
         }
 
-        return this.newInstance(results);
+        return this.sameInstance(results);
     }
 
     /**
@@ -1568,10 +1570,10 @@ export class Collection<
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataIntersect(
                     this.items,
@@ -1598,10 +1600,10 @@ export class Collection<
         callback: (a: TValue, b: TValue) => boolean | number,
     ) {
         if (isNull(items)) {
-            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataIntersectUsing(
                     this.items,
@@ -1633,10 +1635,10 @@ export class Collection<
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataIntersectAssoc(
                     this.items,
@@ -1664,10 +1666,10 @@ export class Collection<
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         if (isNull(items)) {
-            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataIntersectAssocUsing(
                     this.items,
@@ -1698,9 +1700,9 @@ export class Collection<
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
         if (isNull(items)) {
-            return this.newInstance(handOver(isArray(this.items) ? [] : {}));
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataIntersectByKeys(
                     this.items,
@@ -1825,12 +1827,12 @@ export class Collection<
 
         // If we have preserved order for numeric keys, use it
         if (ordered) {
-            return this.newInstance(
+            return this.sameInstance(
                 handOver(ordered.map(([key]) => key)),
             ) as unknown as Collection<TKey, number>;
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(dataKeys(this.items)),
         ) as unknown as Collection<TKey, number>;
     }
@@ -1891,7 +1893,7 @@ export class Collection<
         key: PropertyKey | ((item: TValue) => unknown) | null = null,
     ): Collection<TPluckValue, TKey> {
         if (isNull(key) || isUndefined(key)) {
-            return this.newInstance(
+            return this.sameInstance(
                 handOver(
                     dataPluck(
                         this.items,
@@ -1919,7 +1921,7 @@ export class Collection<
             );
         }
 
-        return this.newInstance(results) as unknown as Collection<
+        return this.sameInstance(results) as unknown as Collection<
             TPluckValue,
             TKey
         >;
@@ -1937,7 +1939,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
     map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 dataMap(this.items, (value, key) =>
                     callback(value as TValue, key as TKey),
@@ -1986,7 +1988,7 @@ export class Collection<
             }
         }
 
-        return this.newInstance(dictionary);
+        return this.sameInstance(dictionary);
     }
 
     /**
@@ -2031,7 +2033,7 @@ export class Collection<
             }
         }
 
-        return this.newInstance(map);
+        return this.sameInstance(map);
     }
 
     /**
@@ -2061,7 +2063,7 @@ export class Collection<
             ...this.operandEntries(items),
         ]);
 
-        return this.newInstance(inPhpOrder(merged));
+        return this.sameInstance(inPhpOrder(merged));
     }
 
     /**
@@ -2090,7 +2092,7 @@ export class Collection<
         // The receiver goes in first, so its own integer keys renumber as array_merge_recursive copies it.
         const receiver = mergeRecursively(new Map(), this.entriesInOrder());
 
-        return this.newInstance(
+        return this.sameInstance(
             inPhpOrder(mergeRecursively(receiver, this.operandEntries(items))),
         );
     }
@@ -2114,7 +2116,7 @@ export class Collection<
             multiplier,
             "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
         );
-        const newCollection = this.newInstance();
+        const newCollection = this.sameInstance();
         const values = this.getItemValues(this.items);
 
         for (let i = 0; i < times; i++) {
@@ -2152,11 +2154,11 @@ export class Collection<
 
         // PHP's empty array is a list, where a Map holding no entries would build an empty record.
         if (keys.length === 0) {
-            return this.newInstance(handOver([]));
+            return this.sameInstance(handOver([]));
         }
 
         // A plain object re-sorts integer keys, so the combined pairs are laid out again in the order the keys come.
-        return this.newInstance(
+        return this.sameInstance(
             new Map(
                 keys.map((key) => {
                     const phpKey = toPhpKeyString(key);
@@ -2187,7 +2189,7 @@ export class Collection<
     ) {
         const operand = this.operandEntries(items);
 
-        return this.newInstance(
+        return this.sameInstance(
             this.inKeyOrder(dataUnion(this.items, new Map(operand)), operand),
         );
     }
@@ -2220,7 +2222,7 @@ export class Collection<
             throw new Error("Modulo by zero");
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(values.filter((_, position) => position % divisor === 0)),
         ) as unknown as Collection<TValue[], number>;
     }
@@ -2246,10 +2248,10 @@ export class Collection<
         const keysToKeep = this.keysArgument(keys);
 
         if (isNull(keysToKeep)) {
-            return this.newInstance(this.items);
+            return this.sameInstance(this.items);
         }
 
-        return this.newInstance(handOver(dataOnly(this.items, keysToKeep)));
+        return this.sameInstance(handOver(dataOnly(this.items, keysToKeep)));
     }
 
     /**
@@ -2273,10 +2275,12 @@ export class Collection<
         const keysToSelect = this.keysArgument(keys);
 
         if (isNull(keysToSelect)) {
-            return this.newInstance(this.items);
+            return this.sameInstance(this.items);
         }
 
-        return this.newInstance(handOver(dataSelect(this.items, keysToSelect)));
+        return this.sameInstance(
+            handOver(dataSelect(this.items, keysToSelect)),
+        );
     }
 
     /**
@@ -2295,7 +2299,7 @@ export class Collection<
     pop(count: number): Collection<TValue[], number>;
     pop(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 1) {
-            return this.newInstance() as unknown as Collection<
+            return this.sameInstance() as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -2318,10 +2322,9 @@ export class Collection<
                 return removed[0] ?? null;
             }
 
-            return this.newInstance(handOver(removed)) as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.sameInstance(
+                handOver(removed),
+            ) as unknown as Collection<TValue[], number>;
         }
 
         if (count === 1) {
@@ -2344,7 +2347,7 @@ export class Collection<
         }
 
         if (this.isEmpty()) {
-            return this.newInstance() as unknown as Collection<
+            return this.sameInstance() as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -2352,7 +2355,7 @@ export class Collection<
 
         const poppedValues = dataPop(this.items, count) as TValue[];
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(poppedValues),
         ) as unknown as Collection<TValue[], number>;
     }
@@ -2615,7 +2618,7 @@ export class Collection<
 
         // Arr::random appends each pick unless it keeps their keys,
         // and kept keys that run 0..n-1 in order make a list as well.
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 isListOrder(Object.keys(picked).map((key) => phpArrayKey(key)))
                     ? Object.values(picked)
@@ -2643,7 +2646,7 @@ export class Collection<
     ) {
         const operand = this.operandEntries(items);
 
-        return this.newInstance(
+        return this.sameInstance(
             this.inKeyOrder(dataReplace(this.items, new Map(operand)), operand),
         );
     }
@@ -2668,7 +2671,7 @@ export class Collection<
     ) {
         const operand = this.operandEntries(items);
 
-        return this.newInstance(
+        return this.sameInstance(
             this.inKeyOrder(
                 dataReplaceRecursive(this.items, new Map(operand)),
                 operand,
@@ -2687,7 +2690,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
      */
     reverse() {
-        return this.newInstance(handOver(dataReverse(this.items)));
+        return this.sameInstance(handOver(dataReverse(this.items)));
     }
 
     /**
@@ -2787,7 +2790,7 @@ export class Collection<
         }
 
         if (count === 0) {
-            return this.newInstance(handOver([])) as unknown as Collection<
+            return this.sameInstance(handOver([])) as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -2805,10 +2808,9 @@ export class Collection<
                 return removed[0] as TValue;
             }
 
-            return this.newInstance(handOver(removed)) as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.sameInstance(
+                handOver(removed),
+            ) as unknown as Collection<TValue[], number>;
         }
 
         // Delegating keeps the object-backed branch on array_shift's
@@ -2819,7 +2821,7 @@ export class Collection<
             return shifted as TValue;
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(shifted as TValue[]),
         ) as unknown as Collection<TValue[], number>;
     }
@@ -2835,7 +2837,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection([2, 3, 1])
      */
     shuffle() {
-        return this.newInstance(handOver(dataShuffle(this.orderedValues())));
+        return this.sameInstance(handOver(dataShuffle(this.orderedValues())));
     }
 
     /**
@@ -2879,7 +2881,7 @@ export class Collection<
             windows.push(this.slice((window - 1) * step, size));
         }
 
-        return this.newInstance(handOver(windows)) as unknown as Collection<
+        return this.sameInstance(handOver(windows)) as unknown as Collection<
             unknown,
             PropertyKey
         >;
@@ -2912,7 +2914,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).skipUntil((value) => value >= 2); -> new Collection({b: 2, c: 3})
      */
     skipUntil(value: TValue | ((value: TValue, key: TKey) => unknown)) {
-        return this.newInstance(handOver(dataSkipUntil(this.items, value)));
+        return this.sameInstance(handOver(dataSkipUntil(this.items, value)));
     }
 
     /**
@@ -2928,7 +2930,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).skipWhile((value) => value < 3); -> new Collection({c: 3})
      */
     skipWhile(value: TValue | ((value: TValue, key: TKey) => unknown)) {
-        return this.newInstance(handOver(dataSkipWhile(this.items, value)));
+        return this.sameInstance(handOver(dataSkipWhile(this.items, value)));
     }
 
     /**
@@ -2965,12 +2967,12 @@ export class Collection<
             const range = resolveSliceRange(ordered.length, start, count);
 
             // array_slice($items, $offset, $length, true): positional, and keys survive.
-            return this.newInstance(
+            return this.sameInstance(
                 new Map(ordered.slice(range.start, range.end)),
             );
         }
 
-        return this.newInstance(handOver(dataSlice(this.items, start, count)));
+        return this.sameInstance(handOver(dataSlice(this.items, start, count)));
     }
 
     /**
@@ -2996,7 +2998,7 @@ export class Collection<
             );
         }
 
-        const groups = this.newInstance() as unknown as Collection<
+        const groups = this.sameInstance() as unknown as Collection<
             Collection<TValue, TKey>,
             number
         >;
@@ -3037,7 +3039,7 @@ export class Collection<
             );
 
             groups.push(
-                this.newInstance(inPhpOrder(group)) as unknown as Collection<
+                this.sameInstance(inPhpOrder(group)) as unknown as Collection<
                     TValue,
                     TKey
                 >,
@@ -3190,7 +3192,7 @@ export class Collection<
         preserveKeys: boolean = true,
     ): Collection<Collection<TValue, TKey>, number> {
         if (size <= 0) {
-            return this.newInstance(handOver([])) as unknown as Collection<
+            return this.sameInstance(handOver([])) as unknown as Collection<
                 Collection<TValue, TKey>,
                 number
             >;
@@ -3254,7 +3256,7 @@ export class Collection<
                 callback(
                     value,
                     key as unknown as TKey,
-                    this.newInstance(chunk) as unknown as Collection<
+                    this.sameInstance(chunk) as unknown as Collection<
                         TValue,
                         TKey
                     >,
@@ -3310,14 +3312,16 @@ export class Collection<
      */
     sort(callback: ((a: TValue, b: TValue) => number | boolean) | null = null) {
         if (!isFunction(callback)) {
-            return this.newInstance(handOver(dataSort(this.items as TValue[])));
+            return this.sameInstance(
+                handOver(dataSort(this.items as TValue[])),
+            );
         }
 
         const entries = this.entriesInOrder().sort(
             phpSortComparator(([, a], [, b]) => callback(a, b)),
         );
 
-        return this.newInstance(this.sortedItems(entries));
+        return this.sameInstance(this.sortedItems(entries));
     }
 
     /**
@@ -3331,7 +3335,9 @@ export class Collection<
      * new Collection({a: 1, b: 3, c: 2}).sortDesc(); -> new Collection({b: 3, c: 2, a: 1})
      */
     sortDesc() {
-        return this.newInstance(handOver(dataSortDesc(this.items as TValue[])));
+        return this.sameInstance(
+            handOver(dataSortDesc(this.items as TValue[])),
+        );
     }
 
     /**
@@ -3392,7 +3398,7 @@ export class Collection<
             return isDesc ? -comparison : comparison;
         });
 
-        return this.newInstance(
+        return this.sameInstance(
             this.sortedItems(entries.map(([key, value]) => [key, value])),
         );
     }
@@ -3478,12 +3484,12 @@ export class Collection<
         // A real array has no engine-imposed key order to fight, so the sorted
         // values slot straight in; only the object branch needs reindexIntegerKeys.
         if (isArray(this.items)) {
-            return this.newInstance(
+            return this.sameInstance(
                 handOver(entries.map(([, value]) => value)),
             );
         }
 
-        return this.newInstance(handOver(sortedIntoItems(entries)));
+        return this.sameInstance(handOver(sortedIntoItems(entries)));
     }
 
     /**
@@ -3530,12 +3536,12 @@ export class Collection<
         );
 
         if (isArray(this.items)) {
-            return this.newInstance(
+            return this.sameInstance(
                 handOver(entries.map(([, value]) => value)),
             );
         }
 
-        return this.newInstance(handOver(sortedIntoItems(entries)));
+        return this.sameInstance(handOver(sortedIntoItems(entries)));
     }
 
     /**
@@ -3580,7 +3586,7 @@ export class Collection<
             );
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(dataSplice(this.items, offset, length, values)),
         );
     }
@@ -3620,7 +3626,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).takeUntil((value, key) => key === 'c'); -> new Collection({a: 1, b: 2})
      */
     takeUntil(value: TValue | ((value: TValue, key: TKey) => unknown)) {
-        return this.newInstance(handOver(dataTakeUntil(this.items, value)));
+        return this.sameInstance(handOver(dataTakeUntil(this.items, value)));
     }
 
     /**
@@ -3636,7 +3642,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).takeWhile((value) => value < 3); -> new Collection({a: 1, b: 2})
      */
     takeWhile(value: TValue | ((value: TValue, key: TKey) => unknown)) {
-        return this.newInstance(handOver(dataTakeWhile(this.items, value)));
+        return this.sameInstance(handOver(dataTakeWhile(this.items, value)));
     }
 
     /**
@@ -3680,7 +3686,7 @@ export class Collection<
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
     dot(depth: number = Infinity) {
-        return this.newInstance(handOver(dataDot(this.items, "", depth)));
+        return this.sameInstance(handOver(dataDot(this.items, "", depth)));
     }
 
     /**
@@ -3694,7 +3700,7 @@ export class Collection<
      * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
      */
     undot() {
-        return this.newInstance(handOver(dataUndot(this.items)));
+        return this.sameInstance(handOver(dataUndot(this.items)));
     }
 
     /**
@@ -3720,7 +3726,7 @@ export class Collection<
             // We can't use Set because it uses SameValueZero (strict comparison)
             const seen: unknown[] = [];
 
-            return this.newInstance(
+            return this.sameInstance(
                 dataFilter(this.items, (value) => {
                     // Check if we've seen this value using loose comparison
                     for (const seenValue of seen) {
@@ -3744,7 +3750,7 @@ export class Collection<
             // This does deep comparison for arrays/objects but strict type checking for primitives
             const seen: unknown[] = [];
 
-            return this.newInstance(
+            return this.sameInstance(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value as TValue, key as TKey);
 
@@ -3763,7 +3769,7 @@ export class Collection<
             // For non-strict mode with a key/callback, use loose comparison
             const seen: unknown[] = [];
 
-            return this.newInstance(
+            return this.sameInstance(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value as TValue, key as TKey);
 
@@ -3796,12 +3802,12 @@ export class Collection<
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.newInstance(
+            return this.sameInstance(
                 handOver(ordered.map(([, value]) => value)),
             );
         }
 
-        return this.newInstance(handOver(dataValues(this.items)));
+        return this.sameInstance(handOver(dataValues(this.items)));
     }
 
     /**
@@ -3839,7 +3845,7 @@ export class Collection<
         ];
         const length = Math.max(...columns.map((column) => column.length));
         const zipped = Array.from({ length }, (_, index) =>
-            this.newInstance(
+            this.sameInstance(
                 handOver(
                     columns.map((column) =>
                         index < column.length ? column[index] : null,
@@ -3848,7 +3854,7 @@ export class Collection<
             ),
         );
 
-        return this.newInstance(handOver(zipped)) as unknown as Collection<
+        return this.sameInstance(handOver(zipped)) as unknown as Collection<
             Collection<TValue | TZipValue, number>,
             number
         >;
@@ -3877,10 +3883,10 @@ export class Collection<
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.newInstance(this.padOrdered(ordered, length, value));
+            return this.sameInstance(this.padOrdered(ordered, length, value));
         }
 
-        return this.newInstance(handOver(dataPad(this.items, length, value)));
+        return this.sameInstance(handOver(dataPad(this.items, length, value)));
     }
 
     /**
@@ -3994,7 +4000,7 @@ export class Collection<
             results.set(resultKey, (results.get(resultKey) ?? 0) + 1);
         }
 
-        return this.newInstance(results);
+        return this.sameInstance(results);
     }
 
     /**
@@ -4750,11 +4756,11 @@ export class Collection<
         const entries = (dictionary.orderedEntries() ??
             Object.entries(dictionary.all())) as Array<[PropertyKey, unknown]>;
 
-        return this.newInstance(
+        return this.sameInstance(
             new Map(
                 entries.map(([key, group]) => [
                     key,
-                    this.newInstance(
+                    this.sameInstance(
                         group as DataItems<TMapToGroupsValue, TMapToGroupsKey>,
                     ),
                 ]),
@@ -4930,12 +4936,12 @@ export class Collection<
             callback(item as TValue, key as TKey),
         );
 
-        const halves = this.newInstance(
+        const halves = this.sameInstance(
             handOver([
-                this.newInstance(
+                this.sameInstance(
                     handOver(passed as DataItems<TValue, TKey>),
                 ) as unknown as Collection<TValue, TKey>,
-                this.newInstance(
+                this.sameInstance(
                     handOver(failed as DataItems<TValue, TKey>),
                 ) as unknown as Collection<TValue, TKey>,
             ]),
@@ -5307,7 +5313,7 @@ export class Collection<
      * @returns The result of the final callback in the series
      */
     pipeThrough(callbacks: Array<(instance: this) => unknown>) {
-        return this.newInstance(callbacks).reduce<this>(
+        return this.sameInstance(callbacks).reduce<this>(
             (carry, callback) =>
                 (callback as (instance: this) => unknown)(
                     carry as this,
@@ -5795,11 +5801,11 @@ export class Collection<
     ): Collection<Collection<TValue, TKey>, number> {
         const chunks = isArray(chunked) ? chunked : Object.values(chunked);
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(
                 chunks.map(
                     (chunk) =>
-                        this.newInstance(
+                        this.sameInstance(
                             handOver(chunk as DataItems<TValue, TKey>),
                         ) as unknown as Collection<TValue, TKey>,
                 ),
@@ -5908,20 +5914,39 @@ export class Collection<
     }
 
     /**
-     * Create a new instance of the collection using the runtime constructor.
-     * This preserves subclass behavior (equivalent to PHP's `new static()`).
+     * Create a new instance of the collection.
      *
-     * Note: Generic defaults to `unknown` because this method is called with transformed
-     * data (e.g., from collapse, flip, dot, mapWithKeys) that may have different
-     * TValue/TKey types than the original collection.
-     *
-     * @param items - The items for the new collection instance
-     * @returns A new collection instance
+     * @param items - The new instance's items, which the method that built them hands over
+     * @returns A new instance of this collection's class, typed by the value, key and shape its caller names
      */
-    protected newInstance<TItems = unknown>(items?: TItems): this {
-        const Ctor = this.constructor as new (items?: TItems) => this;
+    protected newInstance<
+        TNewValue,
+        TNewKey extends PropertyKey,
+        TNewShape extends CollectionShape,
+    >(
+        items: DataItems<TNewValue, TNewKey>,
+    ): Collection<TNewValue, TNewKey, TNewShape> {
+        const Static = this.constructor as CollectionClass<
+            TNewValue,
+            TNewKey,
+            TNewShape
+        >;
 
-        return new Ctor(items);
+        return new Static(items);
+    }
+
+    /**
+     * Create a new instance of the collection holding this collection's value, key and shape.
+     *
+     * @param items - The new instance's items, which the method that built them hands over
+     * @returns A new instance of this collection's class and type
+     */
+    protected sameInstance(items?: unknown): this {
+        // A subclass overrides newInstance() to carry its own state, the way PHP's does, so every instance is built
+        // there. Its callers also hand over a Map or nothing, which the constructor reads all the same.
+        return this.newInstance<TValue, TKey, TShape>(
+            items as DataItems<TValue, TKey>,
+        ) as this;
     }
 
     /**
@@ -5973,7 +5998,7 @@ export class Collection<
             }),
         );
 
-        return this.newInstance(this.sortedItems(entries));
+        return this.sameInstance(this.sortedItems(entries));
     }
 
     /**
@@ -6168,10 +6193,10 @@ export class Collection<
         // A Map is the only input the constructor adopts an order from, so an ordered
         // backing has to be handed back as one or the copy loses the order on the way in.
         if (ordered) {
-            return this.newInstance(new Map(ordered));
+            return this.sameInstance(new Map(ordered));
         }
 
-        return this.newInstance(
+        return this.sameInstance(
             handOver(isArray(this.items) ? [...this.items] : { ...this.items }),
         );
     }
@@ -6210,7 +6235,7 @@ export class Collection<
         this.setOrderedItems(entries, true);
 
         // Both halves renumber their integer keys; a Map is the only backing that can carry the order.
-        return this.newInstance(
+        return this.sameInstance(
             new Map(
                 renumberPhpIntegerKeys<TValue>(
                     removed.map(([key, value]) => [String(key), value]),
@@ -6624,10 +6649,14 @@ export class Collection<
 }
 
 /** A collection class as its static factories call it: `new static($items, ...$args)`. */
-type CollectionClass<TValue, TKey extends PropertyKey> = new (
+type CollectionClass<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape = DefaultShape<TKey>,
+> = new (
     items?: unknown,
     ...args: unknown[]
-) => Collection<TValue, TKey>;
+) => Collection<TValue, TKey, TShape>;
 
 /** A rest parameter holding at least one argument, as a required PHP parameter read on with func_get_args(). */
 type AtLeastOne<TItem> = [TItem, ...TItem[]];

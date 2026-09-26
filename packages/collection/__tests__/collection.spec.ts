@@ -1,8 +1,8 @@
 import * as Arr from "@tolki/arr";
-import { collect, Collection } from "@tolki/collection";
+import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
-import type { PathKey } from "@tolki/types";
+import type { DataItems, PathKey } from "@tolki/types";
 import {
     InvalidArgumentException,
     isString,
@@ -21502,13 +21502,17 @@ describe("Collection", () => {
                 this.tag = tag;
             }
 
-            protected override newInstance<TItems = unknown>(
-                items?: TItems,
-            ): this {
+            protected override newInstance<
+                TNewValue,
+                TNewKey extends PropertyKey,
+                TNewShape extends CollectionShape,
+            >(
+                items: DataItems<TNewValue, TNewKey>,
+            ): Collection<TNewValue, TNewKey, TNewShape> {
                 const Ctor = this.constructor as new (
-                    items?: TItems,
+                    items: DataItems<TNewValue, TNewKey>,
                     tag?: string,
-                ) => this;
+                ) => Collection<TNewValue, TNewKey, TNewShape>;
                 return new Ctor(items, this.tag);
             }
         }
