@@ -12708,6 +12708,9 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-int-keys-desc"
             expect(sorted.values().all()).toEqual(["z", "e", "b"]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 9, 5 and 2
+            expect(sorted.keys().all()).toEqual([0, 1, 2]);
+            expect(sorted.all()).toEqual({ 0: "z", 1: "e", 2: "b" });
         });
 
         it("keeps array backing", () => {
