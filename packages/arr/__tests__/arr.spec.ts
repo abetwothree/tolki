@@ -5380,6 +5380,19 @@ describe("Arr", () => {
             );
         });
 
+        it("rejects a NAN count or a string that is not numeric, as pickArrayKeys' int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => Arr.random([1, 2, 3], NaN)).toThrow(TypeError);
+            expect(() => Arr.random([1, 2, 3], NaN)).toThrow(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => Arr.random([1, 2, 3], "1x")).toThrow(TypeError);
+            expect(() => Arr.random([1, 2, 3], "1x")).toThrow(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
+            );
+        });
+
         it("returns the picked values in the array's own order, not the order drawn", () => {
             // docs/php-parity/task-30-map-order.json, "random-list-full-count"
             expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([

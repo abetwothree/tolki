@@ -7599,6 +7599,21 @@ describe("Obj", () => {
                 "You requested abc items, but there are only 3 items available.",
             );
         });
+
+        it("rejects a NAN count or a string that is not numeric, as pickArrayKeys' int parameter does", () => {
+            const data = { a: 1, b: 2, c: 3 };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => Obj.random(data, NaN)).toThrow(TypeError);
+            expect(() => Obj.random(data, NaN)).toThrow(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => Obj.random(data, "1x")).toThrow(TypeError);
+            expect(() => Obj.random(data, "1x")).toThrow(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
+            );
+        });
     });
 
     describe("shift", () => {

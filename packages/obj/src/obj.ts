@@ -4102,6 +4102,7 @@ export function query(data: unknown): string {
  * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
  * @throws InvalidArgumentException if more items are requested than available, even against an empty object (Arr.php:977).
+ * @throws TypeError for a NAN count or a string that is not numeric, which PHP's Randomizer rejects too.
  * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it.
  *
  * @example
@@ -4232,14 +4233,7 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
         return {} as Record<TKey, TValue>;
     }
 
-    // Randomizer::pickArrayKeys takes an int count, so PHP truncates a fraction and rejects one left below 1.
-    const picks = Math.trunc(requested as number);
-
-    if (picks < 1) {
-        throw new Error(
-            "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
-        );
-    }
+    const picks = pickArrayKeysCount(requested);
 
     // Generate random indices
     const selectedIndices: number[] = [];
@@ -4279,6 +4273,34 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     return result;
+}
+
+/**
+ * The count Arr::random hands Randomizer::pickArrayKeys, cast as that int parameter casts it.
+ *
+ * @param requested - The count Arr::random was given, once its own checks have let it through
+ * @returns The count, a fraction truncated
+ * @throws TypeError for NAN or a string that is not numeric, which the int parameter rejects
+ * @throws Error for a count that truncates below 1, as PHP's ValueError
+ */
+function pickArrayKeysCount(requested: unknown): number {
+    if (
+        isString(requested) ? !isPhpNumeric(requested) : Number.isNaN(requested)
+    ) {
+        throw new TypeError(
+            `Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, ${isString(requested) ? "string" : "float"} given`,
+        );
+    }
+
+    const picks = Math.trunc(Number(requested));
+
+    if (picks < 1) {
+        throw new Error(
+            "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
+        );
+    }
+
+    return picks;
 }
 
 /**

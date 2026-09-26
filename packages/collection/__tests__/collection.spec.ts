@@ -6911,6 +6911,21 @@ describe("Collection", () => {
             );
         });
 
+        it("rejects a NAN count or a string that is not numeric, as pickArrayKeys' int parameter does", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => collection.random(NaN)).toThrowError(TypeError);
+            expect(() => collection.random(NaN)).toThrowError(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => collection.random("1x")).toThrowError(TypeError);
+            expect(() => collection.random("1x")).toThrowError(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
+            );
+        });
+
         it("reindexes from zero by default into a list, either backing", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-record-count-is-list"
             for (const picked of [
