@@ -2578,6 +2578,110 @@
             ]
         },
         {
+            "label": "C32-C-random-non-finite-count",
+            "php": "NAN, INF and -INF as the count of (new Collection([1, 2, 3]))->random(...)->all() and of Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed): the answer, or the class and message thrown",
+            "value": {
+                "NAN": {
+                    "collection": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given"
+                    ],
+                    "list": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given"
+                    ],
+                    "keyed": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given"
+                    ]
+                },
+                "INF": {
+                    "collection": [
+                        "InvalidArgumentException",
+                        "You requested INF items, but there are only 3 items available."
+                    ],
+                    "list": [
+                        "InvalidArgumentException",
+                        "You requested INF items, but there are only 3 items available."
+                    ],
+                    "keyed": [
+                        "InvalidArgumentException",
+                        "You requested INF items, but there are only 3 items available."
+                    ]
+                },
+                "-INF": {
+                    "collection": [],
+                    "list": [],
+                    "keyed": []
+                }
+            }
+        },
+        {
+            "label": "C32-C-random-non-numeric-string-count",
+            "php": "'abc' and '1x' as the count of (new Collection([1, 2, 3]))->random(...)->all() and of Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed): the class and message thrown",
+            "value": {
+                "abc": {
+                    "collection": [
+                        "InvalidArgumentException",
+                        "You requested abc items, but there are only 3 items available."
+                    ],
+                    "list": [
+                        "InvalidArgumentException",
+                        "You requested abc items, but there are only 3 items available."
+                    ],
+                    "keyed": [
+                        "InvalidArgumentException",
+                        "You requested abc items, but there are only 3 items available."
+                    ]
+                },
+                "1x": {
+                    "collection": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given"
+                    ],
+                    "list": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given"
+                    ],
+                    "keyed": [
+                        "TypeError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given"
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-C-two-args-null-value-others",
+            "php": "some / doesntContain / containsStrict / doesntContainStrict with (\"a\", null) over [[\"a\" => null], [\"a\" => 1]] and over [[\"a\" => 1]], and firstOrFail(\"a\", null) over [[\"a\" => 1], [\"a\" => null]] and over [[\"a\" => 1]]",
+            "value": {
+                "some": [
+                    true,
+                    false
+                ],
+                "doesntContain": [
+                    false,
+                    true
+                ],
+                "containsStrict": [
+                    true,
+                    false
+                ],
+                "doesntContainStrict": [
+                    false,
+                    true
+                ],
+                "firstOrFail": [
+                    {
+                        "a": null
+                    },
+                    [
+                        "Illuminate\\Support\\ItemNotFoundException",
+                        ""
+                    ]
+                ]
+            }
+        },
+        {
             "label": "C32-C-arr-random-fractional-count",
             "php": "Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed), deprecations silenced: how many it picks for 1.2, 2.9 and 1.5 with keys preserved, and what 3.5 and 0.5 throw",
             "value": {

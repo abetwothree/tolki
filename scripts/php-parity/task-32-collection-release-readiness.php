@@ -592,6 +592,26 @@ probe('C32-C-random-preserved-string-keys', "(new Collection(['a' => 1, 'b' => 2
     (new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->random(3, true)->all(),
     array_is_list((new Collection(['a' => 1, 'b' => 2, 'c' => 3]))->random(2, true)->all()),
 ]);
+probe('C32-C-random-non-finite-count', "NAN, INF and -INF as the count of (new Collection([1, 2, 3]))->random(...)->all() and of Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed): the answer, or the class and message thrown", fn () => array_map(fn (float $count) => [
+    'collection' => c32c_outcome(fn () => (new Collection([1, 2, 3]))->random($count)->all()),
+    'list' => c32c_outcome(fn () => Arr::random([1, 2, 3], $count)),
+    'keyed' => c32c_outcome(fn () => Arr::random(['a' => 1, 'b' => 2, 'c' => 3], $count)),
+], ['NAN' => NAN, 'INF' => INF, '-INF' => -INF]));
+probe('C32-C-random-non-numeric-string-count', "'abc' and '1x' as the count of (new Collection([1, 2, 3]))->random(...)->all() and of Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed): the class and message thrown", fn () => array_map(fn (string $count) => [
+    'collection' => c32c_outcome(fn () => (new Collection([1, 2, 3]))->random($count)->all()),
+    'list' => c32c_outcome(fn () => Arr::random([1, 2, 3], $count)),
+    'keyed' => c32c_outcome(fn () => Arr::random(['a' => 1, 'b' => 2, 'c' => 3], $count)),
+], ['abc' => 'abc', '1x' => '1x']));
+probe('C32-C-two-args-null-value-others', 'some / doesntContain / containsStrict / doesntContainStrict with ("a", null) over [["a" => null], ["a" => 1]] and over [["a" => 1]], and firstOrFail("a", null) over [["a" => 1], ["a" => null]] and over [["a" => 1]]', fn () => [
+    'some' => [(new Collection([['a' => null], ['a' => 1]]))->some('a', null), (new Collection([['a' => 1]]))->some('a', null)],
+    'doesntContain' => [(new Collection([['a' => null], ['a' => 1]]))->doesntContain('a', null), (new Collection([['a' => 1]]))->doesntContain('a', null)],
+    'containsStrict' => [(new Collection([['a' => null], ['a' => 1]]))->containsStrict('a', null), (new Collection([['a' => 1]]))->containsStrict('a', null)],
+    'doesntContainStrict' => [(new Collection([['a' => null], ['a' => 1]]))->doesntContainStrict('a', null), (new Collection([['a' => 1]]))->doesntContainStrict('a', null)],
+    'firstOrFail' => [
+        c32c_outcome(fn () => (new Collection([['a' => 1], ['a' => null]]))->firstOrFail('a', null)),
+        c32c_outcome(fn () => (new Collection([['a' => 1]]))->firstOrFail('a', null)),
+    ],
+]);
 probe('C32-C-arr-random-fractional-count', "Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed), deprecations silenced: how many it picks for 1.2, 2.9 and 1.5 with keys preserved, and what 3.5 and 0.5 throw", fn () => array_map(fn (array $items) => [
     '1.2' => count(@Arr::random($items, 1.2)),
     '2.9' => count(@Arr::random($items, 2.9)),
