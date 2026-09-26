@@ -2030,16 +2030,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Recursively merge the collection with the given items.
+     *
+     * As `array_merge_recursive` does, integer keys append at every depth, and a string key both sides hold merges
+     * both values, each one that is not an array joining the other as one.
+     *
      * @param items - The items to merge with
-     * @returns A new collection with merged items
+     * @returns A new collection with merged items, a list when every key is an integer
      *
      * @example
      *
      * new Collection({a: {b: 1}}).mergeRecursive({a: {c: 2}}); -> new Collection({a: {b: 1, c: 2}})
-     * new Collection({a: {b: 1}}).mergeRecursive({a: {b: 2}}); -> new Collection({a: {b: 2}})
-     * new Collection([1, [2, 3]]).mergeRecursive([4, [5]]); -> new Collection([1, [2, 3, 5], 4])
-     * new Collection([1, {a: 2}]).mergeRecursive([{b: 3}, {a: 4}]); -> new Collection([1, {a: 4, b: 3}])
-     * new Collection([1, 2]).mergeRecursive({a: 3}); -> new Collection([1, 2, {a: 3}])
+     * new Collection({a: {b: 1}}).mergeRecursive({a: {b: 2}}); -> new Collection({a: {b: [1, 2]}})
+     * new Collection([1, [2, 3]]).mergeRecursive([4, [5]]); -> new Collection([1, [2, 3], 4, [5]])
+     * new Collection({a: 1}).mergeRecursive({a: [2, 3]}); -> new Collection({a: [1, 2, 3]})
      */
     mergeRecursive<TMergeRecursiveValue, TMergeKey extends PropertyKey>(
         items:
@@ -2047,87 +2050,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TMergeKey, TMergeRecursiveValue>
             | Collection<TMergeRecursiveValue, TMergeKey>
             | null,
-    ) {
-        const otherItems = this.getRawItems(items);
+    ): this | Collection<TValue | TMergeRecursiveValue, TKey> {
+        // The receiver goes in first, so its own integer keys renumber as array_merge_recursive copies it.
+        const receiver = mergeRecursively(new Map(), this.entriesInOrder());
 
-        // Helper function to recursively merge two values
-        // Mimics PHP's array_merge_recursive behavior
-        const mergeRecursively = (
-            target: unknown,
-            source: unknown,
-        ): unknown => {
-            // If both are arrays, concatenate them
-            if (isArray(target) && isArray(source)) {
-                return [...target, ...source];
-            }
-
-            // If target is array and source is not, append source to target
-            if (isArray(target) && !isArray(source)) {
-                return [...target, source];
-            }
-
-            // If source is array and target is not, prepend target to source
-            if (!isArray(target) && isArray(source)) {
-                return [target, ...source];
-            }
-
-            // If both are objects (but not arrays), merge them recursively
-            if (
-                isObject(target) &&
-                !isArray(target) &&
-                isObject(source) &&
-                !isArray(source)
-            ) {
-                const result = { ...target };
-
-                for (const [key, value] of Object.entries(source)) {
-                    defineKey(
-                        result,
-                        key,
-                        Object.hasOwn(result, key)
-                            ? mergeRecursively(result[key], value)
-                            : value,
-                    );
-                }
-
-                return result;
-            }
-
-            // If neither are arrays or objects, create an array with both values
-            // This mimics PHP's array_merge_recursive where duplicate keys create arrays
-            return [target, source];
-        };
-
-        if (isArray(this.items) && isArray(otherItems)) {
-            const result: unknown[] = [];
-            const maxLength = Math.max(this.items.length, otherItems.length);
-
-            for (let i = 0; i < maxLength; i++) {
-                if (i < this.items.length && i < otherItems.length) {
-                    result[i] = mergeRecursively(this.items[i], otherItems[i]);
-                } else if (i < this.items.length) {
-                    result[i] = this.items[i];
-                } else {
-                    result[i] = otherItems[i];
-                }
-            }
-
-            return this.newInstance(handOver(result as TValue[]));
-        }
-
-        if (isObject(this.items) && isObject(otherItems)) {
-            const result = mergeRecursively(this.items, otherItems) as Record<
-                TKey,
-                TValue | TMergeRecursiveValue
-            >;
-
-            return this.newInstance(handOver(result));
-        }
-
-        return this.merge(items as DataItems<TValue, TKey>) as Collection<
-            TValue | TMergeRecursiveValue,
-            TKey
-        >;
+        return this.newInstance(
+            inPhpOrder(mergeRecursively(receiver, this.operandEntries(items))),
+        );
     }
 
     /**
@@ -6563,6 +6492,96 @@ function inPhpOrder<TValue>(
     }
 
     return entries;
+}
+
+/**
+ * Merge entries into a PHP array's as array_merge_recursive does: an integer key appends under the next free one, a
+ * string key both hold merges both values, and a new string key joins with its value.
+ *
+ * @param target - The entries merged into, in order, which this writes
+ * @param source - The entries to merge in, in order
+ * @returns The target
+ */
+function mergeRecursively(
+    target: Map<PropertyKey, unknown>,
+    source: Array<[PropertyKey, unknown]>,
+): Map<PropertyKey, unknown> {
+    let next = nextIntegerKey(target);
+
+    for (const [key, value] of source) {
+        if (isNumber(key)) {
+            target.set(next++, value);
+        } else if (target.has(key)) {
+            const merged = mergeRecursively(
+                new Map(phpArrayEntries(target.get(key))),
+                phpArrayEntries(value),
+            );
+
+            target.set(key, phpArrayValue(merged));
+        } else {
+            target.set(key, value);
+        }
+    }
+
+    return target;
+}
+
+/**
+ * A value's entries as PHP's array cast reads them in array_merge_recursive.
+ *
+ * @param value - A list or plain object, which model a PHP array, or any other value
+ * @returns The entries, each key cast as PHP casts an array key, or the value alone under key 0
+ */
+function phpArrayEntries(value: unknown): Array<[PropertyKey, unknown]> {
+    // JS-only: PHP casts an object to its properties; a Date, Map or class instance stays one value here.
+    if (isArray(value) || isPlainObject(value)) {
+        return Object.entries(value).map(([key, entry]) => [
+            phpArrayKey(key),
+            entry,
+        ]);
+    }
+
+    return [[0, value]];
+}
+
+/**
+ * The key PHP's `$array[] =` writes next: one past the highest integer key, negative ones included, or 0 when none.
+ *
+ * @param entries - The entries of the array written to
+ * @returns The next free integer key
+ */
+function nextIntegerKey(entries: Map<PropertyKey, unknown>): number {
+    let highest: number | null = null;
+
+    for (const key of entries.keys()) {
+        if (isNumber(key) && (isNull(highest) || key > highest)) {
+            highest = key;
+        }
+    }
+
+    return isNull(highest) ? 0 : highest + 1;
+}
+
+/**
+ * Build a nested value from entries in PHP's order: a list while their keys run 0..n-1, otherwise a plain object.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns The values as a list, or an object holding every entry
+ */
+function phpArrayValue(
+    entries: Map<PropertyKey, unknown>,
+): unknown[] | Record<string, unknown> {
+    if ([...entries.keys()].every((key, index) => key === index)) {
+        return [...entries.values()];
+    }
+
+    const value: Record<string, unknown> = {};
+
+    for (const [key, entry] of entries) {
+        defineKey(value, key, entry);
+    }
+
+    return value;
 }
 
 /**

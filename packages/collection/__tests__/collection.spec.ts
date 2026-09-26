@@ -6038,15 +6038,15 @@ describe("Collection", () => {
                 { b: 5, c: 6, d: [10, 11], e: { x: 3, z: 4 } },
                 3,
             ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-merging-arrays"
             expect(target.mergeRecursive(source).all()).toEqual([
-                [1, 2],
-                [4, 5, 7, 6, 8],
-                {
-                    b: [4, 5],
-                    c: [5, 6],
-                    d: [8, 9, 10, 11],
-                    e: { x: [1, 3], y: 2, z: 4 },
-                },
+                1,
+                [4, 5, 7],
+                { b: 4, c: 5, d: [8, 9], e: { x: 1, y: 2 } },
+                2,
+                [6, 8],
+                { b: 5, c: 6, d: [10, 11], e: { x: 3, z: 4 } },
                 3,
             ]);
         });
@@ -6054,10 +6054,14 @@ describe("Collection", () => {
         it("test merging arrays when target array is longer than source", () => {
             const target = collect([1, [2, 3, 4], { a: 7, b: 8, c: 9 }]);
             const source = collect([5, [6]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-target-longer"
             expect(target.mergeRecursive(source).all()).toEqual([
-                [1, 5],
-                [2, 3, 4, 6],
+                1,
+                [2, 3, 4],
                 { a: 7, b: 8, c: 9 },
+                5,
+                [6],
             ]);
         });
 
@@ -6080,6 +6084,86 @@ describe("Collection", () => {
                 b: { x: 2, y: 3 },
                 c: [4, 5],
             });
+        });
+
+        it("appends a list's items at the top level, as it does every integer key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-list-list-appends"
+            expect(
+                collect([1, [2, 3]])
+                    .mergeRecursive([4, [5]])
+                    .all(),
+            ).toEqual([1, [2, 3], 4, [5]]);
+        });
+
+        it("appends a scalar operand as one item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-operand"
+            expect(collect([1]).mergeRecursive(2).all()).toEqual([1, 2]);
+        });
+
+        it("keeps a record's string keys before the list it appends", () => {
+            const merged = collect({ a: 1, b: 2 }).mergeRecursive([3, 4]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-assoc-then-list"
+            expect(merged.all()).toEqual({ a: 1, b: 2, 0: 3, 1: 4 });
+            expect(merged.keys().all()).toEqual(["a", "b", 0, 1]);
+            expect(merged.values().all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("renumbers integer keys for a null operand too", () => {
+            const merged = collect({ 5: "a", k: "b" }).mergeRecursive(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-null-renumbers"
+            expect(merged.all()).toEqual({ 0: "a", k: "b" });
+            expect(merged.keys().all()).toEqual([0, "k"]);
+            expect(merged.values().all()).toEqual(["a", "b"]);
+        });
+
+        it("merges the values a string key both hold as arrays, a value that is not one joining the other", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-meets-assoc"
+            expect(
+                collect({ a: 1 })
+                    .mergeRecursive({ a: { x: 1 } })
+                    .get("a"),
+            ).toEqual({ 0: 1, x: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-assoc-meets-scalar"
+            // PHP keeps x before 0, an order a nested plain object cannot hold.
+            expect(
+                collect({ a: { x: 1 } })
+                    .mergeRecursive({ a: 2 })
+                    .get("a"),
+            ).toEqual({ x: 1, 0: 2 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-list-meets-assoc"
+            expect(
+                collect({ a: [1, 2] })
+                    .mergeRecursive({ a: { x: 3 } })
+                    .get("a"),
+            ).toEqual({ 0: 1, 1: 2, x: 3 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-null-meets-scalar"
+            expect(collect({ a: null }).mergeRecursive({ a: 1 }).all()).toEqual(
+                { a: [null, 1] },
+            );
+        });
+
+        it("appends a nested integer key after the highest one held", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-nested-int-keys-append"
+            expect(
+                collect({ a: { 5: "p" } })
+                    .mergeRecursive({ a: { 5: "q" } })
+                    .get("a"),
+            ).toEqual({ 5: "p", 6: "q" });
+        });
+
+        it("keeps an object that is not a plain object whole", () => {
+            const first = new Date(0);
+            const second = new Date(86_400_000);
+
+            // JS-only: PHP casts an object to an array of its properties and merges those, where a Date is one value
+            expect(
+                collect({ a: first }).mergeRecursive({ a: second }).get("a"),
+            ).toEqual([first, second]);
         });
     });
 
