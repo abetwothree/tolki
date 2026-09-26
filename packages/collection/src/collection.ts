@@ -70,6 +70,7 @@ import {
     arrayKeyExistsError,
     compareValues,
     createSortSpecComparator,
+    cssListItemToString,
     defineKey,
     InvalidArgumentException,
     isArray,
@@ -96,7 +97,6 @@ import {
     ItemNotFoundException,
     looseEqual,
     MultipleItemsFoundException,
-    objectToString,
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
@@ -1481,19 +1481,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null = null,
         glue: string | null = null,
     ) {
-        const convertToString = (item: unknown): string => {
-            if (objectToString(item)) {
-                return item.toString();
-            }
-
-            return String(item);
-        };
-
-        const joinItems = (items: unknown[], separator: string | null) => {
-            const stringValues = items.map(convertToString);
-
-            return stringValues.join(separator ?? "");
-        };
+        // PHP's implode() casts true to "1", and false and null to "".
+        const joinItems = (items: unknown[], separator: string | null) =>
+            items.map(cssListItemToString).join(separator ?? "");
 
         if (isFunction(value)) {
             const ordered = this.orderedEntries();
@@ -1787,7 +1777,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const finalItem = collection.pop();
 
-        return collection.implode(glue) + finalGlue + finalItem;
+        // PHP's . casts the last item as implode() casts the others.
+        return `${collection.implode(glue)}${finalGlue}${cssListItemToString(finalItem)}`;
     }
 
     /**

@@ -4556,6 +4556,19 @@ describe("Collection", () => {
             const c = collect({ a: "apple", b: "banana", c: "cherry" });
             expect(c.implode(", ")).toBe("apple, banana, cherry");
         });
+
+        it("casts each piece as PHP's implode() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-scalar-casts"
+            expect(collect([true, false, null, 1.0, 2.5, 0]).implode(",")).toBe(
+                "1,,,1,2.5,0",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-missing-key"
+            expect(collect([{ a: 1 }, { b: 2 }]).implode("a", ",")).toBe("1,");
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-callback-casts"
+            expect(collect([1, 2]).implode((value) => value > 1, ",")).toBe(
+                ",1",
+            );
+        });
     });
 
     describe("intersect", () => {
@@ -5609,6 +5622,15 @@ describe("Collection", () => {
             expect(collect(["a", "b"]).join(", ", " and ")).toBe("a and b");
             expect(collect(["a"]).join(", ", " and ")).toBe("a");
             expect(collect([]).join(", ", " and ")).toBe("");
+        });
+
+        it("casts its last item as PHP's . does, and the rest as implode() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-null-last-item" and
+            // "C32-H-join-bool-items"
+            expect([
+                collect(["a", null]).join(", ", " and "),
+                collect([true, false, true]).join(", ", " and "),
+            ]).toEqual(["a and ", "1,  and 1"]);
         });
     });
 
