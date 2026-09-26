@@ -1090,6 +1090,20 @@ describe("Collection", () => {
         });
 
         it("Laravel Tests", () => {
+            // CollectionTest::testCollapse, with class instances standing in for its stdClass items
+            class Item {}
+            const object1 = new Item();
+            const object2 = new Item();
+            const objects = collect([[object1], [object2]])
+                .collapse()
+                .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapse-nested-collections": its
+            // "objects" count
+            expect(objects).toEqual([object1, object2]);
+            expect(objects[0]).toBe(object1);
+            expect(objects[1]).toBe(object2);
+
             expect(collect([[], [], []]).collapse().all()).toEqual([]);
             expect(collect([{}, {}, {}]).collapse().all()).toEqual({});
 
@@ -1121,6 +1135,14 @@ describe("Collection", () => {
                     .collapse()
                     .all(),
             ).toEqual([1, 2, "foo", "bar"]);
+        });
+
+        it("test collapse with nested collections", () => {
+            // CollectionTest::testCollapseWithNestedCollections
+            const data = collect([collect([1, 2, 3]), collect([4, 5, 6])]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapse-nested-collections"
+            expect(data.collapse().all()).toEqual([1, 2, 3, 4, 5, 6]);
         });
 
         it("keeps list items beside an object item on a list backing", () => {
@@ -2880,7 +2902,10 @@ describe("Collection", () => {
                 orange: 2,
             });
 
+            // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
             expect(collect([]).flip().all()).toEqual({});
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-empty"
+            expect(collect([]).flip().toJson()).toBe("[]");
             expect(collect({ name: "taylor" }).flip().all()).toEqual({
                 taylor: "name",
             });
@@ -3505,6 +3530,7 @@ describe("Collection", () => {
         });
 
         it("group key is undefined", () => {
+            // JS-only: undefined is read as PHP's null, which groups under the "" key
             const collection = collect([{ value: undefined }, { value: 1 }]);
             const grouped = collection.groupBy("value");
             expect(grouped.toArray()).toEqual({
@@ -3638,7 +3664,7 @@ describe("Collection", () => {
 
         it("groups items under an empty string key when callback returns null or undefined", () => {
             const c = collect(["apple", "", "banana"]);
-            // Empty string's first char is undefined
+            // JS-only: an empty string's first character is undefined, which is read as PHP's null
             const grouped = c.groupBy((item) => item[0]);
             expect(grouped.toArray()).toEqual({
                 a: ["apple"],
@@ -5094,6 +5120,42 @@ describe("Collection", () => {
                 expect(data.pluck("email").all()).toEqual(["foo", "bar"]);
             });
 
+            it("test pluck with array access values", () => {
+                // CollectionTest::testPluckWithArrayAccessValues
+                class TestArrayAccessImplementation {
+                    readonly #items: Record<string, unknown>;
+
+                    constructor(items: Record<string, unknown>) {
+                        this.#items = items;
+                    }
+
+                    offsetExists(offset: string): boolean {
+                        return Object.hasOwn(this.#items, offset);
+                    }
+
+                    offsetGet(offset: string): unknown {
+                        return this.#items[offset];
+                    }
+                }
+
+                const data = collect([
+                    new TestArrayAccessImplementation({
+                        name: "taylor",
+                        email: "foo",
+                    }),
+                    new TestArrayAccessImplementation({
+                        name: "dayle",
+                        email: "bar",
+                    }),
+                ]);
+
+                expect(data.pluck("email", "name").all()).toEqual({
+                    taylor: "foo",
+                    dayle: "bar",
+                });
+                expect(data.pluck("email").all()).toEqual(["foo", "bar"]);
+            });
+
             it("test pluck with dot notation", () => {
                 const data = collect([
                     {
@@ -5414,6 +5476,9 @@ describe("Collection", () => {
                     3: "C",
                     C: 3,
                 });
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-multiple-rows-order"
+                expect(mapped.keys().all()).toEqual([1, "A", 2, "B", 3, "C"]);
+                expect(mapped.values().all()).toEqual(["A", 1, "B", 2, "C", 3]);
             });
 
             it("test map with keys callback key", () => {
@@ -5430,6 +5495,24 @@ describe("Collection", () => {
                 });
 
                 expect(mapped.keys().all()).toEqual([3, 5, 4]);
+            });
+
+            it("test map with keys overwriting keys", () => {
+                // CollectionTest::testMapWithKeysOverwritingKeys
+                const data = collect([
+                    { id: 1, name: "A" },
+                    { id: 2, name: "B" },
+                    { id: 1, name: "C" },
+                ]);
+
+                const mapped = data.mapWithKeys((item) => {
+                    return { [item.id]: item.name };
+                });
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-overwriting-keys"
+                expect(mapped.all()).toEqual({ 1: "C", 2: "B" });
+                expect(mapped.keys().all()).toEqual([1, 2]);
+                expect(mapped.values().all()).toEqual(["C", "B"]);
             });
         });
 
@@ -5464,10 +5547,8 @@ describe("Collection", () => {
             expect(objectSeenKeys).toEqual(["0x10", "1e3"]);
         });
 
-        // Collection.mapWithKeys builds an internal Map to hold PHP-like insertion order
-        // for numeric keys, but that Map must never leak out through all(): PHP has no
-        // Map, so callers must always see one plain container.
         it("never exposes the internal Map through .all(), either backing", () => {
+            // JS-only: the result is built through a Map to keep PHP's key order, which all() must never hand back.
             const fromArray = collect([1, 2]).mapWithKeys((value) => ({
                 [value]: value,
             }));
@@ -11050,6 +11131,17 @@ describe("Collection", () => {
             });
         });
 
+        it("keeps a list's keys and values in order, which JSON writes as a list", () => {
+            const dotted = collect(["a", "b"]).dot();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-dot-list-backing"
+            expect(dotted.keys().all()).toEqual([0, 1]);
+            expect(dotted.values().all()).toEqual(["a", "b"]);
+            expect(dotted.toJson()).toBe('["a","b"]');
+            // JS-only: a keyed result keeps its record, where PHP's array with the keys 0 and 1 is a list
+            expect(dotted.all()).toEqual({ 0: "a", 1: "b" });
+        });
+
         it("flattens objects inside an array backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
             expect(
@@ -11126,6 +11218,17 @@ describe("Collection", () => {
                     },
                 });
             });
+        });
+
+        it("keeps the keys 0 and 1 and their values in order, which JSON writes as a list", () => {
+            const undotted = collect({ 0: "a", 1: "b" }).undot();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-dot-list-backing"
+            expect(undotted.keys().all()).toEqual([0, 1]);
+            expect(undotted.values().all()).toEqual(["a", "b"]);
+            expect(undotted.toJson()).toBe('["a","b"]');
+            // JS-only: a keyed result keeps its record, where PHP's array with the keys 0 and 1 is a list
+            expect(undotted.all()).toEqual({ 0: "a", 1: "b" });
         });
 
         it("rebuilds a list from consecutive integer segments starting at 0, through the object backing", () => {
@@ -12680,6 +12783,8 @@ describe("Collection", () => {
         });
 
         it("spreads scalar items and passes index last", () => {
+            // JS-only: PHP throws "Cannot use a scalar value as an array" for a scalar row, per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-scalar-row"
             const c = collect([10, 20]);
             const args: unknown[] = [];
             c.eachSpread((value, key) => {
@@ -13327,6 +13432,19 @@ describe("Collection", () => {
                 });
                 expect(result3.all()).toEqual(["1-a-0", "2-b-1"]);
             });
+        });
+
+        it("spreads a scalar row as a lone value, then its key", () => {
+            // JS-only: PHP throws "Cannot use a scalar value as an array" for a scalar row, per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-scalar-row"
+            expect(
+                collect([10, 20])
+                    .mapSpread((...values) => values)
+                    .all(),
+            ).toEqual([
+                [10, 0],
+                [20, 1],
+            ]);
         });
 
         it("spreads a list row and appends the key, through the object backing", () => {
@@ -19639,6 +19757,32 @@ describe("Collection", () => {
             (_method, run) => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-mixed-key-order"
                 expect(run()).toEqual(["s", 5]);
+            },
+        );
+
+        it.each([
+            [
+                "mapWithKeys",
+                () =>
+                    collect<string>([]).mapWithKeys((value) => ({
+                        [value]: value,
+                    })),
+            ],
+            ["groupBy", () => collect<string>([]).groupBy("x")],
+            ["countBy", () => collect<string>([]).countBy()],
+            ["keyBy", () => collect<string>([]).keyBy("x")],
+            ["flip", () => collect<string>([]).flip()],
+        ] as [string, () => Collection<unknown, PropertyKey>][])(
+            "%s writes an empty result as PHP's empty array",
+            (_method, run) => {
+                const result = run();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-empty"
+                expect(result.toJson()).toBe("[]");
+                expect(result.keys().all()).toEqual([]);
+                expect(result.values().all()).toEqual([]);
+                // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
+                expect(result.all()).toEqual({});
             },
         );
 
