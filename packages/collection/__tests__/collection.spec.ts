@@ -1202,6 +1202,7 @@ describe("Collection", () => {
 
     describe("collapseWithKeys", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testCollapseWithKeys
             const data = collect([{ 1: "a" }, { 3: "c" }, { 2: "b" }, "drop"]);
             expect(data.collapseWithKeys().all()).toEqual({
                 1: "a",
@@ -1212,6 +1213,7 @@ describe("Collection", () => {
             const data2 = collect(["a", "b", "c"]);
             expect(data2.collapseWithKeys().all()).toEqual([]);
 
+            // CollectionTest::testCollapseWithKeysOnNestedCollections
             const data3 = collect([
                 new Collection({ a: "1a", b: "1b" }),
                 new Collection({ b: "2b", c: "2c" }),
@@ -1279,6 +1281,7 @@ describe("Collection", () => {
         });
 
         it("collapses an outer collection with string keys", () => {
+            // CollectionTest::testCollapseWithKeysWithStringKeys
             // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
             // "collapseWithKeys-mixed-keys" and "collapseWithKeys-string-keys-lists"
             expect(
@@ -2723,6 +2726,7 @@ describe("Collection", () => {
     describe("flatten", () => {
         describe("Laravel Tests", () => {
             it("test flatten", () => {
+                // CollectionTest::testFlatten
                 // Flat arrays are unaffected
                 const c = collect(["#foo", "#bar", "#baz"]);
                 expect(c.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
@@ -2774,6 +2778,7 @@ describe("Collection", () => {
             });
 
             it("test flatten with depth", () => {
+                // CollectionTest::testFlattenWithDepth
                 // No depth flattens recursively
                 const c = collect([["#foo", ["#bar", ["#baz"]]], "#zap"]);
                 expect(c.flatten().all()).toEqual([
@@ -2807,6 +2812,7 @@ describe("Collection", () => {
             });
 
             it("test flatten ignores keys", () => {
+                // CollectionTest::testFlattenIgnoresKeys
                 // No depth ignores keys
                 const c = collect([
                     "#foo",
@@ -2889,6 +2895,7 @@ describe("Collection", () => {
 
     describe("flip", () => {
         it("Laravel Test", () => {
+            // CollectionTest::testFlip
             const data = collect({ name: "taylor", framework: "laravel" });
             expect(data.flip().all()).toEqual({
                 taylor: "name",
@@ -2912,6 +2919,7 @@ describe("Collection", () => {
         });
 
         it("skips unsupported values", () => {
+            // CollectionTest::testFlipSkipsUnsupportedValues
             const data = collect({
                 string: "taylor",
                 integer: 1,
@@ -3161,6 +3169,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test group by attribute", () => {
+                // CollectionTest::testGroupByAttribute
                 const data = collect([
                     { rating: 1, url: "1" },
                     { rating: 1, url: "1" },
@@ -3277,6 +3286,7 @@ describe("Collection", () => {
             });
 
             it("test group by attribute preserving keys", () => {
+                // CollectionTest::testGroupByAttributePreservingKeys
                 const data = collect({
                     10: { rating: 1, url: "1" },
                     20: { rating: 1, url: "1" },
@@ -3299,6 +3309,7 @@ describe("Collection", () => {
             });
 
             it("test group by closure where items have single group", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveSingleGroup
                 const data = collect([
                     { rating: 1, url: "1" },
                     { rating: 1, url: "1" },
@@ -3319,6 +3330,7 @@ describe("Collection", () => {
             });
 
             it("test group by closure where items have single group preserving keys", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveSingleGroupPreservingKeys
                 const data = collect({
                     10: { rating: 1, url: "1" },
                     20: { rating: 1, url: "1" },
@@ -3341,6 +3353,7 @@ describe("Collection", () => {
             });
 
             it("test group by closure where items have multiple groups", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveMultipleGroups
                 const data = collect([
                     { user: 1, roles: ["Role_1", "Role_3"] },
                     { user: 2, roles: ["Role_1", "Role_2"] },
@@ -3363,6 +3376,7 @@ describe("Collection", () => {
             });
 
             it("test group by closure where items have multiple groups preserving keys", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveMultipleGroupsPreservingKeys
                 const data = collect({
                     10: { user: 1, roles: ["Role_1", "Role_3"] },
                     20: { user: 2, roles: ["Role_1", "Role_2"] },
@@ -3389,6 +3403,7 @@ describe("Collection", () => {
             });
 
             it("test group by multi-level and closure preserving keys", () => {
+                // CollectionTest::testGroupByMultiLevelAndClosurePreservingKeys
                 const data = collect({
                     10: { user: 1, skilllevel: 1, roles: ["Role_1", "Role_3"] },
                     20: { user: 2, skilllevel: 1, roles: ["Role_1", "Role_2"] },
@@ -3452,6 +3467,7 @@ describe("Collection", () => {
             });
 
             it("test group by null", () => {
+                // CollectionTest::testGroupByNull
                 const payload = [
                     { name: "a", url: "1" },
                     { name: "b", url: null },
@@ -3685,6 +3701,7 @@ describe("Collection", () => {
     describe("keyBy", () => {
         describe("Laravel Tests", () => {
             it("test key by attribute", () => {
+                // CollectionTest::testKeyByAttribute
                 const data = collect([
                     { rating: 1, name: "1" },
                     { rating: 2, name: "2" },
@@ -3709,6 +3726,7 @@ describe("Collection", () => {
             });
 
             it("test key by closure", () => {
+                // CollectionTest::testKeyByClosure
                 const data = collect([
                     { firstname: "Taylor", lastname: "Otwell", locale: "US" },
                     { firstname: "Lucas", lastname: "Michot", locale: "FR" },
@@ -3733,6 +3751,7 @@ describe("Collection", () => {
             });
 
             it("test key by object", () => {
+                // CollectionTest::testKeyByObject
                 const data = collect([
                     { firstname: "Taylor", lastname: "Otwell", locale: "US" },
                     { firstname: "Lucas", lastname: "Michot", locale: "FR" },
@@ -3757,6 +3776,7 @@ describe("Collection", () => {
             });
 
             it("test key by null", () => {
+                // CollectionTest::testKeyByNull
                 const data = collect([
                     { rating: 1, name: "1" },
                     { rating: 2, name: null },
@@ -5108,6 +5128,7 @@ describe("Collection", () => {
     describe("pluck", () => {
         describe("Laravel Tests", () => {
             it("test pluck with array and object values", () => {
+                // CollectionTest::testPluckWithArrayAndObjectValues
                 const data = collect([
                     { name: "taylor", email: "foo" },
                     { name: "dayle", email: "bar" },
@@ -5157,6 +5178,7 @@ describe("Collection", () => {
             });
 
             it("test pluck with dot notation", () => {
+                // CollectionTest::testPluckWithDotNotation
                 const data = collect([
                     {
                         name: "amir",
@@ -5179,6 +5201,7 @@ describe("Collection", () => {
             });
 
             it("test pluck with closure", () => {
+                // CollectionTest::testPluckWithClosure
                 const data = collect([
                     {
                         name: "amir",
@@ -5209,6 +5232,7 @@ describe("Collection", () => {
             });
 
             it("test pluck duplicate keys exist", () => {
+                // CollectionTest::testPluckDuplicateKeysExist
                 const data = collect([
                     { brand: "Tesla", color: "red" },
                     { brand: "Pagani", color: "white" },
@@ -5290,6 +5314,7 @@ describe("Collection", () => {
 
     describe("map", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testMap
             const data = collect([1, 2, 3]);
             const mapped = data.map((item) => item * 2);
             expect(mapped.all()).toEqual([2, 4, 6]);
@@ -5323,6 +5348,7 @@ describe("Collection", () => {
     describe("mapToDictionary", () => {
         describe("Laravel Tests", () => {
             it("test map to dictionary", () => {
+                // CollectionTest::testMapToDictionary
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 2, name: "B" },
@@ -5354,6 +5380,7 @@ describe("Collection", () => {
             });
 
             it("test map to dictionary with numeric keys", () => {
+                // CollectionTest::testMapToDictionaryWithNumericKeys
                 const data = collect([1, 2, 3, 2, 1]);
 
                 const groups = data.mapToDictionary((item, key) => {
@@ -5423,6 +5450,7 @@ describe("Collection", () => {
     describe("mapWithKeys", () => {
         describe("Laravel Tests", () => {
             it("test map with keys", () => {
+                // CollectionTest::testMapWithKeys
                 const data = collect([
                     { name: "Blastoise", type: "Water", idx: 9 },
                     { name: "Charmander", type: "Fire", idx: 4 },
@@ -5441,6 +5469,7 @@ describe("Collection", () => {
             });
 
             it("test map with keys integer keys", () => {
+                // CollectionTest::testMapWithKeysIntegerKeys
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 3, name: "B" },
@@ -5455,6 +5484,7 @@ describe("Collection", () => {
             });
 
             it("test map with keys multiple rows", () => {
+                // CollectionTest::testMapWithKeysMultipleRows
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 2, name: "B" },
@@ -5482,6 +5512,7 @@ describe("Collection", () => {
             });
 
             it("test map with keys callback key", () => {
+                // CollectionTest::testMapWithKeysCallbackKey
                 const data = collect(
                     new Map([
                         [3, { id: 1, name: "A" }],
@@ -11085,6 +11116,7 @@ describe("Collection", () => {
     describe("dot", () => {
         describe("Laravel Tests", () => {
             it("test dot", () => {
+                // CollectionTest::testDot
                 const data = Collection.make({
                     name: "Taylor",
                     meta: {
@@ -11162,6 +11194,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests - dotWithDepth", () => {
             it("test dot with depth", () => {
+                // CollectionTest::testDotWithDepth
                 const data = Collection.make({
                     name: "Taylor",
                     meta: {
@@ -11186,6 +11219,7 @@ describe("Collection", () => {
     describe("undot", () => {
         describe("Laravel Tests", () => {
             it("test undot", () => {
+                // CollectionTest::testUndot
                 const data = Collection.make({
                     name: "Taylor",
                     "meta.foo": "bar",
@@ -12680,6 +12714,7 @@ describe("Collection", () => {
             });
 
             it("test each spread", () => {
+                // CollectionTest::testEachSpread
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
@@ -12724,6 +12759,7 @@ describe("Collection", () => {
     describe("eachSpread", () => {
         describe("Laravel Tests", () => {
             it("test each spread", () => {
+                // CollectionTest::testEachSpread
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
@@ -13407,6 +13443,7 @@ describe("Collection", () => {
     describe("mapSpread", () => {
         describe("Laravel Tests", () => {
             it("test map spread", () => {
+                // CollectionTest::testMapSpread
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
@@ -13469,6 +13506,7 @@ describe("Collection", () => {
     describe("mapToGroups", () => {
         describe("Laravel Tests", () => {
             it("test map to groups", () => {
+                // CollectionTest::testMapToGroups
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 2, name: "B" },
@@ -13486,6 +13524,7 @@ describe("Collection", () => {
             });
 
             it("test map to groups with numeric keys", () => {
+                // CollectionTest::testMapToGroupsWithNumericKeys
                 const data = collect([1, 2, 3, 2, 1]);
 
                 const groups = data.mapToGroups((item, key) => {
@@ -13505,6 +13544,7 @@ describe("Collection", () => {
     describe("flatMap", () => {
         describe("Laravel Tests", () => {
             it("test flat map", () => {
+                // CollectionTest::testFlatMap
                 const data = collect([
                     {
                         name: "taylor",
@@ -13533,6 +13573,7 @@ describe("Collection", () => {
     describe("mapInto", () => {
         describe("Laravel Tests", () => {
             it("test map into", () => {
+                // CollectionTest::testMapInto
                 const data = collect(["first", "second"]);
 
                 const mapped = data.mapInto(TestCollectionMapIntoObject);
