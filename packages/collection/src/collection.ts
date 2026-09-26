@@ -115,6 +115,7 @@ import {
     renumberPhpIntegerKeys,
     resolveDefault,
     resolvePadLength,
+    resolveRangeSize,
     resolveSliceRange,
     resolveSpliceRange,
     resolveTakeCount,
@@ -308,71 +309,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         step: number = 1,
         ...args: unknown[]
     ): Collection<number, number> {
-        if (!isFiniteNumber(step)) {
-            throw nonFiniteRangeArgument("#3 ($step)", step);
-        }
-
-        if (step === 0) {
-            throw new Error("range(): Argument #3 ($step) cannot be 0");
-        }
-
-        if (!isFiniteNumber(from)) {
-            throw nonFiniteRangeArgument("#1 ($start)", from);
-        }
-
-        if (!isFiniteNumber(to)) {
-            throw nonFiniteRangeArgument("#2 ($end)", to);
-        }
-
-        if (to > from && step < 0) {
-            throw new Error(
-                "range(): Argument #3 ($step) must be greater than 0 for increasing ranges",
-            );
-        }
-
+        const size = resolveRangeSize(from, to, step);
         const stride = Math.abs(step);
-        const span = Math.abs(to - from);
-
-        if (span !== 0 && span < stride) {
-            throw new Error(
-                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
-            );
-        }
-
         const descending = to < from;
-        const sized = span / stride + 1;
-        // A number is one of PHP's ints exactly when PHP can store it as an array key: an integer within 64 bits.
-        const isFloatRange = ![from, to, step].every((bound) =>
-            isPhpArrayKey(bound),
-        );
-
-        if (sized >= PHP_MAX_ARRAY_SIZE) {
-            throw rangeTooLarge(
-                Math.min(from, to),
-                Math.max(from, to),
-                stride,
-                isFloatRange,
-            );
-        }
-
-        const whole = Math.floor(sized);
-        // PHP rounds a float range's size half up, where an integer range's is floored.
-        const size = isFloatRange && sized - whole >= 0.5 ? whole + 1 : whole;
-        const items: number[] = [];
-
-        for (let index = 0; index < size; index++) {
-            // Each item is reckoned from the start, so a float step's rounding error never builds up.
-            const item = descending
-                ? from - index * stride
-                : from + index * stride;
-
-            // The rounded size can reach one step past the end, and PHP drops that item.
-            if (descending ? item < to : item > to) {
-                break;
-            }
-
-            items.push(item);
-        }
+        // Each item is reckoned from the start, so a float step's rounding error never builds up. The rounded size
+        // can reach one step past the end, and PHP drops that item.
+        const items = Array.from({ length: size }, (_, index) =>
+            descending ? from - index * stride : from + index * stride,
+        ).filter((item) => (descending ? item >= to : item <= to));
 
         return new (this as CollectionClass<number, number>)(
             handOver(items),
@@ -2871,15 +2815,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         const chunks = Math.floor((this.count() - size) / step) + 1;
-
-        // static::times() hands the count to range(), which refuses NAN.
-        if (Number.isNaN(chunks)) {
-            throw nonFiniteRangeArgument("#2 ($end)", chunks);
-        }
-
+        // static::times() builds no window below 1 and hands range() the rest, which refuses NAN.
+        const windowCount = chunks < 1 ? 0 : resolveRangeSize(1, chunks, 1);
         const windows: this[] = [];
 
-        for (let window = 1; window <= chunks; window++) {
+        for (let window = 1; window <= windowCount; window++) {
             windows.push(this.slice((window - 1) * step, size));
         }
 
@@ -6993,67 +6933,6 @@ function jsonSerializeItem(value: unknown): unknown {
     }
 
     return value;
-}
-
-/** The most items a PHP array holds: HT_MAX_SIZE on a 64-bit build. */
-const PHP_MAX_ARRAY_SIZE = 2 ** 30;
-
-/**
- * The ValueError PHP's range() throws for a range past the maximum array size, as a plain Error.
- *
- * @param low - The range's lower bound
- * @param high - The range's upper bound
- * @param stride - The step, without its sign
- * @param isFloatRange - Whether PHP holds a bound or the step as a float, which prints all three with a decimal
- * @returns The error to throw
- */
-function rangeTooLarge(
-    low: number,
-    high: number,
-    stride: number,
-    isFloatRange: boolean,
-): Error {
-    if (isFloatRange) {
-        const size = (high - low) / stride + 1;
-
-        return new Error(
-            `The supplied range exceeds the maximum array size by ${phpFixedPoint(size - PHP_MAX_ARRAY_SIZE)} elements: start=${phpFixedPoint(low)}, end=${phpFixedPoint(high)}, step=${phpFixedPoint(stride)}. Max size: ${PHP_MAX_ARRAY_SIZE}`,
-        );
-    }
-
-    // Integer division, as PHP's is, exact past 2^53 where a double's would round.
-    const calculated = (BigInt(high) - BigInt(low)) / BigInt(stride);
-
-    return new Error(
-        `The supplied range exceeds the maximum array size by ${calculated + 1n - BigInt(PHP_MAX_ARRAY_SIZE)} elements: start=${low}, end=${high}, step=${stride}. Calculated size: ${calculated}. Maximum size: ${PHP_MAX_ARRAY_SIZE}.`,
-    );
-}
-
-/**
- * Print a float the way PHP's `%.1f` does, every digit of a large one included.
- *
- * @param value - The finite float to print
- * @returns The number with one decimal
- */
-function phpFixedPoint(value: number): string {
-    // toFixed() switches to an exponent from 1e21 on, where %.1f keeps printing digits; such a double is an integer.
-    return Math.abs(value) < 1e21 ? value.toFixed(1) : `${BigInt(value)}.0`;
-}
-
-/**
- * The ValueError PHP's range() throws for an argument that is NAN or INF, as a plain Error.
- *
- * @param argument - The argument's position and name, as PHP's message prints them
- * @param value - The argument, which is not a finite number
- * @returns The error to throw
- */
-function nonFiniteRangeArgument(argument: string, value: number): Error {
-    // PHP prints INF for either infinity.
-    const provided = Number.isNaN(value) ? "NAN" : "INF";
-
-    return new Error(
-        `range(): Argument ${argument} must be a finite number, ${provided} provided`,
-    );
 }
 
 /**

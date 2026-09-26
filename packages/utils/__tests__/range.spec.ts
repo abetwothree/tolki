@@ -114,4 +114,119 @@ describe("Utils", () => {
             }
         });
     });
+
+    describe("resolveRangeSize", () => {
+        it("counts an integer range's whole steps and rounds a float range's size half up", () => {
+            // CollectionTest::testRangeMethod
+            expect(Utils.resolveRangeSize(1, 5, 1)).toBe(5);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-step"
+            expect(Utils.resolveRangeSize(10, 1, 3)).toBe(4);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-size-rounds-half-up"
+            expect(Utils.resolveRangeSize(0.2, 0.5, 0.1)).toBe(4);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-single"
+            expect(Utils.resolveRangeSize(3, 3, 1)).toBe(1);
+        });
+
+        it("throws range()'s ValueError for an argument it refuses, the step's first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-non-finite-arguments-throw",
+            // "C32-A-range-checks-the-step-first", "C32-A-range-step-zero-throws",
+            // "C32-A-range-negative-step-increasing-throws" and "C32-A-range-step-exceeds-span-throws"
+            expect(() => Utils.resolveRangeSize(NaN, NaN, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Utils.resolveRangeSize(NaN, 5, 0)).toThrow(
+                new Error("range(): Argument #3 ($step) cannot be 0"),
+            );
+            expect(() => Utils.resolveRangeSize(-Infinity, 5, 1)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Utils.resolveRangeSize(0, Infinity, 1)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Utils.resolveRangeSize(1, 5, -1)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be greater than 0 for increasing ranges",
+                ),
+            );
+            expect(() => Utils.resolveRangeSize(1, 2, 3)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                ),
+            );
+        });
+
+        it("throws range()'s ValueError past the maximum array size, printing an integer range's bounds or a float range's", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-past-maximum-array-size"
+            for (const [[start, end, step], message] of [
+                [
+                    [1, 1073741824, 1],
+                    "The supplied range exceeds the maximum array size by 0 elements: start=1, end=1073741824, step=1. Calculated size: 1073741823. Maximum size: 1073741824.",
+                ],
+                [
+                    [0, 1073741824, 1],
+                    "The supplied range exceeds the maximum array size by 1 elements: start=0, end=1073741824, step=1. Calculated size: 1073741824. Maximum size: 1073741824.",
+                ],
+                [
+                    [2147483648, 1, 1],
+                    "The supplied range exceeds the maximum array size by 1073741824 elements: start=1, end=2147483648, step=1. Calculated size: 2147483647. Maximum size: 1073741824.",
+                ],
+                [
+                    [1, 2147483648, 2],
+                    "The supplied range exceeds the maximum array size by 0 elements: start=1, end=2147483648, step=2. Calculated size: 1073741823. Maximum size: 1073741824.",
+                ],
+                [
+                    [1, 1e19, 1],
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [1e19, 1, 1],
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [0, 2147483648, 0.5],
+                    "The supplied range exceeds the maximum array size by 3221225473.0 elements: start=0.0, end=2147483648.0, step=0.5. Max size: 1073741824",
+                ],
+                [
+                    [0.5, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258176.5 elements: start=0.5, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [1, 1e22, 1],
+                    "The supplied range exceeds the maximum array size by 9999999999998926258176.0 elements: start=1.0, end=10000000000000000000000.0, step=1.0. Max size: 1073741824",
+                ],
+            ] as [[number, number, number], string][]) {
+                expect(() => Utils.resolveRangeSize(start, end, step)).toThrow(
+                    new Error(message),
+                );
+            }
+        });
+
+        it("throws range()'s ValueError for a count past the maximum array size, as times() hands range() one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-past-maximum-array-size"
+            for (const [[start, end, step], message] of [
+                [
+                    [1, 1e19, 1],
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [1, 2147483648, 1],
+                    "The supplied range exceeds the maximum array size by 1073741824 elements: start=1, end=2147483648, step=1. Calculated size: 2147483647. Maximum size: 1073741824.",
+                ],
+                [
+                    [1, 1073741824, 1],
+                    "The supplied range exceeds the maximum array size by 0 elements: start=1, end=1073741824, step=1. Calculated size: 1073741823. Maximum size: 1073741824.",
+                ],
+            ] as [[number, number, number], string][]) {
+                expect(() => Utils.resolveRangeSize(start, end, step)).toThrow(
+                    new Error(message),
+                );
+            }
+        });
+    });
 });

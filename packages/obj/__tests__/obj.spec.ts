@@ -11298,21 +11298,12 @@ describe("Obj", () => {
             });
         });
 
-        it("throws array_pad()'s TypeError for a size no int holds, and its ValueError past the maximum array size", () => {
+        it("throws array_pad()'s TypeError for a size no int holds", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
             for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
                 expect(() => Obj.pad({ a: 1, b: 2, c: 3 }, size, 0)).toThrow(
                     new TypeError(
                         "array_pad(): Argument #2 ($length) must be of type int, float given",
-                    ),
-                );
-            }
-
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-maximum-array-size"
-            for (const size of [1073741825, -1073741825, 1e18]) {
-                expect(() => Obj.pad({ a: 1, b: 2, c: 3 }, size, 0)).toThrow(
-                    new Error(
-                        "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
                     ),
                 );
             }

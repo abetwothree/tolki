@@ -1,5 +1,9 @@
 import { phpIntArgument } from "./cast";
-import { isInteger, isNull, isUndefined } from "./guards";
+import { isFiniteNumber, isInteger, isNull, isUndefined } from "./guards";
+import { isPhpArrayKey } from "./keys";
+
+/** The most items a PHP array holds: HT_MAX_SIZE on a 64-bit build. */
+const PHP_MAX_ARRAY_SIZE = 2 ** 30;
 
 /**
  * The half-open `[start, end)` window `array_slice($items, $offset, $length)`
@@ -126,12 +130,144 @@ export function resolvePadLength(size: number): number {
         "array_pad(): Argument #2 ($length) must be of type int, float given",
     );
 
-    // No PHP array may hold more elements than HT_MAX_SIZE, 2^30.
-    if (Math.abs(length) > 2 ** 30) {
+    if (Math.abs(length) > PHP_MAX_ARRAY_SIZE) {
         throw new Error(
             "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
         );
     }
 
     return length;
+}
+
+/**
+ * Resolve how many items PHP's `range()` builds from a start to an end by a step, refusing what `range()` refuses.
+ *
+ * A range whose bounds and step PHP holds as ints counts whole steps. Any other range rounds its size half up, and
+ * `range()` then drops an item that rounding puts past the end.
+ *
+ * @param start - The first value
+ * @param end - The value to stop at, counted down to when it is below the start
+ * @param step - The distance between two values, negative only on a decreasing range
+ * @returns The number of items `range()` makes room for
+ * @throws Error when an argument is not a finite number, the step is 0, negative on an increasing range or longer
+ * than the range, or when the range would hold 2^30 items or more, each with the message of PHP's ValueError
+ *
+ * @example
+ * resolveRangeSize(1, 5, 1); -> 5
+ * resolveRangeSize(0, 1, 0.25); -> 5
+ * resolveRangeSize(1, 1e19, 1); -> throws Error
+ */
+export function resolveRangeSize(
+    start: number,
+    end: number,
+    step: number,
+): number {
+    if (!isFiniteNumber(step)) {
+        throw nonFiniteRangeArgument("#3 ($step)", step);
+    }
+
+    if (step === 0) {
+        throw new Error("range(): Argument #3 ($step) cannot be 0");
+    }
+
+    if (!isFiniteNumber(start)) {
+        throw nonFiniteRangeArgument("#1 ($start)", start);
+    }
+
+    if (!isFiniteNumber(end)) {
+        throw nonFiniteRangeArgument("#2 ($end)", end);
+    }
+
+    if (end > start && step < 0) {
+        throw new Error(
+            "range(): Argument #3 ($step) must be greater than 0 for increasing ranges",
+        );
+    }
+
+    const stride = Math.abs(step);
+    const span = Math.abs(end - start);
+
+    if (span !== 0 && span < stride) {
+        throw new Error(
+            "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+        );
+    }
+
+    const sized = span / stride + 1;
+    // A number is one of PHP's ints exactly when PHP can store it as an array key: an integer within 64 bits.
+    const isFloatRange = ![start, end, step].every((bound) =>
+        isPhpArrayKey(bound),
+    );
+
+    if (sized >= PHP_MAX_ARRAY_SIZE) {
+        throw rangeTooLarge(
+            Math.min(start, end),
+            Math.max(start, end),
+            stride,
+            isFloatRange,
+        );
+    }
+
+    const whole = Math.floor(sized);
+
+    // PHP rounds a float range's size half up, where an integer range's is floored.
+    return isFloatRange && sized - whole >= 0.5 ? whole + 1 : whole;
+}
+
+/**
+ * The ValueError PHP's range() throws for an argument that is NAN or INF, as a plain Error.
+ *
+ * @param argument - The argument's position and name, as PHP's message prints them
+ * @param value - The argument, which is not a finite number
+ * @returns The error to throw
+ */
+function nonFiniteRangeArgument(argument: string, value: number): Error {
+    // PHP prints INF for either infinity.
+    const provided = Number.isNaN(value) ? "NAN" : "INF";
+
+    return new Error(
+        `range(): Argument ${argument} must be a finite number, ${provided} provided`,
+    );
+}
+
+/**
+ * The ValueError PHP's range() throws for a range past the maximum array size, as a plain Error.
+ *
+ * @param low - The range's lower bound
+ * @param high - The range's upper bound
+ * @param stride - The step, without its sign
+ * @param isFloatRange - Whether PHP holds a bound or the step as a float, which prints all three with a decimal
+ * @returns The error to throw
+ */
+function rangeTooLarge(
+    low: number,
+    high: number,
+    stride: number,
+    isFloatRange: boolean,
+): Error {
+    if (isFloatRange) {
+        const size = (high - low) / stride + 1;
+
+        return new Error(
+            `The supplied range exceeds the maximum array size by ${phpFixedPoint(size - PHP_MAX_ARRAY_SIZE)} elements: start=${phpFixedPoint(low)}, end=${phpFixedPoint(high)}, step=${phpFixedPoint(stride)}. Max size: ${PHP_MAX_ARRAY_SIZE}`,
+        );
+    }
+
+    // Integer division, as PHP's is, exact past 2^53 where a double's would round.
+    const calculated = (BigInt(high) - BigInt(low)) / BigInt(stride);
+
+    return new Error(
+        `The supplied range exceeds the maximum array size by ${calculated + 1n - BigInt(PHP_MAX_ARRAY_SIZE)} elements: start=${low}, end=${high}, step=${stride}. Calculated size: ${calculated}. Maximum size: ${PHP_MAX_ARRAY_SIZE}.`,
+    );
+}
+
+/**
+ * Print a float the way PHP's `%.1f` does, every digit of a large one included.
+ *
+ * @param value - The finite float to print
+ * @returns The number with one decimal
+ */
+function phpFixedPoint(value: number): string {
+    // toFixed() switches to an exponent from 1e21 on, where %.1f keeps printing digits; such a double is an integer.
+    return Math.abs(value) < 1e21 ? value.toFixed(1) : `${BigInt(value)}.0`;
 }
