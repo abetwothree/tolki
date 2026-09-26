@@ -401,6 +401,37 @@ describe("Utils", () => {
         });
     });
 
+    describe("hasOwnToString", () => {
+        it("answers true for an object with a toString of its own, as PHP casts one with __toString", () => {
+            class Label {
+                toString(): string {
+                    return "S:T";
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces"
+            expect(Utils.hasOwnToString(new Label())).toBe(true);
+        });
+
+        it("answers false for a Date, whose PHP DateTime has no __toString, and for any other value", () => {
+            class Bare {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces" and
+            // "C32-H-implode-date-items-are-plucked"
+            expect(
+                [
+                    new Date(0),
+                    new Bare(),
+                    Object.create(null),
+                    [1],
+                    "a",
+                    1,
+                    null,
+                ].map((value) => Utils.hasOwnToString(value)),
+            ).toEqual([false, false, false, false, false, false, false]);
+        });
+    });
+
     describe("keyedEntries", () => {
         it("answers a plain object exactly as Object.entries does", () => {
             const record = { b: 1, 2: "c", a: 2, 0: "a" };

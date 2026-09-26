@@ -215,8 +215,14 @@ export function arrayKeyExistsError(): TypeError {
  *
  * @param value - The value to test
  * @returns True unless the value is no object, inherits `Object.prototype`'s `toString`, or is a Date
+ *
+ * @example
+ * hasOwnToString(new (class { toString() { return "a"; } })()); -> true
+ * hasOwnToString(new Date(0)); -> false
  */
-function hasOwnToString(value: unknown): value is { toString(): unknown } {
+export function hasOwnToString(
+    value: unknown,
+): value is { toString(): unknown } {
     // A Date's toString is built in, but PHP's DateTime has no __toString.
     return (
         isObject(value) &&
