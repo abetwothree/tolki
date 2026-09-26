@@ -6551,6 +6551,60 @@
             }
         },
         {
+            "label": "C32-F-merge-null-renumbers",
+            "php": "collect([5 => 'a', 'k' => 'b'])->merge(null)",
+            "value": {
+                "all": {
+                    "0": "a",
+                    "k": "b"
+                },
+                "keys": [
+                    0,
+                    "k"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-null-renumbers",
+            "php": "collect([5 => 'a', 'k' => 'b'])->mergeRecursive(null)",
+            "value": {
+                "all": {
+                    "0": "a",
+                    "k": "b"
+                },
+                "keys": [
+                    0,
+                    "k"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-union-null-keeps-keys",
+            "php": "collect([5 => 'a', 'k' => 'b'])->union(null)",
+            "value": {
+                "all": {
+                    "5": "a",
+                    "k": "b"
+                },
+                "keys": [
+                    5,
+                    "k"
+                ],
+                "values": [
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
             "label": "C32-F-merge-assoc-then-list",
             "php": "collect(['a' => 1, 'b' => 2])->merge([3, 4])",
             "value": {
@@ -6620,6 +6674,72 @@
                 "hello",
                 1
             ]
+        },
+        {
+            "label": "C32-F-merge-string-key-keeps-its-place",
+            "php": "collect(['a' => 1, 'b' => 2])->merge(['c' => 3, 'a' => 9])",
+            "value": {
+                "all": {
+                    "a": 9,
+                    "b": 2,
+                    "c": 3
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "values": [
+                    9,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-list-then-out-of-order-int-keys",
+            "php": "collect([1])->merge([3 => 'x', 1 => 'y'])",
+            "value": {
+                "all": [
+                    1,
+                    "x",
+                    "y"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2
+                ],
+                "values": [
+                    1,
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-merge-out-of-order-receiver",
+            "php": "collect([2 => 'c', 0 => 'a', 1 => 'b'])->merge(['d'])",
+            "value": {
+                "all": [
+                    "c",
+                    "a",
+                    "b",
+                    "d"
+                ],
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    3
+                ],
+                "values": [
+                    "c",
+                    "a",
+                    "b",
+                    "d"
+                ]
+            }
         },
         {
             "label": "C32-F-mergeRecursive-list-list-appends",
@@ -6836,8 +6956,134 @@
             }
         },
         {
+            "label": "C32-F-mergeRecursive-spec-object-then-list",
+            "php": "collect(['a' => 1, 'b' => ['x' => 2, 'y' => 3], 'c' => [4, 5]])->mergeRecursive(collect([[6, 7], 4, ['x' => [8, 9]]]))",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": {
+                        "x": 2,
+                        "y": 3
+                    },
+                    "c": [
+                        4,
+                        5
+                    ],
+                    "0": [
+                        6,
+                        7
+                    ],
+                    "1": 4,
+                    "2": {
+                        "x": [
+                            8,
+                            9
+                        ]
+                    }
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    "c",
+                    0,
+                    1,
+                    2
+                ],
+                "values": [
+                    1,
+                    {
+                        "x": 2,
+                        "y": 3
+                    },
+                    [
+                        4,
+                        5
+                    ],
+                    [
+                        6,
+                        7
+                    ],
+                    4,
+                    {
+                        "x": [
+                            8,
+                            9
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-list-meets-scalar",
+            "php": "collect(['a' => [1, 2, 3]])->mergeRecursive(collect(['a' => 4]))",
+            "value": {
+                "a": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-scalar-meets-list",
+            "php": "collect(['a' => 7])->mergeRecursive(collect(['a' => [1, 2, 3]]))",
+            "value": {
+                "a": [
+                    7,
+                    1,
+                    2,
+                    3
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-null-meets-scalar",
+            "php": "collect(['a' => null])->mergeRecursive(['a' => 1])",
+            "value": {
+                "a": [
+                    null,
+                    1
+                ]
+            }
+        },
+        {
+            "label": "C32-F-mergeRecursive-assoc-then-list",
+            "php": "collect(['a' => 1, 'b' => 2])->mergeRecursive([3, 4])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "b": 2,
+                    "0": 3,
+                    "1": 4
+                },
+                "keys": [
+                    "a",
+                    "b",
+                    0,
+                    1
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            }
+        },
+        {
             "label": "C32-F-multiply-assoc",
             "php": "collect(['a' => 1, 'b' => 2])->multiply(2)",
+            "value": [
+                1,
+                2,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-F-multiply-fractional-count",
+            "php": "array_map([collect([1, 2]), 'multiply'], [2.5])[0]",
             "value": [
                 1,
                 2,
@@ -6865,6 +7111,87 @@
                     "e"
                 ]
             ]
+        },
+        {
+            "label": "C32-F-union-assoc-then-list",
+            "php": "collect(['a' => 1])->union([5])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": 5
+                },
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    5
+                ]
+            }
+        },
+        {
+            "label": "C32-F-replace-assoc-then-list",
+            "php": "collect(['a' => 1])->replace(['x'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "x"
+                },
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-replace-out-of-order-int-keys",
+            "php": "collect([1, 2, 3])->replace([7 => 'x', 3 => 'y'])",
+            "value": {
+                "all": {
+                    "0": 1,
+                    "1": 2,
+                    "2": 3,
+                    "7": "x",
+                    "3": "y"
+                },
+                "keys": [
+                    0,
+                    1,
+                    2,
+                    7,
+                    3
+                ],
+                "values": [
+                    1,
+                    2,
+                    3,
+                    "x",
+                    "y"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-replaceRecursive-assoc-then-list",
+            "php": "collect(['a' => 1])->replaceRecursive(['x'])",
+            "value": {
+                "all": {
+                    "a": 1,
+                    "0": "x"
+                },
+                "keys": [
+                    "a",
+                    0
+                ],
+                "values": [
+                    1,
+                    "x"
+                ]
+            }
         },
         {
             "label": "C32-F-zip-receiver-shorter",
@@ -6931,6 +7258,38 @@
             ]
         },
         {
+            "label": "C32-F-zip-operand-shorter",
+            "php": "collect([1, 2, 3])->zip([4, 5])",
+            "value": [
+                [
+                    1,
+                    4
+                ],
+                [
+                    2,
+                    5
+                ],
+                [
+                    3,
+                    null
+                ]
+            ]
+        },
+        {
+            "label": "C32-F-zip-assoc-operand",
+            "php": "collect([1, 2])->zip(['a' => 'x', 'b' => 'y'])",
+            "value": [
+                [
+                    1,
+                    "x"
+                ],
+                [
+                    2,
+                    "y"
+                ]
+            ]
+        },
+        {
             "label": "C32-F-diffUsing-spaceship-comparator",
             "php": "collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)",
             "value": {
@@ -6952,6 +7311,60 @@
             "value": {
                 "1": "b",
                 "2": "c"
+            }
+        },
+        {
+            "label": "C32-F-diffAssocUsing-mixed-keys-order",
+            "php": "collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')",
+            "value": {
+                "all": {
+                    "b": "brown",
+                    "c": "blue",
+                    "0": "red"
+                },
+                "keys": [
+                    "b",
+                    "c",
+                    0
+                ],
+                "values": [
+                    "brown",
+                    "blue",
+                    "red"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-diffKeys-length-key",
+            "php": "collect(['length' => 5, 'b' => 2])->diffKeys(['x'])",
+            "value": {
+                "all": {
+                    "length": 5,
+                    "b": 2
+                },
+                "keys": [
+                    "length",
+                    "b"
+                ],
+                "values": [
+                    5,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-F-diffKeys-signature-examples",
+            "php": "collect(['a' => 1, 'b' => 2, 'c' => 3])->diffKeys(['b' => 2]) / collect([1, 3, 5, 7, 8])->diffKeys([1, 3, 5]) / collect([1, 3, 5])->diffKeys([1, 3, 5, 7, 8])",
+            "value": {
+                "assoc": {
+                    "a": 1,
+                    "c": 3
+                },
+                "list": {
+                    "3": 7,
+                    "4": 8
+                },
+                "list-emptied": []
             }
         },
         {
@@ -7017,6 +7430,30 @@
                 },
                 "combineKeys": [
                     "k"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-plain-object-all-member-is-data-by-key",
+            "php": "collect(['a' => 1, 'b' => 2])->diffAssoc((object) ['all' => fn () => ['b' => 2]]) / ->diffAssocUsing(..., 'strcasecmp') / ->diffKeysUsing(..., 'strcasecmp') / ->intersectAssoc(...) / ->intersectAssocUsing(..., 'strcasecmp'), and collect(['a' => 1])->merge(...) keys",
+            "value": {
+                "diffAssoc": {
+                    "a": 1,
+                    "b": 2
+                },
+                "diffAssocUsing": {
+                    "a": 1,
+                    "b": 2
+                },
+                "diffKeysUsing": {
+                    "a": 1,
+                    "b": 2
+                },
+                "intersectAssoc": [],
+                "intersectAssocUsing": [],
+                "mergeKeys": [
+                    "a",
+                    "all"
                 ]
             }
         },

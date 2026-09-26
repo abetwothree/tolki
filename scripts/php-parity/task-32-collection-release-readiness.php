@@ -1252,12 +1252,18 @@ $fRows = fn (Collection $c) => $c->map(fn ($row) => $row instanceof Collection ?
 probe('C32-F-merge-null-is-a-new-instance', '$a = collect([1]); $b = $a->merge(null); $b->push(2);', function () { $a = collect([1]); $b = $a->merge(null); $b->push(2); return ['same' => $a === $b, 'receiver' => $a->all(), 'result' => $b->all()]; });
 probe('C32-F-union-null-is-a-new-instance', '$a = collect([1]); $b = $a->union(null); $b->push(2);', function () { $a = collect([1]); $b = $a->union(null); $b->push(2); return ['same' => $a === $b, 'receiver' => $a->all(), 'result' => $b->all()]; });
 probe('C32-F-mergeRecursive-null-is-a-new-instance', '$a = collect([1]); $b = $a->mergeRecursive(null); $b->push(2);', function () { $a = collect([1]); $b = $a->mergeRecursive(null); $b->push(2); return ['same' => $a === $b, 'receiver' => $a->all(), 'result' => $b->all()]; });
+probe('C32-F-merge-null-renumbers', "collect([5 => 'a', 'k' => 'b'])->merge(null)", fn () => $fViews(collect([5 => 'a', 'k' => 'b'])->merge(null)));
+probe('C32-F-mergeRecursive-null-renumbers', "collect([5 => 'a', 'k' => 'b'])->mergeRecursive(null)", fn () => $fViews(collect([5 => 'a', 'k' => 'b'])->mergeRecursive(null)));
+probe('C32-F-union-null-keeps-keys', "collect([5 => 'a', 'k' => 'b'])->union(null)", fn () => $fViews(collect([5 => 'a', 'k' => 'b'])->union(null)));
 
 // merge: integer keys are renumbered and appended, string keys overwrite
 probe('C32-F-merge-assoc-then-list', "collect(['a' => 1, 'b' => 2])->merge([3, 4])", fn () => $fViews(collect(['a' => 1, 'b' => 2])->merge([3, 4])));
 probe('C32-F-merge-int-keyed-record-then-list', "collect(['a' => 1, 5 => 'x'])->merge(['y'])", fn () => $fViews(collect(['a' => 1, 5 => 'x'])->merge(['y'])));
 probe('C32-F-merge-same-int-key-appends', "collect([5 => 'a'])->merge([5 => 'b'])", fn () => $fViews(collect([5 => 'a'])->merge([5 => 'b'])));
 probe('C32-F-merge-scalar-operand', "collect(['hello'])->merge(1)", fn () => collect(['hello'])->merge(1)->all());
+probe('C32-F-merge-string-key-keeps-its-place', "collect(['a' => 1, 'b' => 2])->merge(['c' => 3, 'a' => 9])", fn () => $fViews(collect(['a' => 1, 'b' => 2])->merge(['c' => 3, 'a' => 9])));
+probe('C32-F-merge-list-then-out-of-order-int-keys', "collect([1])->merge([3 => 'x', 1 => 'y'])", fn () => $fViews(collect([1])->merge([3 => 'x', 1 => 'y'])));
+probe('C32-F-merge-out-of-order-receiver', "collect([2 => 'c', 0 => 'a', 1 => 'b'])->merge(['d'])", fn () => $fViews(collect([2 => 'c', 0 => 'a', 1 => 'b'])->merge(['d'])));
 
 // mergeRecursive: integer keys append at every depth; a leaf meeting an array joins it under the next int key
 probe('C32-F-mergeRecursive-list-list-appends', 'collect([1, [2, 3]])->mergeRecursive([4, [5]])', fn () => collect([1, [2, 3]])->mergeRecursive([4, [5]])->all());
@@ -1270,24 +1276,48 @@ probe('C32-F-mergeRecursive-nested-int-keys-append', "collect(['a' => [5 => 'p']
 probe('C32-F-mergeRecursive-scalar-operand', 'collect([1])->mergeRecursive(2)', fn () => collect([1])->mergeRecursive(2)->all());
 probe('C32-F-mergeRecursive-spec-existing-and-new-keys', "collect(['a' => 5, 'b' => [3, 4], 'c' => ['z' => 5, 'y' => [9, 0]]])->mergeRecursive(collect(['a' => 6, 'b' => [5, 6], 'c' => ['z' => 6, 'y' => [10, 11]], 'd' => 'new']))", fn () => collect(['a' => 5, 'b' => [3, 4], 'c' => ['z' => 5, 'y' => [9, 0]]])->mergeRecursive(collect(['a' => 6, 'b' => [5, 6], 'c' => ['z' => 6, 'y' => [10, 11]], 'd' => 'new']))->all());
 probe('C32-F-mergeRecursive-spec-object-and-arrays', "collect(['a' => 1, 'b' => [2, 3], 'c' => ['x' => 4, 'y' => 5]])->mergeRecursive(collect(['a' => [6, 7], 'b' => 4, 'c' => ['x' => [8, 9]]]))", fn () => collect(['a' => 1, 'b' => [2, 3], 'c' => ['x' => 4, 'y' => 5]])->mergeRecursive(collect(['a' => [6, 7], 'b' => 4, 'c' => ['x' => [8, 9]]]))->all());
+probe('C32-F-mergeRecursive-spec-object-then-list', "collect(['a' => 1, 'b' => ['x' => 2, 'y' => 3], 'c' => [4, 5]])->mergeRecursive(collect([[6, 7], 4, ['x' => [8, 9]]]))", fn () => $fViews(collect(['a' => 1, 'b' => ['x' => 2, 'y' => 3], 'c' => [4, 5]])->mergeRecursive(collect([[6, 7], 4, ['x' => [8, 9]]]))));
+probe('C32-F-mergeRecursive-list-meets-scalar', "collect(['a' => [1, 2, 3]])->mergeRecursive(collect(['a' => 4]))", fn () => collect(['a' => [1, 2, 3]])->mergeRecursive(collect(['a' => 4]))->all());
+probe('C32-F-mergeRecursive-scalar-meets-list', "collect(['a' => 7])->mergeRecursive(collect(['a' => [1, 2, 3]]))", fn () => collect(['a' => 7])->mergeRecursive(collect(['a' => [1, 2, 3]]))->all());
+probe('C32-F-mergeRecursive-null-meets-scalar', "collect(['a' => null])->mergeRecursive(['a' => 1])", fn () => collect(['a' => null])->mergeRecursive(['a' => 1])->all());
+probe('C32-F-mergeRecursive-assoc-then-list', "collect(['a' => 1, 'b' => 2])->mergeRecursive([3, 4])", fn () => $fViews(collect(['a' => 1, 'b' => 2])->mergeRecursive([3, 4])));
 
 // multiply: always a list of the values
 probe('C32-F-multiply-assoc', "collect(['a' => 1, 'b' => 2])->multiply(2)", fn () => collect(['a' => 1, 'b' => 2])->multiply(2)->all());
+// array_map is an internal caller, so the float coerces to an int as non-strict code does (with a deprecation)
+probe('C32-F-multiply-fractional-count', "array_map([collect([1, 2]), 'multiply'], [2.5])[0]", fn () => @array_map([collect([1, 2]), 'multiply'], [2.5])[0]->all());
 
 // replace / replaceRecursive: the PHP tests' own sparse int-keyed replacers
 probe('C32-F-replace-sparse-int-keyed-replacer', "collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])", fn () => collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])->all());
 probe('C32-F-replaceRecursive-sparse-replacer', "collect(['a', 'b', ['c', 'd']])->replaceRecursive(['z', 2 => [1 => 'e']])", fn () => collect(['a', 'b', ['c', 'd']])->replaceRecursive(['z', 2 => [1 => 'e']])->all());
+
+// union / replace / replaceRecursive: the receiver's keys first, then the keys the operand adds, in its order
+probe('C32-F-union-assoc-then-list', "collect(['a' => 1])->union([5])", fn () => $fViews(collect(['a' => 1])->union([5])));
+probe('C32-F-replace-assoc-then-list', "collect(['a' => 1])->replace(['x'])", fn () => $fViews(collect(['a' => 1])->replace(['x'])));
+probe('C32-F-replace-out-of-order-int-keys', "collect([1, 2, 3])->replace([7 => 'x', 3 => 'y'])", fn () => $fViews(collect([1, 2, 3])->replace([7 => 'x', 3 => 'y'])));
+probe('C32-F-replaceRecursive-assoc-then-list', "collect(['a' => 1])->replaceRecursive(['x'])", fn () => $fViews(collect(['a' => 1])->replaceRecursive(['x'])));
 
 // zip: array_map pads every shorter side, the receiver included, with null
 probe('C32-F-zip-receiver-shorter', "collect(['a', 'b'])->zip([1, 2, 3])", fn () => $fRows(collect(['a', 'b'])->zip([1, 2, 3])));
 probe('C32-F-zip-empty-receiver', 'collect([])->zip([1, 2])', fn () => $fRows(collect([])->zip([1, 2])));
 probe('C32-F-zip-null-operand', 'collect([1, 2])->zip(null)', fn () => $fRows(collect([1, 2])->zip(null)));
 probe('C32-F-zip-assoc-receiver-longer-operand', "collect(['a' => 1, 'b' => 2])->zip(['x' => 'p', 'y' => 'q', 'z' => 'r'])", fn () => $fRows(collect(['a' => 1, 'b' => 2])->zip(['x' => 'p', 'y' => 'q', 'z' => 'r'])));
+probe('C32-F-zip-operand-shorter', 'collect([1, 2, 3])->zip([4, 5])', fn () => $fRows(collect([1, 2, 3])->zip([4, 5])));
+probe('C32-F-zip-assoc-operand', "collect([1, 2])->zip(['a' => 'x', 'b' => 'y'])", fn () => $fRows(collect([1, 2])->zip(['a' => 'x', 'b' => 'y'])));
 
 // *Using: PHP's comparator contract is an int (0 = equal)
 probe('C32-F-diffUsing-spaceship-comparator', 'collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)', fn () => collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)->all());
 probe('C32-F-intersectUsing-spaceship-comparator', 'collect([1, 2, 3])->intersectUsing([2, 3], fn ($a, $b) => $a <=> $b)', fn () => collect([1, 2, 3])->intersectUsing([2, 3], fn ($a, $b) => $a <=> $b)->all());
 probe('C32-F-diffUsing-list-keeps-keys', "collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')", fn () => collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')->all());
+probe('C32-F-diffAssocUsing-mixed-keys-order', "collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')", fn () => $fViews(collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')));
+
+// diffKeys: only the operand's own keys count, so a list operand holds no 'length' key
+probe('C32-F-diffKeys-length-key', "collect(['length' => 5, 'b' => 2])->diffKeys(['x'])", fn () => $fViews(collect(['length' => 5, 'b' => 2])->diffKeys(['x'])));
+probe('C32-F-diffKeys-signature-examples', "collect(['a' => 1, 'b' => 2, 'c' => 3])->diffKeys(['b' => 2]) / collect([1, 3, 5, 7, 8])->diffKeys([1, 3, 5]) / collect([1, 3, 5])->diffKeys([1, 3, 5, 7, 8])", fn () => [
+    'assoc' => collect(['a' => 1, 'b' => 2, 'c' => 3])->diffKeys(['b' => 2])->all(),
+    'list' => collect([1, 3, 5, 7, 8])->diffKeys([1, 3, 5])->all(),
+    'list-emptied' => collect([1, 3, 5])->diffKeys([1, 3, 5, 7, 8])->all(),
+]);
 
 // null operands the types reject today
 probe('C32-F-assoc-and-key-diffs-null-operand', "collect(['a' => 1])->diffAssoc(null) / ->diffAssocUsing(null, 'strcasecmp') / ->diffKeysUsing(null, 'strcasecmp')", fn () => ['diffAssoc' => collect(['a' => 1])->diffAssoc(null)->all(), 'diffAssocUsing' => collect(['a' => 1])->diffAssocUsing(null, 'strcasecmp')->all(), 'diffKeysUsing' => collect(['a' => 1])->diffKeysUsing(null, 'strcasecmp')->all()]);
@@ -1302,6 +1332,14 @@ probe('C32-F-plain-object-all-member-is-data', "collect(['all' => 1, 'b' => 2])-
     'replaceKeys' => collect(['a' => 1])->replace((object) ['all' => fn () => ['b' => 2]])->keys()->all(),
     'diffKeys' => collect(['all' => 1, 'b' => 2])->diffKeys((object) ['all' => fn () => ['b' => 2]])->all(),
     'combineKeys' => collect(['k'])->combine((object) ['all' => fn () => ['v']])->keys()->all(),
+]);
+probe('C32-F-plain-object-all-member-is-data-by-key', "collect(['a' => 1, 'b' => 2])->diffAssoc((object) ['all' => fn () => ['b' => 2]]) / ->diffAssocUsing(..., 'strcasecmp') / ->diffKeysUsing(..., 'strcasecmp') / ->intersectAssoc(...) / ->intersectAssocUsing(..., 'strcasecmp'), and collect(['a' => 1])->merge(...) keys", fn () => [
+    'diffAssoc' => collect(['a' => 1, 'b' => 2])->diffAssoc((object) ['all' => fn () => ['b' => 2]])->all(),
+    'diffAssocUsing' => collect(['a' => 1, 'b' => 2])->diffAssocUsing((object) ['all' => fn () => ['b' => 2]], 'strcasecmp')->all(),
+    'diffKeysUsing' => collect(['a' => 1, 'b' => 2])->diffKeysUsing((object) ['all' => fn () => ['b' => 2]], 'strcasecmp')->all(),
+    'intersectAssoc' => collect(['a' => 1, 'b' => 2])->intersectAssoc((object) ['all' => fn () => ['b' => 2]])->all(),
+    'intersectAssocUsing' => collect(['a' => 1, 'b' => 2])->intersectAssocUsing((object) ['all' => fn () => ['b' => 2]], 'strcasecmp')->all(),
+    'mergeKeys' => collect(['a' => 1])->merge((object) ['all' => fn () => ['b' => 2]])->keys()->all(),
 ]);
 probe('C32-F-combine-int-key-order', "(new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()", fn () => (new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()->all());
 
