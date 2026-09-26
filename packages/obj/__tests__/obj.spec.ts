@@ -8016,6 +8016,117 @@ describe("Obj", () => {
         });
     });
 
+    describe("skipUntil", () => {
+        it("skips until an item is identical to the value, keeping the keys", () => {
+            const skipped = Obj.skipUntil({ a: 1, b: 2, c: 3 }, 2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-keyed"
+            expect(skipped).toEqual({ b: 2, c: 3 });
+            expect(Object.keys(skipped)).toEqual(["b", "c"]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const list = { 0: 1, 1: 2, 2: 3, 3: 4 };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-strict-value" and
+            // "C32-D-skipUntil-list-keys", whose PHP list these integer keys stand for
+            expect(Obj.skipUntil(list, "3")).toEqual({});
+            expect(Obj.skipUntil(list, 3)).toEqual({ 2: 3, 3: 4 });
+        });
+
+        it("skips until a callback handed each value and key answers truthy", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-callback-key"
+            expect(
+                Obj.skipUntil(
+                    { a: 1, b: 2, c: 3 },
+                    (_value, key) => key === "b",
+                ),
+            ).toEqual({ b: 2, c: 3 });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-out-of-order-keys"
+            expect(Obj.skipUntil(map, "a")).toEqual({ 0: "a", 1: "b" });
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Obj.skipUntil({ x: "a", y: "b" }, () => answer),
+                ),
+            ).toEqual([{}, {}, { x: "a", y: "b" }]);
+        });
+
+        it("keeps nothing of data that holds no keyed items", () => {
+            // JS-only: null holds no items, and a list is arr's to walk
+            expect(Obj.skipUntil(null, 1)).toEqual({});
+            expect(Obj.skipUntil([1, 2], 1)).toEqual({});
+        });
+    });
+
+    describe("skipWhile", () => {
+        it("skips while an item is identical to the value, keeping the keys", () => {
+            const skipped = Obj.skipWhile({ a: 1, b: 2, c: 1 }, 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-keyed"
+            expect(skipped).toEqual({ b: 2, c: 1 });
+            expect(Object.keys(skipped)).toEqual(["b", "c"]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-strict-value", whose PHP
+            // list these integer keys stand for
+            expect(Obj.skipWhile({ 0: 1, 1: 1, 2: 2 }, "1")).toEqual({
+                0: 1,
+                1: 1,
+                2: 2,
+            });
+        });
+
+        it("skips while a callback handed each value and key answers truthy", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key", whose PHP
+            // list these integer keys stand for
+            expect(
+                Obj.skipWhile(
+                    { 0: "x", 1: "y", 2: "z" },
+                    (_value, key) => key < 1,
+                ),
+            ).toEqual({ 1: "y", 2: "z" });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Obj.skipWhile(map, "c")).toEqual({ 0: "a", 1: "b" });
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Obj.skipWhile({ x: "a", y: "b" }, () => answer),
+                ),
+            ).toEqual([{ x: "a", y: "b" }, { x: "a", y: "b" }, {}]);
+        });
+
+        it("keeps nothing of data that holds no keyed items", () => {
+            // JS-only: undefined holds no items
+            expect(Obj.skipWhile(undefined, 1)).toEqual({});
+        });
+    });
+
     describe("slice", () => {
         it("should handle non-object data", () => {
             expect(Obj.slice(null, 0, 2)).toEqual({});
@@ -10107,6 +10218,122 @@ describe("Obj", () => {
                 [2, "q"],
                 [3, "b"],
             ]);
+        });
+    });
+
+    describe("takeUntil", () => {
+        it("takes until an item is identical to the value, keeping the keys", () => {
+            const taken = Obj.takeUntil({ a: 1, b: 2, c: 3 }, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-keyed"
+            expect(taken).toEqual({ a: 1, b: 2 });
+            expect(Object.keys(taken)).toEqual(["a", "b"]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-strict-value", whose PHP
+            // list these integer keys stand for
+            expect(Obj.takeUntil({ 0: 1, 1: 2, 2: 3, 3: 4 }, "3")).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+                3: 4,
+            });
+        });
+
+        it("takes until a callback handed each value and key answers truthy", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-callback-key"
+            expect(
+                Obj.takeUntil(
+                    { a: 1, b: 2, c: 3 },
+                    (_value, key) => key === "c",
+                ),
+            ).toEqual({ a: 1, b: 2 });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Obj.takeUntil(map, "a")).toEqual({ 2: "c" });
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Obj.takeUntil({ x: "a", y: "b" }, () => answer),
+                ),
+            ).toEqual([{ x: "a", y: "b" }, { x: "a", y: "b" }, {}]);
+        });
+
+        it("takes nothing from an empty object or data that holds no keyed items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-empty"
+            expect(Obj.takeUntil({}, 1)).toEqual({});
+            // JS-only: null holds no items
+            expect(Obj.takeUntil(null, 1)).toEqual({});
+        });
+    });
+
+    describe("takeWhile", () => {
+        it("takes while an item is identical to the value, keeping the keys", () => {
+            const taken = Obj.takeWhile({ a: 1, b: 1, c: 2, d: 1 }, 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-keyed"
+            expect(taken).toEqual({ a: 1, b: 1 });
+            expect(Object.keys(taken)).toEqual(["a", "b"]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-null-value", whose PHP list
+            // these integer keys stand for
+            expect(Obj.takeWhile({ 0: null, 1: null, 2: 0 }, null)).toEqual({
+                0: null,
+                1: null,
+            });
+        });
+
+        it("compares the value with PHP's ===", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-strict-value", whose PHP
+            // list these integer keys stand for
+            expect(Obj.takeWhile({ 0: 1, 1: 1, 2: 2 }, "1")).toEqual({});
+        });
+
+        it("takes while a callback handed each value and key answers truthy", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key", whose PHP
+            // list these integer keys stand for
+            expect(
+                Obj.takeWhile(
+                    { 0: "x", 1: "y", 2: "z" },
+                    (_value, key) => key < 2,
+                ),
+            ).toEqual({ 0: "x", 1: "y" });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Obj.takeWhile(map, "c")).toEqual({ 2: "c" });
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Obj.takeWhile({ x: "a", y: "b" }, () => answer),
+                ),
+            ).toEqual([{}, {}, { x: "a", y: "b" }]);
+        });
+
+        it("takes nothing from data that holds no keyed items", () => {
+            // JS-only: a list is arr's to walk
+            expect(Obj.takeWhile([1, 2], 1)).toEqual({});
         });
     });
 

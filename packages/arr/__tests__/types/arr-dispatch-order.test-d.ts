@@ -2830,6 +2830,88 @@ describe("arr rows leave keyed data to obj", () => {
         Arr.shuffle(numberMap);
     });
 
+    it("routes a record to obj for skipUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.skipUntil, Obj.skipUntil)(rec, one),
+        ).toEqualTypeOf(Obj.skipUntil(rec, one));
+    });
+
+    it("routes an interface-typed object to obj for skipUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.skipUntil, Obj.skipUntil)(settings, one),
+        ).toEqualTypeOf(Obj.skipUntil(settings, one));
+    });
+
+    it("routes a class instance to obj for skipUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.skipUntil, Obj.skipUntil)(box, one),
+        ).toEqualTypeOf(Obj.skipUntil(box, one));
+    });
+
+    it("routes a Map to obj for skipUntil", () => {
+        const widest = Obj.skipUntil(opaque, one);
+        expectTypeOf(
+            dispatch(Arr.skipUntil, Obj.skipUntil)(numberMap, one),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for skipUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.skipUntil, Obj.skipUntil)(list, one),
+        ).toEqualTypeOf(Arr.skipUntil(list, one));
+    });
+
+    it("rejects a record on arr for skipUntil", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.skipUntil(rec, one);
+    });
+
+    it("rejects a Map on arr for skipUntil", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.skipUntil(numberMap, one);
+    });
+
+    it("routes a record to obj for skipWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.skipWhile, Obj.skipWhile)(rec, one),
+        ).toEqualTypeOf(Obj.skipWhile(rec, one));
+    });
+
+    it("routes an interface-typed object to obj for skipWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.skipWhile, Obj.skipWhile)(settings, one),
+        ).toEqualTypeOf(Obj.skipWhile(settings, one));
+    });
+
+    it("routes a class instance to obj for skipWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.skipWhile, Obj.skipWhile)(box, one),
+        ).toEqualTypeOf(Obj.skipWhile(box, one));
+    });
+
+    it("routes a Map to obj for skipWhile", () => {
+        const widest = Obj.skipWhile(opaque, one);
+        expectTypeOf(
+            dispatch(Arr.skipWhile, Obj.skipWhile)(numberMap, one),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for skipWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.skipWhile, Obj.skipWhile)(list, one),
+        ).toEqualTypeOf(Arr.skipWhile(list, one));
+    });
+
+    it("rejects a record on arr for skipWhile", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.skipWhile(rec, one);
+    });
+
+    it("rejects a Map on arr for skipWhile", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.skipWhile(numberMap, one);
+    });
+
     it("routes a record to obj for slice", () => {
         expectTypeOf(dispatch(Arr.slice, Obj.slice)(rec, one)).toEqualTypeOf(
             Obj.slice(rec, one),
@@ -3256,6 +3338,88 @@ describe("arr rows leave keyed data to obj", () => {
     it("rejects a Map on arr for take", () => {
         // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
         Arr.take(numberMap, size);
+    });
+
+    it("routes a record to obj for takeUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.takeUntil, Obj.takeUntil)(rec, one),
+        ).toEqualTypeOf(Obj.takeUntil(rec, one));
+    });
+
+    it("routes an interface-typed object to obj for takeUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.takeUntil, Obj.takeUntil)(settings, one),
+        ).toEqualTypeOf(Obj.takeUntil(settings, one));
+    });
+
+    it("routes a class instance to obj for takeUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.takeUntil, Obj.takeUntil)(box, one),
+        ).toEqualTypeOf(Obj.takeUntil(box, one));
+    });
+
+    it("routes a Map to obj for takeUntil", () => {
+        const widest = Obj.takeUntil(opaque, one);
+        expectTypeOf(
+            dispatch(Arr.takeUntil, Obj.takeUntil)(numberMap, one),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for takeUntil", () => {
+        expectTypeOf(
+            dispatch(Arr.takeUntil, Obj.takeUntil)(list, one),
+        ).toEqualTypeOf(Arr.takeUntil(list, one));
+    });
+
+    it("rejects a record on arr for takeUntil", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.takeUntil(rec, one);
+    });
+
+    it("rejects a Map on arr for takeUntil", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.takeUntil(numberMap, one);
+    });
+
+    it("routes a record to obj for takeWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.takeWhile, Obj.takeWhile)(rec, one),
+        ).toEqualTypeOf(Obj.takeWhile(rec, one));
+    });
+
+    it("routes an interface-typed object to obj for takeWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.takeWhile, Obj.takeWhile)(settings, one),
+        ).toEqualTypeOf(Obj.takeWhile(settings, one));
+    });
+
+    it("routes a class instance to obj for takeWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.takeWhile, Obj.takeWhile)(box, one),
+        ).toEqualTypeOf(Obj.takeWhile(box, one));
+    });
+
+    it("routes a Map to obj for takeWhile", () => {
+        const widest = Obj.takeWhile(opaque, one);
+        expectTypeOf(
+            dispatch(Arr.takeWhile, Obj.takeWhile)(numberMap, one),
+        ).toEqualTypeOf<typeof widest>();
+    });
+
+    it("keeps a list on arr for takeWhile", () => {
+        expectTypeOf(
+            dispatch(Arr.takeWhile, Obj.takeWhile)(list, one),
+        ).toEqualTypeOf(Arr.takeWhile(list, one));
+    });
+
+    it("rejects a record on arr for takeWhile", () => {
+        // @ts-expect-error - arr must be ineligible for the dispatched call
+        Arr.takeWhile(rec, one);
+    });
+
+    it("rejects a Map on arr for takeWhile", () => {
+        // @ts-expect-error - arr must be ineligible for the Map the runtime sends to obj
+        Arr.takeWhile(numberMap, one);
     });
 
     it("routes a record to obj for toCssClasses", () => {

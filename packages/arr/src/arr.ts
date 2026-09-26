@@ -111,6 +111,19 @@ type NonBooleanValue =
     | null
     | undefined;
 
+// AnyValueOr (skipUntil, skipWhile, takeUntil, takeWhile): every value, spelled out rather than `unknown`, which
+// would absorb the callback member that types an inline callback's parameters.
+type AnyValueOr<TCallback> =
+    | TCallback
+    | string
+    | number
+    | bigint
+    | boolean
+    | symbol
+    | object
+    | null
+    | undefined;
+
 // CanonicalIndex (set): only an integer's canonical spelling is an array key — the rule
 // PHP's key cast and this port's `phpArrayKey` both apply, so "01", "+1" and "1e1" stay
 // string keys and the write leaves every element alone.
@@ -3133,6 +3146,77 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 }
 
 /**
+ * Skip items in the array until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ *
+ * @param data - The array to skip items of.
+ * @param value - The value to skip until, or a callback answering whether an item meets the condition.
+ * @returns A new array of the items from the first that meets the condition on.
+ *
+ * @example
+ *
+ * skipUntil([1, 2, 3, 4], 3); -> [3, 4]
+ * skipUntil([1, 2, 3, 4], (value) => value >= 3); -> [3, 4]
+ * skipUntil([1, 2, 3, 4], 5); -> []
+ */
+export function skipUntil<TValue>(
+    data: ArrayItems<TValue>,
+    value: NoInfer<TValue> | ((value: TValue, index: number) => unknown),
+): TValue[];
+export function skipUntil(
+    data: readonly unknown[] | null | undefined,
+    value: AnyValueOr<(value: unknown, index: number) => unknown>,
+): unknown[];
+export function skipUntil<TValue>(
+    data: ArrayItems<TValue> | null | undefined,
+    value: TValue | ((value: TValue, index: number) => unknown),
+): TValue[] {
+    const condition = conditionFor<TValue, number>(value);
+
+    return skipWhile(
+        getAccessibleValues(data) as TValue[],
+        (item: TValue, index: number) => isPhpFalsy(condition(item, index)),
+    );
+}
+
+/**
+ * Skip items in the array while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ *
+ * @param data - The array to skip items of.
+ * @param value - The value to skip while items equal it, or a callback answering whether an item meets the condition.
+ * @returns A new array of the items from the first that fails the condition on.
+ *
+ * @example
+ *
+ * skipWhile([1, 1, 2, 1], 1); -> [2, 1]
+ * skipWhile([1, 2, 3, 4], (value) => value < 3); -> [3, 4]
+ * skipWhile([1, 2, 3, 4], 5); -> [1, 2, 3, 4]
+ */
+export function skipWhile<TValue>(
+    data: ArrayItems<TValue>,
+    value: NoInfer<TValue> | ((value: TValue, index: number) => unknown),
+): TValue[];
+export function skipWhile(
+    data: readonly unknown[] | null | undefined,
+    value: AnyValueOr<(value: unknown, index: number) => unknown>,
+): unknown[];
+export function skipWhile<TValue>(
+    data: ArrayItems<TValue> | null | undefined,
+    value: TValue | ((value: TValue, index: number) => unknown),
+): TValue[] {
+    const values = getAccessibleValues(data) as TValue[];
+    const condition = conditionFor<TValue, number>(value);
+    const start = values.findIndex((item, index) =>
+        isPhpFalsy(condition(item, index)),
+    );
+
+    return values.slice(start === -1 ? values.length : start);
+}
+
+/**
  * Slice the underlying array items, like PHP's `array_slice()`. A READ operation that
  * extracts a subset without mutating; use `splice()` for a WRITE that removes items.
  *
@@ -3666,6 +3750,77 @@ export function splice<TValue, TReplacements>(
     const count = length < 0 ? Math.max(len + length - start, 0) : length;
 
     return data.splice(start, count, ...flatReplacement);
+}
+
+/**
+ * Take items in the array until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ *
+ * @param data - The array to take items from.
+ * @param value - The value to take until, or a callback answering whether an item meets the condition.
+ * @returns A new array of the items before the first that meets the condition.
+ *
+ * @example
+ *
+ * takeUntil([1, 2, 3, 4], 3); -> [1, 2]
+ * takeUntil([1, 2, 3, 4], (value) => value >= 3); -> [1, 2]
+ * takeUntil([1, 2, 3, 4], 99); -> [1, 2, 3, 4]
+ */
+export function takeUntil<TValue>(
+    data: ArrayItems<TValue>,
+    value: NoInfer<TValue> | ((value: TValue, index: number) => unknown),
+): TValue[];
+export function takeUntil(
+    data: readonly unknown[] | null | undefined,
+    value: AnyValueOr<(value: unknown, index: number) => unknown>,
+): unknown[];
+export function takeUntil<TValue>(
+    data: ArrayItems<TValue> | null | undefined,
+    value: TValue | ((value: TValue, index: number) => unknown),
+): TValue[] {
+    const values = getAccessibleValues(data) as TValue[];
+    const condition = conditionFor<TValue, number>(value);
+    const end = values.findIndex(
+        (item, index) => !isPhpFalsy(condition(item, index)),
+    );
+
+    return values.slice(0, end === -1 ? values.length : end);
+}
+
+/**
+ * Take items in the array while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ *
+ * @param data - The array to take items from.
+ * @param value - The value to take while items equal it, or a callback answering whether an item meets the condition.
+ * @returns A new array of the items before the first that fails the condition.
+ *
+ * @example
+ *
+ * takeWhile([1, 1, 2, 2, 3, 3], 1); -> [1, 1]
+ * takeWhile([1, 2, 3, 4], (value) => value < 3); -> [1, 2]
+ * takeWhile([1, 2, 3, 4], 2); -> []
+ */
+export function takeWhile<TValue>(
+    data: ArrayItems<TValue>,
+    value: NoInfer<TValue> | ((value: TValue, index: number) => unknown),
+): TValue[];
+export function takeWhile(
+    data: readonly unknown[] | null | undefined,
+    value: AnyValueOr<(value: unknown, index: number) => unknown>,
+): unknown[];
+export function takeWhile<TValue>(
+    data: ArrayItems<TValue> | null | undefined,
+    value: TValue | ((value: TValue, index: number) => unknown),
+): TValue[] {
+    const condition = conditionFor<TValue, number>(value);
+
+    return takeUntil(
+        getAccessibleValues(data) as TValue[],
+        (item: TValue, index: number) => isPhpFalsy(condition(item, index)),
+    );
 }
 
 /**
@@ -5040,4 +5195,20 @@ export function intersectByKeys<TValue>(
     return (getAccessibleValues(data) as TValue[]).filter((_, index) =>
         Object.hasOwn(otherItems, index),
     );
+}
+
+/**
+ * Make the test skipUntil, skipWhile, takeUntil and takeWhile run, as LazyCollection builds it.
+ *
+ * @param value - A callback, used as it is, or the value an item must be identical to
+ * @returns The test each item is handed to, with its index or key
+ */
+function conditionFor<TValue, TKey>(
+    value: unknown,
+): (item: TValue, key: TKey) => unknown {
+    if (isFunction(value)) {
+        return value as (item: TValue, key: TKey) => unknown;
+    }
+
+    return (item) => strictEqual(item, value);
 }

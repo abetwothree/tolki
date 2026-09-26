@@ -126,6 +126,18 @@ type NonBooleanValue =
     | object
     | null
     | undefined;
+// AnyValueOr (skipUntil, skipWhile, takeUntil, takeWhile): every value, spelled out rather than `unknown`, which
+// would absorb the callback member that types an inline callback's parameters.
+type AnyValueOr<TCallback> =
+    | TCallback
+    | string
+    | number
+    | bigint
+    | boolean
+    | symbol
+    | object
+    | null
+    | undefined;
 // set returns its value for a null or undefined key, so a key that may be nullish adds V to its result.
 // NoInfer keeps V off the result's top level, where TypeScript would stop widening a literal value.
 type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
@@ -4594,6 +4606,128 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Skip items in the object until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to skip items of.
+ * @param value - The value to skip until, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items from the first that meets the condition on, each under its own key.
+ *
+ * @example
+ *
+ * skipUntil({ a: 1, b: 2, c: 3 }, 2); -> { b: 2, c: 3 }
+ * skipUntil({ a: 1, b: 2, c: 3 }, (value, key) => key === 'b'); -> { b: 2, c: 3 }
+ * skipUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> { 0: 'a', 1: 'b' }
+ */
+export function skipUntil<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function skipUntil<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function skipUntil(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function skipUntil(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipUntil<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function skipUntil(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipUntil<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    const condition = conditionFor<TValue, TKey>(value);
+
+    return skipWhile(data, (item, key) =>
+        isPhpFalsy(condition(item as TValue, key as TKey)),
+    ) as Record<TKey, TValue>;
+}
+
+/**
+ * Skip items in the object while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to skip items of.
+ * @param value - The value to skip while items equal it, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items from the first that fails the condition on, each under its own key.
+ *
+ * @example
+ *
+ * skipWhile({ a: 1, b: 2, c: 1 }, 1); -> { b: 2, c: 1 }
+ * skipWhile({ a: 1, b: 2, c: 3 }, (value) => value < 3); -> { c: 3 }
+ * skipWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> { 0: 'a', 1: 'b' }
+ */
+export function skipWhile<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function skipWhile<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function skipWhile(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function skipWhile(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipWhile<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function skipWhile(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const entries = keyedEntries<TValue>(data);
+    const condition = conditionFor<TValue, TKey>(value);
+    const start = entries.findIndex(([key, item]) =>
+        isPhpFalsy(condition(item, phpArrayKey(key) as TKey)),
+    );
+
+    return recordFrom(
+        entries.slice(start === -1 ? entries.length : start),
+    ) as Record<TKey, TValue>;
+}
+
+/**
  * Slice the underlying object items, preserving keys — `array_slice($items,
  * $offset, $length, true)` (`Collection.php:1382`).
  *
@@ -5261,6 +5395,128 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     }
 
     return removed as Record<TKey, TValue>;
+}
+
+/**
+ * Take items in the object until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to take items from.
+ * @param value - The value to take until, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items before the first that meets the condition, each under its own key.
+ *
+ * @example
+ *
+ * takeUntil({ a: 1, b: 2, c: 3 }, 3); -> { a: 1, b: 2 }
+ * takeUntil({ a: 1, b: 2, c: 3 }, (value, key) => key === 'c'); -> { a: 1, b: 2 }
+ * takeUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> { 2: 'c' }
+ */
+export function takeUntil<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function takeUntil<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function takeUntil(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function takeUntil(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeUntil<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function takeUntil(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeUntil<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const entries = keyedEntries<TValue>(data);
+    const condition = conditionFor<TValue, TKey>(value);
+    const end = entries.findIndex(
+        ([key, item]) => !isPhpFalsy(condition(item, phpArrayKey(key) as TKey)),
+    );
+
+    return recordFrom(
+        entries.slice(0, end === -1 ? entries.length : end),
+    ) as Record<TKey, TValue>;
+}
+
+/**
+ * Take items in the object while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to take items from.
+ * @param value - The value to take while items equal it, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items before the first that fails the condition, each under its own key.
+ *
+ * @example
+ *
+ * takeWhile({ a: 1, b: 1, c: 2, d: 1 }, 1); -> { a: 1, b: 1 }
+ * takeWhile({ a: 1, b: 2, c: 3 }, (value) => value < 3); -> { a: 1, b: 2 }
+ * takeWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> { 2: 'c' }
+ */
+export function takeWhile<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function takeWhile<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function takeWhile(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function takeWhile(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeWhile<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function takeWhile(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    const condition = conditionFor<TValue, TKey>(value);
+
+    return takeUntil(data, (item, key) =>
+        isPhpFalsy(condition(item as TValue, key as TKey)),
+    ) as Record<TKey, TValue>;
 }
 
 /**
@@ -6957,4 +7213,38 @@ function selectItem(
     }
 
     return selected;
+}
+
+/**
+ * Make the test skipUntil, skipWhile, takeUntil and takeWhile run, as LazyCollection builds it.
+ *
+ * @param value - A callback, used as it is, or the value an item must be identical to
+ * @returns The test each item is handed to, with its key
+ */
+function conditionFor<TValue, TKey>(
+    value: unknown,
+): (item: TValue, key: TKey) => unknown {
+    if (isFunction(value)) {
+        return value as (item: TValue, key: TKey) => unknown;
+    }
+
+    return (item) => strictEqual(item, value);
+}
+
+/**
+ * Build an object from key/value pairs, each an own key, `__proto__` included.
+ *
+ * @param entries - The pairs, in the order the object lists them
+ * @returns The object holding them
+ */
+function recordFrom<TValue>(
+    entries: readonly [string, TValue][],
+): Record<string, TValue> {
+    const record: Record<string, TValue> = {};
+
+    for (const [key, value] of entries) {
+        defineKey(record, key, value);
+    }
+
+    return record;
 }

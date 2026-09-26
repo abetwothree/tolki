@@ -5270,6 +5270,102 @@ describe("Arr", () => {
         });
     });
 
+    describe("skipUntil", () => {
+        const items = [1, 1, 2, 2, 3, 3, 4, 4];
+
+        it("skips until an item is identical to the value", () => {
+            // CollectionTest::testSkipUntil
+            expect(Arr.skipUntil(items, 1)).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+            expect(Arr.skipUntil(items, 3)).toEqual([3, 3, 4, 4]);
+            expect(Arr.skipUntil(items, 5)).toEqual([]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-strict-value"
+            expect(Arr.skipUntil(mixed, "3")).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Arr.skipUntil(mixed, 3)).toEqual([3, 4]);
+        });
+
+        it("skips until a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testSkipUntil
+            expect(Arr.skipUntil(items, (value) => value <= 1)).toEqual(items);
+            expect(Arr.skipUntil(items, (value) => value >= 3)).toEqual([
+                3, 3, 4, 4,
+            ]);
+            expect(Arr.skipUntil(items, (value) => value >= 5)).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(
+                Arr.skipUntil(["x", "y", "z"], (_value, index) => index === 1),
+            ).toEqual(["y", "z"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.skipUntil(["a", "b"], () => answer),
+                ),
+            ).toEqual([[], [], ["a", "b"]]);
+        });
+
+        it("keeps nothing of data holding no items", () => {
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.skipUntil(null, 1)).toEqual([]);
+        });
+    });
+
+    describe("skipWhile", () => {
+        const items = [1, 1, 2, 2, 3, 3, 4, 4];
+
+        it("skips while an item is identical to the value", () => {
+            // CollectionTest::testSkipWhile
+            expect(Arr.skipWhile(items, 1)).toEqual([2, 2, 3, 3, 4, 4]);
+            expect(Arr.skipWhile(items, 5)).toEqual(items);
+            expect(Arr.skipWhile(items, 2)).toEqual(items);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-strict-value"
+            expect(Arr.skipWhile(mixed, "1")).toEqual([1, 1, 2]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Arr.skipWhile([1, 1, 2, 1], 1)).toEqual([2, 1]);
+        });
+
+        it("skips while a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testSkipWhile
+            expect(Arr.skipWhile(items, (value) => value >= 5)).toEqual(items);
+            expect(Arr.skipWhile(items, (value) => value >= 2)).toEqual(items);
+            expect(Arr.skipWhile(items, (value) => value < 3)).toEqual([
+                3, 3, 4, 4,
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key"
+            expect(
+                Arr.skipWhile(["x", "y", "z"], (_value, index) => index < 1),
+            ).toEqual(["y", "z"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.skipWhile(["a", "b"], () => answer),
+                ),
+            ).toEqual([["a", "b"], ["a", "b"], []]);
+        });
+
+        it("keeps nothing of data holding no items", () => {
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.skipWhile(undefined, 1)).toEqual([]);
+        });
+    });
+
     describe("slice", () => {
         it("slice", () => {
             const data = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -6710,6 +6806,98 @@ describe("Arr", () => {
             const data = [1, 2, 3];
             Arr.splice(data, 1, 1, [9, 8] as never);
             expect(data).toEqual([1, 9, 8, 3]);
+        });
+    });
+
+    describe("takeUntil", () => {
+        const items = [1, 2, 3, 4];
+
+        it("takes until an item is identical to the value", () => {
+            // CollectionTest::testTakeUntilUsingValue
+            expect(Arr.takeUntil(items, 3)).toEqual([1, 2]);
+            // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
+            expect(Arr.takeUntil(items, 99)).toEqual(items);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-strict-value"
+            expect(Arr.takeUntil(mixed, "3")).toEqual([1, 2, 3, 4]);
+        });
+
+        it("takes until a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testTakeUntilUsingCallback
+            expect(Arr.takeUntil(items, (item) => item >= 3)).toEqual([1, 2]);
+            // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
+            expect(Arr.takeUntil(items, (item) => item >= 99)).toEqual(items);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(
+                Arr.takeUntil(["x", "y", "z"], (_value, index) => index === 1),
+            ).toEqual(["x"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.takeUntil(["a", "b"], () => answer),
+                ),
+            ).toEqual([["a", "b"], ["a", "b"], []]);
+        });
+
+        it("takes nothing from an empty array or data holding no items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-empty"
+            expect(Arr.takeUntil([], 1)).toEqual([]);
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.takeUntil(null, 1)).toEqual([]);
+        });
+    });
+
+    describe("takeWhile", () => {
+        it("takes while an item is identical to the value", () => {
+            // CollectionTest::testTakeWhileUsingValue
+            expect(Arr.takeWhile([1, 1, 2, 2, 3, 3], 1)).toEqual([1, 1]);
+            // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
+            expect(Arr.takeWhile([1, 2, 3, 4], 2)).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-null-value"
+            expect(Arr.takeWhile([null, null, 0], null)).toEqual([null, null]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-strict-value"
+            expect(Arr.takeWhile(mixed, "1")).toEqual([]);
+        });
+
+        it("takes while a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testTakeWhileUsingCallback
+            expect(Arr.takeWhile([1, 2, 3, 4], (item) => item < 3)).toEqual([
+                1, 2,
+            ]);
+            // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
+            expect(Arr.takeWhile([1, 2, 3, 4], (item) => item === 99)).toEqual(
+                [],
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key"
+            expect(
+                Arr.takeWhile(["x", "y", "z"], (_value, index) => index < 2),
+            ).toEqual(["x", "y"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.takeWhile(["a", "b"], () => answer),
+                ),
+            ).toEqual([[], [], ["a", "b"]]);
+        });
+
+        it("takes nothing from data holding no items", () => {
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.takeWhile(null, 1)).toEqual([]);
         });
     });
 

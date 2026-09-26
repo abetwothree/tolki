@@ -77,6 +77,107 @@ describe("obj slicing type tests", () => {
         });
     });
 
+    describe("skipUntil, skipWhile, takeUntil and takeWhile", () => {
+        it("keep the per-key types as optional for a value or a callback", () => {
+            type Abc = Partial<{ a: number; b: number; c: number }>;
+
+            expectTypeOf(Obj.skipUntil(abc, 2)).toEqualTypeOf<Abc>();
+            expectTypeOf(Obj.skipWhile(abc, 1)).toEqualTypeOf<Abc>();
+            expectTypeOf(
+                Obj.takeUntil(abc, (value) => value > 2),
+            ).toEqualTypeOf<Abc>();
+            expectTypeOf(
+                Obj.takeWhile(abc, (value) => value < 3),
+            ).toEqualTypeOf<Abc>();
+        });
+
+        it("type the callback's value and key, handing integer-like keys over as numbers", () => {
+            Obj.skipUntil(abc, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<"a" | "b" | "c">();
+
+                return "0";
+            });
+            Obj.skipWhile(integerKeyed, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<0 | 1 | "name">();
+
+                return [];
+            });
+            Obj.takeUntil(profile, (_value, key) => {
+                expectTypeOf(key).toEqualTypeOf<
+                    "name" | "nick" | "boss" | "age"
+                >();
+
+                return false;
+            });
+            Obj.takeWhile(integerKeyed, (_value, key) => {
+                expectTypeOf(key).toEqualTypeOf<0 | 1 | "name">();
+
+                return true;
+            });
+        });
+
+        it("answer the widest row for a value of another type, which no item is identical to", () => {
+            expectTypeOf(Obj.skipUntil(abc, "2")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.takeWhile(abc, "1")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+
+        it("empty a list", () => {
+            expectTypeOf(Obj.skipUntil(numberList, 1)).toEqualTypeOf<
+                Record<string, never>
+            >();
+            expectTypeOf(Obj.takeWhile(numberList, 1)).toEqualTypeOf<
+                Record<string, never>
+            >();
+        });
+
+        it("read a Map's values under string keys, casting a callback's key as PHP would", () => {
+            expectTypeOf(Obj.skipUntil(numberMap, 1)).toEqualTypeOf<
+                Record<string, number>
+            >();
+            expectTypeOf(
+                Obj.skipWhile(numberMap, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                    return true;
+                }),
+            ).toEqualTypeOf<Record<string, number>>();
+            expectTypeOf(Obj.takeUntil(mapUnion, 1)).toEqualTypeOf<
+                Record<string, string | number>
+            >();
+            Obj.takeWhile(mapUnion, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<string | number>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+        });
+
+        it("answer the widest row for a Map that may be missing or a list, and for unknown data", () => {
+            expectTypeOf(Obj.skipUntil(maybeMap, "c")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.takeUntil(mapOrList, "c")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            expectTypeOf(Obj.takeWhile(unknownObject, 1)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+            Obj.skipWhile(unknownObject, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+        });
+    });
+
     describe("chunk", () => {
         it("keeps keys by default", () => {
             expectTypeOf(Obj.chunk(abc, 2)).toEqualTypeOf<
