@@ -710,7 +710,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection({0: 1, 2: 3})
+     * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection([1, 3])
      */
     diff(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
@@ -1546,7 +1546,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection({1: 2, 3: 4})
+     * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection([2, 4])
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
     intersect<T, K extends PropertyKey = PropertyKey>(
@@ -1677,7 +1677,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).intersectByKeys({b: 2, d: 4}); -> new Collection({b: 2})
-     * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2, 3])
+     * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2])
      */
     intersectByKeys<T, K extends PropertyKey = PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
