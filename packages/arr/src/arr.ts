@@ -84,6 +84,7 @@ import {
     phpValueMatch,
     phpValueMatcher,
     resolveSliceRange,
+    resolveTakeCount,
     strictEqual,
     toPhpKeyString,
 } from "@tolki/utils";
@@ -2375,9 +2376,10 @@ export function pluck<TValue extends object>(
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The array to pop items from. Mutated in place.
- * @param count - The number of items to pop. Defaults to 1.
+ * @param count - The number of items to pop. Defaults to 1; a fraction is dropped, and NAN pops every item.
  * @returns The popped item when count is 1, an array of popped items
  * (reverse order) otherwise, or null if the array had nothing to pop.
+ * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError.
  */
 export function pop<TValue>(data: TValue[]): TValue | null;
 export function pop<TValue>(data: TValue[], count: number): TValue[];
@@ -2405,8 +2407,12 @@ export function pop<TValue>(
         return values.pop() as TValue;
     }
 
+    if (count < 1) {
+        return [];
+    }
+
     const poppedValues: TValue[] = [];
-    const actualCount = Math.min(count, values.length);
+    const actualCount = resolveTakeCount(count, values.length);
 
     for (let i = 0; i < actualCount; i++) {
         poppedValues.push(values.pop() as TValue);
@@ -2956,9 +2962,10 @@ function pickArrayKeysCount(requested: unknown): number {
  *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
  *
  * @param data - The array to shift items from. Mutated in place.
- * @param count - The number of items to shift. Defaults to 1.
+ * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
  * @returns The shifted item(s), or null if the array had nothing to shift.
  * @throws InvalidArgumentException if count is negative.
+ * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  */
 export function shift<TValue>(data: TValue[]): TValue | null;
 export function shift<TValue>(data: TValue[], count: number): TValue[];
@@ -2997,7 +3004,7 @@ export function shift<TValue>(
     }
 
     const shiftedValues: TValue[] = [];
-    const actualCount = Math.min(count, values.length);
+    const actualCount = resolveTakeCount(count, values.length);
 
     for (let i = 0; i < actualCount; i++) {
         shiftedValues.push(values.shift() as TValue);

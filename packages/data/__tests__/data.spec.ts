@@ -4457,6 +4457,26 @@ describe("Data", () => {
     });
 
     describe("dataShift", () => {
+        it("agrees across backings on a fractional or NAN count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            expect(Data.dataShift([1, 2, 3, 4], 2.5)).toEqual([1, 2]);
+            expect(Data.dataShift({ a: 1, b: 2, c: 3, d: 4 }, 2.5)).toEqual([
+                1, 2,
+            ]);
+            expect(Data.dataShift([1, 2, 3, 4], NaN)).toEqual([1, 2, 3, 4]);
+            expect(Data.dataShift({ a: 1, b: 2, c: 3, d: 4 }, NaN)).toEqual([
+                1, 2, 3, 4,
+            ]);
+            expect(() => Data.dataShift([1, 2, 3, 4], 1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(() =>
+                Data.dataShift({ a: 1, b: 2, c: 3, d: 4 }, 1.5),
+            ).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+        });
+
         it("throws InvalidArgumentException for a negative count on either backing, as Collection::shift does", () => {
             // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
             expect(() => Data.dataShift([1], -1)).toThrow(
@@ -8300,6 +8320,24 @@ describe("Data", () => {
     });
 
     describe("dataPop", () => {
+        it("agrees across backings on a fractional or NAN count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            expect(Data.dataPop([1, 2, 3, 4], 2.5)).toEqual([4, 3]);
+            expect(Data.dataPop({ a: 1, b: 2, c: 3, d: 4 }, 2.5)).toEqual([
+                4, 3,
+            ]);
+            expect(Data.dataPop([1, 2, 3, 4], NaN)).toEqual([4, 3, 2, 1]);
+            expect(Data.dataPop({ a: 1, b: 2, c: 3, d: 4 }, NaN)).toEqual([
+                4, 3, 2, 1,
+            ]);
+            expect(() => Data.dataPop([1, 2, 3, 4], 1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(() => Data.dataPop({ a: 1, b: 2, c: 3, d: 4 }, 1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+        });
+
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataPop(obj, 2);

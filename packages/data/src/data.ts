@@ -1676,9 +1676,10 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param items - The data to shift from. Mutated in place for an array or record backing; a Map,
  * Set or generator backing is copied first, so the write lands on the copy and is discarded.
- * @param count - Number of items to shift
+ * @param count - Number of items to shift; a fraction is dropped, and NAN shifts every item
  * @returns The shifted item(s), or null if the source had nothing to shift.
- * @throws Error if count is negative.
+ * @throws InvalidArgumentException if count is negative.
+ * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -2576,8 +2577,9 @@ export const dataPluck = dispatch(arrPluck, objPluck);
  *
  * @param data - The data to pop from. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
- * @param count - The number of items to pop
+ * @param count - The number of items to pop; a fraction is dropped, and NAN pops every item
  * @returns The popped item(s), or null if the source had nothing to pop.
+ * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *

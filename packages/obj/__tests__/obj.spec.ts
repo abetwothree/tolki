@@ -5356,6 +5356,58 @@ describe("Obj", () => {
     });
 
     describe("pop", () => {
+        it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const data = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.pop(data, 2.5)).toEqual([4, 3]);
+            expect(data).toEqual({ a: 1, b: 2 });
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = { a: 1, b: 2, c: 3, d: 4 };
+
+                expect(Obj.pop(everything, count)).toEqual([4, 3, 2, 1]);
+                expect(everything).toEqual({});
+            }
+        });
+
+        it("pops nothing for a count below 1 and throws range()'s ValueError for one between 1 and 2", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const data = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.pop(data, 0.5)).toEqual([]);
+            expect(() => Obj.pop(data, 1.5)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                ),
+            );
+            expect(data).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+
+            const one = { a: 9 };
+
+            expect(Obj.pop(one, 1.5)).toEqual([9]);
+            expect(one).toEqual({});
+        });
+
+        it("takes a fractional count from a Map in its insertion order, and leaves it whole for a count below 1", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-and-pop-counts-out-of-order-keys"
+            // and "C32-B-pop-fractional-and-non-finite-counts"
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            expect(Obj.pop(map, 0.5)).toEqual([]);
+            expect([...map]).toEqual([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+            expect(Obj.pop(map, 2.5)).toEqual(["b", "a"]);
+            expect([...map]).toEqual([[2, "c"]]);
+        });
+
         it("should remove and return last item", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Obj.pop(obj);
@@ -7899,6 +7951,62 @@ describe("Obj", () => {
     });
 
     describe("shift", () => {
+        it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const data = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.shift(data, 2.5)).toEqual([1, 2]);
+            expect(data).toEqual({ c: 3, d: 4 });
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = { a: 1, b: 2, c: 3, d: 4 };
+
+                expect(Obj.shift(everything, count)).toEqual([1, 2, 3, 4]);
+                expect(everything).toEqual({});
+            }
+        });
+
+        it("throws range()'s ValueError for a fraction below 2 and shifts nothing, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            for (const count of [1.5, 0.5]) {
+                const data = { a: 1, b: 2, c: 3, d: 4 };
+
+                expect(() => Obj.shift(data, count)).toThrow(
+                    new Error(
+                        "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                    ),
+                );
+                expect(data).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+            }
+
+            const one = { a: 9 };
+
+            expect(Obj.shift(one, 1.5)).toEqual([9]);
+            expect(one).toEqual({});
+        });
+
+        it("takes a fractional or NAN count from a Map in its insertion order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-and-pop-counts-out-of-order-keys"
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            expect(Obj.shift(map, 2.5)).toEqual(["c", "a"]);
+            expect([...map]).toEqual([[0, "b"]]);
+            expect(
+                Obj.shift(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                    NaN,
+                ),
+            ).toEqual(["c", "a", "b"]);
+        });
+
         it("throws InvalidArgumentException for a negative count, as Collection::shift does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "SH3 shift(-2) throws"
             expect(() => Obj.shift({ a: 1 }, -2)).toThrow(

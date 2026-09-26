@@ -4803,6 +4803,39 @@ describe("Arr", () => {
     });
 
     describe("pop", () => {
+        it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.pop(data, 2.5)).toEqual([4, 3]);
+            expect(data).toEqual([1, 2]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = [1, 2, 3, 4];
+
+                expect(Arr.pop(everything, count)).toEqual([4, 3, 2, 1]);
+                expect(everything).toEqual([]);
+            }
+        });
+
+        it("pops nothing for a count below 1 and throws range()'s ValueError for one between 1 and 2", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.pop(data, 0.5)).toEqual([]);
+            expect(() => Arr.pop(data, 1.5)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                ),
+            );
+            expect(data).toEqual([1, 2, 3, 4]);
+
+            const one = [9];
+
+            expect(Arr.pop(one, 1.5)).toEqual([9]);
+            expect(one).toEqual([]);
+        });
+
         it("removes the last item from the source, like array_pop", () => {
             const data = [1, 2, 3];
             expect(Arr.pop(data)).toBe(3);
@@ -5769,6 +5802,40 @@ describe("Arr", () => {
     });
 
     describe("shift", () => {
+        it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.shift(data, 2.5)).toEqual([1, 2]);
+            expect(data).toEqual([3, 4]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = [1, 2, 3, 4];
+
+                expect(Arr.shift(everything, count)).toEqual([1, 2, 3, 4]);
+                expect(everything).toEqual([]);
+            }
+        });
+
+        it("throws range()'s ValueError for a fraction below 2 and shifts nothing, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            for (const count of [1.5, 0.5]) {
+                const data = [1, 2, 3, 4];
+
+                expect(() => Arr.shift(data, count)).toThrow(
+                    new Error(
+                        "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                    ),
+                );
+                expect(data).toEqual([1, 2, 3, 4]);
+            }
+
+            const one = [9];
+
+            expect(Arr.shift(one, 1.5)).toEqual([9]);
+            expect(one).toEqual([]);
+        });
+
         it("throws InvalidArgumentException for a negative count, as Collection::shift does", () => {
             // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
             expect(() => Arr.shift([10, 20, 30, 40], -1)).toThrow(

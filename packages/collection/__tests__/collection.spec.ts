@@ -8049,6 +8049,90 @@ describe("Collection", () => {
     });
 
     describe("pop", () => {
+        it("takes a fractional count's whole items and every item for NAN, as PHP's loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const list = collect([1, 2, 3, 4]);
+
+            expect(list.pop(2.5).all()).toEqual([4, 3]);
+            expect(list.all()).toEqual([1, 2]);
+            expect(list.keys().all()).toEqual([0, 1]);
+            expect(list.values().all()).toEqual([1, 2]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyed.pop(2.5).all()).toEqual([4, 3]);
+            expect(keyed.all()).toEqual({ a: 1, b: 2 });
+            expect(keyed.keys().all()).toEqual(["a", "b"]);
+            expect(keyed.values().all()).toEqual([1, 2]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = collect([1, 2, 3, 4]);
+
+                expect(everything.pop(count).all()).toEqual([4, 3, 2, 1]);
+                expect(everything.all()).toEqual([]);
+                expect(everything.keys().all()).toEqual([]);
+                expect(everything.values().all()).toEqual([]);
+            }
+        });
+
+        it("pops nothing for a count below 1 and throws range()'s ValueError for one between 1 and 2, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const list = collect([1, 2, 3, 4]);
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(list.pop(0.5).all()).toEqual([]);
+            expect(() => list.pop(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(list.all()).toEqual([1, 2, 3, 4]);
+            expect(list.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(list.values().all()).toEqual([1, 2, 3, 4]);
+            expect(() => keyed.pop(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+            expect(keyed.keys().all()).toEqual(["a", "b", "c", "d"]);
+            expect(keyed.values().all()).toEqual([1, 2, 3, 4]);
+
+            const one = collect([9]);
+
+            expect(one.pop(1.5).all()).toEqual([9]);
+            expect(one.all()).toEqual([]);
+            expect(collect([]).pop(1.5).all()).toEqual([]);
+        });
+
+        it("takes a fractional or NAN count in the order PHP's array holds integer keys out of order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-and-pop-counts-out-of-order-keys"
+            const outOfOrder = () =>
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                );
+            const partly = outOfOrder();
+
+            expect(partly.pop(2.5).all()).toEqual(["b", "a"]);
+            expect(partly.all()).toEqual({ 2: "c" });
+            expect(partly.keys().all()).toEqual([2]);
+            expect(partly.values().all()).toEqual(["c"]);
+
+            const refused = outOfOrder();
+
+            expect(() => refused.pop(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(refused.keys().all()).toEqual([2, 0, 1]);
+            expect(refused.values().all()).toEqual(["c", "a", "b"]);
+
+            const everything = outOfOrder();
+
+            expect(everything.pop(NaN).all()).toEqual(["b", "a", "c"]);
+            expect(everything.keys().all()).toEqual([]);
+            expect(everything.values().all()).toEqual([]);
+        });
+
         describe("Laravel Tests", () => {
             it("test pop returns and removes last item in collection", () => {
                 // CollectionTest::testPopReturnsAndRemovesLastItemInCollection
@@ -10242,6 +10326,99 @@ describe("Collection", () => {
     });
 
     describe("shift", () => {
+        it("takes a fractional count's whole items and every item for NAN, as PHP's loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const list = collect([1, 2, 3, 4]);
+
+            expect(list.shift(2.5).all()).toEqual([1, 2]);
+            expect(list.all()).toEqual([3, 4]);
+            expect(list.keys().all()).toEqual([0, 1]);
+            expect(list.values().all()).toEqual([3, 4]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyed.shift(2.5).all()).toEqual([1, 2]);
+            expect(keyed.all()).toEqual({ c: 3, d: 4 });
+            expect(keyed.keys().all()).toEqual(["c", "d"]);
+            expect(keyed.values().all()).toEqual([3, 4]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = collect([1, 2, 3, 4]);
+
+                expect(everything.shift(count).all()).toEqual([1, 2, 3, 4]);
+                expect(everything.all()).toEqual([]);
+                expect(everything.keys().all()).toEqual([]);
+                expect(everything.values().all()).toEqual([]);
+            }
+
+            const emptied = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(emptied.shift(NaN).all()).toEqual([1, 2, 3, 4]);
+            // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
+            expect(emptied.all()).toEqual({});
+            expect(emptied.keys().all()).toEqual([]);
+            expect(emptied.values().all()).toEqual([]);
+        });
+
+        it("throws range()'s ValueError for a fractional count below 2 and shifts nothing, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const failure = new Error(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+
+            for (const count of [1.5, 0.5]) {
+                const list = collect([1, 2, 3, 4]);
+                const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+                expect(() => list.shift(count)).toThrow(failure);
+                expect(list.all()).toEqual([1, 2, 3, 4]);
+                expect(list.keys().all()).toEqual([0, 1, 2, 3]);
+                expect(list.values().all()).toEqual([1, 2, 3, 4]);
+                expect(() => keyed.shift(count)).toThrow(failure);
+                expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+                expect(keyed.keys().all()).toEqual(["a", "b", "c", "d"]);
+                expect(keyed.values().all()).toEqual([1, 2, 3, 4]);
+            }
+
+            const one = collect([9]);
+
+            expect(one.shift(1.5).all()).toEqual([9]);
+            expect(one.all()).toEqual([]);
+            expect(collect([]).shift(1.5)).toBeNull();
+        });
+
+        it("takes a fractional or NAN count in the order PHP's array holds integer keys out of order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-and-pop-counts-out-of-order-keys"
+            const outOfOrder = () =>
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                );
+            const partly = outOfOrder();
+
+            expect(partly.shift(2.5).all()).toEqual(["c", "a"]);
+            expect(partly.all()).toEqual({ 0: "b" });
+            expect(partly.keys().all()).toEqual([0]);
+            expect(partly.values().all()).toEqual(["b"]);
+
+            const refused = outOfOrder();
+
+            expect(() => refused.shift(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(refused.keys().all()).toEqual([2, 0, 1]);
+            expect(refused.values().all()).toEqual(["c", "a", "b"]);
+
+            const everything = outOfOrder();
+
+            expect(everything.shift(NaN).all()).toEqual(["c", "a", "b"]);
+            expect(everything.keys().all()).toEqual([]);
+            expect(everything.values().all()).toEqual([]);
+        });
+
         it("renumbers a negative integer key on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const c = collect({ x: "a", "-1": "b", "-2": "c", y: "d" });

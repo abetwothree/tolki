@@ -114,6 +114,7 @@ import {
     renumberPhpIntegerKeys,
     resolveDefault,
     resolveSliceRange,
+    resolveTakeCount,
     strictEqual,
     toArrayable,
     toJsonSerializable,
@@ -2266,8 +2267,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get and remove the last N items from the collection.
      *
-     * @param count - The number of items to pop
+     * @param count - The number of items to pop; a fraction is dropped, and NAN pops every item
      * @returns A new collection with the popped items
+     * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError
      *
      * @example
      *
@@ -2287,7 +2289,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            const kept = ordered.slice(0, Math.max(ordered.length - count, 0));
+            const taken = resolveTakeCount(count, ordered.length);
+            const kept = ordered.slice(0, ordered.length - taken);
             const removed = ordered
                 .slice(kept.length)
                 .map(([, value]) => value)
@@ -2741,9 +2744,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get and remove the first N items from the collection.
      *
-     * @param count - The number of items to shift
+     * @param count - The number of items to shift; a fraction is dropped, and NAN shifts every item
      * @returns A new collection with the shifted items
      * @throws InvalidArgumentException when the count is negative, even for an empty collection
+     * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError
      *
      * @example
      *
@@ -2777,9 +2781,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            const removed = ordered.slice(0, count).map(([, value]) => value);
+            const taken = resolveTakeCount(count, ordered.length);
+            const removed = ordered.slice(0, taken).map(([, value]) => value);
 
-            this.setOrderedItems(ordered.slice(count), true);
+            this.setOrderedItems(ordered.slice(taken), true);
 
             if (count === 1) {
                 return removed[0] as TValue;

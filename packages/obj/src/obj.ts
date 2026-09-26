@@ -97,6 +97,7 @@ import {
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolveSliceRange,
+    resolveTakeCount,
     strictEqual,
     toPhpKeyString,
 } from "@tolki/utils";
@@ -3410,8 +3411,9 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The object or Map to pop items from. Mutated in place.
- * @param count - The number of items to pop. Defaults to 1.
+ * @param count - The number of items to pop. Defaults to 1; a fraction is dropped, and NAN pops every item.
  * @returns The popped item(s) or null/empty array if none.
+ * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -3500,8 +3502,12 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
         return value;
     }
 
+    if (count < 1) {
+        return [];
+    }
+
     const poppedValues: TValue[] = [];
-    const actualCount = Math.min(count, entries.length);
+    const actualCount = resolveTakeCount(count, entries.length);
 
     for (let i = 0; i < actualCount; i++) {
         // Always defined: `i < actualCount <= entries.length`.
@@ -3517,8 +3523,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
         poppedValues.push(value);
     }
 
-    // A count below 1 pops nothing, so it leaves a Map exactly as it was.
-    if (isMap(data) && actualCount > 0) {
+    if (isMap(data)) {
         rewriteEntries(data, entries.slice(0, entries.length - actualCount));
     }
 
@@ -4321,9 +4326,10 @@ function pickArrayKeysCount(requested: unknown): number {
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1281`. Mirrors `array_shift`; mutates.
  *
  * @param data - The object or Map to shift items from. Mutated in place.
- * @param count - The number of items to shift. Defaults to 1.
+ * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
  * @returns The shifted item(s), or null if the object had nothing to shift.
  * @throws InvalidArgumentException if count is negative.
+ * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -4403,11 +4409,11 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         return null;
     }
 
-    const actualCount = count === 1 ? 1 : Math.min(count, entries.length);
-
-    if (actualCount === 0) {
+    if (count === 0) {
         return [];
     }
+
+    const actualCount = resolveTakeCount(count, entries.length);
 
     const shiftedValues = entries
         .slice(0, actualCount)
