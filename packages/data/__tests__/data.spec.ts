@@ -6987,7 +6987,7 @@ describe("Data", () => {
                 1, 2, 3, 0, 0, 0, 0,
             ]);
             expect(
-                Object.values(Data.dataPad({ a: 1, b: 2, c: 3 }, 7.5, 0)),
+                Object.values(Data.dataPad({ a: 1, b: 2, c: 3 }, -7.5, 0)),
             ).toEqual([0, 0, 0, 0, 1, 2, 3]);
             expect(() => Data.dataPad([1, 2, 3], NaN, 0)).toThrow(
                 "array_pad(): Argument #2 ($length) must be of type int, float given",
