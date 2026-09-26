@@ -478,7 +478,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
-        const results = dataMap(this.items, (value) => {
+        const results = this.orderedValues().map((value) => {
             // If it's a Collection, get its raw items
             if (value instanceof Collection) {
                 return value.all();
@@ -493,20 +493,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         // Filter out nulls (non-arrays/objects that we skipped)
-        const validResults = dataFilter(results, (item) => item !== null);
+        const validResults = results.filter((item) => item !== null);
 
-        if (Object.values(validResults).length === 0) {
+        if (validResults.length === 0) {
             return this.newInstance();
         }
 
         // Check if all valid results are arrays
-        const allArrays = Object.values(validResults).every((item) =>
-            isArray(item),
-        );
+        const allArrays = validResults.every((item) => isArray(item));
 
         // Later keys overwrite earlier ones where the first one stood, as array_replace keeps them.
         const merged = new Map<string, unknown>();
-        for (const source of Object.values(validResults)) {
+        for (const source of validResults) {
             for (const [key, value] of Object.entries(source as object)) {
                 merged.set(key, value);
             }

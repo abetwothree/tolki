@@ -1241,6 +1241,21 @@ describe("Collection", () => {
             expect(collapsed.values().all()).toEqual([1, 2]);
         });
 
+        it("merges a Map-built collection's items in the order it holds them", () => {
+            const collapsed = collect(
+                new Map([
+                    [2, { c: 1 }],
+                    [0, { a: 1 }],
+                    [1, { b: 1 }],
+                ]),
+            ).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-out-of-order"
+            expect(collapsed.all()).toEqual({ c: 1, a: 1, b: 1 });
+            expect(collapsed.keys().all()).toEqual(["c", "a", "b"]);
+            expect(collapsed.values().all()).toEqual([1, 1, 1]);
+        });
+
         it("collapses an outer collection with string keys", () => {
             // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
             // "collapseWithKeys-mixed-keys" and "collapseWithKeys-string-keys-lists"
