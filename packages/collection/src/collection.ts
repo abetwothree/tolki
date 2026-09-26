@@ -373,7 +373,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the median of a given key.
      *
-     * @param  key - The key to calculate the median for, or null for the values themselves
+     * @param  key - The key or path of segments to calculate the median for, or null for the values themselves
      * @returns The median value or null if the collection is empty
      *
      * @example
@@ -381,9 +381,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 3, 3, 6, 7, 8, 9]).median(); -> 6
      * new Collection([1, 2, 3, 4, 5, 6]).median(); -> 3.5
      * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
+     * new Collection([{a: {b: 1}}, {a: {b: 9}}, {a: {b: 5}}]).median(['a', 'b']); -> 5
      */
-    median(key: PropertyKey | null = null): TValue | null {
-        const values = (!isNull(key) ? this.pluck(key) : this)
+    median(key: PropertyKey | readonly PathKey[] | null = null): TValue | null {
+        // pluck() reads an array of segments as a path, though its declared key type lists none.
+        const values = (!isNull(key) ? this.pluck(key as PropertyKey) : this)
             // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
             .reject((item) => isNull(item) || isUndefined(item))
             .sort()
