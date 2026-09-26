@@ -1781,6 +1781,10 @@ probe('C32-G-sort-comparator-past-int-range', "usort([3, 1, 2]) and (new Collect
         'sort 1e19' => @(new Collection([3, 1, 2]))->sort(fn ($a, $b) => ($a <=> $b) * 1e19)->values()->all(),
     ];
 });
+probe('C32-G-nth-and-split-by-a-count-cast-to-0', "(new Collection([1, 2, 3]))->nth(2**64) and ->split(2**64), whose % casts the count to the int 0: the class and message thrown", fn () => [
+    'nth' => c32c_outcome(fn () => @(new Collection([1, 2, 3]))->nth(18446744073709551616.0)->all()),
+    'split' => c32c_outcome(fn () => @(new Collection([1, 2, 3]))->split(18446744073709551616.0)->all()),
+]);
 probe('C32-G-sortBy-out-of-order-ties', "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order", fn () => [
     'sortBy' => (new Collection($gTies))->sortBy('n')->pluck('id')->all(),
     'sortByDesc' => (new Collection($gTies))->sortByDesc('n')->pluck('id')->all(),

@@ -11498,6 +11498,20 @@
             }
         },
         {
+            "label": "C32-G-nth-and-split-by-a-count-cast-to-0",
+            "php": "(new Collection([1, 2, 3]))->nth(2**64) and ->split(2**64), whose % casts the count to the int 0: the class and message thrown",
+            "value": {
+                "nth": [
+                    "DivisionByZeroError",
+                    "Modulo by zero"
+                ],
+                "split": [
+                    "DivisionByZeroError",
+                    "Modulo by zero"
+                ]
+            }
+        },
+        {
             "label": "C32-G-sortBy-out-of-order-ties",
             "php": "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order",
             "value": {
