@@ -6729,6 +6729,48 @@ describe("Obj", () => {
             });
             expect(Obj.select(data, null)).toEqual({ a: {}, b: {} });
         });
+
+        it("selects a list item by index, reading a numeric string as one and length as none", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
+            expect(Obj.select({ r: [10, 20, 30] }, [0, 2])).toEqual({
+                r: { 0: 10, 2: 30 },
+            });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-string-index-and-length"
+            expect(Obj.select({ r: [10, 20, 30] }, ["1", "length"])).toEqual({
+                r: { 1: 20 },
+            });
+        });
+
+        it("selects a Map item by the key PHP stores, a stored null included", () => {
+            const item = new Map<string | number, unknown>([
+                ["a", null],
+                [1, "x"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-integer-string-key" and
+            // "C32-D-select-array-null-value": a Map stands for the PHP array
+            expect(Obj.select({ r: item }, ["1", "a"])).toEqual({
+                r: { 1: "x", a: null },
+            });
+        });
+
+        it("skips an object's null property, as PHP's isset does, where a plain object's null stays", () => {
+            class Row {
+                a = null;
+                b = 1;
+                c = 0;
+                d = "";
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-falsy-props"
+            expect(
+                Obj.select({ r: new Row() }, ["a", "b", "c", "d", "e"]),
+            ).toEqual({ r: { b: 1, c: 0, d: "" } });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-null-value"
+            expect(Obj.select({ r: { a: null, b: 1 } }, ["a", "b"])).toEqual({
+                r: { a: null, b: 1 },
+            });
+        });
     });
 
     describe("mapWithKeys", () => {

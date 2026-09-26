@@ -76,6 +76,7 @@ import {
     isPrototypeObject,
     isString,
     isSymbol,
+    isTruthyObject,
     isUndefined,
     isWeakMap,
     ItemNotFoundException,
@@ -3011,6 +3012,9 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Select an object of values from each item in the object.
  *
+ * An item PHP reads as an array (a list, a plain object or a Map) gives its own keys, as PHP stores each; any other
+ * object gives only the properties PHP's `isset` finds, so a null one is left out.
+ *
  * @param data - The object to select from.
  * @param keys - The key or keys to select from each item.
  * @returns A new object with selected key/value pairs from each item.
@@ -3019,6 +3023,7 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); -> { user1: { a: 1 }, user2: { a: 4 } }
  * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
+ * select({ row: [10, 20, 30] }, [0, 2]); -> { row: { 0: 10, 2: 30 } }
  */
 export function select(
     data: NonObjectItems,
@@ -3057,28 +3062,17 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
     const obj = data as Record<PropertyKey, TValue>;
     const keyList = (
         (isArray(keys) ? keys : [keys]) as readonly PathKey[]
-    ).filter(
-        (key: unknown) => !isNull(key) && !isUndefined(key),
-    ) as PropertyKey[];
+    ).filter((key: unknown) => !isNull(key) && !isUndefined(key)) as (
+        | string
+        | number
+    )[];
     const result: Record<PropertyKey, Record<PropertyKey, unknown>> = {};
 
     for (const [objKey, item] of Object.entries(obj)) {
-        const selected: Record<PropertyKey, unknown> = {};
-
-        for (const key of keyList) {
-            if (isObject(item) && Object.hasOwn(item, key)) {
-                defineKey(
-                    selected as Record<string, unknown>,
-                    key as string,
-                    item[key],
-                );
-            }
-        }
-
         defineKey(
             result as Record<string, Record<PropertyKey, unknown>>,
             objKey,
-            selected,
+            selectItem(item, keyList),
         );
     }
 
@@ -6928,4 +6922,39 @@ export function intersectByKeys<T1, T2 = T1>(
     }
 
     return result;
+}
+
+/**
+ * Select the given keys from one item, as `Arr::select` reads it.
+ *
+ * @param item - The item to select from
+ * @param keys - The keys to select
+ * @returns The selected keys the item holds, each with its value
+ */
+function selectItem(
+    item: unknown,
+    keys: readonly (string | number)[],
+): Record<string, unknown> {
+    const selected: Record<string, unknown> = {};
+
+    if (!isTruthyObject(item)) {
+        return selected;
+    }
+
+    // An array's entries are its own keys, as PHP stores them; an object's are the properties isset() finds set.
+    const entries = new Map(keyedEntries(item));
+    const readsIsset = !isPhpAccessible(item);
+
+    for (const key of keys) {
+        const value = entries.get(String(key));
+
+        if (
+            entries.has(String(key)) &&
+            !(readsIsset && (isNull(value) || isUndefined(value)))
+        ) {
+            defineKey(selected, key, value);
+        }
+    }
+
+    return selected;
 }

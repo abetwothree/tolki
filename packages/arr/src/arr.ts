@@ -3,6 +3,7 @@ import {
     collapse as objCollapse,
     crossJoin as objCrossJoin,
     replaceRecursive as objReplaceRecursive,
+    select as objSelect,
     union as objUnion,
 } from "@tolki/obj";
 import {
@@ -2203,31 +2204,13 @@ export function select<TValue extends object>(
     data: ArrayItems<TValue> | unknown,
     keys: PathKeys,
 ): Record<string, unknown>[] {
-    const values = getAccessibleValues(data);
-    // isArray's guard rejects a readonly list, so the branches are typed together instead.
-    const keyList = (isArray(keys) ? keys : [keys]) as readonly PathKey[];
+    // Each item is selected exactly as obj.select selects one, so the two backings can't drift apart.
+    const selected = objSelect(
+        { ...getAccessibleValues(data) } as Record<number, unknown>,
+        keys,
+    ) as Record<string, Record<string, unknown>>;
 
-    return values.map((item) => {
-        const typedItem = item as TValue;
-        const result: Record<string, unknown> = {};
-
-        for (const key of keyList) {
-            if (
-                isObject(typedItem) &&
-                !isNull(key) &&
-                !isUndefined(key) &&
-                key in typedItem
-            ) {
-                defineKey(
-                    result,
-                    key as string,
-                    (typedItem as Record<string, unknown>)[key],
-                );
-            }
-        }
-
-        return result;
-    });
+    return Object.values(selected);
 }
 
 /**

@@ -3633,6 +3633,62 @@ describe("Arr", () => {
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result?.polluted).toBeUndefined();
         });
+
+        it("selects an item's own keys, never its prototype's", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-prototype-key-names"
+            expect(
+                Arr.select([{ a: 1 }], ["toString", "constructor", "a"]),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("selects a list item by index, reading a numeric string as one and length as none", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
+            expect(Arr.select([[10, 20, 30]], [0, 2])).toEqual([
+                { 0: 10, 2: 30 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-string-index-and-length"
+            expect(Arr.select([[10, 20, 30]], ["1", "length"])).toEqual([
+                { 1: 20 },
+            ]);
+        });
+
+        it("selects a Map item by the key PHP stores, a stored null included", () => {
+            const item = new Map<string | number, unknown>([
+                ["a", null],
+                [1, "x"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-integer-string-key" and
+            // "C32-D-select-array-null-value": a Map stands for the PHP array
+            expect(Arr.select([item], ["1", "a"])).toEqual([
+                { 1: "x", a: null },
+            ]);
+        });
+
+        it("skips an object's null property, as PHP's isset does, where a plain object's null stays", () => {
+            class Row {
+                a = null;
+                b = 1;
+                c = 0;
+                d = "";
+                e = undefined;
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-falsy-props", whose
+            // object has no e; an undefined property stands for PHP's null, which isset() skips as it skips a
+            expect(
+                Object.keys(
+                    Arr.select([new Row()], ["a", "b", "c", "d", "e"])[0] ?? {},
+                ),
+            ).toEqual(["b", "c", "d"]);
+            expect(Arr.select([new Row()], ["a", "b", "c", "d", "e"])).toEqual([
+                { b: 1, c: 0, d: "" },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-null-value"
+            expect(Arr.select([{ a: null, b: 1 }], ["a", "b"])).toEqual([
+                { a: null, b: 1 },
+            ]);
+        });
     });
 
     describe("wrap", () => {

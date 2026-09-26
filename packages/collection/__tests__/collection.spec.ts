@@ -5725,6 +5725,55 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("selects an item's own keys, never its prototype's", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-prototype-key-names"
+            expect(
+                collect([{ a: 1 }])
+                    .select("toString", "constructor", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("selects a list item by index", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
+            expect(
+                collect([[10, 20, 30]])
+                    .select([0, 2])
+                    .all(),
+            ).toEqual([{ 0: 10, 2: 30 }]);
+        });
+
+        it("selects a Map item by the key PHP stores", () => {
+            const item = new Map<string | number, unknown>([
+                ["a", 1],
+                [1, "x"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-integer-string-key": a Map
+            // stands for the PHP array
+            expect(collect([item]).select("1", "a").all()).toEqual([
+                { 1: "x", a: 1 },
+            ]);
+        });
+
+        it("drops an object's null property, as PHP's isset does, where a plain object's null stays", () => {
+            class Row {
+                a = null;
+                b = 1;
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-null-prop"
+            expect(collect([new Row()]).select("a", "b").all()).toEqual([
+                { b: 1 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-null-value"
+            expect(
+                collect([{ a: null, b: 1 }])
+                    .select("a", "b")
+                    .all(),
+            ).toEqual([{ a: null, b: 1 }]);
+        });
     });
 
     describe("pop", () => {
