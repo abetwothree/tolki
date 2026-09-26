@@ -6690,13 +6690,14 @@ describe("Collection", () => {
         });
 
         it("throws with fewer or with more values than keys", () => {
-            // CollectionTest::testCombineWithFewerValuesThanKeysThrows and testCombineWithMoreValuesThanKeysThrows
             // docs/php-parity/task-31-laravel-13-33-sync.json, "combine-fewer-values" and "combine-more-values":
             // PHP throws a ValueError, which this port raises as an Error carrying the same message.
             const message =
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements";
 
+            // CollectionTest::testCombineWithFewerValuesThanKeysThrows
             expect(() => collect([1, 2]).combine([3])).toThrow(message);
+            // CollectionTest::testCombineWithMoreValuesThanKeysThrows
             expect(() => collect([1]).combine([2, 3])).toThrow(message);
         });
 
@@ -9035,6 +9036,7 @@ describe("Collection", () => {
 
             it("test replace array", () => {
                 // CollectionTest::testReplaceArray
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replace-sparse-int-keyed-replacer"
                 const c = collect(["a", "b", "c"]);
                 expect(c.replace({ 1: "d", 2: "e" }).all()).toEqual([
                     "a",
@@ -9197,6 +9199,7 @@ describe("Collection", () => {
 
             it("test replace recursive array", () => {
                 // CollectionTest::testReplaceRecursiveArray
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replaceRecursive-sparse-replacer"
                 const c = collect(["a", "b", ["c", "d"]]);
                 expect(
                     c.replaceRecursive({ 0: "z", 2: { 1: "e" } }).all(),
