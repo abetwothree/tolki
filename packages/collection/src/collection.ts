@@ -180,7 +180,7 @@ type OperandValue<TOperand> =
 /**
  * The values an operand holds, read in getRawItems()'s order. Own fields are the non-function members, since
  * TypeScript cannot tell a field from a method, so a record of closures loses its function values.
- * A plain object is typed like a class by its toArray, toJson or jsonSerialize member, which the runtime reads as data.
+ * A plain object is typed like a class by its toArray, toJson or jsonSerialize member, though at runtime it is data.
  */
 type RawValues<TOperand> = TOperand extends null | undefined
     ? never
@@ -213,7 +213,7 @@ type CastValues<TItems> = TItems extends null | undefined
         ? FieldValues<TItems>
         : TItems;
 
-/** The values of an object's own fields, typed as its members that are neither functions nor keyed by a symbol. */
+/** The values of an object's own fields: its members that are neither functions nor keyed by a symbol. */
 type FieldValues<TItems> = {
     [TField in keyof TItems]-?: TField extends symbol
         ? never
