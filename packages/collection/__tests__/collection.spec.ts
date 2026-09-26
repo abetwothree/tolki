@@ -276,6 +276,9 @@ describe("Collection", () => {
 
             const booleanCollection = collect(true);
             expect(booleanCollection.all()).toEqual([true]);
+
+            // CollectionTest::testCollectionFromEnum, whose unit case is its name here, so it wraps as a string does
+            expect(new Collection(TestEnum.A).toArray()).toEqual([TestEnum.A]);
         });
 
         it("creates a collection from a Map", () => {
