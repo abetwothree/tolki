@@ -2607,6 +2607,17 @@ describe("Arr", () => {
             expect(Arr.join([true], ", ", " and ")).toBe("1");
         });
 
+        it("throws for a lone object without its own toString, which PHP hands back", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
+            // JS-only: join() answers a string, so it throws the Error the object's cast raises where PHP returns it;
+            // Collection's join() hands the object back, as its answer may be an item
+            expect(() => Arr.join([new Point()], ", ", " and ")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+        });
+
         it("join", () => {
             expect(Arr.join(["a", "b", "c"], ", ")).toBe("a, b, c");
             expect(Arr.join(["a", "b", "c"], ", ", " and ")).toBe("a, b and c");

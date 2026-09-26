@@ -5888,6 +5888,14 @@ describe("Collection", () => {
             expect(collect([]).join(", ", " and ")).toBe("");
         });
 
+        it("hands a lone item back as it is, an object without its own toString included", () => {
+            class Point {}
+            const point = new Point();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
+            expect(collect([point]).join(", ", " and ")).toBe(point);
+        });
+
         it("casts its last item as PHP's . does, and the rest as implode() does", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-null-last-item" and
             // "C32-H-join-bool-items"

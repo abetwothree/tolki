@@ -6340,6 +6340,16 @@ describe("Obj", () => {
             );
         });
 
+        it("throws for a lone object without its own toString, which PHP hands back", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
+            // JS-only: join() answers a string, so it throws the Error the object's cast raises where PHP returns it
+            expect(() => Obj.join({ a: new Point() }, ", ", " and ")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+        });
+
         it("should return empty string for non-object values", () => {
             expect(Obj.join(null, ",")).toBe("");
             expect(Obj.join(undefined, ",")).toBe("");
