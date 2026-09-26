@@ -195,7 +195,7 @@ export function collect<
 export function collect<TValue>(
     items: readonly TValue[],
 ): Collection<TValue, number, "list">;
-export function collect<TMapKey, TValue>(
+export function collect<TValue, TMapKey>(
     items: ReadonlyMap<TMapKey, TValue>,
 ): Collection<TValue, MapArrayKey<TMapKey>, "keyed">;
 export function collect<TValue>(items: {
@@ -4193,7 +4193,7 @@ export class Collection<
         items: readonly TMakeValue[],
         ...args: unknown[]
     ): Collection<TMakeValue, number, "list">;
-    static make<TMapKey, TMakeValue>(
+    static make<TMakeValue, TMapKey>(
         items: ReadonlyMap<TMapKey, TMakeValue>,
         ...args: unknown[]
     ): Collection<TMakeValue, MapArrayKey<TMapKey>, "keyed">;

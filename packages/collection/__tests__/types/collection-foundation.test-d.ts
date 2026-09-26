@@ -51,6 +51,12 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("takes a Map's value type first, as the class does", () => {
+            expectTypeOf(
+                collect<string, number>(new Map<number, string>([[1, "a"]])),
+            ).toEqualTypeOf<Collection<string, number, "keyed">>();
+        });
+
         it("lists a Set's values", () => {
             expectTypeOf(collect(new Set([1, 2]))).toEqualTypeOf<
                 Collection<number, number, "list">
@@ -186,6 +192,11 @@ describe("collection foundation type tests", () => {
             expectTypeOf(Collection.make(null)).toEqualTypeOf<
                 Collection<never, number, "list">
             >();
+            expectTypeOf(
+                Collection.make<string, number>(
+                    new Map<number, string>([[1, "a"]]),
+                ),
+            ).toEqualTypeOf<Collection<string, number, "keyed">>();
             expectTypeOf(Collection.make(new ArrayableRecord())).toEqualTypeOf<
                 Collection<string, "foo", "keyed">
             >();
