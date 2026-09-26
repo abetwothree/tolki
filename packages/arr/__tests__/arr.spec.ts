@@ -889,6 +889,17 @@ describe("Arr", () => {
                 "d",
             ]);
         });
+
+        it("throws array_key_exists()'s TypeError for an array key, even over no items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() =>
+                Arr.except([], [["b"]] as unknown as string[]),
+            ).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+        });
     });
 
     describe("exists", () => {
@@ -3728,6 +3739,24 @@ describe("Arr", () => {
             expect(Arr.select([new Rows({ a: 1 })], ["items", "a"])).toEqual([
                 { a: 1 },
             ]);
+        });
+
+        it("throws array_key_exists()'s TypeError for an array key over an array item, and skips it elsewhere", () => {
+            class Row {
+                a = 1;
+                b = 2;
+            }
+            const keys = ["a", ["b"]] as unknown as string[];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() => Arr.select([{ a: 1, b: 2 }], keys)).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+            expect(Arr.select([new Row()], keys)).toEqual([{ a: 1 }]);
+            expect(Arr.select([1], keys)).toEqual([{}]);
+            expect(Arr.select([], keys)).toEqual([]);
         });
 
         it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {

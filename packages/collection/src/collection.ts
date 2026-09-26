@@ -64,6 +64,7 @@ import type {
     SortSpec,
 } from "@tolki/types";
 import {
+    arrayKeyExistsError,
     compareValues,
     createSortSpecComparator,
     defineKey,
@@ -1275,10 +1276,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 const groupKey = phpComputedKey(rawGroupKey, {
                     enumCases: true,
                     stringables: true,
-                    invalid: () =>
-                        new TypeError(
-                            "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
-                        ),
+                    invalid: arrayKeyExistsError,
                 });
 
                 let group = groups.get(groupKey);

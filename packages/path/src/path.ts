@@ -8,11 +8,13 @@ import type {
     UndotValue,
 } from "@tolki/types";
 import {
+    arrayKeyExistsError,
     arrayValueMessage,
     castableToArray,
     defineKey,
     isArray,
     isFunction,
+    isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
     isNull,
@@ -242,6 +244,11 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue>,
     keys: PathKeys,
 ): Record<TKey, TValue> | TValue[] {
+    // Arr::forget asks array_key_exists about each key, which throws for one no array can hold, even over no items.
+    if ((isArray(keys) ? keys : [keys]).some(isIllegalOffset)) {
+        throw arrayKeyExistsError();
+    }
+
     if (isObject(data)) {
         return forgetKeysObject(data, keys) as Record<TKey, TValue>;
     }

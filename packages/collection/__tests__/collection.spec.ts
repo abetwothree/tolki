@@ -2320,6 +2320,22 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-empty-array"
                 expect(person().except([]).all()).toEqual(person().all());
             });
+
+            it("throws array_key_exists()'s TypeError for a later array or collection key, even over no items", () => {
+                const failure = new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                );
+                const pair = collect({ a: 1, b: 2 });
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+                expect(() => pair.except("a", ["b"])).toThrow(failure);
+                expect(() =>
+                    pair.except("a", collect(["b"]) as unknown as string),
+                ).toThrow(failure);
+                expect(() =>
+                    collect([]).except([["b"]] as unknown as string[]),
+                ).toThrow(failure);
+            });
         });
 
         it("removes a literal dotted key before reading it as a path", () => {
@@ -6083,6 +6099,35 @@ describe("Collection", () => {
             expect(
                 collect([collect({ a: 1 })])
                     .select("items", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("throws array_key_exists()'s TypeError for an array key over an array item, and skips it elsewhere", () => {
+            class Row {
+                a = 1;
+                b = 2;
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() => collect([{ a: 1, b: 2 }]).select("a", ["b"])).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+            expect(collect([new Row()]).select("a", ["b"]).all()).toEqual([
+                { a: 1 },
+            ]);
+            expect(collect([1]).select("a", ["b"]).all()).toEqual([{}]);
+            expect(collect([]).select("a", ["b"]).all()).toEqual([]);
+        });
+
+        it("skips an array key over a Collection item", () => {
+            // JS-only: PHP's has() reads the array as a list of keys and, when the item holds them all, offsetGet
+            // throws for the array itself; an item missing any of them skips it, as here.
+            expect(
+                collect([collect({ a: 1, b: 2 })])
+                    .select("a", ["b"])
                     .all(),
             ).toEqual([{ a: 1 }]);
         });

@@ -2184,6 +2184,17 @@ describe("Obj", () => {
             expect(Obj.except("str", "a")).toEqual({});
             expect(Obj.except(42, "a")).toEqual({});
         });
+
+        it("throws array_key_exists()'s TypeError for an array key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() =>
+                Obj.except({ a: 1, b: 2 }, ["a", ["b"]] as unknown as string[]),
+            ).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+        });
     });
 
     describe("forget", () => {
@@ -6830,6 +6841,50 @@ describe("Obj", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-row-fields"
             expect(
                 Obj.select({ r: new Rows({ a: 1 }) }, ["items", "a"]),
+            ).toEqual({ r: { a: 1 } });
+        });
+
+        it("throws array_key_exists()'s TypeError for an array key over an array item, and skips it elsewhere", () => {
+            class Row {
+                a = 1;
+                b = 2;
+            }
+            const keys = ["a", ["b"]] as unknown as string[];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() => Obj.select({ r: { a: 1, b: 2 } }, keys)).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+            expect(Obj.select({ r: new Row() }, keys)).toEqual({ r: { a: 1 } });
+            expect(Obj.select({ r: 1 }, keys)).toEqual({ r: {} });
+            expect(Obj.select({}, keys)).toEqual({});
+        });
+
+        it("skips an array key over an ArrayAccess item", () => {
+            class Access {
+                readonly #items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.#items = items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.#items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.#items[offset];
+                }
+            }
+
+            // JS-only: PHP hands the array to the item's offsetExists, whose own code answers or throws.
+            expect(
+                Obj.select({ r: new Access({ a: 1, b: 2 }) }, [
+                    "a",
+                    ["b"],
+                ] as unknown as string[]),
             ).toEqual({ r: { a: 1 } });
         });
 

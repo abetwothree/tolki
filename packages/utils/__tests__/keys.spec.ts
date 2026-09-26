@@ -368,6 +368,39 @@ describe("Utils", () => {
         });
     });
 
+    describe("isIllegalOffset", () => {
+        it("answers true for an array, an object or a function, which no PHP array can hold as a key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error" and
+            // "C32-E-pluck-closure-key"
+            expect(
+                [["b"], {}, new Map(), () => 1].map((key) =>
+                    Utils.isIllegalOffset(key),
+                ),
+            ).toEqual([true, true, true, true]);
+        });
+
+        it("answers false for a key PHP casts and stores", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+            expect(
+                ["b", 1, 1.5, true, null, undefined].map((key) =>
+                    Utils.isIllegalOffset(key),
+                ),
+            ).toEqual([false, false, false, false, false, false]);
+        });
+    });
+
+    describe("arrayKeyExistsError", () => {
+        it("names array_key_exists's key argument, as PHP's TypeError does", () => {
+            const failure = Utils.arrayKeyExistsError();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(failure).toBeInstanceOf(TypeError);
+            expect(failure.message).toBe(
+                "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+            );
+        });
+    });
+
     describe("keyedEntries", () => {
         it("answers a plain object exactly as Object.entries does", () => {
             const record = { b: 1, 2: "c", a: 2, 0: "a" };

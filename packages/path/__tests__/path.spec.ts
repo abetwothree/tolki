@@ -419,6 +419,23 @@ describe("Path Functions", () => {
             expect(result).not.toBe(data);
         });
 
+        it("throws array_key_exists()'s TypeError for an array or object key, even over no items", () => {
+            const failure = new TypeError(
+                "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() =>
+                Path.forgetKeys([], [["b"]] as unknown as string[]),
+            ).toThrow(failure);
+            expect(() =>
+                Path.forgetKeys({ a: 1, b: 2 }, [
+                    "a",
+                    {},
+                ] as unknown as string[]),
+            ).toThrow(failure);
+        });
+
         it("removes single numeric key", () => {
             expect(Path.forgetKeys(["a", "b", "c"], 1)).toEqual(["a", "c"]);
             expect(Path.forgetKeys(["a", "b", "c"], 0)).toEqual(["b", "c"]);

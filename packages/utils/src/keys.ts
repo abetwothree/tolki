@@ -176,13 +176,38 @@ export function phpComputedKey(
         key = String(key.toString());
     }
 
-    if (isArray(key) || isObject(key) || isFunction(key)) {
+    if (isIllegalOffset(key)) {
         const invalid = options.invalid ?? illegalOffset;
 
         throw invalid(offsetTypeName(key));
     }
 
     return phpArrayKey(key);
+}
+
+/**
+ * Determine whether a value is a key no PHP array can hold, which PHP throws for wherever it reads or writes one.
+ *
+ * @param value - The key to test
+ * @returns True for an array, an object or a function, which PHP reads as a Closure
+ *
+ * @example
+ * isIllegalOffset(["b"]); -> true
+ * isIllegalOffset(null); -> false
+ */
+export function isIllegalOffset(value: unknown): value is object {
+    return isArray(value) || isObject(value) || isFunction(value);
+}
+
+/**
+ * The error `array_key_exists` throws for a key no PHP array can hold, called from a namespace as Laravel calls it.
+ *
+ * @returns The TypeError PHP throws
+ */
+export function arrayKeyExistsError(): TypeError {
+    return new TypeError(
+        "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+    );
 }
 
 /**

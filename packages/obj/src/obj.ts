@@ -54,6 +54,7 @@ import type {
 import {
     arrayableItems,
     arrayableValues,
+    arrayKeyExistsError,
     arrayValueMessage,
     compareValues,
     createSortSpecComparator,
@@ -64,6 +65,7 @@ import {
     isBoolean,
     isFalsy,
     isFunction,
+    isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
     isIterable,
@@ -7196,9 +7198,19 @@ function selectItem(
     // An array's entries are its own keys, as PHP stores them; an object's are the properties isset() finds set.
     // JS-only: an Enumerable gives none, as JS cannot tell a public property from state such as its items.
     const entries = new Map(isEnumerable(item) ? [] : keyedEntries(item));
-    const readsIsset = !isPhpAccessible(item);
+    const readsArray = isPhpAccessible(item);
 
     for (const key of keys) {
+        // array_key_exists throws for a key no array can hold, where isset() only finds no property named by it.
+        if (isIllegalOffset(key)) {
+            if (readsArray) {
+                throw arrayKeyExistsError();
+            }
+
+            // JS-only: an ArrayAccess item skips it too, where PHP hands it to the item's offsetExists or has().
+            continue;
+        }
+
         // Arr::exists casts a null key to '', the key it then names.
         const name = isNull(key) || isUndefined(key) ? "" : String(key);
 
@@ -7217,7 +7229,7 @@ function selectItem(
 
         if (
             entries.has(name) &&
-            !(readsIsset && (isNull(value) || isUndefined(value)))
+            (readsArray || !(isNull(value) || isUndefined(value)))
         ) {
             defineKey(selected, name, value);
         }
