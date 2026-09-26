@@ -6995,22 +6995,6 @@ describe("Collection", () => {
             expect(result.values().all()).toEqual([1, operand.all]);
         });
 
-        it("leaves out a symbol key a Map operand holds", () => {
-            const marker = Symbol("marker");
-            const united = collect({ a: 1 }).union(
-                new Map<string | symbol, number>([
-                    [marker, 2],
-                    ["b", 3],
-                ]),
-            );
-
-            // JS-only: PHP has no symbol key, so union() adds only the keys a PHP array could hold
-            expect(Object.getOwnPropertySymbols(united.all())).toEqual([]);
-            expect(united.all()).toEqual({ a: 1, b: 3 });
-            expect(united.keys().all()).toEqual(["a", "b"]);
-            expect(united.values().all()).toEqual([1, 3]);
-        });
-
         it("keeps its own items when one is a function stored under an all or toJSON key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
             let calls = 0;
@@ -18785,6 +18769,49 @@ describe("Collection", () => {
                 values: ["a", "c"],
                 keys: [0, 2],
             });
+        });
+
+        it("drops a symbol key from the receiver and from a Map operand in every set operation", () => {
+            const marker = Symbol("marker");
+            const receiver = () =>
+                collect(
+                    new Map<string | symbol, unknown>([
+                        ["a", 1],
+                        [marker, "s"],
+                    ]),
+                );
+            const operand = () =>
+                new Map<number | symbol, unknown>([
+                    [3, "x"],
+                    [marker, "t"],
+                    [1, "y"],
+                ]);
+
+            // JS-only: PHP has no symbol key, so each set operation reads only the keys a PHP array can hold,
+            // and the order its integer keys come in survives
+            const results = [
+                ["merge", receiver().merge(operand()), ["a", 0, 1]],
+                [
+                    "mergeRecursive",
+                    receiver().mergeRecursive(operand()),
+                    ["a", 0, 1],
+                ],
+                ["union", receiver().union(operand()), ["a", 3, 1]],
+                ["replace", receiver().replace(operand()), ["a", 3, 1]],
+                [
+                    "replaceRecursive",
+                    receiver().replaceRecursive(operand()),
+                    ["a", 3, 1],
+                ],
+            ] as const;
+
+            for (const [name, result, keys] of results) {
+                expect({
+                    name,
+                    symbols: Object.getOwnPropertySymbols(result.all()),
+                    keys: result.keys().all(),
+                }).toEqual({ name, symbols: [], keys });
+            }
         });
     });
 

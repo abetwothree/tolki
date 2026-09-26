@@ -6437,9 +6437,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return items.entriesInOrder();
         }
 
-        // getRawItems reads a Map into a record, which lists its integer keys ascending.
+        // getRawItems reads a Map into a record, which lists its integer keys ascending; PHP has no symbol key.
         if (isMap(items)) {
-            return this.mapEntries(items);
+            return this.mapEntries(items).filter(([key]) => !isSymbol(key));
         }
 
         return Object.entries(this.getRawItems(items)).map(([key, value]) => [
@@ -6467,10 +6467,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const ordered = new Map<PropertyKey, unknown>();
 
         for (const [key] of [...this.entriesInOrder(), ...operand]) {
-            // A Map operand's symbol key has no PHP array key, so the data helpers' result holds none.
-            if (Object.hasOwn(values, key)) {
-                ordered.set(key, values[key]);
-            }
+            ordered.set(key, values[key]);
         }
 
         return ordered;
