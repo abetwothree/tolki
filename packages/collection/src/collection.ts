@@ -91,7 +91,6 @@ import {
     isPlainObject,
     isString,
     isSymbol,
-    isTruthy,
     isTruthyObject,
     isUndefined,
     ItemNotFoundException,
@@ -4320,51 +4319,46 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Get the average value of a given key.
      *
      * @param callback - The key or callback to determine the value to average, or null to average the items directly
-     * @returns The average value, or null if no numeric values found
+     * @returns The average of the values that are not null, or null when none is
+     * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      *
      * @example
      *
      * new Collection([1, 2, 3]).avg(); -> 2
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).avg('id'); -> 2
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).avg(item => item.id); -> 2
-     * new Collection([1, 'a', 3]).avg(); -> 2
+     * new Collection(['1', '2', 3]).avg(); -> 2
      * new Collection([]).avg(); -> null
      */
     avg<TReturn>(
         callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null,
     ) {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => TReturn),
         );
 
-        const reduced = this.reduce<number[]>(
-            (carry: TValue | number[], item: TValue, key: TKey): number[] => {
-                const arrCarry = carry as number[];
+        const [total, count] = this.reduce<[number, number]>(
+            ([sum, counted], item, key) => {
                 const resolved = callbackValue(item, key);
 
-                if (!isNull(resolved) && !isUndefined(resolved)) {
-                    const numValue = Number(resolved);
-                    if (!isNaN(numValue)) {
-                        arrCarry[0] = (arrCarry[0] as number) + numValue;
-                        arrCarry[1] = (arrCarry[1] as number) + 1;
-                    }
+                if (isNull(resolved) || isUndefined(resolved)) {
+                    return [sum, counted];
                 }
 
-                return arrCarry;
+                return [phpAdd(sum, resolved), counted + 1];
             },
-            [0, 0] as number[],
+            [0, 0],
         );
 
-        return isArray(reduced) && isTruthy(reduced[1])
-            ? reduced[0]! / reduced[1]!
-            : null;
+        return count === 0 ? null : total / count;
     }
 
     /**
      * Alias for the "avg" method.
      *
      * @param callback - The key or callback to determine the value to average, or null to average the items directly
-     * @returns The average value, or null if no numeric values found
+     * @returns The average of the values that are not null, or null when none is
+     * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      *
      * @see {@link Collection.avg}
      */
@@ -4915,10 +4909,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Get the sum of the given values.\
+     * Get the sum of the given values.
      *
      * @param callback - The key or callback to determine the value to sum, or null to sum the items directly
-     * @returns The sum of the values
+     * @returns The sum of the values, each added as PHP's `+` adds it
+     * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      */
     sum<TReturnType = number>(
         callback: ((value: TValue, key: TKey) => TReturnType) | PathKey = null,
@@ -4931,10 +4926,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                       | ((...args: (TValue | TKey)[]) => TReturnType),
               );
 
-        return this.reduce((carry, value, key) => {
-            const result = callbackValue(value, key) as number;
-            return (carry as number) + result;
-        }, 0);
+        return this.reduce(
+            (total, value, key) => phpAdd(total, callbackValue(value, key)),
+            0,
+        );
     }
 
     /**
@@ -6741,6 +6736,44 @@ function intArgument(value: number, message: string): number {
  */
 function phpInt(value: number): number {
     return isFiniteNumber(value) ? Math.trunc(value) : 0;
+}
+
+/** The number a string opens with, as PHP's arithmetic reads it: optional whitespace, then a decimal or exponent. */
+const PHP_LEADING_NUMBER =
+    /^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/;
+
+/**
+ * Add a value to a running total as PHP's `+` does.
+ *
+ * @param total - The total so far, an int or a float to PHP
+ * @param value - The value to add: a number, a string that is or opens with a number, a boolean or null
+ * @returns The new total
+ * @throws TypeError `Unsupported operand types: int + string` for any other value, naming both operands' types
+ */
+function phpAdd(total: number, value: unknown): number {
+    // The port reads undefined as PHP's null, which adds nothing.
+    if (isNull(value) || isUndefined(value)) {
+        return total;
+    }
+
+    if (isBoolean(value)) {
+        return total + Number(value);
+    }
+
+    if (typeOf(value) === "number") {
+        return total + (value as number);
+    }
+
+    // PHP adds the number a string opens with, warning when anything follows it.
+    const leading = isString(value) ? PHP_LEADING_NUMBER.exec(value) : null;
+
+    if (!isNull(leading)) {
+        return total + Number(leading[0]);
+    }
+
+    throw new TypeError(
+        `Unsupported operand types: ${isInteger(total) ? "int" : "float"} + ${getDebugType(value)}`,
+    );
 }
 
 /**

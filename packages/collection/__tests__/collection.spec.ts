@@ -913,6 +913,12 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3, 4, 5, 6]);
             expect(collection.median()).toBe(3.5);
         });
+        it("throws PHP's TypeError when it averages two middle values that are not numbers", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-non-numeric-middle-values"
+            expect(() => collect(["b", "a"]).median()).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
+        });
         it("Laravel tests", () => {
             expect(collect([1, 2, 2, 4]).median()).toBe(2);
 
@@ -14610,20 +14616,18 @@ describe("Collection", () => {
             });
         });
 
-        it("ignores NaN values when calculating average", () => {
-            // Test with non-numeric string values that result in NaN
-            const c = collect([
-                { foo: 10 },
-                { foo: "not a number" },
-                { foo: 20 },
-            ]);
-            // NaN values should be skipped, so average of 10 and 20 is 15
-            expect(c.avg("foo")).toBe(15);
-
-            // Test with all NaN values
-            const d = collect([{ foo: "abc" }, { foo: "xyz" }]);
-            // All values result in NaN, so count is 0 and avg returns null
-            expect(d.avg("foo")).toBeNull();
+        it("throws PHP's TypeError for a non-numeric string", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-non-numeric-string"
+            expect(() => collect([10, "house", 20]).avg()).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
+            expect(() =>
+                collect([
+                    { foo: 10 },
+                    { foo: "not a number" },
+                    { foo: 20 },
+                ]).avg("foo"),
+            ).toThrow(new TypeError("Unsupported operand types: int + string"));
         });
     });
 
@@ -14649,17 +14653,17 @@ describe("Collection", () => {
                     { foo: null },
                     { foo: "house" },
                 ]);
-                expect(
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-non-numeric-string"
+                expect(() =>
                     d.average((item) => {
                         return item.foo;
                     }),
-                ).toBe(15);
-                expect(d.average("foo")).toBe(15);
-                expect(
-                    d.average((item) => {
-                        return item.foo;
-                    }),
-                ).toBe(15);
+                ).toThrow(
+                    new TypeError("Unsupported operand types: int + string"),
+                );
+                expect(() => d.average("foo")).toThrow(
+                    new TypeError("Unsupported operand types: int + string"),
+                );
 
                 const e = collect([{ foo: 10 }, { foo: 20 }]);
                 expect(e.average("foo")).toBe(15);
@@ -14702,9 +14706,13 @@ describe("Collection", () => {
             expect(c.average("val")).toBe(15);
         });
 
-        it("handles non-numeric values", () => {
+        it("throws PHP's TypeError for a non-numeric value", () => {
             const c = collect([{ val: 10 }, { val: "not a number" }]);
-            expect(c.average("val")).toBe(10);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-non-numeric-string"
+            expect(() => c.average("val")).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
         });
     });
 
@@ -16257,6 +16265,55 @@ describe("Collection", () => {
                 const c = collect();
                 expect(c.sum("foo")).toBe(0);
             });
+        });
+
+        it("adds numeric strings as numbers, as PHP's + does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-numeric-strings",
+            // "C32-H-sum-float-strings" and "C32-H-sum-key-numeric-strings"
+            expect([
+                collect(["1", "2", "3"]).sum(),
+                collect(["1.5", "2"]).sum(),
+                collect([{ foo: "4" }, { foo: "2" }]).sum("foo"),
+            ]).toEqual([6, 3.5, 6]);
+        });
+
+        it("adds the number a string leads with, as PHP's + does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-leading-numeric-string"
+            expect(collect([1, "2abc"]).sum()).toBe(3);
+        });
+
+        it("adds null as nothing and a boolean as 0 or 1, as PHP's + does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-null-and-bools"
+            expect([
+                collect([1, null, 2]).sum(),
+                collect([true, true, false]).sum(),
+            ]).toEqual([3, 2]);
+        });
+
+        it("throws PHP's TypeError for a value its + cannot add", () => {
+            class stdClass {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-non-numeric-string"
+            expect(() => collect([1, "a"]).sum()).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-array-items"
+            expect(() => collect([[1], [2]]).sum()).toThrow(
+                new TypeError("Unsupported operand types: int + array"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-object-item"
+            expect(() => collect([new stdClass()]).sum()).toThrow(
+                new TypeError("Unsupported operand types: int + stdClass"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-float-total-non-numeric-string"
+            expect(() => collect([1.5, "a"]).sum()).toThrow(
+                new TypeError("Unsupported operand types: float + string"),
+            );
+        });
+
+        it("reads undefined as PHP's null, which adds nothing", () => {
+            // JS-only: undefined stands for a value PHP does not have, and is read as its null
+            expect(collect([1, undefined, 2]).sum()).toBe(3);
         });
     });
 
