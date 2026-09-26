@@ -40,7 +40,7 @@ describe("collection type tests", () => {
                 Collection<number, number>
             >();
             expectTypeOf(collect({ a: 1 }).takeWhile(1)).toEqualTypeOf<
-                Collection<number, string>
+                Collection<number, "a", "keyed">
             >();
         });
 
@@ -53,7 +53,7 @@ describe("collection type tests", () => {
             });
             collect({ a: "x" }).takeWhile((value, key) => {
                 expectTypeOf(value).toEqualTypeOf<string>();
-                expectTypeOf(key).toEqualTypeOf<string>();
+                expectTypeOf(key).toEqualTypeOf<"a">();
 
                 return [];
             });

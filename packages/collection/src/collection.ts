@@ -63,10 +63,15 @@ import {
     resolvePluckPath,
 } from "@tolki/path";
 import type {
-    Arrayable,
     ArrayItems,
     CaseValue,
     DataItems,
+    DataIterableItems,
+    Jsonable,
+    JsonSerializable,
+    MapArrayKey,
+    ObjectKey,
+    ObjectValue,
     PathKey,
     PathKeys,
     SortSpec,
@@ -136,41 +141,93 @@ const sortSpecComparator = createSortSpecComparator((item, key) =>
     itemValue(item, key),
 );
 
+/** A list (`TValue[]`), a keyed record holding every key its type names, or a keyed record that may lack some. */
+export type CollectionShape = "list" | "keyed" | "partial";
+
+/** The shape a key type implies when none is named: number keys make a list, any other key a keyed record. */
+type DefaultShape<TKey extends PropertyKey> = [TKey] extends [number]
+    ? "list"
+    : "keyed";
+
+/** The items a collection of the given shape holds: a list, a record holding every key, or one that may lack some. */
+export type CollectionItems<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+> = [TShape] extends ["list"]
+    ? TValue[]
+    : [TShape] extends ["keyed"]
+      ? Record<TKey, TValue>
+      : [TShape] extends ["partial"]
+        ? Partial<Record<TKey, TValue>>
+        : TValue[] | Partial<Record<TKey, TValue>>;
+
+/** A collection of an object's items: a list's under number keys, any other object's under its own keys. */
+type ItemsCollection<TItems> = Collection<
+    TItems extends readonly (infer TValue)[] ? TValue : ObjectValue<TItems>,
+    TItems extends readonly unknown[] ? number : ObjectKey<TItems>,
+    TItems extends readonly unknown[] ? "list" : "keyed"
+>;
+
+/**
+ * Create a collection from the given value.
+ *
+ * @param items - A collection, a list, a Map, an Arrayable, an iterable, a Jsonable, a JsonSerializable or a record;
+ * null or nothing makes an empty collection, and a scalar is wrapped in one
+ * @returns A new collection holding a copy of the items
+ *
+ * @remarks A plain object with a toArray, toJson or jsonSerialize member is typed by the interface it matches,
+ * though at runtime every plain object is data.
+ *
+ * @example
+ *
+ * collect([1, 2, 3]); -> new Collection([1, 2, 3])
+ * collect({a: 1, b: 2}); -> new Collection({a: 1, b: 2})
+ * collect(new Map([['a', 1]])); -> new Collection({a: 1})
+ * collect('abc'); -> new Collection(['abc'])
+ * collect(null); -> new Collection([])
+ */
+export function collect<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+>(items: Collection<TValue, TKey, TShape>): Collection<TValue, TKey, TShape>;
 export function collect<TValue>(
-    items: TValue[] | readonly TValue[],
-): Collection<TValue, number>;
-export function collect<TValue, TKey extends PropertyKey>(
-    items: Collection<TValue, TKey>,
-): Collection<TValue, TKey>;
+    items: readonly TValue[],
+): Collection<TValue, number, "list">;
+export function collect<TMapKey, TValue>(
+    items: ReadonlyMap<TMapKey, TValue>,
+): Collection<TValue, MapArrayKey<TMapKey>, "keyed">;
+export function collect<TValue>(items: {
+    toArray(): readonly TValue[];
+}): Collection<TValue, number, "list">;
+export function collect<TItems extends object>(items: {
+    toArray(): TItems;
+}): ItemsCollection<TItems>;
 export function collect<TValue>(
-    items: Arrayable<TValue>,
-): Collection<TValue, number>;
-export function collect<TValue, TKey extends PropertyKey>(
-    items: Map<TKey, TValue>,
-): Collection<TValue, TKey>;
-export function collect(items?: null | undefined): Collection<[], number>;
-export function collect(items: string): Collection<string[], number>;
-export function collect(items: number): Collection<number[], number>;
-export function collect(items: boolean): Collection<boolean[], number>;
-export function collect(items: symbol): Collection<symbol[], number>;
-export function collect<TValue>(
-    items: Record<string, TValue>,
-): Collection<TValue, string>;
-export function collect<TValue, TKey extends PropertyKey>(
-    items?:
-        | TValue[]
-        | Record<TKey, TValue>
-        | Collection<TValue, TKey>
-        | Arrayable<TValue>
-        | Map<TKey, TValue>
-        | string
-        | number
-        | boolean
-        | symbol
-        | null
-        | undefined,
-): Collection<TValue, TKey> {
-    return new Collection<TValue, TKey>(items);
+    items: Iterable<TValue> & object,
+): Collection<TValue, number, "list">;
+export function collect(
+    items: Jsonable,
+): Collection<unknown, string | number, "list" | "keyed">;
+export function collect<TItems extends object>(items: {
+    jsonSerialize(): TItems;
+}): ItemsCollection<TItems>;
+export function collect(
+    items: JsonSerializable,
+): Collection<unknown, string | number, "list" | "keyed">;
+export function collect(
+    items?: null | undefined,
+): Collection<never, number, "list">;
+export function collect(items: string): Collection<string, number, "list">;
+export function collect(items: number): Collection<number, number, "list">;
+export function collect(items: boolean): Collection<boolean, number, "list">;
+export function collect(items: symbol): Collection<symbol, number, "list">;
+export function collect<TItems extends object>(
+    items: TItems,
+): ItemsCollection<TItems>;
+export function collect(items?: unknown): unknown {
+    return new (Collection as CollectionClass<unknown, PropertyKey>)(items);
 }
 
 /**
@@ -222,7 +279,11 @@ export interface TupleCollection<T1, T2> extends ArrayCollection<
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
  */
-export class Collection<TValue, TKey extends PropertyKey> {
+export class Collection<
+    TValue = never,
+    TKey extends PropertyKey = number,
+    TShape extends CollectionShape = DefaultShape<TKey>,
+> {
     /**
      * The items contained in the collection.
      */
@@ -241,41 +302,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected shouldEscapeWhenCastingToString = false;
 
-    constructor(items: TValue[]);
+    /**
+     * Create a new collection.
+     *
+     * @param items - The items, read the way collect() reads them
+     *
+     * @remarks A constructor declares no type parameters of its own, so collect() and make() type what it cannot:
+     * the keys PHP stores for a Map, the keyed shape of a Map or record with integer keys, and a Jsonable's items.
+     */
+    constructor(items: Collection<TValue, TKey, TShape>);
     constructor(items: readonly TValue[]);
-    constructor(items: Collection<TValue, TKey>);
-    constructor(items: Arrayable<TValue>);
-    constructor(items: Map<TKey, TValue>);
+    constructor(items: ReadonlyMap<TKey, TValue>);
+    constructor(items: { toArray(): readonly TValue[] });
+    constructor(items: { toArray(): Record<TKey, TValue> });
+    constructor(items: Iterable<TValue> & object);
+    constructor(items: { jsonSerialize(): readonly TValue[] });
+    constructor(items: { jsonSerialize(): Record<TKey, TValue> });
     constructor(items?: null | undefined);
-    constructor(items: TValue extends unknown[] ? TValue : never);
-    constructor(items: TValue extends readonly unknown[] ? TValue : never);
-    constructor(items: Record<TKey & string, TValue>);
+    constructor(items: TValue & (string | number | boolean | symbol));
+    constructor(items: Record<TKey, TValue>);
+    // A subclass hands on whatever its own constructor took, which may be any of the above.
     constructor(
         items?:
-            | TValue[]
-            | readonly TValue[]
-            | Record<TKey, TValue>
-            | Collection<TValue, TKey>
-            | Arrayable<TValue>
-            | Map<TKey, TValue>
-            | string
-            | number
-            | boolean
-            | symbol
-            | null
-            | undefined,
+            | DataIterableItems<TValue, TKey>
+            | Collection<TValue, TKey, TShape>
+            | null,
     );
-    constructor(
-        items?:
-            | TValue[]
-            | readonly TValue[]
-            | Record<TKey, TValue>
-            | Collection<TValue, TKey>
-            | Arrayable<TValue>
-            | Map<TKey, TValue>
-            | null
-            | undefined,
-    ) {
+    constructor(items?: unknown) {
         this.items = this.adoptRawItems(items);
     }
 
@@ -4112,58 +4165,72 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.make(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.make(null); -> new Collection([])
      */
-    static make<TValue extends Record<PropertyKey, unknown>>(
-        items: TValue,
+    static make<
+        TMakeValue,
+        TMakeKey extends PropertyKey,
+        TMakeShape extends CollectionShape,
+    >(
+        items: Collection<TMakeValue, TMakeKey, TMakeShape>,
         ...args: unknown[]
-    ): Collection<TValue, string>;
-    static make<TValue>(
-        items: TValue[] | readonly TValue[],
+    ): Collection<TMakeValue, TMakeKey, TMakeShape>;
+    static make<TMakeValue>(
+        items: readonly TMakeValue[],
         ...args: unknown[]
-    ): Collection<TValue, number>;
-    static make<TValue, TKey extends PropertyKey>(
-        items: Collection<TValue, TKey>,
+    ): Collection<TMakeValue, number, "list">;
+    static make<TMapKey, TMakeValue>(
+        items: ReadonlyMap<TMapKey, TMakeValue>,
         ...args: unknown[]
-    ): Collection<TValue, TKey>;
-    static make<TValue>(
-        items: Arrayable<TValue>,
+    ): Collection<TMakeValue, MapArrayKey<TMapKey>, "keyed">;
+    static make<TMakeValue>(
+        items: { toArray(): readonly TMakeValue[] },
         ...args: unknown[]
-    ): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
-    static make<TValue, TKey extends PropertyKey>(
-        items: Map<TKey, TValue>,
+    ): Collection<TMakeValue, number, "list">;
+    static make<TItems extends object>(
+        items: { toArray(): TItems },
         ...args: unknown[]
-    ): Collection<TValue, TKey>;
+    ): ItemsCollection<TItems>;
+    static make<TMakeValue>(
+        items: Iterable<TMakeValue> & object,
+        ...args: unknown[]
+    ): Collection<TMakeValue, number, "list">;
+    static make(
+        items: Jsonable,
+        ...args: unknown[]
+    ): Collection<unknown, string | number, "list" | "keyed">;
+    static make<TItems extends object>(
+        items: { jsonSerialize(): TItems },
+        ...args: unknown[]
+    ): ItemsCollection<TItems>;
+    static make(
+        items: JsonSerializable,
+        ...args: unknown[]
+    ): Collection<unknown, string | number, "list" | "keyed">;
     static make(
         items?: null | undefined,
         ...args: unknown[]
-    ): Collection<[], number>;
+    ): Collection<never, number, "list">;
     static make(
         items: string,
         ...args: unknown[]
-    ): Collection<string[], number>;
+    ): Collection<string, number, "list">;
     static make(
         items: number,
         ...args: unknown[]
-    ): Collection<number[], number>;
+    ): Collection<number, number, "list">;
     static make(
         items: boolean,
         ...args: unknown[]
-    ): Collection<boolean[], number>;
+    ): Collection<boolean, number, "list">;
     static make(
         items: symbol,
         ...args: unknown[]
-    ): Collection<symbol[], number>;
-    static make<TMakeValue, TMakeKey extends PropertyKey = PropertyKey>(
-        items?:
-            | DataItems<TMakeValue, TMakeKey>
-            | string
-            | number
-            | boolean
-            | symbol
-            | null
-            | undefined,
+    ): Collection<symbol, number, "list">;
+    static make<TItems extends object>(
+        items: TItems,
         ...args: unknown[]
-    ) {
-        return new (this as CollectionClass<TMakeValue, TMakeKey>)(
+    ): ItemsCollection<TItems>;
+    static make(items?: unknown, ...args: unknown[]): unknown {
+        return new (this as CollectionClass<unknown, PropertyKey>)(
             items,
             ...args,
         );

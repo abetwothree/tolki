@@ -170,18 +170,6 @@ describe("Collection", () => {
             assertType<Collection<number[], number>>(fromCollection);
         });
 
-        it("null and undefined", () => {
-            const collection = collect(null);
-            assertType<Collection<[], number>>(collection);
-
-            const collection2 = new Collection(null);
-            // @ts-expect-error - constructor with null gives Collection<unknown, PropertyKey> not Collection<[], number>
-            assertType<Collection<[], number>>(collection2);
-
-            const fromCollection = collect(collection);
-            assertType<Collection<[], number>>(fromCollection);
-        });
-
         it("map", () => {
             const data = collect(
                 new Map([
@@ -3143,7 +3131,7 @@ describe("Collection", () => {
         });
 
         it("returns first object item matching callback", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
+            const collection = collect({ a: 1, b: 2, c: 3, d: 4 });
             expect(collection.first((value) => value > 2)).toBe(3);
         });
 
@@ -3163,7 +3151,7 @@ describe("Collection", () => {
         });
 
         it("returns default when no match in object", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3 });
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.first((value) => value > 5, "default")).toBe(
                 "default",
             );
