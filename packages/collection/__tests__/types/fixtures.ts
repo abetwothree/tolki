@@ -4,9 +4,62 @@
  */
 
 import { collect, Collection } from "@tolki/collection";
+import type { DataItems } from "@tolki/types";
+
+/** A list: the backing a list collection holds. */
+export const numberList = [1, 2, 3];
 
 /** A read-only list: `TValue[]` rejects it, `readonly TValue[]` accepts it. */
 export const readonlyNumbers: readonly number[] = [1, 2, 3];
+
+/** A record with literal keys: the backing a keyed collection holds. */
+export const abc = { a: 1, b: 2, c: 3 };
+
+/** The row type the list of rows holds. */
+export interface Row {
+    id: number;
+    name: string;
+}
+
+/** A list of rows, for the methods that read an item's fields. */
+export const rows: Row[] = [
+    { id: 1, name: "Ada" },
+    { id: 2, name: "Grace" },
+];
+
+/** A row whose name may be null, as a nullable column's value is. */
+export interface NullableRow {
+    id: number;
+    name: string | null;
+}
+
+/** A list of rows whose name may be null. */
+export const nullableRows: NullableRow[] = [
+    { id: 1, name: "Ada" },
+    { id: 2, name: null },
+];
+
+/** A list of lists, for the methods that collapse or flatten it. */
+export const nestedLists = [[1, 2], [3]];
+
+/** A record of lists, for the same methods over a keyed backing. */
+export const recordOfLists = { a: [1, 2], b: [3] };
+
+/** A list of values of several types, null among them. */
+export const mixed = [1, "x", null];
+
+/** A Map whose integer keys are not in ascending order: an order a plain object cannot keep. */
+export const mapBuilt = new Map([
+    [2, "c"],
+    [0, "a"],
+    [1, "b"],
+]);
+
+/** A value of `DataItems`, the data packages' input type: a list or a record, as generic code hands one over. */
+export const unionItems: DataItems<number, string> = [1, 2, 3];
+
+/** A collection as generic code sees one, typed `Collection<number, string | number>`: no literal keys. */
+export const generic = new Collection<number, string | number>({ a: 1, 0: 2 });
 
 /** A list that may be missing, as an optional property's is. */
 export const maybeNumbers: number[] | undefined = [1, 2];
@@ -51,6 +104,15 @@ export class Point {
     x = 1;
     y = 2;
 }
+
+/** A class whose instances have no index signature: a `Record` constraint rejects one, `T extends object` takes it. */
+export class Box {
+    a = 1;
+    b = 2;
+}
+
+/** An instance of `Box`. */
+export const box = new Box();
 
 /** A class instance with a method, which the runtime's copy of its own fields leaves out. */
 export class User {

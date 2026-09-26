@@ -4,14 +4,16 @@ import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import type { DataItems, PathKey } from "@tolki/types";
 import {
+    compareValues,
     InvalidArgumentException,
     isString,
     ItemNotFoundException,
     MultipleItemsFoundException,
     UnexpectedValueException,
 } from "@tolki/utils";
-import { afterEach, assertType, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectShape } from "./helpers";
 import {
     TestArrayableObject,
     TestCollectionMapIntoObject,
@@ -22,6 +24,7 @@ import {
     TestJsonSerializeWithScalarValueObject,
     TestTraversableAndJsonSerializableObject,
 } from "./test-classes";
+import { listOrRecord } from "./types/fixtures";
 
 // PHP's strcasecmp(), the comparator the *Using tests pass: 0 for strings equal but for case, else -1 or 1.
 const strcasecmp = (a: unknown, b: unknown): number => {
@@ -106,89 +109,6 @@ const viewsOf = <
 });
 
 describe("Collection", () => {
-    describe("assert constructor types", () => {
-        it("arrays", () => {
-            const arrColl = collect([{ foo: 1 }, { try: 5 }]);
-
-            assertType<Collection<[{ foo: number }, { try: number }], number>>(
-                // @ts-expect-error - Collection infers union of element types, not tuple
-                arrColl,
-            );
-
-            const arr = new Collection([{ foo: 1 }, { try: 5 }]);
-
-            assertType<Collection<[{ foo: number }, { try: number }], number>>(
-                // @ts-expect-error - Collection infers union of element types, not tuple
-                arr,
-            );
-
-            const fromCollection = collect(arrColl);
-            assertType<Collection<[{ foo: number }, { try: number }], number>>(
-                // @ts-expect-error - Collection infers union of element types, not tuple
-                fromCollection,
-            );
-        });
-
-        it("objects", () => {
-            const objColl = collect({ foo: 1 });
-            // @ts-expect-error - collect({}) returns Collection<TValue, string> not Collection<{shape}, string>
-            assertType<Collection<{ foo: number }, string>>(objColl);
-
-            const obj = new Collection({ foo: 1 });
-            // @ts-expect-error - constructor infers Collection<number, "foo"> not Collection<{shape}, string>
-            assertType<Collection<{ foo: number }, string>>(obj);
-
-            const fromCollection = collect(objColl);
-            // @ts-expect-error - collect(collection) preserves original types
-            assertType<Collection<{ foo: number }, string>>(fromCollection);
-
-            const objColl2 = collect({ 1: "a", 2: "b" });
-            // @ts-expect-error - collect({}) returns Collection<string, string> not Collection<{shape}, string>
-            assertType<Collection<{ 1: string; 2: string }, string>>(objColl2);
-
-            const obj2 = new Collection({ 1: "a", 2: "b" });
-            // @ts-expect-error - constructor infers Collection<string, "1"|"2"> not Collection<{shape}, string>
-            assertType<Collection<{ 1: string; 2: string }, string>>(obj2);
-
-            const fromCollection2 = collect(objColl2);
-            assertType<Collection<{ 1: string; 2: string }, string>>(
-                // @ts-expect-error - collect(collection) preserves original types
-                fromCollection2,
-            );
-        });
-
-        it("arrayable", () => {
-            const arrayable = {
-                toArray: () => [4, 5, 6],
-            };
-            const collection = collect(arrayable);
-            // @ts-expect-error - Arrayable<number> gives Collection<number, number> not Collection<number[], number>
-            assertType<Collection<number[], number>>(collection);
-
-            const collection2 = new Collection(arrayable);
-            // @ts-expect-error - Arrayable<number> gives Collection<number, number> not Collection<number[], number>
-            assertType<Collection<number[], number>>(collection2);
-
-            const fromCollection = collect(collection);
-            // @ts-expect-error - preserves original types from source collection
-            assertType<Collection<number[], number>>(fromCollection);
-        });
-
-        it("map", () => {
-            const data = collect(
-                new Map([
-                    [3, { id: 1, name: "A" }],
-                    [5, { id: 3, name: "B" }],
-                    [4, { id: 2, name: "C" }],
-                ]),
-            );
-
-            assertType<
-                Collection<{ id: number; name: string }, number, "keyed">
-            >(data);
-        });
-    });
-
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
             // CollectionTest::testConstructMethodFromNull
@@ -292,23 +212,24 @@ describe("Collection", () => {
             });
         });
 
-        it("constructor preserves itemsWithOrder when created from another Collection", () => {
-            // JS-only: itemsWithOrder is this port's own record of an order a plain object cannot hold
-            // Create a collection via Map with numeric keys to set itemsWithOrder
-            const m = new Map<number, { v: string }>([
-                [2, { v: "b" }],
-                [1, { v: "a" }],
-                [3, { v: "c" }],
-            ]);
-            const base = new Collection(m);
-            // @ts-expect-error internal check
-            expect(Array.isArray(base.itemsWithOrder)).toBe(true);
+        it("keeps the insertion order of the Map-built collection it is built from", () => {
+            // JS-only: a Map stands in for a PHP array whose integer keys are out of order
+            const base = new Collection(
+                new Map([
+                    [2, { v: "b" }],
+                    [1, { v: "a" }],
+                    [3, { v: "c" }],
+                ]),
+            );
             const next = new Collection(base);
-            // Ensure itemsWithOrder was preserved by constructor branch
-            // @ts-expect-error internal check
-            expect(Array.isArray(next.itemsWithOrder)).toBe(true);
-            // And data preserved
-            expect(next.toJson()).toEqual(base.toJson());
+            const views = {
+                all: { 1: { v: "a" }, 2: { v: "b" }, 3: { v: "c" } },
+                keys: [2, 1, 3],
+                values: [{ v: "b" }, { v: "a" }, { v: "c" }],
+            };
+
+            expect(viewsOf(base)).toEqual(views);
+            expect(viewsOf(next)).toEqual(views);
         });
 
         it("wraps a falsy scalar, as PHP's Arr::wrap does", () => {
@@ -676,6 +597,16 @@ describe("Collection", () => {
         it("TestCollectionMapIntoObject stores and retrieves value", () => {
             const obj = new TestCollectionMapIntoObject("test value");
             expect(obj.value).toBe("test value");
+        });
+    });
+
+    describe("expectShape", () => {
+        it("passes a backing of the shape named and fails one of the other shape", () => {
+            // JS-only: this suite's own shape pin; a list typed as a list or a record lets the wrong name compile
+            expectShape(collect(listOrRecord), "list");
+            expectShape(collect({ a: 1 }), "keyed");
+
+            expect(() => expectShape(collect(listOrRecord), "keyed")).toThrow();
         });
     });
 
@@ -1593,10 +1524,12 @@ describe("Collection", () => {
             expect(c.containsStrict("2")).toBe(false);
             expect(c.containsStrict("02")).toBe(true);
             expect(c.containsStrict(true)).toBe(false);
-            // @ts-expect-error - operator < on string | number union
-            expect(c.containsStrict((item) => item < 5)).toBe(true);
-            // @ts-expect-error - operator > on string | number union
-            expect(c.containsStrict((item) => item > 5)).toBe(false);
+            expect(c.containsStrict((item) => compareValues(item, 5) < 0)).toBe(
+                true,
+            );
+            expect(c.containsStrict((item) => compareValues(item, 5) > 0)).toBe(
+                false,
+            );
 
             const d = collect([0]);
             expect(d.containsStrict(0)).toBe(true);
@@ -1827,10 +1760,12 @@ describe("Collection", () => {
             expect(c.doesntContainStrict("2")).toBe(true);
             expect(c.doesntContainStrict("02")).toBe(false);
             expect(c.doesntContainStrict(true)).toBe(true);
-            // @ts-expect-error - operator < on string | number union
-            expect(c.doesntContainStrict((item) => item < 5)).toBe(false);
-            // @ts-expect-error - operator > on string | number union
-            expect(c.doesntContainStrict((item) => item > 5)).toBe(true);
+            expect(
+                c.doesntContainStrict((item) => compareValues(item, 5) < 0),
+            ).toBe(false);
+            expect(
+                c.doesntContainStrict((item) => compareValues(item, 5) > 0),
+            ).toBe(true);
 
             const d = collect([0]);
             expect(d.doesntContainStrict(0)).toBe(false);
@@ -10046,8 +9981,7 @@ describe("Collection", () => {
                 expect(c.search("bar")).toBe("foo");
                 expect(
                     c.search((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 4;
+                        return compareValues(value, 4) > 0;
                     }),
                 ).toBe(4);
                 expect(
@@ -10085,8 +10019,10 @@ describe("Collection", () => {
                 expect(c.search("foo")).toBe(false);
                 expect(
                     c.search((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 1 && typeof value === "number";
+                        return (
+                            compareValues(value, 1) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBe(false);
                 expect(
@@ -10161,8 +10097,7 @@ describe("Collection", () => {
                 expect(c.before("laravel")).toBe("taylor");
                 expect(
                     c.before((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 4;
+                        return compareValues(value, 4) > 0;
                     }),
                 ).toBe(4);
                 expect(
@@ -10201,8 +10136,10 @@ describe("Collection", () => {
                 expect(c.before("foo")).toBeNull();
                 expect(
                     c.before((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 1 && typeof value === "number";
+                        return (
+                            compareValues(value, 1) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBeNull();
                 expect(
@@ -10226,8 +10163,10 @@ describe("Collection", () => {
                 expect(c.before(1)).toBeNull();
                 expect(
                     c.before((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 2 && typeof value === "number";
+                        return (
+                            compareValues(value, 2) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBeNull();
             });
@@ -10276,8 +10215,7 @@ describe("Collection", () => {
 
                 expect(
                     c.after((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 2;
+                        return compareValues(value, 2) > 0;
                     }),
                 ).toBe(4);
                 expect(
@@ -10315,8 +10253,10 @@ describe("Collection", () => {
                 expect(c.after("foo")).toBeNull();
                 expect(
                     c.after((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 1 && typeof value === "number";
+                        return (
+                            compareValues(value, 1) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBeNull();
                 expect(
@@ -10340,8 +10280,11 @@ describe("Collection", () => {
                 expect(c.after("bar")).toBeNull();
                 expect(
                     c.after((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 4 && typeof value !== "number";
+                        // PHP 8 orders "bar" above 4 as strings, so this matches the last item
+                        return (
+                            compareValues(value, 4) > 0 &&
+                            typeof value !== "number"
+                        );
                     }),
                 ).toBeNull();
             });
@@ -16159,8 +16102,9 @@ describe("Collection", () => {
                     ),
                 ).toBeNull();
                 expect(
-                    // @ts-expect-error - intentionally accessing nonexistent property
-                    data.firstWhere((value) => value.nonexistent === "key"),
+                    data.firstWhere(
+                        (value) => Reflect.get(value, "nonexistent") === "key",
+                    ),
                 ).toBeNull();
             });
 

@@ -3,22 +3,34 @@ import { collect, Collection } from "@tolki/collection";
 import type { Arrayable, MapArrayKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
+import type { ItemsOf } from "../helpers";
 import {
+    abc,
     ArrayableNumbers,
     ArrayableRecord,
+    box,
+    generic,
     JsonText,
     listCollection,
     listOrRecord,
+    mapBuilt,
     maybeNumbers,
+    mixed,
+    nestedLists,
+    nullableRows,
     numberKeyedCollection,
+    numberList,
     numbers,
     Point,
     readonlyNumbers,
+    recordOfLists,
+    rows,
     SerializesList,
     SerializesRecord,
     SerializesScalar,
     settings,
     Tagged,
+    unionItems,
     User,
 } from "./fixtures";
 
@@ -27,6 +39,18 @@ describe("collection foundation type tests", () => {
         it("types a list as a list of its values", () => {
             expectTypeOf(collect([1, 2, 3])).toEqualTypeOf<
                 Collection<number, number, "list">
+            >();
+        });
+
+        it("types a list of differently shaped items as their union, not a tuple", () => {
+            // TypeScript gives each object literal in an array the other literals' keys, as optional undefined.
+            expectTypeOf(collect([{ foo: 1 }, { try: 5 }])).toEqualTypeOf<
+                Collection<
+                    | { foo: number; try?: undefined }
+                    | { try: number; foo?: undefined },
+                    number,
+                    "list"
+                >
             >();
         });
 
@@ -42,6 +66,12 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("keys a record by its literal integer keys, keyed though they are numbers", () => {
+            expectTypeOf(collect({ 1: "a", 2: "b" })).toEqualTypeOf<
+                Collection<string, 1 | 2, "keyed">
+            >();
+        });
+
         it("takes an interface-typed record, which has no index signature", () => {
             expectTypeOf(collect(settings)).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
@@ -51,6 +81,12 @@ describe("collection foundation type tests", () => {
         it("keys a Map by the keys PHP stores", () => {
             expectTypeOf(collect(new Map([["a", 1]]))).toEqualTypeOf<
                 Collection<number, MapArrayKey<string>, "keyed">
+            >();
+        });
+
+        it("keys a Map with integer keys, keyed though they are numbers", () => {
+            expectTypeOf(collect(mapBuilt)).toEqualTypeOf<
+                Collection<string, number, "keyed">
             >();
         });
 
@@ -298,6 +334,13 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("types a record with integer keys by its keys' default shape", () => {
+            // A constructor declares no type parameters of its own, so nothing infers the keyed shape its backing has.
+            expectTypeOf(new Collection({ 1: "a", 2: "b" })).toEqualTypeOf<
+                Collection<string, 1 | 2, "list">
+            >();
+        });
+
         it("lists an iterable's values", () => {
             expectTypeOf(new Collection(new Set(["a"]))).toEqualTypeOf<
                 Collection<string, number, "list">
@@ -374,6 +417,52 @@ describe("collection foundation type tests", () => {
             expectTypeOf<
                 Exported.CollectionItems<number, "a", Exported.CollectionShape>
             >().toEqualTypeOf<number[] | Partial<Record<"a", number>>>();
+        });
+    });
+
+    describe("ItemsOf", () => {
+        it("reads the items a collection's type arguments declare, by shape and not by key type", () => {
+            expectTypeOf<ItemsOf<typeof listCollection>>().toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf<ItemsOf<typeof numberKeyedCollection>>().toEqualTypeOf<
+                Record<number, string>
+            >();
+            expectTypeOf<
+                ItemsOf<Collection<number, "a", "partial">>
+            >().toEqualTypeOf<Partial<Record<"a", number>>>();
+            expectTypeOf<ItemsOf<typeof generic>>().toEqualTypeOf<
+                Record<string | number, number>
+            >();
+        });
+    });
+
+    describe("fixtures", () => {
+        it("keeps each fixture's type, which the family rows are written against", () => {
+            expectTypeOf(numberList).toEqualTypeOf<number[]>();
+            expectTypeOf(abc).toEqualTypeOf<{
+                a: number;
+                b: number;
+                c: number;
+            }>();
+            expectTypeOf(rows).toEqualTypeOf<{ id: number; name: string }[]>();
+            expectTypeOf(nullableRows).toEqualTypeOf<
+                { id: number; name: string | null }[]
+            >();
+            expectTypeOf(nestedLists).toEqualTypeOf<number[][]>();
+            expectTypeOf(recordOfLists).toEqualTypeOf<{
+                a: number[];
+                b: number[];
+            }>();
+            expectTypeOf(mixed).toEqualTypeOf<(string | number | null)[]>();
+            expectTypeOf(mapBuilt).toEqualTypeOf<Map<number, string>>();
+            expectTypeOf(box).toEqualTypeOf<{ a: number; b: number }>();
+            expectTypeOf(unionItems).toEqualTypeOf<
+                number[] | Record<string, number>
+            >();
+            expectTypeOf(generic).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
         });
     });
 });
