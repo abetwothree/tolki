@@ -2,6 +2,7 @@ import {
     isArray,
     isBoolean,
     isNull,
+    isNumber,
     isObject,
     isPhpFalsy,
     isPhpNumeric,
@@ -324,6 +325,21 @@ export function looseEqual(a: unknown, b: unknown): boolean {
         return true;
     }
 
+    // Two numbers are equal only when identical; answering here spares the BigInt casts below.
+    if (isNumber(a) && isNumber(b)) {
+        return false;
+    }
+
+    // Two strings compare numerically only when both are numeric, through zendi_smart_strcmp, whose overflow fallback
+    // to a string compare is the only reason PHP says "1e999" == "1e1000" is false; otherwise byte for byte, as above.
+    if (isString(a) && isString(b)) {
+        return (
+            isPhpNumeric(a) &&
+            isPhpNumeric(b) &&
+            compareNumericStrings(a, b) === 0
+        );
+    }
+
     const aIsNull = isNullish(a);
     const bIsNull = isNullish(b);
 
@@ -367,12 +383,6 @@ export function looseEqual(a: unknown, b: unknown): boolean {
 
     if (aScalar && bScalar) {
         if (isPhpNumericOrBigint(a) && isPhpNumericOrBigint(b)) {
-            // Two strings take zendi_smart_strcmp, its overflow fallback to a string compare
-            // included: that is the only reason PHP says "1e999" == "1e1000" is false.
-            if (isString(a) && isString(b)) {
-                return compareNumericStrings(a, b) === 0;
-            }
-
             // Anything PHP would hold as an int compares exactly, where Number() collapses two
             // spellings past 2^53 onto one double.
             if (isPhpIntegral(a) && isPhpIntegral(b)) {
