@@ -9510,6 +9510,17 @@ describe("Collection", () => {
             });
         });
 
+        it.fails("keeps its padding after a string key", () => {
+            const collection = collect({ 5: "a", x: "b" }).pad(4, 0);
+
+            // Ordered-backing gap: PHP appends the padding after the string key, so x comes before 1 and 2
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-a-string-key-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+            }).toEqual({ keys: [0, "x", 1, 2], values: ["a", "b", 0, 0] });
+        });
+
         it("numbers negative pad slots from zero for object-backed collections", () => {
             // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
             // {"0":0,"1":0,"2":0,"a":1,"b":2} (docs/php-parity/task-07-pad-union.json).
