@@ -2552,6 +2552,14 @@
             }
         },
         {
+            "label": "C32-C-every-null-operator",
+            "php": "(new Collection([['x' => 5], ['x' => '5']]))->every('x', null, 5) / (new Collection([['x' => 5], ['x' => 6]]))->every('x', null, 5)",
+            "value": [
+                true,
+                false
+            ]
+        },
+        {
             "label": "C32-C-random-too-many-count",
             "php": "(new Collection([1, 2, 3]))->random(4)",
             "threw": "InvalidArgumentException",
