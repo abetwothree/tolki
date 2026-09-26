@@ -10624,6 +10624,26 @@ describe("Collection", () => {
                 }).toThrowError("Number of groups must be at least 1.");
             });
         });
+
+        it("reads its chunk size through PHP's int cast, which makes NAN 0", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-counts"
+            expect(numbers.splitIn(NaN).all()).toEqual([]);
+            expect(numbers.splitIn(Infinity).all()).toEqual([]);
+            expect(
+                numbers
+                    .splitIn(1.5)
+                    .map((chunk) => chunk.values().all())
+                    .all(),
+            ).toEqual([[1, 2, 3, 4], [5]]);
+            expect(
+                numbers
+                    .splitIn(1e19)
+                    .map((chunk) => chunk.values().all())
+                    .all(),
+            ).toEqual([[1], [2], [3], [4], [5]]);
+        });
     });
 
     describe("sole", () => {

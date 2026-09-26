@@ -3044,7 +3044,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        return this.chunk(Math.ceil(this.count() / numberOfGroups));
+        // PHP's (int) cast of the size makes NAN 0, which chunk() answers with no chunks.
+        return this.chunk(phpInt(Math.ceil(this.count() / numberOfGroups)));
     }
 
     /**
