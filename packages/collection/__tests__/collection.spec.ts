@@ -91,6 +91,15 @@ const outOfOrderKeys = () =>
         ]),
     );
 
+/** A collection's three views, which a keyed result has to agree on. */
+const viewsOf = <TValue, TKey extends PropertyKey>(
+    collection: Collection<TValue, TKey>,
+) => ({
+    all: collection.all(),
+    keys: collection.keys().all(),
+    values: collection.values().all(),
+});
+
 describe("Collection", () => {
     describe("assert constructor types", () => {
         it("arrays", () => {
@@ -10468,6 +10477,67 @@ describe("Collection", () => {
                     collect([1, 2, 3]).split(-1);
                 }).toThrowError("Number of groups must be at least 1.");
             });
+        });
+
+        it("renumbers the integer keys in each group, as array_slice does without preserve_keys", () => {
+            const groups = collect({ 5: "a", 6: "b", 7: "c" }).split(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-int-keys-renumber"
+            expect(groups.map((group) => viewsOf(group)).all()).toEqual([
+                { all: ["a", "b"], keys: [0, 1], values: ["a", "b"] },
+                { all: ["c"], keys: [0], values: ["c"] },
+            ]);
+        });
+
+        it("keeps the string keys in each group", () => {
+            const groups = collect({ a: 1, b: 2, c: 3 }).split(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-assoc-keys"
+            expect(groups.map((group) => viewsOf(group)).all()).toEqual([
+                { all: { a: 1, b: 2 }, keys: ["a", "b"], values: [1, 2] },
+                { all: { c: 3 }, keys: ["c"], values: [3] },
+            ]);
+        });
+
+        it("puts one item in each group when there are more groups than items", () => {
+            const groups = collect([1, 2, 3]).split(5);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-more-groups-than-items"
+            expect(groups.map((group) => viewsOf(group)).all()).toEqual([
+                { all: [1], keys: [0], values: [1] },
+                { all: [2], keys: [0], values: [2] },
+                { all: [3], keys: [0], values: [3] },
+            ]);
+        });
+
+        it("splits a Map-built collection in the order it holds its items", () => {
+            const mixed = collect(
+                new Map<number | string, string>([
+                    [2, "c"],
+                    ["x", "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-out-of-order"
+            expect(
+                outOfOrderKeys()
+                    .split(2)
+                    .map((group) => viewsOf(group))
+                    .all(),
+            ).toEqual([
+                { all: ["c", "a"], keys: [0, 1], values: ["c", "a"] },
+                { all: ["b"], keys: [0], values: ["b"] },
+            ]);
+            expect(
+                mixed
+                    .split(2)
+                    .map((group) => viewsOf(group))
+                    .all(),
+            ).toEqual([
+                { all: { 0: "c", x: "a" }, keys: [0, "x"], values: ["c", "a"] },
+                { all: ["b"], keys: [0], values: ["b"] },
+            ]);
         });
     });
 

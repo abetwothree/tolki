@@ -2972,9 +2972,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return groups;
         }
 
-        const groupSize = Math.floor(this.count() / numberOfGroups);
+        const entries = this.entriesInOrder();
+        const groupSize = Math.floor(entries.length / numberOfGroups);
 
-        const remain = this.count() % numberOfGroups;
+        const remain = entries.length % numberOfGroups;
 
         let start = 0;
 
@@ -2986,9 +2987,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             }
 
             if (size > 0) {
+                // array_slice() without preserve_keys renumbers each group's integer keys from 0.
+                const group = renumberIntegerKeys(
+                    entries.slice(start, start + size),
+                );
+
                 groups.push(
                     this.newInstance(
-                        this.slice(start, size).items,
+                        inPhpOrder(group),
                     ) as unknown as Collection<TValue, TKey>,
                 );
 
@@ -6547,6 +6553,25 @@ function inPhpOrder<TValue>(
     }
 
     return entries;
+}
+
+/**
+ * Renumber entries' integer keys from 0 in the order they come, as array_slice() does without preserve_keys.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns The entries in that order, each integer key renumbered and each string key kept
+ */
+function renumberIntegerKeys<TValue>(
+    entries: Array<[PropertyKey, TValue]>,
+): Map<PropertyKey, TValue> {
+    const renumbered = new Map<PropertyKey, TValue>();
+    let next = 0;
+
+    for (const [key, value] of entries) {
+        renumbered.set(isNumber(key) ? next++ : key, value);
+    }
+
+    return renumbered;
 }
 
 /**
