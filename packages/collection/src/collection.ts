@@ -4742,10 +4742,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
 
+        // undefined stands for PHP's null, so it is skipped with it.
         return this.map((value: TValue) =>
             callbackValue(value as TValue | TKey),
         )
-            .reject((value: TValue) => isNull(value))
+            .reject((value: TValue) => isNull(value) || isUndefined(value))
             .reduce(
                 ((carry: number | null, value: unknown) => {
                     if (isNull(carry) || compareValues(value, carry) < 0) {
@@ -4773,7 +4774,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
 
-        return this.reject((value: TValue) => isNull(value)).reduce(
+        // undefined stands for PHP's null, so it is skipped with it.
+        return this.reject(
+            (value: TValue) => isNull(value) || isUndefined(value),
+        ).reduce(
             ((carry: number | null, item: TValue) => {
                 const value = callbackValue(item as TValue | TKey) as number;
                 if (isNull(carry) || compareValues(value, carry) > 0) {

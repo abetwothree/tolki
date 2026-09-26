@@ -16024,6 +16024,19 @@ describe("Collection", () => {
             expect(collect(["10", "9", "8"]).min()).toBe("8");
         });
 
+        it("skips a null item, and undefined with it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-null-items"
+            expect([
+                collect([null, 3, 1]).min(),
+                collect([null]).min(),
+            ]).toEqual([1, null]);
+            // JS-only: undefined stands for PHP's null, so it is skipped with it
+            expect([
+                collect([undefined, 3, 1]).min(),
+                collect([undefined]).min(),
+            ]).toEqual([1, null]);
+        });
+
         it("compares other strings as text, and never throws", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
             expect(collect(["b", "a", "c"]).min()).toBe("a");
@@ -16085,6 +16098,19 @@ describe("Collection", () => {
         it("compares numeric strings as numbers, as PHP's > does", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-numeric-strings"
             expect(collect(["10", "9", "8"]).max()).toBe("10");
+        });
+
+        it("skips a null item, and undefined with it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-null-items"
+            expect([
+                collect([null, 3, 1]).max(),
+                collect([null]).max(),
+            ]).toEqual([3, null]);
+            // JS-only: undefined stands for PHP's null, so it is skipped with it
+            expect([
+                collect([undefined, 3, 1]).max(),
+                collect([undefined]).max(),
+            ]).toEqual([3, null]);
         });
 
         it("compares other strings as text, and never throws", () => {
