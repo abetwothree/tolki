@@ -1,11 +1,16 @@
 import { phpIntArgument } from "./cast";
-import { isInteger, isNull } from "./guards";
+import { isInteger, isNull, isUndefined } from "./guards";
 
 /**
  * The half-open `[start, end)` window `array_slice($items, $offset, $length)`
  * selects, expressed for `Array.prototype.slice`.
  */
 export type SliceRange = { start: number; end: number | undefined };
+
+/**
+ * The index `array_splice($items, $offset, $length)` starts at and the number of items it removes.
+ */
+export type SpliceRange = { start: number; count: number };
 
 /**
  * Resolve `array_slice`'s offset/length pair into a slice window.
@@ -33,6 +38,46 @@ export function resolveSliceRange(
           : Math.max(start, count + length);
 
     return { start, end };
+}
+
+/**
+ * Resolve `array_splice`'s offset/length pair into where it starts and how many items it removes.
+ *
+ * The offset and the length are read as PHP reads the int parameters, dropping a fraction first, so a
+ * negative offset counts back from the end before it is combined with the length, as `array_splice` does.
+ *
+ * @param size - The number of items being spliced.
+ * @param offset - The starting index, negative to count back from the end.
+ * @param length - How many items to remove, negative to stop that many from the end, or `undefined` to run to the
+ * end.
+ * @returns The `start` index and the `count` of items to remove.
+ * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
+ * refuses.
+ */
+export function resolveSpliceRange(
+    size: number,
+    offset: number,
+    length: number | undefined,
+): SpliceRange {
+    const from = phpIntArgument(
+        offset,
+        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+    );
+    const start = from < 0 ? Math.max(size + from, 0) : Math.min(from, size);
+
+    if (isUndefined(length)) {
+        return { start, count: size - start };
+    }
+
+    const removed = phpIntArgument(
+        length,
+        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+    );
+
+    return {
+        start,
+        count: removed < 0 ? Math.max(size + removed - start, 0) : removed,
+    };
 }
 
 /**

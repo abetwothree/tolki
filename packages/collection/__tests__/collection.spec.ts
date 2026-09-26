@@ -13407,6 +13407,90 @@ describe("Collection", () => {
     });
 
     describe("splice", () => {
+        it("drops the fraction from an offset before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            const list = collect([1, 2, 3, 4]);
+            const removed = list.splice(1.5);
+
+            expect(removed.all()).toEqual([2, 3, 4]);
+            expect(list.all()).toEqual([1]);
+            expect(list.keys().all()).toEqual([0]);
+            expect(list.values().all()).toEqual([1]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+            const fromTheEnd = keyed.splice(-1.5, 1);
+
+            expect(fromTheEnd.all()).toEqual({ d: 4 });
+            expect(fromTheEnd.keys().all()).toEqual(["d"]);
+            expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3 });
+            expect(keyed.keys().all()).toEqual(["a", "b", "c"]);
+            expect(keyed.values().all()).toEqual([1, 2, 3]);
+
+            const keyedOffsetOnly = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyedOffsetOnly.splice(1.5).keys().all()).toEqual([
+                "b",
+                "c",
+                "d",
+            ]);
+            expect(keyedOffsetOnly.keys().all()).toEqual(["a"]);
+            expect(keyedOffsetOnly.values().all()).toEqual([1]);
+        });
+
+        it("drops the fraction from a length before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-lengths"
+            const list = collect([1, 2, 3, 4]);
+
+            expect(list.splice(1, -1.5, ["x"]).all()).toEqual([2, 3]);
+            expect(list.all()).toEqual([1, "x", 4]);
+            expect(list.keys().all()).toEqual([0, 1, 2]);
+            expect(list.values().all()).toEqual([1, "x", 4]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyed.splice(1, 1.5, ["x"]).all()).toEqual({ b: 2 });
+            expect(keyed.keys().all()).toEqual(["a", 0, "c", "d"]);
+            expect(keyed.values().all()).toEqual([1, "x", 3, 4]);
+        });
+
+        it("throws array_splice()'s TypeError for an offset or a length no int holds, and splices nothing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
+            for (const value of [NaN, Infinity, -Infinity, 1e19]) {
+                const list = collect([1, 2, 3, 4]);
+                const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+                expect(() => list.splice(value, 1)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => keyed.splice(value)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => list.splice(1, value, ["x"])).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(() => keyed.splice(1, value)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(list.all()).toEqual([1, 2, 3, 4]);
+                expect(list.keys().all()).toEqual([0, 1, 2, 3]);
+                expect(list.values().all()).toEqual([1, 2, 3, 4]);
+                expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+                expect(keyed.keys().all()).toEqual(["a", "b", "c", "d"]);
+                expect(keyed.values().all()).toEqual([1, 2, 3, 4]);
+            }
+        });
+
         it("renumbers negative integer keys on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
             const c = collect({ "-1": "a", x: "b", "-5": "c" });

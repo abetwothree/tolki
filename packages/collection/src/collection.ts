@@ -115,6 +115,7 @@ import {
     resolveDefault,
     resolvePadLength,
     resolveSliceRange,
+    resolveSpliceRange,
     resolveTakeCount,
     strictEqual,
     toArrayable,
@@ -3531,10 +3532,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Splice a portion of the underlying collection array.
      *
-     * @param offset - The offset to start the splice
-     * @param length - The number of items to remove; null or none removes everything from the offset on
+     * @param offset - The offset to start the splice; a fraction is dropped, as array_splice()'s int parameter drops it
+     * @param length - The number of items to remove, a fraction dropped; null or none removes everything from the
+     * offset on
      * @param replacement - The items to insert in place of the removed items
      * @returns A new collection with the removed items
+     * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, as array_splice()
+     * refuses it
      *
      * @example
      *
@@ -6164,14 +6168,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         replacement: TValue[],
     ) {
         const entries: Array<[PropertyKey, TValue]> = [...ordered];
-        const size = entries.length;
-        const start =
-            offset < 0 ? Math.max(size + offset, 0) : Math.min(offset, size);
-        const count = isUndefined(length)
-            ? size - start
-            : length < 0
-              ? Math.max(size + length - start, 0)
-              : length;
+        const { start, count } = resolveSpliceRange(
+            entries.length,
+            offset,
+            length,
+        );
 
         const removed = entries.splice(
             start,

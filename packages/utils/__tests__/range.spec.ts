@@ -69,4 +69,49 @@ describe("Utils", () => {
             expect(Utils.resolvePadLength(-(2 ** 30))).toBe(-(2 ** 30));
         });
     });
+
+    describe("resolveSpliceRange", () => {
+        it("drops the offset's fraction before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            expect(Utils.resolveSpliceRange(4, 1.5, undefined)).toEqual({
+                start: 1,
+                count: 3,
+            });
+            expect(Utils.resolveSpliceRange(4, -1.5, 1)).toEqual({
+                start: 3,
+                count: 1,
+            });
+        });
+
+        it("drops the length's fraction before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-lengths"
+            expect(Utils.resolveSpliceRange(4, 1, 1.5)).toEqual({
+                start: 1,
+                count: 1,
+            });
+            expect(Utils.resolveSpliceRange(4, 1, -1.5)).toEqual({
+                start: 1,
+                count: 2,
+            });
+        });
+
+        it("throws array_splice()'s TypeError for an offset or a length no int holds, the offset's first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
+            for (const value of [NaN, Infinity, -Infinity, 1e19]) {
+                expect(() => Utils.resolveSpliceRange(4, value, value)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => Utils.resolveSpliceRange(4, 1, value)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+            }
+        });
+    });
 });

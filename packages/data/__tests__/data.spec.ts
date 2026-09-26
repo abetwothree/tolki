@@ -5934,6 +5934,23 @@ describe("Data", () => {
     });
 
     describe("dataSplice", () => {
+        it("agrees across backings on a fractional offset, and refuses a non-finite one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            expect(Data.dataSplice([1, 2, 3, 4], 1.5)).toEqual([2, 3, 4]);
+            expect(
+                Object.values(Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1.5)),
+            ).toEqual([2, 3, 4]);
+            expect(() => Data.dataSplice([1, 2, 3, 4], NaN, 1)).toThrow(
+                "array_splice(): Argument #2 ($offset) must be of type int, float given",
+            );
+            expect(() =>
+                Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, NaN, 1),
+            ).toThrow(
+                "array_splice(): Argument #2 ($offset) must be of type int, float given",
+            );
+        });
+
         it("renumbers negative integer keys through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
             const data = { x: "a", "-3": "b", "-7": "c" };

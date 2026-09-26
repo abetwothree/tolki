@@ -85,6 +85,7 @@ import {
     phpValueMatcher,
     resolvePadLength,
     resolveSliceRange,
+    resolveSpliceRange,
     resolveTakeCount,
     strictEqual,
     toPhpKeyString,
@@ -3718,10 +3719,12 @@ export function sortRecursiveDesc<TValue>(
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1768`. Wraps `array_splice`; mutates.
  *
  * @param data - The array to splice. Mutated in place.
- * @param offset - The starting index
- * @param length - The number of items to remove. Defaults to everything from offset to the end.
+ * @param offset - The starting index; a fraction is dropped, as array_splice()'s int parameter drops it
+ * @param length - The number of items to remove. Defaults to everything from offset to the end; a fraction is dropped.
  * @param replacement - The replacement items (arrays will be flattened)
  * @returns The removed elements.
+ * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
+ * refuses.
  */
 export function splice<TValue, TReplacements>(
     data: TValue[],
@@ -3748,16 +3751,7 @@ export function splice<TValue, TReplacements>(
         }
     }
 
-    if (isUndefined(length)) {
-        // If length is not provided, remove all elements from offset to end
-        return data.splice(offset, data.length - offset, ...flatReplacement);
-    }
-
-    const len = data.length;
-    const start =
-        offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
-    // PHP's array_splice treats a negative length as counting back from the array's end.
-    const count = length < 0 ? Math.max(len + length - start, 0) : length;
+    const { start, count } = resolveSpliceRange(data.length, offset, length);
 
     return data.splice(start, count, ...flatReplacement);
 }

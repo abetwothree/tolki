@@ -7005,6 +7005,47 @@ describe("Arr", () => {
     });
 
     describe("splice", () => {
+        it("drops the fraction from an offset or a length before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            const offsetOnly = [1, 2, 3, 4];
+
+            expect(Arr.splice(offsetOnly, 1.5)).toEqual([2, 3, 4]);
+            expect(offsetOnly).toEqual([1]);
+
+            const fromTheEnd = [1, 2, 3, 4];
+
+            expect(Arr.splice(fromTheEnd, -1.5, 1)).toEqual([4]);
+            expect(fromTheEnd).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-lengths"
+            const shortOfTheEnd = [1, 2, 3, 4];
+
+            expect(Arr.splice(shortOfTheEnd, 1, -1.5, "x")).toEqual([2, 3]);
+            expect(shortOfTheEnd).toEqual([1, "x", 4]);
+        });
+
+        it("throws array_splice()'s TypeError for an offset or a length no int holds, and splices nothing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
+            for (const value of [NaN, Infinity, 1e19]) {
+                const data = [1, 2, 3, 4];
+
+                expect(() => Arr.splice(data, value, 1)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => Arr.splice(data, 1, value, "x")).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(data).toEqual([1, 2, 3, 4]);
+            }
+        });
+
         it("mutates the array in place and returns the removed elements", () => {
             // Splice mutates and returns only what was removed; omitting length removes
             // everything from offset to the end.

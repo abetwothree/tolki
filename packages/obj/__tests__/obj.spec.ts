@@ -10205,6 +10205,50 @@ describe("Obj", () => {
     });
 
     describe("splice", () => {
+        it("drops the fraction from an offset or a length before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            const offsetOnly = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.splice(offsetOnly, 1.5)).toEqual({ b: 2, c: 3, d: 4 });
+            expect(offsetOnly).toEqual({ a: 1 });
+
+            const fromTheEnd = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.splice(fromTheEnd, -1.5, 1)).toEqual({ d: 4 });
+            expect(fromTheEnd).toEqual({ a: 1, b: 2, c: 3 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-lengths"
+            const shortOfTheEnd = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.splice(shortOfTheEnd, 1, -1.5, ["x"])).toEqual({
+                b: 2,
+                c: 3,
+            });
+            expect(shortOfTheEnd).toEqual({ a: 1, 0: "x", d: 4 });
+        });
+
+        it("throws array_splice()'s TypeError for an offset or a length no int holds, and splices nothing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
+            for (const value of [NaN, Infinity, 1e19]) {
+                const data = { a: 1, b: 2, c: 3, d: 4 };
+
+                expect(() => Obj.splice(data, value, 1)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => Obj.splice(data, 1, value, ["x"])).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(data).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+            }
+        });
+
         it("leaves a prototype object untouched instead of clearing it", () => {
             // JS-only: a PHP array has no prototype; defineKey won't write into one, so the survivors would be lost.
             class Holder {}

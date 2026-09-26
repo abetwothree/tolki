@@ -98,6 +98,7 @@ import {
     renumberPhpIntegerKeys,
     resolvePadLength,
     resolveSliceRange,
+    resolveSpliceRange,
     resolveTakeCount,
     strictEqual,
     toPhpKeyString,
@@ -5301,10 +5302,12 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1768`. Wraps `array_splice`; mutates.
  *
  * @param data - The object or Map to splice. Mutated in place.
- * @param offset - The starting index, by entry order (not by key)
- * @param length - The number of entries to remove. Defaults to everything from offset to the end.
+ * @param offset - The starting index, by entry order (not by key); a fraction is dropped, as array_splice() drops it
+ * @param length - The number of entries to remove, a fraction dropped. Defaults to everything from offset to the end.
  * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
  * @returns The removed entries, as `array_splice` returns them: string keys kept, integer keys renumbered from 0.
+ * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
+ * refuses.
  *
  * @example
  *
@@ -5361,16 +5364,11 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     }
 
     const entries = keyedEntries<TValue>(data);
-    const len = entries.length;
-
-    const start =
-        offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
-    // PHP's array_splice treats a negative length as counting back from the end.
-    const deleteCount = isUndefined(length)
-        ? len - start
-        : length < 0
-          ? Math.max(len + length - start, 0)
-          : length;
+    const { start, count: deleteCount } = resolveSpliceRange(
+        entries.length,
+        offset,
+        length,
+    );
 
     const beforeEntries = entries.slice(0, start);
     const removedEntries = entries.slice(start, start + deleteCount);
