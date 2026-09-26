@@ -6242,6 +6242,11 @@ describe("Collection", () => {
                 { tags: ["a", "b"], role: "admin" },
             ]);
         });
+
+        it("truncates a fractional count, as PHP's int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-fractional-count"
+            expect(collect([1, 2]).multiply(2.5).all()).toEqual([1, 2, 1, 2]);
+        });
     });
 
     describe("combine", () => {

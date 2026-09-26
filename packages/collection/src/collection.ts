@@ -2083,21 +2083,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Multiply the items in the collection by the multiplier.
      *
-     * @param multiplier - The number of times to repeat the items
-     * @returns A new collection with the items repeated
+     * @param multiplier - The number of times to repeat the items; a fraction is dropped, as PHP's int parameter does
+     * @returns A new collection with the items' values repeated, as a list
      *
      * @example
      *
      * new Collection([1, 2]).multiply(3); -> new Collection([1, 2, 1, 2, 1, 2])
-     * new Collection({a: 1, b: 2}).multiply(2); -> new Collection({a: 1, b: 2})
-     * new Collection([]).multiply(5); -> new Collection([])
-     * new Collection([1, 2]).multiply(0); -> new Collection([1, 2])
+     * new Collection({a: 1, b: 2}).multiply(2); -> new Collection([1, 2, 1, 2])
+     * new Collection([1, 2]).multiply(2.5); -> new Collection([1, 2, 1, 2])
+     * new Collection([1, 2]).multiply(0); -> new Collection([])
      */
     multiply(multiplier: number) {
         const newCollection = this.newInstance();
+        const values = this.getItemValues(this.items);
 
-        for (let i = 0; i < multiplier; i++) {
-            newCollection.push(...this.getItemValues(this.items));
+        for (let i = 0; i < Math.trunc(multiplier); i++) {
+            newCollection.push(...values);
         }
 
         return newCollection;
