@@ -342,6 +342,7 @@ probe('C32-B-pull-dot-path-through-nested-arrays', "pull('a.b'), pull('a.b.c'), 
     [['a' => [2 => 'x', 0 => 'y', 1 => 'z']], 'a.2', null],
     [['a' => ['b' => 1]], 'a.z', 'd'],
 ]));
+probe('C32-B-pull-dot-path-missing-below-nested-array', "\$c = collect(['a' => ['b' => ['c' => 1]]]); \$c->pull('a.b.z', 'd'), and what 'a' holds after", function () { $c = collect(['a' => ['b' => ['c' => 1]]]); $returned = $c->pull('a.b.z', 'd'); return ['returned' => $returned, 'a' => $c->get('a')]; });
 
 // keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
 $overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);

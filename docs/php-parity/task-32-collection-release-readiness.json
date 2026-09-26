@@ -1743,6 +1743,18 @@
             ]
         },
         {
+            "label": "C32-B-pull-dot-path-missing-below-nested-array",
+            "php": "$c = collect(['a' => ['b' => ['c' => 1]]]); $c->pull('a.b.z', 'd'), and what 'a' holds after",
+            "value": {
+                "returned": "d",
+                "a": {
+                    "b": {
+                        "c": 1
+                    }
+                }
+            }
+        },
+        {
             "label": "C32-B-put-illegal-key",
             "php": "put($key, 9) and offsetSet($key, 9) over collect(['a', 'b']) and collect(['a' => 1, 'b' => 2]), for $key = ['a'], new stdClass and fn () => 1",
             "value": {
