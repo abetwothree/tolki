@@ -2730,6 +2730,16 @@ describe("Data", () => {
     });
 
     describe("dataJoin", () => {
+        it("agrees across backings on how each piece casts", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            expect(Data.dataJoin([1, [2, 3]], ",")).toBe("1,Array");
+            expect(Data.dataJoin({ a: 1, b: [2] }, ",")).toBe("1,Array");
+            expect(Data.dataJoin([true, null], ", ", " and ")).toBe("1 and ");
+            expect(Data.dataJoin({ a: true, b: null }, ", ", " and ")).toBe(
+                "1 and ",
+            );
+        });
+
         it("is object", () => {
             const result = Data.dataJoin(
                 { a: "hello", b: "world", c: "test" },

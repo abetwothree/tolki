@@ -6324,6 +6324,22 @@ describe("Obj", () => {
     });
 
     describe("join", () => {
+        it("casts each piece as implode() does and the last as . does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            expect(Obj.join({ a: 1, b: [2] }, ",")).toBe("1,Array");
+            expect(Obj.join({ a: true, b: false, c: null, d: 1.5 }, ",")).toBe(
+                "1,,,1.5",
+            );
+            expect(Obj.join({ a: 1, b: [2] }, ", ", " and ")).toBe(
+                "1 and Array",
+            );
+            expect(() => Obj.join({ a: 1, b: () => 1 }, ",")).toThrow(
+                new Error(
+                    "Object of class Closure could not be converted to string",
+                ),
+            );
+        });
+
         it("should return empty string for non-object values", () => {
             expect(Obj.join(null, ",")).toBe("");
             expect(Obj.join(undefined, ",")).toBe("");

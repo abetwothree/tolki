@@ -92,6 +92,7 @@ import {
     phpArrayKey,
     phpComputedKey,
     phpSortComparator,
+    phpStringCast,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
@@ -2682,6 +2683,8 @@ export function integer<
  * @param  data - The object or Map to join.
  * @param  glue - The string to join all but the last item.
  * @param  finalGlue - The string to join the last item.
+ * @returns The items joined, each cast as PHP's (string) cast casts it: "Array" for an array, "1" for true.
+ * @throws Error `Object of class X could not be converted to string` for an object without its own toString.
  *
  * @example
  *
@@ -2705,7 +2708,8 @@ export function join(
         return "";
     }
 
-    const items = keyedEntries(data).map(([, value]) => String(value));
+    // implode() casts each piece and `.` the last one; PHP hands a lone item back uncast, which join() then answers.
+    const items = keyedEntries(data).map(([, value]) => phpStringCast(value));
 
     if (finalGlue === "") {
         return items.join(glue);

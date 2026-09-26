@@ -2561,6 +2561,52 @@ describe("Arr", () => {
     });
 
     describe("join", () => {
+        it("casts each piece as implode() does and the last as . does", () => {
+            class Label {
+                toString(): string {
+                    return "S:T";
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            expect(Arr.join([1, [2, 3]], ",")).toBe("1,Array");
+            expect(Arr.join([true, false, null, 1.5, "x"], ",")).toBe(
+                "1,,,1.5,x",
+            );
+            expect(Arr.join([1, new Label()], ",")).toBe("1,S:T");
+            expect(Arr.join([1, [2]], ", ", " and ")).toBe("1 and Array");
+            expect(Arr.join([true, null, false], ", ", " and ")).toBe(
+                "1,  and ",
+            );
+        });
+
+        it("throws PHP's Error for an object piece without its own toString, or a closure", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces": the message
+            // names the JS class, where PHP's names stdClass
+            expect(() => Arr.join([1, new Point()], ",")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+            expect(() => Arr.join([1, new Point()], ", ", " and ")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+            expect(() => Arr.join([1, () => 1], ",")).toThrow(
+                new Error(
+                    "Object of class Closure could not be converted to string",
+                ),
+            );
+        });
+
+        it("answers a lone item as the string it casts to, where PHP hands the item back", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            // JS-only: join() answers a string, so a lone [1, 2] or true is the string PHP's would cast to
+            expect(Arr.join([[1, 2]], ", ", " and ")).toBe("Array");
+            expect(Arr.join([true], ", ", " and ")).toBe("1");
+        });
+
         it("join", () => {
             expect(Arr.join(["a", "b", "c"], ", ")).toBe("a, b, c");
             expect(Arr.join(["a", "b", "c"], ", ", " and ")).toBe("a, b and c");
