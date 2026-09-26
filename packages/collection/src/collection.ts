@@ -6460,7 +6460,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const ordered = new Map<PropertyKey, unknown>();
 
         for (const [key] of [...this.entriesInOrder(), ...operand]) {
-            ordered.set(key, values[key]);
+            // A Map operand's symbol key has no PHP array key, so the data helpers' result holds none.
+            if (Object.hasOwn(values, key)) {
+                ordered.set(key, values[key]);
+            }
         }
 
         return ordered;

@@ -6927,6 +6927,22 @@ describe("Collection", () => {
             expect(result.values().all()).toEqual([1, operand.all]);
         });
 
+        it("leaves out a symbol key a Map operand holds", () => {
+            const marker = Symbol("marker");
+            const united = collect({ a: 1 }).union(
+                new Map<string | symbol, number>([
+                    [marker, 2],
+                    ["b", 3],
+                ]),
+            );
+
+            // JS-only: PHP has no symbol key, so union() adds only the keys a PHP array could hold
+            expect(Object.getOwnPropertySymbols(united.all())).toEqual([]);
+            expect(united.all()).toEqual({ a: 1, b: 3 });
+            expect(united.keys().all()).toEqual(["a", "b"]);
+            expect(united.values().all()).toEqual([1, 3]);
+        });
+
         it("keeps its own items when one is a function stored under an all or toJSON key", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "union-function-valued-member"
             let calls = 0;
