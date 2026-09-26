@@ -3518,30 +3518,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | DataItems<TReplace, TKeyReplace>
             | Collection<TReplace, TKeyReplace>,
     ) {
-        const replacementItems =
-            replacement !== undefined
-                ? [this.getRawItems(replacement)]
-                : ([] as []);
+        // array_splice inserts the replacement's values in its own order, which a Map read as a record would lose.
+        const values = isUndefined(replacement)
+            ? []
+            : this.operandEntries(replacement).map(
+                  ([, value]) => value as TValue,
+              );
 
         // A null length reaches the end, as array_splice's does.
         const count = length ?? undefined;
-        const ordered = this.orderedEntries();
 
-        if (ordered) {
+        // A plain object lists its integer keys first, so a keyed backing is read in the order PHP's array holds it.
+        if (!isArray(this.items)) {
             return this.spliceOrdered(
-                ordered,
+                this.entriesInOrder(),
                 offset,
                 count,
-                replacementItems.flatMap(
-                    (source) => Object.values(source) as TValue[],
-                ),
+                values,
             );
         }
 
         return this.newInstance(
-            handOver(
-                dataSplice(this.items, offset, count, ...replacementItems),
-            ),
+            handOver(dataSplice(this.items, offset, count, values)),
         );
     }
 
@@ -6095,9 +6093,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Splice a backing that carries its own insertion order, as array_splice does.
+     * Splice a keyed backing in the order PHP's array holds it, as array_splice does.
      *
-     * @param ordered - The backing's entries, in insertion order
+     * @param ordered - The backing's entries, in the order PHP's array holds them
      * @param offset - Where to start, counting back from the end when negative
      * @param length - How many entries to remove, leaving that many at the end when negative
      * @param replacement - The values to insert, whose own keys array_splice discards

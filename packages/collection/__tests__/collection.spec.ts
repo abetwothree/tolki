@@ -13108,6 +13108,68 @@ describe("Collection", () => {
             expect(fromArray.splice(1).all()).toEqual(["z"]);
             expect(fromObject.splice(1).all()).toEqual({ baz: "z" });
         });
+
+        it("splices a keyed collection at the position its items hold, around its string keys", () => {
+            const inserted = collect({ a: 1, b: 2 });
+            const none = inserted.splice(1, 0, ["p", "q"]);
+            const replaced = collect({ a: 1, b: 2, c: 3 });
+            const cut = replaced.splice(1, 1, ["p"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-keyed-order"
+            expect(inserted.all()).toEqual({ a: 1, 0: "p", 1: "q", b: 2 });
+            expect(inserted.keys().all()).toEqual(["a", 0, 1, "b"]);
+            expect(inserted.values().all()).toEqual([1, "p", "q", 2]);
+            expect(inserted.first()).toBe(1);
+            expect(none.values().all()).toEqual([]);
+            expect(replaced.all()).toEqual({ a: 1, 0: "p", c: 3 });
+            expect(replaced.keys().all()).toEqual(["a", 0, "c"]);
+            expect(replaced.values().all()).toEqual([1, "p", 3]);
+            expect(replaced.first()).toBe(1);
+            expect(cut.all()).toEqual({ b: 2 });
+        });
+
+        it("inserts a Map replacement's values in the order it holds them, on either backing", () => {
+            const replacement = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            const views = <TValue, TKey extends PropertyKey>(
+                collection: Collection<TValue, TKey>,
+            ) => ({
+                all: collection.all(),
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+            });
+            const list = collect(["x", "y"]);
+            const listByCollection = collect(["x", "y"]);
+            const keyed = collect({ a: 1, b: 2 });
+            const keyedByCollection = collect({ a: 1, b: 2 });
+
+            list.splice(1, 0, replacement());
+            listByCollection.splice(1, 0, collect(replacement()));
+            keyed.splice(1, 0, replacement());
+            keyedByCollection.splice(1, 0, collect(replacement()));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-replacement-order"
+            for (const spliced of [list, listByCollection]) {
+                expect(views(spliced)).toEqual({
+                    all: ["x", "c", "a", "b", "y"],
+                    keys: [0, 1, 2, 3, 4],
+                    values: ["x", "c", "a", "b", "y"],
+                });
+            }
+
+            for (const spliced of [keyed, keyedByCollection]) {
+                expect(views(spliced)).toEqual({
+                    all: { a: 1, 0: "c", 1: "a", 2: "b", b: 2 },
+                    keys: ["a", 0, 1, 2, "b"],
+                    values: [1, "c", "a", "b", 2],
+                });
+            }
+        });
     });
 
     describe("take", () => {
