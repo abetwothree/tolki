@@ -13761,6 +13761,15 @@ describe("Collection", () => {
             });
         });
 
+        it("builds a pure enum definition as it would a class, which throws", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-pure-enum"
+            // JS-only: a definition is no class, so the error is a TypeError, not PHP's "Cannot instantiate enum"
+            expect(() => collect(["A"]).mapInto(TestEnum)).toThrow(TypeError);
+            expect(() => collect(["A"]).mapInto(TestEnum)).toThrow(
+                "is not a constructor",
+            );
+        });
+
         it("hands the class each value and its key", () => {
             class RecordsArguments {
                 public args: unknown[];

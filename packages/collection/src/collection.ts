@@ -4816,15 +4816,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Map the values into a new class.
      *
-     * @param className - The class to map the values into, whose constructor receives each value and its key, or an
-     * `@tolki/enum` definition, whose from() resolves each value to its case as a backed enum's does
+     * @param className - The class to map the values into, whose constructor receives each value and its key, or a
+     * backed `@tolki/enum` definition, whose from() resolves each value to its case
      * @returns A new collection with the values mapped into the new class
      *
      * @example
      *
      * new Collection(['first']).mapInto(Wrapper); -> new Collection([new Wrapper('first', 0)])
      *
-     * const Status = defineEnum({A: 1, B: 2, _cases: ['A', 'B']});
+     * const Status = defineEnum({A: 1, B: 2, backed: true, _cases: ['A', 'B']});
      * new Collection([1, 2]).mapInto(Status); -> new Collection([Status.from(1), Status.from(2)])
      */
     mapInto<TMapIntoValue>(
@@ -6590,13 +6590,16 @@ function phpIntegerFormat(key: PropertyKey): number {
 }
 
 /**
- * Determine whether mapInto() was handed an `@tolki/enum` definition rather than a class.
+ * Determine whether mapInto() was handed a backed `@tolki/enum` definition rather than a class.
  *
  * @param value - The class or the enum definition
- * @returns True for an object whose from() resolves a value to its case
+ * @returns True for a definition marked backed, whose from() resolves a value to its case
  */
 function isEnumDefinition(value: unknown): value is EnumDefinition<never> {
-    return isObject(value) && isFunction(value["from"]);
+    // PHP resolves only a BackedEnum through from(); a pure enum is built as a class would be, and throws.
+    return (
+        isObject(value) && value["backed"] === true && isFunction(value["from"])
+    );
 }
 
 /**
