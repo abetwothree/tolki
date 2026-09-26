@@ -1492,6 +1492,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * items are neither arrays nor objects
      * @param glue - The string to join values with, defaults to an empty string
      * @returns A string of concatenated values
+     * @throws Error for a piece that is an object without its own toString, or a closure, which PHP cannot cast
      *
      * @example
      *
@@ -1504,9 +1505,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         value: ((item: TValue, key: TKey) => TReturnValue) | PropertyKey | null,
         glue: string | null = null,
     ) {
-        // PHP's implode() casts each piece as (string) does: true to "1", false and null to "", a float to 14 digits.
         const joinItems = (items: unknown[], separator: string | null) =>
-            items.map(toPhpKeyString).join(separator ?? "");
+            items.map(phpStringCast).join(separator ?? "");
 
         if (isFunction(value)) {
             const ordered = this.orderedEntries();
@@ -1758,6 +1758,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param glue - The string to join all but the last item with
      * @param finalGlue - The string to join the last item with, defaults to an empty string
      * @returns A string of joined items
+     * @throws Error for an item that is an object without its own toString, or a closure, which PHP cannot cast
      *
      * @example
      *
@@ -1789,7 +1790,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const finalItem = collection.pop();
 
         // PHP's . casts the last item as implode() casts the others.
-        return `${collection.implode(glue)}${finalGlue}${toPhpKeyString(finalItem)}`;
+        return `${collection.implode(glue)}${finalGlue}${phpStringCast(finalItem)}`;
     }
 
     /**
@@ -7206,6 +7207,33 @@ function joinsAsString(item: unknown): boolean {
         // PHP plucks a collection, which is no Illuminate\Support\Stringable.
         !(item instanceof Collection)
     );
+}
+
+/**
+ * Cast a value to a string as PHP's `(string)` cast does, as implode() casts each piece and `.` its operands.
+ *
+ * @param value - The value to cast
+ * @returns "Array" for an array or what stands for one, an object's own toString, else toPhpKeyString()'s cast of a
+ * scalar: true to "1", false and null to "", a float to 14 digits
+ * @throws Error `Object of class X could not be converted to string` for any other object and for a closure
+ */
+function phpStringCast(value: unknown): string {
+    // PHP prints an array as "Array", with a warning the port cannot raise.
+    if (isPhpAccessible(value)) {
+        return "Array";
+    }
+
+    if (hasOwnToString(value)) {
+        return String(value.toString());
+    }
+
+    if (isObject(value) || isFunction(value)) {
+        throw new Error(
+            `Object of class ${getDebugType(value)} could not be converted to string`,
+        );
+    }
+
+    return toPhpKeyString(value);
 }
 
 /**

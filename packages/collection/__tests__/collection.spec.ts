@@ -4695,6 +4695,67 @@ describe("Collection", () => {
                 "0.3,1,1.0E+25,-0",
             );
         });
+
+        it("prints an array piece as Array, as PHP's (string) cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-array-pieces"
+            expect([
+                collect([1, [2, 3]]).implode(","),
+                collect(["a", { b: 1 }]).implode(","),
+                collect([1, 2]).implode((value) => [value], ","),
+                collect([{ a: [1] }, { a: 2 }]).implode("a", ","),
+            ]).toEqual(["1,Array", "a,Array", "Array,Array", "Array,2"]);
+            // JS-only: a Map stands in for an array, as a plain object does
+            expect(collect(["a", new Map([["b", 1]])]).implode(",")).toBe(
+                "a,Array",
+            );
+        });
+
+        it("throws PHP's Error for an object piece without its own toString, or a closure", () => {
+            class stdClass {}
+
+            const failure = (type: string) =>
+                new Error(
+                    `Object of class ${type} could not be converted to string`,
+                );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces": a JS Date
+            // names its own class, where PHP's message names DateTime.
+            expect(() => collect([1, new stdClass()]).implode(",")).toThrow(
+                failure("stdClass"),
+            );
+            expect(() => collect([1, new Date(0)]).implode(",")).toThrow(
+                failure("Date"),
+            );
+            expect(() => collect([1, () => 1]).implode(",")).toThrow(
+                failure("Closure"),
+            );
+            expect(() =>
+                collect([1, 2]).implode(() => new stdClass(), ","),
+            ).toThrow(failure("stdClass"));
+            expect(() =>
+                collect([{ a: new stdClass() }]).implode("a", ","),
+            ).toThrow(failure("stdClass"));
+        });
+
+        it("casts a piece with its own toString through it, and a collection through its JSON", () => {
+            class Label {
+                v: string;
+
+                constructor(v: string) {
+                    this.v = v;
+                }
+
+                toString(): string {
+                    return `S:${this.v}`;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces"
+            expect([
+                collect([1, new Label("T")]).implode(","),
+                collect([1, collect([2])]).implode(","),
+            ]).toEqual(["1,S:T", "1,[2]"]);
+        });
     });
 
     describe("intersect", () => {
@@ -5806,6 +5867,23 @@ describe("Collection", () => {
             expect(
                 collect([0.1 + 0.2, 1.0, 1e25, -0.0]).join(", ", " and "),
             ).toBe("0.3, 1, 1.0E+25 and -0");
+        });
+
+        it("prints an array piece as Array and throws for an object piece, the last item too", () => {
+            class stdClass {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-array-and-object-pieces"
+            expect([
+                collect([1, [2]]).join(", ", " and "),
+                collect([1, [2], 3]).join(", ", " and "),
+            ]).toEqual(["1 and Array", "1, Array and 3"]);
+            expect(() =>
+                collect([1, new stdClass()]).join(", ", " and "),
+            ).toThrow(
+                new Error(
+                    "Object of class stdClass could not be converted to string",
+                ),
+            );
         });
     });
 
