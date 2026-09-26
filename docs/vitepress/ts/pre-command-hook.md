@@ -1,6 +1,8 @@
 # Pre-Command Hook
 
-Register a closure with `LaravelTsPublish::callCommandUsing()` to run custom logic right before the `ts:publish` command executes — dynamically configuring directories, swapping pipeline classes, or reacting to feature flags and environment state. The closure only runs when the command actually runs, not at service provider boot time, so it never adds overhead to a normal web request.
+Register a closure with `LaravelTsPublish::callCommandUsing()` to run your own code right before `ts:publish` does its work. Use it to build directory lists, swap pipeline classes, or react to feature flags and the environment. The closure runs only when the command runs, not when the service provider boots, so it adds nothing to a normal web request.
+
+Register the hook in a service provider's `boot()` method:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
@@ -8,7 +10,7 @@ use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
 public function boot(): void
 {
     LaravelTsPublish::callCommandUsing(function () {
-        // This only runs when `php artisan ts:publish` is executed
+        // Runs only when `php artisan ts:publish` runs.
         config()->set('ts-publish.models.additional_directories', [
             'modules/Blog/Models',
             'modules/Shop/Models',
@@ -19,29 +21,64 @@ public function boot(): void
 
 ## When the Hook Runs
 
-`callCommandWith()` is invoked as the very first line of `TsPublishCommand::handle()` — before `--source` is checked, before the `--only-*` flags are validated, before anything else. This means it runs **unconditionally and identically** for every way the command can be invoked:
+The hook runs before anything else in `ts:publish`, before the command reads `--source` or checks its `--only-*` flags. It runs the same way for every kind of invocation:
 
-| Invocation                                        | Hook runs? |
-| ------------------------------------------------- | ---------- |
-| `php artisan ts:publish` (full publish)           | Yes        |
-| `php artisan ts:publish --source=App\Models\User` | Yes        |
-| `php artisan ts:publish --preview=true`           | Yes        |
-| Automatic post-migration republish                | Yes        |
+| Invocation                                                | Hook Runs |
+| --------------------------------------------------------- | --------- |
+| `php artisan ts:publish` (full publish)                   | Yes       |
+| `php artisan ts:publish --source=App\Models\User`         | Yes       |
+| `php artisan ts:publish --preview=true`                   | Yes       |
+| Automatic republish after `migrate` (`run_after_migrate`) | Yes       |
 
-There's no way to distinguish which invocation triggered the hook from inside the closure itself — if you need different behavior for `--source` reruns (for example, skipping expensive filesystem scans that the [Vite plugin](./vite-plugin.md) triggers on every file save), check for cheaper conditions inside the closure (e.g. caching the scan result, or reading an environment variable) rather than relying on the command's own options.
+The closure receives no arguments, so it can't tell which invocation started it. That matters for `--source` reruns. The Vite plugin runs one each time you save a PHP file during `vite dev`, as [Single-File Republishing](./vite-plugin.md#single-file-republishing) describes.
+
+To skip expensive work on those reruns, such as a filesystem scan, check a condition the closure can see for itself. A cached scan result or an environment variable both work.
 
 ## Registration Behavior
 
-- **Only one closure at a time** — calling `callCommandUsing()` again replaces the previously registered closure entirely; closures don't stack or chain.
-- **Re-runs every time** — the same registered closure executes in full on every `callCommandWith()` call (i.e. every command invocation). It does not self-clear after running once.
-- **No-op by default** — if nothing has called `callCommandUsing()`, `callCommandWith()` does nothing.
-- **Runs with full config already loaded** — the closure can read and write any `ts-publish.*` config key via `config()->set(...)`, since Laravel's config repository is fully booted by the time it runs.
+The hook follows these rules:
+
+- **One closure at a time**: calling `callCommandUsing()` again replaces the registered closure. Closures don't stack or chain.
+- **Runs on every invocation**: the same closure runs in full each time the command runs. It isn't cleared after its first run.
+- **Nothing by default**: until you call `callCommandUsing()`, no hook runs.
+- **Config is loaded**: the closure can read and set any `ts-publish.*` key with `config()->set()`, because Laravel's config is fully loaded when it runs.
+
+## Resetting the Hook Between Tests
+
+A registered closure stays registered for the rest of the PHP process, even when Laravel boots a fresh application for each test. A closure registered in a service provider's `boot()` is registered again on each boot, which replaces the previous one. A closure you register inside a test stays active until something registers another closure.
+
+To clear it after each test, register a closure that does nothing:
+
+::: code-group
+
+```php [Pest]
+use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
+
+afterEach(function () {
+    LaravelTsPublish::callCommandUsing(fn () => null);
+});
+```
+
+```php [PHPUnit]
+use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
+
+protected function tearDown(): void
+{
+    LaravelTsPublish::callCommandUsing(fn () => null);
+
+    parent::tearDown();
+}
+```
+
+:::
 
 ## Use Cases
 
+The examples below all register the hook in a service provider's `boot()` method.
+
 ### Dynamic Directory Discovery
 
-The most common use case: scanning the filesystem so `additional_directories` stays in sync automatically as modules are added or removed, instead of hand-maintaining a static list.
+The most common use is scanning the filesystem, so `additional_directories` stays current as you add or remove modules. This example finds each module's `Models` and `Enums` directories:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
@@ -50,25 +87,19 @@ use Symfony\Component\Finder\Finder;
 public function boot(): void
 {
     LaravelTsPublish::callCommandUsing(function () {
-        $modelDirs = collect(Finder::create()->directories()->in(base_path('modules'))->name('Models')->depth(1))
-            ->map(fn ($dir) => $dir->getRelativePathname())
-            ->values()
-            ->all();
+        $find = fn (string $name) => collect(
+            Finder::create()->directories()->in(base_path('modules'))->name($name)->depth(1)
+        )->map(fn ($dir) => $dir->getPathname())->values()->all();
 
-        $enumDirs = collect(Finder::create()->directories()->in(base_path('modules'))->name('Enums')->depth(1))
-            ->map(fn ($dir) => $dir->getRelativePathname())
-            ->values()
-            ->all();
-
-        config()->set('ts-publish.models.additional_directories', $modelDirs);
-        config()->set('ts-publish.enums.additional_directories', $enumDirs);
+        config()->set('ts-publish.models.additional_directories', $find('Models'));
+        config()->set('ts-publish.enums.additional_directories', $find('Enums'));
     });
 }
 ```
 
-### Modular Package Integration (e.g. `nwidart/laravel-modules`)
+### Modular Package Integration
 
-Rather than scanning the filesystem blindly, react to your module manager's own registry so only currently-_enabled_ modules contribute directories:
+A module manager such as `nwidart/laravel-modules` knows which modules are enabled. Read its registry instead of scanning the filesystem, so only enabled modules contribute directories:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
@@ -93,11 +124,11 @@ public function boot(): void
 }
 ```
 
-This way, disabling a module also removes its types from the next publish without editing any config.
+When you disable a module, its types drop out of the next publish with no config change. A module without a `Models` or `Enums` directory is skipped, because collectors ignore paths that don't exist.
 
 ### Conditionally Swapping Pipeline Classes
 
-Since the hook runs before the [pipeline](./customizing-the-pipeline.md) is resolved, it's the right place to swap a `*_class` override based on runtime conditions — for example, using a lighter-weight transformer in CI where full analysis isn't needed:
+The hook runs before `ts:publish` reads any `*_class` key, so it can swap a [pipeline](./customizing-the-pipeline.md) class based on conditions at run time. This example uses a lighter transformer in CI, where the full analysis isn't needed:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;
@@ -106,7 +137,7 @@ use App\TypeScript\CiModelTransformer;
 public function boot(): void
 {
     LaravelTsPublish::callCommandUsing(function () {
-        if (app()->runningInConsole() && env('CI')) {
+        if (env('CI')) {
             config()->set('ts-publish.models.transformer_class', CiModelTransformer::class);
         }
     });
@@ -115,7 +146,7 @@ public function boot(): void
 
 ### Feature-Flag-Driven Publishing
 
-Combine with [Laravel Pennant](https://laravel.com/docs/pennant) (or any feature-flag system) to only publish a module's types once its feature is active:
+With [Laravel Pennant](https://laravel.com/docs/pennant), or any other feature-flag package, you can publish a module's types only once its feature is active:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\LaravelTsPublish;

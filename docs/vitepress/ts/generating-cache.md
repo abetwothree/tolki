@@ -1,6 +1,8 @@
 # Cache Generation
 
-After the first full publish, `ts:publish` can skip re-generating classes whose source files (and everything they depend on) haven't changed. Unchanged files are never rewritten, so their modification time is preserved — avoiding spurious rebuilds in tools like Vite. The cache is busted automatically whenever the package version or your output-affecting config changes.
+After the first full publish, `ts:publish` reuses the previous output of every class whose source hasn't changed, including the files the class depends on. The cache is on by default. It clears itself when you upgrade the package or change your output-affecting config.
+
+The cache settings live in the `cache` block of `config/ts-publish.php`:
 
 ```php
 // config/ts-publish.php
@@ -13,131 +15,121 @@ After the first full publish, `ts:publish` can skip re-generating classes whose 
 ],
 ```
 
-## How a Cache Hit Is Detected
+`ts:publish` never rewrites a file whose content hasn't changed, so unchanged files keep their modification time and don't trigger rebuilds in tools like Vite.
 
-For each class, the orchestrator (`BaseRunner::cachedGenerate()`) runs through this exact sequence:
+## When a Class Is Rebuilt
 
-1. **Requires `RehydratesFromCache`** — if the resolved `*.generator_class` doesn't use the trait (no `fromCache()` method), the class is always rebuilt from scratch — correct, just never cached. See [Cache-Compatible Generators](./customizing-the-pipeline.md#cache-compatible-generators-rehydratesfromcache).
-2. **Folds in a non-file signature, if the generator provides one** — see [Non-File Signatures](#non-file-signatures-providescachesignature) below.
-3. **Recomputes the fingerprint fresh** from the _previously recorded_ dependency file list plus that signature, and compares it to the stored fingerprint — cheap, since it only re-hashes already-known files rather than re-running collection.
-4. **Also verifies every previously-written output file still exists on disk** — a manually deleted output file forces a rebuild even if the fingerprint still matches.
+The package reuses a class's cached output only while nothing it depends on has changed. It rebuilds the class when any of these change:
 
-Only when all of this matches is the class's transformer snapshot rehydrated and its cached output reused as-is.
+- **Its PHP files**: the class's own file, or any PHP file the package read to generate it, including parent classes, traits, interfaces, and related models.
+- **Its routes**: for a controller, any route that points at it, including its URI, HTTP methods, name, domain, controller method, and middleware. Adding or removing a route counts too, so you don't need `--fresh` after editing routes.
+- **Its metadata**: for a [model metadata](./model-metadata.md#cache) companion, the provider class, or the values it returns for that model. A new morph map alias set in a service provider counts.
+- **Its output files**: if you delete a file the class wrote on an earlier run, the class is rebuilt even though its source didn't change.
 
-## The Fingerprint Algorithm
+The whole cache clears, and the next run rebuilds everything, when any of these change:
 
-`Fingerprinter::fromPaths()` computes an order-independent fingerprint from a set of file paths:
+- **The package version**: after you upgrade or downgrade the package.
+- **Your config**: any `ts-publish` setting outside the `cache` block. The order of keys doesn't matter.
+- **The signing key**: `cache.key`, or `app.key` when `cache.key` isn't set.
 
-1. Paths are deduplicated and sorted, so the fingerprint never changes just because files were discovered in a different order.
-2. Each path is hashed with `hash_file('xxh128', $path)`. A **missing** file contributes a stable `'missing'` marker instead of erroring — so a dependency's later appearance (or removal) still changes the fingerprint.
-3. An optional non-file `$extra` signature string (see below) is appended as `::extra::{$extra}` when non-empty.
-4. The final fingerprint is `hash('xxh128', ...)` over the joined `path@hash` lines.
+Classes you delete from your app drop out of the cache on the next run.
 
-xxHash128 is used throughout — it's fast, which matters since fingerprinting runs on every class on every publish (cached or not). It's a non-cryptographic hash: the _integrity/tamper-resistance_ of the cache comes from the separate HMAC signing layer (see [Payload Signing & Security](#payload-signing-security)), not from this fingerprint.
+::: warning Partial Runs Drop the Skipped Features
+A run limited by an `--only-*` flag keeps cache entries only for the features it publishes. The next full run rebuilds the features it skipped. This includes the `--only-functional` run the [Vite plugin](./vite-plugin.md#production-builds) makes on `vite build`.
+:::
 
-## What Gets Recorded as a Dependency
+## What the Cache Can't Detect
 
-`DependencyRecorder::recordClass()` builds the dependency file list for a class:
+Some changes don't touch any file the cache tracks. The cache misses these:
 
-- The class's own source file.
-- Every trait it uses, recursively — a trait used by another trait is still recorded, since `ReflectionClass::getTraits()` only returns direct traits.
-- Every interface it implements.
-- The full parent class chain, walking all the way up — and each ancestor's own traits, too.
-
-Recording is guarded by `class_exists()`, so an unresolvable class string can never crash a publish — it's a cache side-channel, and it stays silent on failure rather than risk breaking generation.
-
-## Non-File Signatures (`ProvidesCacheSignature`)
-
-Some cache-relevant inputs don't live in any file at all — the clearest example is **routes**: a route's URI, HTTP methods, name, domain, and middleware live in your route files, not in the controller class file itself, so a route change wouldn't otherwise be visible to the file-based fingerprint.
-
-`RouteGenerator` solves this by implementing `AbeTwoThree\LaravelTsPublish\Cache\Contracts\ProvidesCacheSignature`:
-
-```php
-class RouteGenerator extends CoreGenerator implements ProvidesCacheSignature
-{
-    public static function cacheSignature(string $fqcn): string
-    {
-        return RouteCacheSignature::for($fqcn);
-    }
-}
-```
-
-`RouteCacheSignature::for($controllerClass)` builds a deterministic signature by collecting every route mapped to that controller, encoding each one as `name|uri|methods|domain|actionMethod|middleware` (methods and middleware sorted for stability), sorting all of them, and hashing the result. `BaseRunner` checks `is_subclass_of($generatorClass, ProvidesCacheSignature::class, true)` and, when true, folds the returned signature into `Fingerprinter::fromPaths()` as the `$extra` argument — so adding, removing, or editing a route (even just its URI) busts exactly the controllers whose routes changed, without needing `--fresh`.
-
-`ModelMetadataGenerator` uses the same hook for [model metadata](./model-metadata.md): `cacheSignature()` hashes the provider class together with the payload `provide($model)` returns, so a morph-map alias set in a service provider or a new value busts exactly the affected companions even though no dependency file changed. An unserializable payload (a closure inside it) yields a fresh random signature every run — a deliberate permanent miss rather than a hash that cannot be trusted.
-
-A custom [`*.generator_class`](./customizing-the-pipeline.md) can implement the same interface to fold its own non-file signature (an API response, a database timestamp, anything else that affects output but isn't a file) into its cache fingerprint.
-
-## Config Fingerprinting
-
-Beyond individual classes, the entire cache is busted whenever your output-affecting config changes. `ConfigFingerprint::compute()`:
-
-- Reads the full `ts-publish` config array, **excluding the `cache.*` sub-array** — toggling cache settings themselves must never bust every class's cache.
-- Recursively sorts every array by key, so the fingerprint is independent of declaration order.
-- Hashes the result with `xxh128`.
-- Falls back to a random per-run token if the config contains a non-serializable value (e.g. a raw closure) — this guarantees a safe full rebuild that run rather than crashing generation.
-
-## Manifest Lifecycle
-
-`GenerationManifest` is the in-memory index tying it all together:
-
-- **`load()`** — loads stored entries from the repository. If the stored header's package version or config hash no longer matches the current run, the _entire_ cache is flushed and generation starts fresh.
-- **`hit()`** — true only when the fingerprint matches AND every one of the class's previously-recorded output files still exists (see [How a Cache Hit Is Detected](#how-a-cache-hit-is-detected) above).
-- **`record()`** — stores a freshly-built class's fingerprint, output filename, dependency paths, output paths, and a base64-encoded transformer snapshot.
-- **`markSeen()`** / **`save()`** — every class touched during a run is marked seen; `save()` **prunes any entry not seen this run**, so a class removed from your source tree has its stale cache entry cleaned up automatically instead of lingering forever.
-
-## Storage Backends
-
-### File Backend (Default)
-
-- Each entry is written to `{directory}/{xxh128(key)}.cache` — the key itself is hashed into the filename, so no filesystem-unsafe characters ever reach disk.
-- The directory self-manages a `.gitignore` (`*` / `!.gitignore`) on first use.
-- **Self-healing on corruption** — if a cache file fails signature verification or fails to parse, it's deleted immediately (`forget()`) so the next run rebuilds it cleanly instead of failing repeatedly.
-
-### Laravel Cache Store Backend
-
-Setting `cache.store` (e.g. `'redis'`, `'database'`) routes the manifest through any configured Laravel cache store instead of the filesystem:
-
-- The repository maintains its **own in-memory key index** (a `list<string>` stored under `{prefix}:__index__`), since Laravel cache stores have no native "flush only my keys" operation. `flush()` only removes keys _this package itself wrote_ — it never touches unrelated entries in a shared store.
-- The index is persisted once via `commit()` after a batch of writes (called once at the end of `GenerationManifest::save()`), not on every individual `put()` — cheap at expected class counts.
-- Entries are stored with `forever()` — no TTL, since the manifest tracks its own staleness via fingerprints and pruning rather than relying on cache expiry.
-
-## Payload Signing & Security
-
-Both backends share the same signing logic (`SignsCachePayloads` trait):
-
-- **Signing** — `serialize($value)`, then prepended with `hash_hmac('sha256', $serialized, $key) . ':'` when a key is configured. Falls back to unsigned storage only if no key is resolvable at all (no `cache.key` **and** no `app.key` — effectively only possible on a fresh app before `php artisan key:generate`).
-- **Verification** — the HMAC is checked with `hash_equals()` (timing-safe comparison) before anything is trusted. On any failure — missing signature, mismatched signature, corrupt data, or a non-array/non-string-keyed result — the payload is rejected and treated as absent.
-- **Deserialization is always `allowed_classes: false`** — even a successfully-signed payload can never instantiate a PHP object during `unserialize()`, closing the object-injection surface entirely on this package's own read path.
-
-> [!WARNING]
-> **Using a cache `store` with an untrusted backend.** When `store` points at a Laravel cache store (`redis`, `database`, `file`, …), that store deserializes its own values on read — and by default (Laravel's `cache.serializable_classes` is unset) it does so with PHP classes allowed, _before_ this package's HMAC is checked. The signing still protects payload integrity, but it cannot stop object instantiation at the cache layer. If the store is shared or otherwise not fully trusted, set Laravel's `cache.serializable_classes` to `false` (or an explicit allowlist) and/or use a dedicated, trusted store. The default file backend is unaffected.
+- **Database schema changes**: a model's columns come from your database, not a source file. The automatic post-migration republish always runs with `--fresh`, so it picks up the new schema. If you change the schema another way, run `php artisan ts:publish --fresh`.
+- **Edits to published templates**: the cache doesn't track Blade views, so a class whose PHP hasn't changed keeps its old output. After you edit a [published template](./customizing-the-pipeline.md#publishing-and-editing-templates), run `php artisan ts:publish --fresh`.
+- **Edits to generated files**: if you edit a generated `.ts` file by hand without changing its source, the cache doesn't notice and won't overwrite it. Run `php artisan ts:publish --fresh`, or delete the file, to restore it.
+- **Values that can't be serialized**: if your `ts-publish` config holds a value such as a closure, every run rebuilds everything. A model metadata provider that returns such a value rebuilds its companions on every run.
 
 ## Forcing a Full Rebuild
+
+Pass `--fresh` to clear the cache, regenerate everything, and write a new cache:
 
 ```bash
 php artisan ts:publish --fresh
 ```
 
-Flushes the cache, regenerates everything, and writes a fresh cache. It's a no-op under `--source` and `--preview`.
+`--fresh` has no effect with `--source` or `--preview=true`, because those runs don't use the cache.
 
 ## What Bypasses the Cache
 
-- **`--source=...` runs** (single-class republishing) always bypass the cache entirely.
-- **`--preview` runs** never use the cache — they write no files, so caching them would record empty outputs and poison later real runs into skipping files that were never actually written.
-- Setting `cache.enabled` to `false` disables it everywhere.
+The cache is skipped in these cases:
+
+- **`--source` runs**: single-class republishing never reads or writes the cache.
+- **`--preview=true` runs**: a preview writes no files, so caching it would record outputs that were never written and make later runs skip them.
+- **`cache.enabled` set to `false`**: the cache is off for every run.
+
+## Storage Backends
+
+The cache lives in files by default. You can move it to any Laravel cache store instead.
+
+### File Backend (Default)
+
+The file cache lives in `storage/framework/cache/ts-publish`. Set `cache.directory` to move it. The package maintains the directory itself:
+
+- **Kept out of git**: the package writes a `.gitignore` into the directory the first time it uses it.
+- **Self-healing**: if a cache file fails its signature check or can't be read, the package deletes it, and the next run rebuilds that entry.
+
+### Laravel Cache Store Backend
+
+Set `cache.store` to the name of a store in your Laravel cache config, such as `redis` or `database`, to keep the cache there:
+
+```dotenv
+TS_PUBLISH_CACHE_STORE=redis
+```
+
+A store-backed cache behaves like this:
+
+- **Only its own keys**: the package tracks the keys it writes, and clearing the cache removes only those keys. It never touches other entries in a shared store.
+- **No expiry**: entries are stored forever, because the package tracks staleness itself.
+
+## Payload Signing & Security
+
+Both backends sign every cache entry with an HMAC-SHA256 signature. The key is `cache.key`, or `app.key` when `cache.key` isn't set.
+
+The package checks the signature before it reads an entry. An entry with a missing or wrong signature, or with corrupt data, is treated as missing, and the class is rebuilt. Rotating the key has the same effect on every entry, so the next run rebuilds everything once.
+
+If neither `cache.key` nor `app.key` is set, entries are stored unsigned, and the package can't detect a tampered entry. In practice, that means an app that hasn't run `php artisan key:generate`.
+
+::: warning Using a Shared or Untrusted Cache Store
+When `cache.store` points at a Laravel cache store (`redis`, `database`, `file`, and so on), the store unserializes its own values when it reads them. By default, when Laravel's `cache.serializable_classes` is unset, it allows PHP classes, and it does this before the package checks the signature. The signature still protects the data, but it can't stop object creation at the cache layer. If the store is shared or not fully trusted, set Laravel's `cache.serializable_classes` to `false` or to an allowlist, or use a dedicated, trusted store. The default file backend isn't affected.
+:::
+
+## Caching a Custom Generator
+
+The built-in generators all work with the cache. A custom `*.generator_class` that extends one of them inherits that support. A generator written from scratch needs the `RehydratesFromCache` trait, or it's rebuilt on every run. See [Cache-Compatible Generators](./customizing-the-pipeline.md#cache-compatible-generators-rehydratesfromcache).
+
+If your generator's output depends on something that isn't a PHP file, such as a database value or an API response, implement `ProvidesCacheSignature`. Return a string that changes whenever that input changes, and the package rebuilds the class when it does:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Cache\Contracts\ProvidesCacheSignature;
+use AbeTwoThree\LaravelTsPublish\Generators\ModelGenerator;
+use Illuminate\Support\Facades\DB;
+
+class LabelledModelGenerator extends ModelGenerator implements ProvidesCacheSignature
+{
+    public static function cacheSignature(string $fqcn): string
+    {
+        return (string) DB::table('labels')->max('updated_at');
+    }
+}
+```
+
+Register the class with its `*.generator_class` key, `models.generator_class` in this example.
+
+The route and model metadata generators already implement `ProvidesCacheSignature`, which is how route and metadata changes rebuild their classes. If you extend one of them and override `cacheSignature()`, include `parent::cacheSignature($fqcn)` in the string you return, or those changes stop rebuilding the class.
 
 ## Configuration
 
-| Config Key        | Type      | Default                              | Description                                                                                                                                        |
-| ----------------- | --------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cache.enabled`   | `bool`    | `true`                               | Turn the generation cache on or off.                                                                                                               |
-| `cache.store`     | `?string` | `null`                               | `null` keeps the cache on disk under `directory`. Set to any Laravel cache store name (`redis`, `database`, …) to keep the manifest there instead. |
-| `cache.directory` | `string`  | `storage/framework/cache/ts-publish` | Where the file-based cache lives.                                                                                                                  |
-| `cache.key`       | `?string` | `null`                               | HMAC signing key. Falls back to `app.key` when unset. Rotating the key triggers a one-time full rebuild — safe.                                    |
-
-> [!NOTE]
-> The cache keys off your PHP source files. If you **manually edit a generated `.ts` file** without changing its source, the cache won't detect the edit and won't overwrite it — run `php artisan ts:publish --fresh` (or delete the generated file) to restore it.
-
-> [!NOTE]
-> **Database schema changes** (migrations) aren't part of the fingerprint — a model's columns are read from the live database, not a source file. The automatic post-migration republish always runs with `--fresh`, so it reflects schema changes. If you change the schema another way, run `php artisan ts:publish --fresh` yourself.
+| Config Key        | Type      | Default                              | Description                                                                                                                                                                     |
+| ----------------- | --------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cache.enabled`   | `bool`    | `true`                               | Turn the generation cache on or off. Set with `TS_PUBLISH_CACHE_ENABLED`.                                                                                                       |
+| `cache.store`     | `?string` | `null`                               | `null` keeps the cache in files under `directory`. Set a Laravel cache store name (`redis`, `database`, and so on) to keep it there instead. Set with `TS_PUBLISH_CACHE_STORE`. |
+| `cache.directory` | `string`  | `storage/framework/cache/ts-publish` | Where the file backend keeps the cache.                                                                                                                                         |
+| `cache.key`       | `?string` | `null`                               | The HMAC signing key. Falls back to `app.key` when unset. Changing it rebuilds everything once. Set with `TS_PUBLISH_CACHE_KEY`.                                                |

@@ -1,29 +1,14 @@
 # Vite Plugin
 
-The `@tolki/ts` package provides a Vite plugin that watches for changes to the PHP files collected by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) and automatically re-runs `php artisan ts:publish` when they change.
+The `@tolki/ts` package includes a Vite plugin that keeps your published types current. During `vite dev`, it reruns `php artisan ts:publish` when a PHP file collected by the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) changes. During `vite build`, it publishes once before bundling.
 
-The Laravel package publishes a JSON manifest listing every collected PHP file — this plugin watches those exact files and reacts to changes in them, rather than watching your whole project.
+The Laravel package publishes a JSON manifest that lists every PHP file it collected. The plugin watches exactly those files, not your whole project.
 
-## Command Execution Notes
+## Adding the Plugin
 
-The plugin runs the configured `command` with Node's `child_process.exec()` from the Vite project root.
+Add the plugin to your Vite configuration file:
 
-This has two important consequences:
-
-1. The command runs in a non-interactive shell.
-2. Shell aliases such as `sail` are usually not available.
-
-If you are using Laravel Sail and Vite is running on your host machine, prefer `./vendor/bin/sail artisan ts:publish` instead of `sail artisan ts:publish`.
-
-If Vite is already running inside the PHP container, use `php artisan ts:publish`.
-
-When the publish command rewrites the collected-files manifest, the plugin only reloads the watched file list. It does not run the publish command again for that manifest update, which prevents command loops.
-
-## Usage
-
-To use the Vite plugin, you need to add it to your Vite configuration file. Below is an example of how to add the plugin to your Vite configuration file:
-
-```javascript
+```typescript
 import { defineConfig } from "vite";
 import { laravelTsPublish } from "@tolki/ts/vite";
 
@@ -34,153 +19,16 @@ export default defineConfig({
 
 ### Laravel Sail
 
-Choose the command based on where `vite dev` is running:
+The plugin runs its command in a non-interactive shell from the Vite project root, so shell aliases such as `sail` are usually not available. Choose the command based on where `vite dev` runs:
 
-- Vite running on the host machine: `./vendor/bin/sail artisan ts:publish`
-- Vite running inside the container: `php artisan ts:publish`
+| Where Vite runs          | Command                                        |
+| ------------------------ | ---------------------------------------------- |
+| On your host machine     | `./vendor/bin/sail artisan ts:publish`         |
+| Inside the PHP container | `php artisan ts:publish`, which is the default |
 
-Using just `sail artisan ts:publish` often fails because `sail` is commonly defined as a shell alias and aliases are not resolved by `exec()`.
+A bare `sail artisan ts:publish` fails when `sail` is a shell alias, which is how Laravel's Sail documentation sets it up. This example points the plugin at the Sail binary for a Vite dev server on the host:
 
-## Default Functionality
-
-By default, the plugin will work in the following way:
-
-1. It will call `php artisan ts:publish` as the republish command when a file changes.
-2. It will look for the list of transformed PHP files here: `resources/js/types/data/laravel-ts-collected-files.json`.
-3. If that manifest file changes, it will reload the watched file list without calling the publish command again.
-4. It will reload the page after a successful publish triggered by a watched PHP file change.
-5. It will call the publish command on `vite build` before bundling, with `--only-functional` appended by default. That flag skips model and resource interfaces, which are type-only and erased at compile time. Everything else still publishes, including form requests, which are type-only too but which routes depend on. A route whose controller method takes a `FormRequest` is wrapped in `annotateRequestPayload<T>()` and carries an `import type` for the published form request file. That output follows `form_requests.enabled` in your config rather than the flags passed to `ts:publish`, so skipping form requests would leave the route importing a file publish never wrote.
-6. It will throw an error if the publish command fails on `vite build` — including a model metadata provider failing for a model, which `ts:publish` reports on stderr and exits non-zero for.
-7. When a single PHP file changes during `vite dev`, it will use `--source` to republish only that file instead of running a full publish.
-8. It will append `--quiet` to every command by default, suppressing normal console output since the plugin determines success from the exit code. When the command fails, its captured error output is included in the plugin's error message.
-
-### Single-File Republishing
-
-The JSON file list manifest uses the `filepath[]` array format (produced by `laravel-ts-publish`), the plugin will automatically use the `--source` flag to republish only the changed file during development:
-
-```bash
-# Instead of running the full command:
-php artisan ts:publish
-
-# The plugin runs a targeted command:
-php artisan ts:publish --source="app/Enums/Status.php"
-```
-
-This can reduce per-change latency from seconds to near-instant on large projects with hundreds of files.
-
-The plugin derives the source command automatically from the `command` option by appending `--source="{file}"`. You can customize this with the `sourceCommand` option or disable it entirely by setting `sourceCommand: false`.
-
-Full startup commands (`runOnDevStart`, `runOnBuildStart`) always use the full `command` to ensure all files are generated.
-
-### Manifest Updates
-
-The collected-files manifest is treated as configuration input for the watcher, not as a publish trigger.
-
-That means when `ts:publish` updates `resources/js/types/data/laravel-ts-collected-files.json`, the plugin will refresh its internal watched-file list and continue. It will not immediately run `ts:publish` again from that manifest write.
-
-## Plugin Options
-
-The plugin accepts an options object to customize its behavior. It is recommended to use `.env` config settings to sync settings between the PHP side and the Vite plugin for the `filename` and `directory` options.
-
-Below are the available options with a description and default values:
-
-```javascript
-import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/ts/vite";
-
-export default defineConfig({
-  plugins: [
-    laravelTsPublish({
-      /**
-       * The publish command to run when a watched PHP file changes.
-       *
-       * This command runs through Node's `exec()` from the Vite project root.
-       * Shell aliases like `sail` are usually not available here.
-       *
-       * If Vite runs on the host machine and your app uses Sail, prefer
-       * `./vendor/bin/sail artisan ts:publish`.
-       *
-       * If Vite already runs inside the PHP container, use
-       * `php artisan ts:publish`.
-       */
-      command: "php artisan ts:publish",
-      /**
-       * The filename of the JSON manifest listing collected PHP files.
-       */
-      filename: "laravel-ts-collected-files.json",
-      /**
-       * The directory where the JSON manifest file exists, relative to the Vite root.
-       */
-      directory: "resources/js/types/data/",
-      /**
-       * Whether to run the publish command once when `vite dev` starts.
-       *
-       * Has no effect during `vite build`.
-       */
-      runOnDevStart: false,
-      /**
-       * Whether to run the publish command once before bundling during `vite build`.
-       *
-       * Has no effect during `vite dev`.
-       */
-      runOnBuildStart: true,
-      /**
-       * Whether to trigger a full browser reload after the
-       * command runs successfully during `vite dev`.
-       *
-       * Has no effect during `vite build`.
-       */
-      reload: true,
-      /**
-       * Whether to throw an error (aborting the build) when the command fails.
-       *
-       * When not specified, defaults to `true` during `vite build`
-       * and `false` during `vite dev`.
-       *
-       * When specified, it will apply to both `vite dev` and `vite build`.
-       */
-      failOnError: undefined,
-      /**
-       * The command template for single-file republishing during `vite dev`.
-       *
-       * When a watched PHP file changes, this command is used instead of the
-       * full `command`. The `{file}` placeholder is replaced with the relative
-       * file path from the manifest for the changed file (exactly as it
-       * appears in the manifest array).
-       *
-       * When not specified, it is auto-derived by appending
-       * ` --source="{file}"` to the `command` option.
-       *
-       * Set to `false` to always run the full command.
-       */
-      sourceCommand: 'php artisan ts:publish --source="{file}"',
-      /**
-       * Whether to append `--only-functional` to the command during `vite build`.
-       *
-       * TypeScript interfaces are type-only and erased at compile time, so
-       * generating them during production builds is unnecessary.
-       *
-       * Has no effect during `vite dev`.
-       */
-      onBuildOnlyFunctional: true,
-      /**
-       * Whether to append `--quiet` to every artisan command the plugin runs.
-       *
-       * The plugin determines success or failure from the exit code, so
-       * passing `--quiet` suppresses normal console output and Laravel
-       * Prompts rendering, which speeds up execution. When the command
-       * fails, its captured error output is still surfaced in the plugin's
-       * failure message.
-       */
-      quiet: true,
-    }),
-  ],
-});
-```
-
-### Example for a Host-Machine Vite Dev Server with Sail
-
-```javascript
+```typescript
 import { defineConfig } from "vite";
 import { laravelTsPublish } from "@tolki/ts/vite";
 
@@ -193,17 +41,79 @@ export default defineConfig({
 });
 ```
 
-### Example for Vite Running Inside the Container
+## Default Functionality
 
-```javascript
-import { defineConfig } from "vite";
-import { laravelTsPublish } from "@tolki/ts/vite";
+With no options, the plugin does the following:
 
-export default defineConfig({
-  plugins: [
-    laravelTsPublish({
-      command: "php artisan ts:publish",
-    }),
-  ],
+- Uses `php artisan ts:publish` as the publish command.
+- Reads the list of watched files from `resources/js/types/data/laravel-ts-collected-files.json`.
+- Republishes only the changed file with `--source` when a watched PHP file changes during `vite dev`, instead of running a full publish.
+- Reloads the page after a successful publish during `vite dev`.
+- Queues a file that changes while a publish is running, and republishes it after the current run. Each queued file runs once.
+- Reloads the watched file list when the manifest itself changes, without running the publish command again.
+- Runs the publish command once before bundling on `vite build`, with `--only-functional` appended.
+- Fails `vite build` if the publish command fails. During `vite dev`, it logs the error and keeps running.
+- Appends `--quiet` to every command, and includes a failed command's error output in its own error message.
+
+A model metadata provider that throws for a model also fails `vite build`, because `ts:publish` reports the failure on stderr and exits with an error.
+
+### Production Builds
+
+On `vite build`, the plugin appends `--only-functional`. That flag skips model and resource interfaces, which are type-only and erased at compile time. Everything else still publishes.
+
+Form requests are type-only too, but they still publish. A route whose controller method takes a form request is wrapped in `annotateRequestPayload<T>()` and imports the published form request type. That import depends on `form_requests.enabled` in your config, not on the flags passed to `ts:publish`. Skipping form requests would leave the route importing a file that was never written.
+
+Set `onBuildOnlyFunctional` to `false` to publish everything on build. The [Publishing Types](./publishing.md#other-files-in-partial-runs) page lists what an `--only-functional` run does to the other generated files.
+
+### Single-File Republishing
+
+The manifest lists each collected file's path, so the plugin can republish only the file that changed during development. Instead of a full `php artisan ts:publish`, it runs a targeted command:
+
+```bash
+php artisan ts:publish --source=app/Enums/Status.php --quiet
+```
+
+A single-file run skips every other class, so it stays fast as your project grows.
+
+The plugin builds this command by appending `--source={file}` to the `command` option. The `{file}` placeholder becomes the file's path from the manifest, already shell-escaped, so don't wrap it in quotes. Set the `sourceCommand` option to use your own template, or set it to `false` to always run the full command.
+
+The runs that `runOnDevStart` and `runOnBuildStart` trigger always use the full `command`, so every file is generated.
+
+### Manifest Updates
+
+The collected-files manifest tells the plugin which files to watch. It doesn't trigger a publish.
+
+When `ts:publish` rewrites `resources/js/types/data/laravel-ts-collected-files.json`, the plugin refreshes its watched-file list and continues. It doesn't run `ts:publish` again for that write, which prevents a publish loop.
+
+::: tip Starting From a Fresh Clone
+If the manifest doesn't exist when `vite dev` starts, the plugin logs `Manifest not found` and has no files to watch. This happens after a fresh clone when the output directory is in `.gitignore`. Run `php artisan ts:publish` once, then start Vite.
+:::
+
+## Plugin Options
+
+The plugin accepts an options object:
+
+| Option                  | Type              | Default                             | Description                                                                                                                                                                                                                                |
+| ----------------------- | ----------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `command`               | `string`          | `"php artisan ts:publish"`          | The publish command. It runs in a non-interactive shell from the Vite project root.                                                                                                                                                        |
+| `filename`              | `string`          | `"laravel-ts-collected-files.json"` | The filename of the manifest that lists the collected PHP files.                                                                                                                                                                           |
+| `directory`             | `string`          | `"resources/js/types/data/"`        | The directory that holds the manifest, relative to the Vite root.                                                                                                                                                                          |
+| `runOnDevStart`         | `boolean`         | `false`                             | Run the publish command once when `vite dev` starts. No effect during `vite build`.                                                                                                                                                        |
+| `runOnBuildStart`       | `boolean`         | `true`                              | Run the publish command once before bundling during `vite build`. No effect during `vite dev`.                                                                                                                                             |
+| `reload`                | `boolean`         | `true`                              | Reload the browser after the command succeeds during `vite dev`. No effect during `vite build`.                                                                                                                                            |
+| `failOnError`           | `boolean`         | `true` on build, `false` on dev     | Throw an error, which aborts the build, when the command fails. Setting it applies to both `vite dev` and `vite build`.                                                                                                                    |
+| `sourceCommand`         | `string \| false` | Derived from `command`              | The command template for single-file republishing during `vite dev`. The default is `command` followed by `--source={file}`. `{file}` becomes the shell-escaped path from the manifest. `false` always runs the full command.              |
+| `onBuildOnlyFunctional` | `boolean`         | `true`                              | Append `--only-functional` to the command during `vite build`. No effect during `vite dev`.                                                                                                                                                |
+| `quiet`                 | `boolean`         | `true`                              | Append `--quiet` to every command. The plugin reads success or failure from the exit code, and quiet mode skips console rendering, which speeds up each run. A failing command's error output still appears in the plugin's error message. |
+
+The `filename` and `directory` options must match where the Laravel package writes the manifest: `watcher.filename`, and `watcher.output_directory` or `output_directory`. If you change those settings in `config/ts-publish.php`, read the values from `.env` on both sides to keep them in sync.
+
+This example also publishes when the dev server starts, and turns off the browser reload:
+
+```typescript
+laravelTsPublish({
+  command: "./vendor/bin/sail artisan ts:publish",
+  runOnDevStart: true,
+  reload: false,
 });
 ```
