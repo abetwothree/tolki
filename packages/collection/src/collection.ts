@@ -3260,7 +3260,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * and `values()` always agree about order; see `sort` above.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Ignored when `callback` is an array (Collection.php:1601); use `sortByDesc`/`sortByMany`.
+     * @param descending - Ignored when `callback` is an array, as PHP ignores it; `sortByDesc` sorts those descending
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3317,68 +3317,6 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return this.newInstance(
             this.sortedItems(entries.map(([key, value]) => [key, value])),
         );
-    }
-
-    /**
-     * Sort the collection using multiple comparisons.
-     *
-     * Integer-like keys are renumbered over the sorted sequence; see `sort`.
-     *
-     * @param comparisons - An array of callbacks to determine the sort value, path keys
-     *   to get values from and compare, or tuples of such keys for multi-level sorting.
-     *   A bare key path or direction-less tuple defaults to ascending; an empty array
-     *   leaves the order alone (`Collection::sortByMany`).
-     * @param descending - Forces every comparison descending regardless of its own
-     *   direction; has no effect on a comparator function. Defaults to false.
-     * @returns A new collection with the sorted items
-     *
-     * @example
-     *
-     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany(['id', 'name']); -> new Collection([{id: 1, name: 'Alice'}, {id: 1, name: 'Charlie'}, {id: 2, name: 'Bob'}])
-     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany([item => item.id, item => item.name]); -> new Collection([{id: 1, name: 'Alice'}, {id: 1, name: 'Charlie'}, {id: 2, name: 'Bob'}])
-     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany(['id', item => item.name], true); -> new Collection([{id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}, {id: 1, name: 'Alice'}])
-     */
-    sortByMany<TSortValue>(
-        comparisons: Array<
-            | ((a: TValue, b: TValue) => TSortValue)
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey
-            | [PathKey]
-            | [
-                  PathKey,
-                  CaseValue<typeof SortDirection> | boolean | "asc" | "desc",
-              ]
-        >,
-        descending: CaseValue<typeof SortDirection> | boolean = false,
-    ) {
-        if (!isArray(comparisons)) {
-            throw new Error("You must provide at least one comparison.");
-        }
-
-        const isDescGlobal =
-            descending === true || descending === SortDirection.Descending;
-
-        const comparators = comparisons.map((comparison) =>
-            sortSpecComparator<TValue>(
-                comparison as SortSpec<TValue>,
-                isDescGlobal,
-            ),
-        );
-
-        const entries = this.entriesInOrder();
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const result = comparator(a, b);
-
-                if (result !== 0) {
-                    return result;
-                }
-            }
-
-            return 0;
-        });
-
-        return this.newInstance(this.sortedItems(entries));
     }
 
     /**
@@ -5861,6 +5799,54 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const Ctor = this.constructor as new (items?: TItems) => this;
 
         return new Ctor(items);
+    }
+
+    /**
+     * Sort the collection using multiple comparisons.
+     *
+     * @param comparisons - Paths, each alone or with its direction, and comparators of two items; a bare path or a
+     * direction-less descriptor sorts ascending, and no comparisons leave the order alone
+     * @param descending - Whether every path sorts descending whatever its own direction, as sortByDesc() rewrites
+     * them; a comparator is never reversed
+     * @returns A new collection with the sorted items
+     */
+    protected sortByMany<TSortValue>(
+        comparisons: Array<
+            | ((a: TValue, b: TValue) => TSortValue)
+            | ((item: TValue, key: TKey) => TSortValue)
+            | PathKey
+            | [PathKey]
+            | [
+                  PathKey,
+                  CaseValue<typeof SortDirection> | boolean | "asc" | "desc",
+              ]
+        >,
+        descending: CaseValue<typeof SortDirection> | boolean = false,
+    ) {
+        const isDescGlobal =
+            descending === true || descending === SortDirection.Descending;
+
+        const comparators = comparisons.map((comparison) =>
+            sortSpecComparator<TValue>(
+                comparison as SortSpec<TValue>,
+                isDescGlobal,
+            ),
+        );
+
+        const entries = this.entriesInOrder();
+        entries.sort(([, a], [, b]) => {
+            for (const comparator of comparators) {
+                const result = comparator(a, b);
+
+                if (result !== 0) {
+                    return result;
+                }
+            }
+
+            return 0;
+        });
+
+        return this.newInstance(this.sortedItems(entries));
     }
 
     /**
