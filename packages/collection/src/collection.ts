@@ -3096,7 +3096,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     sole(
         key: ((value: TValue, index: TKey) => unknown) | PathKey = null,
-        operator?: string,
+        operator?: unknown,
         value?: unknown,
     ) {
         const items = this.filterUnlessNull(key, operator, value);
