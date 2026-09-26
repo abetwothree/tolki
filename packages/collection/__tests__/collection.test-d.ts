@@ -121,6 +121,28 @@ describe("collection type tests", () => {
         });
     });
 
+    describe("sort / sortDesc / sortByMany", () => {
+        it("types sort()'s callback as a comparator of two items", () => {
+            collect([{ n: 1 }, { n: 2 }]).sort((a, b) => {
+                expectTypeOf(a).toEqualTypeOf<{ n: number }>();
+                expectTypeOf(b).toEqualTypeOf<{ n: number }>();
+
+                return a.n - b.n;
+            });
+        });
+
+        it("rejects the forms PHP rejects", () => {
+            const numbers = collect([3, 1, 2]);
+
+            // @ts-expect-error - sort() takes a comparator, never a path, which PHP's asort() refuses as a flag
+            numbers.sort("n");
+            // @ts-expect-error - sortDesc() takes no callback; sortByDesc() does
+            numbers.sortDesc((value: number) => value);
+            // @ts-expect-error - sortByMany() is protected, as PHP's is; sortBy([...]) reaches it
+            numbers.sortByMany(["n"]);
+        });
+    });
+
     describe("zip", () => {
         it("requires the list to zip with, as PHP's zip($items) does", () => {
             // @ts-expect-error - PHP throws ArgumentCountError for a zip() with no list
