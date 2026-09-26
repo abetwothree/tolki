@@ -11803,6 +11803,20 @@ describe("Collection", () => {
             expect(sorted.keys().all()).toEqual([0, 1, 2]);
         });
 
+        it.fails(
+            "keeps a string key ahead of an integer one when the comparator puts it there",
+            () => {
+                const sorted = collect({ 0: 1, x: 2 }).sort((a, b) => b - a);
+
+                // Ordered-backing gap: PHP keeps x => 2 ahead of 0 => 1, which a plain object lists after its integer key
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-desc-mixed-keys"
+                expect([sorted.keys().all(), sorted.values().all()]).toEqual([
+                    ["x", 0],
+                    [2, 1],
+                ]);
+            },
+        );
+
         // task-19-spaceship.json, "Collection::sort orders numeric strings
         // numerically", "Collection::sortDesc ...", "Collection::sortBy(null)
         // ..." and "Collection::sortByDesc(null) ..."
@@ -11872,6 +11886,20 @@ describe("Collection", () => {
             expect(c.sortDesc().all()).toEqual({ 0: 3, 1: 2, 2: 1 });
             expect(c.sort().values().all()).toEqual([1, 2, 3]);
         });
+
+        it.fails(
+            "keeps a string key ahead of an integer one when its value is larger",
+            () => {
+                const sorted = collect({ 0: 1, x: 2 }).sortDesc();
+
+                // Ordered-backing gap: PHP keeps x => 2 ahead of 0 => 1, which a plain object lists after its integer key
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-desc-mixed-keys"
+                expect([sorted.keys().all(), sorted.values().all()]).toEqual([
+                    ["x", 0],
+                    [2, 1],
+                ]);
+            },
+        );
     });
 
     describe("sortBy", () => {
@@ -11939,6 +11967,22 @@ describe("Collection", () => {
                 "q",
             ]);
         });
+
+        it.fails(
+            "keeps a string key ahead of an integer one through sortByDesc",
+            () => {
+                const sorted = collect({ 0: 1, x: 2 }).sortByDesc(
+                    (value) => value,
+                );
+
+                // Ordered-backing gap: PHP keeps x => 2 ahead of 0 => 1, which a plain object lists after its integer key
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-desc-mixed-keys"
+                expect([sorted.keys().all(), sorted.values().all()]).toEqual([
+                    ["x", 0],
+                    [2, 1],
+                ]);
+            },
+        );
 
         it("keeps ties in their original relative order through sortByDesc", () => {
             const items = collect([
