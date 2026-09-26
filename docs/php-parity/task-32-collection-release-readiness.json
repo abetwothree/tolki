@@ -1446,6 +1446,11 @@
             }
         },
         {
+            "label": "C32-B-pull-through-array-keeps-the-collection",
+            "php": "$c = collect(['a' => ['b' => collect(['x' => 1])]]); $c->pull('a.b.x'); $c->get('a')['b'] instanceof Collection",
+            "value": true
+        },
+        {
             "label": "C32-B-forget-repeated-key-on-list",
             "php": "collect(['a', 'b', 'c'])->forget([1, 1])->all()",
             "value": {
