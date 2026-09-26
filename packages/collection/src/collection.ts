@@ -2342,17 +2342,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1, details: {age: 30, city: 'NY'}}, {id: 2, details: {age: 25, city: 'LA'}}]).select(['id', 'details.age']); -> new Collection([{id: 1, details: {age: 30}}, {id: 2, details: {age: 25}}])
      */
     select(...keys: PathKey[] | PathKeys[] | Collection<string, number>[]) {
-        if (keys.every((key) => isNull(key))) {
+        const keysToSelect = this.keysArgument(keys);
+
+        if (isNull(keysToSelect)) {
             return this.newInstance(this.items);
         }
 
-        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
-        // that flatMap cannot infer an element type from; the cast below names it anyway.
-        const keysParam = keys.flatMap((key): unknown[] =>
-            arrWrap(this.getRawItems(key)),
-        ) as PathKey[];
-
-        return this.newInstance(handOver(dataSelect(this.items, keysParam)));
+        return this.newInstance(handOver(dataSelect(this.items, keysToSelect)));
     }
 
     /**

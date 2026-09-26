@@ -5774,6 +5774,45 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([{ a: null, b: 1 }]);
         });
+
+        describe("reads its keys as PHP's $keys argument", () => {
+            it("keeps every item whole when the first argument is null, whatever follows", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-then-key"
+                expect(
+                    collect([{ a: 1, b: 2 }])
+                        .select(null, "a")
+                        .all(),
+                ).toEqual([{ a: 1, b: 2 }]);
+            });
+
+            it("keeps every item whole for an undefined key, as except() does", () => {
+                const data = collect([{ a: 1, b: 2 }]);
+
+                // CollectionTest::testSelectWithArrays
+                // JS-only: undefined stands for PHP's null, which select() answers with every item whole
+                expect(data.select(undefined).all()).toEqual(data.all());
+            });
+
+            it("ignores the arguments after an array of keys", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-then-extra-arg"
+                expect(
+                    collect([{ first: "T", last: "O" }])
+                        .select(["first"], "last")
+                        .all(),
+                ).toEqual([{ first: "T" }]);
+            });
+
+            it("takes a keyed Collection's values as the keys", () => {
+                const people = collect([{ first: "T", last: "O", email: "e" }]);
+                // A keyed Collection is outside select()'s Enumerable<int, string> type; PHP's runtime reads it anyway
+                const selected = Reflect.apply(people.select, people, [
+                    collect({ x: "first", y: "email" }),
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-keyed-collection-arg"
+                expect(selected.all()).toEqual([{ first: "T", email: "e" }]);
+            });
+        });
     });
 
     describe("pop", () => {
