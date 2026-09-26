@@ -2819,6 +2819,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param step - The number of items to skip between chunks, defaults to 1 (must be at least 1)
      * @returns A new collection with the sliding window chunks
      * @throws InvalidArgumentException if size or step is less than 1
+     * @throws Error when size or step is NAN, as range() refuses the window count static::times() hands it
      *
      * @example
      *
@@ -3035,9 +3036,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).splitIn(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection([1, 2, 3]).splitIn(2); -> new Collection([ new Collection([1, 2]), new Collection({2: 3}) ])
      * new Collection({a: 1, b: 2, c: 3, d: 4}).splitIn(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
-     * new Collection([1, 2, 3]).splitIn(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
+     * new Collection([1, 2]).splitIn(5); -> new Collection([ new Collection([1]), new Collection({1: 2}) ])
      */
     splitIn(numberOfGroups: number) {
         if (numberOfGroups < 1) {
@@ -3158,7 +3159,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).chunk(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection([1, 2, 3]).chunk(2); -> new Collection([ new Collection([1, 2]), new Collection({2: 3}) ])
      * new Collection({a: 1, b: 2, c: 3, d: 4}).chunk(2, true); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
      * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection([1, 2, 3]) ])
      */
