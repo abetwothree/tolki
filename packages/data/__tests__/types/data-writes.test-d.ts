@@ -144,6 +144,18 @@ describe("data writes type tests", () => {
             );
         });
 
+        it("widens a list's element type by a value of another type, as arr.prepend does", () => {
+            // Hoisted: written inline, the delegate infers its value from toEqualTypeOf's Mismatch parameter instead.
+            const widened = Arr.prepend(numberList, "a");
+            expectTypeOf(Data.dataPrepend(numberList, "a")).toEqualTypeOf(
+                widened,
+            );
+            const prepended = Data.dataPrepend(numberList, "a");
+            expectTypeOf(prepended).toEqualTypeOf<(number | string)[]>();
+            // @ts-expect-error - the list's own numbers stay among its items
+            expectTypeOf(prepended).toEqualTypeOf<string[]>();
+        });
+
         it("matches arr.prepend for a list given a key, which makes it keyed unless the key is 0", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key". Hoisted: written inline,
             // the delegate infers its value and key from toEqualTypeOf's Mismatch parameter instead.

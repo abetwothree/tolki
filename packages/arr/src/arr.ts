@@ -208,22 +208,27 @@ type DotLeaf<T, D extends number = 5> = [D] extends [never]
           : T;
 type DotDepth = [never, 0, 1, 2, 3, 4];
 
+// PrependedItem (prepend): an element type that already holds the value keeps it, since TypeScript leaves a union of
+// two equal object types, such as a declared row and an object literal, unmerged.
+type PrependedItem<TValue, TPrependValue> = [TPrependValue] extends [TValue]
+    ? TValue
+    : TValue | TPrependValue;
 // ListPrepend (prepend): `[$key => $value] + $list` stays a list only while the key PHP stores is 0, which replaces
 // the first item; a key that may be stored as 0 may give either, and any other key gives a record.
 type ListPrepend<TValue, TPrependValue, TPrependKey> = [
     MapArrayKey<TPrependKey>,
 ] extends [0]
-    ? (TValue | TPrependValue)[]
+    ? PrependedItem<TValue, TPrependValue>[]
     : 0 extends MapArrayKey<TPrependKey>
       ?
-            | (TValue | TPrependValue)[]
-            | Record<string | number, TValue | TPrependValue>
+            | PrependedItem<TValue, TPrependValue>[]
+            | Record<string | number, PrependedItem<TValue, TPrependValue>>
       : ListPrependRecord<TValue, TPrependValue, MapArrayKey<TPrependKey>>;
 // An integer key lands among the list's own indices; any other key sits beside them.
 type ListPrependRecord<TValue, TPrependValue, TStoredKey> = [
     Exclude<TStoredKey, number>,
 ] extends [never]
-    ? Record<number, TValue | TPrependValue>
+    ? Record<number, PrependedItem<TValue, TPrependValue>>
     : Simplify<
           Record<
               number,
@@ -2713,11 +2718,11 @@ export function mapSpread<TMapReturn>(
  * prepend(['b', 'c'], 'a', 0); -> ['a', 'c']
  * prepend(['b', 'c'], 'a', 'k'); -> { k: 'a', 0: 'b', 1: 'c' }
  */
-// Overload: no key → array_unshift, element type preserved
-export function prepend<TValue>(
+// Overload: no key → array_unshift, the value's type joining the element type
+export function prepend<TValue, TPrependValue>(
     data: ArrayItems<TValue>,
-    value: TValue,
-): TValue[];
+    value: TPrependValue,
+): PrependedItem<TValue, TPrependValue>[];
 // Overload: a key → PHP's `[$key => $value] + $list`
 export function prepend<
     TValue,
@@ -2728,11 +2733,16 @@ export function prepend<
     value: TPrependValue,
     key: TPrependKey,
 ): ListPrepend<TValue, TPrependValue, TPrependKey>;
-// Overload: untyped array or nullish fallback
+// Overload: nothing to prepend to, so the value alone
 export function prepend<TValue>(
-    data: readonly unknown[] | null | undefined,
+    data: null | undefined,
     value: TValue,
 ): TValue[];
+// Overload: untyped array or nullish fallback
+export function prepend(
+    data: readonly unknown[] | null | undefined,
+    value: unknown,
+): unknown[];
 export function prepend(
     data: readonly unknown[] | null | undefined,
     value: unknown,

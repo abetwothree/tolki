@@ -10,6 +10,7 @@ import {
 
 declare const maybeKey: string | null;
 declare const maybeIndex: number | undefined;
+declare const maybeNumbers: number[] | null;
 
 describe("arr mutations type tests", () => {
     describe("set", () => {
@@ -281,6 +282,21 @@ describe("arr mutations type tests", () => {
         it("preserves string element type", () => {
             expectTypeOf(Arr.prepend(["b", "c"], "a")).toEqualTypeOf<
                 string[]
+            >();
+        });
+
+        it("widens the element type by a value of another type", () => {
+            expectTypeOf(Arr.prepend([2, 3], "a")).toEqualTypeOf<
+                (number | string)[]
+            >();
+            // @ts-expect-error - the list's own numbers stay among its items
+            expectTypeOf(Arr.prepend([2, 3], "a")).toEqualTypeOf<string[]>();
+        });
+
+        it("answers the value alone for missing data, and unknown items for data that may be a list", () => {
+            expectTypeOf(Arr.prepend(null, "first")).toEqualTypeOf<string[]>();
+            expectTypeOf(Arr.prepend(maybeNumbers, "first")).toEqualTypeOf<
+                unknown[]
             >();
         });
 
