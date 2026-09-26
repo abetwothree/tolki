@@ -2496,36 +2496,44 @@ export class Collection<TValue, TKey extends PropertyKey> {
     prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
         const ordered = this.orderedEntries();
 
-        if (ordered) {
-            if (arguments.length > 1) {
-                // `[$key => $value] + $array`: the new pair leads, and wins its key outright.
-                const ownKey = phpArrayKey(key ?? null);
-
-                this.setOrderedItems(
-                    [
-                        [ownKey, value as unknown as TValue],
-                        ...ordered.filter(
-                            ([existing]) => String(existing) !== String(ownKey),
-                        ),
-                    ],
-                    false,
-                );
-            } else {
+        if (arguments.length === 1) {
+            if (ordered) {
                 this.unshiftOrdered(ordered, [value as unknown as TValue]);
+            } else {
+                this.items = dataPrepend(
+                    this.items,
+                    value as unknown as TValue,
+                );
             }
 
             return this;
         }
 
-        if (arguments.length > 1) {
-            this.items = dataPrepend(
-                this.items,
-                value as unknown as TValue,
-                key ?? null,
-            );
-        } else {
-            this.items = dataPrepend(this.items, value as unknown as TValue);
+        // `[$key => $value] + $array`: the new pair leads, and wins its key outright.
+        const ownKey = phpArrayKey(key ?? null);
+        const prepended = ordered
+            ? undefined
+            : dataPrepend(this.items, value as unknown as TValue, key ?? null);
+
+        // A plain object sorts its integer keys first, so it holds PHP's order only when the new key leads there.
+        if (
+            prepended &&
+            (isArray(prepended) || Object.keys(prepended)[0] === String(ownKey))
+        ) {
+            this.items = prepended;
+
+            return this;
         }
+
+        this.setOrderedItems(
+            [
+                [ownKey, value as unknown as TValue],
+                ...this.entriesInOrder().filter(
+                    ([existing]) => String(existing) !== String(ownKey),
+                ),
+            ],
+            false,
+        );
 
         return this;
     }

@@ -5553,19 +5553,42 @@ describe("Collection", () => {
         });
 
         it("becomes object-backed when a list backing is given a key other than 0", () => {
+            const zero = collect(["b", "c"]).prepend("a", 0);
+            const string = collect(["b", "c"]).prepend("a", "k");
+            const one = collect(["b", "c"]).prepend("a", 1);
+
             // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
-            expect(collect(["b", "c"]).prepend("a", 0).all()).toEqual([
-                "a",
-                "c",
+            expect(zero.all()).toEqual(["a", "c"]);
+            expect(string.all()).toEqual({ k: "a", 0: "b", 1: "c" });
+            expect(one.all()).toEqual({ 1: "a", 0: "b" });
+            expect([zero.keys().all(), zero.values().all()]).toEqual([
+                [0, 1],
+                ["a", "c"],
             ]);
-            expect(collect(["b", "c"]).prepend("a", "k").all()).toEqual({
-                k: "a",
-                0: "b",
-                1: "c",
-            });
-            expect(collect(["b", "c"]).prepend("a", 1).all()).toEqual({
-                1: "a",
-                0: "b",
+            expect([string.keys().all(), string.values().all()]).toEqual([
+                ["k", 0, 1],
+                ["a", "b", "c"],
+            ]);
+            expect([one.keys().all(), one.values().all()]).toEqual([
+                [1, 0],
+                ["a", "b"],
+            ]);
+        });
+
+        it("leads with a key it prepends onto a list", () => {
+            const collection = collect(["b", "c"]).prepend("a", "k");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-prepend-string-key-on-list-order"
+            expect({
+                values: collection.values().all(),
+                keys: collection.keys().all(),
+                first: collection.first(),
+                last: collection.last(),
+            }).toEqual({
+                values: ["a", "b", "c"],
+                keys: ["k", 0, 1],
+                first: "a",
+                last: "c",
             });
         });
     });
