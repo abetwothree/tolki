@@ -5377,6 +5377,17 @@ describe("Collection", () => {
             });
         });
 
+        it("walks a collection the callback returns by its items", () => {
+            const mapped = collect([1, 2]).mapWithKeys((value) =>
+                collect({ [`k${value}`]: value }),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-returns-collection"
+            expect(mapped.all()).toEqual({ k1: 1, k2: 2 });
+            expect(mapped.keys().all()).toEqual(["k1", "k2"]);
+            expect(mapped.values().all()).toEqual([1, 2]);
+        });
+
         it("passes each source's own key shape to the callback", () => {
             // Array-backed: numeric index, matching arrMapWithKeys.
             const arraySeenKeys: unknown[] = [];

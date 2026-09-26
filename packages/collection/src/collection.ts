@@ -1980,7 +1980,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * The callback should return an object with a single key/value pair.
      *
-     * @param callback - The callback function to map with
+     * @param callback - The callback function to map with, returning its pairs as an object or a collection
      * @returns A new collection with mapped items as an associative array
      *
      * @example
@@ -2001,8 +2001,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         for (const [key, value] of this.entriesInOrder()) {
             const result = callback(value, key);
-            // Spread the result object to get the key-value pairs
-            for (const [newKey, newValue] of Object.entries(result)) {
+            // PHP's foreach walks a collection by its items, never by its own fields.
+            const pairs =
+                result instanceof Collection
+                    ? result.entriesInOrder()
+                    : Object.entries(result);
+
+            for (const [newKey, newValue] of pairs) {
                 map.set(
                     newKey as TMapWithKeysKey,
                     newValue as TMapWithKeysValue,
