@@ -497,7 +497,7 @@ describe("Collection", () => {
             const collection = new Collection(items);
             collection.put("b", 2);
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-record-put-copies"
             expect([items, collection.all()]).toEqual([
                 { a: 1 },
                 { a: 1, b: 2 },
@@ -2501,6 +2501,7 @@ describe("Collection", () => {
     describe("forget", () => {
         describe("Laravel Tests", () => {
             it("test forget single key", () => {
+                // CollectionTest::testForgetSingleKey
                 const c = collect(["bar", "qux"]).forget(0).all();
                 expect(c).toEqual(["qux"]);
 
@@ -2511,6 +2512,7 @@ describe("Collection", () => {
             });
 
             it("test forget array of keys", () => {
+                // CollectionTest::testForgetArrayOfKeys
                 const d = collect(["foo", "bar", "baz"]).forget([0, 2]).all();
                 expect(d).toEqual(["bar"]);
 
@@ -2521,6 +2523,7 @@ describe("Collection", () => {
             });
 
             it("test forget collection of keys", () => {
+                // CollectionTest::testForgetCollectionOfKeys
                 const c = collect(["foo", "bar", "baz"]);
                 const res = c.forget(collect([0, 2])).all();
                 expect(res).toEqual(["bar"]);
@@ -2601,6 +2604,7 @@ describe("Collection", () => {
         });
 
         it("returns default for missing object key", () => {
+            // CollectionTest::testGetWithDefaultValue
             const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.get("d", "default")).toBe("default");
         });
@@ -2633,6 +2637,7 @@ describe("Collection", () => {
     describe("getOrPut", () => {
         describe("Laravel tests", () => {
             it("test get or put", () => {
+                // CollectionTest::testGetOrPut
                 const data = collect({ name: "taylor", email: "foo" });
                 expect(data.getOrPut("name", null)).toBe("taylor");
                 expect(data.getOrPut("email", null)).toBe("foo");
@@ -2653,6 +2658,7 @@ describe("Collection", () => {
             });
 
             it("test get or put with no key", () => {
+                // CollectionTest::testGetOrPutWithNoKey
                 const data = collect(["taylor", "shawn"]);
                 expect(data.getOrPut(null, "dayle")).toBe("dayle");
                 expect(data.getOrPut(null, "john")).toBe("john");
@@ -3274,6 +3280,7 @@ describe("Collection", () => {
 
     describe("has", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testHas
             const data = collect({ id: 1, first: "Hello", second: "World" });
             expect(data.has("first")).toBe(true);
             expect(data.has("third")).toBe(false);
@@ -3321,6 +3328,7 @@ describe("Collection", () => {
         });
 
         it("does not leak Array.prototype through the array backing", () => {
+            // JS-only: a JS array carries a length and methods, which PHP's array never holds as keys
             const collection = collect([1, 2]);
             expect(collection.has("length")).toBe(false);
             expect(collection.has("toString")).toBe(false);
@@ -3371,6 +3379,7 @@ describe("Collection", () => {
 
     describe("hasAny", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testHasAny
             const data = collect({ id: 1, first: "Hello", second: "World" });
 
             expect(data.hasAny("first")).toBe(true);
@@ -4246,6 +4255,7 @@ describe("Collection", () => {
 
     describe("keys", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testKeys
             const c = collect({ name: "taylor", framework: "laravel" });
             expect(c.keys().all()).toEqual(["name", "framework"]);
 
@@ -4264,6 +4274,7 @@ describe("Collection", () => {
         });
 
         it("reports the same number of keys as values, even with a non-enumerable own property", () => {
+            // JS-only: PHP's array has no entry it hides from iteration
             const items = Object.defineProperty({ a: 1 }, "hidden", {
                 value: 2,
                 enumerable: false,
@@ -5402,6 +5413,7 @@ describe("Collection", () => {
     describe("pop", () => {
         describe("Laravel Tests", () => {
             it("test pop returns and removes last item in collection", () => {
+                // CollectionTest::testPopReturnsAndRemovesLastItemInCollection
                 const c = collect(["foo", "bar"]);
 
                 expect(c.pop()).toBe("bar");
@@ -5409,6 +5421,7 @@ describe("Collection", () => {
             });
 
             it("test pop returns and removes last x items in collection", () => {
+                // CollectionTest::testPopReturnsAndRemovesLastXItemsInCollection
                 const c = collect(["foo", "bar", "baz"]);
 
                 expect(c.pop(2).all()).toEqual(["baz", "bar"]);
@@ -5424,6 +5437,17 @@ describe("Collection", () => {
             expect(c.pop(0).all()).toEqual([]);
             expect(c.pop(-1).all()).toEqual([]);
             expect(c.all()).toEqual(["foo", "bar", "baz"]); // Original collection unchanged
+        });
+
+        it("hands back the value itself for a count of 1", () => {
+            const collection = collect([1, 2, 3]);
+            const returned = collection.pop(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-one-on-list-returns-value"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 3,
+                all: [1, 2],
+            });
         });
 
         it("test pop with count === 1 on array returns single value", () => {
@@ -5506,6 +5530,7 @@ describe("Collection", () => {
         });
 
         it("Laravel Tests", () => {
+            // CollectionTest::testPrepend
             const c = collect(["one", "two", "three", "four"]);
             expect(c.prepend("zero").all()).toEqual([
                 "zero",
@@ -5597,6 +5622,7 @@ describe("Collection", () => {
     describe("push", () => {
         describe("Laravel Tests", () => {
             it("test push with one item", () => {
+                // CollectionTest::testPushWithOneItem
                 const expected = [
                     4,
                     5,
@@ -5619,6 +5645,7 @@ describe("Collection", () => {
             });
 
             it("test push with multiple items", () => {
+                // CollectionTest::testPushWithMultipleItems
                 const expected = [
                     4,
                     5,
@@ -5823,6 +5850,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test unshift with one item", () => {
+                // CollectionTest::testUnshiftWithOneItem
                 const expected = [
                     "Jonny from Laroe",
                     { who: "Jonny", preposition: "from", where: "Laroe" },
@@ -5845,6 +5873,7 @@ describe("Collection", () => {
             });
 
             it("test unshift with multiple items", () => {
+                // CollectionTest::testUnshiftWithMultipleItems
                 const expected = [
                     "a",
                     "b",
@@ -5954,7 +5983,7 @@ describe("Collection", () => {
             const c = new Collection(original);
             c.unshift(1);
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-unshift-copies"
             expect([original, c.all()]).toEqual([
                 [2, 3],
                 [1, 2, 3],
@@ -5974,10 +6003,8 @@ describe("Collection", () => {
             const c = new Collection(original);
             c.unshift(1);
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-record-unshift-copies"
             expect([original, c.all()]).toEqual([{ b: 2 }, { 0: 1, b: 2 }]);
-
-            // docs/php-parity/task-23-obj-release-readiness.json, "D1 unshift assoc item onto assoc"
             expect(c.keys().all()).toEqual([0, "b"]);
             expect(c.values().all()).toEqual([1, 2]);
         });
@@ -6019,6 +6046,7 @@ describe("Collection", () => {
     describe("concat", () => {
         describe("Laravel Tests", () => {
             it("test concat with array", () => {
+                // CollectionTest::testConcatWithArray
                 const expected = [
                     4,
                     5,
@@ -6053,6 +6081,7 @@ describe("Collection", () => {
             });
 
             it("test concat with collection", () => {
+                // CollectionTest::testConcatWithCollection
                 const expected = [
                     4,
                     5,
@@ -6087,6 +6116,7 @@ describe("Collection", () => {
     describe("pull", () => {
         describe("Laravel Tests", () => {
             it("test pull retrieves item from collection", () => {
+                // CollectionTest::testPullRetrievesItemFromCollection
                 const c = collect(["foo", "bar"]);
 
                 expect(c.pull(0)).toBe("foo");
@@ -6100,6 +6130,7 @@ describe("Collection", () => {
             });
 
             it("test pull removes item from collection", () => {
+                // CollectionTest::testPullRemovesItemFromCollection
                 const c = collect(["foo", "bar"]);
                 c.pull(0);
                 // PHP leaves "bar" at key 1; a list backing reindexes where PHP keeps a gap, so it is pulled from 0.
@@ -6109,6 +6140,7 @@ describe("Collection", () => {
             });
 
             it("test pull removes item from nested collection", () => {
+                // CollectionTest::testPullRemovesItemFromNestedCollection
                 const nestedCollection = collect([
                     collect([
                         "value",
@@ -6129,6 +6161,7 @@ describe("Collection", () => {
             });
 
             it("test pull returns default", () => {
+                // CollectionTest::testPullReturnsDefault
                 const c = collect([]);
                 const value = c.pull(0, "foo");
                 expect(value).toBe("foo");
@@ -6388,12 +6421,14 @@ describe("Collection", () => {
     describe("put", () => {
         describe("Laravel Tests", () => {
             it("test put", () => {
+                // CollectionTest::testPut
                 const data = collect({ name: "taylor", email: "foo" });
                 data.put("name", "dayle");
                 expect(data.all()).toEqual({ name: "dayle", email: "foo" });
             });
 
             it("test put with no key", () => {
+                // CollectionTest::testPutWithNoKey
                 const data = collect(["taylor", "shawn"]);
                 data.put(null, "dayle");
                 expect(data.all()).toEqual(["taylor", "shawn", "dayle"]);
@@ -7133,6 +7168,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test shift returns and removes first item in collection", () => {
+                // CollectionTest::testShiftReturnsAndRemovesFirstItemInCollection
                 const data = collect(["Taylor", "Otwell"]);
 
                 expect(data.shift()).toBe("Taylor");
@@ -7169,6 +7205,7 @@ describe("Collection", () => {
             });
 
             it("test shift returns null on empty collection", () => {
+                // CollectionTest::testShiftReturnsNullOnEmptyCollection
                 const items = collect([]);
 
                 expect(items.shift()).toBeNull();
@@ -7205,7 +7242,7 @@ describe("Collection", () => {
             expect(shiftedAll.all()).toEqual([100, 200]);
             expect(objCollection3.count()).toBe(0);
 
-            // Test shift with array containing undefined
+            // JS-only: a stored undefined is an item, which shift hands back as it is
             const arrWithUndef = collect([undefined, 1, 2]);
             expect(arrWithUndef.shift()).toBeUndefined();
             expect(arrWithUndef.all()).toEqual([1, 2]);
@@ -7226,6 +7263,17 @@ describe("Collection", () => {
             const shifted = c.shift(3);
             expect(shifted.all()).toEqual([1]); // Only got 1 item
             expect(c.all()).toEqual({}); // Object is now empty
+        });
+
+        it("hands back the value itself for a count of 1", () => {
+            const collection = collect([1, 2, 3]);
+            const returned = collection.shift(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-one-on-list-returns-value"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 1,
+                all: [2, 3],
+            });
         });
 
         it("throws InvalidArgumentException for a negative count, even on an empty collection", () => {
@@ -9032,6 +9080,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test splice", () => {
+                // CollectionTest::testSplice
                 const data = collect(["foo", "baz"]);
                 data.splice(1);
                 expect(data.all()).toEqual(["foo"]);
@@ -9122,6 +9171,7 @@ describe("Collection", () => {
     describe("transform", () => {
         describe("Laravel Tests", () => {
             it("test transform", () => {
+                // CollectionTest::testTransform
                 const data = collect({ first: "taylor", last: "otwell" });
                 data.transform((item, key) => `${key}-${strrev(item)}`);
                 expect(data.all()).toEqual({
@@ -9338,6 +9388,7 @@ describe("Collection", () => {
     describe("values", () => {
         describe("Laravel Tests", () => {
             it("test values", () => {
+                // CollectionTest::testValues
                 const c = collect([
                     { id: 1, name: "Hello" },
                     { id: 2, name: "World" },
@@ -9353,6 +9404,7 @@ describe("Collection", () => {
             });
 
             it("test values reset key", () => {
+                // CollectionTest::testValuesResetKey
                 const data = collect({ 1: "a", 2: "b", 3: "c" });
                 expect(data.values().all()).toEqual(["a", "b", "c"]);
             });
@@ -9439,6 +9491,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test pad", () => {
+                // CollectionTest::testPadPadsArrayWithValue
                 let c = collect([1, 2, 3]);
                 c = c.pad(4, 0);
                 expect(c.all()).toEqual([1, 2, 3, 0]);
@@ -9471,6 +9524,7 @@ describe("Collection", () => {
         });
 
         it("returns a copy even when no padding is needed for object-backed collections", () => {
+            // JS-only: PHP's array_pad hands back a value, so only a JS backing could be shared
             const items = { a: 1, b: 2 };
             const c = collect(items);
             expect(c.pad(2, 0).all()).not.toBe(items);
@@ -9821,6 +9875,7 @@ describe("Collection", () => {
     describe("offsetExists", () => {
         describe("Laravel Tests", () => {
             it("test offsetExists", () => {
+                // CollectionTest::testArrayAccessOffsetExists
                 const c = collect({ a: "foo", b: "bar", c: null });
                 expect(c.offsetExists("a")).toBe(true);
                 expect(c.offsetExists("b")).toBe(true);
@@ -9874,6 +9929,7 @@ describe("Collection", () => {
     describe("offsetGet", () => {
         describe("Laravel Tests", () => {
             it("test offset get", () => {
+                // CollectionTest::testArrayAccessOffsetGet
                 const c = collect({ a: "foo", b: "bar" });
                 expect(c.offsetGet("a")).toBe("foo");
                 expect(c.offsetGet("b")).toBe("bar");
@@ -9954,14 +10010,14 @@ describe("Collection", () => {
     describe("offsetSet", () => {
         describe("Laravel Tests", () => {
             it("test offsetSet", () => {
-                // TODO figure out how to test based on indexes directly on Collection like PHP does
-                // $c = new Collection(['foo', 'foo']);
+                // CollectionTest::testArrayAccessOffsetSet
+                const d = collect(["foo", "foo"]);
 
-                // $c->offsetSet(1, 'bar');
-                // $this->assertSame('bar', $c[1]);
+                d.offsetSet(1, "bar");
+                expect(d.offsetGet(1)).toBe("bar");
 
-                // $c->offsetSet(null, 'qux');
-                // $this->assertSame('qux', $c[2]);
+                d.offsetSet(null, "qux");
+                expect(d.offsetGet(2)).toBe("qux");
 
                 const c = collect({ a: "foo", b: "foo" });
 
@@ -9971,17 +10027,9 @@ describe("Collection", () => {
                 c.offsetSet(null, "qux");
 
                 // docs/php-parity/task-26-collection-order.json,
-                // "append-key-with-no-integer-key-is-zero": the PHP case above is a list, but this
-                // backing has no integer key, so the append lands on 0 — never on the count, 2.
+                // "append-key-with-no-integer-key-is-zero": unlike the list above, this backing has no
+                // integer key, so the append lands on 0 — never on the count, 2.
                 expect(c.get(0)).toBe("qux");
-
-                const d = collect(["foo", "foo"]);
-
-                d.offsetSet(1, "bar");
-                expect(d.get(1)).toBe("bar");
-
-                d.offsetSet(null, "qux");
-                expect(d.get(2)).toBe("qux");
             });
         });
     });
@@ -9989,6 +10037,7 @@ describe("Collection", () => {
     describe("offsetUnset", () => {
         describe("Laravel Tests", () => {
             it("test offsetUnset", () => {
+                // CollectionTest::testArrayAccessOffsetUnset
                 const c = collect({ a: "foo", b: "bar" });
                 c.offsetUnset("b");
                 expect(c.offsetExists("b")).toBe(false);
