@@ -2615,6 +2615,19 @@ describe("Collection", () => {
                 expect(data2.all()).toEqual({ 0: "taylor", "": "shawn" });
             });
         });
+
+        it("writes a dotted key as one literal key, never reading it as a path", () => {
+            const collection = collect({ a: { b: 1 } });
+            const returned = collection.getOrPut("a.b", 9);
+
+            // docs/php-parity/task-26-collection-order.json, "getOrPut-dot-path-is-a-literal-key"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 9,
+                all: { a: { b: 1 }, "a.b": 9 },
+            });
+            expect(collection.keys().all()).toEqual(["a", "a.b"]);
+            expect(collection.values().all()).toEqual([{ b: 1 }, 9]);
+        });
     });
 
     describe("groupBy", () => {
@@ -15519,11 +15532,10 @@ describe("Collection", () => {
             );
             expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(true);
 
-            // JS-only: PHP's getOrPut writes a second, literal "a.b" key and answers 9
-            // ("getOrPut-dot-path-is-a-literal-key" in the same file); this reads the path instead.
+            // docs/php-parity/task-26-collection-order.json, "getOrPut-dot-path-is-a-literal-key"
             const nested = new Collection({ a: { b: 1 } });
-            expect(nested.getOrPut("a.b", 9)).toBe(1);
-            expect(nested.all()).toEqual({ a: { b: 1 } });
+            expect(nested.getOrPut("a.b", 9)).toBe(9);
+            expect(nested.all()).toEqual({ a: { b: 1 }, "a.b": 9 });
 
             expect(new Collection(nums()).get(2)).toBe(30);
             expect(new Collection(numsObj()).get(2)).toBe(30);

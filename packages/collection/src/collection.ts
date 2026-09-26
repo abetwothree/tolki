@@ -1193,17 +1193,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         value: TGetOrPutValue | (() => TGetOrPutValue),
     ): TValue | TGetOrPutValue {
-        const normalizedKey = key ?? "";
+        const ownKey = this.ownKey(key ?? "");
 
-        if (this.has(normalizedKey)) {
-            return this.get(normalizedKey) as TValue;
+        if (!isUndefined(ownKey)) {
+            return (this.items as Record<PropertyKey, TValue>)[
+                ownKey
+            ] as TValue;
         }
 
         if (isFunction(value)) {
             value = value();
         }
 
-        this.offsetSet(key as TKey | null, value);
+        this.offsetSet(key ?? null, value);
 
         return value;
     }
