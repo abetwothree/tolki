@@ -1,6 +1,8 @@
 # Customizing the Pipeline
 
-Every feature this package publishes — models, model metadata, enums, resources, routes, form requests, broadcast channels, and broadcast events — runs through the same **Collector → Generator → Transformer → Writer → Template** pipeline, though not every feature uses all five stages. Each stage is swappable independently, per feature, via the config file: extend the built-in class, override the matching config key, and the rest of the pipeline keeps working unmodified.
+Models, model metadata, enums, resources, routes, form requests, broadcast channels, and broadcast events all run through the same pipeline. A collector finds your classes, a transformer reads each one, and a writer renders it through a Blade template. To replace a stage, extend the built-in class and point the feature's config key at your class. The other stages keep working as before.
+
+This config swaps the transformer that models use:
 
 ```php
 // config/ts-publish.php
@@ -10,60 +12,259 @@ Every feature this package publishes — models, model metadata, enums, resource
 ],
 ```
 
+If you only want to change how the TypeScript is formatted, you don't need a PHP class. [Publish the templates](#publishing-and-editing-templates) and edit them instead.
+
 ## What Each Stage Does
 
-- **Collector** — discovers the fully-qualified class names to publish (e.g. every model in `app/Models`), applying the feature's `included` / `excluded` / `additional_directories` config.
-- **Generator** — orchestrates a single class's publish: builds a `Transformer`, hands it to a `Writer`, and holds the resulting file content. Also the integration point for the [generation cache](#cache-compatible-generators-rehydratesfromcache).
-- **Transformer** — converts one PHP class into the structured data (a `Datable` DTO) that describes what should be in the TypeScript output — no string building, just data.
-- **Writer** — renders a `Transformer`'s data through a **Template** (a Blade view) and writes the resulting file to disk.
-- **Template** — the Blade view responsible for the actual TypeScript syntax. Publishable and editable independently of every other stage.
+A class passes through these stages in order:
+
+- **Collector**: finds the classes to publish, such as every model in `app/Models`. It applies the feature's `included`, `excluded`, and `additional_directories` settings, and it skips classes marked `#[TsExclude]`.
+- **Generator**: publishes one class. It builds a transformer, passes it to a writer, and keeps the file's content. The [generation cache](#cache-compatible-generators-rehydratesfromcache) works at this stage.
+- **Transformer**: reads one PHP class and returns a data object that describes the TypeScript to write. It builds no strings.
+- **Writer**: renders the transformer's data through a template and writes the file.
+- **Template**: the Blade view that holds the TypeScript syntax. You can publish and edit it without touching any other stage.
+
+Broadcast channels aren't classes, so they skip the generator and the transformer.
 
 ## Pipeline Stages Per Feature
 
-Not every feature has all four swappable classes — broadcast channels, for example, has no per-class Generator or Transformer stage, since a channel is just a name string, not a PHP class to statically analyze. Each stage is swapped via a `{feature}.{stage}_class` config key (e.g. `models.collector_class`) — the table below shows the resulting default class for each stage.
+Each stage has a config key named `{feature}.{stage}_class`, such as `models.collector_class`. This table lists each feature's config block and the default class behind each key:
 
-| Feature            | Collector                    | Generator                 | Transformer                 | Writer                    |
-| ------------------ | ---------------------------- | ------------------------- | --------------------------- | ------------------------- |
-| Models             | `ModelsCollector`            | `ModelGenerator`          | `ModelTransformer`          | `ModelWriter`             |
-| Model Metadata     | `ModelMetadataCollector`     | `ModelMetadataGenerator`  | `ModelMetadataTransformer`  | `ModelMetadataWriter`     |
-| Enums              | `EnumsCollector`             | `EnumGenerator`           | `EnumTransformer`           | `EnumWriter`              |
-| Resources          | `ResourcesCollector`         | `ResourceGenerator`       | `ResourceTransformer`       | `ResourceWriter`          |
-| Routes             | `RoutesCollector`            | `RouteGenerator`          | `RouteTransformer`          | `RouteWriter`             |
-| Form Requests      | `FormRequestsCollector`      | `FormRequestGenerator`    | `FormRequestTransformer`    | `FormRequestWriter`       |
-| Broadcast Channels | `BroadcastChannelsCollector` | _(none)_                  | _(none)_                    | `BroadcastChannelsWriter` |
-| Broadcast Events   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`¹   |
+| Feature              | `collector_class`            | `generator_class`         | `transformer_class`         | `writer_class`            |
+| -------------------- | ---------------------------- | ------------------------- | --------------------------- | ------------------------- |
+| `models`             | `ModelsCollector`            | `ModelGenerator`          | `ModelTransformer`          | `ModelWriter`             |
+| `model_metadata`     | `ModelMetadataCollector`     | `ModelMetadataGenerator`  | `ModelMetadataTransformer`  | `ModelMetadataWriter`     |
+| `enums`              | `EnumsCollector`             | `EnumGenerator`           | `EnumTransformer`           | `EnumWriter`              |
+| `resources`          | `ResourcesCollector`         | `ResourceGenerator`       | `ResourceTransformer`       | `ResourceWriter`          |
+| `routes`             | `RoutesCollector`            | `RouteGenerator`          | `RouteTransformer`          | `RouteWriter`             |
+| `form_requests`      | `FormRequestsCollector`      | `FormRequestGenerator`    | `FormRequestTransformer`    | `FormRequestWriter`       |
+| `broadcast_channels` | `BroadcastChannelsCollector` | none                      | none                        | `BroadcastChannelsWriter` |
+| `broadcast_events`   | `BroadcastEventsCollector`   | `BroadcastEventGenerator` | `BroadcastEventTransformer` | `BroadcastEventWriter`    |
 
-<sup>1</sup> Broadcast Events also has two additional writer stages beyond the table above: `index_writer_class` (writes the combined index file) and `echo_augmentation.writer_class` (writes the Echo module augmentation).
+The classes live in the `AbeTwoThree\LaravelTsPublish\Collectors`, `Generators`, `Transformers`, and `Writers` namespaces. Broadcast channels have no generator or transformer key, because a channel is a name string rather than a PHP class.
 
-Model Metadata adds two more extension points: `model_metadata.provider_class`, the class whose `provide($model)` supplies each companion's values (the one most apps customize), and `Analyzers\Metadata\ModelMetadataAnalyzer`, the [analyzer](./analyzer-api.md) consumer that resolves each key's TypeScript type from body inference, the `@return` docblock, and `#[TsCasts]` — a custom `transformer_class` calls it through the container. See [Model Metadata](./model-metadata.md).
+Broadcast events have two more writer keys. `broadcast_events.index_writer_class` writes the combined index file, and `broadcast_events.echo_augmentation.writer_class` writes the Echo module augmentation.
 
-::: warning `BroadcastEventTransformer` changed shape
-Its constructor used to take a second argument alongside `$findable` — an `Analyzer` instance from [Surveyor](https://github.com/laravel/surveyor), the library that typed broadcast events at the time. Events are now typed by the package's own [analyzer](./analyzer-api.md), and the constructor matches every other transformer:
+Model metadata is stricter than the other features. A custom `model_metadata.generator_class` must extend `ModelMetadataGenerator`, and a custom `model_metadata.transformer_class` must extend `ModelMetadataTransformer`. If either doesn't, `ts:publish` fails before it writes any file.
+
+Two more keys swap a class that isn't a pipeline stage:
+
+- **`model_metadata.provider_class`**: the class whose `provide($model)` returns each model's metadata values. Most apps customize this one. See [Model Metadata](./model-metadata.md).
+- **`form_requests.analyzer_class`**: the class that reads a form request's `rules()`. The same class types `$request->validated('key')` in routes and page props. The published config file has no line for this key, so add it to your `form_requests` block. See the [Configuration Reference](./configuration-reference.md).
+
+### Shared & Combined Writers
+
+A few writers don't belong to a single feature. Each one has its own config key:
+
+| Writer              | Config Key             | Writes                                                                                                                                                                      |
+| ------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BarrelWriter`      | `barrel_writer_class`  | The [barrel `index.ts`](./modular-publishing.md#barrel-files) in each namespace directory for models, model metadata, enums, resources, form requests, and broadcast events |
+| `GlobalsWriter`     | `globals.writer_class` | The global declaration file, which declares your enum, model, resource, form request, and broadcast event types in a global namespace                                       |
+| `JsonWriter`        | `json.writer_class`    | The combined JSON definitions file                                                                                                                                          |
+| `WatcherJsonWriter` | `watcher.writer_class` | The JSON list of collected file paths that file watchers read                                                                                                               |
+
+Route barrels have a different format, so the route writer (`routes.writer_class`) writes them.
+
+::: warning A custom barrel writer needs both write methods
+If your `barrel_writer_class` overrides `writeModular()`, override `writeModularPreserving()` as well. A run that skips one of the model phases writes model barrels through `writeModularPreserving()`, for example `ts:publish --only-models` while model metadata is enabled.
+:::
+
+### Features Without a Swappable Pipeline
+
+Inertia and Vite env have no `*_class` keys, so you can't swap their classes. See [Inertia](./inertia.md) and [Vite Env](./vite-env.md) for the options they have. You can still [edit their templates](#publishing-and-editing-templates).
+
+## Swapping a Transformer
+
+To change what a transformer produces, extend the built-in class and adjust its data after the parent runs:
+
+```php
+namespace App\TypeScript;
+
+use AbeTwoThree\LaravelTsPublish\Transformers\ModelTransformer;
+
+class CustomModelTransformer extends ModelTransformer
+{
+    public function transform(): self
+    {
+        parent::transform();
+
+        // Adjust the data here, before the writer renders it.
+
+        return $this;
+    }
+}
+```
+
+Then point the feature's config key at your class:
+
+```php
+// config/ts-publish.php
+
+'models' => [
+    'transformer_class' => App\TypeScript\CustomModelTransformer::class,
+],
+```
+
+Collectors, generators, and writers work the same way. Extend the feature's built-in class, override the behavior you need, and set the matching `*_class` key.
+
+## Abstract Base Classes
+
+Every built-in class extends one of four abstract base classes. To write a class from scratch, extend the matching base class and implement its abstract methods. The [built-in classes](#pipeline-stages-per-feature) are complete examples of each.
+
+### `CoreCollector<TFindable>`
+
+A collector implements three methods and inherits `collect()`:
+
+```php
+abstract protected function defaultDirectory(): string;
+abstract protected function classFilter(ReflectionClass $reflection): bool;
+
+/** @return array{included: list<string>, excluded: list<string>, additional_directories: list<string>} */
+abstract protected function finderSettings(): array;
+
+/** @return Collection<int, class-string<TFindable>> */
+public function collect(): Collection; // concrete
+```
+
+`collect()` scans the default directory plus the `additional_directories` and `included` settings. It keeps the classes your `classFilter()` accepts, then drops anything listed in `excluded` or marked `#[TsExclude]`. A custom collector usually implements only the three abstract methods.
+
+::: warning Collectors cache each directory's class list
+A collector reads each directory once per PHP process and reuses that list. `ts:publish` clears the cache at the start of every run, so a publish always sees the files on disk.
+
+Your own code can still see an old list. For example, a test helper or a `tinker` session might call `collect()` or `allows()`, write a PHP file, and call it again. The second call returns the list from before the write. Clear the cache between the write and the second call:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Collectors\CoreCollector;
+
+CoreCollector::flushClassMapCache();
+```
+
+The method is static on the base class, so one call clears the cache for every collector.
+:::
+
+### `CoreGenerator<TGeneratable>`
+
+A generator implements two methods. Its constructor calls `generate()`:
+
+```php
+public function __construct(
+    public protected(set) string $findable, // class-string<TGeneratable>
+) {}
+
+abstract public function generate(): string;
+abstract public function filename(): string;
+```
+
+By the time the constructor returns, `$content` must hold the rendered file. The built-in generators build a transformer, pass it to a writer, and store what the writer returns.
+
+Give your generator a publicly readable `transformer` property that holds its transformer, as the built-in generators do with `public protected(set)`. Barrel files need it, and the generation cache never stores a generator without it.
+
+### `CoreTransformer<TTransformable>`
+
+A transformer implements three methods. Its constructor calls `transform()`:
+
+```php
+public function __construct(
+    protected string $findable, // class-string<TTransformable>
+) {}
+
+public function fqcn(): string; // concrete
+
+abstract public function transform(): self;
+abstract public function filename(): string;
+abstract public function data(): Datable;
+```
+
+`data()` returns a `Datable` object: plain data that describes the output, not a rendered string. The writer renders it, and the generation cache stores it.
+
+Set the `$namespacePath` property in `transform()` as well. Writers use it to choose the file's directory, and barrels use it to choose the `index.ts` that exports the file.
+
+### `CoreWriter<TTransformer of CoreTransformer>`
+
+A writer receives its filesystem through the constructor and implements `write()`:
+
+```php
+public function __construct(
+    protected Filesystem $filesystem,
+) {}
+
+abstract public function write(CoreTransformer $transformer): string;
+```
+
+`write()` takes a transformer and returns the rendered file content. When `output_to_files` is on, which is the default, it also writes the file to disk.
+
+## Cache-Compatible Generators (`RehydratesFromCache`)
+
+The built-in generators use the `AbeTwoThree\LaravelTsPublish\Generators\Concerns\RehydratesFromCache` trait to take part in the [generation cache](./generating-cache.md). Add the trait to a custom `*.generator_class` to cache it the same way. The trait adds two methods:
+
+```php
+public static function fromCache(string $findable, CoreTransformer $transformer, string $filename): static;
+
+protected function hydrate(string $findable, CoreTransformer $transformer, string $filename): void;
+```
+
+On a cache hit, the package builds your generator with `fromCache()`, which skips the constructor. `generate()` doesn't run, so the class isn't transformed again and its file isn't rewritten. `hydrate()` then restores `$findable`, the stored transformer, and the file name. That's what the rest of the run reads from a built-in generator, for example to write barrels. If your generator keeps other state that later steps read, override `hydrate()` to restore it too.
+
+The cache stores the transformer by serializing it. A transformer that holds a value PHP can't serialize, such as a closure, isn't cached, and its class rebuilds on the next run.
+
+A generator without the trait still produces correct output, but it rebuilds on every run instead of coming from the cache.
+
+To add inputs that aren't PHP files to a generator's cache check, such as route definitions, implement `ProvidesCacheSignature`. See [Cache Generation](./generating-cache.md).
+
+## Publishing and Editing Templates
+
+To change the generated TypeScript's formatting without writing PHP, publish the package's Blade templates:
+
+```bash
+php artisan vendor:publish --tag="laravel-ts-publish-views"
+```
+
+The command copies the templates to `resources/views/vendor/laravel-ts-publish`. Laravel loads your copies ahead of the package's, so your edits apply on the next `ts:publish` with no config change.
+
+To use a template with a different name, point the feature's template key at it. These are the keys and their default views:
+
+| Config Key                                    | Default View                                 |
+| --------------------------------------------- | -------------------------------------------- |
+| `models.template`                             | `laravel-ts-publish::model-split`            |
+| `model_metadata.template`                     | `laravel-ts-publish::model-meta`             |
+| `enums.template`                              | `laravel-ts-publish::enum`                   |
+| `resources.template`                          | `laravel-ts-publish::resource`               |
+| `routes.template`                             | `laravel-ts-publish::route`                  |
+| `form_requests.template`                      | `laravel-ts-publish::form-request`           |
+| `broadcast_channels.template`                 | `laravel-ts-publish::broadcast-channels`     |
+| `broadcast_events.template`                   | `laravel-ts-publish::broadcast-event`        |
+| `broadcast_events.index_template`             | `laravel-ts-publish::broadcast-events-index` |
+| `broadcast_events.echo_augmentation.template` | `laravel-ts-publish::echo-broadcast-events`  |
+| `globals.template`                            | `laravel-ts-publish::globals`                |
+
+Inertia's `inertia-config.blade.php` and Vite env's `vite-env.blade.php` have no template key. Edit your published copies to change them.
+
+::: warning Published templates don't update with the package
+Your copies stay as they were when you published them. After you upgrade the package, compare them with the package's new templates and merge the changes. A stale copy can leave out output the new version adds. For example, a copy of `inertia-config.blade.php` published before v2.5.0 drops the enum value imports that an `EnumResource` shared prop needs.
+:::
+
+## Upgrading Custom Classes to v2.5
+
+Version 2.5.0 replaced the package's type engine. If you extended one of these classes before then, check your overrides.
+
+### `BroadcastEventTransformer`
+
+The constructor now takes one argument, like every other transformer:
 
 ```php
 public function __construct(string $findable);
 ```
 
-The protected methods a subclass hooks into moved with it, so re-check any existing override:
+A subclass that passes a second argument to `parent::__construct()` must drop it. The protected methods changed as well:
 
-- **`convertType()` and `resolveArrayType()` are gone**, along with the `$analyzed` property, because all three took Surveyor types. This is the one that bites quietly: an override of a method the parent no longer calls is dead code, not an error, so a subclass that mapped a custom value object through `convertType()` keeps loading while its event types change underneath it.
-- **`runAnalysis()`, `resolveBroadcastName()`, `resolveProperties()`, `convertClassType()` and `collectPropertyFqcns()` take or return different types.** These fail loudly — PHP rejects the incompatible declaration when the subclass loads — so you'll know immediately.
+- **Removed**: `convertType()`, `resolveArrayType()`, and the `$analyzed` property. An override of a removed method loads without error but never runs. A subclass that mapped a custom value object through `convertType()` keeps loading while its event types change.
+- **Changed**: `runAnalysis()`, `resolveBroadcastName()`, `resolveProperties()`, `convertClassType()`, and `collectPropertyFqcns()` take or return different types. PHP rejects an incompatible override when the class loads, so you see these right away.
 
-:::
+### `ResourceTransformer`
 
-::: warning `ResourceTransformer` lost its model-resolution methods
+`modelFromDocblock()`, `modelFromAncestorDocblock()`, `guessModelFromConvention()`, and `guessModelFromUseResourceAttribute()` are gone. An override of one of them still loads, but it never runs. Every resource it used to cover is then typed against the model the package finds on its own, and nothing reports an error. The rest of `ResourceTransformer` kept its signatures.
 
-The four methods that decided which Eloquent model backs a resource have moved off the transformer into `AbeTwoThree\LaravelTsPublish\Ast\ModelClassResolver`, so the [analyzer](./analyzer-api.md) and the publish pipeline resolve a resource's model the same way. `resources.transformer_class` is still a supported override point; only these four names left it.
-
-**Fails quietly — this is the whole of it, so check by hand:**
-
-- **`modelFromDocblock()`, `modelFromAncestorDocblock()`, `guessModelFromConvention()` and `guessModelFromUseResourceAttribute()` are gone.** They were `protected` on `ResourceTransformer`; they are `private` on `ModelClassResolver`, which is `final`. A subclass that overrode any of them still compiles and still loads — the parent simply never calls it again. So a convention override that resolved, say, `App\Http\Resources\PostResource` to `App\Domain\Post` stops applying, every affected resource is silently typed against a different model, and nothing errors.
-
-Nothing on `ResourceTransformer` changed signature, so unlike the transformer above there is no loud half to warn you.
-
-**Migrating an override.** Two paths, in order of preference:
-
-1. **Override `resolveModelClass()`**, still `protected` on `ResourceTransformer` and the single seam all four methods now sit behind. Set `$this->modelClass` and return `$this`:
+To keep a custom convention, override `resolveModelClass()`. Set `$this->modelClass` and return `$this`:
 
 ```php
 protected function resolveModelClass(): self
@@ -76,196 +277,8 @@ protected function resolveModelClass(): self
 }
 ```
 
-2. **Bind a replacement for `ModelClassResolver`** — an escape hatch, not a supported override point the way `resources.transformer_class` is. The class is tagged `@internal`: everything under `Ast` other than `AstEngine::analyze()` and the `AnalysisResult` it returns changes without notice, so this name and signature can move under you. The mechanics do work — the pipeline resolves it from the container on every transform, so `$this->app->bind(ModelClassResolver::class, MyResolver::class)` in a service provider takes effect — but note it is auto-wired rather than registered, so there is no existing binding to decorate, and because the class is `final` a replacement cannot extend it. It must supply its own `resolve(ReflectionClass $resource): ?string`. Reach for it only when overriding `resolveModelClass()` genuinely cannot express your convention.
+`resolveModelClass()` changes what `ts:publish` writes. [`AstEngine::analyze()`](./analyzer-api.md) doesn't use your transformer, so it still finds the model the default way. Pass the model as its third argument to choose it yourself.
 
-:::
+### Renamed Constant
 
-Each feature also has its own `*.template` config key (`models.template`, `enums.template`, `routes.template`, `form_requests.template`, `broadcast_channels.template`, and `broadcast_events.template` / `index_template` / `echo_augmentation.template`) pointing at the Blade view responsible for that feature's output syntax — see [Publishing & Editing Templates](#publishing-editing-templates).
-
-### Shared & Combined Writers
-
-A few writers aren't tied to a single feature — they combine already-transformed data from multiple features, or write a single combined file:
-
-| Writer              | Config Key             | Responsibility                                                                                                             |
-| ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `BarrelWriter`      | `barrel_writer_class`  | Writes every namespace directory's barrel `index.ts` file — see [Modular Publishing](./modular-publishing.md#barrel-files) |
-| `GlobalsWriter`     | `globals.writer_class` | Writes the global declaration file combining every model/enum interface                                                    |
-| `JsonWriter`        | `json.writer_class`    | Writes the combined JSON definitions file                                                                                  |
-| `WatcherJsonWriter` | `watcher.writer_class` | Writes the collected-file-paths JSON used by file watchers                                                                 |
-
-### Features Without a Swappable Pipeline
-
-Inertia and Vite Env are **not** part of this swappable pipeline — they have their own dedicated analysis logic (reading the `HandleInertiaRequests` middleware, or parsing `.env`) and only expose filename/output-directory config, with no `*_class` override keys. See [Inertia](./inertia.md) and [Vite Env](./vite-env.md) for their configuration options.
-
-::: warning `InertiaSharedDataAnalyzer` changed shape
-There is no config key for it, but the class is resolved from the container, so a subclass bound in a service provider is a real (if undocumented) override point. [Shared data](./inertia.md) is now typed by the package's own [analyzer](./analyzer-api.md) instead of Surveyor/Ranger, and the class changed with it.
-
-**Fails quietly — check these by hand:**
-
-- **The constructor no longer takes a `Laravel\Ranger\Collectors\InertiaSharedData`.** PHP ignores extra arguments passed to a class with no declared constructor, so `new InertiaSharedDataAnalyzer($collector)` keeps working and silently discards the collector.
-- **`analyze()` returns `null` when no `Inertia\Middleware` subclass is discovered**, not when a collector came back empty.
-- **`setAppPaths()` keeps its signature but no longer forwards to a collector.** It only records the paths `discoverMiddlewareClass()` scans, so an override that decorated the forwarding call now decorates nothing.
-- **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Both parameters are now `array<string, array{type: string, optional: bool}>`; the first used to hold Surveyor `Type` objects, and the second plain type strings.
-- **The result array gained a required `typeImports` key, and a `valueImports` key alongside it.** Anything constructing that array by hand — a test double, a subclass that builds its own result — must supply `typeImports`; omit it and the template throws when it renders (an undefined-variable `ErrorException`, or a `count(): null given` `TypeError` when `valueImports` is missing too), so that half you will see. `valueImports` is softer and therefore worse: the template defaults it to `[]`, so a hand-built result that omits it still renders — just without the `import { type AsEnum } from '@tolki/ts';` and `import { Role } from './app/enums';` lines that an `EnumResource` shared prop's `role: AsEnum<typeof Role>` needs. The published `inertia-config.d.ts` then spells names it never imports: a `TS2304 Cannot find name`, or a silent `any` wherever `skipLibCheck` hides it.
-
-**Fails loudly at class load:**
-
-- **`buildResult()` is now `buildResult(string $middlewareClass)`** — the `SharedDataComponent` argument is gone.
-
-New protected members a subclass can hook: `resolveWithAllErrors()`, `collectProps()`, `rewriteEnumResourceTypes()`, `buildInferredImports()`, `keepSpelledNames()`, `forgetOverriddenChannels()`, and the `FRAMEWORK_OWNED_PROPS` constant that keeps `errors` out of the inferred shape.
-:::
-
-::: warning `InertiaPageAnalyzer` changed shape
-Same situation as the shared-data analyzer above: no config key, but it is resolved from the container, so a subclass bound in a service provider is a real (if undocumented) override point. Per-route [page props](./routing.md#inertia-integration) are now typed by the package's own [analyzer](./analyzer-api.md) instead of Surveyor/Ranger, and this class was rewritten around that.
-
-**Fails loudly:** the constructor no longer takes a `Laravel\Ranger\Collectors\Response`. Its single parameter is an optional `InertiaTableAnalyzer` override, so `new InertiaPageAnalyzer($collector)` raises a `TypeError` the moment it runs. Construct it with no arguments.
-
-**Fails quietly — check these by hand:**
-
-- **The four type-string rewrite passes are gone**: `rewritePaginatorGenerics()`, `rewritePaginatedResourceProps()`, `rewritePaginatedStaticCollectionProps()` and `rewriteResourceCollections()`, along with `buildPageType()` and `resolveSingularResourceFqcn()`. Paginators and resource collections are resolved from the props expression itself now, so an override of any of them is dead code rather than an error.
-- **`buildTypeStringWithOverrides()` keeps its signature but not its argument shape.** Its first parameter is now `array<string, array{type: string, optional: bool}>`, where it used to hold Surveyor `Type` objects.
-- **`buildPageData()` takes different arguments**: the per-component branch analyses, the analyzer they were produced by, and the `#[TsCasts]` overrides and import map — not a list of Ranger `InertiaResponse` objects and five prop-key maps.
-
-**Also removed:** `InertiaTableAnalyzer::isTainted()` and `resolveComponent()`, and the whole table-taint family behind them. A controller that renders an Inertia UI Table no longer loses page types on its sibling actions — see [Sibling Actions on a Table Controller](./routing.md#sibling-actions-on-a-table-controller).
-
-New protected members a subclass can hook: `analyzeAction()`, `analyzerFor()`, `collectComponentBranches()`, `analyzeProps()`, `propsArrayLiterals()`, `analyzeDelegatedProps()`, `collectProps()`, `usedFqcns()` and `forgetOverriddenChannels()`.
-:::
-
-::: warning Two classes were removed outright
-
-Neither had a config key, but both were `public` API in the loosest sense — importable, and referenced by at least one real integration. Both fail loudly, immediately.
-
-- **`Analyzers\Inertia\ControllerPaginatorAnalyzer` is deleted.** It existed to recover paginator and resource-collection shapes that the old type-string rewrite passes could not, and it became callerless once page props moved onto the engine — paginators are resolved from the props expression itself now. Any `use` of it is a fatal `Class "…\ControllerPaginatorAnalyzer" not found`.
-- **`Analyzers\SurveyorTypeMapper` is deleted, and its `TOLKI_TYPES_MAP` constant is renamed.** The map of PHP classes that `@tolki/types` declares TypeScript types for now lives at `Support\TolkiTypes::MAP`, on a class that does nothing else. Replace `SurveyorTypeMapper::TOLKI_TYPES_MAP` with `TolkiTypes::MAP`; the contents are unchanged. The rest of that class went with Surveyor.
-
-:::
-
-## Abstract Base Classes
-
-Every built-in class extends one of these four abstract base classes. A custom class must extend the matching one and implement its abstract methods.
-
-### `CoreCollector<TFindable>`
-
-```php
-abstract protected function defaultDirectory(): string;
-abstract protected function classFilter(ReflectionClass $reflection): bool;
-
-/** @return array{included: list<string>, excluded: list<string>, additional_directories: list<string>} */
-abstract protected function finderSettings(): array;
-
-/** @return Collection<int, class-string<TFindable>> */
-public function collect(): Collection; // concrete — orchestrates the above
-```
-
-`collect()` itself is concrete and already handles merging `additional_directories`, `included`, and the default directory, filtering by `classFilter()`, and excluding anything matched by `excluded` or marked `#[TsExclude]`. A custom collector typically only needs to implement the three abstract methods.
-
-::: warning Class maps are memoized per process
-
-`CoreCollector` scans each directory once per PHP process and reuses that class map for the rest of it. `ts:publish` is unaffected — `Runner::run()` and `RunnerForSource::run()` both flush the memo first, so every run reads the disk, and nothing in the package writes a `.php` file mid-run.
-
-It matters for host code that calls `collect()` or `allows()` on both sides of writing a PHP file — a custom collector, or a `tinker` session or test helper that generates a model and re-collects. The second call still returns the pre-write answer. Flush the memo between the write and the second call:
-
-```php
-use AbeTwoThree\LaravelTsPublish\Collectors\CoreCollector;
-
-CoreCollector::flushClassMapCache();
-```
-
-It is a static method on the base class, so one call clears the maps for every collector.
-:::
-
-### `CoreGenerator<TGeneratable>`
-
-```php
-public function __construct(
-    public protected(set) string $findable, // class-string<TGeneratable> — auto-calls generate()
-) {}
-
-abstract public function generate(): string;
-abstract public function filename(): string;
-```
-
-The constructor calls `generate()` immediately, so by the time a `Generator` instance exists, `$this->content` should already hold the rendered output (typically by building a `Transformer` internally and delegating to a `Writer`).
-
-### `CoreTransformer<TTransformable>`
-
-```php
-public function __construct(
-    protected string $findable, // class-string<TTransformable> — auto-calls transform()
-) {}
-
-public function fqcn(): string; // concrete
-
-abstract public function transform(): self;
-abstract public function filename(): string;
-abstract public function data(): Datable;
-```
-
-`data()` returns a `Datable` DTO — plain structured data describing the output, not a rendered string. This is what gets handed to a `Writer` (and what gets cached — see below).
-
-### `CoreWriter<TTransformer of CoreTransformer>`
-
-```php
-public function __construct(
-    protected Filesystem $filesystem, // constructor-injected
-) {}
-
-abstract public function write(CoreTransformer $transformer): string;
-```
-
-A `Writer` takes a `Transformer` instance and returns the rendered file content as a string (and, when `output_to_files` is enabled, is also responsible for actually writing it to disk).
-
-## Cache-Compatible Generators (`RehydratesFromCache`)
-
-The built-in generators (`ModelGenerator`, `ModelMetadataGenerator`, `EnumGenerator`, `ResourceGenerator`, `RouteGenerator`, `FormRequestGenerator`, `BroadcastEventGenerator`) all use the `AbeTwoThree\LaravelTsPublish\Generators\Concerns\RehydratesFromCache` trait to participate in the [generation cache](./generating-cache.md). It adds:
-
-```php
-public static function fromCache(string $findable, CoreTransformer $transformer, string $filename): static;
-
-protected function hydrate(string $findable, CoreTransformer $transformer, string $filename): void;
-```
-
-`fromCache()` builds a generator instance via `ReflectionClass::newInstanceWithoutConstructor()` — skipping the normal constructor entirely, so `generate()` (and therefore the underlying `transform()` and file write) never runs again for a class the cache already has a valid, unchanged snapshot for. `hydrate()` then restores just enough state (`$findable`, the cached `$transformer`, and the cached `$filename`) for the rest of the pipeline (barrel writers, preview output, etc.) to treat it identically to a freshly generated instance.
-
-Add this trait to a custom `*.generator_class` to opt it into the same behavior. A generator without it is always rebuilt from scratch on every run — correct, just not cached.
-
-## Example: Swapping a Transformer
-
-```php
-namespace App\TypeScript;
-
-use AbeTwoThree\LaravelTsPublish\Dtos\Contracts\Datable;
-use AbeTwoThree\LaravelTsPublish\Transformers\ModelTransformer;
-
-class CustomModelTransformer extends ModelTransformer
-{
-    public function transform(): self
-    {
-        parent::transform();
-
-        // Add or adjust data before it reaches the Writer.
-
-        return $this;
-    }
-}
-```
-
-```php
-// config/ts-publish.php
-
-'models' => [
-    'transformer_class' => App\TypeScript\CustomModelTransformer::class,
-],
-```
-
-The same pattern applies to a Collector, Generator, or Writer — extend the built-in class for the feature you want to customize, override just the behavior you need, and set the matching `*_class` config key.
-
-## Publishing & Editing Templates
-
-If you only need to change the generated TypeScript's formatting — not the underlying pipeline logic — publish the Blade templates directly instead of writing PHP classes:
-
-```bash
-php artisan vendor:publish --tag="laravel-ts-publish-views"
-```
-
-Then point the feature's `*.template` config key at your published (or entirely custom) Blade view.
+`SurveyorTypeMapper` was removed. Its `TOLKI_TYPES_MAP` constant, the map of PHP classes that `@tolki/types` has TypeScript types for, is now `AbeTwoThree\LaravelTsPublish\Support\TolkiTypes::MAP`. The contents are the same.

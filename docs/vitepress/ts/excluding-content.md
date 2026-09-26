@@ -1,10 +1,10 @@
 # Excluding Content
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can exclude a specific enum, model, resource, form request, broadcast event, or controller — or one of their individual methods, accessors, relations, or actions — from the TypeScript output entirely, using the `#[TsExclude]` attribute.
-
-As mentioned in [Installation & Usage](./index.md), this is a lightweight, attribute-only mechanism — there's no runtime component from `@tolki/ts` involved.
+Add the `#[TsExclude]` attribute to keep a class out of the TypeScript output, or to leave out one of its methods, accessors, relations, or controller actions. It works on enums, models, resources, form requests, broadcast events, and controllers. It's a PHP attribute only. It has no config key, and there's nothing to set up in `@tolki/ts`.
 
 ## `#[TsExclude]` Attribute
+
+The attribute takes no arguments, and it goes on a class or a method:
 
 ```php
 namespace AbeTwoThree\LaravelTsPublish\Attributes;
@@ -15,35 +15,38 @@ use Attribute;
 class TsExclude {}
 ```
 
-It takes no parameters — applying it to a class or method is enough to exclude that target. It can be placed on:
+This table shows what the attribute does on each target:
 
-| Target                | Effect                                                            |
-| --------------------- | ----------------------------------------------------------------- |
-| Enum class            | Entire enum is excluded from collection and publishing            |
-| Enum method           | Method is excluded from the TypeScript output                     |
-| Model class           | Entire model is excluded from collection and publishing           |
-| Model accessor        | Mutator/accessor is excluded from the TypeScript output           |
-| Model relation        | Relation is excluded from the TypeScript output                   |
-| Resource class        | Entire resource is excluded from collection and publishing        |
-| Form Request class    | Entire form request is excluded from collection and publishing    |
-| Broadcast Event class | Entire broadcast event is excluded from collection and publishing |
-| Controller class      | Entire controller is excluded from collection and publishing      |
-| Controller action     | The action is excluded from the generated route file              |
+| Target                | Effect                                                                 |
+| --------------------- | ---------------------------------------------------------------------- |
+| Enum class            | The enum isn't published                                               |
+| Enum method           | The method is left out of the enum's output                            |
+| Model class           | The model isn't published, and neither is its model metadata companion |
+| Model accessor        | The accessor is left out of the model's interfaces                     |
+| Model relation        | The relation and its `_count` and `_exists` properties are left out    |
+| Resource class        | The resource isn't published                                           |
+| Form request class    | The form request isn't published                                       |
+| Broadcast event class | The event isn't published                                              |
+| Controller class      | None of the controller's routes are published                          |
+| Controller action     | The action is left out of the controller's route file                  |
 
-> [!NOTE]
-> `#[TsExclude]` always wins. Even when an explicit inclusion attribute like `#[TsEnumMethod]` or `#[TsEnumStaticMethod]` is also present, or when `enums.auto_include_methods` / `enums.auto_include_static_methods` would otherwise include a method automatically, `#[TsExclude]` takes priority and the member is left out.
+::: tip `#[TsExclude]` always wins
+A method with `#[TsExclude]` is left out even when it also has `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`. The same goes for a method that `enums.auto_include_methods` or `enums.auto_include_static_methods` would include.
+:::
 
-## How It's Enforced
+## What Gets Removed
 
-Every collector for a per-class type (enums, models, model metadata, resources, form requests, broadcast events) extends the shared `CoreCollector`, and the routes collector applies the same `#[TsExclude]` check to every controller it discovers, so either way a class carrying the attribute is filtered out **before** it's ever handed to a transformer — an excluded class is never analyzed, never written to disk, and never appears in a barrel `index.ts`. This is why class-level exclusion has no config equivalent: there's nothing partial about it.
+A class with `#[TsExclude]` is skipped before anything else happens. The package never analyzes it and writes no file for it. It's also left out of barrel `index.ts` files and combined files, such as `broadcast-events.ts`. On a model, that includes the model's [model metadata](./model-metadata.md) companion.
 
-Because model metadata companions are collected from the same model classes, `#[TsExclude]` on a model excludes its interface and its companion together.
+On a method, accessor, relation, or action, the attribute removes only that member. The rest of the class publishes as usual.
 
-Method/accessor/relation/action-level exclusion is checked independently by each transformer, on the specific reflected method — this is what allows the rest of the class to publish normally while one member is omitted.
+To leave out classes without adding the attribute, use the feature's filtering config instead, such as `models.excluded`. See [Configuration Reference](#configuration-reference) below.
 
-Broadcast Channels is the one feature that does **not** support `#[TsExclude]` — it collects plain channel-name strings from `routes/channels.php` rather than reflecting PHP classes, so there's no class or method to attach the attribute to. See [Broadcast Channels](./broadcast-channels.md#no-per-channel-attributes) for how to omit a channel instead.
+Broadcast channels don't support `#[TsExclude]`. A channel is a name string from `routes/channels.php`, not a PHP class, so there's nothing to put the attribute on. See [Broadcast Channels](./broadcast-channels.md#no-per-channel-attributes) for how to leave a channel out.
 
 ## Excluding an Entire Class
+
+Put `#[TsExclude]` on the class:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsExclude;
@@ -56,45 +59,44 @@ enum ExcludedEnum: string
 }
 ```
 
-`ExcludedEnum` is skipped entirely during collection — it never appears in any generated `.ts` file, and it's absent from the enums barrel `index.ts`. The same applies to models, resources, form requests, broadcast events, and controllers:
+`ExcludedEnum` never appears in a generated file, and the enums barrel `index.ts` doesn't export it. Models, resources, form requests, broadcast events, and controllers work the same way:
 
 ```php
 #[TsExclude]
 class ExcludedModel extends Model
 {
-    // Entirely excluded from collection and publishing.
+    // ...
 }
 
 #[TsExclude]
 class InternalResource extends JsonResource
 {
-    // Entirely excluded from collection and publishing.
+    // ...
 }
 
 #[TsExclude]
 class InternalRequest extends FormRequest
 {
-    // Entirely excluded from collection and publishing.
+    // ...
 }
 
 #[TsExclude]
 class InternalDebugEvent implements ShouldBroadcast
 {
-    // Entirely excluded from collection and publishing.
+    // ...
 }
 
 #[TsExclude]
 class ExcludedController
 {
+    // None of this controller's routes are published, whatever its methods.
     public function index(): void {}
-
-    // No routes for this controller are published, regardless of this method.
 }
 ```
 
 ## Excluding Enum Methods
 
-`#[TsExclude]` on a method wins even when the method also carries an explicit inclusion attribute:
+A method-level `#[TsExclude]` matters in two cases. With `enums.auto_include_methods` or `enums.auto_include_static_methods` on, every public method publishes, and the attribute opts one method back out. On a method that also has `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`, the exclusion still wins:
 
 ```php
 enum ExcludableEnum: string
@@ -102,7 +104,6 @@ enum ExcludableEnum: string
     case Alpha = 'alpha';
     case Beta = 'beta';
 
-    /** Included — no exclusion attribute */
     public function label(): string
     {
         return match ($this) {
@@ -111,14 +112,12 @@ enum ExcludableEnum: string
         };
     }
 
-    /** Excluded via #[TsExclude] — should not appear in TS output */
     #[TsExclude]
     public function secret(): string
     {
         return 'hidden';
     }
 
-    /** Excluded — #[TsExclude] wins over #[TsEnumMethod] */
     #[TsEnumMethod]
     #[TsExclude]
     public function overridden(): string
@@ -126,14 +125,6 @@ enum ExcludableEnum: string
         return 'should not appear';
     }
 
-    /** Excluded via #[TsExclude] — should not appear in TS output */
-    #[TsExclude]
-    public static function internalOnly(): array
-    {
-        return ['internal'];
-    }
-
-    /** Excluded — #[TsExclude] wins over #[TsEnumStaticMethod] */
     #[TsEnumStaticMethod]
     #[TsExclude]
     public static function overriddenStatic(): array
@@ -143,7 +134,7 @@ enum ExcludableEnum: string
 }
 ```
 
-Generates (with `enums.auto_include_methods` off, the default):
+With `enums.auto_include_methods` off, which is the default, this generates:
 
 ```typescript
 import { defineEnum } from "@tolki/ts";
@@ -159,40 +150,39 @@ export type ExcludableEnumType = "alpha" | "beta";
 export type ExcludableEnumKind = "Alpha" | "Beta";
 ```
 
-`overridden()` and `overriddenStatic()` both carry an explicit `#[TsEnumMethod]` / `#[TsEnumStaticMethod]` attribute — which would normally include them regardless of the `auto_include` config — but since they're _also_ decorated with `#[TsExclude]`, neither appears in the output at all. See [Enums](./enums.md) for the full method-inclusion behavior.
+`overridden()` and `overriddenStatic()` have attributes that would include them whatever the auto-include settings, but `#[TsExclude]` removes them. `label()` and `secret()` are missing because auto-include is off. Turn on `enums.auto_include_methods`, and `label()` publishes while `secret()` stays out. See [Enums](./enums.md) for the full rules on which methods publish.
 
 ## Excluding Model Accessors and Relations
+
+Put `#[TsExclude]` on the accessor or relation method:
 
 ```php
 class ExcludableModel extends Model
 {
-    /** Included mutator — should appear in TS output */
+    /** The name shown in the UI. */
     protected function displayName(): Attribute
     {
         return Attribute::make(get: fn (): string => strtoupper($this->name ?? ''));
     }
 
-    /** Excluded mutator — should NOT appear in TS output */
     #[TsExclude]
     protected function secretToken(): Attribute
     {
         return Attribute::make(get: fn (): string => 'hidden-token');
     }
 
-    /** Included relation — should appear in TS output */
+    /** The posts this user wrote. */
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class, 'user_id');
     }
 
-    /** Excluded relation — should NOT appear in TS output */
     #[TsExclude]
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class, 'user_id');
     }
 
-    /** Excluded old-style mutator — should NOT appear in TS output */
     #[TsExclude]
     public function getLegacyTokenAttribute(): string
     {
@@ -201,7 +191,7 @@ class ExcludableModel extends Model
 }
 ```
 
-Generates:
+This generates:
 
 ```typescript
 export interface ExcludableModel {
@@ -211,13 +201,13 @@ export interface ExcludableModel {
 }
 
 export interface ExcludableModelMutators {
-  /** Included mutator — should appear in TS output */
+  /** The name shown in the UI. */
   display_name: string;
 }
 
 export interface ExcludableModelRelations {
   // Relations
-  /** Included relation — should appear in TS output */
+  /** The posts this user wrote. */
   posts: Post[];
   // Counts
   posts_count: number;
@@ -226,9 +216,11 @@ export interface ExcludableModelRelations {
 }
 ```
 
-`secretToken` and `comments` are both absent from `ExcludableModelMutators` / `ExcludableModelRelations`, and `getLegacyTokenAttribute` — the **old-style** `get{Name}Attribute()` accessor convention — is excluded the same way as the modern `Attribute::make()` style. See [Models](./models.md) for the full accessor/relation resolution rules.
+`secretToken` and `comments` are missing from `ExcludableModelMutators` and `ExcludableModelRelations`, and so are `comments_count` and `comments_exists`. `getLegacyTokenAttribute()` uses the old `get{Name}Attribute()` accessor style, and the attribute leaves it out the same way as an `Attribute::make()` accessor. See [Models](./models.md) for how accessors and relations publish.
 
 ## Excluding Controller Actions
+
+Put `#[TsExclude]` on the action method:
 
 ```php
 class ExcludableController
@@ -248,7 +240,7 @@ class ExcludableController
 }
 ```
 
-Generates:
+This generates:
 
 ```typescript
 import { defineRoute } from "@tolki/ts";
@@ -261,7 +253,7 @@ export const show = defineRoute({
   args: [{ name: "id", required: true }] as const,
 });
 
-/** @see Workbench\App\Http\Controllers\ExcludableController */
+/** @see App\Http\Controllers\ExcludableController */
 const ExcludableController = {
   show,
 };
@@ -269,8 +261,8 @@ const ExcludableController = {
 export default ExcludableController;
 ```
 
-The `secret` action is entirely absent from the generated controller file, while `show` publishes normally. See [Routing](./routing.md#filtering--excluding-routes) for the full route-filtering reference (name patterns, middleware exclusion, and named-routes-only mode).
+The `secret` action is missing from the generated file, and `show` publishes as usual. See [Routing](./routing.md#filtering-excluding-routes) for the other ways to filter routes: name patterns, middleware exclusion, and publishing only named routes.
 
 ## Configuration Reference
 
-`#[TsExclude]` has no config equivalent — it's an attribute-only mechanism. For the broader `included` / `excluded` / `additional_directories` filtering options available per feature, see that feature's own documentation ([Enums](./enums.md), [Models](./models.md), [API Resources](./api-resources.md), [Form Requests](./form-requests.md), [Broadcast Events](./broadcast-events.md), [Routing](./routing.md#filtering--excluding-routes)) or the [Configuration Reference](./configuration-reference.md).
+`#[TsExclude]` has no config key. Each feature also has its own filtering settings, such as `included`, `excluded`, and `additional_directories`. See each feature's page ([Enums](./enums.md), [Models](./models.md), [API Resources](./api-resources.md), [Form Requests](./form-requests.md), [Broadcast Events](./broadcast-events.md), and [Routing](./routing.md#filtering-excluding-routes)), or the [Configuration Reference](./configuration-reference.md).

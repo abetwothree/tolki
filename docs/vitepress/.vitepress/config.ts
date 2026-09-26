@@ -99,6 +99,10 @@ export default defineConfig({
                         link: "/ts/",
                     },
                     {
+                        text: "Publishing Types",
+                        link: "/ts/publishing",
+                    },
+                    {
                         text: "Enums",
                         link: "/ts/enums",
                     },
@@ -185,6 +189,10 @@ export default defineConfig({
                     {
                         text: "Troubleshooting Types",
                         link: "/ts/troubleshooting-types",
+                    },
+                    {
+                        text: "Upgrade Guide",
+                        link: "/ts/upgrade-guide",
                     },
                 ],
             },

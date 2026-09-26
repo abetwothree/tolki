@@ -1,8 +1,8 @@
 # Enum API Resource
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) ships with `EnumResource` — a Laravel [JSON resource](https://laravel.com/docs/eloquent-resources) that transforms a single PHP enum case into a flat, API-friendly array. It runs the enum through the exact same `EnumTransformer` pipeline used by `ts:publish`, so every `#[TsEnumMethod]` / `#[TsEnumStaticMethod]` you've configured for TypeScript generation is automatically included in the JSON response too — no separate API-serialization logic to maintain.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) ships `EnumResource`, a Laravel [JSON resource](https://laravel.com/docs/eloquent-resources) that turns one PHP enum case into a flat, API-friendly object. It follows the same rules as `ts:publish`, so every `#[TsEnumMethod]` and `#[TsEnumStaticMethod]` you set up for TypeScript also appears in the JSON response, and you don't maintain separate serialization logic.
 
-As mentioned in [Installation & Usage](./index.md), the companion `AsEnum` TypeScript type (from `@tolki/ts`) is what gives you full type safety when consuming a response produced by this class — see [Typing API Responses with `AsEnum`](#typing-api-responses-with-asenum) below.
+On the frontend, the `AsEnum` type from `@tolki/ts` matches this response shape, so you can type any response that uses `EnumResource`. See [Typing API Responses With `AsEnum`](#typing-api-responses-with-asenum).
 
 ## Basic Usage
 
@@ -15,7 +15,7 @@ use App\Enums\Status;
 return new EnumResource(Status::Published);
 ```
 
-Or embed it inside another resource's `toArray()` to transform an enum-cast model property (or any enum case, not just model properties):
+You can also use it inside another resource's `toArray()`, for an enum-cast model property or for any enum case:
 
 ```php
 namespace App\Http\Resources;
@@ -34,29 +34,32 @@ class UserResource extends JsonResource
             'name' => $this->name,
             // Assuming "status" is a model property cast to the Status enum
             'status' => new EnumResource($this->status),
-            // Can also create enum resources from any enum case, not just model properties
+            // Any enum case works, not only model properties
             'membership_level' => new EnumResource(MembershipLevel::Free),
         ];
     }
 }
 ```
 
-> [!TIP]
-> Inside an API Resource's `toArray()`, you'll typically use the static `EnumResource::make($this->status)` form instead — this is also what generates the `AsEnum<typeof Status>` TypeScript property type automatically. See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource) in the API Resources docs.
->
-> The same rewrite reaches [Inertia shared data](./inertia.md). When `enums.use_tolki_package` is enabled (the default), an `EnumResource::make()` returned from your middleware's `share()` is published as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and the `Role` const import written above the declarations. A shared key whose value is a ternary across two different enums is not rewritten: it is published as the bare `RoleType | StatusType` with neither enum imported, so the augmentation file spells two type names nothing brings into scope (`TS2304`). Give both arms the same enum — see the note under [Inertia shared data](./inertia.md).
+::: tip
+Inside another resource, `EnumResource::make($this->status)` and `new EnumResource($this->status)` both publish the property as `AsEnum<typeof Status>`. See [Enum Properties with `EnumResource`](./api-resources.md#enum-properties-with-enumresource) in the API Resources docs.
 
-`EnumResource` disables Laravel's default resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below — not wrapped in a `data` key. If the enum is `null`, the resource resolves to `null` rather than an array.
+The same rewrite applies to [Inertia shared data](./inertia.md). With `enums.use_tolki_package` on (the default), an `EnumResource::make()` returned from your middleware's `share()` publishes as `AsEnum<typeof Role>` in `inertia-config.d.ts`, with `import { type AsEnum } from '@tolki/ts'` and an import of the `Role` const above the declarations. A shared key whose ternary picks between two different enums isn't rewritten. It publishes as `RoleType | StatusType` with neither enum imported, so TypeScript reports both names as missing (`TS2304`). Give both arms the same enum. See the note under [Inertia](./inertia.md).
+:::
+
+`EnumResource` turns off Laravel's resource wrapping (`public static $wrap = ''`), so the response is the flat object shown below, not wrapped in a `data` key. When the enum is `null`, the resource returns `null` instead of an object.
 
 ## Response Shape
 
-Every response includes these base keys, resolved from the matching case's (possibly `#[TsCase]`-overridden) name and value:
+Every response has these keys, taken from the matching case, with any `#[TsCase]` override applied:
 
-| Key      | Type            | Description                                       |
-| -------- | --------------- | ------------------------------------------------- |
-| `name`   | `string`        | The enum case name                                |
-| `value`  | `string \| int` | The backed value, or the case name for unit enums |
-| `backed` | `bool`          | Whether the enum is a backed enum                 |
+| Key      | Type               | Description                                       |
+| -------- | ------------------ | ------------------------------------------------- |
+| `name`   | `string`           | The enum case name                                |
+| `value`  | `string \| number` | The backed value, or the case name for unit enums |
+| `backed` | `boolean`          | Whether the enum is a backed enum                 |
+
+The response for `Status::Published`, with two instance methods, looks like this:
 
 ```json
 {
@@ -68,17 +71,19 @@ Every response includes these base keys, resolved from the matching case's (poss
 }
 ```
 
-Instance methods (decorated with `#[TsEnumMethod]`, or included automatically via `enums.auto_include_methods`) are flattened as top-level keys, with the resolved value computed **for the specific case instance** passed to the resource — the same invocation results already computed once per case during TypeScript generation. Static methods (`#[TsEnumStaticMethod]` / `enums.auto_include_static_methods`) are included as top-level keys with the static method's return value.
+Each instance method, marked with `#[TsEnumMethod]` or included by `enums.auto_include_methods`, adds a top-level key that holds the method's value for this case. Each static method, marked with `#[TsEnumStaticMethod]` or included by `enums.auto_include_static_methods`, adds a top-level key that holds its return value.
 
-This means an `EnumResource` response always mirrors the shape of the published TypeScript enum for that case — calling `.from()` on the generated enum with the matching value produces an object with the identical keys.
+The response therefore has the same keys as the object you get when you call `.from()` on the published enum with the same value.
 
 ## Unit Enums
 
-Unit enums (enums without a backed type) are fully supported. Since they have no backed value, `value` mirrors the case `name`, and `backed` is `false`:
+Unit enums work too. A unit enum has no backed value, so `value` repeats the case `name`, and `backed` is `false`:
 
 ```php
 return new EnumResource(Role::Admin);
 ```
+
+That call returns this response:
 
 ```json
 {
@@ -90,22 +95,22 @@ return new EnumResource(Role::Admin);
 
 ## Relationship to TypeScript Publishing
 
-`EnumResource` uses the same `EnumTransformer` pipeline as the `ts:publish` command — see [Enums](./enums.md) for the full attribute/auto-include reference. This means:
+`EnumResource` follows the same rules as the `ts:publish` command. See [Enums](./enums.md) for the full attribute and auto-include reference. In practice:
 
-- Only methods marked with `#[TsEnumMethod]` / `#[TsEnumStaticMethod]` (or all public methods, when auto-include is enabled) are included.
-- Methods with required parameters but no `params` on the attribute are excluded.
-- The `enums.method_case` config setting applies to the method key names in the response — see [Casing Configurations](./casing-configuration.md).
-- `#[TsExclude]` on a method excludes it from both the TypeScript output and the API response identically — see [Excluding Content](./excluding-content.md).
+- Only methods marked with `#[TsEnumMethod]` or `#[TsEnumStaticMethod]` are included, or every public method when auto-include is on.
+- A method with required parameters and no `params` on its attribute is left out.
+- `enums.method_case` sets the casing of the method keys in the response. See [Casing Configurations](./casing-configuration.md).
+- `#[TsExclude]` on a method removes it from both the TypeScript output and the response. See [Excluding Content](./excluding-content.md).
 
-This guarantees the JSON response shape is always consistent with the TypeScript types this package generates — there's no separate serialization logic to keep in sync.
+Because both follow the same rules, the JSON response matches the TypeScript types this package publishes, with no second serializer to keep in sync.
 
-## Typing API Responses with `AsEnum`
+## Typing API Responses With `AsEnum`
 
-The `@tolki/ts` package exports an `AsEnum` utility type that resolves the exact `EnumResource` JSON response shape for any published enum, giving you full type safety when consuming enum API responses on the frontend.
+`@tolki/ts` exports an `AsEnum` type that describes the exact `EnumResource` response for any published enum, so you can type enum API responses on the frontend:
 
 ```typescript
 import type { AsEnum } from "@tolki/ts";
-import type { Status } from "@/types/enums";
+import type { Status } from "@js/types/data/app/enums";
 
 // Full discriminated union of all cases
 type StatusResponse = AsEnum<typeof Status>;
@@ -113,7 +118,7 @@ type StatusResponse = AsEnum<typeof Status>;
 // | { name: 'Published'; value: 1; backed: true; icon: 'check'; color: 'green'; ... }
 ```
 
-The optional second type parameter pre-narrows to a specific case by value:
+The optional second type parameter narrows the type to one case, by value:
 
 ```typescript
 // Narrowed to a single case
@@ -121,7 +126,7 @@ type DraftResponse = AsEnum<typeof Status, 0>;
 // { name: 'Draft'; value: 0; backed: true; icon: 'pencil'; color: 'gray'; ... }
 ```
 
-Use it to type your API responses directly:
+Use it to type an API response directly:
 
 ```typescript
 const response = await fetch(`/api/articles/${id}`);
@@ -134,13 +139,13 @@ if (article.status.value === 0) {
 }
 ```
 
-See [Type Reference](./enums.md#type-reference) in the Enums docs for the full `AsEnum` signature alongside every other `@tolki/ts` export.
+The [Type Reference](./enums.md#type-reference) in the Enums docs lists the full `AsEnum` signature next to every other `@tolki/ts` export.
 
 ## Auto-Generated `{Model}Resource` Interfaces
 
-When `enums.use_tolki_package` is enabled (the default), any model with enum-cast columns automatically gets a `{Model}Resource` companion set of interfaces. These replace each property typed as a single enum, or a list of one, optionally `| null`, with `AsEnum<typeof EnumName>`, or `AsEnum<typeof EnumName>[]` for a list (a mutator typed as a shape, or as a union with other arms, keeps its own type), so you don't have to hand-compose `Omit<>` + `AsEnum<>` yourself whenever a property has been resolved to a full enum instance — whether via `Status::from($user->status)` in your own code, or because an API response already serialized it with `EnumResource`.
+With `enums.use_tolki_package` on (the default), a model with enum-cast columns also gets `{Model}Resource` interfaces. They replace each property typed as a single enum, or a list of one, either optionally `| null`, with `AsEnum<typeof EnumName>`, or `AsEnum<typeof EnumName>[]` for a list. An accessor typed as a shape, or as a union with other types, keeps its own type. Use these interfaces when a property holds a full enum instance, because your code resolved it with `Status.from(post.status)` or because an API response serialized it with `EnumResource`. You don't compose `Omit<>` and `AsEnum<>` yourself.
 
-For a `Post` model that casts the database columns `status`, `visibility`, and `priority` to enums:
+For a `Post` model that casts the columns `status`, `visibility` and `priority` to enums, the package publishes both interfaces:
 
 ```typescript
 export interface Post {
@@ -152,7 +157,7 @@ export interface Post {
   priority: PriorityType | null; // Original enum type
 }
 
-// Auto-generated — no manual typing needed
+// Generated for you
 export interface PostResource extends Omit<
   Post,
   "status" | "visibility" | "priority"
@@ -163,8 +168,10 @@ export interface PostResource extends Omit<
 }
 ```
 
+Type the API response with the `Resource` interface:
+
 ```typescript
-import type { PostResource } from "@js/types/data/models";
+import type { PostResource } from "@js/types/data/app/models";
 
 const response = await fetch("/api/posts/1");
 const post: PostResource = await response.json();
@@ -173,7 +180,7 @@ post.status.value; // 0 | 1
 post.status.icon; // 'pencil' | 'check'
 ```
 
-The interfaces are generated for both the `model-full` and `model-split` templates. In split mode, a `PostResource` interface is generated alongside the properties interface, and a separate `PostMutatorsResource` interface alongside the mutators interface, since mutators can also be enum-cast:
+Both [model templates](./models.md#model-templates) generate these interfaces. The `model-full` template generates one `{Model}Resource` that covers columns and accessors together. The `model-split` template generates a `PostResource` beside the columns interface, and a separate `PostMutatorsResource` beside the mutators interface, since accessors can be enum-typed too:
 
 ```typescript
 export interface PostResource extends Omit<
@@ -193,8 +200,8 @@ export interface PostMutatorsResource extends Omit<PostMutators, "due_notice"> {
 }
 ```
 
-Naming conflicts are handled automatically — if two enum FQCNs share the same base name, namespace-prefixed aliases are used for both the type and const imports. `App\Enums\Status` and `App\Crm\Enums\Status` are imported as `EnumsStatus` and `CrmStatus`, with `EnumsStatusType` and `CrmStatusType` for the types. See [Enum-Typed Columns](./models.md#enum-typed-columns-modelresource) in the Models docs for the base/resolved interface distinction in full detail.
+When two enums share a class name, both imports get a namespace prefix, for the type and for the const. `App\Enums\Status` and `App\Crm\Enums\Status` import as `EnumsStatus` and `CrmStatus`, with `EnumsStatusType` and `CrmStatusType` for the types. See [Enum-Typed Columns](./models.md#enum-typed-columns-model-resource) in the Models docs for how the main and `Resource` interfaces differ.
 
 ## Configuration Reference
 
-`EnumResource` has no dedicated config of its own — it reuses the same `enums.*` settings (`method_case`, `auto_include_methods`, `auto_include_static_methods`) documented in the [Configuration Reference](./configuration-reference.md).
+`EnumResource` has no config of its own. It uses the same `enums.*` settings (`method_case`, `auto_include_methods` and `auto_include_static_methods`) listed in the [Configuration Reference](./configuration-reference.md).

@@ -1,14 +1,16 @@
 # Troubleshooting Types
 
-If a value imported from a `@tolki/*` package types as `any` in your app — with no red squiggle, no build error, nothing — this page walks through why, and how it's guarded against going forward.
+A type you import from a `@tolki/*` package can resolve to `any` in your app, with no editor warning and no build error. If it does, you're likely on a version whose declaration files break once installed from npm. This page shows how to confirm it and which versions fix it.
 
 ## Symptom
 
-An import from a built `@tolki/*` package (`@tolki/ts`, `@tolki/enum`, `@tolki/utils`, `@tolki/arr`, `@tolki/collection`, or `@tolki/data`) resolves to `any` instead of its real type, and neither `tsc` nor your editor reports anything wrong.
+An import from `@tolki/ts`, `@tolki/enum`, or `@tolki/utils` resolves to `any` instead of its real type, and neither `tsc` nor your editor reports anything wrong.
 
-This stays invisible because `skipLibCheck: true` — the default in most starter `tsconfig.json` files — skips type-checking inside `.d.ts` files entirely, including the one line that fails to resolve. The import silently degrades to `any` instead of raising `TS2307: Cannot find module`.
+It stays silent because of `skipLibCheck: true`, the default in most starter `tsconfig.json` files. That option skips type checking inside `.d.ts` files, including the import line that fails to resolve. The import becomes `any` instead of raising `TS2307: Cannot find module`.
 
-Paste this into your project against any `@tolki/*` type you already use, replacing `EnumConst` and the package with your own import:
+## Checking Your Project
+
+Paste this into your project, replacing `EnumConst` and the package with a `@tolki/*` type you already import:
 
 ```typescript
 import type { EnumConst } from "@tolki/ts";
@@ -17,68 +19,52 @@ type ShouldBeAType = "not-a-function";
 const probe: ShouldBeAType = {} as EnumConst;
 ```
 
-If this compiles without error, the type resolved to `any` and you're hitting this defect — `any` is assignable to anything, including a type it clearly isn't. If `tsc` reports `TS2322` (`EnumConst` is not assignable to `"not-a-function"`), the type is resolving correctly.
+If this compiles without an error, the type resolved to `any`, and you're affected. `any` is assignable to anything, including a type it isn't. If `tsc` reports `TS2322` (`EnumConst` is not assignable to `"not-a-function"`), the type resolves correctly.
 
 ## Cause
 
-The root `tsconfig.json` aliases `@tolki/*` for use inside this monorepo:
+The affected versions ship declaration files that import types from another `@tolki/*` package through a relative path into the Tolki source repository, instead of through the package name. That path doesn't exist in your `node_modules`, so the import resolves nowhere.
 
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@tolki/*": ["./packages/*/src/index.ts"]
-    }
-  }
-}
-```
-
-`vite-plugin-dts` resolved that alias during declaration emit — rewriting a bare cross-package specifier like `@tolki/types` into a relative path, computed against the tsconfig root rather than the emitted file's own location in `dist/`. The result resolves nowhere once a package is installed from npm:
+You can spot it in the package's `.d.ts` files. An affected version has an import like the first one below, and a fixed version has the second:
 
 ```typescript
-// Broken: packages/ts/dist/enums.d.ts, one directory up from where it's actually emitted
+// Affected: a relative path that exists only in the Tolki source repository
 import { AsEnum, DefineEnumResult } from "../packages/types/src/index.ts";
 ```
 
 ```typescript
-// Correct: the bare specifier, resolved through node_modules like any other dependency
+// Fixed: the package name, resolved through node_modules
 import { AsEnum, DefineEnumResult } from "@tolki/types";
 ```
 
-The runtime `.js` output was never affected — Rollup's `external` handling already kept the bare `@tolki/*` specifier there. This was purely a declaration-emit (`.d.ts`) defect.
+The runtime JavaScript was never affected. Only the `.d.ts` files were.
 
 ## Fix
 
-The shared `dts()` plugin config (`vite.config.ts`, merged into every package's build via `mergeConfig`) excludes `@tolki/*` from alias resolution:
+Upgrade each `@tolki/*` package you use to at least the version that fixed its declaration files:
 
-```typescript
-dts({
-  // ...
-  aliasesExclude: [/^@tolki\//],
-});
+| Package        | Fixed in |
+| -------------- | -------- |
+| `@tolki/ts`    | `1.0.2`  |
+| `@tolki/enum`  | `1.1.2`  |
+| `@tolki/utils` | `1.2.0`  |
+
+For example, upgrade `@tolki/ts` with your package manager:
+
+::: code-group
+
+```bash [npm]
+npm install @tolki/ts@latest
 ```
 
-With the alias excluded, the plugin emits the bare specifier as written in source instead of resolving it, and consumers resolve it through `node_modules` the normal way. This applies to `vite-plugin-dts@^4.5.4`, the version this monorepo currently builds with.
+```bash [yarn]
+yarn add @tolki/ts@latest
+```
 
-## The specifier guard
+```bash [pnpm]
+pnpm add @tolki/ts@latest
+```
 
-`scripts/__tests__/dts-specifiers.test.ts` scans every `packages/*/dist/**/*.d.ts` file for a relative specifier that reaches into another package's directory, and fails if it finds one.
+:::
 
-It runs under a bare `pnpm test` because `scripts/` is registered as its own inline Vitest project in `vite.config.ts`'s `test.projects` array — `scripts/` sits outside the `packages/*` glob the other projects use, so without that entry the test would never be collected.
-
-The guard only means something against a **freshly built** tree. It inspects whatever `.d.ts` files already exist on disk; it does not build anything itself, and a first assertion (`files.length` must be greater than zero) only rules out running against an empty `dist/`, not a stale one. Run `pnpm --filter <package> build` (or rebuild every package) before trusting a pass or a fail from this test.
-
-## The stale `dist/` trap
-
-`dist/` is gitignored, so nothing keeps it in sync with your source or your build config. A partial or out-of-date build leaves stale output sitting on disk indistinguishable from a fresh one, and reading it produces confident, wrong conclusions about which packages are affected: a package can appear to already emit correct output while `dist/` only reflects stale contents that were never rebuilt against current source.
-
-All six packages that share this build config (`@tolki/ts`, `@tolki/enum`, `@tolki/utils`, `@tolki/arr`, `@tolki/collection`, `@tolki/data`) are equally exposed to this defect — a genuinely clean rebuild of every one of them shows the same broken specifier pattern, not just a subset that happens to still have current output on disk.
-
-Before drawing any conclusion from what's in a package's `dist/`, clear it first:
-
-Bash:
-rm -rf packages/_/dist
-pnpm --filter @tolki/ts --filter @tolki/enum --filter @tolki/utils --filter @tolki/arr --filter @tolki/collection --filter @tolki/data run build
-PowerShell:
-Remove-Item -Recurse -Force packages/_/dist
-pnpm --filter @tolki/ts --filter @tolki/enum --filter @tolki/utils --filter @tolki/arr --filter @tolki/collection --filter @tolki/data run build
+Then run the check in [Checking Your Project](#checking-your-project) again. It should now report `TS2322`.

@@ -1,24 +1,27 @@
 # Inertia
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) analyzes your `HandleInertiaRequests` middleware's `share()` method and generates `inertia-config.d.ts` — a module augmentation for `@inertiajs/core` plus a global `Inertia.SharedData` type. Every Inertia page component gets fully-typed shared props automatically, without hand-maintaining a separate type.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) reads the `share()` method of your `HandleInertiaRequests` middleware and writes `inertia-config.d.ts`. That file declares a global `Inertia.SharedData` type and augments `@inertiajs/core`, so every Inertia page gets typed shared props without a type you maintain by hand.
 
-This page covers the shared-data analysis and module augmentation file. For per-route page-prop types (the `component` field and `annotatePageProps` threading on individual routes), see [Inertia Integration](./routing.md#inertia-integration) in the Routing docs — that's a related but separate piece of the pipeline.
+This page covers shared data. A route's own page props, meaning the `component` field and the page-props type on its route helper, are covered in [Inertia Integration](./routing.md#inertia-integration) on the Routing page.
 
 ## How the Augmentation File Is Generated
 
-- The package searches `inertia.inertia_middleware_path` (or `app_path()` when not set) for a class extending `Inertia\Middleware`.
-- It statically analyzes that middleware's `share(Request $request): array` method with the package's own AST engine, resolving every key's value to a TypeScript type without running the application.
-- Both composition forms are read, up the whole middleware inheritance chain: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])`. A later key overrides an earlier one and keeps the earlier one's position, exactly as PHP does.
-- `$request->user()` is typed through your live auth configuration — `auth.defaults.guard` → that guard's provider → the provider's `model` — so the prop becomes `User | null` and the model's type import is written into the file for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way, and `$request->url()`, `->fullUrl()`, `->path()`, `->integer()`, `->boolean()`, `->string()`, `->cookie()` and `->hasCookie()` are typed from Laravel's own signatures.
-- `config('some.key')` with a literal key is typed from the live configuration value, since the package runs inside your booted application; a computed key stays `unknown`.
-- Inertia v2's prop wrappers — `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()`, `deepMerge()` — are typed as the value they wrap. The three a partial reload can omit (`defer`, `optional`, `lazy`) produce an optional key.
-- A prop that wraps an enum in `EnumResource` (`'role' => EnumResource::make(Role::Admin)`) is rewritten to `AsEnum<typeof Role>` when `enums.use_tolki_package` is enabled (the default) — the same rewrite [API Resources](./api-resources.md#enum-properties-with-enumresource) get. When it's disabled, the key keeps the enum's `Type` alias (`role: RoleType`) instead. The rewrite is applied per key, so an enum a second key still reads bare keeps `RoleType` on that second key.
-- `errors` is deliberately left out of the inferred shape: `@inertiajs/core` already declares `page.props.errors` as `Errors & ErrorBag`, and `errorValueType` below is this package's channel for sharpening it. A `#[TsCasts]` or `@return` docblock entry named `errors` still wins if you want one.
-- The result is rendered into `inertia-config.d.ts` (filename configurable via `inertia.augmentation_filename`).
-- If no `Inertia\Middleware` subclass is found, no file is generated.
+With `inertia.enabled` on (the default), the package builds the file from your middleware:
 
-> [!WARNING]
-> A key whose two ternary arms wrap **different** enums — `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)` — renders as `either: RoleType | StatusType` with no import lines at all, so the augmentation file spells two type names nothing brings into scope (a `TS2304` on each of them in your build). Give both arms the same enum, or override that key with an import-aware `#[TsCasts]`.
+- **Finding the middleware**: the package searches `inertia.inertia_middleware_path`, or `app_path()` when that isn't set, for a class that extends `Inertia\Middleware`. If it finds none, it writes no file. If your app has more than one such class, point `inertia.inertia_middleware_path` at the directory that holds the one you want.
+- **Reading `share()`**: every key's value is typed from your code, without handling a real request.
+- **Parent middleware**: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])` are both read, all the way up your middleware's parent classes. A later key overrides an earlier one and keeps the earlier one's position, as PHP does.
+- **`$request->user()`**: typed through your live auth config, from `auth.defaults.guard` to that guard's provider to the provider's `model`. The prop becomes `User | null`, and the file imports the model's type for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way.
+- **Request helpers**: `$request->url()`, `fullUrl()`, `path()`, `integer()`, `boolean()`, `string()`, `cookie()` and `hasCookie()` are typed from Laravel's own signatures.
+- **`config()`**: `config('some.key')` with a literal key is typed from the live config value, since the package runs inside your booted app. A computed key stays `unknown`.
+- **Inertia v2 prop wrappers**: `Inertia::defer()`, `optional()`, `lazy()`, `always()`, `merge()` and `deepMerge()` type as the value they wrap. The three a partial reload can leave out, `defer`, `optional` and `lazy`, make the key optional.
+- **`EnumResource` props**: a prop that wraps an enum in `EnumResource`, such as `'role' => EnumResource::make(Role::Admin)`, becomes `AsEnum<typeof Role>` when `enums.use_tolki_package` is on (the default), the same as in [API Resources](./api-resources.md#enum-properties-with-enumresource). With it off, the key keeps the enum's type alias (`role: RoleType`). The change applies per key, so another key that reads the enum directly keeps `RoleType`.
+- **`errors`**: left out. `@inertiajs/core` already types `page.props.errors` as `Errors & ErrorBag`, and [`errorValueType`](#anatomy-of-the-generated-file) sharpens it. A `#[TsCasts]` or `@return` docblock entry named `errors` still adds one if you want it.
+- **The output file**: the result is written to `inertia-config.d.ts`. Set `inertia.augmentation_filename` to change the name.
+
+::: warning A Ternary Between Two Different Enums
+A key whose ternary arms wrap different enums, such as `$cond ? EnumResource::make(Role::Admin) : EnumResource::make(Status::Draft)`, renders as `RoleType | StatusType` with no import for either name. Your build then fails with a `TS2304` error for each. Give both arms the same enum, or override that key with a `#[TsCasts]` entry that has an `import`.
+:::
 
 ## Anatomy of the Generated File
 
@@ -73,20 +76,29 @@ declare module "@inertiajs/core" {
 export {};
 ```
 
-- **`import type { User } from './app/models';`** — every model, resource or enum an inferred prop type names gets its import written above the declarations, resolved relative to the output root. An enum a prop reads through `EnumResource` is the exception under the default `enums.use_tolki_package`: that prop renders as `AsEnum<typeof Role>`, so the enum's **const** is imported as a value — `import { Role } from './app/enums';`, beneath an `import { type AsEnum } from '@tolki/ts';` line — and both sit above the `import type` block. Imports supplied by `#[TsCasts(import: ...)]` join that `import type` block. Nothing is imported that the rendered type doesn't spell: a key whose type an override replaces drops the import that type kept alive, and so does an enum's `Type` alias once the `AsEnum` rewrite has taken its last bare mention.
-- **`declare global { namespace Inertia { type SharedData = ...; } }`** makes `Inertia.SharedData` available by bare name in any `.ts` file in your project — including generated controller files that intersect it with page-specific props (see [Inertia Integration](./routing.md#inertia-integration)).
-- **`declare module '@inertiajs/core' { ... InertiaConfig ... }`** augments Inertia's own `usePage<T>()` / shared-data typing so `usePage().props` is typed correctly throughout your frontend, without you writing that augmentation by hand.
-- **`errorValueType: string[]`** is only added when the middleware has a `protected $withAllErrors = true;` property — it matches the shape Inertia uses for its validation error bag in that mode.
-- **A value the analyzer cannot read stays `unknown`.** `'flash' => ['success' => fn () => $request->session()->get('success')]` would emit `flash: { success: unknown }` — `session()` is not one of the typed request methods. Reach for [`#[TsCasts]` or a `@return` docblock](#type-resolution-priority) there.
-- **`export {};`** at the end is required — TypeScript only processes a `declare global` block inside a file that's an ES module (i.e., has at least one top-level `import` or `export`). Without it, the `declare global` block would be silently ignored.
+Each part of the file does one job:
+
+- **`import type { User } from "./app/models";`**: every model, resource or enum that a prop type names gets an import at the top, with a path relative to the output root. An `EnumResource` prop is the exception under the default `enums.use_tolki_package`. It renders as `AsEnum<typeof Role>`, so the enum's const is imported as a value (`import { Role } from './app/enums';`), under an `import { type AsEnum } from '@tolki/ts';` line, and both come before the `import type` lines. Imports from an `import` key in `#[TsCasts]` join the `import type` lines.
+- **`declare global { namespace Inertia { type SharedData = ...; } }`**: makes `Inertia.SharedData` available by name in any `.ts` file in your project. That includes the generated route files, which combine it with each page's props, as [Inertia Integration](./routing.md#inertia-integration) shows.
+- **`declare module '@inertiajs/core' { ... }`**: augments Inertia's own `InertiaConfig`, so `usePage().props` is typed across your frontend without you writing the augmentation.
+- **`errorValueType: string[]`**: added only when the middleware sets `protected $withAllErrors = true;`. It matches the shape Inertia uses for its validation errors in that mode.
+- **`export {};`**: TypeScript accepts a `declare global` block only in a module, a file with at least one top-level `import` or `export`. This line makes the file a module even when it has no imports.
+
+The file imports only the names its types use. A key you override with `#[TsCasts]` drops the import its inferred type needed.
+
+A value the package can't read stays `unknown`. `'flash' => ['success' => fn () => $request->session()->get('success')]` would publish `flash: { success: unknown }`, because `session()` isn't one of the typed request methods. Give such a key its type with [`#[TsCasts]` or a `@return` docblock](#type-resolution-priority).
 
 ## Type Resolution Priority
 
-Each key returned from `share()` resolves to a TypeScript type using this priority order (highest wins):
+Each key from `share()` takes its type from the first of these that covers it:
 
-1. **`#[TsCasts]`** on the middleware class or its `share()` method — the same attribute used by [models](./models.md#tscasts), [resources](./api-resources.md#tscasts-override-property-types), and [broadcast events](./broadcast-events.md#tscasts-overriding-property-types).
-2. **`@return array{...}` PHPDoc** on `share()` — a manually-written shape annotation, useful when a key's value can't be statically inferred (e.g. it comes from a method call whose return type says nothing).
-3. **The AST engine's inference** — the default, covering plain values, nested arrays, conditionals, closures, spreads, `array_merge()`, `config()`, the request/auth helpers, and Inertia's prop wrappers.
+1. **`#[TsCasts]`** on the middleware class or on its `share()` method. When both name a key, the method's entry wins. It's the same attribute [models](./models.md#tscasts), [API resources](./api-resources.md#overriding-property-types-with-tscasts) and [broadcast events](./broadcast-events.md#overriding-property-types-with-tscasts) use.
+2. **A `@return array{...}` docblock** on `share()`. You write the shape by hand, for a key the package can't infer, such as a method call whose return type says nothing. A `key?:` entry makes that key optional.
+3. **Inference from your code**, the default. It covers plain values, nested arrays, conditionals, closures, spreads, `array_merge()`, `config()`, the request and auth helpers, and Inertia's prop wrappers.
+
+A key that `#[TsCasts]` or the docblock names but `share()` doesn't return is added to the type.
+
+In this middleware, one key takes its type from each override:
 
 ```php
 #[TsCasts(['appName' => 'string'])]
@@ -99,24 +111,25 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'flash' => $this->resolveFlashMessages($request), // opaque method call
+            'appName' => config('app.name'),
+            'flash' => $this->resolveFlashMessages($request), // a method whose return type says nothing
         ];
     }
 }
 ```
 
-Here, `appName`'s type comes from `#[TsCasts]`, `flash`'s type comes from the `@return` docblock (since `resolveFlashMessages()` isn't itself analyzed), and every other key (like `auth`, from `...parent::share($request)`) falls back to the engine's own inference.
+Here `appName` takes its type from `#[TsCasts]` and `flash` takes its type from the `@return` docblock. Any other key that `share()` returns falls back to inference.
 
 ## Preserve-Keys Resource Collections in Page Props
 
-This is about per-route page props (see [Inertia Integration](./routing.md#inertia-integration)), not `share()` — noted here because it's the same paginated-collection typing this page's other sections describe.
+This section covers a route's page props, not `share()`. See [Inertia Integration](./routing.md#inertia-integration) for how page props are typed in general.
 
-A `ResourceCollection` (or a resource collected via `Resource::collection()`) that opts into Laravel's key-preserving behavior — the `#[PreserveKeys]` attribute or the older `public $preserveKeys = true;` property — serializes its `data` as a JSON object keyed by the source collection's own keys, not a JSON array. A paginated page prop backed by such a collection types its `data` member to match:
+A `ResourceCollection`, or a resource collected with `Resource::collection()`, can keep its source collection's keys through the `#[PreserveKeys]` attribute or the older `public $preserveKeys = true;` property. Laravel then serializes its `data` as a JSON object keyed by those keys, not as an array. A paginated page prop backed by such a collection types `data` to match:
 
 ```typescript
 import type { JsonResourcePaginator } from "@tolki/types";
 
-// $wrap = null (flat) or Resource::collection($paginator) on a preserve-keys resource:
+// $wrap = null (flat), or Resource::collection($paginator) on a preserve-keys resource:
 export type TeamsPageProps = Inertia.SharedData & {
   teams: Omit<JsonResourcePaginator<Team>, "data"> & {
     data: Record<string, Team>;
@@ -124,27 +137,29 @@ export type TeamsPageProps = Inertia.SharedData & {
 };
 ```
 
-`JsonResourcePaginator<T>`'s own `data` is `T[]` (see [API Resources § Pagination](./api-resources.md)), so a key-preserving collection can't use it unmodified — the page prop type `Omit`s the array-typed `data` and replaces it with a keyed `Record<string, T>`.
+`JsonResourcePaginator<T>` types its `data` as `T[]` (see [API Resources](./api-resources.md)), so a key-preserving collection can't use it as is. The page-props type drops the array `data` with `Omit` and adds a keyed `Record<string, T>` in its place.
 
-A **named**, non-flat collection (`new TeamCollection($paginator)`, wrapped in a `data` key) doesn't need this rewrite at all: its page prop already references the collection's own generated interface (`TeamCollection & ResourcePagination`), and that interface's `data` member is generated as `Record<string, T>` directly whenever the collection preserves keys — paginated or not. Only the two shapes that would otherwise degrade to a paginator utility type with an array-typed `data` — the flat collection and the anonymous `Resource::collection()` case — need the `Omit<...> & { data: Record<...> }` rewrite.
+A named collection that wraps its items in a `data` key, such as `new TeamCollection($paginator)`, doesn't need this. Its page prop is the collection's own interface plus pagination (`TeamCollection & ResourcePagination`), and that interface already types `data` as `Record<string, T>` when the collection keeps keys, paginated or not. Only the flat collection and the anonymous `Resource::collection()` form need the `Omit<...> & { data: Record<...> }` shape.
 
 ### Paginating Inline in the Render Call
 
-A paginator does **not** have to be assigned to a variable first. Both of these produce the same page-prop type:
+You don't have to assign a paginator to a variable first. Both of these produce the same page-props type:
 
 ```php
-// Via an intermediate variable
+// Through a variable
 $teams = Team::query()->paginate(10);
 
 return Inertia::render('Teams/Index', [
     'teams' => new TeamCollection($teams),
 ]);
 
-// Inline, with no intermediate variable
+// Inline, with no variable
 return Inertia::render('Teams/Index', [
     'teams' => new TeamCollection(Team::query()->paginate(10)),
 ]);
 ```
+
+Both forms give the collection's interface plus pagination:
 
 ```typescript
 export type IndexPageProps = Inertia.SharedData & {
@@ -152,12 +167,10 @@ export type IndexPageProps = Inertia.SharedData & {
 };
 ```
 
-`paginate()`, `simplePaginate()`, and `cursorPaginate()` are all recognized, in both the `new SomeCollection(...)` and `SomeResource::collection(...)` forms.
+`paginate()`, `simplePaginate()` and `cursorPaginate()` are all recognized, in both the `new SomeCollection(...)` and `SomeResource::collection(...)` forms.
 
-> [!WARNING]
-> An unrecognized paginator does not produce a _missing_ type — it produces a **wrong** one. The analyzer defaults an unresolved prop to "not paginated", so the prop still gets a type from the ordinary resource/collection analysis, just without the pagination wrapper. Before inline detection, the second form above typed as a bare `TeamCollection`, silently omitting `ResourcePagination`.
-
-One form is still not followed: a query builder assigned to a variable _before_ the paginator call. The chain has to reach a static call on the model directly.
+::: warning A Missed Paginator Gives a Wrong Type
+When the package doesn't see a paginator, the prop doesn't lose its type. It gets the collection's type without the pagination part, which is wrong rather than missing. One form isn't followed: a query builder held in a variable before the paginator call. The chain has to start at a static call on the model.
 
 ```php
 $q = Post::query();
@@ -167,18 +180,17 @@ return Inertia::render('Posts/Index', [
 ]);
 ```
 
-## Spread Support (`...parent::share($request)`)
-
-The base `Inertia\Middleware::share()` method's own return type (Laravel's default `errors`/`errors_bag` keys, plus anything your parent middleware layers add) is included automatically when your override spreads it in — same as trait/parent spreading elsewhere in the package.
+Here `posts` types as `PostCollection`, without `& ResourcePagination`.
+:::
 
 ## Output Location
 
-The augmentation file's output directory is resolved with this priority:
+The package writes the augmentation file to the first of these directories that's set:
 
-1. `inertia.output_directory`, if set.
-2. `routes.output_directory`, if set — since page-prop types generated per-route (see [Inertia Integration](./routing.md#inertia-integration)) reference `Inertia.SharedData`, keeping the augmentation file alongside routes by default means both live in a predictable, related location.
+1. `inertia.output_directory`.
+2. `routes.output_directory`. Route files reference `Inertia.SharedData`, so when you move them, the augmentation file follows.
 3. The global `output_directory`.
 
 ## Configuration Reference
 
-The full list of `inertia.*` config keys — including `component_casing` and `ui_table_package`, which apply to the related per-route page-props feature — lives in the [Configuration Reference](./configuration-reference.md).
+The [Configuration Reference](./configuration-reference.md) lists every `inertia.*` key, including `component_casing` and `ui_table_package`, which apply to route page props.

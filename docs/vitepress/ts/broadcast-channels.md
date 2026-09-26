@@ -1,17 +1,17 @@
 # Broadcast Channels
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) compiles every channel name registered in `routes/channels.php` into a single `broadcast-channels.ts` file — a `BroadcastChannel` template-literal type union plus a `BroadcastChannels` const with a nested accessor function for every dynamic segment, so you build channel names the same way you'd call a route helper instead of hand-typing `{placeholder}` strings.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) compiles every channel you register in `routes/channels.php` into one `broadcast-channels.ts` file. The file holds a `BroadcastChannel` union of template literal types, and a `BroadcastChannels` const with an accessor for every dynamic segment. You build a channel name the way you call a route helper, instead of typing `{placeholder}` strings by hand.
 
-As mentioned in [Installation & Usage](./index.md), broadcast channels don't need the `@tolki/ts` runtime package — the output is a plain TypeScript union type and a plain object of accessor functions/strings.
+As [Installation & Usage](./index.md) notes, broadcast channels don't need the `@tolki/ts` runtime. The output is a plain union type and a plain object of strings and accessor functions.
 
 ## How Broadcast Channel Types Are Generated
 
-Broadcast channels are architecturally different from [enums](./enums.md), [models](./models.md), [resources](./api-resources.md), and [form requests](./form-requests.md): there's no per-class collection, filtering, or attributes involved. Instead:
+Broadcast channels work differently from [enums](./enums.md), [models](./models.md), [resources](./api-resources.md) and [form requests](./form-requests.md). There's no class to collect or filter, and no attributes:
 
-- The collector reads `Illuminate\Broadcasting\BroadcastManager::getChannels()->keys()` directly — the exact set of channel name strings registered via `Broadcast::channel(...)` in `routes/channels.php`.
-- **Both registration styles collect identically.** Whether a channel is registered with a closure or a channel class (`Broadcast::channel('orders.{orderId}', OrderChannel::class)`), only the channel _name string_ drives the TypeScript output — the authorization callback/class is never inspected.
-- Every registered channel is compiled into **one** combined output file (`broadcast_channels.filename`, default `broadcast-channels.ts`) — there's no barrel `index.ts`, no modular per-item files, and no `included` / `excluded` / `additional_directories` filtering, since there's no per-item PHP class to filter by.
-- There's no `#[TsExclude]` or `#[TsCasts]` support for the same reason — see [No Per-Channel Attributes](#no-per-channel-attributes).
+- **Every registered channel**: the package reads every channel name you register with `Broadcast::channel(...)`.
+- **Only the name matters**: a closure and a channel class publish the same way, as [Both Registration Styles](#both-registration-styles) shows.
+- **One combined file**: every channel goes into one file, named by `broadcast_channels.filename` (`broadcast-channels.ts` by default). There's no `index.ts` barrel, no per-channel files, and no `included`, `excluded` or `additional_directories` filtering, since no PHP class backs a channel. With no channels registered, the file is `export {};`.
+- **No attributes**: `#[TsExclude]` and `#[TsCasts]` don't apply, for the same reason. See [No Per-Channel Attributes](#no-per-channel-attributes).
 
 ## Anatomy of the Generated File
 
@@ -19,8 +19,8 @@ Given these registrations:
 
 ```php
 // routes/channels.php
+use App\Broadcasting\PublicAnnouncementsChannel;
 use Illuminate\Support\Facades\Broadcast;
-use Workbench\App\Broadcasting\PublicAnnouncementsChannel;
 
 Broadcast::channel('orders.{orderId}', function ($user, $orderId) {
     return true;
@@ -30,7 +30,7 @@ Broadcast::channel('user.{userId}.notifications', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
-// Both a terminal channel and a prefix of channels below — see "$channel" Accessor.
+// Both a channel of its own and the start of the channel below.
 Broadcast::channel('chat.{roomId}', function ($user, $roomId) {
     return true;
 });
@@ -39,7 +39,7 @@ Broadcast::channel('chat.{roomId}.messages', function ($user, $roomId) {
     return true;
 });
 
-// Class-based registration — only the name string matters for the TS output.
+// A channel class. Only the name string affects the TypeScript output.
 Broadcast::channel('public-announcements', PublicAnnouncementsChannel::class);
 ```
 
@@ -66,50 +66,55 @@ export const BroadcastChannels = {
 };
 ```
 
-- **`BroadcastChannel`** is a union of [template literal types](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html) — every `{param}` segment becomes `${string | number}`, regardless of whether the wildcard is bound to a model, an enum, or a plain scalar on the PHP side (the channel name string is the only thing that matters).
-- **`BroadcastChannels`** mirrors the dot-notation structure: a channel with no dynamic segments is a plain string constant; a channel with a `{param}` at the end is a function returning the built string; a channel with a `{param}` _and_ nested children (like `user.{userId}.notifications`) is a function returning an object of its children.
-- Static segments that aren't valid JavaScript identifiers (like `public-announcements`, containing a hyphen) are automatically quoted — see [Quoted Keys](#quoted-keys).
+The file has two exports:
 
-## The Dot-Notation Tree Algorithm
+- **`BroadcastChannel`**: a union of [template literal types](https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html). Each `{param}` segment becomes `${string | number}`, whether PHP binds it to a model, an enum or a scalar, since only the channel name matters.
+- **`BroadcastChannels`**: an object that mirrors the dot-notation names. A channel with no dynamic segments is a string constant. A channel that ends in a `{param}` is a function that returns the channel name. A channel with a `{param}` and more segments after it, like `user.{userId}.notifications`, is a function that returns an object of the segments that follow.
 
-Each channel name is processed independently and then merged into a shared tree, mirroring [Laravel Wayfinder's](https://github.com/laravel/wayfinder) approach:
+A static segment that isn't a valid JavaScript identifier, such as `public-announcements` with its hyphen, becomes a quoted key. See [Quoted Keys](#quoted-keys).
 
-1. **Split** the channel name on `.` — `user.{userId}.notifications` → `['user', '{userId}', 'notifications']`.
-2. **Reverse-iterate** the segments to associate each _static_ segment with the `{param}` names that immediately preceded it: `notifications` gets no params, `user` gets `['userId']`.
-3. **Forward-iterate** to build a flat dot-notation map with parent keys always appearing before child keys (`user`, then `user.notifications`), so merging later doesn't overwrite a parent with a child.
-4. **Merge** every channel's flat entries and un-flatten them into a single nested tree.
-5. **Render** the tree recursively: a leaf segment becomes a template-literal string (wrapped in a function if it or an ancestor has params); a branch segment becomes a nested object (also wrapped in a function if it or an ancestor has params).
+## How Channel Names Become Accessors
+
+The accessor shape follows [Laravel Wayfinder](https://github.com/laravel/wayfinder)'s. The package splits each channel name on `.` and builds `BroadcastChannels` from the pieces:
+
+- **Static segments** become keys, nested in the order they appear.
+- **`{param}` segments** become the parameters of the function for the static segment before them, so `orders.{orderId}` gives `orders(orderId)`.
+- **Shared leading segments** share one key. `chat.{roomId}` and `chat.{roomId}.messages` both live under `BroadcastChannels.chat(roomId)`.
+
+::: warning Shared Segments Need the Same Parameter Names
+Channels that share a segment have to give its parameters the same names. `orders.{orderId}` beside `orders.{slug}.timeline` gives the `orders` key two different parameters, and `ts:publish` fails with a "conflicting parameter names" error. Rename one wildcard so the two match.
+:::
 
 ## Both Registration Styles
 
-Laravel supports registering a channel with either a closure or a dedicated channel class with a `join()` method:
+Laravel lets you register a channel with a closure or with a channel class that has a `join()` method:
 
 ```php
-// Closure-based
+// A closure
 Broadcast::channel('orders.{orderId}', function ($user, $orderId) {
     return true;
 });
 
-// Class-based — the class only affects PHP-side authorization
+// A channel class, which only affects authorization in PHP
 Broadcast::channel('order.{orderId}', OrderChannel::class);
 ```
 
-Both produce identical TypeScript output for the same channel name pattern, since the collector only ever reads the channel name string from `BroadcastManager` — it never inspects the closure or class.
+Both produce the same TypeScript for the same channel name, because the package reads only the name. It never reads the closure or the class.
 
-## The `"$channel"` Accessor for Overlapping Prefixes
+## The `$channel` Accessor for Overlapping Prefixes
 
-When a channel name is _both_ a complete, subscribable channel **and** a dot-notation prefix of other channels (like `chat.{roomId}` alongside `chat.{roomId}.messages`), the generated accessor object needs a way to expose the parent channel string alongside its children. That's what `$channel` is for:
+When a channel name is a channel of its own and also the start of other channels, like `chat.{roomId}` beside `chat.{roomId}.messages`, its accessor returns an object. `$channel` on that object is the shorter channel's own name:
 
 ```typescript
-BroadcastChannels.chat(42).$channel; // 'chat.42'         — the chat room itself
-BroadcastChannels.chat(42).messages; // 'chat.42.messages' — the room's message stream
+BroadcastChannels.chat(42).$channel; // 'chat.42', the chat room itself
+BroadcastChannels.chat(42).messages; // 'chat.42.messages', the room's message stream
 ```
 
-Without `$channel`, there would be no way to reach the plain `chat.{roomId}` channel string once `chat` becomes a function returning an object with `messages` as a key.
+Without `$channel`, you couldn't reach the plain `chat.{roomId}` channel once `chat` returns an object with a `messages` key.
 
 ## Quoted Keys
 
-Static segments containing characters that aren't valid in a bare JavaScript object key (like hyphens) are automatically wrapped in quotes:
+A static segment with characters a bare JavaScript key can't hold, such as a hyphen, is quoted:
 
 ```typescript
 export const BroadcastChannels = {
@@ -119,6 +124,8 @@ export const BroadcastChannels = {
 };
 ```
 
+Reach a quoted key with bracket notation:
+
 ```typescript
 BroadcastChannels["public-announcements"];
 BroadcastChannels["order-status"](3);
@@ -126,7 +133,7 @@ BroadcastChannels["order-status"](3);
 
 ## The `BroadcastChannel` Type
 
-Every registered channel name contributes one member to the `BroadcastChannel` union — useful for typing a helper that accepts any valid channel string without hard-coding a specific one:
+Each registered channel adds one member to the `BroadcastChannel` union. Use it to type a helper that accepts any valid channel name without naming a specific one:
 
 ```typescript
 import type { BroadcastChannel } from "@js/types/data/broadcast-channels";
@@ -141,12 +148,12 @@ subscribe("not-a-real-channel"); // ✗ type error
 
 ## No Per-Channel Attributes
 
-Because channels are collected as plain name strings (not reflected PHP classes), the attribute-based customization available for [enums](./enums.md#enum-attributes), [models](./models.md#model-attributes), and [form requests](./form-requests.md#tscasts-overriding-field-types) doesn't apply here:
+Channels are collected as plain name strings, not as PHP classes, so the attributes available for [enums](./enums.md#enum-attributes), [models](./models.md#model-attributes) and [form requests](./form-requests.md#overriding-field-types-with-tscasts) don't apply:
 
-- **No `#[TsExclude]`** — to omit a channel from the output, remove or conditionally skip its `Broadcast::channel(...)` registration in `routes/channels.php` (e.g. behind an `if (! app()->isProduction())` check) instead.
-- **No `#[TsCasts]`** — there's no per-channel type to override; every dynamic segment is always `string | number`, matching how a channel name is resolved at broadcast-auth time regardless of what PHP type it's bound to.
-- **No `included` / `excluded` / `additional_directories` config** — every channel registered anywhere Laravel loads `routes/channels.php` is included; there's no directory to search since channels aren't backed by individual class files.
+- **No `#[TsExclude]`**: to leave a channel out, remove its `Broadcast::channel(...)` registration, or skip it with a condition in `routes/channels.php`, such as `if (! app()->isProduction())`.
+- **No `#[TsCasts]`**: there's no per-channel type to override. Every dynamic segment is `string | number`, matching how Laravel resolves a channel name when it authorizes a subscription, whatever PHP type the segment binds to.
+- **No `included`, `excluded` or `additional_directories` config**: every channel your app registers is included. There's no directory to search, since channels don't live in class files.
 
 ## Configuration Reference
 
-The full list of `broadcast_channels.*` config keys — including pipeline class overrides for advanced customization — lives in the [Configuration Reference](./configuration-reference.md).
+The [Configuration Reference](./configuration-reference.md) lists every `broadcast_channels.*` key, including the class overrides for customizing the pipeline.

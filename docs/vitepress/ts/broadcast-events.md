@@ -1,18 +1,18 @@
 # Broadcast Events
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates one TypeScript interface per `ShouldBroadcast` / `ShouldBroadcastNow` event class, plus a combined `broadcast-events.ts` index file with a `BroadcastEvent` union type and a flat `BroadcastEvents` const of every Echo event name — and, optionally, a module-augmentation file that makes Laravel Echo's `Events` interface fully typed.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates a TypeScript interface for each event that implements `ShouldBroadcast` or `ShouldBroadcastNow`, so the payloads your frontend receives through Laravel Echo are typed. It also writes a combined `broadcast-events.ts` index, with a `BroadcastEvent` union and a flat `BroadcastEvents` const of every Echo event name. An optional module augmentation types Laravel Echo's `Events` interface.
 
-As mentioned in [Installation & Usage](./index.md), broadcast events don't need the `@tolki/ts` runtime package — the output is plain TypeScript interfaces and a plain `const` object.
+As [Installation & Usage](./index.md) notes, broadcast events don't need the `@tolki/ts` runtime. The output is plain TypeScript interfaces and a plain `const` object.
 
 ## How Broadcast Event Types Are Generated
 
-Unlike [broadcast channels](./broadcast-channels.md), broadcast events use the same modular, per-class pipeline as [enums](./enums.md), [models](./models.md), and [form requests](./form-requests.md):
+Unlike [broadcast channels](./broadcast-channels.md), events are published one class at a time, like [enums](./enums.md), [models](./models.md) and [form requests](./form-requests.md). The output follows these rules:
 
-- `BroadcastEventsCollector` discovers every class implementing `ShouldBroadcast` or `ShouldBroadcastNow`, by default in `app/Events` (configurable, and it extends the shared `CoreCollector`, so it supports `included` / `excluded` / `additional_directories` and `#[TsExclude]` — see [Filtering & Excluding](#filtering--excluding)).
-- Each event class is statically analyzed by the package's own [analyzer](./analyzer-api.md) to resolve its payload shape — see [Property Resolution](#property-resolution-broadcastwith-vs-public-properties).
-- One `.ts` file is written per event, at a namespace-derived path mirroring the event's FQCN (just like models and enums).
-- After every event file is generated, `BroadcastEventsIndexWriter` combines them into a single `broadcast-events.ts` index — see [The Combined Index File](#the-combined-index-file-broadcast-eventsts).
-- Optionally, `BroadcastEventsEchoWriter` generates `echo-broadcast-events.d.ts`, a module augmentation for Laravel Echo — see [Echo Module Augmentation](#echo-module-augmentation).
+- **Discovery**: the package finds every class in `app/Events` that implements `ShouldBroadcast` or `ShouldBroadcastNow`. You can add directories and filter classes, as [Filtering & Excluding](#filtering-excluding) shows.
+- **Payload**: each event's interface comes from its `broadcastWith()` method or its public properties. See [Broadcast Data](#broadcast-data).
+- **One file per event**: the directory mirrors the event's namespace, as for models and enums, and the file keeps the class name, so `App\Events\OrderShipped` becomes `app/events/OrderShipped.ts`.
+- **Index file**: every event also lands in one `broadcast-events.ts` index. See [The Combined Index File](#the-combined-index-file-broadcast-events-ts).
+- **Echo augmentation**: optionally, an `echo-broadcast-events.d.ts` file types Laravel Echo. See [Echo Module Augmentation](#echo-module-augmentation).
 
 ## Anatomy of a Generated Event File
 
@@ -47,18 +47,21 @@ export interface OrderShipped {
 }
 ```
 
-- The **interface name** is always the event's short PHP class name.
-- A `@see` JSDoc comment links back to the fully-qualified PHP class.
-- A public property is **required** when it is constructor-promoted or declared with a default — every property on `OrderShipped` is promoted, so all four are required before `#[TsCasts]` is applied.
-- A class-body property with a declared type but no default — `public string $label;`, assigned inside the constructor — is **optional** (`label?: string`), since `json_encode()` omits a typed property that was never assigned. Reflection can't see a constructor assignment, so a property your constructor always sets still renders with the `?`; give it a declaration default, or promote it, to get a required key.
-- A nullable property is typed `| null`; nullability alone never makes a key optional.
-- Here, `trackingNumber`'s template-literal type, `metadata`'s `Record<string, unknown>` type, and the `?` on `metadata` all come from a `#[TsCasts]` override on the class — see [`#[TsCasts]`](#tscasts-overriding-property-types) below. Without it, both properties would be their raw inferred types (`string` and `unknown[] | null`), and `metadata` would be required.
+The interface follows these rules:
 
-## Property Resolution: `broadcastWith()` vs. Public Properties
+- **Name**: the interface is always named after the event's short class name.
+- **`@see` comment**: points back to the fully qualified PHP class.
+- **Required properties**: a public property is required when it's promoted in the constructor or has a default. Every property on `OrderShipped` is promoted, so all four are required before `#[TsCasts]` applies.
+- **Optional properties**: a property declared in the class body with a type and no default, such as `public string $label;` set in the constructor, is optional (`label?: string`). `json_encode()` leaves out a typed property that was never assigned, and the package can't see an assignment in the constructor. So a property your constructor always sets still gets the `?`. Give it a default, or promote it, to make it required.
+- **Nullable properties**: a nullable property is typed `| null`. Nullability alone never makes a key optional.
 
-By default, every public property becomes an interface field, in declaration order — constructor-promoted parameters and class-body declarations alike. A `@var` docblock wins over the native type, so `/** @var list<string> */ public array $tags` is typed `string[]` rather than `unknown[]`. Every trait-declared property is skipped, whatever the trait — reflection reports them as the event's own, so nothing distinguishes them, and a [`#[TsExtends]`](./extending-interfaces.md) trait's fields already arrive through the `extends` clause.
+In this example, three things come from a `#[TsCasts]` override on the class: `trackingNumber`'s template-literal type, `metadata`'s `Record<string, unknown>` type and the `?` on `metadata`. [Overriding Property Types With `#[TsCasts]`](#overriding-property-types-with-tscasts) shows the override. Without it, the two properties would have their inferred types (`string` and `unknown[] | null`), and `metadata` would be required.
 
-Define `broadcastWith()` to send (and type) a different shape — commonly to exclude private/internal fields:
+## Broadcast Data
+
+By default, every public property becomes an interface field, in declaration order, whether it's promoted in the constructor or declared in the class body. A `@var` docblock wins over the native type, so `/** @var list<string> */ public array $tags` is typed `string[]` rather than `unknown[]`. Properties that come from a trait are skipped, whatever the trait. A [`#[TsExtends]`](./extending-interfaces.md) trait's fields already arrive through the `extends` clause.
+
+Define `broadcastWith()` to send, and type, a different shape, for example to leave out private fields:
 
 ```php
 class TeamMessageSent implements ShouldBroadcast
@@ -87,51 +90,61 @@ class TeamMessageSent implements ShouldBroadcast
 }
 ```
 
+The interface has only the keys `broadcastWith()` returns:
+
 ```typescript
-/** @see Workbench\App\Events\TeamMessageSent */
+/** @see App\Events\TeamMessageSent */
 export interface TeamMessageSent {
   teamId: number;
   content: string;
 }
 ```
 
-`senderToken` never appears in the generated interface. The analyzer reads `broadcastWith()`'s body, resolving each `$this->…` reference against the event's own declared properties, so the `@return array{teamId: int, content: string}` docblock above is documentation rather than a requirement — the same interface comes out without it.
+`senderToken` never appears in the interface. The package reads the body of `broadcastWith()` and types each `$this->…` value from the event's own properties. The `@return array{teamId: int, content: string}` docblock above is documentation, not a requirement, and the same interface comes out without it.
 
-When the body *can't* type a value, that `@return array{…}` shape is what types it:
+When the body can't type a value, the `@return array{…}` shape types it:
 
 ```php
-final class DocblockShapedEvent implements ShouldBroadcast
+final class PostScheduled implements ShouldBroadcast
 {
     public function __construct(public Post $post) {}
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('posts');
+    }
 
     /** @return array{published_at: string|null} */
     public function broadcastWith(): array
     {
-        return ['published_at' => $this->opaque()];
+        return ['published_at' => $this->publishedAt()];
     }
 
-    /** Deliberately untyped. */
-    private function opaque()
+    private function publishedAt() // no return type
     {
         return $this->post->getAttribute('published_at');
     }
 }
 ```
 
+The docblock fills the key the body couldn't type:
+
 ```typescript
-/** @see Workbench\App\Events\DocblockShapedEvent */
-export interface DocblockShapedEvent {
+/** @see App\Events\PostScheduled */
+export interface PostScheduled {
   published_at: string | null;
 }
 ```
 
-The body still wins wherever it resolves something. The docblock only fills a key the analyzer left `unknown`, so a stale `@return` can't overwrite a type the body already established. An interpolated key's index signature, which a spread helper's body leaves `unknown | undefined`, is filled the same way from that helper's `@return array<string, V>`, then checked against the event's `#[TsCasts]` and extends clause as [API Resources § Interpolated Keys](./api-resources.md#interpolated-keys) describes.
+The body still wins wherever it types a value. The docblock only fills a key the body left `unknown`, so a stale `@return` can't overwrite a type the body already found. A `key?:` entry in the docblock makes that key optional.
 
-When `broadcastWith()` exists it is the only source of the payload; the public properties are not consulted at all. A key it renames, computes, or drops is reflected exactly, so `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }` with no `teamId` in sight.
+A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, gives the payload an index signature. When the helper's body can't type the values, its `@return array<string, V>` docblock types them. [API Resources § Interpolated Keys](./api-resources.md#interpolated-keys) describes how the event's `#[TsCasts]` and `extends` clause then apply.
+
+When an event has `broadcastWith()`, including one inherited from a parent class or a trait, only that method shapes the payload. The public properties aren't read. A key it renames, computes or drops shows up exactly that way. `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }`, with no `teamId`.
 
 ## Model & Enum-Aware Properties
 
-Properties typed as an Eloquent model or a PHP enum resolve to the same types used elsewhere in the package, with imports added automatically:
+A property typed as an Eloquent model or a PHP enum resolves to the type the rest of the package uses for it. The file imports that type for you:
 
 ```php
 class MultiModelEvent implements ShouldBroadcast
@@ -148,18 +161,24 @@ class MultiModelEvent implements ShouldBroadcast
 }
 ```
 
+The model properties become `Partial` model types:
+
 ```typescript
 import type { Post, User } from "../models";
 
-/** @see Workbench\App\Events\MultiModelEvent */
+/** @see App\Events\MultiModelEvent */
 export interface MultiModelEvent {
   post: Partial<Post>;
   user: Partial<User>;
 }
 ```
 
-- An **Eloquent model** property resolves to `Partial<Model>` (partial, since a broadcast payload may not include every column) with an automatic import from the generated [models](./models.md) output.
-- A **PHP enum** property resolves to the enum's `{Name}Type` alias (its raw backing-value type) with an automatic import from the generated [enums](./enums.md) output. An enum renamed with [`#[TsEnum]`](./enums.md#tsenum) keeps that rename here, so the alias always names a type the enum output actually declares:
+The two kinds resolve this way:
+
+- **Eloquent models** resolve to `Partial<Model>`, since a broadcast payload may not include every column. The type is imported from the generated [models](./models.md).
+- **PHP enums** resolve to the enum's `{Name}Type` alias, the union of its backing values, or of its case names for a pure enum. The alias is imported from the generated [enums](./enums.md). A rename with [`#[TsEnum]`](./enums.md#tsenum) carries over, so the alias always names a type the enum output declares.
+
+This event has two enum properties:
 
 ```php
 class EnumBroadcastEvent implements ShouldBroadcast
@@ -176,22 +195,25 @@ class EnumBroadcastEvent implements ShouldBroadcast
 }
 ```
 
+Each enum property becomes its type alias:
+
 ```typescript
 import type { ColorType, StatusType } from "../enums";
 
-/** @see Workbench\App\Events\EnumBroadcastEvent */
+/** @see App\Events\EnumBroadcastEvent */
 export interface EnumBroadcastEvent {
   status: StatusType;
   color: ColorType;
 }
 ```
 
-> [!TIP]
-> When two properties (or two events combined into the index — see [import-conflict aliasing](#the-combined-index-file-broadcast-eventsts)) would import a same-named model or enum from different namespaces, each is automatically aliased with a namespace-derived prefix (e.g. `AppUser` / `CrmUser`) so both imports coexist without a collision.
+::: tip Same-Named Classes
+Two properties can need models or enums that share a class name but live in different namespaces. Each import then gets a prefix from its namespace, such as `AppUser` and `CrmUser`, so both work in one file. Events that share a class name get the same treatment in the [combined index](#the-combined-index-file-broadcast-events-ts).
+:::
 
-## Custom Echo Event Names with `broadcastAs()`
+## Custom Echo Event Names With `broadcastAs()`
 
-By default, the Echo event name is Laravel's own `.Fully.Qualified.ClassName` convention (leading dot, backslashes replaced with dots). Override it with `broadcastAs()`:
+By default, an event's Echo name follows Laravel's convention: a leading dot, then the fully qualified class name with dots in place of backslashes. Override it with `broadcastAs()`:
 
 ```php
 class ServerCreated implements ShouldBroadcast
@@ -213,23 +235,25 @@ class ServerCreated implements ShouldBroadcast
 }
 ```
 
+`broadcastAs()` doesn't change the interface:
+
 ```typescript
-/** @see Workbench\App\Events\ServerCreated */
+/** @see App\Events\ServerCreated */
 export interface ServerCreated extends BroadcastableEvent {
   serverId: number;
   serverName: string;
 }
 ```
 
-The literal string returned by `broadcastAs()` (`'server.created'`) becomes this event's key everywhere it's referenced — the `BroadcastEvent` union member, the `BroadcastEvents` const value, and the Echo augmentation key. Without `broadcastAs()`, it would instead be `'.Workbench.App.Events.ServerCreated'`.
+The string `broadcastAs()` returns, `'server.created'` here, becomes the event's key everywhere: the `BroadcastEvent` union member, the `BroadcastEvents` value and the Echo augmentation key. Without `broadcastAs()`, the key would be `'.App.Events.ServerCreated'`.
 
-`broadcastAs()` has to return one whole string literal for that to happen. A name built at runtime — `return 'order.'.$this->kind;` — has no single value to publish, so the event falls back to the `.Fully.Qualified.ClassName` convention. The alternative is shipping the literal prefix `'order.'` as a key Echo will never receive, which is worse than a key you can predict.
+`broadcastAs()` has to return one whole string literal. A name built at runtime, such as `return 'order.'.$this->kind;`, has no single value to publish, so the event keeps Laravel's class-name convention. You get a key you can predict, instead of the literal prefix `'order.'`, which Echo would never receive.
 
-(The `extends BroadcastableEvent` here comes from a per-class `#[TsExtends]` attribute — see [Extending Interfaces](#extending-interfaces-global-config-vs-tsextends) below.)
+The `extends BroadcastableEvent` in this example comes from a `#[TsExtends]` attribute on the class. See [Extending Interfaces](#extending-interfaces-global-config-vs-tsextends) below.
 
-## `#[TsCasts]` — Overriding Property Types
+## Overriding Property Types With `#[TsCasts]`
 
-Override an inferred type, or add a virtual property, the same way as [models](./models.md#tscasts) and [form requests](./form-requests.md):
+Override an inferred type with `#[TsCasts]` on the event class, the same way as for [models](./models.md#tscasts) and [form requests](./form-requests.md#overriding-field-types-with-tscasts):
 
 ```php
 #[TsCasts([
@@ -249,13 +273,13 @@ class OrderShipped implements ShouldBroadcast
 }
 ```
 
-This is what produces `trackingNumber`'s template-literal type and `metadata`'s `Record<string, unknown>` type in the [Anatomy](#anatomy-of-a-generated-event-file) example above. As with models and resources, each entry can be a plain type string, or an array with `type`, `optional`, and/or `import` keys for a custom type that needs its own import statement.
+This override gives `trackingNumber` its template-literal type, and gives `metadata` its `Record<string, unknown>` type and its `?`, in the [Anatomy](#anatomy-of-a-generated-event-file) example. Each entry is a type string, or an array with `type`, `optional` and `import` keys for a custom type that needs an import. A key that names no payload property doesn't add one.
 
 ## Extending Interfaces: Global Config vs. `#[TsExtends]`
 
-Every generated event interface can `extends` one or more shared interfaces, using either mechanism (both apply together when present):
+An event interface can extend shared interfaces through config, through an attribute, or through both at once.
 
-**Global config** — applies to _every_ generated event, via `ts_extends.broadcast_events` in `config/ts-publish.php`:
+The `ts_extends.broadcast_events` config applies to every event:
 
 ```php
 // config/ts-publish.php
@@ -266,10 +290,12 @@ Every generated event interface can `extends` one or more shared interfaces, usi
 ],
 ```
 
+Every event interface then extends `HasTimestamps`:
+
 ```typescript
 import type { HasTimestamps } from "@/types/common";
 
-/** @see Workbench\App\Events\UserNotification */
+/** @see App\Events\UserNotification */
 export interface UserNotification extends HasTimestamps {
   userId: number;
   title: string;
@@ -277,7 +303,7 @@ export interface UserNotification extends HasTimestamps {
 }
 ```
 
-**`#[TsExtends]` attribute** — applies to one specific event class:
+The `#[TsExtends]` attribute applies to one event class. It also works on a trait the event uses:
 
 ```php
 #[TsExtends('BroadcastableEvent', '@/types/broadcast')]
@@ -287,11 +313,11 @@ class ServerCreated implements ShouldBroadcast
 }
 ```
 
-See [Extending Interfaces](./extending-interfaces.md) for the full attribute and config syntax.
+See [Extending Interfaces](./extending-interfaces.md) for the attribute and config syntax.
 
 ## The Combined Index File (`broadcast-events.ts`)
 
-After every event file is generated, they're combined into a single index:
+After it writes the event files, the package combines them into one index:
 
 ```typescript
 import type { EnumBroadcastEvent } from "./app/events/EnumBroadcastEvent";
@@ -299,26 +325,26 @@ import type { MultiModelEvent } from "./app/events/MultiModelEvent";
 import type { OrderShipped } from "./app/events/OrderShipped";
 import type { ServerCreated } from "./app/events/ServerCreated";
 import type { TeamMessageSent } from "./app/events/TeamMessageSent";
-import type { UserSynced as CrmUserSynced } from "./crm/events/UserSynced";
 import type { UserSynced as AppUserSynced } from "./app/events/UserSynced";
+import type { UserSynced as CrmUserSynced } from "./crm/events/UserSynced";
 
 export type BroadcastEvent =
-  | ".Workbench.App.Events.EnumBroadcastEvent"
-  | ".Workbench.App.Events.MultiModelEvent"
-  | ".Workbench.App.Events.OrderShipped"
+  | ".App.Events.EnumBroadcastEvent"
+  | ".App.Events.MultiModelEvent"
+  | ".App.Events.OrderShipped"
   | "server.created"
-  | ".Workbench.App.Events.TeamMessageSent"
-  | ".Workbench.Crm.Events.UserSynced"
-  | ".Workbench.App.Events.UserSynced";
+  | ".App.Events.TeamMessageSent"
+  | ".App.Events.UserSynced"
+  | ".Crm.Events.UserSynced";
 
 export const BroadcastEvents = Object.freeze({
-  EnumBroadcastEvent: ".Workbench.App.Events.EnumBroadcastEvent",
-  MultiModelEvent: ".Workbench.App.Events.MultiModelEvent",
-  OrderShipped: ".Workbench.App.Events.OrderShipped",
+  EnumBroadcastEvent: ".App.Events.EnumBroadcastEvent",
+  MultiModelEvent: ".App.Events.MultiModelEvent",
+  OrderShipped: ".App.Events.OrderShipped",
   ServerCreated: "server.created",
-  TeamMessageSent: ".Workbench.App.Events.TeamMessageSent",
-  CrmUserSynced: ".Workbench.Crm.Events.UserSynced",
-  AppUserSynced: ".Workbench.App.Events.UserSynced",
+  TeamMessageSent: ".App.Events.TeamMessageSent",
+  AppUserSynced: ".App.Events.UserSynced",
+  CrmUserSynced: ".Crm.Events.UserSynced",
 } as const);
 
 export type {
@@ -327,17 +353,19 @@ export type {
   OrderShipped,
   ServerCreated,
   TeamMessageSent,
-  CrmUserSynced,
   AppUserSynced,
+  CrmUserSynced,
 };
 ```
 
-- **`BroadcastEvent`** is a union of every event's Echo name (its `broadcastAs()` string, or the default dot-FQCN).
-- **`BroadcastEvents`** is a flat, frozen const mapping each event's short class name to its Echo name — flat, unlike [Wayfinder](https://github.com/laravel/wayfinder)'s deeply-nested namespace tree, since events are addressed by "what event is this?" rather than by where they live in the codebase.
-- Every event's interface is also re-exported from the index, so you can import either from the index or directly from the per-event file.
-- **Import-conflict aliasing**: when two different event classes share the same short name (like `App\Events\UserSynced` and `Crm\Events\UserSynced` above), both the import and the const key are aliased with a namespace-derived prefix (`AppUserSynced` / `CrmUserSynced`) so both coexist without a collision — the same conflict-resolution strategy used for [model/enum property imports](#model--enum-aware-properties) within a single event file.
+The index has these parts:
 
-An empty event set (no `ShouldBroadcast` classes found) produces `export {};` instead.
+- **`BroadcastEvent`**: a union of every event's Echo name, from `broadcastAs()` or the default dotted class name.
+- **`BroadcastEvents`**: a flat, frozen const that maps each event's short class name to its Echo name. It's flat, unlike [Wayfinder](https://github.com/laravel/wayfinder)'s nested namespace tree, because you look an event up by what it is, not by where its class lives.
+- **Re-exports**: the index re-exports every event interface, so you can import from the index or from the event's own file.
+- **Import-conflict aliasing**: two event classes can share a short name, such as `App\Events\UserSynced` and `Crm\Events\UserSynced`. Their imports and const keys then get a prefix from the namespace (`AppUserSynced` and `CrmUserSynced`). It's the same aliasing that [model and enum properties](#model-enum-aware-properties) get inside one event file.
+
+If your app has no broadcast events, the index is `export {};`.
 
 ## Echo Module Augmentation
 
@@ -350,37 +378,37 @@ import type { ServerCreated } from "./app/events/ServerCreated";
 
 declare module "@laravel/echo" {
   interface Events {
-    ".Workbench.App.Events.EnumBroadcastEvent": EnumBroadcastEvent;
-    ".Workbench.App.Events.OrderShipped": OrderShipped;
+    ".App.Events.EnumBroadcastEvent": EnumBroadcastEvent;
+    ".App.Events.OrderShipped": OrderShipped;
     "server.created": ServerCreated;
   }
 }
 ```
 
-This augments Laravel Echo's own `Events` interface, so `Echo.private(channel).listen(eventName, ...)` and `useEcho()` (from `@laravel/echo-vue` / `@laravel/echo-react`) infer the correct payload type from the event name string, with no manual type annotation needed.
+The file augments Laravel Echo's own `Events` interface. `Echo.private(channel).listen(eventName, ...)` and `useEcho()` from `@laravel/echo-vue` or `@laravel/echo-react` then infer the payload type from the event name, with no annotation.
 
-The `declare module` target is resolved with this priority:
+The package picks the `declare module` target in this order:
 
-1. `broadcast_events.echo_augmentation.echo_package` config value, if set.
-2. Auto-detected from your `package.json` dependencies — `@laravel/echo-vue`, then `@laravel/echo-react`, then `@laravel/echo-svelte`.
-3. Falls back to `@laravel/echo` (the base package every Echo setup depends on).
+1. The `broadcast_events.echo_augmentation.echo_package` config value, if set.
+2. The first of `@laravel/echo-vue`, `@laravel/echo-react` and `@laravel/echo-svelte` in your `package.json` dependencies or dev dependencies.
+3. `@laravel/echo`, the base package every Echo setup depends on.
 
-The same import-conflict aliasing described above applies here too, so identically-named events from different namespaces resolve correctly.
+The file uses the same import-conflict aliasing as the index, so same-named events from different namespaces resolve correctly. If your app has no broadcast events, the package writes no augmentation file.
 
 ## Filtering & Excluding
 
-Broadcast events support the same discovery controls as enums, models, and form requests:
+Broadcast events use the same discovery settings as enums, models and form requests. Each list takes class names or directory paths:
 
 ```php
 // config/ts-publish.php
 'broadcast_events' => [
     'included' => [],               // only these event classes (empty = all)
-    'excluded' => [],                // exclude these event classes
-    'additional_directories' => [],  // extra directories beyond app/Events
+    'excluded' => [],               // leave these event classes out
+    'additional_directories' => [], // directories to search besides app/Events
 ],
 ```
 
-`#[TsExclude]` also works at the class level, since `BroadcastEventsCollector` extends the shared `CoreCollector`:
+`#[TsExclude]` on an event class leaves it out of collection and publishing:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsExclude;
@@ -388,7 +416,7 @@ use AbeTwoThree\LaravelTsPublish\Attributes\TsExclude;
 #[TsExclude]
 class InternalDebugEvent implements ShouldBroadcast
 {
-    // Entirely excluded from collection and publishing.
+    // Not published to TypeScript
 }
 ```
 
@@ -396,4 +424,4 @@ See [Excluding Content](./excluding-content.md) for the full attribute reference
 
 ## Configuration Reference
 
-The full list of `broadcast_events.*` config keys — including the Echo augmentation sub-options and pipeline class overrides for advanced customization — lives in the [Configuration Reference](./configuration-reference.md).
+The [Configuration Reference](./configuration-reference.md) lists every `broadcast_events.*` key, including the Echo augmentation options and the class overrides for customizing the pipeline.
