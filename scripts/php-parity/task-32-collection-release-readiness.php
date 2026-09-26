@@ -274,6 +274,10 @@ probe('C32-A-ensure-closure-and-anonymous-class-names', "the message collect([\$
     collect([fn () => 1])->ensure(Closure::class)->count(),
 ]);
 probe('C32-A-ensure-anonymous-subclass-name', "the message collect([\$item])->ensure('int') throws for new class extends C32AParent {} and new class extends C32AChild {}", fn () => array_map(fn ($item) => c32c_outcome(fn () => collect([$item])->ensure('int')), [new class extends C32AParent {}, new class extends C32AChild {}]));
+probe('C32-A-debug-type-float-past-int-range', "get_debug_type() of 1e19, -1e19, -0.0, 2**63 and 2**62, then the message collect([\$item])->ensure('int') throws for 1e19 and -0.0", fn () => [
+    'types' => array_map(fn ($value) => get_debug_type($value), ['1e19' => 1e19, '-1e19' => -1e19, '-0.0' => -0.0, '2**63' => 9223372036854775808.0, '2**62' => 4611686018427387904]),
+    'ensure' => array_map(fn ($value) => c32c_outcome(fn () => collect([$value])->ensure('int')), ['1e19' => 1e19, '-0.0' => -0.0]),
+]);
 
 // --- Arr::from refuses a scalar with the class its @throws names
 probe('C32-A-arr-from-scalar-throws', 'Arr::from(123)', fn () => Arr::from(123));
@@ -1482,6 +1486,11 @@ probe('C32-F-using-fractional-comparator', "collect([1, 2, 3])->diffUsing([2], f
     'intersectUsing' => collect([1, 2, 3])->intersectUsing([2], fn () => $answer)->all(),
 ], ['0.5' => 0.5, '-0.99' => -0.99, '1.5' => 1.5]));
 probe('C32-F-using-non-finite-comparator', "collect([1, 2, 3])->diffUsing([2], fn () => \$answer) for NAN, INF and -INF", fn () => array_map(fn (float $answer) => @collect([1, 2, 3])->diffUsing([2], fn () => $answer)->all(), ['NAN' => NAN, 'INF' => INF, '-INF' => -INF]));
+probe('C32-F-using-comparator-past-int-range', "diffUsing([2], \$comparator) and intersectUsing([2], \$comparator) over collect([1, 2, 3]) for a comparator answering (\$a <=> \$b) * 2**64, which the int cast wraps to 0, and diffUsing([2]) for one answering (\$a <=> \$b) * 1e19", fn () => [
+    'diffUsing 2**64' => @collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => ($a <=> $b) * 18446744073709551616.0)->values()->all(),
+    'intersectUsing 2**64' => @collect([1, 2, 3])->intersectUsing([2], fn ($a, $b) => ($a <=> $b) * 18446744073709551616.0)->values()->all(),
+    'diffUsing 1e19' => @collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => ($a <=> $b) * 1e19)->values()->all(),
+]);
 probe('C32-F-diffAssocUsing-mixed-keys-order', "collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')", fn () => $fViews(collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')));
 
 // diffKeys: only the operand's own keys count, so a list operand holds no 'length' key
@@ -1739,6 +1748,39 @@ probe('C32-G-sortByDesc-bool-comparator', "sortByDesc() and Arr::sortDesc() with
     'Arr::sortDesc list' => @Arr::sortDesc([3, 1, 2], [fn ($a, $b) => $a > $b]),
     'Arr::sortDesc keyed' => @Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
 ]);
+// PHP 8 casts a float past its int range to an int by keeping the low 64 bits, and NAN or an infinity to 0
+probe('C32-G-int-cast-past-int-range', "(int) \$float for 1e19, -1e19, 2**63, -2**63, 2**64, 3 * 2**63, 1.5e19, 1e20, 1e30, -1e30, 2**63 + 2048, 2**64 - 2048, NAN, INF, -INF, -0.0, 2.5 and -2.5", fn () => array_map(fn (float $value) => @((int) $value), [
+    '1e19' => 1e19,
+    '-1e19' => -1e19,
+    '2**63' => 9223372036854775808.0,
+    '-2**63' => -9223372036854775808.0,
+    '2**64' => 18446744073709551616.0,
+    '3 * 2**63' => 27670116110564327424.0,
+    '1.5e19' => 1.5e19,
+    '1e20' => 1e20,
+    '1e30' => 1e30,
+    '-1e30' => -1e30,
+    '2**63 + 2048' => 9223372036854777856.0,
+    '2**64 - 2048' => 18446744073709549568.0,
+    'NAN' => NAN,
+    'INF' => INF,
+    '-INF' => -INF,
+    '-0.0' => -0.0,
+    '2.5' => 2.5,
+    '-2.5' => -2.5,
+]));
+probe('C32-G-sort-comparator-past-int-range', "usort([3, 1, 2]) and (new Collection([3, 1, 2]))->sort() with a comparator answering (\$a <=> \$b) * 1e19, which the int cast wraps to the opposite sign, and usort() with one answering (\$a <=> \$b) * 2**64, which it wraps to 0", function () {
+    $wrapped = [3, 1, 2];
+    @usort($wrapped, fn ($a, $b) => ($a <=> $b) * 1e19);
+    $zero = [3, 1, 2];
+    @usort($zero, fn ($a, $b) => ($a <=> $b) * 18446744073709551616.0);
+
+    return [
+        'usort 1e19' => $wrapped,
+        'usort 2**64' => $zero,
+        'sort 1e19' => @(new Collection([3, 1, 2]))->sort(fn ($a, $b) => ($a <=> $b) * 1e19)->values()->all(),
+    ];
+});
 probe('C32-G-sortBy-out-of-order-ties', "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order", fn () => [
     'sortBy' => (new Collection($gTies))->sortBy('n')->pluck('id')->all(),
     'sortByDesc' => (new Collection($gTies))->sortByDesc('n')->pluck('id')->all(),
