@@ -995,6 +995,51 @@ class C32D_SelectAccess implements ArrayAccess
 
 probe('C32-D-select-arrayaccess-rows', "(new Collection([new C32D_SelectAccess(['a' => 'offset-a', 'n' => null])]))->select('a', 'n', 'p', 'q', 'missing'), with public \$a = 'prop-a', \$p = 'prop-p', \$q = null", fn () => pairs((new Collection([new C32D_SelectAccess(['a' => 'offset-a', 'n' => null])]))->select('a', 'n', 'p', 'q', 'missing')));
 
+/** An ArrayAccess row that counts the offsetExists and offsetGet calls it answers. */
+class C32D_CountingAccess implements ArrayAccess
+{
+    public int $exists = 0;
+    public int $gets = 0;
+    public function __construct(private array $items) {}
+    public function offsetExists(mixed $offset): bool { $this->exists++; return array_key_exists($offset, $this->items); }
+    public function offsetGet(mixed $offset): mixed { $this->gets++; return $this->items[$offset]; }
+    public function offsetSet(mixed $offset, mixed $value): void { $this->items[$offset] = $value; }
+    public function offsetUnset(mixed $offset): void { unset($this->items[$offset]); }
+}
+
+probe('C32-D-select-arrayaccess-call-counts', "Arr::select([\$row], ['a']) and Arr::select([\$row], ['a', 'missing']) over a fresh C32D_CountingAccess(['a' => 1]): the selection, then the offsetExists and offsetGet calls", fn () => array_map(function (array $keys) {
+    $row = new C32D_CountingAccess(['a' => 1]);
+    $selected = Arr::select([$row], $keys);
+
+    return [pairs($selected), $row->exists, $row->gets];
+}, [['a'], ['a', 'missing']]));
+probe('C32-D-select-collection-row-fields', "Arr::select([new Collection(['a' => 1])], ['items', 'a']) and (new Collection([new Collection(['a' => 1])]))->select('items', 'a')", fn () => [
+    pairs(Arr::select([new Collection(['a' => 1])], ['items', 'a'])),
+    pairs((new Collection([new Collection(['a' => 1])]))->select('items', 'a')),
+]);
+// array_flip skips a key it cannot store, while array_key_exists throws for one.
+probe('C32-D-only-odd-later-args', "only('a', null) over ['null' => 1, 'a' => 2], only('a', ['b']) and only('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], and only(0, [1]) over ['x', 'y']", fn () => [
+    'null' => pairs(@(new Collection(['null' => 1, 'a' => 2]))->only('a', null)),
+    'array' => pairs(@(new Collection(['a' => 1, 'b' => 2]))->only('a', ['b'])),
+    'collection' => pairs(@(new Collection(['a' => 1, 'b' => 2]))->only('a', new Collection(['b']))),
+    'list' => pairs(@(new Collection(['x', 'y']))->only(0, [1])),
+]);
+probe('C32-D-array-key-type-error', "except('a', ['b']) and except('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], Arr::except([], [['b']]), and select('a', ['b']) over an array row, an object row, a scalar row and no rows", fn () => array_map(function (callable $run) {
+    try {
+        return pairs($run());
+    } catch (\TypeError $e) {
+        return get_class($e) . ': ' . $e->getMessage();
+    }
+}, [
+    'except-array' => fn () => (new Collection(['a' => 1, 'b' => 2]))->except('a', ['b']),
+    'except-collection' => fn () => (new Collection(['a' => 1, 'b' => 2]))->except('a', new Collection(['b'])),
+    'arr-except-empty' => fn () => Arr::except([], [['b']]),
+    'select-array-row' => fn () => (new Collection([['a' => 1, 'b' => 2]]))->select('a', ['b']),
+    'select-object-row' => fn () => @(new Collection([(object) ['a' => 1, 'b' => 2]]))->select('a', ['b']),
+    'select-scalar-row' => fn () => (new Collection([1]))->select('a', ['b']),
+    'select-no-rows' => fn () => (new Collection([]))->select('a', ['b']),
+]));
+
 // ---- Family E ------------------------------------------------------------
 
 enum C32E_Pure { case A; }

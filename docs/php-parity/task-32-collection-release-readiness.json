@@ -4592,6 +4592,107 @@
             ]
         },
         {
+            "label": "C32-D-select-arrayaccess-call-counts",
+            "php": "Arr::select([$row], ['a']) and Arr::select([$row], ['a', 'missing']) over a fresh C32D_CountingAccess(['a' => 1]): the selection, then the offsetExists and offsetGet calls",
+            "value": [
+                [
+                    [
+                        [
+                            [
+                                "a",
+                                1
+                            ]
+                        ]
+                    ],
+                    1,
+                    1
+                ],
+                [
+                    [
+                        [
+                            [
+                                "a",
+                                1
+                            ]
+                        ]
+                    ],
+                    2,
+                    1
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-collection-row-fields",
+            "php": "Arr::select([new Collection(['a' => 1])], ['items', 'a']) and (new Collection([new Collection(['a' => 1])]))->select('items', 'a')",
+            "value": [
+                [
+                    [
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ],
+                [
+                    [
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-only-odd-later-args",
+            "php": "only('a', null) over ['null' => 1, 'a' => 2], only('a', ['b']) and only('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], and only(0, [1]) over ['x', 'y']",
+            "value": {
+                "null": [
+                    [
+                        "a",
+                        2
+                    ]
+                ],
+                "array": [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                "collection": [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                "list": [
+                    "x"
+                ]
+            }
+        },
+        {
+            "label": "C32-D-array-key-type-error",
+            "php": "except('a', ['b']) and except('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], Arr::except([], [['b']]), and select('a', ['b']) over an array row, an object row, a scalar row and no rows",
+            "value": {
+                "except-array": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "except-collection": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "arr-except-empty": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "select-array-row": "TypeError: array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                "select-object-row": [
+                    [
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ],
+                "select-scalar-row": [
+                    []
+                ],
+                "select-no-rows": []
+            }
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
