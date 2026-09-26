@@ -180,6 +180,16 @@ describe("data writes type tests", () => {
             expectTypeOf(Data.dataPrepend(abc, 9)).toEqualTypeOf(
                 Obj.prepend(abc, 9),
             );
+            // Stated too: the pins above would still hold if both sides answered the same wrong record.
+            expectTypeOf(Data.dataPrepend(abc, 9, "z")).toEqualTypeOf<{
+                z: number;
+                a: number;
+                b: number;
+                c: number;
+            }>();
+            expectTypeOf(Data.dataPrepend(abc, 9)).toEqualTypeOf<
+                { a: number; b: number; c: number } & Record<number, number>
+            >();
         });
 
         it("types a Map from obj's widest row", () => {
@@ -191,6 +201,9 @@ describe("data writes type tests", () => {
             >();
             expectTypeOf(Data.dataPrepend(numberMap, "z", "k")).toEqualTypeOf<
                 typeof widest
+            >();
+            expectTypeOf(Data.dataPrepend(numberMap, 9)).toEqualTypeOf<
+                Record<string | number, unknown>
             >();
         });
     });

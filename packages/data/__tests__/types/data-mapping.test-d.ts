@@ -273,6 +273,12 @@ describe("data mapping type tests", () => {
                     [row.name]: row.id,
                 })),
             ).toEqualTypeOf<Record<string, number>>();
+            // A record's string index signature also takes number keys, so obj's answer names both.
+            expectTypeOf(
+                Data.dataMapWithKeys(rowsById, (row) => ({
+                    [row.name]: row.id,
+                })),
+            ).toEqualTypeOf<Record<string | number, number>>();
             expectTypeOf(
                 Data.dataMapWithKeys(rowsById, (row) => ({ fixed: row.id })),
             ).toEqualTypeOf<Record<"fixed", number>>();
