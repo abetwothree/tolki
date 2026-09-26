@@ -122,6 +122,23 @@ describe("data setops type tests", () => {
             ).toEqualTypeOf(Obj.intersectUsing(abc, { a: 1 }, same));
         });
 
+        it("match each backing given a nullish other", () => {
+            const loose = (a: unknown, b: unknown): boolean => a === b;
+
+            expectTypeOf(
+                Data.dataDiffUsing(numberList, null, loose),
+            ).toEqualTypeOf(Arr.diffUsing(numberList, null, loose));
+            expectTypeOf(Data.dataDiffUsing(abc, null, loose)).toEqualTypeOf(
+                Obj.diffUsing(abc, null, loose),
+            );
+            expectTypeOf(
+                Data.dataIntersectUsing(numberList, null, loose),
+            ).toEqualTypeOf(Arr.intersectUsing(numberList, null, loose));
+            expectTypeOf(
+                Data.dataIntersectUsing(abc, null, loose),
+            ).toEqualTypeOf(Obj.intersectUsing(abc, null, loose));
+        });
+
         it("type a callback from the delegate each backing reaches", () => {
             // The callbacks are inline and unannotated on purpose: an annotation would supply the types they assert.
             const diffed = Data.dataDiffUsing([1, 2], ["x"], (value, other) => {
@@ -521,6 +538,14 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataDiffKeys(settings, { a: 1 })).toEqualTypeOf(
                 Obj.diffKeys(settings, { a: 1 }),
             );
+
+            const same = (a: number, b: number): boolean => a === b;
+            expectTypeOf(
+                Data.dataDiffUsing(settings, { a: 1 }, same),
+            ).toEqualTypeOf(Obj.diffUsing(settings, { a: 1 }, same));
+            expectTypeOf(
+                Data.dataIntersectUsing(settings, { a: 1 }, same),
+            ).toEqualTypeOf(Obj.intersectUsing(settings, { a: 1 }, same));
         });
 
         it("accepts a class instance", () => {
@@ -530,6 +555,14 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataDiffKeys(box, { b: 2 })).toEqualTypeOf(
                 Obj.diffKeys(box, { b: 2 }),
             );
+
+            const same = (a: number, b: number): boolean => a === b;
+            expectTypeOf(Data.dataDiffUsing(box, { b: 2 }, same)).toEqualTypeOf(
+                Obj.diffUsing(box, { b: 2 }, same),
+            );
+            expectTypeOf(
+                Data.dataIntersectUsing(box, { b: 2 }, same),
+            ).toEqualTypeOf(Obj.intersectUsing(box, { b: 2 }, same));
             expectTypeOf(Data.dataCollapse(box)).toEqualTypeOf(
                 Obj.collapse(box),
             );
