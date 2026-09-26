@@ -2142,6 +2142,29 @@ describe("Collection", () => {
                 expect(result.values().all()).toEqual([1]);
             }
         });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const result = collect({ a: 1, b: 2 }).diffAssoc({
+                all: () => ({ b: 2 }),
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, b: 2 });
+            expect(result.keys().all()).toEqual(["a", "b"]);
+            expect(result.values().all()).toEqual([1, 2]);
+        });
+
+        it("reads a plain object's all member as one of its entries for diffAssocUsing, never unwrapping it", () => {
+            const result = collect({ a: 1, b: 2 }).diffAssocUsing(
+                { all: () => ({ b: 2 }) },
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, b: 2 });
+            expect(result.keys().all()).toEqual(["a", "b"]);
+            expect(result.values().all()).toEqual([1, 2]);
+        });
     });
 
     describe("diffKeys", () => {
@@ -2187,6 +2210,17 @@ describe("Collection", () => {
             expect(diffed.keys().all()).toEqual(["a"]);
             expect(diffed.values().all()).toEqual([1]);
         });
+
+        it("reads a plain object's all member as one of its keys, never unwrapping it", () => {
+            const result = collect({ all: 1, b: 2 }).diffKeys({
+                all: () => ({ b: 2 }),
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ b: 2 });
+            expect(result.keys().all()).toEqual(["b"]);
+            expect(result.values().all()).toEqual([2]);
+        });
     });
 
     describe("diffKeysUsing", () => {
@@ -2231,6 +2265,18 @@ describe("Collection", () => {
             expect(diffed.all()).toEqual({ a: 1 });
             expect(diffed.keys().all()).toEqual(["a"]);
             expect(diffed.values().all()).toEqual([1]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const result = collect({ a: 1, b: 2 }).diffKeysUsing(
+                { all: () => ({ b: 2 }) },
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, b: 2 });
+            expect(result.keys().all()).toEqual(["a", "b"]);
+            expect(result.values().all()).toEqual([1, 2]);
         });
     });
 
@@ -4351,8 +4397,7 @@ describe("Collection", () => {
         });
 
         // docs/php-parity/task-17-second-review.json, "intersect over array items collapses to \"Array\""
-        // PHP casts every array value to the string "Array", so both items match; we compare
-        // object values by identity instead. Documented in the Phase 1 divergence list.
+        // JS-only: PHP casts each array item to the string "Array" and keeps both; an object matches by identity here
         it('keeps object items that are identical, where PHP keeps both via its "Array" cast', () => {
             const shared = { id: 1 };
             expect(
@@ -4365,6 +4410,7 @@ describe("Collection", () => {
 
     describe("intersect operand handling", () => {
         it("agrees with Arr.intersect on identical object items", () => {
+            // JS-only: an object item matches by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             const collection = new Collection([shared, { id: 2 }])
                 .intersect([shared])
@@ -4375,6 +4421,7 @@ describe("Collection", () => {
         });
 
         it("does not contradict diff about whether an item is present", () => {
+            // JS-only: diff and intersect both match an object item by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             const removedByDiff = new Collection([shared, { id: 2 }])
                 .diff([shared])
@@ -4403,6 +4450,7 @@ describe("Collection", () => {
         });
 
         it("normalizes a Map operand the way diff does", () => {
+            // JS-only: PHP has no Map; a Map operand stands in for the array it holds
             const map = new Map([["b", 20]]);
             expect(
                 new Collection({ a: 10, b: 20 }).intersect(map as never).all(),
@@ -4448,7 +4496,7 @@ describe("Collection", () => {
     });
 
     describe("intersectUsing operand handling", () => {
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 20]]);
             expect(
@@ -4514,6 +4562,7 @@ describe("Collection", () => {
 
     describe("intersectAssoc operand handling", () => {
         it("keeps an identical object value under a matching key, like intersect does", () => {
+            // JS-only: an object value matches by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             expect(
                 new Collection({ a: shared })
@@ -4522,7 +4571,7 @@ describe("Collection", () => {
             ).toEqual({ a: shared });
         });
 
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 20]]);
             expect(
@@ -4567,6 +4616,18 @@ describe("Collection", () => {
             expect(
                 collect(["a", "b"]).intersectAssoc({ 1: "b" }).all(),
             ).toEqual(["b"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1, b: 2 }).intersectAssoc(
+                operand as never,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({});
+            expect(result.keys().all()).toEqual([]);
+            expect(result.values().all()).toEqual([]);
         });
     });
 
@@ -4627,6 +4688,7 @@ describe("Collection", () => {
 
     describe("intersectAssocUsing operand handling", () => {
         it("keeps an identical object value when the key callback matches", () => {
+            // JS-only: an object value matches by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             expect(
                 new Collection({ a: shared })
@@ -4635,7 +4697,7 @@ describe("Collection", () => {
             ).toEqual({ a: shared });
         });
 
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([
                 ["A", "green"],
@@ -4689,6 +4751,19 @@ describe("Collection", () => {
                     .all(),
             ).toEqual(["b"]);
         });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1, b: 2 }).intersectAssocUsing(
+                operand as never,
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({});
+            expect(result.keys().all()).toEqual([]);
+            expect(result.values().all()).toEqual([]);
+        });
     });
 
     describe("intersectByKeys", () => {
@@ -4734,7 +4809,7 @@ describe("Collection", () => {
     });
 
     describe("intersectByKeys operand handling", () => {
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 999]]);
             expect(
@@ -4771,6 +4846,18 @@ describe("Collection", () => {
             expect(
                 collect([1, 2, 3]).intersectByKeys({ 0: "x", 2: "y" }).all(),
             ).toEqual([1, 3]);
+        });
+
+        it("reads a plain object's all member as one of its keys, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ all: 1, b: 2 }).intersectByKeys(
+                operand as never,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ all: 1 });
+            expect(result.keys().all()).toEqual(["all"]);
+            expect(result.values().all()).toEqual([1]);
         });
     });
 
@@ -5989,6 +6076,16 @@ describe("Collection", () => {
             expect(merged.keys().all()).toEqual([0, "k"]);
             expect(merged.values().all()).toEqual(["a", "b"]);
         });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).merge(operand as never);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
+        });
     });
 
     describe("mergeRecursive", () => {
@@ -6122,7 +6219,10 @@ describe("Collection", () => {
 
             const target2 = collect({ a: 1, b: { x: 2, y: 3 }, c: [4, 5] });
             const source2 = collect([[6, 7], 4, { x: [8, 9] }]);
-            expect(target2.mergeRecursive(source2).all()).toEqual({
+            const merged2 = target2.mergeRecursive(source2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-object-then-list"
+            expect(merged2.all()).toEqual({
                 "0": [6, 7],
                 "1": 4,
                 "2": { x: [8, 9] },
@@ -6130,6 +6230,15 @@ describe("Collection", () => {
                 b: { x: 2, y: 3 },
                 c: [4, 5],
             });
+            expect(merged2.keys().all()).toEqual(["a", "b", "c", 0, 1, 2]);
+            expect(merged2.values().all()).toEqual([
+                1,
+                { x: 2, y: 3 },
+                [4, 5],
+                [6, 7],
+                4,
+                { x: [8, 9] },
+            ]);
         });
 
         it("appends a list's items at the top level, as it does every integer key", () => {
@@ -6215,11 +6324,8 @@ describe("Collection", () => {
 
     describe("multiply", () => {
         it("Laravel Tests", () => {
-            const c = collect([
-                "Hello",
-                1,
-                { tags: ["a", "b"], role: "admin" },
-            ]);
+            // CollectionTest::testMultiplyCollection
+            const c = collect(["Hello", 1, { tags: ["a", "b"], 0: "admin" }]);
 
             expect(c.multiply(-1).all()).toEqual([]);
             expect(c.multiply(0).all()).toEqual([]);
@@ -6227,19 +6333,26 @@ describe("Collection", () => {
             expect(c.multiply(1).all()).toEqual([
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
             ]);
 
             expect(c.multiply(3).all()).toEqual([
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
+            ]);
+        });
+
+        it("repeats a record's values as a list", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-assoc"
+            expect(collect({ a: 1, b: 2 }).multiply(2).all()).toEqual([
+                1, 2, 1, 2,
             ]);
         });
 
@@ -6251,9 +6364,8 @@ describe("Collection", () => {
 
     describe("combine", () => {
         describe("Laravel Tests", () => {
-            // `Arr.combine` used to zip arrays into tuples, so `c.combine([4,5,6])`
-            // here returned `[[1,4],[2,5],[3,6]]` — this test was pinning that bug.
             it("test combine with array", () => {
+                // CollectionTest::testCombineWithArray
                 const c = collect([1, 2, 3]);
                 expect(c.combine([4, 5, 6]).all()).toEqual({
                     1: 4,
@@ -6261,17 +6373,21 @@ describe("Collection", () => {
                     3: 6,
                 });
 
-                const d = collect(["name", "family"]);
-                expect(d.combine(["taylor", "otwell"]).all()).toEqual({
-                    name: "taylor",
-                    family: "otwell",
+                const d = collect(["name", "family"]).combine({
+                    1: "taylor",
+                    2: "otwell",
                 });
+                expect(d.all()).toEqual({ name: "taylor", family: "otwell" });
+                expect(d.keys().all()).toEqual(["name", "family"]);
+                expect(d.values().all()).toEqual(["taylor", "otwell"]);
 
-                const e = collect({ 1: "name", 2: "family" });
-                expect(e.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
-                    name: "taylor",
-                    family: "otwell",
-                });
+                const e = collect({ 1: "name", 2: "family" }).combine([
+                    "taylor",
+                    "otwell",
+                ]);
+                expect(e.all()).toEqual({ name: "taylor", family: "otwell" });
+                expect(e.keys().all()).toEqual(["name", "family"]);
+                expect(e.values().all()).toEqual(["taylor", "otwell"]);
 
                 const f = collect({ 1: "name", 2: "family" });
                 expect(f.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
@@ -6376,6 +6492,16 @@ describe("Collection", () => {
                 repo: 1,
             });
         });
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["v"] };
+            const result = collect(["k"]).combine(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ k: operand.all });
+            expect(result.keys().all()).toEqual(["k"]);
+            expect(result.values().all()).toEqual([operand.all]);
+        });
     });
 
     describe("union", () => {
@@ -6417,8 +6543,8 @@ describe("Collection", () => {
         });
 
         it("lets the left operand win even when its value is undefined", () => {
-            // PHP-verified: ["a"=>null] + ["a"=>1] -> {"a":null}
-            // (docs/php-parity/task-07-pad-union.json).
+            // docs/php-parity/task-07-pad-union.json, "Collection::union"
+            // JS-only: undefined stands in for PHP's null, which the left operand keeps
             const c = collect({ a: undefined });
             const result = c.union({ a: 1, b: 2 }).all();
             expect(result).toEqual({ a: undefined, b: 2 });
@@ -6442,6 +6568,7 @@ describe("Collection", () => {
         });
 
         it("agrees whether array- or object-backed, over the same conceptual data", () => {
+            // JS-only: PHP has one array type, where a list and a record backing must agree over the same entries
             const fromArray = collect([1, 2]);
             const fromObject = collect({ 0: 1, 1: 2 });
 
@@ -6497,6 +6624,16 @@ describe("Collection", () => {
             });
             expect(united.keys().all()).toEqual([2, 0, 1, 3, "k"]);
             expect(united.values().all()).toEqual(["c", "a", "b", "d", "e"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).union(operand as never);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
         });
 
         it("keeps its own items when one is a function stored under an all or toJSON key", () => {
@@ -8606,16 +8743,18 @@ describe("Collection", () => {
             });
 
             it("test replace array", () => {
+                // CollectionTest::testReplaceArray
                 const c = collect(["a", "b", "c"]);
-                expect(c.replace(["d", "e"]).all()).toEqual(["d", "e", "c"]);
-
-                const c2 = collect(["a", "b", "c"]);
-                expect(c2.replace(["d", "e", "f", "g"]).all()).toEqual([
+                expect(c.replace({ 1: "d", 2: "e" }).all()).toEqual([
+                    "a",
                     "d",
                     "e",
-                    "f",
-                    "g",
                 ]);
+
+                const c2 = collect(["a", "b", "c"]);
+                expect(
+                    c2.replace({ 1: "d", 2: "e", 3: "f", 4: "g" }).all(),
+                ).toEqual(["a", "d", "e", "f", "g"]);
 
                 const c3 = collect({ name: "amir", family: "otwell" });
                 expect(c3.replace({ name: "taylor", age: 26 }).all()).toEqual({
@@ -8628,16 +8767,18 @@ describe("Collection", () => {
             it("test replace collection", () => {
                 // CollectionTest::testReplaceCollection
                 const c = collect(["a", "b", "c"]);
-                expect(c.replace(collect(["d", "e"])).all()).toEqual([
+                expect(c.replace(collect({ 1: "d", 2: "e" })).all()).toEqual([
+                    "a",
                     "d",
                     "e",
-                    "c",
                 ]);
 
                 const c2 = collect(["a", "b", "c"]);
-                expect(c2.replace(collect(["d", "e", "f", "g"])).all()).toEqual(
-                    ["d", "e", "f", "g"],
-                );
+                expect(
+                    c2
+                        .replace(collect({ 1: "d", 2: "e", 3: "f", 4: "g" }))
+                        .all(),
+                ).toEqual(["a", "d", "e", "f", "g"]);
 
                 // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc":
                 // the same replacer as an array, so the same keys in the same order
@@ -8730,6 +8871,16 @@ describe("Collection", () => {
             expect(replaced.keys().all()).toEqual([2, 0, 1, 5]);
             expect(replaced.values().all()).toEqual(["c", "a", "B", "f"]);
         });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).replace(operand as never);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -8753,29 +8904,28 @@ describe("Collection", () => {
             });
 
             it("test replace recursive array", () => {
+                // CollectionTest::testReplaceRecursiveArray
                 const c = collect(["a", "b", ["c", "d"]]);
                 expect(
-                    c.replaceRecursive(["z", "b", ["c", "e"]]).all(),
-                ).toEqual(["z", "b", ["c", "e"]]);
-
-                const c2 = collect(["a", "b", ["c", "d"]]);
-                expect(
-                    c2.replaceRecursive(["z", "b", ["c", "e"], "f"]).all(),
-                ).toEqual(["z", "b", ["c", "e"], "f"]);
-            });
-
-            it("test replace recursive collection", () => {
-                const c = collect(["a", "b", ["c", "d"]]);
-                expect(
-                    c.replaceRecursive(collect(["z", "b", ["c", "e"]])).all(),
+                    c.replaceRecursive({ 0: "z", 2: { 1: "e" } }).all(),
                 ).toEqual(["z", "b", ["c", "e"]]);
 
                 const c2 = collect(["a", "b", ["c", "d"]]);
                 expect(
                     c2
-                        .replaceRecursive(collect(["z", "b", ["c", "e"], "f"]))
+                        .replaceRecursive({ 0: "z", 2: { 1: "e" }, 3: "f" })
                         .all(),
                 ).toEqual(["z", "b", ["c", "e"], "f"]);
+            });
+
+            it("test replace recursive collection", () => {
+                // CollectionTest::testReplaceRecursiveCollection
+                const c = collect(["a", "b", ["c", "d"]]);
+                expect(
+                    c
+                        .replaceRecursive(collect({ 0: "z", 2: { 1: "e" } }))
+                        .all(),
+                ).toEqual(["z", "b", ["c", "e"]]);
             });
         });
 
