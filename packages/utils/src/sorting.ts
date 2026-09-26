@@ -31,16 +31,16 @@ export function createSortSpecComparator(resolve: SortValueResolver) {
     return function sortSpecComparator<TValue>(
         spec: SortSpec<TValue>,
         forceDescending: boolean,
-    ): (a: TValue, b: TValue) => number {
-        if (isFunction(spec)) {
-            return spec as (a: TValue, b: TValue) => number;
+    ): (a: TValue, b: TValue) => number | boolean {
+        if (isComparator<TValue>(spec)) {
+            return spec;
         }
 
         // Collection::sortByMany reads [0] off Arr::wrap($comparison) and then
         // tests is_callable, so a comparator nested in a one-element descriptor
         // is still a comparator, never a key path.
-        if (isArray(spec) && isFunction(spec[0])) {
-            return spec[0] as (a: TValue, b: TValue) => number;
+        if (isArray(spec) && isComparator<TValue>(spec[0])) {
+            return spec[0];
         }
 
         const [key, direction] = isArray(spec)
@@ -65,6 +65,18 @@ export function createSortSpecComparator(resolve: SortValueResolver) {
             return isDescending ? -comparison : comparison;
         };
     };
+}
+
+/**
+ * Determine whether a sort descriptor is a comparator of two items, which PHP's is_callable() tells from a key path.
+ *
+ * @param spec - The descriptor, or the first entry of one
+ * @returns True for a function, which the sort reads as a comparator answering a number or a bool
+ */
+function isComparator<TValue>(
+    spec: unknown,
+): spec is (a: TValue, b: TValue) => number | boolean {
+    return isFunction(spec);
 }
 
 /**

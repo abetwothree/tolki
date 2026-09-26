@@ -13,6 +13,22 @@ const comparatorFor = (spec: SortSpec<Row>, forceDescending = false) =>
     createSortSpecComparator(readOwnKey)<Row>(spec, forceDescending);
 
 describe("createSortSpecComparator", () => {
+    it("hands a comparator descriptor back as it is, answering the bool it gives", () => {
+        const greater = (a: number, b: number) => a > b;
+
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator": PHP reads the
+        // bool when uasort() gets it, so the descriptor's own answer passes through untouched
+        expect(createSortSpecComparator(readOwnKey)(greater, false)).toBe(
+            greater,
+        );
+        expect(
+            createSortSpecComparator(readOwnKey)<number>(
+                [greater] as never,
+                false,
+            )(2, 1),
+        ).toBe(true);
+    });
+
     it("reads every descriptor key through the injected resolver", () => {
         const seen: PathKey[] = [];
         const comparator = createSortSpecComparator((item, key) => {
