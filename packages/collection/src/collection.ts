@@ -3319,11 +3319,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         return this.newInstance(
-            handOver(
-                sortedIntoItems(
-                    entries.map(([key, value]) => [String(key), value]),
-                ) as DataItems<TValue, TKey>,
-            ),
+            this.sortedItems(entries.map(([key, value]) => [key, value])),
         );
     }
 
@@ -3387,14 +3383,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         return this.newInstance(
-            handOver(
-                sortedIntoItems(
-                    entries.map(([key, value]) => [
-                        String(key),
-                        value as TValue,
-                    ]),
-                ) as DataItems<TValue, TKey>,
-            ),
+            this.sortedItems(entries as Array<[TKey, TValue]>),
         );
     }
 

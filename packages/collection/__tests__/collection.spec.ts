@@ -11450,37 +11450,33 @@ describe("Collection", () => {
             });
 
             it("test sort by always returns assoc", () => {
+                // CollectionTest::testSortByAlwaysReturnsAssoc
                 const data = collect({ a: "taylor", b: "dayle" });
                 const sorted = data.sortBy((x) => x);
 
                 expect(sorted.all()).toEqual({ b: "dayle", a: "taylor" });
+                expect(sorted.keys().all()).toEqual(["b", "a"]);
 
                 const data2 = collect(["taylor", "dayle"]);
                 const sorted2 = data2.sortBy((x) => x);
 
-                // PHP-verified ("sortBy/sortByMany over an integer-keyed backing"):
-                // words_all is {"1":"dayle","0":"taylor"}, words_values is
-                // ["dayle","taylor"]. Only the order survives the renumbering here.
-                expect(sorted2.all()).toEqual({ 0: "dayle", 1: "taylor" });
+                // JS-only: the sort family renumbers integer keys, where PHP keeps [1 => 'dayle', 0 => 'taylor']
+                expect(sorted2.all()).toEqual(["dayle", "taylor"]);
 
                 const data3 = collect({ a: { sort: 2 }, b: { sort: 1 } });
-                const sorted3 = data3.sortBy("sort");
+                const sorted3 = data3.sortBy([["sort", "asc"]]);
 
                 expect(sorted3.all()).toEqual({
                     b: { sort: 1 },
                     a: { sort: 2 },
                 });
+                expect(sorted3.keys().all()).toEqual(["b", "a"]);
 
                 const data4 = collect([{ sort: 2 }, { sort: 1 }]);
-                const sorted4 = data4.sortBy("sort");
+                const sorted4 = data4.sortBy([["sort", "asc"]]);
 
-                // Same trade as data2 above: PHP's records_all is
-                // {"1":{"sort":1},"0":{"sort":2}}, records_values is
-                // [{"sort":1},{"sort":2}], and only the order survives here.
-                expect(sorted4.all()).toEqual({
-                    0: { sort: 1 },
-                    1: { sort: 2 },
-                });
+                // JS-only: the sort family renumbers integer keys, where PHP keeps [1 => ['sort' => 1], 0 => ...]
+                expect(sorted4.all()).toEqual([{ sort: 1 }, { sort: 2 }]);
             });
         });
 
@@ -11691,9 +11687,8 @@ describe("Collection", () => {
             // collect([3,1,2])->sortBy([]) keeps [3,1,2]: PHP's usort
             // comparator falls straight through to `return 0` with no
             // comparisons to run. Only a non-array argument is rejected.
-            expect(collect([3, 1, 2]).sortBy([]).values().all()).toEqual([
-                3, 1, 2,
-            ]);
+            // docs/php-parity/task-11-final-fixes.json, "sortBy with no comparisons leaves the order alone"
+            expect(collect([3, 1, 2]).sortBy([]).all()).toEqual([3, 1, 2]);
             expect(collect([3, 1, 2]).sortByMany([]).values().all()).toEqual([
                 3, 1, 2,
             ]);
@@ -11710,15 +11705,10 @@ describe("Collection", () => {
             // PHP-verified: vals_plucked [5,10,20] in the same probe row.
             expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
 
-            // PHP's nums_all keeps the names, {"1":1,"2":2,"0":3}; renumbering
-            // is what lets the object hold nums_values' order [1,2,3] at all.
+            // JS-only: the sort family renumbers integer keys, where PHP's nums_all keeps {"1":1,"2":2,"0":3}
             const arrayData = collect([3, 1, 2]);
             const sortedArray = arrayData.sortByMany([(a, b) => a - b]);
-            expect(sortedArray.all()).toEqual({
-                "0": 1,
-                "1": 2,
-                "2": 3,
-            });
+            expect(sortedArray.all()).toEqual([1, 2, 3]);
 
             // Test continue branch - when first comparison returns 0,
             // it should continue to next comparison
