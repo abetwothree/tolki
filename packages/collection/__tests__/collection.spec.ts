@@ -8625,6 +8625,44 @@ describe("Collection", () => {
                 0: "x",
             });
         });
+
+        it("keeps the receiver's keys first, then those the replacer adds", () => {
+            const replaced = collect({ a: 1 }).replace(["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replace-assoc-then-list"
+            expect(replaced.all()).toEqual({ a: 1, 0: "x" });
+            expect(replaced.keys().all()).toEqual(["a", 0]);
+            expect(replaced.values().all()).toEqual([1, "x"]);
+        });
+
+        it("adds a replacer's keys in the order it holds them", () => {
+            const replaced = collect([1, 2, 3]).replace(
+                new Map([
+                    [7, "x"],
+                    [3, "y"],
+                ]),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replace-out-of-order-int-keys"
+            expect(replaced.all()).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+                7: "x",
+                3: "y",
+            });
+            expect(replaced.keys().all()).toEqual([0, 1, 2, 7, 3]);
+            expect(replaced.values().all()).toEqual([1, 2, 3, "x", "y"]);
+        });
+
+        it("keeps a Map-built receiver's keys in the order it holds them", () => {
+            const replaced = outOfOrderKeys().replace({ 1: "B", 5: "f" });
+
+            // docs/php-parity/task-30-map-order.json, "replace-out-of-order"
+            expect(replaced.all()).toEqual({ 0: "a", 1: "B", 2: "c", 5: "f" });
+            expect(replaced.keys().all()).toEqual([2, 0, 1, 5]);
+            expect(replaced.values().all()).toEqual(["c", "a", "B", "f"]);
+        });
     });
 
     describe("replaceRecursive", () => {

@@ -2580,30 +2580,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Replace the collection items with the given items.
      *
-     * A `null` `items` is a no-op regardless of whether this collection is array-
-     * or object-backed; it's passed straight to `dataReplace` rather than through
-     * `getRawItems` (which always returns `[]`) so it dispatches on `this.items`'s shape.
+     * As `array_replace` does, a replaced key keeps its place and a key the replacer adds comes after the rest.
      *
-     * @param items - The items to replace with
+     * @param items - The items to replace with; `null` replaces nothing
      * @returns A new collection with the replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
      * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5, 3])
      * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
+     * new Collection({a: 1}).replace(['x']); -> new Collection({a: 1, 0: 'x'})
      */
     replace<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
     ) {
+        const operand = this.operandEntries(items);
+
         return this.newInstance(
-            handOver(
-                dataReplace(
-                    this.items,
-                    isNull(items) || isUndefined(items)
-                        ? items
-                        : this.getRawItems(items),
-                ),
-            ),
+            this.inKeyOrder(dataReplace(this.items, new Map(operand)), operand),
         );
     }
 
