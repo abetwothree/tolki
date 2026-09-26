@@ -1749,7 +1749,8 @@ probe('C32-G-sortByDesc-bool-comparator', "sortByDesc() and Arr::sortDesc() with
     'Arr::sortDesc keyed' => @Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
 ]);
 // PHP 8 casts a float past its int range to an int by keeping the low 64 bits, and NAN or an infinity to 0
-probe('C32-G-int-cast-past-int-range', "(int) \$float for 1e19, -1e19, 2**63, -2**63, 2**64, 3 * 2**63, 1.5e19, 1e20, 1e30, -1e30, 2**63 + 2048, 2**64 - 2048, NAN, INF, -INF, -0.0, 2.5 and -2.5", fn () => array_map(fn (float $value) => @((int) $value), [
+// each int is written as its digits, which JSON cannot carry exactly as a number past 2^53
+probe('C32-G-int-cast-past-int-range', "(string) (int) \$float for 1e19, -1e19, 2**63, -2**63, 2**64, 3 * 2**63, 1.5e19, 1e20, 1e30, -1e30, 2**63 + 2048, 2**64 - 2048, NAN, INF, -INF, -0.0, 2.5 and -2.5", fn () => array_map(fn (float $value) => (string) @((int) $value), [
     '1e19' => 1e19,
     '-1e19' => -1e19,
     '2**63' => 9223372036854775808.0,
