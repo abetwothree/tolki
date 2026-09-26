@@ -3801,7 +3801,7 @@ describe("Arr", () => {
             }
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-falsy-props", whose
-            // object has no e; an undefined property stands for PHP's null, which isset() skips as it skips a
+            // object has no `e`; an undefined property stands for PHP's null, which isset() skips as it skips `a`
             expect(
                 Object.keys(
                     Arr.select([new Row()], ["a", "b", "c", "d", "e"])[0] ?? {},
