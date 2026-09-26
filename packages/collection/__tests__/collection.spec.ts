@@ -607,6 +607,11 @@ describe("Collection", () => {
             expectShape(collect({ a: 1 }), "keyed");
 
             expect(() => expectShape(collect(listOrRecord), "keyed")).toThrow();
+
+            // The constructor types an integer-keyed record as a list: the mismatch the pin exists to catch
+            expect(() =>
+                expectShape(new Collection({ 1: "a", 2: "b" }), "list"),
+            ).toThrow();
         });
     });
 

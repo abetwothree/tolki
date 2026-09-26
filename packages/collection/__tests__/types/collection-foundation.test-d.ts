@@ -177,6 +177,13 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("types a plain object with a toArray member as an Arrayable's list, though the runtime keeps it as data", () => {
+            // TypeScript cannot tell an object literal from an Arrayable class, so the literal types as a list.
+            expectTypeOf(collect({ toArray: () => [4, 5, 6] })).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
         it("reads a JsonSerializable's list", () => {
             expectTypeOf(collect(new SerializesList())).toEqualTypeOf<
                 Collection<string, number, "list">
