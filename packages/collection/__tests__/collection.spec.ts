@@ -9058,6 +9058,21 @@ describe("Collection", () => {
             expect(removed.all()).toEqual({ b: 2 });
         });
 
+        it("removes to the end for a null length, as array_splice does", () => {
+            const collection = collect([1, 2, 3, 4]);
+            const returned = collection.splice(1, null, ["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length"
+            expect({ returned: returned.all(), all: collection.all() }).toEqual(
+                {
+                    returned: [2, 3, 4],
+                    all: [1, "x"],
+                },
+            );
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, "x"]);
+        });
+
         it("splices to the end with a single argument, either backing", () => {
             // PHP branches on func_num_args === 1 (Collection.php:1770) — the one-arg
             // form removes offset -> end for both backings, not nothing.

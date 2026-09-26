@@ -3658,7 +3658,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Splice a portion of the underlying collection array.
      *
      * @param offset - The offset to start the splice
-     * @param length - The number of items to remove (if undefined, removes all from offset to end)
+     * @param length - The number of items to remove; null or none removes everything from the offset on
      * @param replacement - The items to insert in place of the removed items
      * @returns A new collection with the removed items
      *
@@ -3671,7 +3671,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     splice<TReplace, TKeyReplace extends PropertyKey>(
         offset: number,
-        length?: number,
+        length?: number | null,
         replacement?:
             | DataItems<TReplace, TKeyReplace>
             | Collection<TReplace, TKeyReplace>,
@@ -3681,13 +3681,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 ? [this.getRawItems(replacement)]
                 : ([] as []);
 
+        // A null length reaches the end, as array_splice's does.
+        const count = length ?? undefined;
         const ordered = this.orderedEntries();
 
         if (ordered) {
             return this.spliceOrdered(
                 ordered,
                 offset,
-                length,
+                count,
                 replacementItems.flatMap(
                     (source) => Object.values(source) as TValue[],
                 ),
@@ -3696,7 +3698,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return this.newInstance(
             handOver(
-                dataSplice(this.items, offset, length, ...replacementItems),
+                dataSplice(this.items, offset, count, ...replacementItems),
             ),
         );
     }
