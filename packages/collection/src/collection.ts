@@ -4910,13 +4910,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Apply the callback if the collection is empty.
      *
-     * @param callback - The callback to execute if the collection is empty
-     * @param defaultValue - The callback to execute if the collection is not empty
+     * @param callback - The callback to execute if the collection is empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is not empty, receiving it and false
      * @returns The result of the callback if executed, otherwise the current instance
      */
     whenEmpty<TWhenEmptyReturnType>(
-        callback: (instance: this) => TWhenEmptyReturnType,
-        defaultValue: ((instance: this) => TWhenEmptyReturnType) | null = null,
+        callback: (instance: this, value: boolean) => TWhenEmptyReturnType,
+        defaultValue:
+            | ((instance: this, value: boolean) => TWhenEmptyReturnType)
+            | null = null,
     ) {
         return this.when(this.isEmpty(), callback, defaultValue);
     }
@@ -4924,14 +4926,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Apply the callback if the collection is not empty.
      *
-     * @param callback - The callback to execute if the collection is not empty
-     * @param defaultValue - The callback to execute if the collection is empty
+     * @param callback - The callback to execute if the collection is not empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is empty, receiving it and false
      * @returns The result of the callback if executed, otherwise the current instance
      */
     whenNotEmpty<TWhenNotEmptyReturnType>(
-        callback: (instance: this) => TWhenNotEmptyReturnType,
+        callback: (instance: this, value: boolean) => TWhenNotEmptyReturnType,
         defaultValue:
-            | ((instance: this) => TWhenNotEmptyReturnType)
+            | ((instance: this, value: boolean) => TWhenNotEmptyReturnType)
             | null = null,
     ) {
         return this.when(this.isNotEmpty(), callback, defaultValue);
@@ -4940,14 +4942,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Apply the callback unless the collection is empty.
      *
-     * @param callback - The callback to execute unless the collection is empty
-     * @param defaultValue - The callback to execute if the collection is empty
+     * @param callback - The callback to execute unless the collection is empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is empty, receiving it and false
      * @returns The result of the callback if executed, otherwise the current instance
      */
     unlessEmpty<TUnlessEmptyReturnType>(
-        callback: (instance: this) => TUnlessEmptyReturnType,
+        callback: (instance: this, value: boolean) => TUnlessEmptyReturnType,
         defaultValue:
-            | ((instance: this) => TUnlessEmptyReturnType)
+            | ((instance: this, value: boolean) => TUnlessEmptyReturnType)
             | null = null,
     ) {
         return this.whenNotEmpty(callback, defaultValue);
@@ -4956,14 +4958,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Apply the callback unless the collection is not empty.
      *
-     * @param callback - The callback to execute unless the collection is not empty
-     * @param defaultValue - The callback to execute if the collection is not empty
+     * @param callback - The callback to execute unless the collection is not empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is not empty, receiving it and false
      * @returns The result of the callback if executed, otherwise the current instance
      */
     unlessNotEmpty<TUnlessNotEmptyReturnType>(
-        callback: (instance: this) => TUnlessNotEmptyReturnType,
+        callback: (instance: this, value: boolean) => TUnlessNotEmptyReturnType,
         defaultValue:
-            | ((instance: this) => TUnlessNotEmptyReturnType)
+            | ((instance: this, value: boolean) => TUnlessNotEmptyReturnType)
             | null = null,
     ) {
         return this.whenEmpty(callback, defaultValue);
