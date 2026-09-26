@@ -2608,11 +2608,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // A JS backing is a reference, so without a copy every `push` below would append
         // to this collection as well as to the result.
         const result = this.detachedCopy();
-        const items = this.getRawItems(source);
 
-        for (const [, value] of Object.entries(items)) {
-            result.push(value);
-        }
+        result.appendItems(Object.values(this.getRawItems(source)));
 
         return result;
     }
