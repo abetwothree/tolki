@@ -1214,6 +1214,20 @@ probe('C32-E-keyed-results-out-of-order-receiver', "a receiver whose integer key
     'mapToDictionary' => c32e_pairs((new Collection([2 => 5, 0 => 4]))->mapToDictionary(fn ($v, $k) => [$v => $k])),
     'flip' => c32e_pairs((new Collection([2 => 'x', 0 => 'y', 1 => 'x']))->flip()),
 ]);
+probe('C32-E-mapToDictionary-empty-return', "@collect([1, 2])->mapToDictionary(fn () => [])", fn () => c32e_pairs(@(new Collection([1, 2]))->mapToDictionary(fn () => [])));
+probe('C32-E-groupBy-groups-keep-subclass', "get_class of C32ASub([['a' => 1, 'b' => 'x']])->groupBy(['a', 'b']), of its group 1 and of that group's group 'x'", function () {
+    $grouped = (new C32ASub([['a' => 1, 'b' => 'x']]))->groupBy(['a', 'b']);
+
+    return [get_class($grouped), get_class($grouped->get(1)), get_class($grouped->get(1)->get('x'))];
+});
+probe('C32-E-groupBy-preserve-keys-mixed-order', "collect(['x' => 'p', 5 => 'q'])->groupBy(fn () => 'g', true)", fn () => c32e_pairs((new Collection(['x' => 'p', 5 => 'q']))->groupBy(fn () => 'g', true)));
+probe('C32-E-each-out-of-order-keys', "collect([2 => 'c', 0 => 'a', 1 => 'b'])->each(): keys seen", function () {
+    $seen = [];
+    (new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->each(function ($v, $k) use (&$seen) { $seen[] = $k; });
+
+    return $seen;
+});
+probe('C32-E-collapseWithKeys-out-of-order', "collect([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]])->collapseWithKeys()", fn () => c32e_pairs((new Collection([2 => ['c' => 1], 0 => ['a' => 1], 1 => ['b' => 1]]))->collapseWithKeys()));
 
 // ---- Family F ------------------------------------------------------------
 
