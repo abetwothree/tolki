@@ -6730,6 +6730,37 @@ describe("Obj", () => {
             expect(Obj.select(data, null)).toEqual({ a: {}, b: {} });
         });
 
+        it("reads an ArrayAccess item through its offsets, then a property isset() finds", () => {
+            class Access {
+                a = "prop-a";
+                p = "prop-p";
+                q = null;
+                readonly #items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.#items = items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.#items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.#items[offset];
+                }
+            }
+            const selected = Obj.select(
+                { r: new Access({ a: "offset-a", n: null }) },
+                ["a", "n", "p", "q", "missing"],
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-rows"
+            expect(selected).toEqual({
+                r: { a: "offset-a", n: null, p: "prop-p" },
+            });
+            expect(Object.keys(selected.r ?? {})).toEqual(["a", "n", "p"]);
+        });
+
         it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
             const data = { r: { "": "e", a: 1 } };
 

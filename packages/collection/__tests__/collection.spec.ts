@@ -6013,6 +6013,33 @@ describe("Collection", () => {
             ]);
         });
 
+        it("reads an ArrayAccess item through its offsets, then a property isset() finds", () => {
+            class Access {
+                a = "prop-a";
+                p = "prop-p";
+                q = null;
+                readonly #items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.#items = items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.#items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.#items[offset];
+                }
+            }
+            const selected = collect([new Access({ a: "offset-a", n: null })])
+                .select("a", "n", "p", "q", "missing")
+                .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-rows"
+            expect(selected).toEqual([{ a: "offset-a", n: null, p: "prop-p" }]);
+        });
+
         it("selects a Collection item by its items' keys, never its methods", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-rows"
             expect(

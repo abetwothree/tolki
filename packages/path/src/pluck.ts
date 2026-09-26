@@ -185,7 +185,7 @@ function readSegment(target: unknown, segment: string): unknown {
  * @param value - The value to test.
  * @returns True for an object other than a plain one with both methods; a plain object is data.
  */
-function isArrayAccess(value: unknown): value is {
+export function isArrayAccess(value: unknown): value is {
     offsetExists(offset: string): unknown;
     offsetGet(offset: string): unknown;
 } {
