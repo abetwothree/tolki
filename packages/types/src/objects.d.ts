@@ -585,6 +585,89 @@ type FlatLeafValue<T, D extends number> = T extends readonly (infer E)[]
           : ObjectFlatValue<ObjectValue<T>, ObjectDepth[D]>
       : T;
 
+/** collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection. */
+type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
+
+/**
+ * The items whose own entries collapse copies; a Map, Set, Date, RegExp, Promise or scalar is skipped. The runtime
+ * skips a class instance too, as PHP skips an object, but a type can't tell one from a plain object.
+ */
+type CollapseEntries<V> = Extract<
+    Exclude<V, NonObjectItems | Date | RegExp | Promise<unknown>>,
+    object
+>;
+
+/** An empty object fits Pick<I, K> only when K is optional in I; distributing checks each shape I may take. */
+type CollapseRequired<I, K extends PropertyKey> = I extends unknown
+    ? Record<never, never> extends Pick<I, K & keyof I>
+        ? false
+        : true
+    : never;
+
+/** A key is certain only when every shape I may take requires it; a Date, Map or scalar among them adds nothing. */
+type CollapseAlwaysKeys<I> = [I] extends [CollapseEntries<I>]
+    ? {
+          [K in keyof I]-?: false extends CollapseRequired<I, K> ? never : K;
+      }[keyof I]
+    : never;
+
+/** Only an item under a declared, required key of T is sure to be merged; an index signature may hold none. */
+type CollapseGuaranteed<T> = {
+    [P in keyof T]-?: string extends P
+        ? never
+        : number extends P
+          ? never
+          : Record<never, never> extends Pick<T, P>
+            ? never
+            : CollapseAlwaysKeys<CollapseItem<T[P]>>;
+}[keyof T];
+
+/** Object.entries skips symbol keys, so collapse never copies one. */
+type CollapseKeys<U> = U extends unknown ? Exclude<keyof U, symbol> : never;
+
+/** The last item holding a key wins it, and a union has no order, so the key may hold any of their values. */
+type CollapseValue<U, K extends PropertyKey> = U extends unknown
+    ? K extends keyof U
+        ? Required<U>[K]
+        : never
+    : never;
+
+/** A string index signature swallows the literal keys beside it, so that result holds any item's value at any key. */
+type CollapseMerge<U, G> =
+    string extends CollapseKeys<U>
+        ? Record<string, CollapseAnyValue<U>>
+        : Simplify<
+              { [K in Extract<CollapseKeys<U>, G>]: CollapseValue<U, K> } & {
+                  [K in Exclude<CollapseKeys<U>, G>]?: CollapseValue<U, K>;
+              }
+          >;
+
+/** Any value any item holds at any of its keys. */
+type CollapseAnyValue<U> = U extends unknown
+    ? Required<U>[CollapseKeys<U> & keyof U]
+    : never;
+
+/**
+ * The object `collapse()` merges an object's (or a list's) items into, as `array_merge` does: every key an item may
+ * have, required only where an item under a required key must have it, and integer keys renumbered. A list among the
+ * items appends under integer keys, so that result holds any key and value.
+ *
+ * @example
+ * CollapsedObject<{ a: { x: 1 }; b: { y: "s" } }>  // { x: 1; y: "s" }
+ * CollapsedObject<Record<number, { a: number }>>   // { a?: number }
+ * CollapsedObject<{ a: number[]; b: { y: "s" } }>  // Record<string | number, unknown>
+ */
+export type CollapsedObject<T> = [
+    Extract<CollapseItem<ObjectValue<T>>, readonly unknown[]>,
+] extends [never]
+    ? ReindexedObject<
+          CollapseMerge<
+              CollapseEntries<CollapseItem<ObjectValue<T>>>,
+              CollapseGuaranteed<T>
+          >
+      >
+    : Record<string | number, unknown>;
+
 /**
  * The items a spread callback receives from one row: a list row's own items, a Collection-like row's items read
  * through `all()`, an object row's values, and any other row whole. An unknown or keyless object row may hold any.

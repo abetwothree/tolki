@@ -1,5 +1,6 @@
 import type {
     ArrayableItems,
+    CollapsedObject,
     DeepMergeObjects,
     EnsureObject,
     FlipObject,
@@ -456,6 +457,26 @@ describe("object helper types", () => {
             expectTypeOf<
                 UnionToIntersection<{ a: 1 } | { b: 2 }>
             >().toEqualTypeOf<{ a: 1 } & { b: 2 }>();
+        });
+    });
+
+    describe("CollapsedObject", () => {
+        it("merges every item's entries, requiring the keys a required item must hold", () => {
+            expectTypeOf<
+                CollapsedObject<{ a: { x: 1 }; b: { y: "s" } }>
+            >().toEqualTypeOf<{ x: 1; y: "s" }>();
+        });
+
+        it("makes each key optional where no item is sure to be there", () => {
+            expectTypeOf<
+                CollapsedObject<Record<number, { a: number }>>
+            >().toEqualTypeOf<{ a?: number }>();
+        });
+
+        it("holds any key and value once a list sits among the items", () => {
+            expectTypeOf<
+                CollapsedObject<{ a: number[]; b: { y: "s" } }>
+            >().toEqualTypeOf<Record<string | number, unknown>>();
         });
     });
 

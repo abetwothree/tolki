@@ -17,6 +17,7 @@ import { finish, randomInt } from "@tolki/str";
 import type {
     ArrayableItems,
     CaseValue,
+    CollapsedObject,
     DeepMergeObjects,
     EnsureObject,
     FlipObject,
@@ -304,66 +305,6 @@ type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
         : T;
 type FlattenDepth = [never, 0, 1, 2, 3, 4];
 
-// collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection.
-type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
-// The items whose own entries collapse copies; a Map, Set, Date, RegExp, Promise or scalar is skipped. The runtime
-// skips a class instance too, as PHP skips an object, but a type can't tell one from a plain object.
-type CollapseEntries<V> = Extract<
-    Exclude<V, NonObjectItems | Date | RegExp | Promise<unknown>>,
-    object
->;
-// An empty object fits Pick<I, K> only when K is optional in I; distributing checks each shape I may take.
-type CollapseRequired<I, K extends PropertyKey> = I extends unknown
-    ? Record<never, never> extends Pick<I, K & keyof I>
-        ? false
-        : true
-    : never;
-// A key is certain only when every shape I may take requires it; a Date, Map or scalar among them adds nothing.
-type CollapseAlwaysKeys<I> = [I] extends [CollapseEntries<I>]
-    ? {
-          [K in keyof I]-?: false extends CollapseRequired<I, K> ? never : K;
-      }[keyof I]
-    : never;
-// Only an item under a declared, required key of T is sure to be merged; an index signature may hold none.
-type CollapseGuaranteed<T> = {
-    [P in keyof T]-?: string extends P
-        ? never
-        : number extends P
-          ? never
-          : Record<never, never> extends Pick<T, P>
-            ? never
-            : CollapseAlwaysKeys<CollapseItem<T[P]>>;
-}[keyof T];
-// Object.entries skips symbol keys, so collapse never copies one.
-type CollapseKeys<U> = U extends unknown ? Exclude<keyof U, symbol> : never;
-// The last item holding a key wins it, and a union has no order, so the key may hold any of their values.
-type CollapseValue<U, K extends PropertyKey> = U extends unknown
-    ? K extends keyof U
-        ? Required<U>[K]
-        : never
-    : never;
-// A string index signature swallows the literal keys beside it, so that result holds any item's value at any key.
-type CollapseMerge<U, G> =
-    string extends CollapseKeys<U>
-        ? Record<string, CollapseAnyValue<U>>
-        : Simplify<
-              { [K in Extract<CollapseKeys<U>, G>]: CollapseValue<U, K> } & {
-                  [K in Exclude<CollapseKeys<U>, G>]?: CollapseValue<U, K>;
-              }
-          >;
-type CollapseAnyValue<U> = U extends unknown
-    ? Required<U>[CollapseKeys<U> & keyof U]
-    : never;
-type CollapseResult<T> = [
-    Extract<CollapseItem<ObjectValue<T>>, readonly unknown[]>,
-] extends [never]
-    ? ReindexedObject<
-          CollapseMerge<
-              CollapseEntries<CollapseItem<ObjectValue<T>>>,
-              CollapseGuaranteed<T>
-          >
-      >
-    : Record<string | number, unknown>;
 // crossJoin walks each dimension like PHP's foreach: a list's items, a Map's or other iterable's values, an object's
 // own values; a string or other scalar gives none.
 type ForeachValue<V> = unknown extends V
@@ -1000,18 +941,18 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 // A list's items collapse the way an object's values do, so it comes before the rejects-first row.
 export function collapse<T extends readonly unknown[]>(
     data: T,
-): CollapseResult<Record<number, T[number]>>;
+): CollapsedObject<Record<number, T[number]>>;
 export function collapse<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-): CollapseResult<Record<string, TValue>>;
+): CollapsedObject<Record<string, TValue>>;
 export function collapse<TMap>(
     data: MapData<TMap>,
-): CollapseResult<Record<string, MapEntryValue<TMap>>>;
+): CollapsedObject<Record<string, MapEntryValue<TMap>>>;
 export function collapse(data: NonKeyedItems): Record<string, never>;
 export function collapse(
     data: NonObjectItems,
 ): Record<string | number, unknown>;
-export function collapse<T extends object>(data: T): CollapseResult<T>;
+export function collapse<T extends object>(data: T): CollapsedObject<T>;
 export function collapse(data: unknown): Record<string | number, unknown>;
 export function collapse<
     TValue extends Record<
