@@ -10068,6 +10068,30 @@ describe("Collection", () => {
                 }
             });
         });
+
+        it("keeps a subclass, outside and in each window, as static::times does", () => {
+            class Sub extends Collection<number, number> {}
+
+            const windows = new Sub([1, 2, 3]).sliding();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-subclass"
+            expect([
+                windows instanceof Sub,
+                windows.first() instanceof Sub,
+            ]).toEqual([true, true]);
+        });
+
+        it("throws range()'s error for a NAN size or step, as static::times hands the count to range()", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-counts"
+            expect(() => numbers.sliding(NaN)).toThrowError(
+                "range(): Argument #2 ($end) must be a finite number, NAN provided",
+            );
+            expect(() => numbers.sliding(2, NaN)).toThrowError(
+                "range(): Argument #2 ($end) must be a finite number, NAN provided",
+            );
+        });
     });
 
     describe("skip", () => {

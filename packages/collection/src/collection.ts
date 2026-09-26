@@ -2837,7 +2837,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).sliding(2, 2); -> new Collection([ [1, 2], [3, 4] ])
      * new Collection({a: 1, b: 2, c: 3}).sliding(); -> new Collection([ {a: 1, b: 2}, {b: 2, c: 3} ])
      */
-    sliding(size: number = 2, step: number = 1) {
+    sliding(
+        size: number = 2,
+        step: number = 1,
+    ): Collection<number, number> | Collection<unknown, PropertyKey> {
         if (size < 1) {
             throw new InvalidArgumentException(
                 "Size value must be at least 1.",
@@ -2852,9 +2855,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const chunks = Math.floor((this.count() - size) / step) + 1;
 
-        return Collection.times(chunks, (count: number) =>
-            this.slice((count - 1) * step, size),
-        );
+        // static::times() hands the count to range(), which refuses NAN.
+        if (Number.isNaN(chunks)) {
+            throw nonFiniteRangeArgument("#2 ($end)", chunks);
+        }
+
+        const windows: this[] = [];
+
+        for (let window = 1; window <= chunks; window++) {
+            windows.push(this.slice((window - 1) * step, size));
+        }
+
+        return this.newInstance(handOver(windows)) as unknown as Collection<
+            unknown,
+            PropertyKey
+        >;
     }
 
     /**
