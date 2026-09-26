@@ -4490,6 +4490,28 @@
             ]
         },
         {
+            "label": "C32-D-skip-take-out-of-order-keys",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')",
+            "value": {
+                "skipWhile": [
+                    "a",
+                    "b"
+                ],
+                "takeUntil": [
+                    [
+                        2,
+                        "c"
+                    ]
+                ],
+                "takeWhile": [
+                    [
+                        2,
+                        "c"
+                    ]
+                ]
+            }
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
