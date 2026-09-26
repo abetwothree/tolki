@@ -1287,6 +1287,7 @@ probe('C32-F-multiply-assoc', "collect(['a' => 1, 'b' => 2])->multiply(2)", fn (
 // array_map is an internal caller, so the float coerces to an int as non-strict code does (with a deprecation)
 probe('C32-F-multiply-fractional-count', "array_map([collect([1, 2]), 'multiply'], [2.5])[0]", fn () => @array_map([collect([1, 2]), 'multiply'], [2.5])[0]->all());
 probe('C32-F-multiply-non-finite-count', "array_map([collect([1, 2]), 'multiply'], [\$count]) for NAN, INF and -INF: the class and message thrown", fn () => array_map(fn (float $count) => c32c_outcome(fn () => array_map([collect([1, 2]), 'multiply'], [$count])[0]->all()), ['NAN' => NAN, 'INF' => INF, '-INF' => -INF]));
+probe('C32-F-multiply-out-of-int-range-count', "array_map([collect([1, 2]), 'multiply'], [\$count]) for 1e19, -1e19, 2**63, -2**63 and the float below -2**63: the answer, or the class and message thrown", fn () => array_map(fn (float $count) => c32c_outcome(fn () => array_map([collect([1, 2]), 'multiply'], [$count])[0]->all()), ['1e19' => 1e19, '-1e19' => -1e19, '2**63' => 9223372036854775808.0, '-2**63' => -9223372036854775808.0, 'below -2**63' => -9223372036854777856.0]));
 
 // replace / replaceRecursive: the PHP tests' own sparse int-keyed replacers
 probe('C32-F-replace-sparse-int-keyed-replacer', "collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])", fn () => collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])->all());
@@ -1348,6 +1349,16 @@ probe('C32-F-plain-object-all-member-is-data-by-key', "collect(['a' => 1, 'b' =>
     'intersectAssocUsing' => collect(['a' => 1, 'b' => 2])->intersectAssocUsing((object) ['all' => fn () => ['b' => 2]], 'strcasecmp')->all(),
     'mergeKeys' => collect(['a' => 1])->merge((object) ['all' => fn () => ['b' => 2]])->keys()->all(),
 ]);
+probe('C32-F-plain-object-all-member-is-data-by-value', "collect(['a', 'b'])->diff((object) ['all' => \$invokable]) / ->intersect(...), \$invokable answering ['b'] when called and 'zzz' as a string, since array_diff cannot cast a Closure; ->intersectUsing((object) ['all' => fn () => ['b']], fn (\$x, \$y) => \$x === \$y ? 0 : 1); collect(['a' => 1])->replaceRecursive((object) ['all' => fn () => ['b' => 2]]) keys", function () {
+    $invokable = new class { public function __invoke() { return ['b']; } public function __toString(): string { return 'zzz'; } };
+
+    return [
+        'diff' => collect(['a', 'b'])->diff((object) ['all' => $invokable])->all(),
+        'intersect' => collect(['a', 'b'])->intersect((object) ['all' => $invokable])->all(),
+        'intersectUsing' => collect(['a', 'b'])->intersectUsing((object) ['all' => fn () => ['b']], fn ($x, $y) => $x === $y ? 0 : 1)->all(),
+        'replaceRecursiveKeys' => collect(['a' => 1])->replaceRecursive((object) ['all' => fn () => ['b' => 2]])->keys()->all(),
+    ];
+});
 probe('C32-F-combine-int-key-order', "(new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()", fn () => (new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()->all());
 
 // out-of-order integer keys, which only a Map holds in JS: the receiver's order, and an operand's
