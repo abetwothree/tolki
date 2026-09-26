@@ -13,6 +13,7 @@ import {
     dataDiffAssoc,
     dataDiffAssocUsing,
     dataDiffKeysUsing,
+    dataDiffUsing,
     dataDot,
     dataExcept,
     dataFilter,
@@ -726,8 +727,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).diffUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection({0: {id: 1}, 2: {id: 3}})
-     * new Collection(['apple', 'banana', 'cherry']).diffUsing(['banana'], (a, b) => a === b); -> new Collection({0: 'apple', 2: 'cherry'})
+     * new Collection([{id: 1}, {id: 2}, {id: 3}]).diffUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 1}, {id: 3}])
+     * new Collection({a: 'apple', b: 'banana'}).diffUsing(['banana'], (a, b) => a === b); -> new Collection({a: 'apple'})
      */
     diffUsing(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
@@ -738,27 +739,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | undefined,
         callback: (a: TValue, b: TValue) => boolean,
     ) {
-        const otherItems = this.getRawItems(items);
-        const results = {} as DataItems<TValue, TKey>;
-
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            let found = false;
-            for (const otherValue of Object.values(
-                otherItems as Record<TKey, TValue>,
-            )) {
-                if (callback(value as TValue, otherValue as TValue)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                defineKey(results as Record<string, TValue>, key, value);
-            }
-        }
-
-        return this.newInstance(handOver(results));
+        return this.newInstance(
+            handOver(
+                dataDiffUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes `unknown` and rejects a typed callback (contravariance).
+                    callback as (a: unknown, b: unknown) => boolean,
+                ),
+            ),
+        );
     }
 
     /**

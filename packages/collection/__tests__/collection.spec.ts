@@ -1973,6 +1973,32 @@ describe("Collection", () => {
                 "HR",
             ]);
         });
+
+        it("renumbers a list's survivors", () => {
+            const diffed = collect(["a", "b", "c"]).diffUsing(
+                ["a"],
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffUsing-list-keeps-keys"
+            // PHP keeps the gap ({1: "b", 2: "c"}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(diffed.all()).toEqual(["b", "c"]);
+            expect(diffed.keys().all()).toEqual([0, 1]);
+            expect(diffed.values().all()).toEqual(["b", "c"]);
+        });
+
+        it("keeps a record's keys", () => {
+            const diffed = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+            }).diffUsing({ A: "GREEN", 0: "yellow" }, strcasecmp);
+
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+            expect(diffed.all()).toEqual({ b: "brown", c: "blue" });
+            expect(diffed.keys().all()).toEqual(["b", "c"]);
+            expect(diffed.values().all()).toEqual(["brown", "blue"]);
+        });
     });
 
     describe("diffAssoc", () => {
