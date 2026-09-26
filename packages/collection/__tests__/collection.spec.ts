@@ -1901,6 +1901,20 @@ describe("Collection", () => {
                 [2, 4],
             ]);
         });
+
+        it("crosses nothing with a null operand, and a scalar one as a single value", () => {
+            const collection = collect([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-crossJoin-null-and-scalar-operands"
+            expect(collection.crossJoin(null).all()).toEqual([]);
+            // A scalar is outside crossJoin()'s operand types; PHP's runtime casts it to an array holding it
+            expect(
+                Reflect.apply(collection.crossJoin, collection, ["x"]).all(),
+            ).toEqual([
+                [1, "x"],
+                [2, "x"],
+            ]);
+        });
     });
 
     describe("diff", () => {
@@ -2114,6 +2128,20 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([2]);
         });
+
+        it("reads a null operand as no items, for diffAssocUsing too", () => {
+            const results = [
+                collect({ a: 1 }).diffAssoc(null),
+                collect({ a: 1 }).diffAssocUsing(null, strcasecmp),
+            ];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-assoc-and-key-diffs-null-operand"
+            for (const result of results) {
+                expect(result.all()).toEqual({ a: 1 });
+                expect(result.keys().all()).toEqual(["a"]);
+                expect(result.values().all()).toEqual([1]);
+            }
+        });
     });
 
     describe("diffKeys", () => {
@@ -2150,6 +2178,15 @@ describe("Collection", () => {
             expect(diffed.keys().all()).toEqual(["length", "b"]);
             expect(diffed.values().all()).toEqual([5, 2]);
         });
+
+        it("reads a null operand as no items", () => {
+            const diffed = collect({ a: 1 }).diffKeys(null);
+
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+            expect(diffed.all()).toEqual({ a: 1 });
+            expect(diffed.keys().all()).toEqual(["a"]);
+            expect(diffed.values().all()).toEqual([1]);
+        });
     });
 
     describe("diffKeysUsing", () => {
@@ -2185,6 +2222,15 @@ describe("Collection", () => {
                     .diffKeysUsing(collect([9, 9]), strcasecmp)
                     .all(),
             ).toEqual([3]);
+        });
+
+        it("reads a null operand as no items", () => {
+            const diffed = collect({ a: 1 }).diffKeysUsing(null, strcasecmp);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-assoc-and-key-diffs-null-operand"
+            expect(diffed.all()).toEqual({ a: 1 });
+            expect(diffed.keys().all()).toEqual(["a"]);
+            expect(diffed.values().all()).toEqual([1]);
         });
     });
 
@@ -6267,6 +6313,13 @@ describe("Collection", () => {
 
             expect(() => collect([1, 2]).combine([3])).toThrow(message);
             expect(() => collect([1]).combine([2, 3])).toThrow(message);
+        });
+
+        it("throws for a null operand while there are keys to pair", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-null-operand-throws"
+            expect(() => collect(["a"]).combine(null)).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
 
         it("casts a null key to the empty string, matching array_combine", () => {
@@ -12025,6 +12078,16 @@ describe("Collection", () => {
             expect(zipped.count()).toBe(2);
             expect(zipped.all()[0]?.all()).toEqual([1, "x"]);
             expect(zipped.all()[1]?.all()).toEqual([2, "y"]);
+        });
+
+        it("pads with null for a null operand", () => {
+            const zipped = collect([1, 2]).zip(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-null-operand"
+            expect(zipped.map((row) => row.all()).all()).toEqual([
+                [1, null],
+                [2, null],
+            ]);
         });
     });
 

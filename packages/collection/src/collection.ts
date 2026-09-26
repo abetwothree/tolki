@@ -685,7 +685,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     crossJoin(
         // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
         // Collection<unknown, PropertyKey> breaks when passing typed collections.
-        ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
+        ...items: Array<
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined
+        >
     ) {
         // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
         // is one dimension too, never obj.crossJoin's dimension per key.
@@ -774,7 +779,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     diffAssoc(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
+        items:
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined,
     ) {
         return this.newInstance(
             handOver(dataDiffAssoc(this.items, this.getRawItems(items))),
@@ -796,7 +805,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     diffAssocUsing(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
+        items:
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         return this.newInstance(
@@ -828,7 +841,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     diffKeys(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
+        items:
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined,
     ) {
         return this.newInstance(
             handOver(dataDiffKeys(this.items, this.getRawItems(items))),
@@ -850,7 +867,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     diffKeysUsing(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
+        items:
+            | DataItems<unknown, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
     ) {
         return this.newInstance(
@@ -2098,7 +2119,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         values:
             | TCombineValue[]
             | Record<TCombineKey, TCombineValue>
-            | Collection<TCombineValue, TCombineKey>,
+            | Collection<TCombineValue, TCombineKey>
+            | null
+            | undefined,
     ) {
         const keys = this.orderedValues();
         const combined = dataCombine(
@@ -3789,7 +3812,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     zip<TZipValue>(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        ...list: Array<DataItems<TZipValue, PropertyKey> | Collection<any, any>>
+        ...list: Array<
+            | DataItems<TZipValue, PropertyKey>
+            | Collection<any, any>
+            | null
+            | undefined
+        >
     ): Collection<Collection<TValue | TZipValue, number>, number> {
         const arraysToZip = list.map((items) => {
             const rawItems = this.getRawItems(items) as DataItems<TZipValue>;
