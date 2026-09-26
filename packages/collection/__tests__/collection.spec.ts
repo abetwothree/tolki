@@ -13095,6 +13095,56 @@ describe("Collection", () => {
                 ).toEqual([{ v: 1 }]);
             });
         });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-null-loose"
+                "null",
+                [0, "", false, null, "0", "a", []],
+                [null],
+                [0, "", false, null, []],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-numeric-string-loose"
+                '"1e1"',
+                [10, "10", "1e1", "010", "x"],
+                ["1e1"],
+                [10, "10", "1e1", "010"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-true-loose"
+                "true",
+                ["x", 1, 0, "", null, "0", [1]],
+                [true],
+                ["x", 1, [1]],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-array-loose"
+                "[1, 2]",
+                [
+                    [1, 2],
+                    ["1", "2"],
+                    [2, 1],
+                ],
+                [[1, 2]],
+                [
+                    [1, 2],
+                    ["1", "2"],
+                ],
+            ],
+        ] as [string, unknown[], unknown[], unknown[]][])(
+            "keeps the items PHP's in_array finds loosely equal to %s",
+            (_label, values, set, kept) => {
+                const filtered = collect(values.map((v) => ({ v }))).whereIn(
+                    "v",
+                    set,
+                );
+
+                // The row's keys name the kept items; a list renumbers them, as every removal from a list does
+                expect(filtered.pluck("v").all()).toEqual(kept);
+                expect(filtered.keys().all()).toEqual(kept.map((_, i) => i));
+            },
+        );
     });
 
     describe("whereInStrict", () => {
@@ -13113,6 +13163,17 @@ describe("Collection", () => {
                     { v: 3 },
                 ]);
             });
+        });
+
+        it("compares an array by value, as PHP's === does", () => {
+            const filtered = collect([
+                { v: [1, 2] },
+                { v: ["1", "2"] },
+            ]).whereInStrict("v", [[1, 2]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInStrict-array"
+            expect(filtered.all()).toEqual([{ v: [1, 2] }]);
+            expect(filtered.keys().all()).toEqual([0]);
         });
     });
 
@@ -13232,6 +13293,35 @@ describe("Collection", () => {
                 ).toEqual([{ v: 4 }]);
             });
         });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotIn-null-loose"
+                "null",
+                [0, "", false, null, "0", "a", []],
+                [null],
+                ["0", "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotIn-true-loose"
+                "true",
+                ["x", 1, 0, "", null, "0", [1]],
+                [true],
+                [0, "", null, "0"],
+            ],
+        ] as [string, unknown[], unknown[], unknown[]][])(
+            "drops the items PHP's in_array finds loosely equal to %s",
+            (_label, values, set, kept) => {
+                const filtered = collect(values.map((v) => ({ v }))).whereNotIn(
+                    "v",
+                    set,
+                );
+
+                // The row's keys name the kept items; a list renumbers them, as every removal from a list does
+                expect(filtered.pluck("v").all()).toEqual(kept);
+                expect(filtered.keys().all()).toEqual(kept.map((_, i) => i));
+            },
+        );
     });
 
     describe("whereNotInStrict", () => {
@@ -13251,6 +13341,18 @@ describe("Collection", () => {
                     { v: 4 },
                 ]);
             });
+        });
+
+        it("compares an array by value, as PHP's === does", () => {
+            const filtered = collect([
+                { v: [1, 2] },
+                { v: ["1", "2"] },
+            ]).whereNotInStrict("v", [[1, 2]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotInStrict-array", whose key 1
+            // names this row; a list renumbers it, as every removal from a list does
+            expect(filtered.all()).toEqual([{ v: ["1", "2"] }]);
+            expect(filtered.keys().all()).toEqual([0]);
         });
     });
 

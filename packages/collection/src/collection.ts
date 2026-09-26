@@ -5119,16 +5119,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         values: TValueSet,
         strict: boolean = false,
     ) {
-        const valueSet = this.getRawItems(values);
+        const valueSet = Object.values(this.getRawItems(values));
 
-        return this.filter((item: TValue) => {
-            const retrieved = itemValue(item, key);
-            if (strict) {
-                return Object.values(valueSet).includes(retrieved as TValue);
-            }
-
-            return Object.values(valueSet).some((v) => v == retrieved);
-        });
+        return this.filter((item: TValue) =>
+            inArray(itemValue(item, key), valueSet, strict),
+        );
     }
 
     /**
@@ -5203,16 +5198,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         values: TValueSet,
         strict: boolean = false,
     ) {
-        const valueSet = this.getRawItems(values);
+        const valueSet = Object.values(this.getRawItems(values));
 
-        return this.reject((item: TValue) => {
-            const retrieved = itemValue(item, key);
-            if (strict) {
-                return Object.values(valueSet).includes(retrieved as TValue);
-            }
-
-            return Object.values(valueSet).some((v) => v == retrieved);
-        });
+        return this.reject((item: TValue) =>
+            inArray(itemValue(item, key), valueSet, strict),
+        );
     }
 
     /**
@@ -6658,6 +6648,24 @@ function notCallable(method: string, argument: unknown): TypeError {
     return new TypeError(
         `Collection::${method}(): Argument #1 ($callback) must be of type ?callable, ${getDebugType(argument)} given`,
     );
+}
+
+/**
+ * Determine whether a value is among the given values, as PHP's `in_array` compares them.
+ *
+ * @param needle - The value to look for
+ * @param haystack - The values to look among
+ * @param strict - Whether to compare with PHP's `===` rather than its `==`
+ * @returns True when a value in the haystack equals the needle
+ */
+function inArray(
+    needle: unknown,
+    haystack: readonly unknown[],
+    strict: boolean,
+): boolean {
+    const equals = strict ? strictEqual : looseEqual;
+
+    return haystack.some((value) => equals(needle, value));
 }
 
 /**
