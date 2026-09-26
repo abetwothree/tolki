@@ -3161,7 +3161,7 @@ describe("Collection", () => {
     });
 
     describe("groupBy", () => {
-        /** Each entry as the probes write it: [key, its PHP type, value], with a group as { Collection: its entries }. */
+        /** Each entry as the probes write it, [key, its PHP type, value], a group as { Collection: its entries }. */
         const groupPairs = <TValue, TKey extends PropertyKey>(
             collection: Collection<TValue, TKey>,
         ): unknown[] => {
@@ -3273,6 +3273,7 @@ describe("Collection", () => {
             });
 
             it("test group by callable", () => {
+                // CollectionTest::testGroupByCallable, with closures standing in for its array callables
                 const data = collect([
                     { rating: 1, url: "1" },
                     { rating: 1, url: "1" },
