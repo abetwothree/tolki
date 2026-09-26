@@ -2138,6 +2138,10 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-callback-key-arg"
             expect(duplicates.all()).toEqual({ b: 1 });
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([["b"], [1]]);
         });
 
         it("compares loosely, as array_unique's SORT_REGULAR sort does", () => {
@@ -2339,12 +2343,14 @@ describe("Collection", () => {
         });
 
         it("removes a literal dotted key before reading it as a path", () => {
+            const except = collect({ "a.b": 1, a: { b: 2 } }).except("a.b");
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-dot-key-literal-first"
-            expect(
-                collect({ "a.b": 1, a: { b: 2 } })
-                    .except("a.b")
-                    .all(),
-            ).toEqual({ a: { b: 2 } });
+            expect(except.all()).toEqual({ a: { b: 2 } });
+            expect([except.keys().all(), except.values().all()]).toEqual([
+                ["a"],
+                [{ b: 2 }],
+            ]);
         });
 
         it("reads a numeric string as a list's index", () => {
@@ -5805,18 +5811,21 @@ describe("Collection", () => {
         });
 
         it("reads a dotted key literally, never as a path", () => {
+            const literal = collect({ a: { b: 1 }, "a.b": 2 }).only("a.b");
+            const nested = collect({ a: { b: 1, c: 2 } }).only("a.b");
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-dot-key-literal"
-            expect(
-                collect({ a: { b: 1 }, "a.b": 2 })
-                    .only("a.b")
-                    .all(),
-            ).toEqual({ "a.b": 2 });
+            expect(literal.all()).toEqual({ "a.b": 2 });
+            expect([literal.keys().all(), literal.values().all()]).toEqual([
+                ["a.b"],
+                [2],
+            ]);
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-dot-key-nested-miss"
-            expect(
-                collect({ a: { b: 1, c: 2 } })
-                    .only("a.b")
-                    .all(),
-            ).toEqual({});
+            expect(nested.all()).toEqual({});
+            expect([nested.keys().all(), nested.values().all()]).toEqual([
+                [],
+                [],
+            ]);
         });
 
         it("hands back a copy for a null key, as except() and select() do", () => {
@@ -8558,18 +8567,26 @@ describe("Collection", () => {
         });
 
         it("hands a callback each value and key", () => {
+            const keyed = collect({ a: 1, b: 2, c: 3 }).skipUntil(
+                (_value, key) => key === "b",
+            );
+            const list = collect(["x", "y", "z"]).skipUntil(
+                (_value, key) => key === 1,
+            );
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-callback-key"
-            expect(
-                collect({ a: 1, b: 2, c: 3 })
-                    .skipUntil((_value, key) => key === "b")
-                    .all(),
-            ).toEqual({ b: 2, c: 3 });
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
-            expect(
-                collect(["x", "y", "z"])
-                    .skipUntil((_value, key) => key === 1)
-                    .all(),
-            ).toEqual(["y", "z"]);
+            expect(keyed.all()).toEqual({ b: 2, c: 3 });
+            expect([keyed.keys().all(), keyed.values().all()]).toEqual([
+                ["b", "c"],
+                [2, 3],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index", whose keys
+            // 1 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(list.all()).toEqual(["y", "z"]);
+            expect([list.keys().all(), list.values().all()]).toEqual([
+                [0, 1],
+                ["y", "z"],
+            ]);
         });
 
         it.fails("walks a Map-built collection in its insertion order", () => {
@@ -10573,18 +10590,25 @@ describe("Collection", () => {
         });
 
         it("hands a callback each value and key", () => {
+            const keyed = collect({ a: 1, b: 2, c: 3 }).takeUntil(
+                (_value, key) => key === "c",
+            );
+            const list = collect(["x", "y", "z"]).takeUntil(
+                (_value, key) => key === 1,
+            );
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-callback-key"
-            expect(
-                collect({ a: 1, b: 2, c: 3 })
-                    .takeUntil((_value, key) => key === "c")
-                    .all(),
-            ).toEqual({ a: 1, b: 2 });
+            expect(keyed.all()).toEqual({ a: 1, b: 2 });
+            expect([keyed.keys().all(), keyed.values().all()]).toEqual([
+                ["a", "b"],
+                [1, 2],
+            ]);
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
-            expect(
-                collect(["x", "y", "z"])
-                    .takeUntil((_value, key) => key === 1)
-                    .all(),
-            ).toEqual(["x"]);
+            expect(list.all()).toEqual(["x"]);
+            expect([list.keys().all(), list.values().all()]).toEqual([
+                [0],
+                ["x"],
+            ]);
         });
 
         it("takes nothing from an empty collection", () => {
@@ -13350,6 +13374,12 @@ describe("Collection", () => {
                 { b: 2 },
                 { a: 1 },
             ]);
+            expect([
+                halves[0].keys().all(),
+                halves[0].values().all(),
+                halves[1].keys().all(),
+                halves[1].values().all(),
+            ]).toEqual([["b"], [2], ["a"], [1]]);
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-outer-keys"
             expect(halves.keys().all()).toEqual([0, 1]);
             // JS-only: an index reads the items, as offsetGet() does, and is no own enumerable key of the collection
