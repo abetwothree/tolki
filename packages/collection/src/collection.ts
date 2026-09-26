@@ -2684,15 +2684,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return dataRandom(this.items) as TValue;
         }
 
-        if (isFunction(count)) {
-            const countValue = count(this) as number;
-            return this.newInstance(
-                handOver(dataRandom(this.items, countValue, preserveKeys)),
-            );
-        }
+        const picked = dataRandom(
+            this.items,
+            isFunction(count) ? (count(this) as number) : (count as number),
+            preserveKeys,
+        ) as TValue[] | Record<string, TValue>;
 
+        // Arr::random appends each pick unless it keeps their keys,
+        // and kept keys that run 0..n-1 in order make a list as well.
         return this.newInstance(
-            handOver(dataRandom(this.items, count as number, preserveKeys)),
+            handOver(
+                Object.keys(picked).every((key, index) => key === String(index))
+                    ? Object.values(picked)
+                    : picked,
+            ),
         );
     }
 

@@ -6792,22 +6792,32 @@ describe("Collection", () => {
             ]).toEqual([1, 2]);
         });
 
-        // Arr.php:971 defaults $preserveKeys = false. Array- and object-backed
-        // Collections must agree, per the unison rule.
-        it("reindexes from zero by default, either backing", () => {
-            const fromArray: Collection<number, number> = collect([
-                10, 20, 30,
-            ]).random(2);
-            expect(fromArray).toBeInstanceOf(Collection);
-            expect(Object.keys(fromArray.all())).toEqual(["0", "1"]);
+        it("reindexes from zero by default into a list, either backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-record-count-is-list"
+            for (const picked of [
+                collect([10, 20, 30]).random(2),
+                collect({ one: 10, two: 20, three: 30 }).random(2),
+            ]) {
+                expect(picked).toBeInstanceOf(Collection);
+                expect(Array.isArray(picked.all())).toBe(true);
+                expect(picked.keys().all()).toEqual([0, 1]);
+            }
+            expect(collect({ a: 1 }).random(0).all()).toEqual([]);
+            // Same row: kept keys that run 0..n-1 in order make a list too.
+            expect(
+                Array.isArray(collect([10, 20, 30]).random(3, true).all()),
+            ).toBe(true);
+        });
 
-            const fromObject: Collection<number, string> = collect({
-                one: 10,
-                two: 20,
-                three: 30,
-            }).random(2);
-            expect(fromObject).toBeInstanceOf(Collection);
-            expect(Object.keys(fromObject.all())).toEqual(["0", "1"]);
+        it("keeps string keys when asked to", () => {
+            const data = collect({ a: 1, b: 2, c: 3 });
+            const picked = data.random(3, true);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-preserved-string-keys"
+            expect(picked.all()).toEqual({ a: 1, b: 2, c: 3 });
+            expect(picked.keys().all()).toEqual(["a", "b", "c"]);
+            expect(picked.values().all()).toEqual([1, 2, 3]);
+            expect(Array.isArray(data.random(2, true).all())).toBe(false);
         });
     });
 
