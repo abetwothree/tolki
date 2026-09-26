@@ -1481,6 +1481,98 @@
             "value": null
         },
         {
+            "label": "C32-B-push-many-past-negative-keys-order",
+            "php": "$c = collect([-2 => 'a'])->push('p', 'q', 'r'); keys/values/last",
+            "value": {
+                "keys": [
+                    -2,
+                    -1,
+                    0,
+                    1
+                ],
+                "values": [
+                    "a",
+                    "p",
+                    "q",
+                    "r"
+                ],
+                "last": "r"
+            }
+        },
+        {
+            "label": "C32-B-push-many-onto-mixed-keys-order",
+            "php": "$c = collect(['x' => 'a', -2 => 'b'])->push('p', 'q'); keys/values/last",
+            "value": {
+                "keys": [
+                    "x",
+                    -2,
+                    -1,
+                    0
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "p",
+                    "q"
+                ],
+                "last": "q"
+            }
+        },
+        {
+            "label": "C32-B-push-many-across-the-index-limit-order",
+            "php": "$c = collect([4294967293 => 'a', 'x' => 'b'])->push('p', 'q'); keys/values/last",
+            "value": {
+                "keys": [
+                    4294967293,
+                    "x",
+                    4294967294,
+                    4294967295
+                ],
+                "values": [
+                    "a",
+                    "b",
+                    "p",
+                    "q"
+                ],
+                "last": "q"
+            }
+        },
+        {
+            "label": "C32-B-push-onto-string-keyed-toJson",
+            "php": "collect(['a' => 1])->push('z')->toJson()",
+            "value": "{\"a\":1,\"0\":\"z\"}"
+        },
+        {
+            "label": "C32-B-get-has-literal-dotted-key",
+            "php": "[get('products.desk'), has('products.desk')] on collect(['products.desk' => ['price' => 100]])",
+            "value": [
+                {
+                    "price": 100
+                },
+                true
+            ]
+        },
+        {
+            "label": "C32-B-pull-float-key-exists-as-its-string-form",
+            "php": "@pull(1.5) on collect(['a', 'b', 'c']) and on collect(['1.5' => 'x', 1 => 'y'])",
+            "value": {
+                "list": {
+                    "returned": null,
+                    "all": [
+                        "a",
+                        "b",
+                        "c"
+                    ]
+                },
+                "record": {
+                    "returned": "y",
+                    "all": {
+                        "1.5": "x"
+                    }
+                }
+            }
+        },
+        {
             "label": "C32-B-pad-past-a-string-key-order",
             "php": "$c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); keys/values",
             "value": {

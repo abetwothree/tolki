@@ -293,6 +293,20 @@ probe('C32-B-pull-through-array-keeps-the-collection', "\$c = collect(['a' => ['
 probe('C32-B-forget-repeated-key-on-list', "collect(['a', 'b', 'c'])->forget([1, 1])->all()", fn () => collect(['a', 'b', 'c'])->forget([1, 1])->all());
 probe('C32-B-push-many-onto-string-keyed', "\$c = collect(['a' => 1])->push('y', 'z'); keys/values/last", function () { $c = collect(['a' => 1])->push('y', 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
 probe('C32-B-get-stored-null-beats-default', "collect(['a' => null])->get('a', 'd')", fn () => collect(['a' => null])->get('a', 'd'));
+probe('C32-B-push-many-past-negative-keys-order', "\$c = collect([-2 => 'a'])->push('p', 'q', 'r'); keys/values/last", function () { $c = collect([-2 => 'a'])->push('p', 'q', 'r'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
+probe('C32-B-push-many-onto-mixed-keys-order', "\$c = collect(['x' => 'a', -2 => 'b'])->push('p', 'q'); keys/values/last", function () { $c = collect(['x' => 'a', -2 => 'b'])->push('p', 'q'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
+probe('C32-B-push-many-across-the-index-limit-order', "\$c = collect([4294967293 => 'a', 'x' => 'b'])->push('p', 'q'); keys/values/last", function () { $c = collect([4294967293 => 'a', 'x' => 'b'])->push('p', 'q'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
+probe('C32-B-push-onto-string-keyed-toJson', "collect(['a' => 1])->push('z')->toJson()", fn () => collect(['a' => 1])->push('z')->toJson());
+probe('C32-B-get-has-literal-dotted-key', "[get('products.desk'), has('products.desk')] on collect(['products.desk' => ['price' => 100]])", fn () => [collect(['products.desk' => ['price' => 100]])->get('products.desk'), collect(['products.desk' => ['price' => 100]])->has('products.desk')]);
+probe('C32-B-pull-float-key-exists-as-its-string-form', "@pull(1.5) on collect(['a', 'b', 'c']) and on collect(['1.5' => 'x', 1 => 'y'])", function () {
+    $list = collect(['a', 'b', 'c']);
+    $record = collect(['1.5' => 'x', 1 => 'y']);
+
+    return [
+        'list' => ['returned' => @$list->pull(1.5), 'all' => $list->all()],
+        'record' => ['returned' => @$record->pull(1.5), 'all' => $record->all()],
+    ];
+});
 probe('C32-B-pad-past-a-string-key-order', "\$c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); keys/values", function () { $c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
 probe('C32-B-put-int-key-onto-string-keyed-order', "\$c = collect(['a' => 1]); \$c->put(0, 'z'); keys/values/last", function () { $c = collect(['a' => 1]); $c->put(0, 'z'); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'last' => $c->last()]; });
 
