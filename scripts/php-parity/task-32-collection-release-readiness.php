@@ -1286,6 +1286,7 @@ probe('C32-F-mergeRecursive-assoc-then-list', "collect(['a' => 1, 'b' => 2])->me
 probe('C32-F-multiply-assoc', "collect(['a' => 1, 'b' => 2])->multiply(2)", fn () => collect(['a' => 1, 'b' => 2])->multiply(2)->all());
 // array_map is an internal caller, so the float coerces to an int as non-strict code does (with a deprecation)
 probe('C32-F-multiply-fractional-count', "array_map([collect([1, 2]), 'multiply'], [2.5])[0]", fn () => @array_map([collect([1, 2]), 'multiply'], [2.5])[0]->all());
+probe('C32-F-multiply-non-finite-count', "array_map([collect([1, 2]), 'multiply'], [\$count]) for NAN, INF and -INF: the class and message thrown", fn () => array_map(fn (float $count) => c32c_outcome(fn () => array_map([collect([1, 2]), 'multiply'], [$count])[0]->all()), ['NAN' => NAN, 'INF' => INF, '-INF' => -INF]));
 
 // replace / replaceRecursive: the PHP tests' own sparse int-keyed replacers
 probe('C32-F-replace-sparse-int-keyed-replacer', "collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])", fn () => collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])->all());
@@ -1309,6 +1310,12 @@ probe('C32-F-zip-assoc-operand', "collect([1, 2])->zip(['a' => 'x', 'b' => 'y'])
 probe('C32-F-diffUsing-spaceship-comparator', 'collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)', fn () => collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)->all());
 probe('C32-F-intersectUsing-spaceship-comparator', 'collect([1, 2, 3])->intersectUsing([2, 3], fn ($a, $b) => $a <=> $b)', fn () => collect([1, 2, 3])->intersectUsing([2, 3], fn ($a, $b) => $a <=> $b)->all());
 probe('C32-F-diffUsing-list-keeps-keys', "collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')", fn () => collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')->all());
+// the comparator's answer is cast to an int, so a fraction is dropped and NAN or an infinity becomes 0
+probe('C32-F-using-fractional-comparator', "collect([1, 2, 3])->diffUsing([2], fn () => \$answer) and ->intersectUsing([2], fn () => \$answer) for 0.5, -0.99 and 1.5", fn () => array_map(fn (float $answer) => [
+    'diffUsing' => collect([1, 2, 3])->diffUsing([2], fn () => $answer)->all(),
+    'intersectUsing' => collect([1, 2, 3])->intersectUsing([2], fn () => $answer)->all(),
+], ['0.5' => 0.5, '-0.99' => -0.99, '1.5' => 1.5]));
+probe('C32-F-using-non-finite-comparator', "collect([1, 2, 3])->diffUsing([2], fn () => \$answer) for NAN, INF and -INF", fn () => array_map(fn (float $answer) => @collect([1, 2, 3])->diffUsing([2], fn () => $answer)->all(), ['NAN' => NAN, 'INF' => INF, '-INF' => -INF]));
 probe('C32-F-diffAssocUsing-mixed-keys-order', "collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')", fn () => $fViews(collect(['a' => 'green', 'b' => 'brown', 'c' => 'blue', 'red'])->diffAssocUsing(collect(['A' => 'green', 'yellow', 'red']), 'strcasecmp')));
 
 // diffKeys: only the operand's own keys count, so a list operand holds no 'length' key

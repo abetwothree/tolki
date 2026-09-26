@@ -7092,6 +7092,24 @@
             ]
         },
         {
+            "label": "C32-F-multiply-non-finite-count",
+            "php": "array_map([collect([1, 2]), 'multiply'], [$count]) for NAN, INF and -INF: the class and message thrown",
+            "value": {
+                "NAN": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "INF": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "-INF": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ]
+            }
+        },
+        {
             "label": "C32-F-replace-sparse-int-keyed-replacer",
             "php": "collect(['a', 'b', 'c'])->replace([1 => 'd', 2 => 'e'])",
             "value": [
@@ -7311,6 +7329,45 @@
             "value": {
                 "1": "b",
                 "2": "c"
+            }
+        },
+        {
+            "label": "C32-F-using-fractional-comparator",
+            "php": "collect([1, 2, 3])->diffUsing([2], fn () => $answer) and ->intersectUsing([2], fn () => $answer) for 0.5, -0.99 and 1.5",
+            "value": {
+                "0.5": {
+                    "diffUsing": [],
+                    "intersectUsing": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "-0.99": {
+                    "diffUsing": [],
+                    "intersectUsing": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "1.5": {
+                    "diffUsing": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "intersectUsing": []
+                }
+            }
+        },
+        {
+            "label": "C32-F-using-non-finite-comparator",
+            "php": "collect([1, 2, 3])->diffUsing([2], fn () => $answer) for NAN, INF and -INF",
+            "value": {
+                "NAN": [],
+                "INF": [],
+                "-INF": []
             }
         },
         {
