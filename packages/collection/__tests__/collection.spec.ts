@@ -7081,7 +7081,8 @@ describe("Collection", () => {
     });
 
     describe("nth", () => {
-        it("Laravel Tests", () => {
+        it("test nth", () => {
+            // CollectionTest::testNth
             // Use Map to preserve insertion order for numeric keys (JavaScript objects auto-sort numeric keys)
             const data = collect(
                 new Map([
@@ -7125,6 +7126,17 @@ describe("Collection", () => {
             expect(() => {
                 collect([1, 2, 3]).nth(-1);
             }).toThrowError("Step value must be at least 1.");
+        });
+
+        it("collects a record's every n-th value into a list", () => {
+            const every = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 }).nth(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-assoc"
+            expect(viewsOf(every)).toEqual({
+                all: [1, 3, 5],
+                keys: [0, 1, 2],
+                values: [1, 3, 5],
+            });
         });
 
         it("steps as PHP's % does, which drops a fraction from the step", () => {
@@ -9469,10 +9481,12 @@ describe("Collection", () => {
 
     describe("reverse", () => {
         describe("Laravel Tests", () => {
-            it("", () => {
+            it("test reverse", () => {
+                // CollectionTest::testReverse
                 const data = collect(["zaeed", "alan"]);
                 const reversed = data.reverse();
 
+                // JS-only: a list cannot hold its keys reversed, so they are renumbered, where PHP keeps 1 then 0
                 expect(reversed.all()).toEqual(["alan", "zaeed"]);
 
                 const data2 = collect({ name: "taylor", framework: "laravel" });
@@ -9482,6 +9496,7 @@ describe("Collection", () => {
                     framework: "laravel",
                     name: "taylor",
                 });
+                expect(reversed2.keys().all()).toEqual(["framework", "name"]);
             });
         });
     });
@@ -9967,6 +9982,7 @@ describe("Collection", () => {
 
     describe("shuffle", () => {
         it("test shuffle", () => {
+            // JS-only: CollectionTest has no shuffle test; the draw is random, so only the count and members are pinned
             const data = collect([1, 2, 3, 4, 5, 6]);
             const shuffled = data.shuffle();
 
@@ -10012,6 +10028,7 @@ describe("Collection", () => {
     describe("sliding", () => {
         describe("Laravel Tests", () => {
             it("test sliding", () => {
+                // CollectionTest::testSliding
                 // Default parameters: $size = 2, $step = 1
                 expect(Collection.times(0).sliding().toArray()).toEqual([]);
                 expect(Collection.times(1).sliding().toArray()).toEqual([]);
@@ -10091,7 +10108,8 @@ describe("Collection", () => {
                     [3, 4, 5],
                 ]);
 
-                // Ensure keys are preserved, and inner chunks are also collections
+                // The windows are collections too. JS-only: a list's windows are renumbered from 0, where PHP
+                // keeps [[0 => 1, 1 => 2], [1 => 2, 2 => 3]]
                 const chunks = Collection.times(3).sliding();
 
                 expect(chunks.toArray()).toEqual([
@@ -10125,6 +10143,55 @@ describe("Collection", () => {
             });
         });
 
+        it("keeps a record's keys in each window", () => {
+            const windows = collect({ a: 1, b: 2, c: 3 }).sliding();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-assoc"
+            expect(windows.map((window) => viewsOf(window)).all()).toEqual([
+                { all: { a: 1, b: 2 }, keys: ["a", "b"], values: [1, 2] },
+                { all: { b: 2, c: 3 }, keys: ["b", "c"], values: [2, 3] },
+            ]);
+        });
+
+        it("makes no window for a size over the count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-size-over-count"
+            expect(collect([1, 2, 3]).sliding(5).all()).toEqual([]);
+        });
+
+        it("counts the windows with a fractional size or step, and slices each as slice() does", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+            const windows = (size: number, step?: number) =>
+                numbers
+                    .sliding(size, step)
+                    .map((window) => window.values().all())
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-counts"
+            expect(windows(1.5)).toEqual([[1], [2], [3], [4]]);
+            expect(windows(2.5)).toEqual([
+                [1, 2],
+                [2, 3],
+                [3, 4],
+            ]);
+            expect(windows(2, 1.5)).toEqual([
+                [1, 2],
+                [2, 3],
+                [4, 5],
+            ]);
+            expect(windows(Infinity)).toEqual([]);
+            expect(windows(1e19)).toEqual([]);
+            expect(windows(2, 1e19)).toEqual([[1, 2]]);
+        });
+
+        it("slices its windows from an offset array_slice refuses when the step is infinite", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-counts"
+            for (const collection of [collect([1, 2, 3, 4, 5]), collect([])]) {
+                expect(() => collection.sliding(2, Infinity)).toThrowError(
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                );
+            }
+        });
+
         it("keeps a subclass, outside and in each window, as static::times does", () => {
             class Sub extends Collection<number, number> {}
 
@@ -10153,6 +10220,7 @@ describe("Collection", () => {
     describe("skip", () => {
         describe("Laravel Tests", () => {
             it("test skip method", () => {
+                // CollectionTest::testSkipMethod
                 const data = collect([1, 2, 3, 4, 5, 6]);
 
                 // Total items to skip is smaller than collection length
@@ -10161,6 +10229,15 @@ describe("Collection", () => {
                 // Total items to skip is more than collection length
                 expect(data.skip(10).values().all()).toEqual([]);
             });
+        });
+
+        it("skips from the end for a negative count, as slice() does", () => {
+            const skipped = collect([1, 2, 3]).skip(-1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-skip-negative"
+            expect(skipped.values().all()).toEqual([3]);
+            // JS-only: a list is renumbered from 0, where PHP keeps the item's key 2
+            expect(skipped.keys().all()).toEqual([0]);
         });
     });
 
@@ -10326,31 +10403,37 @@ describe("Collection", () => {
     describe("slice", () => {
         describe("Laravel Tests", () => {
             it("test slice offset", () => {
+                // CollectionTest::testSliceOffset
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(3).values().all()).toEqual([4, 5, 6, 7, 8]);
             });
 
             it("test slice negative offset", () => {
+                // CollectionTest::testSliceNegativeOffset
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-3).values().all()).toEqual([6, 7, 8]);
             });
 
             it("test slice offset and length", () => {
+                // CollectionTest::testSliceOffsetAndLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(3, 3).values().all()).toEqual([4, 5, 6]);
             });
 
             it("test slice offset and negative length", () => {
+                // CollectionTest::testSliceOffsetAndNegativeLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(3, -1).values().all()).toEqual([4, 5, 6, 7]);
             });
 
             it("test slice negative offset and length", () => {
+                // CollectionTest::testSliceNegativeOffsetAndLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-5, 3).values().all()).toEqual([4, 5, 6]);
             });
 
             it("test slice negative offset and negative length", () => {
+                // CollectionTest::testSliceNegativeOffsetAndNegativeLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-6, -2).values().all()).toEqual([3, 4, 5, 6]);
             });
@@ -10415,6 +10498,7 @@ describe("Collection", () => {
     describe("split", () => {
         describe("Laravel Tests", () => {
             it("test split collection with a divisible count", () => {
+                // CollectionTest::testSplitCollectionWithADivisibleCount
                 const data = collect(["a", "b", "c", "d"]);
                 const split = data.split(2);
 
@@ -10450,6 +10534,7 @@ describe("Collection", () => {
             });
 
             it("test split collection with an undivisable count", () => {
+                // CollectionTest::testSplitCollectionWithAnUndivisableCount
                 const data = collect(["a", "b", "c"]);
                 const split = data.split(2);
 
@@ -10465,6 +10550,7 @@ describe("Collection", () => {
             });
 
             it("test split collection with countless then divisor", () => {
+                // CollectionTest::testSplitCollectionWithCountLessThenDivisor
                 const data = collect(["a"]);
                 const split = data.split(2);
 
@@ -10480,6 +10566,7 @@ describe("Collection", () => {
             });
 
             it("test split collection into three with count of four", () => {
+                // CollectionTest::testSplitCollectionIntoThreeWithCountOfFour
                 const data = collect(["a", "b", "c", "d"]);
                 const split = data.split(3);
 
@@ -10496,6 +10583,7 @@ describe("Collection", () => {
             });
 
             it("test split collection into threee with count of five", () => {
+                // CollectionTest::testSplitCollectionIntoThreeWithCountOfFive
                 const data = collect(["a", "b", "c", "d", "e"]);
                 const split = data.split(3);
 
@@ -10512,6 +10600,7 @@ describe("Collection", () => {
             });
 
             it("test split collection into six with count of ten", () => {
+                // CollectionTest::testSplitCollectionIntoSixWithCountOfTen
                 const data = collect([
                     "a",
                     "b",
@@ -10549,6 +10638,7 @@ describe("Collection", () => {
             });
 
             it("test split empty collection", () => {
+                // CollectionTest::testSplitEmptyCollection
                 const data = collect([]);
                 const split = data.split(2);
 
@@ -10695,6 +10785,7 @@ describe("Collection", () => {
     describe("splitIn", () => {
         describe("Laravel Tests", () => {
             it("test split in", () => {
+                // CollectionTest::testSplitIn
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
                 const split = data.splitIn(3);
 
@@ -10704,6 +10795,14 @@ describe("Collection", () => {
                 expect(split.get(0)!.values().toArray()).toEqual([1, 2, 3, 4]);
                 expect(split.get(1)!.values().toArray()).toEqual([5, 6, 7, 8]);
                 expect(split.get(2)!.values().toArray()).toEqual([9, 10]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-keeps-keys"
+                expect(split.map((chunk) => chunk.keys().all()).all()).toEqual([
+                    [0, 1, 2, 3],
+                    [4, 5, 6, 7],
+                    [8, 9],
+                ]);
+                expect(split.get(1)?.all()).toEqual({ 4: 5, 5: 6, 6: 7, 7: 8 });
             });
 
             it("throws exception for invalid number of groups", () => {
@@ -10725,6 +10824,26 @@ describe("Collection", () => {
                     collect([1, 2, 3]).splitIn(-1);
                 }).toThrowError("Number of groups must be at least 1.");
             });
+        });
+
+        it("puts one item in each chunk when there are more groups than items, keeping their keys", () => {
+            const chunks = collect([1, 2, 3]).splitIn(5);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-more-groups-than-items"
+            expect(
+                chunks
+                    .map((chunk) => [chunk.keys().all(), chunk.values().all()])
+                    .all(),
+            ).toEqual([
+                [[0], [1]],
+                [[1], [2]],
+                [[2], [3]],
+            ]);
+        });
+
+        it("splits an empty collection into no chunks", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-empty"
+            expect(collect([]).splitIn(2).all()).toEqual([]);
         });
 
         it("reads its chunk size through PHP's int cast, which makes NAN 0", () => {
@@ -11114,6 +11233,7 @@ describe("Collection", () => {
     describe("chunk", () => {
         describe("Laravel Tests", () => {
             it("test chunk", () => {
+                // CollectionTest::testChunk
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
                 const chunked = data.chunk(3);
 
@@ -11121,22 +11241,26 @@ describe("Collection", () => {
                 expect(chunked.first()).toBeInstanceOf(Collection);
                 expect(chunked.count()).toBe(4);
                 expect(chunked.get(0)!.values().toArray()).toEqual([1, 2, 3]);
-                expect(chunked.get(3)!.values().toArray()).toEqual([10]);
+                // docs/php-parity/task-24-data-release-readiness.json, "collection-chunk-last-chunk-keys"
+                expect(chunked.get(3)?.all()).toEqual({ 9: 10 });
             });
 
             it("test chunk when given zero as size", () => {
+                // CollectionTest::testChunkWhenGivenZeroAsSize
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
                 expect(data.chunk(0).toArray()).toEqual([]);
             });
 
             it("test chunck when given less than zero", () => {
+                // CollectionTest::testChunkWhenGivenLessThanZero
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
                 expect(data.chunk(-1).toArray()).toEqual([]);
             });
 
             it("test chunk preserving keys", () => {
+                // CollectionTest::testChunkPreservingKeys
                 const data = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 });
 
                 expect(data.chunk(2).toArray()).toEqual([
@@ -11226,6 +11350,7 @@ describe("Collection", () => {
             // so the numeric-key assertions from CollectionTest go through .toArray() on the chunk.
             // Read chunks with get(n): first()/last() resolve to `unknown`, so calling a method on them fails ts:check.
             it("test chunk while on equal elements", () => {
+                // CollectionTest::testChunkWhileOnEqualElements
                 const data = collect([
                     "A",
                     "A",
@@ -11246,6 +11371,7 @@ describe("Collection", () => {
             });
 
             it("test chunk while on contiguously increasing integers", () => {
+                // CollectionTest::testChunkWhileOnContiguouslyIncreasingIntegers
                 const data = collect([
                     1, 4, 9, 10, 11, 12, 15, 16, 19, 20, 21,
                 ]).chunkWhile(
@@ -11263,6 +11389,7 @@ describe("Collection", () => {
             });
 
             it("test chunk while preserving string keys", () => {
+                // CollectionTest::testChunkWhilePreservingStringKeys
                 const data = collect({
                     a: 1,
                     b: 1,
@@ -11312,6 +11439,7 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             // docs/php-parity/task-21-chunk-while-by.json
             it("test chunk by with callback", () => {
+                // CollectionTest::testChunkByWithCallback
                 const data = collect([1, 1, 2, 2, 3, 3, 3]).chunkBy(
                     (value) => value,
                 );
@@ -11324,6 +11452,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with string key", () => {
+                // CollectionTest::testChunkByWithStringKey
                 const data = collect([
                     { parent: "a", name: "1" },
                     { parent: "a", name: "2" },
@@ -11348,6 +11477,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by preserves keys", () => {
+                // CollectionTest::testChunkByPreservesKeys
                 const data = collect({ a: 1, b: 1, c: 2, d: 2, e: 1 }).chunkBy(
                     (value) => value,
                 );
@@ -11360,6 +11490,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with dot notation", () => {
+                // CollectionTest::testChunkByWithDotNotation
                 const data = collect([
                     { address: { city: "NY" } },
                     { address: { city: "NY" } },
@@ -11372,6 +11503,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with empty collection", () => {
+                // CollectionTest::testChunkByWithEmptyCollection
                 const data = collect([]).chunkBy("key");
 
                 expect(data).toBeInstanceOf(Collection);
@@ -11379,6 +11511,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with single item", () => {
+                // CollectionTest::testChunkByWithSingleItem
                 const data = collect([{ key: "a" }]).chunkBy("key");
 
                 expect(data).toBeInstanceOf(Collection);
@@ -11445,6 +11578,7 @@ describe("Collection", () => {
     describe("sort", () => {
         describe("Laravel Tests", () => {
             it("test sort", () => {
+                // CollectionTest::testSort
                 const data = collect([5, 3, 1, 2, 4]).sort();
                 expect(data.values().all()).toEqual([1, 2, 3, 4, 5]);
 
@@ -11582,6 +11716,7 @@ describe("Collection", () => {
     describe("sortDesc", () => {
         describe("Laravel Tests", () => {
             it("test sort desc", () => {
+                // CollectionTest::testSortDesc
                 const data = collect([5, 3, 1, 2, 4]).sortDesc();
                 expect(data.values().all()).toEqual([5, 4, 3, 2, 1]);
 
@@ -11617,9 +11752,9 @@ describe("Collection", () => {
 
     describe("sortBy", () => {
         it("orders numbers and numeric strings by value", () => {
-            // Laravel's own test passes SORT_NUMERIC, which this port has no parameter for; its default flag
-            // orders this data the same way. docs/php-parity/task-31-laravel-13-33-sync.json,
-            // "sortBy-many-default-flag-asc", "sortBy-many-default-flag-desc" and "sortBy-key-default-flag"
+            // CollectionTest::testSortByManyWithNumericFlagComparesFractionalValues, without SORT_NUMERIC, which orders
+            // this data the same. docs/php-parity/task-31-laravel-13-33-sync.json, "sortBy-many-default-flag-asc",
+            // "sortBy-many-default-flag-desc" and "sortBy-key-default-flag"
             const prices = collect([
                 { price: 1.5 },
                 { price: "10.5" },
@@ -11744,6 +11879,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test sort by", () => {
+                // CollectionTest::testSortBy
                 const data = collect(["taylor", "dayle"]);
                 const sorted = data.sortBy((x) => x);
 
@@ -11756,6 +11892,7 @@ describe("Collection", () => {
             });
 
             it("test sort by string", () => {
+                // CollectionTest::testSortByString
                 const data = collect([{ name: "taylor" }, { name: "dayle" }]);
                 const sorted = data.sortBy("name");
 
@@ -11774,39 +11911,58 @@ describe("Collection", () => {
             });
 
             it("test sort by callable string", () => {
+                // CollectionTest::testSortByCallableString
                 const data = collect([{ sort: 2 }, { sort: 1 }]);
-                const sorted = data.sortBy("sort");
+                const sorted = data.sortBy([["sort", "asc"]]);
 
-                expect(sorted.values().all()).toEqual([
+                expect(Object.values(sorted.all())).toEqual([
                     { sort: 1 },
                     { sort: 2 },
                 ]);
             });
 
             it("test sort by callable string desc", () => {
-                const data = collect([
+                // CollectionTest::testSortByCallableStringDesc
+                let data = collect([
                     { id: 1, name: "foo" },
                     { id: 2, name: "bar" },
                 ]);
-                const sorted = data.sortByDesc("id");
+                data = data.sortByDesc(["id"]);
+                expect(Object.values(data.all())).toEqual([
+                    { id: 2, name: "bar" },
+                    { id: 1, name: "foo" },
+                ]);
 
-                const data2 = collect([
+                data = collect([
                     { id: 1, name: "foo" },
                     { id: 2, name: "bar" },
                     { id: 2, name: "baz" },
                 ]);
-                const sorted2 = data2.sortByDesc("id");
-
-                expect(sorted.values().all()).toEqual([
-                    { id: 2, name: "bar" },
-                    { id: 1, name: "foo" },
-                ]);
-
-                expect(sorted2.values().all()).toEqual([
+                data = data.sortByDesc(["id"]);
+                expect(Object.values(data.all())).toEqual([
                     { id: 2, name: "bar" },
                     { id: 2, name: "baz" },
                     { id: 1, name: "foo" },
                 ]);
+
+                data = data.sortByDesc(["id", "name"]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-id-then-name"
+                expect(Object.values(data.all())).toEqual([
+                    { id: 2, name: "baz" },
+                    { id: 2, name: "bar" },
+                    { id: 1, name: "foo" },
+                ]);
+            });
+
+            it("test value retriever accepts dot notation", () => {
+                // CollectionTest::testValueRetrieverAcceptsDotNotation
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-dot-path"
+                const c = collect([
+                    { id: 1, foo: { bar: "B" } },
+                    { id: 2, foo: { bar: "A" } },
+                ]).sortBy("foo.bar");
+
+                expect(c.pluck("id").all()).toEqual([2, 1]);
             });
 
             it("test sort by always returns assoc", () => {
@@ -11840,6 +11996,70 @@ describe("Collection", () => {
             });
         });
 
+        it("sorts by what a callback answers for each value and its key", () => {
+            const sorted = collect({ x: 1, a: 2, m: 3 }).sortBy(
+                (_value, key) => key,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-callback-by-key"
+            expect(viewsOf(sorted)).toEqual({
+                all: { a: 2, m: 3, x: 1 },
+                keys: ["a", "m", "x"],
+                values: [2, 3, 1],
+            });
+        });
+
+        it("reads each descriptor's own direction, and sortByDesc turns every path descending", () => {
+            const people = collect([
+                { name: "b", age: 1 },
+                { name: "a", age: 1 },
+                { name: "a", age: 3 },
+                { name: "b", age: 2 },
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-mixed-directions"
+            expect(
+                people
+                    .sortBy([
+                        ["name", "asc"],
+                        ["age", "desc"],
+                    ])
+                    .values()
+                    .all(),
+            ).toEqual([
+                { name: "a", age: 3 },
+                { name: "a", age: 1 },
+                { name: "b", age: 2 },
+                { name: "b", age: 1 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-descriptor-mixed-directions"
+            expect(
+                people
+                    .sortByDesc([
+                        ["name", "asc"],
+                        ["age", "desc"],
+                    ])
+                    .values()
+                    .all(),
+            ).toEqual([
+                { name: "b", age: 2 },
+                { name: "b", age: 1 },
+                { name: "a", age: 3 },
+                { name: "a", age: 1 },
+            ]);
+        });
+
+        it("keeps tied items in the order they came", () => {
+            const rows = collect([
+                { k: 1, id: "a" },
+                { k: 0, id: "b" },
+                { k: 1, id: "c" },
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-ties-stable"
+            expect(rows.sortBy("k").pluck("id").all()).toEqual(["b", "a", "c"]);
+        });
+
         it("handles null == null comparison", () => {
             const c = collect([{ val: null }, { val: null }, { val: 1 }]);
             const sorted = c.sortBy("val");
@@ -11864,6 +12084,7 @@ describe("Collection", () => {
         });
 
         it("supports SortDirection.Descending", () => {
+            // CollectionTest::testSortBy
             const data = collect(["taylor", "dayle"]);
             const sorted = data.sortBy((x) => x, SortDirection.Descending);
             expect(sorted.values().all()).toEqual(["taylor", "dayle"]);
@@ -12276,6 +12497,7 @@ describe("Collection", () => {
     describe("sortKeys", () => {
         describe("Laravel Tests", () => {
             it("test sort keys", () => {
+                // CollectionTest::testSortKeys
                 const data = collect({ b: "dayle", a: "taylor" });
 
                 expect(data.sortKeys().all()).toEqual({
@@ -12331,6 +12553,7 @@ describe("Collection", () => {
     describe("testSortKeysDesc", () => {
         describe("Laravel Tests", () => {
             it("test sort keys desc", () => {
+                // CollectionTest::testSortKeysDesc
                 const data = collect({ a: "taylor", b: "dayle" });
 
                 expect(data.sortKeysDesc().all()).toEqual({
@@ -12344,6 +12567,7 @@ describe("Collection", () => {
     describe("testSortKeysUsing", () => {
         describe("Laravel Tests", () => {
             it("test sort keys using", () => {
+                // CollectionTest::testSortKeysUsing
                 const data = collect({ B: "dayle", a: "taylor" });
 
                 expect(data.sortKeysUsing(strnatcasecmp).all()).toEqual({
@@ -12353,9 +12577,17 @@ describe("Collection", () => {
             });
         });
 
+        it("sorts integer keys by the callback, renumbering them over the sorted order", () => {
+            const sorted = collect({ 5: "e", 2: "b", 9: "z" }).sortKeysUsing(
+                (a, b) => Number(b) - Number(a),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-int-keys-desc"
+            expect(sorted.values().all()).toEqual(["z", "e", "b"]);
+        });
+
         it("keeps array backing", () => {
-            // Covers sortKeysUsing's isArray branch; sortKeys' own array branch
-            // is already covered via sortKeysDesc's packed-list test below.
+            // JS-only: PHP has no backing to keep; a list stays a list, as it does through sortKeys()
             const sorted = new Collection(["a", "b", "c"]).sortKeysUsing(
                 (a, b) => Number(b) - Number(a),
             );
@@ -12505,16 +12737,19 @@ describe("Collection", () => {
     describe("take", () => {
         describe("Laravel Tests", () => {
             it("test take", () => {
+                // CollectionTest::testTake
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(2).all()).toEqual(["taylor", "dayle"]);
             });
 
             it("test take last", () => {
+                // CollectionTest::testTakeLast
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(-2).all()).toEqual(["dayle", "shawn"]);
             });
 
             it("test take last with limit greater than collection size", () => {
+                // CollectionTest::testTakeLastWithLimitGreaterThanCollectionSize
                 // docs/php-parity/task-31-laravel-13-33-sync.json, "take-negative-past-size"
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(-5).all()).toEqual([
@@ -12522,6 +12757,24 @@ describe("Collection", () => {
                     "dayle",
                     "shawn",
                 ]);
+            });
+        });
+
+        it("takes nothing for a limit of 0", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-take-zero"
+            expect(collect(["taylor", "dayle", "shawn"]).take(0).all()).toEqual(
+                [],
+            );
+        });
+
+        it("keeps a record's keys when it takes the last items", () => {
+            const taken = collect({ a: 1, b: 2, c: 3 }).take(-2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-take-assoc-negative"
+            expect(viewsOf(taken)).toEqual({
+                all: { b: 2, c: 3 },
+                keys: ["b", "c"],
+                values: [2, 3],
             });
         });
 
@@ -15469,11 +15722,32 @@ describe("Collection", () => {
     describe("forPage", () => {
         describe("Laravel Tests", () => {
             it("test paginate", () => {
+                // CollectionTest::testPaginate
                 const c = collect(["one", "two", "three", "four"]);
                 expect(c.forPage(0, 2).all()).toEqual(["one", "two"]);
                 expect(c.forPage(1, 2).all()).toEqual(["one", "two"]);
                 expect(c.forPage(2, 2).all()).toEqual(["three", "four"]);
                 expect(c.forPage(3, 2).all()).toEqual([]);
+            });
+        });
+
+        it("reads a page below 1 as the first, and a page size of 0 or below as array_slice reads it", () => {
+            const c = collect(["one", "two", "three", "four"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-forPage-edges"
+            expect(c.forPage(-1, 2).all()).toEqual(["one", "two"]);
+            expect(c.forPage(2, 0).all()).toEqual([]);
+            expect(c.forPage(1, -1).all()).toEqual(["one", "two", "three"]);
+        });
+
+        it("keeps a record's keys on its page", () => {
+            const page = collect({ a: 1, b: 2, c: 3 }).forPage(2, 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-forPage-assoc"
+            expect(viewsOf(page)).toEqual({
+                all: { b: 2 },
+                keys: ["b"],
+                values: [2],
             });
         });
     });
