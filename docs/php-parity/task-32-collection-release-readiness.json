@@ -11393,6 +11393,27 @@
             }
         },
         {
+            "label": "C32-G-sortByDesc-bool-comparator",
+            "php": "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses",
+            "value": {
+                "sortByDesc": [
+                    1,
+                    2,
+                    3
+                ],
+                "Arr::sortDesc list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sortDesc keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        },
+        {
             "label": "C32-G-sortBy-out-of-order-ties",
             "php": "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order",
             "value": {

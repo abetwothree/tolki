@@ -1734,6 +1734,11 @@ probe('C32-G-sortBy-bool-comparator', "sortBy() with a comparator answering a bo
     'Arr::sort list' => @Arr::sort([3, 1, 2], [fn ($a, $b) => $a > $b]),
     'Arr::sort keyed' => @Arr::sort(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
 ]);
+probe('C32-G-sortByDesc-bool-comparator', "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses", fn () => [
+    'sortByDesc' => @(new Collection([3, 1, 2]))->sortByDesc([fn ($a, $b) => $a > $b])->values()->all(),
+    'Arr::sortDesc list' => @Arr::sortDesc([3, 1, 2], [fn ($a, $b) => $a > $b]),
+    'Arr::sortDesc keyed' => @Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
+]);
 probe('C32-G-sortBy-out-of-order-ties', "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order", fn () => [
     'sortBy' => (new Collection($gTies))->sortBy('n')->pluck('id')->all(),
     'sortByDesc' => (new Collection($gTies))->sortByDesc('n')->pluck('id')->all(),
