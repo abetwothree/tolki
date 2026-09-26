@@ -1464,22 +1464,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Concatenate values of a given key as a string.
      *
-     * @param value - The key to pluck values from, or a callback function to generate values
+     * @param value - The key to pluck values from, or a callback function to generate values; the glue when the
+     * items are neither arrays nor objects
      * @param glue - The string to join values with, defaults to an empty string
      * @returns A string of concatenated values
      *
      * @example
      *
-     * new Collection(['apple', 'banana', 'cherry']).implode(); -> 'applebananacherry'
+     * new Collection(['apple', 'banana', 'cherry']).implode(''); -> 'applebananacherry'
      * new Collection(['apple', 'banana', 'cherry']).implode(', '); -> 'apple, banana, cherry'
      * new Collection([{name: 'John'}, {name: 'Jane'}]).implode('name', ', '); -> 'John, Jane'
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
      */
     implode<TReturnValue>(
-        value:
-            | ((item: TValue, key: TKey) => TReturnValue)
-            | PropertyKey
-            | null = null,
+        value: ((item: TValue, key: TKey) => TReturnValue) | PropertyKey | null,
         glue: string | null = null,
     ) {
         // PHP's implode() casts true to "1", and false and null to "".

@@ -4626,12 +4626,6 @@ describe("Collection", () => {
             expect(c.implode("name", ", ")).toBe("John, Jane");
         });
 
-        it("uses default value parameter", () => {
-            // Calling implode without arguments triggers the default parameter
-            const c = collect(["a", "b", "c"]);
-            expect(c.implode()).toBe("abc"); // joins without separator
-        });
-
         it("handles object-based collection in joinItems", () => {
             // Test with object-based collection to cover the Object.values branch in joinItems
             const c = collect({ a: "apple", b: "banana", c: "cherry" });

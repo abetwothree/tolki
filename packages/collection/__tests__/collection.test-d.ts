@@ -150,6 +150,13 @@ describe("collection type tests", () => {
         });
     });
 
+    describe("implode", () => {
+        it("requires the value, as PHP's implode($value) does", () => {
+            // @ts-expect-error - PHP throws ArgumentCountError for an implode() with no value
+            collect(["a", "b"]).implode();
+        });
+    });
+
     describe("mode", () => {
         it("answers the PHP array keys the values were counted under, or null", () => {
             expectTypeOf(collect([1, 2, 2]).mode()).toEqualTypeOf<Array<
