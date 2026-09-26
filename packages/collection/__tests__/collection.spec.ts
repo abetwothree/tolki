@@ -2129,6 +2129,15 @@ describe("Collection", () => {
                 new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]).all(),
             ).toEqual([]);
         });
+
+        it("counts a list operand's indexes as its keys, never its length", () => {
+            const diffed = collect({ length: 5, b: 2 }).diffKeys(["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffKeys-length-key"
+            expect(diffed.all()).toEqual({ length: 5, b: 2 });
+            expect(diffed.keys().all()).toEqual(["length", "b"]);
+            expect(diffed.values().all()).toEqual([5, 2]);
+        });
     });
 
     describe("diffKeysUsing", () => {

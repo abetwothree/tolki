@@ -12,6 +12,7 @@ import {
     dataDiff,
     dataDiffAssoc,
     dataDiffAssocUsing,
+    dataDiffKeys,
     dataDiffKeysUsing,
     dataDiffUsing,
     dataDot,
@@ -825,24 +826,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
     ) {
-        const otherItems = this.getRawItems(items);
-        const results = {} as DataItems<TValue, TKey>;
-
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            if (!Object.hasOwn(otherItems as object, key)) {
-                defineKey(results as Record<string, TValue>, key, value);
-            }
-        }
-
-        if (isArray(this.items)) {
-            return this.newInstance(
-                handOver(Object.values(results) as TValue[]),
-            );
-        }
-
-        return this.newInstance(handOver(results));
+        return this.newInstance(
+            handOver(dataDiffKeys(this.items, this.getRawItems(items))),
+        );
     }
 
     /**
