@@ -193,19 +193,21 @@ type ArraySetPathResult<
           : ArraySetPathListElement<TValue>
     : TValue[];
 
-// DotLeaf (dot): with no depth, dot() walks every list and plain object down to its leaves, keeping a Date, Map, Set,
-// Promise or function whole; a keyless object type may hold anything. A type can't tell a class instance, which the
-// walk also keeps whole, from a plain object, so it walks one.
+// DotLeaf (dot): with no depth, dot() walks every non-empty list and plain object down to its leaves; an empty one, a
+// Date, Map, Set, Promise or function is a leaf. A type can't tell a class instance, which the walk also keeps whole,
+// from a plain object, so it walks one.
 type DotLeaf<T, D extends number = 5> = [D] extends [never]
     ? unknown
     : T extends readonly (infer E)[]
-      ? DotLeaf<E, DotDepth[D]>
+      ? DotLeaf<E, DotDepth[D]> | (0 extends T["length"] ? T : never)
       : T extends NonObjectItems | Date | RegExp | Promise<unknown>
         ? T
         : T extends object
           ? [keyof T] extends [never]
               ? unknown
-              : DotLeaf<ObjectValue<T>, DotDepth[D]>
+              :
+                    | DotLeaf<ObjectValue<T>, DotDepth[D]>
+                    | (Record<never, never> extends T ? T : never)
           : T;
 type DotDepth = [never, 0, 1, 2, 3, 4];
 

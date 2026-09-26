@@ -2755,25 +2755,44 @@ describe("arr type tests", () => {
         });
 
         describe("nested arrays without depth (fully flattened)", () => {
-            it("flattens number[][] to Record<string, number>", () => {
+            it("flattens a nested list to its leaves, and keeps a list that may be empty", () => {
                 const result = Arr.dot([1, [2, 3]]);
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number | number[]>
+                >();
             });
 
-            it("flattens deeply nested number[][][] to Record<string, number>", () => {
+            it("flattens a deeply nested list to its leaves, and keeps each list that may be empty", () => {
                 const result = Arr.dot([1, [2, [3, [4]]]]);
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<
+                        string,
+                        | number
+                        | number[]
+                        | (number | number[])[]
+                        | (number | (number | number[])[])[]
+                    >
+                >();
             });
 
-            it("flattens string[][] to Record<string, string>", () => {
+            it("flattens nested string lists to their leaves, and keeps each list that may be empty", () => {
                 const result = Arr.dot(["a", ["b", ["c"]]]);
-                expectTypeOf(result).toEqualTypeOf<Record<string, string>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, string | string[] | (string | string[])[]>
+                >();
             });
 
-            it("flattens mixed nested types to union of leaf values", () => {
+            it("flattens mixed nested types to their leaves, and keeps each list that may be empty", () => {
                 const result = Arr.dot(["a", [1, [true]]]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, string | number | boolean>
+                    Record<
+                        string,
+                        | string
+                        | number
+                        | boolean
+                        | boolean[]
+                        | (number | boolean[])[]
+                    >
                 >();
             });
         });
@@ -2781,12 +2800,16 @@ describe("arr type tests", () => {
         describe("with prepend (no depth)", () => {
             it("returns flattened type with prepend for nested numbers", () => {
                 const result = Arr.dot([1, [2, 3]], "root");
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number | number[]>
+                >();
             });
 
             it("returns flattened type with prepend for nested strings", () => {
                 const result = Arr.dot(["a", ["b"]], "prefix");
-                expectTypeOf(result).toEqualTypeOf<Record<string, string>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, string | string[]>
+                >();
             });
         });
 
@@ -2887,13 +2910,31 @@ describe("arr type tests", () => {
 
             it("flattens nested array of objects without depth", () => {
                 const result = Arr.dot([[{ id: 1 }], [{ id: 2 }]]);
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number | { id: number }[]>
+                >();
             });
 
             it("reaches the leaves of objects and lists nested in each other", () => {
                 expectTypeOf(Arr.dot([{ a: [1, { b: "x" }] }])).toEqualTypeOf<
-                    Record<string, number | string>
+                    Record<string, number | string | (number | { b: string })[]>
                 >();
+            });
+
+            it("keeps a list or record that may be empty as a leaf, as the walk keeps an empty one", () => {
+                const rows: { tags: string[]; meta: Record<string, number> }[] =
+                    [{ tags: [], meta: {} }];
+
+                expectTypeOf(Arr.dot(rows)).toEqualTypeOf<
+                    Record<
+                        string,
+                        string | string[] | number | Record<string, number>
+                    >
+                >();
+                // A tuple of one or more items is never empty, so only its items are leaves.
+                expectTypeOf(
+                    Arr.dot([{ pair: [1, 2] as [number, number] }]),
+                ).toEqualTypeOf<Record<string, number>>();
             });
 
             it("keeps a Date or a Map inside an object as a leaf, as the walk does", () => {
@@ -2923,7 +2964,15 @@ describe("arr type tests", () => {
             it("handles mixed primitives and arrays without depth", () => {
                 const result = Arr.dot([1, "hello", [true, [null]]]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number | string | boolean | null>
+                    Record<
+                        string,
+                        | number
+                        | string
+                        | boolean
+                        | null
+                        | null[]
+                        | (boolean | null[])[]
+                    >
                 >();
             });
         });
@@ -2938,7 +2987,9 @@ describe("arr type tests", () => {
             it("infers from typed nested number array variable", () => {
                 const nums: (number | number[])[] = [1, [2, 3]];
                 const result = Arr.dot(nums);
-                expectTypeOf(result).toEqualTypeOf<Record<string, number>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, number | number[]>
+                >();
             });
 
             it("infers from typed object array variable", () => {
@@ -2957,7 +3008,9 @@ describe("arr type tests", () => {
                     ["b", ["c"]],
                 ];
                 const result = Arr.dot(data);
-                expectTypeOf(result).toEqualTypeOf<Record<string, string>>();
+                expectTypeOf(result).toEqualTypeOf<
+                    Record<string, string | string[] | (string | string[])[]>
+                >();
             });
         });
 
@@ -2993,7 +3046,7 @@ describe("arr type tests", () => {
             it("handles nested arrays of mixed built-in types", () => {
                 const result = Arr.dot([[new Date()], [/pattern/]]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, Date | RegExp>
+                    Record<string, Date | RegExp | Date[] | RegExp[]>
                 >();
             });
 
@@ -3017,7 +3070,15 @@ describe("arr type tests", () => {
             it("handles deeply nested mixed structures without depth", () => {
                 const result = Arr.dot([1, ["hello", [true, [{ id: 1 }]]]]);
                 expectTypeOf(result).toEqualTypeOf<
-                    Record<string, number | string | boolean>
+                    Record<
+                        string,
+                        | number
+                        | string
+                        | boolean
+                        | { id: number }[]
+                        | (boolean | { id: number }[])[]
+                        | (string | (boolean | { id: number }[])[])[]
+                    >
                 >();
             });
         });

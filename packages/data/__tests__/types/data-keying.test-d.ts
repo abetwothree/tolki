@@ -22,6 +22,15 @@ import {
     unionRows,
 } from "./fixtures";
 
+/** A row whose list and record may be empty, which dot keeps whole as leaves. */
+interface Tagged {
+    tags: string[];
+    meta: Record<string, number>;
+}
+
+declare const taggedList: Tagged[];
+declare const taggedById: Record<"r1", Tagged>;
+
 /** Not a fixture: the dotted keys are what undot reads, and only these two blocks need them. */
 const dottedRecord = { "a.b": 1, "a.c": 2 };
 
@@ -133,6 +142,28 @@ describe("data keying type tests", () => {
             >();
             expectTypeOf(Data.dataDot([{ a: 1 }])).toEqualTypeOf<
                 Record<string, number>
+            >();
+        });
+
+        it("keeps a list or record that may be empty as a leaf on each backing, as the walk keeps an empty one", () => {
+            expectTypeOf(Data.dataDot(taggedList)).toEqualTypeOf(
+                Arr.dot(taggedList),
+            );
+            expectTypeOf(Data.dataDot(taggedList)).toEqualTypeOf<
+                Record<
+                    string,
+                    string | string[] | number | Record<string, number>
+                >
+            >();
+            expectTypeOf(Data.dataDot(taggedById)).toEqualTypeOf(
+                Obj.dot(taggedById),
+            );
+            // obj types every depth in one row, so the row itself may be a value too.
+            expectTypeOf(Data.dataDot(taggedById)).toEqualTypeOf<
+                Record<
+                    string,
+                    Tagged | string | string[] | number | Record<string, number>
+                >
             >();
         });
 
