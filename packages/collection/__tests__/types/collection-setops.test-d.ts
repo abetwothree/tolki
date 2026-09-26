@@ -225,7 +225,9 @@ describe("collection set operation type tests", () => {
         });
 
         it("takes lists of different value types", () => {
-            expectTypeOf(list.zip(["a"], [true])).toEqualTypeOf<
+            expectTypeOf(
+                list.zip(["a", "b", "c"], [true, false, true]),
+            ).toEqualTypeOf<
                 Collection<
                     Collection<number | string | boolean, number>,
                     number
@@ -258,7 +260,7 @@ describe("collection set operation type tests", () => {
 
     describe("only", () => {
         it("takes a collection of key names", () => {
-            expectTypeOf(record.only(collect(["a"]))).toEqualTypeOf<
+            expectTypeOf(record.only(collect(["a", "b"]))).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
             >();
         });
@@ -271,7 +273,7 @@ describe("collection set operation type tests", () => {
 
     describe("except", () => {
         it("takes a collection of key names", () => {
-            expectTypeOf(record.except(collect(["a"]))).toEqualTypeOf<
+            expectTypeOf(record.except(collect(["c"]))).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
             >();
         });
@@ -284,7 +286,7 @@ describe("collection set operation type tests", () => {
 
     describe("forget", () => {
         it("takes a collection of key names", () => {
-            expectTypeOf(record.forget(collect(["a"]))).toEqualTypeOf<
+            expectTypeOf(record.forget(collect(["c"]))).toEqualTypeOf<
                 Collection<number, "a" | "b", "keyed">
             >();
         });
