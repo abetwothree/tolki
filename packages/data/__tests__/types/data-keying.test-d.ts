@@ -14,6 +14,7 @@ import {
     numberMapAsRecord,
     opaque,
     readonlyNumberList,
+    type Row,
     rowList,
     rowsById,
     settings,
@@ -39,12 +40,19 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataKeyBy(rowsById, "id")).toEqualTypeOf(
                 Obj.keyBy(rowsById, "id"),
             );
+            // Stated too: the pin above would still hold if both sides answered the same wrong key.
+            expectTypeOf(Data.dataKeyBy(rowsById, "id")).toEqualTypeOf<
+                Record<number, Row>
+            >();
         });
 
         it("matches obj.keyBy for a record given a callback", () => {
             expectTypeOf(
                 Data.dataKeyBy(rowsById, (row) => row.id),
             ).toEqualTypeOf(Obj.keyBy(rowsById, (row) => row.id));
+            expectTypeOf(
+                Data.dataKeyBy(rowsById, (row) => row.name),
+            ).toEqualTypeOf<Record<string | number, Row>>();
         });
     });
 

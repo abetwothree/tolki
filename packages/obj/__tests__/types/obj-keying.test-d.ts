@@ -14,12 +14,32 @@ import {
     user,
 } from "./fixtures";
 
+/** Rows whose key field may be missing. */
+declare const maybeIds: Record<"a" | "b", { id?: number }>;
+
 describe("obj keying type tests", () => {
     describe("keyBy", () => {
-        it("keys rows by a field, keeping the row type", () => {
-            expectTypeOf(Obj.keyBy(rowsById, "name")).toEqualTypeOf<
-                Record<string, Row>
+        it("keys rows by a field's value as PHP stores that key, keeping the row type", () => {
+            expectTypeOf(Obj.keyBy(rowsById, "id")).toEqualTypeOf<
+                Record<number, Row>
             >();
+            // A string value such as "10" is stored as the integer 10.
+            expectTypeOf(Obj.keyBy(rowsById, "name")).toEqualTypeOf<
+                Record<string | number, Row>
+            >();
+            // A row without the field is keyed by null, which PHP stores as "".
+            expectTypeOf(Obj.keyBy(maybeIds, "id")).toEqualTypeOf<
+                Record<number | "", { id?: number }>
+            >();
+        });
+
+        it("keys rows by a callback's answer as PHP stores that key", () => {
+            expectTypeOf(Obj.keyBy(rowsById, (row) => row.id)).toEqualTypeOf<
+                Record<number, Row>
+            >();
+            expectTypeOf(
+                Obj.keyBy(rowsById, (row) => (row.id > 1 ? null : 1.5)),
+            ).toEqualTypeOf<Record<number | "", Row>>();
         });
 
         it("types the callback's row and key", () => {
@@ -36,10 +56,13 @@ describe("obj keying type tests", () => {
 
             expectTypeOf(
                 Obj.keyBy(rowsById, (row) => row.id > 1),
-            ).toEqualTypeOf<Record<string, Row>>();
-            expectTypeOf(Obj.keyBy(rowsById, () => sym)).toEqualTypeOf<
-                Record<string, Row> & { [sym]?: Row }
-            >();
+            ).toEqualTypeOf<Record<0 | 1, Row>>();
+            expectTypeOf(Obj.keyBy(rowsById, () => sym)).toEqualTypeOf<{
+                [sym]?: Row;
+            }>();
+            expectTypeOf(
+                Obj.keyBy(rowsById, (row) => (row.id > 1 ? sym : row.name)),
+            ).toEqualTypeOf<Record<string | number, Row> & { [sym]?: Row }>();
             expectTypeOf(Obj.keyBy(rowsById, () => sym)[sym]).toEqualTypeOf<
                 Row | undefined
             >();
@@ -52,7 +75,7 @@ describe("obj keying type tests", () => {
             const keyer = "name" as "name" | ((row: Row) => number);
 
             expectTypeOf(Obj.keyBy(rowsById, keyer)).toEqualTypeOf<
-                Record<string, Row>
+                Record<string | number, Row>
             >();
         });
 
@@ -69,7 +92,7 @@ describe("obj keying type tests", () => {
             const rows = new Map([[2, { id: "r" }]]);
 
             expectTypeOf(Obj.keyBy(rows, "id")).toEqualTypeOf<
-                Record<string, { id: string }>
+                Record<string | number, { id: string }>
             >();
             Obj.keyBy(rows, (row, key) => {
                 expectTypeOf(row).toEqualTypeOf<{ id: string }>();
@@ -99,9 +122,7 @@ describe("obj keying type tests", () => {
 
             expectTypeOf(
                 Obj.keyBy(new Map([["a", { id: 1 }]]), () => sym),
-            ).toEqualTypeOf<
-                Record<string, { id: number }> & { [sym]?: { id: number } }
-            >();
+            ).toEqualTypeOf<{ [sym]?: { id: number } }>();
         });
     });
 
@@ -229,7 +250,7 @@ describe("obj keying type tests", () => {
         // entries the value carries, so the answer is the widest sound one.
         it("keeps keyBy usable for data typed as the bare object", () => {
             expectTypeOf(Obj.keyBy(bareObject, "id")).toEqualTypeOf<
-                Record<string, unknown>
+                Record<string | number, unknown>
             >();
         });
 

@@ -240,10 +240,18 @@ type MapWithKeysList<T extends readonly unknown[]> = number extends T["length"]
     : { [I in keyof T & `${number}`]: T[I] };
 // filter without a callback keeps a Map's non-falsy values, narrowed as TruthyObject narrows a record's per key.
 type TruthyValue<V> = Exclude<V, null | undefined | false | 0 | "">;
-// A symbol key is optional: keyBy stores one only when some row resolves to it.
-type KeyByResult<V, S extends symbol> = [S] extends [never]
-    ? Record<string, V>
-    : Record<string, V> & { [K in S]?: V };
+// keyBy stores each key as PHP stores an array key. A symbol stays one, optional: only some row may resolve to it.
+type KeyByResult<V, K> = [Extract<K, symbol>] extends [never]
+    ? Record<MapArrayKey<K>, V>
+    : [Exclude<K, symbol>] extends [never]
+      ? { [S in Extract<K, symbol>]?: V }
+      : Record<MapArrayKey<Exclude<K, symbol>>, V> & {
+            [S in Extract<K, symbol>]?: V;
+        };
+// A widened path may reach any value, or none (null), so its key is any string or number, or a symbol it can reach.
+type KeyByPath<V, P> = string extends P
+    ? string | number | Extract<ObjectPathValue<V>, symbol>
+    : PluckValue<V, P>;
 // prepend casts its key as PHP casts an array key: a float truncates toward zero, so 1.5 replaces key 1.
 // A float between -1 and 0 truncates to "-0", which names no literal type, so it stays on the wide-number row.
 type PrependKey<K extends string | number> = K extends number
@@ -2719,24 +2727,37 @@ export function join(
  * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
  * keyBy(new Map([[2, { id: 'x', n: 'c' }], [0, { id: 'x', n: 'a' }]]), 'id'); -> { x: { id: 'x', n: 'a' } }
  */
+// Each callback row comes before its path row: there a callback would also be inferred to the bare `P`, which then
+// falls back to the whole `PathKey`.
+export function keyBy<
+    TValue,
+    TKey,
+    R extends PropertyKey | boolean | null | undefined,
+>(
+    data: ReadonlyMap<TKey, TValue>,
+    keyBy: (item: TValue, key: MapArrayKey<TKey>) => R,
+): KeyByResult<TValue, R>;
 export function keyBy<
     TValue,
     TKey,
     R extends PropertyKey | boolean | null | undefined = never,
+    P extends PathKey = never,
 >(
     data: ReadonlyMap<TKey, TValue>,
-    keyBy: PathKey | ((item: TValue, key: MapArrayKey<TKey>) => R),
-): KeyByResult<TValue, Extract<R | ObjectPathValue<TValue>, symbol>>;
+    keyBy: P | ((item: TValue, key: MapArrayKey<TKey>) => R),
+): KeyByResult<TValue, R | KeyByPath<TValue, P>>;
+export function keyBy<TMap, R extends PropertyKey | boolean | null | undefined>(
+    data: MapData<TMap>,
+    keyBy: (item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R,
+): KeyByResult<MapEntryValue<TMap>, R>;
 export function keyBy<
     TMap,
     R extends PropertyKey | boolean | null | undefined = never,
+    P extends PathKey = never,
 >(
     data: MapData<TMap>,
-    keyBy: PathKey | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R),
-): KeyByResult<
-    MapEntryValue<TMap>,
-    Extract<R | ObjectPathValue<MapEntryValue<TMap>>, symbol>
->;
+    keyBy: P | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R),
+): KeyByResult<MapEntryValue<TMap>, R | KeyByPath<MapEntryValue<TMap>, P>>;
 export function keyBy(
     data: NonKeyedItems,
     keyBy:
@@ -2759,14 +2780,19 @@ export function keyBy(
 // way PHP does.
 export function keyBy<
     T extends object,
-    R extends PropertyKey | boolean | null | undefined = never,
+    R extends PropertyKey | boolean | null | undefined,
 >(
     data: T,
-    keyBy: PathKey | ((item: BareObjectValue<T>, key: BareObjectKey<T>) => R),
-): KeyByResult<
-    BareObjectValue<T>,
-    Extract<R | ObjectPathValue<BareObjectValue<T>>, symbol>
->;
+    keyBy: (item: BareObjectValue<T>, key: BareObjectKey<T>) => R,
+): KeyByResult<BareObjectValue<T>, R>;
+export function keyBy<
+    T extends object,
+    R extends PropertyKey | boolean | null | undefined = never,
+    P extends PathKey = never,
+>(
+    data: T,
+    keyBy: P | ((item: BareObjectValue<T>, key: BareObjectKey<T>) => R),
+): KeyByResult<BareObjectValue<T>, R | KeyByPath<BareObjectValue<T>, P>>;
 export function keyBy(
     data: unknown,
     keyBy:
