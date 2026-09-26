@@ -2036,15 +2036,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TMergeValue, TMergeKey>
             | null,
     ) {
-        const merged = new Map<PropertyKey, unknown>();
-        let next = 0;
-
-        for (const [key, value] of [
+        const merged = renumberIntegerKeys<unknown>([
             ...this.entriesInOrder(),
             ...this.operandEntries(items),
-        ]) {
-            merged.set(isNumber(key) ? next++ : key, value);
-        }
+        ]);
 
         return this.newInstance(inPhpOrder(merged));
     }
@@ -6556,10 +6551,11 @@ function inPhpOrder<TValue>(
 }
 
 /**
- * Renumber entries' integer keys from 0 in the order they come, as array_slice() does without preserve_keys.
+ * Renumber entries' integer keys from 0 in the order they come, as array_merge() and array_slice() do.
  *
  * @param entries - The entries, in the order PHP's array holds them
- * @returns The entries in that order, each integer key renumbered and each string key kept
+ * @returns The entries in that order, each integer key renumbered and each string key kept, a repeated one in its
+ * first place with its last value
  */
 function renumberIntegerKeys<TValue>(
     entries: Array<[PropertyKey, TValue]>,
