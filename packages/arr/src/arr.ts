@@ -3143,7 +3143,7 @@ export function shuffle<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
 /**
  * Skip items in the array until the given condition is met.
  *
- * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ * A value is compared with PHP's `===`; a callback gets each value and index, and PHP truthiness judges its answer.
  *
  * @param data - The array to skip items of.
  * @param value - The value to skip until, or a callback answering whether an item meets the condition.
@@ -3178,7 +3178,7 @@ export function skipUntil<TValue>(
 /**
  * Skip items in the array while the given condition is met.
  *
- * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ * A value is compared with PHP's `===`; a callback gets each value and index, and PHP truthiness judges its answer.
  *
  * @param data - The array to skip items of.
  * @param value - The value to skip while items equal it, or a callback answering whether an item meets the condition.
@@ -3750,7 +3750,7 @@ export function splice<TValue, TReplacements>(
 /**
  * Take items in the array until the given condition is met.
  *
- * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ * A value is compared with PHP's `===`; a callback gets each value and index, and PHP truthiness judges its answer.
  *
  * @param data - The array to take items from.
  * @param value - The value to take until, or a callback answering whether an item meets the condition.
@@ -3786,7 +3786,7 @@ export function takeUntil<TValue>(
 /**
  * Take items in the array while the given condition is met.
  *
- * A value is compared with PHP's `===`; a callback is handed each value and index, and PHP truthiness judges its answer.
+ * A value is compared with PHP's `===`; a callback gets each value and index, and PHP truthiness judges its answer.
  *
  * @param data - The array to take items from.
  * @param value - The value to take while items equal it, or a callback answering whether an item meets the condition.
