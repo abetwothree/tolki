@@ -602,7 +602,43 @@ probe('C32-C-random-non-numeric-string-count', "'abc' and '1x' as the count of (
     'list' => c32c_outcome(fn () => Arr::random([1, 2, 3], $count)),
     'keyed' => c32c_outcome(fn () => Arr::random(['a' => 1, 'b' => 2, 'c' => 3], $count)),
 ], ['abc' => 'abc', '1x' => '1x']));
-probe('C32-C-two-args-null-value-others', 'some / doesntContain / containsStrict / doesntContainStrict with ("a", null) over [["a" => null], ["a" => 1]] and over [["a" => 1]], and firstOrFail("a", null) over [["a" => 1], ["a" => null]] and over [["a" => 1]]', fn () => [
+probe('C32-C-random-nan-count-on-empty', "Arr::random([], NAN) / Arr::random([], NAN, true) / (new Collection([]))->random(NAN)->all() / (new Collection([]))->random(fn () => NAN)->all(): the empty guard answers before pickArrayKeys", fn () => [
+    'list' => Arr::random([], NAN),
+    'list-preserving-keys' => Arr::random([], NAN, true),
+    'collection' => (new Collection([]))->random(NAN)->all(),
+    'collection-callback' => (new Collection([]))->random(fn () => NAN)->all(),
+]);
+probe('C32-C-filtered-predicates-out-of-order-visits', "keys an always-false callback sees in hasSole / hasMany / sole on (new Collection([2 => 'c', 0 => 'a', 1 => 'b'])), and what sole answers for a callback true only on its first call", function () {
+    $base = fn () => new Collection([2 => 'c', 0 => 'a', 1 => 'b']);
+    $seen = function (callable $run): array {
+        $keys = [];
+        try {
+            $run(function ($v, $k) use (&$keys) {
+                $keys[] = $k;
+
+                return false;
+            });
+        } catch (\Throwable) {
+        }
+
+        return $keys;
+    };
+    $calls = 0;
+
+    return [
+        'hasSole' => $seen(fn ($cb) => $base()->hasSole($cb)),
+        'hasMany' => $seen(fn ($cb) => $base()->hasMany($cb)),
+        'sole' => $seen(fn ($cb) => $base()->sole($cb)),
+        'sole-first-call-only' => $base()->sole(function () use (&$calls) {
+            return ++$calls === 1;
+        }),
+    ];
+});
+probe('C32-C-random-out-of-order-full-count', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->random(3)->all() and pairs(random(3, true)->all()), which every draw answers alike", fn () => [
+    'values' => (new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->random(3)->all(),
+    'preserving-keys' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->random(3, true)->all()),
+]);
+probe('C32-C-two-args-null-value-others','some / doesntContain / containsStrict / doesntContainStrict with ("a", null) over [["a" => null], ["a" => 1]] and over [["a" => 1]], and firstOrFail("a", null) over [["a" => 1], ["a" => null]] and over [["a" => 1]]', fn () => [
     'some' => [(new Collection([['a' => null], ['a' => 1]]))->some('a', null), (new Collection([['a' => 1]]))->some('a', null)],
     'doesntContain' => [(new Collection([['a' => null], ['a' => 1]]))->doesntContain('a', null), (new Collection([['a' => 1]]))->doesntContain('a', null)],
     'containsStrict' => [(new Collection([['a' => null], ['a' => 1]]))->containsStrict('a', null), (new Collection([['a' => 1]]))->containsStrict('a', null)],

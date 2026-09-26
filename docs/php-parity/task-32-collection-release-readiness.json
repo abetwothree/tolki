@@ -2651,6 +2651,63 @@
             }
         },
         {
+            "label": "C32-C-random-nan-count-on-empty",
+            "php": "Arr::random([], NAN) / Arr::random([], NAN, true) / (new Collection([]))->random(NAN)->all() / (new Collection([]))->random(fn () => NAN)->all(): the empty guard answers before pickArrayKeys",
+            "value": {
+                "list": [],
+                "list-preserving-keys": [],
+                "collection": [],
+                "collection-callback": []
+            }
+        },
+        {
+            "label": "C32-C-filtered-predicates-out-of-order-visits",
+            "php": "keys an always-false callback sees in hasSole / hasMany / sole on (new Collection([2 => 'c', 0 => 'a', 1 => 'b'])), and what sole answers for a callback true only on its first call",
+            "value": {
+                "hasSole": [
+                    2,
+                    0,
+                    1
+                ],
+                "hasMany": [
+                    2,
+                    0,
+                    1
+                ],
+                "sole": [
+                    2,
+                    0,
+                    1
+                ],
+                "sole-first-call-only": "c"
+            }
+        },
+        {
+            "label": "C32-C-random-out-of-order-full-count",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->random(3)->all() and pairs(random(3, true)->all()), which every draw answers alike",
+            "value": {
+                "values": [
+                    "c",
+                    "a",
+                    "b"
+                ],
+                "preserving-keys": [
+                    [
+                        2,
+                        "c"
+                    ],
+                    [
+                        0,
+                        "a"
+                    ],
+                    [
+                        1,
+                        "b"
+                    ]
+                ]
+            }
+        },
+        {
             "label": "C32-C-two-args-null-value-others",
             "php": "some / doesntContain / containsStrict / doesntContainStrict with (\"a\", null) over [[\"a\" => null], [\"a\" => 1]] and over [[\"a\" => 1]], and firstOrFail(\"a\", null) over [[\"a\" => 1], [\"a\" => null]] and over [[\"a\" => 1]]",
             "value": {
