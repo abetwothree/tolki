@@ -3,6 +3,7 @@ import { collect, Collection } from "@tolki/collection";
 import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
 import {
+    InvalidArgumentException,
     isString,
     ItemNotFoundException,
     MultipleItemsFoundException,
@@ -7141,6 +7142,7 @@ describe("Collection", () => {
             });
 
             it("test shift returns and removes first x items in collection", () => {
+                // CollectionTest::testShiftReturnsAndRemovesFirstXItemsInCollection
                 const data = collect(["foo", "bar", "baz"]);
 
                 expect(data.shift(2).all()).toEqual(["foo", "bar"]);
@@ -7159,11 +7161,11 @@ describe("Collection", () => {
 
                 expect(() => {
                     collect(["foo", "bar", "baz"]).shift(-1);
-                }).toThrowError();
+                }).toThrowError(InvalidArgumentException);
 
                 expect(() => {
                     collect(["foo", "bar", "baz"]).shift(-2);
-                }).toThrowError();
+                }).toThrowError(InvalidArgumentException);
             });
 
             it("test shift returns null on empty collection", () => {
@@ -7224,6 +7226,16 @@ describe("Collection", () => {
             const shifted = c.shift(3);
             expect(shifted.all()).toEqual([1]); // Only got 1 item
             expect(c.all()).toEqual({}); // Object is now empty
+        });
+
+        it("throws InvalidArgumentException for a negative count, even on an empty collection", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-negative-on-empty-throws"
+            expect(() => collect([]).shift(-1)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => collect([]).shift(-1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
         });
 
         it("throws from shift on a negative count, either backing", () => {

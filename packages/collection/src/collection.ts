@@ -63,6 +63,7 @@ import {
     compareValues,
     createSortSpecComparator,
     defineKey,
+    InvalidArgumentException,
     isArray,
     isBoolean,
     isEnumCase,
@@ -2881,6 +2882,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param count - The number of items to shift
      * @returns A new collection with the shifted items
+     * @throws InvalidArgumentException when the count is negative, even for an empty collection
      *
      * @example
      *
@@ -2895,7 +2897,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     shift(count: number): Collection<TValue[], number>;
     shift(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 0) {
-            throw new Error(
+            throw new InvalidArgumentException(
                 "Number of shifted items may not be less than zero.",
             );
         }
