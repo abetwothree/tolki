@@ -5740,6 +5740,60 @@ describe("Collection", () => {
             }).toEqual({ keys: ["a", 0, 1], values: [1, "y", "z"], last: "z" });
         });
 
+        it("keeps values pushed past a negative key in the order they arrive", () => {
+            const collection = collect({ "-2": "a" }).push("p", "q", "r");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-many-past-negative-keys-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({
+                keys: [-2, -1, 0, 1],
+                values: ["a", "p", "q", "r"],
+                last: "r",
+            });
+        });
+
+        it("keeps values pushed onto a Map-built collection in the order they arrive", () => {
+            const collection = collect(
+                new Map<string | number, string>([
+                    ["x", "a"],
+                    [-2, "b"],
+                ]),
+            ).push("p", "q");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-many-onto-mixed-keys-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({
+                keys: ["x", -2, -1, 0],
+                values: ["a", "b", "p", "q"],
+                last: "q",
+            });
+        });
+
+        it("keeps values pushed across the last array index in the order they arrive", () => {
+            const collection = collect({ 4294967293: "a", x: "b" }).push(
+                "p",
+                "q",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-push-many-across-the-index-limit-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({
+                keys: [4294967293, "x", 4294967294, 4294967295],
+                values: ["a", "b", "p", "q"],
+                last: "q",
+            });
+        });
+
         describe("push key classification", () => {
             // docs/php-parity/task-17-second-review.json, "push onto a {\"01\"}-keyed array"
             // docs/php-parity/task-17-second-review.json, "push onto a {\"1e2\"}-keyed array"

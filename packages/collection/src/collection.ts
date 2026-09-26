@@ -6235,20 +6235,42 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         const items = this.items as Record<string, TValue>;
-        const previous = this.itemsWithOrder ?? this.entriesInOrder();
+        const ordered = this.orderedEntries();
+        const appended: Array<[TKey, TValue]> = [];
         let key = this.nextAppendKey();
 
         for (const value of values) {
+            appended.push([key as TKey, value]);
             defineKey(items, key++, value);
         }
 
-        // PHP appends last, where a plain object sorts an integer key ahead of every string key.
-        if (
-            this.itemsWithOrder ||
-            Object.keys(items).at(-1) !== String(key - 1)
-        ) {
-            this.reorderAfterMutation(previous);
+        if (ordered) {
+            this.itemsWithOrder = [...ordered, ...appended];
+
+            return;
         }
+
+        const appendedKeys = appended.map(([appendedKey]) =>
+            String(appendedKey),
+        );
+
+        // PHP keeps each appended key last in turn, where a plain object sorts every array index ahead of other keys.
+        if (
+            Object.keys(items)
+                .slice(-appendedKeys.length)
+                .every((existing, index) => existing === appendedKeys[index])
+        ) {
+            return;
+        }
+
+        const added = new Set(appendedKeys);
+
+        this.itemsWithOrder = [
+            ...this.entriesInOrder().filter(
+                ([existing]) => !added.has(String(existing)),
+            ),
+            ...appended,
+        ];
     }
 
     /**
