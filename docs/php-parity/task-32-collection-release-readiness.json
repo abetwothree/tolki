@@ -9508,6 +9508,14 @@
             "value": 7
         },
         {
+            "label": "C32-H-min-max-out-of-order-tie",
+            "php": "[min, max] of [2 => '1', 0 => 1]",
+            "value": [
+                "1",
+                "1"
+            ]
+        },
+        {
             "label": "C32-H-median-numeric-strings",
             "php": "[median(['10', '9', '8']), median(['10', '9'])]",
             "value": [
@@ -9533,6 +9541,11 @@
             "php": "(new Collection(['b', 'a']))->median()",
             "threw": "TypeError",
             "message": "Unsupported operand types: int + string"
+        },
+        {
+            "label": "C32-H-median-out-of-order-tie",
+            "php": "(new Collection([2 => '5', 0 => 5, 1 => 1]))->median()",
+            "value": "5"
         },
         {
             "label": "C32-H-percentage-fp-below-half",

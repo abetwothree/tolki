@@ -1642,12 +1642,14 @@ probe('C32-H-max-numeric-strings', "(new Collection(['10', '9', '8']))->max()", 
 probe('C32-H-min-max-callback-arity', "[min(fn (...\$a) => count(\$a)), max(...)] on ['a' => 1]", fn () => [(new Collection(['a' => 1]))->min(fn (...$a) => count($a)), (new Collection(['a' => 1]))->max(fn (...$a) => count($a))]);
 probe('C32-H-min-max-strings', "[min, max] of ['b', 'a', 'c']", fn () => [(new Collection(['b', 'a', 'c']))->min(), (new Collection(['b', 'a', 'c']))->max()]);
 probe('C32-H-max-dot-path', "(new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b')", fn () => (new Collection([['a' => ['b' => 3]], ['a' => ['b' => 7]]]))->max('a.b'));
+probe('C32-H-min-max-out-of-order-tie', "[min, max] of [2 => '1', 0 => 1]", fn () => [(new Collection([2 => '1', 0 => 1]))->min(), (new Collection([2 => '1', 0 => 1]))->max()]);
 
 // median
 probe('C32-H-median-numeric-strings', "[median(['10', '9', '8']), median(['10', '9'])]", fn () => [(new Collection(['10', '9', '8']))->median(), (new Collection(['10', '9']))->median()]);
 probe('C32-H-median-rows-without-key', "(new Collection([['value' => 1, 'age' => 20], ['value' => 3, 'age' => 30], ['value' => 2, 'age' => 25]]))->median()", fn () => (new Collection([['value' => 1, 'age' => 20], ['value' => 3, 'age' => 30], ['value' => 2, 'age' => 25]]))->median());
 probe('C32-H-median-array-key', "(new Collection([['a' => ['b' => 1]], ['a' => ['b' => 9]], ['a' => ['b' => 5]]]))->median(['a', 'b'])", fn () => (new Collection([['a' => ['b' => 1]], ['a' => ['b' => 9]], ['a' => ['b' => 5]]]))->median(['a', 'b']));
 probe('C32-H-median-non-numeric-middle-values', "(new Collection(['b', 'a']))->median()", fn () => (new Collection(['b', 'a']))->median());
+probe('C32-H-median-out-of-order-tie', "(new Collection([2 => '5', 0 => 5, 1 => 1]))->median()", fn () => (new Collection([2 => '5', 0 => 5, 1 => 1]))->median());
 
 // percentage: PHP's round() compares the value with the double nearest its midpoint; toFixed() and Math.round() do not.
 probe('C32-H-percentage-fp-below-half', "(new Collection(range(1, 2000)))->percentage(fn (\$v) => \$v <= 9, 1)", fn () => (new Collection(range(1, 2000)))->percentage(fn ($v) => $v <= 9, 1));
