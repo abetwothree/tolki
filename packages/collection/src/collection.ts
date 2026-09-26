@@ -3189,7 +3189,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
             preserveKeys,
         );
 
-        return this.wrapChunks(chunkedData);
+        if (preserveKeys) {
+            return this.wrapChunks(chunkedData);
+        }
+
+        // Without preserve_keys, array_chunk() numbers each chunk from 0, so every chunk is a list.
+        return this.wrapChunks(
+            Object.values(chunkedData).map((chunk) => Object.values(chunk)),
+        );
     }
 
     /**

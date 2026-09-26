@@ -11053,6 +11053,16 @@ describe("Collection", () => {
             });
         });
 
+        it("numbers each chunk from 0, as a list, when it does not preserve keys", () => {
+            const chunks = collect({ a: 1, b: 2, c: 3 }).chunk(2, false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-assoc-no-preserve"
+            expect(chunks.map((chunk) => viewsOf(chunk)).all()).toEqual([
+                { all: [1, 2], keys: [0, 1], values: [1, 2] },
+                { all: [3], keys: [0], values: [3] },
+            ]);
+        });
+
         it("drops a fraction from the size, as array_chunk's int parameter does", () => {
             const numbers = collect([1, 2, 3, 4, 5]);
 
