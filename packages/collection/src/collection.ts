@@ -3806,14 +3806,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Zip the collection together with one or more arrays.
      *
-     * @param items - The items to zip with, can be an array or another collection
+     * As `array_map` does, every shorter side, this collection's own values included, is padded with `null`.
+     *
+     * @param list - The items to zip with, each an array, an object or another collection
      * @returns A new collection with the zipped items
      *
      * @example
      *
      * new Collection([1, 2, 3]).zip(['a', 'b', 'c']); -> new Collection([[1, 'a'], [2, 'b'], [3, 'c']])
-     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b']])
-     * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
+     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b'], [null, 'c']])
+     * new Collection({a: 1, b: 2}).zip({x: 'a'}); -> new Collection([[1, 'a'], [2, null]])
      */
     zip<TZipValue>(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
@@ -3824,41 +3826,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | undefined
         >
     ): Collection<Collection<TValue | TZipValue, number>, number> {
-        const arraysToZip = list.map((items) => {
-            const rawItems = this.getRawItems(items) as DataItems<TZipValue>;
-            return isArray(rawItems) ? rawItems : Object.values(rawItems);
-        });
+        const columns: unknown[][] = [
+            this.getItemValues(this.items),
+            ...list.map((items) => {
+                const rawItems = this.getRawItems(
+                    items,
+                ) as DataItems<TZipValue>;
 
-        const maxLength = Math.max(
-            this.count(),
-            ...arraysToZip.map((arr) => arr.length),
+                return isArray(rawItems) ? rawItems : Object.values(rawItems);
+            }),
+        ];
+        const length = Math.max(...columns.map((column) => column.length));
+        const zipped = Array.from({ length }, (_, index) =>
+            this.newInstance(
+                handOver(
+                    columns.map((column) =>
+                        index < column.length ? column[index] : null,
+                    ),
+                ),
+            ),
         );
-
-        const zipped: Array<Collection<TValue | TZipValue, number>> = [];
-
-        for (let i = 0; i < maxLength; i++) {
-            const row: Array<TValue | TZipValue> = [];
-
-            const thisValues = this.getItemValues(this.items);
-            if (i < thisValues.length) {
-                row.push(thisValues[i]!);
-            }
-
-            for (const arr of arraysToZip) {
-                if (i < arr.length) {
-                    row.push(arr[i]!);
-                } else {
-                    row.push(null as TZipValue);
-                }
-            }
-
-            zipped.push(
-                this.newInstance(handOver(row)) as unknown as Collection<
-                    TValue | TZipValue,
-                    number
-                >,
-            );
-        }
 
         return this.newInstance(handOver(zipped)) as unknown as Collection<
             Collection<TValue | TZipValue, number>,

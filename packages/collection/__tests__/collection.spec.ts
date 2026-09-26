@@ -12071,13 +12071,37 @@ describe("Collection", () => {
         it("handles arrays of different lengths", () => {
             const c = collect(["a", "b"]);
             const zipped = c.zip([1, 2, 3]);
-            // maxLength is 3 (from the longer array)
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-receiver-shorter"
             expect(zipped.count()).toBe(3);
-            // First two have values from both
             expect(zipped.all()[0]?.all()).toEqual(["a", 1]);
             expect(zipped.all()[1]?.all()).toEqual(["b", 2]);
-            // Third: this collection is shorter, only value from zipped array
-            expect(zipped.all()[2]?.all()).toEqual([3]);
+            expect(zipped.all()[2]?.all()).toEqual([null, 3]);
+        });
+
+        it("pads an empty receiver with null", () => {
+            const zipped = collect([]).zip([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-empty-receiver"
+            expect(zipped.map((row) => row.all()).all()).toEqual([
+                [null, 1],
+                [null, 2],
+            ]);
+        });
+
+        it("pads a record receiver's values with null past its last one", () => {
+            const zipped = collect({ a: 1, b: 2 }).zip({
+                x: "p",
+                y: "q",
+                z: "r",
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-assoc-receiver-longer-operand"
+            expect(zipped.map((row) => row.all()).all()).toEqual([
+                [1, "p"],
+                [2, "q"],
+                [null, "r"],
+            ]);
         });
 
         it("handles object-based items in zip list", () => {
