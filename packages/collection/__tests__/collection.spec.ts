@@ -11358,7 +11358,8 @@ describe("Collection", () => {
                 { id: "d", k: 3 },
             ]);
 
-            // docs/php-parity/task-12-regression-pins.json, "sortDesc ties fall back to original order, not a full reverse"
+            // docs/php-parity/task-12-regression-pins.json,
+            // "sortDesc ties fall back to original order, not a full reverse"
             expect(
                 items
                     .sortByDesc((item) => item.k)
@@ -11610,182 +11611,193 @@ describe("Collection", () => {
     describe("sortByMany", () => {
         describe("Laravel Tests", () => {
             it("test sort by many", () => {
-                const data = collect([
+                // CollectionTest::testSortByMany, its default-flag lines: this port takes no sort flags
+                let data = collect([
                     { item: "1" },
                     { item: "10" },
                     { item: 5 },
                     { item: 20 },
                 ]);
 
-                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
-                // "sortByMany orders mixed numeric strings and ints numerically".
-                // sortByMany compares with <=>, so "10" is 10, not the string.
-                const sorted1 = data.sortBy(["item"]);
-                expect(sorted1.pluck("item").all()).toEqual(["1", 5, "10", 20]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-desc-direction-forms"
+                data = data.sortBy(["item"]);
+                expect(data.pluck("item").all()).toEqual(["1", 5, "10", 20]);
 
-                // Same file, "sortByMany forced descending over the same mixed
-                // items". sortByMany's second parameter applies globally.
-                const sorted1Desc = data.sortByMany(["item"], true);
-                const values = sorted1Desc.values().all() as {
-                    item: string | number;
-                }[];
-                expect(values.map((v) => v.item)).toEqual([20, "10", 5, "1"]);
+                data = data.sortBy([["item", "desc"]]);
+                expect(data.pluck("item").all()).toEqual([20, "10", 5, "1"]);
 
-                // Test natural string sorting with numbers
-                const data2 = collect([
+                data = data.sortBy([["item", false]]);
+                expect(data.pluck("item").all()).toEqual([20, "10", 5, "1"]);
+
+                data = data.sortBy([["item", SortDirection.Descending]]);
+                expect(data.pluck("item").all()).toEqual([20, "10", 5, "1"]);
+
+                const images = collect([
                     { item: "img1" },
                     { item: "img101" },
                     { item: "img10" },
                     { item: "img11" },
                 ]);
 
-                const sorted2 = data2.sortBy(["item"]);
-                // PHP-verified, same probe row: imgs_plucked is
-                // ["img1","img10","img101","img11"]. The old expectation was just the
-                // input order - sortBy could not reorder an integer-keyed backing.
-                expect(sorted2.pluck("item").all()).toEqual([
+                // docs/php-parity/task-10-pluck-sort.json, "sortBy/sortByMany over an integer-keyed backing"
+                expect(images.sortBy(["item"]).pluck("item").all()).toEqual([
                     "img1",
                     "img10",
                     "img101",
                     "img11",
                 ]);
 
-                // Sort descending
-                const sorted2Desc = data2.sortByMany(["item"], true);
-                const values2 = sorted2Desc.values().all() as {
-                    item: string;
-                }[];
-                expect(values2.map((v) => v.item)).toEqual([
-                    "img11",
-                    "img101",
-                    "img10",
+                const mixedCase = collect([
+                    { item: "img1" },
+                    { item: "Img101" },
+                    { item: "img10" },
+                    { item: "Img11" },
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-mixed-case-default-flag"
+                expect(mixedCase.sortBy(["item"]).pluck("item").all()).toEqual([
+                    "Img101",
+                    "Img11",
                     "img1",
+                    "img10",
                 ]);
 
-                // Test multi-level sorting
-                const data3 = collect([
-                    { first: "b", second: 2 },
-                    { first: "a", second: 3 },
-                    { first: "b", second: 1 },
-                    { first: "a", second: 1 },
+                const places = collect([
+                    { item: "Österreich" },
+                    { item: "Oesterreich" },
+                    { item: "Zeta" },
                 ]);
 
-                // Sort by first asc, then second asc
-                const sorted3 = data3.sortBy(["first", "second"]);
-                const values3 = sorted3.values().all();
-                expect(values3).toEqual([
-                    { first: "a", second: 1 },
-                    { first: "a", second: 3 },
-                    { first: "b", second: 1 },
-                    { first: "b", second: 2 },
-                ]); // Sort by first desc, then second desc (global descending)
-                const sorted3Desc = data3.sortByMany(["first", "second"], true);
-                expect(sorted3Desc.values().all()).toEqual([
-                    { first: "b", second: 2 },
-                    { first: "b", second: 1 },
-                    { first: "a", second: 3 },
-                    { first: "a", second: 1 },
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-umlaut-default-flag"
+                expect(places.sortBy(["item"]).pluck("item").all()).toEqual([
+                    "Oesterreich",
+                    "Zeta",
+                    "Österreich",
+                ]);
+            });
+
+            it("test natural sort by many with null", () => {
+                // CollectionTest::testNaturalSortByManyWithNull, without SORT_NATURAL, which orders these the same
+                const itemFoo = { first: "f", second: null };
+                const itemBar = { first: "f", second: "s" };
+                const data = collect([itemFoo, itemBar]).sortBy([
+                    ["first", "desc"],
+                    ["second", "desc"],
                 ]);
 
-                // Test with null values
-                const data4 = collect([
-                    { first: "f", second: null },
-                    { first: "f", second: "s" },
-                    { first: "a", second: "z" },
-                ]);
-
-                // Nulls should sort first in ascending order
-                const sorted4 = data4.sortBy(["first", "second"]);
-                const values4 = sorted4.values().all();
-                expect(values4).toEqual([
-                    { first: "a", second: "z" },
-                    { first: "f", second: null },
-                    { first: "f", second: "s" },
-                ]); // Nulls should sort last in descending order (comes first when values are swapped)
-                const sorted4Desc = data4.sortByMany(["first", "second"], true);
-                expect(sorted4Desc.values().all()).toEqual([
-                    { first: "f", second: "s" },
-                    { first: "f", second: null },
-                    { first: "a", second: "z" },
-                ]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-null-desc-default-flag"
+                expect(data.first()).toEqual(itemBar);
+                expect(data.skip(1).first()).toEqual(itemFoo);
             });
         });
 
-        it("sort by many coverage", () => {
-            // collect([3,1,2])->sortBy([]) keeps [3,1,2]: PHP's usort
-            // comparator falls straight through to `return 0` with no
-            // comparisons to run. Only a non-array argument is rejected.
-            // docs/php-parity/task-11-final-fixes.json, "sortBy with no comparisons leaves the order alone"
-            expect(collect([3, 1, 2]).sortBy([]).all()).toEqual([3, 1, 2]);
-            expect(collect([3, 1, 2]).sortByMany([]).values().all()).toEqual([
-                3, 1, 2,
+        it("orders by several keys, each ascending, or each descending through sortByDesc", () => {
+            const rows = collect([
+                { first: "b", second: 2 },
+                { first: "a", second: 3 },
+                { first: "b", second: 1 },
+                { first: "a", second: 1 },
             ]);
-            expect(() =>
-                collect([{ a: 1 }]).sortByMany(null as unknown as string[]),
-            ).toThrowError("You must provide at least one comparison.");
 
-            // Test with function comparator returning numbers directly
-            // This tests the path: if (!isString(prop) && isFunction(prop))
-            const data2 = collect([{ value: 10 }, { value: 5 }, { value: 20 }]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-two-keys"
+            expect(rows.sortBy(["first", "second"]).values().all()).toEqual([
+                { first: "a", second: 1 },
+                { first: "a", second: 3 },
+                { first: "b", second: 1 },
+                { first: "b", second: 2 },
+            ]);
+            expect(rows.sortByDesc(["first", "second"]).values().all()).toEqual(
+                [
+                    { first: "b", second: 2 },
+                    { first: "b", second: 1 },
+                    { first: "a", second: 3 },
+                    { first: "a", second: 1 },
+                ],
+            );
+        });
 
-            const sorted = data2.sortByMany([(a, b) => a.value - b.value]);
+        it("orders a null below a string, whichever way the keys sort", () => {
+            const rows = collect([
+                { first: "f", second: null },
+                { first: "f", second: "s" },
+                { first: "a", second: "z" },
+            ]);
 
-            // PHP-verified: vals_plucked [5,10,20] in the same probe row.
-            expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-null-values"
+            expect(rows.sortBy(["first", "second"]).values().all()).toEqual([
+                { first: "a", second: "z" },
+                { first: "f", second: null },
+                { first: "f", second: "s" },
+            ]);
+            expect(rows.sortByDesc(["first", "second"]).values().all()).toEqual(
+                [
+                    { first: "f", second: "s" },
+                    { first: "f", second: null },
+                    { first: "a", second: "z" },
+                ],
+            );
+        });
 
-            // JS-only: the sort family renumbers integer keys, where PHP's nums_all keeps {"1":1,"2":2,"0":3}
-            const arrayData = collect([3, 1, 2]);
-            const sortedArray = arrayData.sortByMany([(a, b) => a - b]);
-            expect(sortedArray.all()).toEqual([1, 2, 3]);
-
-            // Test continue branch - when first comparison returns 0,
-            // it should continue to next comparison
-            const multiData = collect([
+        it("falls through to the next key on a tie, and keeps the order when every key ties", () => {
+            const firstKeyTies = collect([
                 { primary: "a", secondary: 3 },
                 { primary: "a", secondary: 1 },
                 { primary: "b", secondary: 2 },
             ]);
-            // First comparison by "primary" returns 0 for first two items,
-            // then continues to "secondary"
-            const multiSorted = multiData.sortByMany(["primary", "secondary"]);
-            expect(multiSorted.values().all()).toEqual([
+            const bothKeysTie = collect([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 1 },
+                { primary: "b", secondary: 2 },
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-two-keys"
+            expect(
+                firstKeyTies.sortBy(["primary", "secondary"]).values().all(),
+            ).toEqual([
                 { primary: "a", secondary: 1 },
                 { primary: "a", secondary: 3 },
                 { primary: "b", secondary: 2 },
             ]);
-
-            // Test return 0 at end of comparisons - when ALL comparisons return 0
-            // This happens when two items are equal on all comparison criteria
-            const equalData = collect([
-                { primary: "a", secondary: 1 },
-                { primary: "a", secondary: 1 }, // Identical to first item
-                { primary: "b", secondary: 2 },
-            ]);
-            const equalSorted = equalData.sortByMany(["primary", "secondary"]);
-            expect(equalSorted.values().all()).toEqual([
+            expect(
+                bothKeysTie.sortBy(["primary", "secondary"]).values().all(),
+            ).toEqual([
                 { primary: "a", secondary: 1 },
                 { primary: "a", secondary: 1 },
                 { primary: "b", secondary: 2 },
             ]);
         });
 
-        it("handles hasNumericKeys false branch", () => {
-            // Object with non-numeric keys
-            const c = collect({ a: { val: 2 }, b: { val: 1 } });
-            const sorted = c.sortByMany(["val"]);
-            expect(sorted.keys().all()).toEqual(["b", "a"]);
+        it("sorts nothing for no comparisons", () => {
+            // docs/php-parity/task-11-final-fixes.json, "sortBy with no comparisons leaves the order alone"
+            expect(collect([3, 1, 2]).sortBy([]).all()).toEqual([3, 1, 2]);
+        });
+
+        it("runs a comparator given among the comparisons", () => {
+            // docs/php-parity/task-10-pluck-sort.json, "sortBy/sortByMany over an integer-keyed backing" (vals_plucked)
+            expect(
+                collect([{ value: 10 }, { value: 5 }, { value: 20 }])
+                    .sortBy([(a, b) => a.value - b.value])
+                    .pluck("value")
+                    .all(),
+            ).toEqual([5, 10, 20]);
+
+            // Same row, nums_values. JS-only: the sort family renumbers integer keys, where nums_all keeps 1, 2, 0
+            expect(
+                collect([3, 1, 2])
+                    .sortBy([(a, b) => a - b])
+                    .all(),
+            ).toEqual([1, 2, 3]);
         });
 
         it("supports per-comparison SortDirection tuple descending", () => {
-            // [PathKey, SortDirection.Descending] — hits isDescComparison = true
             const data = collect([
                 { name: "alice", age: 30 },
                 { name: "bob", age: 25 },
                 { name: "carol", age: 35 },
             ]);
-            const sorted = data.sortByMany([
-                ["name", SortDirection.Descending],
-            ]);
+            const sorted = data.sortBy([["name", SortDirection.Descending]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("name").all()).toEqual([
                 "carol",
                 "bob",
@@ -11794,27 +11806,30 @@ describe("Collection", () => {
         });
 
         it("supports per-comparison SortDirection.Descending string value tuple", () => {
-            // [PathKey, SortDirection.Descending] — string value "Descending", hits isDescComparison = true
             const data = collect([{ val: 10 }, { val: 30 }, { val: 20 }]);
-            const sorted = data.sortByMany([["val", "Descending"]]);
+            const sorted = data.sortBy([["val", "Descending"]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("val").all()).toEqual([30, 20, 10]);
         });
 
         it("supports per-comparison false tuple (descending)", () => {
-            // [PathKey, false] — hits isDescComparison = true (false = descending in PHP convention)
             const data = collect([{ val: 1 }, { val: 3 }, { val: 2 }]);
-            const sorted = data.sortByMany([["val", false]]);
+            const sorted = data.sortBy([["val", false]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("val").all()).toEqual([3, 2, 1]);
         });
 
         it("supports per-comparison SortDirection.Ascending tuple", () => {
-            // [PathKey, SortDirection.Ascending] — hits else → isDescComparison = false
             const data = collect([
                 { name: "carol" },
                 { name: "alice" },
                 { name: "bob" },
             ]);
-            const sorted = data.sortByMany([["name", SortDirection.Ascending]]);
+            const sorted = data.sortBy([["name", SortDirection.Ascending]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("name").all()).toEqual([
                 "alice",
                 "bob",
@@ -11822,25 +11837,28 @@ describe("Collection", () => {
             ]);
         });
 
-        it("supports per-comparison SortDirection.Ascending string value tuple", () => {
-            // [PathKey, SortDirection.Ascending] — string value "Ascending", hits else → isDescComparison = false
+        it('sorts a direction spelled "Ascending" ascending, since SortDirection.Ascending is that string', () => {
             const data = collect([{ val: 30 }, { val: 10 }, { val: 20 }]);
-            const sorted = data.sortByMany([["val", "Ascending"]]);
+            const sorted = data.sortBy([["val", "Ascending"]]);
+
+            // JS-only: the enum case is the string, which PHP's match sends to its descending default arm
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-string-Ascending-direction"
             expect(sorted.values().pluck("val").all()).toEqual([10, 20, 30]);
         });
 
         it("supports mixed per-comparison directions", () => {
-            // First field ascending, second field descending
             const data = collect([
                 { group: "a", rank: 2 },
                 { group: "a", rank: 1 },
                 { group: "b", rank: 3 },
                 { group: "b", rank: 4 },
             ]);
-            const sorted = data.sortByMany([
+            const sorted = data.sortBy([
                 ["group", SortDirection.Ascending],
                 ["rank", SortDirection.Descending],
             ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().all()).toEqual([
                 { group: "a", rank: 2 },
                 { group: "a", rank: 1 },
@@ -11850,25 +11868,23 @@ describe("Collection", () => {
         });
 
         it("supports the lowercase 'desc'/'asc' string direction forms", () => {
-            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: a string "desc"
-            // direction sorts descending, since the match arm compares against the enum
-            // and booleans and anything else falls through to descending.
             const data = collect([{ age: 2 }, { age: 10 }]);
-            const desc = data.sortByMany([["age", "desc"]]);
+
+            // docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — string \"desc\" direction sorts descending"
+            const desc = data.sortBy([["age", "desc"]]);
             expect(desc.values().pluck("age").all()).toEqual([10, 2]);
 
-            const asc = data.sortByMany([["age", "asc"]]);
+            // docs/php-parity/task-18-sort-comparator.json, "direction tuple [age,\"asc\"] — string form"
+            const asc = data.sortBy([["age", "asc"]]);
             expect(asc.values().pluck("age").all()).toEqual([2, 10]);
         });
 
         it("falls through an unrecognized direction to descending (default arm)", () => {
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Collection::sortBy — unrecognized direction sorts descending (default
-            // arm)".
+            // docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — unrecognized direction sorts descending (default arm)"
             const data = collect([{ age: 2 }, { age: 10 }]);
-            const sorted = data.sortByMany([
-                ["age", "BOGUS" as unknown as "asc"],
-            ]);
+            const sorted = data.sortBy([["age", "BOGUS" as unknown as "asc"]]);
             expect(sorted.values().pluck("age").all()).toEqual([10, 2]);
         });
 
@@ -11881,18 +11897,17 @@ describe("Collection", () => {
             expect(sorted.values().pluck("age").all()).toEqual([2, 10]);
         });
 
-        it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
-            // Mirrors Collection::sortByDesc rewriting every comparison's direction slot
-            // before sorting (Collection.php:1700-1710): the force parameter overrides
-            // an explicit per-descriptor direction.
+        it("sortByDesc overrides a descriptor's own direction, but never a comparator's", () => {
             const data = collect([{ age: 2 }, { age: 10 }]);
-            const forced = data.sortByMany([["age", "asc"]], true);
+
+            // docs/php-parity/task-18-sort-comparator.json, "sortDesc overrides an explicit \"asc\" direction"
+            const forced = data.sortByDesc([["age", "asc"]]);
             expect(forced.values().pluck("age").all()).toEqual([10, 2]);
 
-            // A comparator function is unaffected by forceDescending.
-            const byAgeAsc = (a: { age: number }, b: { age: number }) =>
-                a.age - b.age;
-            const withComparator = data.sortByMany([byAgeAsc], true);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
+            const withComparator = data.sortByDesc([
+                (a: { age: number }, b: { age: number }) => a.age - b.age,
+            ]);
             expect(withComparator.values().pluck("age").all()).toEqual([2, 10]);
         });
 
@@ -11906,16 +11921,16 @@ describe("Collection", () => {
 
             expect(
                 data
-                    .sortByMany([[byAge]] as never)
+                    .sortBy([[byAge]] as never)
                     .values()
                     .all(),
             ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
             expect(
                 data
-                    .sortByMany([[byAge]] as never)
+                    .sortBy([[byAge]] as never)
                     .values()
                     .all(),
-            ).toEqual(data.sortByMany([byAge]).values().all());
+            ).toEqual(data.sortBy([byAge]).values().all());
         });
 
         it("sortByDesc forces a bare-key array descriptor descending", () => {
