@@ -68,6 +68,19 @@ const StaffEnum = defineEnum({
     _cases: ["Taylor", "Joe", "James"],
 } as const);
 
+/** CollectionTest's ['foo' => 'bar', 1, 2, 3, 4, 5], whose leading string key only a Map expresses in JS. */
+const stringKeyFirst = () =>
+    collect(
+        new Map<string | number, string | number>([
+            ["foo", "bar"],
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [4, 5],
+        ]),
+    );
+
 describe("Collection", () => {
     describe("assert constructor types", () => {
         it("arrays", () => {
@@ -7288,6 +7301,24 @@ describe("Collection", () => {
                 ).toBeNull();
             });
         });
+
+        it.fails(
+            "finds nothing before the item a leading string key holds",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so nothing comes before bar
+                // CollectionTest::testBeforeReturnsNullWhenItemOnTheFirstitem
+                expect(stringKeyFirst().before("bar")).toBeNull();
+            },
+        );
+
+        it.fails(
+            "finds a leading string key's item before the first integer key's",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so bar comes before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-before-after-string-key-first"
+                expect(stringKeyFirst().before(1)).toBe("bar");
+            },
+        );
     });
 
     describe("after", () => {
@@ -7384,6 +7415,24 @@ describe("Collection", () => {
                 ).toBeNull();
             });
         });
+
+        it.fails(
+            "finds nothing after the last item when a string key leads",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so nothing comes after 5
+                // CollectionTest::testAfterReturnsNullWhenItemOnTheLastItem
+                expect(stringKeyFirst().after(5)).toBeNull();
+            },
+        );
+
+        it.fails(
+            "finds the first integer key's item after a leading string key's",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so 1 comes after bar
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-before-after-string-key-first"
+                expect(stringKeyFirst().after("bar")).toBe(1);
+            },
+        );
     });
 
     describe("shift", () => {
