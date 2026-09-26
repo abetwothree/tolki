@@ -4200,12 +4200,12 @@ export function random<T extends object>(
 ): BareObjectValue<T> | Partial<T> | Record<number, BareObjectValue<T>>;
 export function random(
     data: unknown,
-    number?: number | null,
+    number?: number | string | null,
     preserveKeys?: boolean,
 ): unknown;
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    number?: number | null,
+    number?: number | string | null,
     preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
     if (!accessible(data)) {
@@ -4216,7 +4216,8 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const entries = keyedEntries<TValue>(data);
     const count = entries.length;
-    const requested = isNull(number) || isUndefined(number) ? 1 : number;
+    const requested =
+        isNull(number) || isUndefined(number) ? 1 : (number as number);
 
     if (requested > count) {
         throw new InvalidArgumentException(

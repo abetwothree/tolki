@@ -2856,12 +2856,12 @@ export function random<TValue>(
 ): TValue[];
 export function random<TValue>(
     data: readonly unknown[] | null | undefined,
-    number?: number | null,
+    number?: number | string | null,
     preserveKeys?: boolean,
 ): TValue | TValue[] | Record<number, TValue> | null;
 export function random<TValue>(
     data: ArrayItems<TValue> | unknown,
-    number?: number | null,
+    number?: number | string | null,
     preserveKeys: boolean = false,
 ): TValue | TValue[] | Record<number, TValue> | null {
     const numberProvided = !isNull(number) && !isUndefined(number);
