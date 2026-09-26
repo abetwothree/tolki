@@ -9051,6 +9051,70 @@ describe("Collection", () => {
             });
         });
 
+        it("pulls a dot path through a Map an item holds, as through the array it stands for", () => {
+            const pulled = (
+                items: Record<string, unknown>,
+                key: string,
+                defaultValue?: string,
+            ) => {
+                const c = collect(items);
+                const returned = c.pull(key, defaultValue);
+                const held = c.get("a") as Map<unknown, unknown>;
+
+                return {
+                    returned,
+                    keys: [...held.keys()],
+                    values: [...held.values()],
+                };
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-dot-path-through-nested-arrays"
+            expect([
+                pulled(
+                    {
+                        a: new Map([
+                            ["b", 1],
+                            ["c", 2],
+                        ]),
+                    },
+                    "a.b",
+                ),
+                pulled({ a: new Map([["b", { c: 1, d: 2 }]]) }, "a.b.c"),
+                pulled(
+                    {
+                        a: new Map([
+                            [2, "x"],
+                            [0, "y"],
+                            [1, "z"],
+                        ]),
+                    },
+                    "a.2",
+                ),
+                pulled({ a: new Map([["b", 1]]) }, "a.z", "d"),
+            ]).toEqual([
+                { returned: 1, keys: ["c"], values: [2] },
+                { returned: 1, keys: ["b"], values: [{ d: 2 }] },
+                { returned: "x", keys: [0, 1], values: ["y", "z"] },
+                { returned: "d", keys: ["b"], values: [1] },
+            ]);
+        });
+
+        it("changes a copy of a Map an item holds, and keeps the Map when nothing below it is pulled", () => {
+            const held = new Map([["b", { c: 1 }]]);
+            const c = collect({ a: held });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-dot-path-missing-below-nested-array"
+            expect(c.pull("a.b.z", "d")).toBe("d");
+            expect(c.get("a")).toBe(held);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-dot-path-through-nested-arrays"
+            expect(c.pull("a.b.c")).toBe(1);
+            // JS-only: PHP's array is a value, so the change lands on a copy; the caller's own Map stays whole
+            expect([...held.values()]).toEqual([{ c: 1 }]);
+            expect(c.get("a")).toEqual(new Map([["b", {}]]));
+        });
+
         it("ignores __proto__ as final segment in nested pull path", () => {
             // JS-only: a path segment is an own key, so "__proto__" never reaches Object.prototype
             const c = collect({ a: { b: "value" } });

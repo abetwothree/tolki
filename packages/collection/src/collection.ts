@@ -56,7 +56,12 @@ import {
     dataValues,
 } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
-import { explodePluckPath, hasPluckPath, resolvePluckPath } from "@tolki/path";
+import {
+    explodePluckPath,
+    hasPluckPath,
+    readPluckKey,
+    resolvePluckPath,
+} from "@tolki/path";
 import type {
     Arrayable,
     ArrayItems,
@@ -7173,8 +7178,8 @@ function pathSegments(path: PathKey | readonly PathKey[]): string[] {
  * @param target - The item the path is read in
  * @param path - The path's segments, each read as a literal key
  * @param defaultValue - What to answer when the path holds nothing, resolved if it is a callback
- * @returns What the path held, or the default, and the target with that removed: a changed copy of an array or a
- * plain object, or the same collection, changed in place
+ * @returns What the path held, or the default, and the target with that removed: a changed copy of an array, a
+ * plain object or a Map, or the same collection, changed in place
  */
 function pullPath(
     target: unknown,
@@ -7201,6 +7206,45 @@ function pullPath(
             pullPath(child, rest as [string, ...string[]], defaultValue)[0],
             target,
         ];
+    }
+
+    // A Map stands in for a PHP array: its keys are read as PHP casts them, and a change lands on a copy.
+    if (isMap(target)) {
+        const [found, child] = readPluckKey(target, segment);
+
+        if (!found) {
+            return [resolveDefault(defaultValue), target];
+        }
+
+        const phpKey = String(phpArrayKey(segment));
+        const keys = [...target.keys()].filter(
+            (key) => String(phpArrayKey(key)) === phpKey,
+        );
+        const copy = new Map(target);
+
+        if (rest.length === 0) {
+            for (const key of keys) {
+                copy.delete(key);
+            }
+
+            return [child, copy];
+        }
+
+        const [value, pulled] = pullPath(
+            child,
+            rest as [string, ...string[]],
+            defaultValue,
+        );
+
+        if (pulled === child) {
+            return [value, target];
+        }
+
+        for (const key of keys) {
+            copy.set(key, pulled);
+        }
+
+        return [value, copy];
     }
 
     const key = isArray(target) ? phpArrayKey(segment) : segment;
