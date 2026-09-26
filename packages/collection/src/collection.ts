@@ -4871,21 +4871,29 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Calculate the percentage of items that pass a given truth test.
      *
      * @param callback - The callback to execute, receives the value and key as arguments
-     * @param precision - Decimal places to round to (default 2); a negative precision rounds to tens, hundreds and on
+     * @param precision - Decimal places to round to (default 2); a negative precision rounds to tens, hundreds and on,
+     * and a fraction is dropped, as PHP's int parameter does
      * @returns The percentage of items that pass the truth test, rounded as PHP's round() rounds it, or null if the
      * collection is empty
+     * @throws TypeError when the precision is NAN, infinite or outside PHP's int range, as its int parameter refuses
      */
     percentage(
         callback: (value: TValue, key: TKey) => unknown,
         precision: number = 2,
     ) {
+        // PHP reads the precision as an int on the way in, so one it refuses throws before the items are looked at.
+        const places = intArgument(
+            precision,
+            "Collection::percentage(): Argument #2 ($precision) must be of type int, float given",
+        );
+
         if (this.isEmpty()) {
             return null;
         }
 
         return phpRound(
             (this.filter(callback).count() / this.count()) * 100,
-            precision,
+            places,
         );
     }
 

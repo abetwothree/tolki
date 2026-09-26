@@ -16479,6 +16479,48 @@ describe("Collection", () => {
                 c.percentage((value) => value === 5, 400),
             ]).toEqual([67, 70, 0, 66.66666666666666, 0]);
         });
+
+        it("drops a fraction from the precision, as PHP's int parameter does", () => {
+            const c = collect([1, 1, 2]);
+            const percentage = (precision: number) =>
+                c.percentage((value) => value === 1, precision);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-fractional-precision"
+            expect([1.5, -1.5, 2.9, -0, 0.5].map(percentage)).toEqual([
+                66.7, 70, 66.67, 67, 67,
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-precision-bounds"
+            expect([-(2 ** 63), 2 ** 63 - 1024].map(percentage)).toEqual([
+                0, 66.66666666666666,
+            ]);
+        });
+
+        it("throws PHP's TypeError for a NAN, infinite or out-of-range precision, even with no items", () => {
+            const refused = new TypeError(
+                "Collection::percentage(): Argument #2 ($precision) must be of type int, float given",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-non-int-precision", whose
+            // class the port names without PHP's namespace
+            for (const precision of [
+                NaN,
+                Infinity,
+                -Infinity,
+                1e19,
+                -1e19,
+                2 ** 63,
+            ]) {
+                expect(() =>
+                    collect([1, 1, 2]).percentage(
+                        (value) => value === 1,
+                        precision,
+                    ),
+                ).toThrow(refused);
+            }
+            expect(() =>
+                collect([]).percentage((value) => value === 1, NaN),
+            ).toThrow(refused);
+        });
     });
 
     describe("sum", () => {
