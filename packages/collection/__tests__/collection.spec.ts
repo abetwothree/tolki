@@ -6607,6 +6607,29 @@ describe("Collection", () => {
             expect(collect([1, 2]).multiply(2.5).all()).toEqual([1, 2, 1, 2]);
         });
 
+        it("throws PHP's TypeError for a NAN or infinite count, before repeating anything", () => {
+            // A push that throws turns an endless repeat into a plain failure, since the count must be refused first
+            class Unrepeatable extends Collection<number, number> {
+                override push(): this {
+                    throw new Error("repeated before the count was checked");
+                }
+            }
+
+            const collection = new Unrepeatable([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-non-finite-count", whose
+            // class the port names without PHP's namespace
+            for (const count of [NaN, Infinity, -Infinity]) {
+                expect(() => collection.multiply(count)).toThrowError(
+                    expect.objectContaining({
+                        name: "TypeError",
+                        message:
+                            "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
+                    }),
+                );
+            }
+        });
+
         it.fails(
             "repeats a Map-built receiver's values in the order it holds them",
             () => {

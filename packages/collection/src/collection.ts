@@ -2085,6 +2085,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param multiplier - The number of times to repeat the items; a fraction is dropped, as PHP's int parameter does
      * @returns A new collection with the items' values repeated, as a list
+     * @throws TypeError when the multiplier is NAN or infinite, which PHP's int parameter cannot hold
      *
      * @example
      *
@@ -2094,6 +2095,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).multiply(0); -> new Collection([])
      */
     multiply(multiplier: number) {
+        if (!isFiniteNumber(multiplier)) {
+            throw new TypeError(
+                "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
+            );
+        }
+
         const newCollection = this.newInstance();
         const values = this.getItemValues(this.items);
 
