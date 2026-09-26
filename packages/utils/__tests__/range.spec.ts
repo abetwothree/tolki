@@ -35,4 +35,38 @@ describe("Utils", () => {
             expect(Utils.resolveTakeCount(NaN, 0)).toBe(0);
         });
     });
+
+    describe("resolvePadLength", () => {
+        it("drops a fraction toward zero, as array_pad()'s int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            expect(Utils.resolvePadLength(7.5)).toBe(7);
+            expect(Utils.resolvePadLength(-7.5)).toBe(-7);
+            expect(Utils.resolvePadLength(0.5)).toBe(0);
+        });
+
+        it("throws array_pad()'s TypeError for NAN, an infinity or a length past PHP's int range", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
+                expect(() => Utils.resolvePadLength(size)).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+            }
+        });
+
+        it("throws array_pad()'s ValueError for a length past the maximum array size, either way round", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-maximum-array-size"
+            for (const size of [1073741825, -1073741825, 1e18]) {
+                expect(() => Utils.resolvePadLength(size)).toThrow(
+                    new Error(
+                        "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
+                    ),
+                );
+            }
+
+            // PHP lets a length of exactly 2^30 through, then runs out of memory before it can answer
+            expect(Utils.resolvePadLength(-(2 ** 30))).toBe(-(2 ** 30));
+        });
+    });
 });

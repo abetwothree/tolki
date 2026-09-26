@@ -83,6 +83,7 @@ import {
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
+    resolvePadLength,
     resolveSliceRange,
     resolveTakeCount,
     strictEqual,
@@ -4230,9 +4231,11 @@ export function reverse<TValue>(data: ArrayItems<TValue> | unknown): TValue[] {
  *      Wraps `array_pad`.
  *
  * @param data - The array to pad.
- * @param size - The desired length of the array (negative means pad left).
+ * @param size - The desired length of the array (negative means pad left); a fraction is dropped.
  * @param value - The value to pad with.
  * @returns A new padded array.
+ * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it.
+ * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError.
  *
  * @example
  *
@@ -4244,9 +4247,10 @@ export function pad<TPadValue, TValue>(
     size: number,
     value: TPadValue,
 ): (TValue | TPadValue)[] {
+    const length = resolvePadLength(size);
     const values = getAccessibleValues(data) as TValue[];
     const currentLength = values.length;
-    const absSize = Math.abs(size);
+    const absSize = Math.abs(length);
 
     // If current length is already >= desired size, no padding needed
     if (absSize <= currentLength) {
@@ -4257,7 +4261,7 @@ export function pad<TPadValue, TValue>(
     const padArray = Array(padLength).fill(value) as TPadValue[];
 
     // Negative size means pad at the beginning (prepend)
-    if (size < 0) {
+    if (length < 0) {
         return [...padArray, ...values];
     }
 

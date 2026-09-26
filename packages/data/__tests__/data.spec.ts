@@ -6964,6 +6964,22 @@ describe("Data", () => {
     });
 
     describe("dataPad", () => {
+        it("agrees across backings on a fractional size, and refuses a non-finite one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            expect(Data.dataPad([1, 2, 3], 7.5, 0)).toEqual([
+                1, 2, 3, 0, 0, 0, 0,
+            ]);
+            expect(
+                Object.values(Data.dataPad({ a: 1, b: 2, c: 3 }, 7.5, 0)),
+            ).toEqual([0, 0, 0, 0, 1, 2, 3]);
+            expect(() => Data.dataPad([1, 2, 3], NaN, 0)).toThrow(
+                "array_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Data.dataPad({ a: 1, b: 2, c: 3 }, NaN, 0)).toThrow(
+                "array_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+        });
+
         it("renumbers a negative integer key through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
             expect(Data.dataPad({ "-1": "a", x: "b" }, 4, 0)).toEqual({

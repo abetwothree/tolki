@@ -11224,6 +11224,56 @@ describe("Obj", () => {
     });
 
     describe("pad", () => {
+        it("drops a fraction from the size, as array_pad()'s int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            const padded = Obj.pad({ a: 1, b: 2, c: 3 }, 7.5, 0);
+
+            expect(padded).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 0,
+            });
+            expect(Object.values(padded)).toHaveLength(7);
+            expect(Obj.pad({ a: 1, b: 2, c: 3 }, -7.5, 0)).toEqual({
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 0,
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+            expect(Obj.pad({ a: 1, b: 2, c: 3 }, 0.5, 0)).toEqual({
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+        });
+
+        it("throws array_pad()'s TypeError for a size no int holds, and its ValueError past the maximum array size", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
+                expect(() => Obj.pad({ a: 1, b: 2, c: 3 }, size, 0)).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-maximum-array-size"
+            for (const size of [1073741825, -1073741825, 1e18]) {
+                expect(() => Obj.pad({ a: 1, b: 2, c: 3 }, size, 0)).toThrow(
+                    new Error(
+                        "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
+                    ),
+                );
+            }
+        });
+
         it("renumbers a negative integer key when it pads, and keeps it when it doesn't", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
             const data = { "-1": "a", x: "b" };

@@ -113,6 +113,7 @@ import {
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolveDefault,
+    resolvePadLength,
     resolveSliceRange,
     resolveTakeCount,
     strictEqual,
@@ -3850,22 +3851,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * regardless of direction — a genuine, unfixable JS/PHP divergence (see
      * `pad`'s JSDoc in `@tolki/obj`).
      *
-     * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
+     * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning; a fraction is
+     * dropped, as array_pad()'s int parameter drops it
      * @param value - The value to pad with
      * @returns A new collection padded to the specified length
+     * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it
+     * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError
      *
      * @example
      *
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
      */
     pad<TPadValue>(size: number, value: TPadValue) {
+        const length = resolvePadLength(size);
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.newInstance(this.padOrdered(ordered, size, value));
+            return this.newInstance(this.padOrdered(ordered, length, value));
         }
 
-        return this.newInstance(handOver(dataPad(this.items, size, value)));
+        return this.newInstance(handOver(dataPad(this.items, length, value)));
     }
 
     /**

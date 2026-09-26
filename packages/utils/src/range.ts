@@ -1,3 +1,4 @@
+import { phpIntArgument } from "./cast";
 import { isInteger, isNull } from "./guards";
 
 /**
@@ -60,4 +61,32 @@ export function resolveTakeCount(count: number, size: number): number {
     }
 
     return Math.floor(end);
+}
+
+/**
+ * Resolve the length `array_pad()` pads to, reading it as PHP reads the int parameter.
+ *
+ * @param size - The length the caller passed, negative to pad at the beginning
+ * @returns The length without its fraction
+ * @throws TypeError when the length is NAN, infinite or outside PHP's int range
+ * @throws Error when the length is past PHP's maximum array size, as its ValueError
+ *
+ * @example
+ * resolvePadLength(7.5); -> 7
+ * resolvePadLength(NaN); -> throws TypeError
+ */
+export function resolvePadLength(size: number): number {
+    const length = phpIntArgument(
+        size,
+        "array_pad(): Argument #2 ($length) must be of type int, float given",
+    );
+
+    // No PHP array may hold more elements than HT_MAX_SIZE, 2^30.
+    if (Math.abs(length) > 2 ** 30) {
+        throw new Error(
+            "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
+        );
+    }
+
+    return length;
 }

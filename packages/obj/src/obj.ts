@@ -96,6 +96,7 @@ import {
     phpValueMatcher,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
+    resolvePadLength,
     resolveSliceRange,
     resolveTakeCount,
     strictEqual,
@@ -5960,8 +5961,11 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The object or Map to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
+ * A fraction is dropped.
  * @param value - The value to use for padding.
  * @returns A new padded object.
+ * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it.
+ * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError.
  *
  * @example
  *
@@ -6003,6 +6007,8 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     size: number,
     value: TPadValue,
 ): Record<TKey, TValue | TPadValue> {
+    const length = resolvePadLength(size);
+
     if (!accessible(data)) {
         return {} as Record<TKey, TValue | TPadValue>;
     }
@@ -6011,14 +6017,14 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const currentLength = entries.length;
 
     // A spread cannot see a Map's entries, so a Map goes through `from` to become the record array_pad hands back.
-    if (Math.abs(size) <= currentLength) {
+    if (Math.abs(length) <= currentLength) {
         return (isMap(data) ? from(data) : { ...data }) as Record<
             TKey,
             TValue | TPadValue
         >;
     }
 
-    const padCount = Math.abs(size) - currentLength;
+    const padCount = Math.abs(length) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
     for (let i = 0; i < padCount; i++) {
@@ -6028,7 +6034,7 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const orderedEntries: [string, TValue | TPadValue][] =
-        size > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
+        length > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
 
     const result: Record<string, TValue | TPadValue> = {};
     for (const [key, val] of renumberPhpIntegerKeys(orderedEntries)) {

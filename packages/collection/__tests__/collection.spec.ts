@@ -14288,6 +14288,89 @@ describe("Collection", () => {
     });
 
     describe("pad", () => {
+        it("drops a fraction from the size, as array_pad()'s int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            const list = collect([1, 2, 3]).pad(7.5, 0);
+
+            expect(list.all()).toEqual([1, 2, 3, 0, 0, 0, 0]);
+            expect(list.keys().all()).toEqual([0, 1, 2, 3, 4, 5, 6]);
+            expect(list.values().all()).toEqual([1, 2, 3, 0, 0, 0, 0]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3 }).pad(-7.5, 0);
+
+            expect(keyed.all()).toEqual({
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 0,
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+            expect(keyed.keys().all()).toEqual([0, 1, 2, 3, "a", "b", "c"]);
+            expect(keyed.values().all()).toEqual([0, 0, 0, 0, 1, 2, 3]);
+
+            const unpadded = collect([1, 2, 3]).pad(0.5, 0);
+
+            expect(unpadded.all()).toEqual([1, 2, 3]);
+            expect(unpadded.keys().all()).toEqual([0, 1, 2]);
+            expect(unpadded.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("pads a fractional size in the order PHP's array holds integer keys out of order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-size-out-of-order-keys"
+            const outOfOrder = () =>
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                );
+            const after = outOfOrder().pad(4.5, "P");
+            const before = outOfOrder().pad(-4.5, "P");
+
+            // JS-only: a keyed backing keeps its record, whose keys here run 0..3 as PHP's list's do
+            expect(after.all()).toEqual({ 0: "c", 1: "a", 2: "b", 3: "P" });
+            expect(after.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(after.values().all()).toEqual(["c", "a", "b", "P"]);
+            expect(before.all()).toEqual({ 0: "P", 1: "c", 2: "a", 3: "b" });
+            expect(before.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(before.values().all()).toEqual(["P", "c", "a", "b"]);
+            expect(() => outOfOrder().pad(NaN, "P")).toThrow(
+                new TypeError(
+                    "array_pad(): Argument #2 ($length) must be of type int, float given",
+                ),
+            );
+        });
+
+        it("throws array_pad()'s TypeError for a size no int holds, and its ValueError past the maximum array size", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
+                expect(() => collect([1, 2, 3]).pad(size, 0)).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+                expect(() =>
+                    collect({ a: 1, b: 2, c: 3 }).pad(size, 0),
+                ).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-maximum-array-size"
+            for (const size of [1073741825, -1073741825, 1e18]) {
+                expect(() => collect([1, 2, 3]).pad(size, 0)).toThrow(
+                    new Error(
+                        "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
+                    ),
+                );
+            }
+        });
+
         it("renumbers a negative integer key on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
             expect(collect({ "-1": "a", x: "b" }).pad(-4, 0).all()).toEqual({
