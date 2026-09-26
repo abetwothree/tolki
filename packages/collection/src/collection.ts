@@ -1996,15 +1996,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Merge the collection with the given items.
      *
+     * As `array_merge` does, integer keys are renumbered and appended in order, and a string key keeps its first place.
+     *
      * @param items - The items to merge with
-     * @returns A new collection with merged items
+     * @returns A new collection with merged items, a list when every key is an integer
      *
      * @example
      *
      * new Collection([1, 2]).merge([3, 4]); -> new Collection([1, 2, 3, 4])
-     * new Collection({a: 1, b: 2}).merge({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
-     * new Collection([1, 2]).merge({a: 3}); -> new Collection([1, 2, {a: 3}])
-     * new Collection({a: 1}).merge([2]); -> new Collection({a: 1, 0: 2})
+     * new Collection({a: 1, b: 2}).merge({c: 3, a: 4}); -> new Collection({a: 4, b: 2, c: 3})
+     * new Collection([1, 2]).merge({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
+     * new Collection({5: 'a'}).merge({5: 'b'}); -> new Collection(['a', 'b'])
      */
     merge<TMergeValue, TMergeKey extends PropertyKey>(
         items:
@@ -2013,17 +2015,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Collection<TMergeValue, TMergeKey>
             | null,
     ) {
-        const rawItems = this.getRawItems(items);
+        const merged = new Map<PropertyKey, unknown>();
+        let next = 0;
 
-        if (isArray(this.items) && isArray(rawItems)) {
-            return this.newInstance(handOver([...this.items, ...rawItems]));
+        for (const [key, value] of [
+            ...this.entriesInOrder(),
+            ...this.operandEntries(items),
+        ]) {
+            merged.set(isNumber(key) ? next++ : key, value);
         }
 
-        if (isObject(this.items) && isObject(rawItems)) {
-            return this.newInstance(handOver({ ...this.items, ...rawItems }));
-        }
-
-        return this.newInstance(handOver({ ...this.items, ...rawItems }));
+        return this.newInstance(inPhpOrder(merged));
     }
 
     /**
@@ -6475,6 +6477,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * An operand's entries in the order PHP's array holds them, each key cast as PHP casts an array key.
+     *
+     * @param items - The operand, read once, the way getRawItems reads it
+     * @returns A collection's or a Map's entries in their insertion order, otherwise the operand's own entries
+     */
+    protected operandEntries(items: unknown): Array<[PropertyKey, unknown]> {
+        if (items instanceof Collection) {
+            return items.entriesInOrder();
+        }
+
+        // getRawItems reads a Map into a record, which lists its integer keys ascending.
+        if (isMap(items)) {
+            return this.mapEntries(items);
+        }
+
+        return Object.entries(this.getRawItems(items)).map(([key, value]) => [
+            phpArrayKey(key),
+            value,
+        ]);
+    }
+
+    /**
      * Read a value as items the way PHP's `(array)` cast does.
      *
      * @param value - The value to cast
@@ -6523,6 +6547,22 @@ function handOver<TItems extends object>(items: TItems): TItems {
     owned.add(items);
 
     return items;
+}
+
+/**
+ * Hand over entries in PHP's order: as a list while their keys run 0..n-1, otherwise as the Map that holds the order.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns The values as a list, or the entries themselves
+ */
+function inPhpOrder<TValue>(
+    entries: Map<PropertyKey, TValue>,
+): TValue[] | Map<PropertyKey, TValue> {
+    if ([...entries.keys()].every((key, index) => key === index)) {
+        return handOver([...entries.values()]);
+    }
+
+    return entries;
 }
 
 /**

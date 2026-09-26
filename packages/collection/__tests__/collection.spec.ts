@@ -5861,13 +5861,87 @@ describe("Collection", () => {
         });
 
         it("merge object items with array", () => {
-            const c = collect({ a: 1, b: 2 });
-            expect(c.merge([3, 4]).all()).toEqual({
-                "0": 3,
-                "1": 4,
-                a: 1,
-                b: 2,
-            });
+            const merged = collect({ a: 1, b: 2 }).merge([3, 4]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-assoc-then-list"
+            expect(merged.all()).toEqual({ a: 1, b: 2, 0: 3, 1: 4 });
+            expect(merged.keys().all()).toEqual(["a", "b", 0, 1]);
+            expect(merged.values().all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("renumbers the receiver's integer keys in the order it holds them", () => {
+            // A Map holds PHP's ['a' => 1, 5 => 'x'] in order, where a plain object lists the 5 first
+            const merged = collect(
+                new Map<string | number, string | number>([
+                    ["a", 1],
+                    [5, "x"],
+                ]),
+            ).merge(["y"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-int-keyed-record-then-list"
+            expect(merged.all()).toEqual({ a: 1, 0: "x", 1: "y" });
+            expect(merged.keys().all()).toEqual(["a", 0, 1]);
+            expect(merged.values().all()).toEqual([1, "x", "y"]);
+        });
+
+        it("appends an integer key both sides hold, renumbered", () => {
+            const merged = collect({ 5: "a" }).merge({ 5: "b" });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-same-int-key-appends"
+            expect(merged.all()).toEqual(["a", "b"]);
+            expect(merged.keys().all()).toEqual([0, 1]);
+            expect(merged.values().all()).toEqual(["a", "b"]);
+        });
+
+        it("keeps a string key both sides hold in its first place, with the operand's value", () => {
+            const merged = collect({ a: 1, b: 2 }).merge({ c: 3, a: 9 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-string-key-keeps-its-place"
+            expect(merged.all()).toEqual({ a: 9, b: 2, c: 3 });
+            expect(merged.keys().all()).toEqual(["a", "b", "c"]);
+            expect(merged.values().all()).toEqual([9, 2, 3]);
+        });
+
+        it("appends an operand's integer keys in the order it holds them", () => {
+            const operand = () =>
+                new Map([
+                    [3, "x"],
+                    [1, "y"],
+                ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-list-then-out-of-order-int-keys"
+            for (const merged of [
+                collect([1]).merge(operand()),
+                collect([1]).merge(collect(operand())),
+            ]) {
+                expect(merged.all()).toEqual([1, "x", "y"]);
+                expect(merged.keys().all()).toEqual([0, 1, 2]);
+                expect(merged.values().all()).toEqual([1, "x", "y"]);
+            }
+        });
+
+        it("renumbers a Map-built receiver in the order it holds its keys", () => {
+            const merged = collect(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ).merge(["d"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-out-of-order-receiver"
+            expect(merged.all()).toEqual(["c", "a", "b", "d"]);
+            expect(merged.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(merged.values().all()).toEqual(["c", "a", "b", "d"]);
+        });
+
+        it("renumbers integer keys for a null operand too", () => {
+            const merged = collect({ 5: "a", k: "b" }).merge(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-null-renumbers"
+            expect(merged.all()).toEqual({ 0: "a", k: "b" });
+            expect(merged.keys().all()).toEqual([0, "k"]);
+            expect(merged.values().all()).toEqual(["a", "b"]);
         });
     });
 
