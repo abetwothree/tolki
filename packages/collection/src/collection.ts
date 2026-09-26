@@ -1853,15 +1853,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // Same as `first`: the `DataItems` union picks obj's widest row, so both the
         // `unknown`-valued callback and the restated return type are forced here.
-        const result = dataLast(
+        return dataLast(
             this.items,
             callback as
                 | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
-        ) as TValue | D | null | undefined;
-
-        return result === undefined ? null : result;
+        ) as TValue | D | null;
     }
 
     /**

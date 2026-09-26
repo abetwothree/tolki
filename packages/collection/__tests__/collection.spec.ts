@@ -4394,9 +4394,17 @@ describe("Collection", () => {
             expect(c.last()).toBeNull();
         });
 
-        it("converts undefined value to null", () => {
-            const c = collect([1, undefined]);
-            expect(c.last()).toBeNull();
+        it("returns a stored undefined as stored, as first() does", () => {
+            // JS-only: PHP has no undefined, so an item holding one comes back unchanged, from either end
+            expect(collect([1, undefined]).last()).toBeUndefined();
+            expect(collect({ a: 1, b: undefined }).last()).toBeUndefined();
+            expect(
+                collect([undefined, 1]).last(
+                    (value) => value === undefined,
+                    "default",
+                ),
+            ).toBeUndefined();
+            expect(collect([undefined, 1]).first()).toBeUndefined();
         });
     });
 
