@@ -546,6 +546,52 @@ probe('C32-C-random-callable-count', '(new Collection([1, 2, 3]))->random(fn ($c
     return $out;
 });
 
+/** What $run answers, or the class and message of what it throws. */
+function c32c_outcome(callable $run): mixed
+{
+    try {
+        return $run();
+    } catch (\Throwable $e) {
+        return [get_class($e), $e->getMessage()];
+    }
+}
+
+probe('C32-C-lone-key-forms-by-key-class', 'hasSole / sole / firstOrFail on (new Collection([["name" => "foo"]])) and hasMany on (new Collection([["name" => "foo"], ["name" => "bar"]])) with a lone key 0, "", "0" or 1: the answer, or the class thrown', function () {
+    $out = [];
+    foreach (['zero' => 0, 'empty-string' => '', 'zero-string' => '0', 'one' => 1] as $label => $key) {
+        foreach (['hasSole', 'hasMany', 'sole', 'firstOrFail'] as $method) {
+            $items = $method === 'hasMany' ? [['name' => 'foo'], ['name' => 'bar']] : [['name' => 'foo']];
+            try {
+                $out[$label][$method] = (new Collection($items))->{$method}($key);
+            } catch (\Throwable $e) {
+                $out[$label][$method] = get_class($e);
+            }
+        }
+    }
+
+    return $out;
+});
+probe('C32-C-lone-key-type-error-message', 'the TypeError message, up to ", called in", for a lone "name" key to hasSole / hasMany / sole / firstOrFail, and a lone 1 to firstOrFail, on (new Collection([["name" => "foo"]]))', function () {
+    $out = [];
+    foreach (['hasSole' => ['hasSole', 'name'], 'hasMany' => ['hasMany', 'name'], 'sole' => ['sole', 'name'], 'firstOrFail' => ['firstOrFail', 'name'], 'firstOrFail-int' => ['firstOrFail', 1]] as $label => [$method, $key]) {
+        try {
+            (new Collection([['name' => 'foo']]))->{$method}($key);
+        } catch (\TypeError $e) {
+            $out[$label] = explode(', called in', $e->getMessage())[0];
+        }
+    }
+
+    return $out;
+});
+probe('C32-C-random-too-many-count', '(new Collection([1, 2, 3]))->random(4)', fn () => (new Collection([1, 2, 3]))->random(4));
+probe('C32-C-arr-random-fractional-count', "Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed), deprecations silenced: how many it picks for 1.2, 2.9 and 1.5 with keys preserved, and what 3.5 and 0.5 throw", fn () => array_map(fn (array $items) => [
+    '1.2' => count(@Arr::random($items, 1.2)),
+    '2.9' => count(@Arr::random($items, 2.9)),
+    '1.5 preserving keys' => count(@Arr::random($items, 1.5, true)),
+    '3.5' => c32c_outcome(fn () => @Arr::random($items, 3.5)),
+    '0.5' => c32c_outcome(fn () => @Arr::random($items, 0.5)),
+], ['list' => [1, 2, 3], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3]]));
+
 // ---- Family D ------------------------------------------------------------
 
 /**

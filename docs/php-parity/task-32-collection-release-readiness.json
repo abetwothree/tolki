@@ -2507,6 +2507,89 @@
             ]
         },
         {
+            "label": "C32-C-lone-key-forms-by-key-class",
+            "php": "hasSole / sole / firstOrFail on (new Collection([[\"name\" => \"foo\"]])) and hasMany on (new Collection([[\"name\" => \"foo\"], [\"name\" => \"bar\"]])) with a lone key 0, \"\", \"0\" or 1: the answer, or the class thrown",
+            "value": {
+                "zero": {
+                    "hasSole": true,
+                    "hasMany": true,
+                    "sole": {
+                        "name": "foo"
+                    },
+                    "firstOrFail": "TypeError"
+                },
+                "empty-string": {
+                    "hasSole": true,
+                    "hasMany": true,
+                    "sole": {
+                        "name": "foo"
+                    },
+                    "firstOrFail": "TypeError"
+                },
+                "zero-string": {
+                    "hasSole": "TypeError",
+                    "hasMany": "TypeError",
+                    "sole": "TypeError",
+                    "firstOrFail": "TypeError"
+                },
+                "one": {
+                    "hasSole": "TypeError",
+                    "hasMany": "TypeError",
+                    "sole": "TypeError",
+                    "firstOrFail": "TypeError"
+                }
+            }
+        },
+        {
+            "label": "C32-C-lone-key-type-error-message",
+            "php": "the TypeError message, up to \", called in\", for a lone \"name\" key to hasSole / hasMany / sole / firstOrFail, and a lone 1 to firstOrFail, on (new Collection([[\"name\" => \"foo\"]]))",
+            "value": {
+                "hasSole": "Illuminate\\Support\\Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                "hasMany": "Illuminate\\Support\\Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                "sole": "Illuminate\\Support\\Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                "firstOrFail": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, string given",
+                "firstOrFail-int": "Illuminate\\Support\\Collection::first(): Argument #1 ($callback) must be of type ?callable, int given"
+            }
+        },
+        {
+            "label": "C32-C-random-too-many-count",
+            "php": "(new Collection([1, 2, 3]))->random(4)",
+            "threw": "InvalidArgumentException",
+            "message": "You requested 4 items, but there are only 3 items available."
+        },
+        {
+            "label": "C32-C-arr-random-fractional-count",
+            "php": "Arr::random over [1, 2, 3] (list) and ['a' => 1, 'b' => 2, 'c' => 3] (keyed), deprecations silenced: how many it picks for 1.2, 2.9 and 1.5 with keys preserved, and what 3.5 and 0.5 throw",
+            "value": {
+                "list": {
+                    "1.2": 1,
+                    "2.9": 2,
+                    "1.5 preserving keys": 1,
+                    "3.5": [
+                        "InvalidArgumentException",
+                        "You requested 3.5 items, but there are only 3 items available."
+                    ],
+                    "0.5": [
+                        "ValueError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)"
+                    ]
+                },
+                "keyed": {
+                    "1.2": 1,
+                    "2.9": 2,
+                    "1.5 preserving keys": 1,
+                    "3.5": [
+                        "InvalidArgumentException",
+                        "You requested 3.5 items, but there are only 3 items available."
+                    ],
+                    "0.5": [
+                        "ValueError",
+                        "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)"
+                    ]
+                }
+            }
+        },
+        {
             "label": "C32-D-reject-none-php-falsy",
             "php": "(new Collection([[], '0', 0.0, 'a', '', null, true]))->reject()->values()",
             "value": [
