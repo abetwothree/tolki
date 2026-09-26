@@ -8212,6 +8212,17 @@ describe("Obj", () => {
             ).toEqual({ b: 2, c: 3 });
         });
 
+        it("hands a callback an integer key as a number", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index", whose PHP
+            // list these integer keys stand for
+            expect(
+                Obj.skipUntil(
+                    { 0: "x", 1: "y", 2: "z" },
+                    (_value, key) => key === 1,
+                ),
+            ).toEqual({ 1: "y", 2: "z" });
+        });
+
         it("walks a Map in its insertion order", () => {
             const map = new Map([
                 [2, "c"],
@@ -8260,11 +8271,11 @@ describe("Obj", () => {
 
         it("skips while a callback handed each value and key answers truthy", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key", whose PHP
-            // list these integer keys stand for
+            // list these integer keys stand for; !== fails a string key, which the row's < would coerce
             expect(
                 Obj.skipWhile(
                     { 0: "x", 1: "y", 2: "z" },
-                    (_value, key) => key < 1,
+                    (_value, key) => key !== 1,
                 ),
             ).toEqual({ 1: "y", 2: "z" });
         });
@@ -10419,6 +10430,17 @@ describe("Obj", () => {
             ).toEqual({ a: 1, b: 2 });
         });
 
+        it("hands a callback an integer key as a number", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index", whose PHP
+            // list these integer keys stand for
+            expect(
+                Obj.takeUntil(
+                    { 0: "x", 1: "y", 2: "z" },
+                    (_value, key) => key === 1,
+                ),
+            ).toEqual({ 0: "x" });
+        });
+
         it("walks a Map in its insertion order", () => {
             const map = new Map([
                 [2, "c"],
@@ -10470,11 +10492,11 @@ describe("Obj", () => {
 
         it("takes while a callback handed each value and key answers truthy", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key", whose PHP
-            // list these integer keys stand for
+            // list these integer keys stand for; !== fails a string key, which the row's < would coerce
             expect(
                 Obj.takeWhile(
                     { 0: "x", 1: "y", 2: "z" },
-                    (_value, key) => key < 2,
+                    (_value, key) => key !== 2,
                 ),
             ).toEqual({ 0: "x", 1: "y" });
         });
