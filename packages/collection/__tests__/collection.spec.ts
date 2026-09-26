@@ -1916,6 +1916,38 @@ describe("Collection", () => {
                 [2, "x"],
             ]);
         });
+
+        it.fails(
+            "walks a Map-built receiver in the order it holds its keys",
+            () => {
+                // Ordered-backing gap: PHP walks the receiver in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect(outOfOrderKeys().crossJoin(["x"]).all()).toEqual([
+                    ["c", "x"],
+                    ["a", "x"],
+                    ["b", "x"],
+                ]);
+            },
+        );
+
+        it.fails(
+            "walks a Map-built operand in the order it holds its keys",
+            () => {
+                const operand = collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP walks the operand in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-operand-out-of-order"
+                expect(collect([1]).crossJoin(operand).all()).toEqual([
+                    [1, "c"],
+                    [1, "a"],
+                ]);
+            },
+        );
     });
 
     describe("diff", () => {
@@ -1970,6 +2002,20 @@ describe("Collection", () => {
                 a: 10,
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diff(["a"]);
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("diffUsing", () => {
@@ -2029,6 +2075,20 @@ describe("Collection", () => {
             expect(diffed.keys().all()).toEqual(["b", "c"]);
             expect(diffed.values().all()).toEqual(["brown", "blue"]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffUsing(["A"], strcasecmp);
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("diffAssoc", () => {
@@ -2105,17 +2165,53 @@ describe("Collection", () => {
         });
 
         it("reads a Collection operand's items for diffAssocUsing", () => {
+            const diffed = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            }).diffAssocUsing(
+                collect({ A: "green", 0: "yellow", 1: "red" }),
+                strcasecmp,
+            );
+
             // CollectionTest::testDiffAssocUsing
             // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
-            expect(
-                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
-                    .diffAssocUsing(
-                        collect({ A: "green", 0: "yellow", 1: "red" }),
-                        strcasecmp,
-                    )
-                    .all(),
-            ).toEqual({ b: "brown", c: "blue", 0: "red" });
+            expect(diffed.all()).toEqual({ b: "brown", c: "blue", 0: "red" });
+            // A plain object literal holds key 0 first, so the answer does too; a Map keeps PHP's order (below)
+            expect(diffed.keys().all()).toEqual([0, "b", "c"]);
+            expect(diffed.values().all()).toEqual(["red", "brown", "blue"]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items diffAssocUsing keeps",
+            () => {
+                const diffed = collect(
+                    new Map<string | number, string>([
+                        ["a", "green"],
+                        ["b", "brown"],
+                        ["c", "blue"],
+                        [0, "red"],
+                    ]),
+                ).diffAssocUsing(
+                    collect(
+                        new Map<string | number, string>([
+                            ["A", "green"],
+                            [0, "yellow"],
+                            [1, "red"],
+                        ]),
+                    ),
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the receiver's insertion order, so key 0 comes after b and c
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffAssocUsing-mixed-keys-order"
+                expect([diffed.keys().all(), diffed.values().all()]).toEqual([
+                    ["b", "c", 0],
+                    ["brown", "blue", "red"],
+                ]);
+            },
+        );
 
         it("reads a Collection operand's items for diffAssocUsing on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
@@ -2162,6 +2258,20 @@ describe("Collection", () => {
             expect(result.keys().all()).toEqual(["a", "b"]);
             expect(result.values().all()).toEqual([1, 2]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffAssoc({ 0: "a" });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("diffKeys", () => {
@@ -2222,6 +2332,20 @@ describe("Collection", () => {
             expect(result.keys().all()).toEqual(["b"]);
             expect(result.values().all()).toEqual([2]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffKeys({ 0: "x" });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("diffKeysUsing", () => {
@@ -2280,6 +2404,23 @@ describe("Collection", () => {
             expect(result.keys().all()).toEqual(["a", "b"]);
             expect(result.values().all()).toEqual([1, 2]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffKeysUsing(
+                    { 0: "x" },
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("duplicates", () => {
@@ -4408,6 +4549,20 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([shared]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersect(["c", "b"]);
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("intersect operand handling", () => {
@@ -4497,6 +4652,23 @@ describe("Collection", () => {
             expect(intersected.keys().all()).toEqual([0, 1]);
             expect(intersected.values().all()).toEqual([2, 3]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectUsing(
+                    ["C", "B"],
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("intersectUsing operand handling", () => {
@@ -4564,6 +4736,23 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectAssoc({
+                    2: "c",
+                    1: "b",
+                });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("intersectAssoc operand handling", () => {
@@ -4692,6 +4881,23 @@ describe("Collection", () => {
                 ).toEqual(["brown", "red"]);
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectAssocUsing(
+                    { 2: "c", 1: "b" },
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("intersectAssocUsing operand handling", () => {
@@ -4817,6 +5023,23 @@ describe("Collection", () => {
                 ).toEqual({ name: "taylor", family: "otwell" });
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectByKeys({
+                    2: "x",
+                    1: "y",
+                });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
     });
 
     describe("intersectByKeys operand handling", () => {
@@ -6383,6 +6606,22 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-fractional-count"
             expect(collect([1, 2]).multiply(2.5).all()).toEqual([1, 2, 1, 2]);
         });
+
+        it.fails(
+            "repeats a Map-built receiver's values in the order it holds them",
+            () => {
+                // Ordered-backing gap: PHP repeats the values in the receiver's insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect(outOfOrderKeys().multiply(2).all()).toEqual([
+                    "c",
+                    "a",
+                    "b",
+                    "c",
+                    "a",
+                    "b",
+                ]);
+            },
+        );
     });
 
     describe("combine", () => {
@@ -6527,6 +6766,30 @@ describe("Collection", () => {
             expect(result.keys().all()).toEqual(["k"]);
             expect(result.values().all()).toEqual([operand.all]);
         });
+
+        it.fails(
+            "pairs a Map-built operand's values in the order it holds them",
+            () => {
+                const combined = collect(["x", "y"]).combine(
+                    collect(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    ),
+                );
+
+                // Ordered-backing gap: PHP pairs the operand's values in its insertion order, the one under key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-operand-out-of-order"
+                expect([
+                    combined.keys().all(),
+                    combined.values().all(),
+                ]).toEqual([
+                    ["x", "y"],
+                    ["c", "a"],
+                ]);
+            },
+        );
     });
 
     describe("union", () => {
@@ -12331,6 +12594,45 @@ describe("Collection", () => {
                 [2, null],
             ]);
         });
+
+        it.fails(
+            "zips a Map-built receiver in the order it holds its keys",
+            () => {
+                const zipped = outOfOrderKeys().zip(["x", "y", "z"]);
+
+                // Ordered-backing gap: PHP zips the receiver in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect(zipped.map((row) => row.all()).all()).toEqual([
+                    ["c", "x"],
+                    ["a", "y"],
+                    ["b", "z"],
+                ]);
+            },
+        );
+
+        it.fails(
+            "zips a Map-built operand in the order it holds its keys",
+            () => {
+                const operand = collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP zips the operand in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-operand-out-of-order"
+                expect(
+                    collect([1, 2])
+                        .zip(operand)
+                        .map((row) => row.all())
+                        .all(),
+                ).toEqual([
+                    [1, "c"],
+                    [2, "a"],
+                ]);
+            },
+        );
     });
 
     describe("pad", () => {
