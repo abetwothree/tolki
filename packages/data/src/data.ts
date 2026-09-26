@@ -12,7 +12,9 @@ import {
     diff as arrDiff,
     diffAssoc as arrDiffAssoc,
     diffAssocUsing as arrDiffAssocUsing,
+    diffKeys as arrDiffKeys,
     diffKeysUsing as arrDiffKeysUsing,
+    diffUsing as arrDiffUsing,
     divide as arrDivide,
     dot as arrDot,
     every as arrEvery,
@@ -35,6 +37,7 @@ import {
     intersectAssoc as arrIntersectAssoc,
     intersectAssocUsing as arrIntersectAssocUsing,
     intersectByKeys as arrIntersectByKeys,
+    intersectUsing as arrIntersectUsing,
     join as arrJoin,
     keyBy as arrKeyBy,
     keys as arrKeys,
@@ -96,7 +99,9 @@ import {
     diff as objDiff,
     diffAssoc as objDiffAssoc,
     diffAssocUsing as objDiffAssocUsing,
+    diffKeys as objDiffKeys,
     diffKeysUsing as objDiffKeysUsing,
+    diffUsing as objDiffUsing,
     divide as objDivide,
     dot as objDot,
     every as objEvery,
@@ -119,6 +124,7 @@ import {
     intersectAssoc as objIntersectAssoc,
     intersectAssocUsing as objIntersectAssocUsing,
     intersectByKeys as objIntersectByKeys,
+    intersectUsing as objIntersectUsing,
     join as objJoin,
     keyBy as objKeyBy,
     keys as objKeys,
@@ -2456,6 +2462,49 @@ export const dataDiffAssoc = dispatch(
 );
 
 /**
+ * Get the items whose keys are not present in the given other data.
+ *
+ * `other` is read by its own keys, so a list holds its indexes and never its `length`. A list's survivors renumber.
+ *
+ * @param data - The source data
+ * @param other - The data whose keys to diff against
+ * @returns Data holding the items whose key `other` lacks, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataDiffKeys({id: 1, first_word: 'Hello'}, {id: 123, foo_bar: 'Hello'}); -> {first_word: 'Hello'}
+ * dataDiffKeys([1, 2, 3], [9, 9]); -> [3]
+ */
+export const dataDiffKeys = dispatch(
+    arrDiffKeys,
+    objDiffKeys,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+/**
+ * Get the items whose value is not present in the given other data, comparing with the callback.
+ *
+ * The callback reports whether two values are equal. A list's survivors renumber.
+ *
+ * @param data - The source data
+ * @param other - The data to diff against
+ * @param callback - Function that reports whether a value of `data` equals a value of `other`
+ * @returns Data holding the items no value of `other` equals, matching the delegate's own result
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataDiffUsing(['green', 'brown', 'blue'], ['GREEN', 'yellow'], strcasecmp); -> ['brown', 'blue']
+ */
+export const dataDiffUsing = dispatch(
+    arrDiffUsing,
+    objDiffUsing,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+/**
  * Diff data with the given other data using a callback for key comparison.
  * Compares keys using the callback and values using PHP's `(string)` cast rule.
  * A list's keys are its indices, so `other` is read through `arrayableItems` on
@@ -2558,6 +2607,28 @@ export const dataPop = dispatch(
 export const dataIntersect = dispatch(
     arrIntersect,
     objIntersect,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+/**
+ * Intersect the data with the given items, comparing values with the callback.
+ *
+ * The callback reports whether two values are equal.
+ *
+ * @param data - The original data
+ * @param items - The items to intersect with
+ * @param callback - Function that reports whether a value of `data` equals a value of `items`
+ * @returns Data holding the items some value of `items` equals, matching the delegate's own result
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataIntersectUsing({a: 'green', b: 'brown'}, {A: 'GREEN'}, strcasecmp); -> {a: 'green'}
+ */
+export const dataIntersectUsing = dispatch(
+    arrIntersectUsing,
+    objIntersectUsing,
     toPositionalBacking,
     toKeyedData,
 );

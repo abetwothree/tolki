@@ -72,6 +72,82 @@ describe("data setops type tests", () => {
         });
     });
 
+    describe("dataDiffKeys", () => {
+        it("matches arr.diffKeys for a list", () => {
+            expectTypeOf(Data.dataDiffKeys(numberList, [9, 9])).toEqualTypeOf(
+                Arr.diffKeys(numberList, [9, 9]),
+            );
+        });
+
+        it("matches obj.diffKeys for a record", () => {
+            expectTypeOf(Data.dataDiffKeys(abc, { b: 2 })).toEqualTypeOf(
+                Obj.diffKeys(abc, { b: 2 }),
+            );
+        });
+
+        it("matches each backing given a nullish other", () => {
+            expectTypeOf(Data.dataDiffKeys(numberList, null)).toEqualTypeOf(
+                Arr.diffKeys(numberList, null),
+            );
+            expectTypeOf(Data.dataDiffKeys(abc, null)).toEqualTypeOf(
+                Obj.diffKeys(abc, null),
+            );
+        });
+
+        it("takes a read-only list", () => {
+            expectTypeOf(
+                Data.dataDiffKeys(readonlyNumberList, [9]),
+            ).toEqualTypeOf(Arr.diffKeys(readonlyNumberList, [9]));
+        });
+    });
+
+    describe("dataDiffUsing and dataIntersectUsing", () => {
+        const same = (a: number, b: number): boolean => a === b;
+
+        it("match arr for a list", () => {
+            expectTypeOf(
+                Data.dataDiffUsing(numberList, [2], same),
+            ).toEqualTypeOf(Arr.diffUsing(numberList, [2], same));
+            expectTypeOf(
+                Data.dataIntersectUsing(readonlyNumberList, [2], same),
+            ).toEqualTypeOf(Arr.intersectUsing(readonlyNumberList, [2], same));
+        });
+
+        it("match obj for a record", () => {
+            expectTypeOf(Data.dataDiffUsing(abc, { a: 1 }, same)).toEqualTypeOf(
+                Obj.diffUsing(abc, { a: 1 }, same),
+            );
+            expectTypeOf(
+                Data.dataIntersectUsing(abc, { a: 1 }, same),
+            ).toEqualTypeOf(Obj.intersectUsing(abc, { a: 1 }, same));
+        });
+
+        it("type a callback from the delegate each backing reaches", () => {
+            // The callbacks are inline and unannotated on purpose: an annotation would supply the types they assert.
+            const diffed = Data.dataDiffUsing([1, 2], ["x"], (value, other) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(other).toEqualTypeOf<string>();
+
+                return true;
+            });
+            expectTypeOf(diffed).toEqualTypeOf<number[]>();
+
+            const intersected = Data.dataIntersectUsing(
+                { a: 1 },
+                { b: "x" },
+                (value, other) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(other).toEqualTypeOf<string>();
+
+                    return true;
+                },
+            );
+            expectTypeOf(intersected).toEqualTypeOf(
+                Obj.intersectUsing({ a: 1 }, { b: "x" }, () => true),
+            );
+        });
+    });
+
     describe("dataDiffAssocUsing and dataDiffKeysUsing", () => {
         const sameKey = (keyA: PropertyKey, keyB: PropertyKey): boolean =>
             String(keyA) === String(keyB);
@@ -319,6 +395,17 @@ describe("data setops type tests", () => {
             expectTypeOf(byKeys).toEqualTypeOf(
                 Obj.intersectByKeys(unionItems, [1]),
             );
+
+            const same = (a: unknown, b: unknown): boolean => a === b;
+            expectTypeOf(Data.dataDiffKeys(unionItems, [1])).toEqualTypeOf(
+                Obj.diffKeys(unionItems, [1]),
+            );
+            expectTypeOf(
+                Data.dataDiffUsing(unionItems, [1], same),
+            ).toEqualTypeOf(Obj.diffUsing(unionItems, [1], same));
+            expectTypeOf(
+                Data.dataIntersectUsing(unionItems, [1], same),
+            ).toEqualTypeOf(Obj.intersectUsing(unionItems, [1], same));
         });
 
         it("answers dataCollapse from obj, and still covers the list half", () => {
@@ -343,6 +430,26 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataDiffAssoc(numberMap, [2])).toEqualTypeOf<
                 typeof widest
             >();
+        });
+
+        it("types a Map on dataDiffKeys from obj's widest row", () => {
+            const widest = Obj.diffKeys(opaque, [2]);
+            expectTypeOf(Data.dataDiffKeys(numberMap, [2])).toEqualTypeOf<
+                typeof widest
+            >();
+        });
+
+        it("types a Map on dataDiffUsing and dataIntersectUsing from obj's widest row", () => {
+            const same = (a: unknown, b: unknown): boolean => a === b;
+            const diffed = Obj.diffUsing(opaque, [2], same);
+            const intersected = Obj.intersectUsing(opaque, [2], same);
+
+            expectTypeOf(
+                Data.dataDiffUsing(numberMap, [2], same),
+            ).toEqualTypeOf<typeof diffed>();
+            expectTypeOf(
+                Data.dataIntersectUsing(numberMap, [2], same),
+            ).toEqualTypeOf<typeof intersected>();
         });
 
         it("types a Map on dataDiffAssocUsing from obj's widest row", () => {
@@ -411,11 +518,17 @@ describe("data setops type tests", () => {
             expectTypeOf(
                 Data.dataIntersectByKeys(settings, { a: 1 }),
             ).toEqualTypeOf(Obj.intersectByKeys(settings, { a: 1 }));
+            expectTypeOf(Data.dataDiffKeys(settings, { a: 1 })).toEqualTypeOf(
+                Obj.diffKeys(settings, { a: 1 }),
+            );
         });
 
         it("accepts a class instance", () => {
             expectTypeOf(Data.dataDiff(box, { b: 2 })).toEqualTypeOf(
                 Obj.diff(box, { b: 2 }),
+            );
+            expectTypeOf(Data.dataDiffKeys(box, { b: 2 })).toEqualTypeOf(
+                Obj.diffKeys(box, { b: 2 }),
             );
             expectTypeOf(Data.dataCollapse(box)).toEqualTypeOf(
                 Obj.collapse(box),

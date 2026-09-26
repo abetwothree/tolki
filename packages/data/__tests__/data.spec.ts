@@ -8377,6 +8377,37 @@ describe("Data", () => {
         });
     });
 
+    describe("dataIntersectUsing", () => {
+        it("is array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+            expect(
+                Data.dataIntersectUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    strcasecmp,
+                ),
+            ).toEqual(["green"]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+            expect(
+                Data.dataIntersectUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    strcasecmp,
+                ),
+            ).toEqual({ a: "green" });
+        });
+
+        it("reads a null operand as empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+            expect(
+                Data.dataIntersectUsing({ a: "green" }, null, strcasecmp),
+            ).toEqual({});
+        });
+    });
+
     describe("dataIntersectByKeys", () => {
         it("is object", () => {
             const obj1 = { a: 1, b: 2, c: 3 };
@@ -8538,6 +8569,70 @@ describe("Data", () => {
                     collectionLike({ id: 1, name: "b" }) as never,
                 ),
             ).toEqual({ name: "a" });
+        });
+    });
+
+    describe("dataDiffKeys", () => {
+        it("is array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys", whose list keeps key 2;
+            // a list renumbers its survivors, as every removal from a list does
+            expect(Data.dataDiffKeys([1, 2, 3], [9, 9])).toEqual([3]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+            expect(
+                Data.dataDiffKeys(
+                    { id: 1, first_word: "Hello" },
+                    { id: 123, foo_bar: "Hello" },
+                ),
+            ).toEqual({ first_word: "Hello" });
+        });
+
+        it("matches a keyed operand by key on a list, and reads a null operand as empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+            expect(Data.dataDiffKeys([1, 2], { a: 1, 1: 5 })).toEqual([1]);
+            expect(Data.dataDiffKeys({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("counts a list operand's indexes as its keys, never its length", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffKeys-length-key"
+            expect(Data.dataDiffKeys({ length: 5, b: 2 }, ["x"])).toEqual({
+                length: 5,
+                b: 2,
+            });
+        });
+    });
+
+    describe("dataDiffUsing", () => {
+        it("is array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", whose list keeps keys 1 and 2;
+            // a list renumbers its survivors, as every removal from a list does
+            expect(
+                Data.dataDiffUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    strcasecmp,
+                ),
+            ).toEqual(["brown", "blue"]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+            expect(
+                Data.dataDiffUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown", c: "blue" });
+        });
+
+        it("reads a null operand as empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+            expect(
+                Data.dataDiffUsing({ a: "green" }, null, strcasecmp),
+            ).toEqual({ a: "green" });
         });
     });
 
@@ -10794,6 +10889,18 @@ describe("Data", () => {
             ).toEqual(Data.dataDiffAssoc(asRecord, { a: 1, b: 99, c: 3 }));
         });
 
+        it("dataDiffKeys diffs a Map's keys like the record it mirrors", () => {
+            expect(Data.dataDiffKeys(asMap, { b: 99 })).toEqual(
+                Data.dataDiffKeys(asRecord, { b: 99 }),
+            );
+        });
+
+        it("dataDiffUsing diffs a Map like the record it mirrors", () => {
+            expect(Data.dataDiffUsing(asMap, [2], strcasecmp)).toEqual(
+                Data.dataDiffUsing(asRecord, [2], strcasecmp),
+            );
+        });
+
         it("dataDiffAssocUsing diffs a Map like the record it mirrors", () => {
             expect(
                 Data.dataDiffAssocUsing(asMap, { B: 2 }, strcasecmp),
@@ -10821,6 +10928,12 @@ describe("Data", () => {
         it("dataIntersect intersects a Map like the record it mirrors", () => {
             expect(Data.dataIntersect(asMap, [1, 2])).toEqual(
                 Data.dataIntersect(asRecord, [1, 2]),
+            );
+        });
+
+        it("dataIntersectUsing intersects a Map like the record it mirrors", () => {
+            expect(Data.dataIntersectUsing(asMap, [1, 2], strcasecmp)).toEqual(
+                Data.dataIntersectUsing(asRecord, [1, 2], strcasecmp),
             );
         });
 
