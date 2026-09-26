@@ -10205,6 +10205,19 @@ describe("Obj", () => {
     });
 
     describe("splice", () => {
+        it("removes to the end for a null length, as array_splice()'s ?int length reads null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            const data = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.splice(data, 1, null)).toEqual({ b: 2, c: 3, d: 4 });
+            expect(data).toEqual({ a: 1 });
+
+            const fromTheEnd = { a: 1, b: 2, c: 3, d: 4 };
+
+            expect(Obj.splice(fromTheEnd, -1, null)).toEqual({ d: 4 });
+            expect(fromTheEnd).toEqual({ a: 1, b: 2, c: 3 });
+        });
+
         it("drops the fraction from an offset or a length before counting a negative one back from the end", () => {
             // docs/php-parity/task-32-collection-release-readiness.json,
             // "C32-B-splice-fractional-and-non-finite-offsets"

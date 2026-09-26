@@ -7005,6 +7005,25 @@ describe("Arr", () => {
     });
 
     describe("splice", () => {
+        it("removes to the end for a null length, as array_splice()'s ?int length reads null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.splice(data, 1, null)).toEqual([2, 3, 4]);
+            expect(data).toEqual([1]);
+
+            const fromTheEnd = [1, 2, 3, 4];
+
+            expect(Arr.splice(fromTheEnd, -1, null)).toEqual([4]);
+            expect(fromTheEnd).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length"
+            const replaced = [1, 2, 3, 4];
+
+            expect(Arr.splice(replaced, 1, null, "x")).toEqual([2, 3, 4]);
+            expect(replaced).toEqual([1, "x"]);
+        });
+
         it("drops the fraction from an offset or a length before counting a negative one back from the end", () => {
             // docs/php-parity/task-32-collection-release-readiness.json,
             // "C32-B-splice-fractional-and-non-finite-offsets"

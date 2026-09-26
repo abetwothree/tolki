@@ -5934,6 +5934,16 @@ describe("Data", () => {
     });
 
     describe("dataSplice", () => {
+        it("agrees across backings that a null length removes to the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            expect(Data.dataSplice([1, 2, 3, 4], 1, null)).toEqual([2, 3, 4]);
+            expect(
+                Object.values(
+                    Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1, null),
+                ),
+            ).toEqual([2, 3, 4]);
+        });
+
         it("agrees across backings on a fractional offset, and refuses a non-finite one", () => {
             // docs/php-parity/task-32-collection-release-readiness.json,
             // "C32-B-splice-fractional-and-non-finite-offsets"

@@ -52,8 +52,8 @@ export function resolveSliceRange(
  *
  * @param size - The number of items being spliced.
  * @param offset - The starting index, negative to count back from the end.
- * @param length - How many items to remove, negative to stop that many from the end, or `undefined` to run to the
- * end.
+ * @param length - How many items to remove, negative to stop that many from the end, or `null` or `undefined` to
+ * run to the end, as PHP's `?int` length reads null.
  * @returns The `start` index and the `count` of items to remove.
  * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
  * refuses.
@@ -61,7 +61,7 @@ export function resolveSliceRange(
 export function resolveSpliceRange(
     size: number,
     offset: number,
-    length: number | undefined,
+    length: number | null | undefined,
 ): SpliceRange {
     const from = phpIntArgument(
         offset,
@@ -69,7 +69,7 @@ export function resolveSpliceRange(
     );
     const start = from < 0 ? Math.max(size + from, 0) : Math.min(from, size);
 
-    if (isUndefined(length)) {
+    if (isNull(length) || isUndefined(length)) {
         return { start, count: size - start };
     }
 

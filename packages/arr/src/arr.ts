@@ -3720,7 +3720,7 @@ export function sortRecursiveDesc<TValue>(
  *
  * @param data - The array to splice. Mutated in place.
  * @param offset - The starting index; a fraction is dropped, as array_splice()'s int parameter drops it
- * @param length - The number of items to remove. Defaults to everything from offset to the end; a fraction is dropped.
+ * @param length - The number of items to remove, a fraction dropped. Null or none removes everything from offset on.
  * @param replacement - The replacement items (arrays will be flattened)
  * @returns The removed elements.
  * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
@@ -3729,7 +3729,7 @@ export function sortRecursiveDesc<TValue>(
 export function splice<TValue, TReplacements>(
     data: TValue[],
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: TReplacements[]
 ): TValue[] {
     // A prototype object is never written, and splicing removes and inserts elements every

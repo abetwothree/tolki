@@ -71,6 +71,18 @@ describe("Utils", () => {
     });
 
     describe("resolveSpliceRange", () => {
+        it("runs a null length to the end, as PHP's ?int length reads null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            expect(Utils.resolveSpliceRange(4, 1, null)).toEqual({
+                start: 1,
+                count: 3,
+            });
+            expect(Utils.resolveSpliceRange(4, -1, null)).toEqual({
+                start: 3,
+                count: 1,
+            });
+        });
+
         it("drops the offset's fraction before counting a negative one back from the end", () => {
             // docs/php-parity/task-32-collection-release-readiness.json,
             // "C32-B-splice-fractional-and-non-finite-offsets"

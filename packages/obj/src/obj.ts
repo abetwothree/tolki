@@ -5303,7 +5303,7 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  *
  * @param data - The object or Map to splice. Mutated in place.
  * @param offset - The starting index, by entry order (not by key); a fraction is dropped, as array_splice() drops it
- * @param length - The number of entries to remove, a fraction dropped. Defaults to everything from offset to the end.
+ * @param length - The number of entries to remove, a fraction dropped. Null or none removes everything from offset on.
  * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
  * @returns The removed entries, as `array_splice` returns them: string keys kept, integer keys renumbered from 0.
  * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
@@ -5319,43 +5319,43 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 export function splice<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, TValue>;
 export function splice<TMap>(
     data: MapData<TMap>,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, MapEntryValue<TMap>>;
 export function splice(
     data: NonKeyedItems | null | undefined,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, never>;
 export function splice(
     data: NonObjectItems | null | undefined,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, unknown>;
 export function splice<T extends object>(
     data: T,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Partial<ReindexedObject<T>>;
 export function splice(
     data: unknown,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, unknown>;
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     data: Record<TKey, TValue> | unknown,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: TReplacements[]
 ): Record<TKey, TValue> {
     // A prototype object is never written, and splice rewrites its whole container, so it removes nothing.
