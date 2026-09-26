@@ -597,6 +597,46 @@
             }
         },
         {
+            "label": "C32-A-range-size-message-rounding",
+            "php": "Collection::range($start, $end, $step) past the maximum array size where a printed figure ends in an exact half: the class and message thrown",
+            "value": {
+                "0.25..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258176.8 elements: start=0.2, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "-0.25..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258177.2 elements: start=-0.2, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "1.75..1e10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 8926258175.2 elements: start=1.8, end=10000000000.0, step=1.0. Max size: 1073741824"
+                ],
+                "0..1e10 step 1.25": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by 6926258177.0 elements: start=0.0, end=10000000000.0, step=1.2. Max size: 1073741824"
+                ]
+            }
+        },
+        {
+            "label": "C32-A-range-size-message-infinite",
+            "php": "Collection::range($start, $end, $step) whose size overflows to INF: the class and message thrown",
+            "value": {
+                "0..1 step 5e-324": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by inf elements: start=0.0, end=1.0, step=0.0. Max size: 1073741824"
+                ],
+                "-1e308..1e308": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by inf elements: start=-100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, end=100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, step=1.0. Max size: 1073741824"
+                ],
+                "0..1e308 step 1e-10": [
+                    "ValueError",
+                    "The supplied range exceeds the maximum array size by inf elements: start=0.0, end=100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, step=0.0. Max size: 1073741824"
+                ]
+            }
+        },
+        {
             "label": "C32-A-times-fractional-count",
             "php": "Collection::times(2.7)->all()",
             "value": [
@@ -3204,6 +3244,20 @@
             }
         },
         {
+            "label": "C32-B-pad-far-past-maximum-array-size",
+            "php": "collect([1, 2, 3])->pad($size, 0) for 1e18 and -1e18: the class and message thrown",
+            "value": {
+                "1e18": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ],
+                "-1e18": [
+                    "ValueError",
+                    "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size"
+                ]
+            }
+        },
+        {
             "label": "C32-B-splice-fractional-and-non-finite-offsets",
             "php": "splice($offset) and splice($offset, 1) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]) for 1.5, -1.5, NAN, INF and 1e19: the keys and values removed, or the class and message thrown, and the keys and values left",
             "value": {
@@ -4095,6 +4149,96 @@
                                 4
                             ]
                         }
+                    }
+                }
+            }
+        },
+        {
+            "label": "C32-B-splice-null-length-to-the-end",
+            "php": "splice(1, null) and splice(-1, null) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]): the keys and values removed, and the keys and values left",
+            "value": {
+                "list": {
+                    "1": {
+                        "removed": {
+                            "keys": [
+                                0,
+                                1,
+                                2
+                            ],
+                            "values": [
+                                2,
+                                3,
+                                4
+                            ]
+                        },
+                        "keys": [
+                            0
+                        ],
+                        "values": [
+                            1
+                        ]
+                    },
+                    "-1": {
+                        "removed": {
+                            "keys": [
+                                0
+                            ],
+                            "values": [
+                                4
+                            ]
+                        },
+                        "keys": [
+                            0,
+                            1,
+                            2
+                        ],
+                        "values": [
+                            1,
+                            2,
+                            3
+                        ]
+                    }
+                },
+                "keyed": {
+                    "1": {
+                        "removed": {
+                            "keys": [
+                                "b",
+                                "c",
+                                "d"
+                            ],
+                            "values": [
+                                2,
+                                3,
+                                4
+                            ]
+                        },
+                        "keys": [
+                            "a"
+                        ],
+                        "values": [
+                            1
+                        ]
+                    },
+                    "-1": {
+                        "removed": {
+                            "keys": [
+                                "d"
+                            ],
+                            "values": [
+                                4
+                            ]
+                        },
+                        "keys": [
+                            "a",
+                            "b",
+                            "c"
+                        ],
+                        "values": [
+                            1,
+                            2,
+                            3
+                        ]
                     }
                 }
             }
@@ -11094,6 +11238,139 @@
             }
         },
         {
+            "label": "C32-G-sort-bool-comparator",
+            "php": "usort, uasort and uksort, then Collection::sort() and sortKeysUsing(), with a comparator answering a bool",
+            "value": {
+                "usort": [
+                    1,
+                    2,
+                    3
+                ],
+                "usort descending": [
+                    3,
+                    2,
+                    1
+                ],
+                "usort longer": [
+                    1,
+                    2,
+                    3,
+                    5,
+                    7,
+                    8,
+                    9
+                ],
+                "usort always false": [
+                    3,
+                    1,
+                    2
+                ],
+                "uasort": {
+                    "keys": [
+                        1,
+                        2,
+                        0
+                    ],
+                    "values": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "uksort": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "sort": {
+                    "keys": [
+                        1,
+                        2,
+                        0
+                    ],
+                    "values": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "sort keyed": {
+                    "keys": [
+                        "y",
+                        "z",
+                        "x"
+                    ],
+                    "values": [
+                        1,
+                        2,
+                        3
+                    ]
+                },
+                "sortKeysUsing": [
+                    "a",
+                    "b",
+                    "c"
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-bool-comparator",
+            "php": "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator",
+            "value": {
+                "alone": [
+                    {
+                        "x": 1
+                    },
+                    {
+                        "x": 2
+                    },
+                    {
+                        "x": 3
+                    }
+                ],
+                "ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "x": 1,
+                        "y": 1
+                    }
+                ],
+                "zero ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 1
+                    },
+                    {
+                        "x": 1,
+                        "y": 2
+                    }
+                ],
+                "fraction ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "x": 1,
+                        "y": 1
+                    }
+                ],
+                "Arr::sort list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sort keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
+            }
+        },
+        {
             "label": "C32-G-sortBy-out-of-order-ties",
             "php": "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order",
             "value": {
@@ -12386,6 +12663,35 @@
                     "Object of class stdClass could not be converted to string"
                 ]
             ]
+        },
+        {
+            "label": "C32-H-arr-join-pieces",
+            "php": "Arr::join() casting each piece as implode() does, the final item as . does, and handing a lone item back as it is",
+            "value": {
+                "array piece": "1,Array",
+                "scalars": "1,,,1.5,x",
+                "keyed array piece": "1,Array",
+                "object piece": [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                "closure piece": [
+                    "Error",
+                    "Object of class Closure could not be converted to string"
+                ],
+                "toString piece": "1,S:T",
+                "final array piece": "1 and Array",
+                "final object piece": [
+                    "Error",
+                    "Object of class stdClass could not be converted to string"
+                ],
+                "final scalars": "1,  and ",
+                "lone array": [
+                    1,
+                    2
+                ],
+                "lone bool": true
+            }
         },
         {
             "label": "C32-H-reduce-no-initial-trace",

@@ -143,6 +143,18 @@ probe('C32-A-range-past-maximum-array-size', "Collection::range(\$start, \$end, 
     '0.5..1e10' => [0.5, 1e10],
     '1..1e22' => [1, 1e22],
 ]));
+// the message prints a float range's figures as C's %.1f does: ties to even, and an infinite size as inf
+probe('C32-A-range-size-message-rounding', "Collection::range(\$start, \$end, \$step) past the maximum array size where a printed figure ends in an exact half: the class and message thrown", fn () => array_map($rangeOutcome, [
+    '0.25..1e10' => [0.25, 1e10],
+    '-0.25..1e10' => [-0.25, 1e10],
+    '1.75..1e10' => [1.75, 1e10],
+    '0..1e10 step 1.25' => [0, 1e10, 1.25],
+]));
+probe('C32-A-range-size-message-infinite', "Collection::range(\$start, \$end, \$step) whose size overflows to INF: the class and message thrown", fn () => array_map($rangeOutcome, [
+    '0..1 step 5e-324' => [0, 1, 5e-324],
+    '-1e308..1e308' => [-1e308, 1e308],
+    '0..1e308 step 1e-10' => [0, 1e308, 1e-10],
+]));
 
 // --- times
 probe('C32-A-times-fractional-count', 'Collection::times(2.7)->all()', fn () => Collection::times(2.7)->all());
@@ -430,6 +442,7 @@ $padSizes = ['7.5' => 7.5, '-7.5' => -7.5, '0.5' => 0.5, 'NAN' => NAN, 'INF' => 
 probe('C32-B-pad-fractional-and-non-int-sizes', "pad(\$size, 0) over collect([1, 2, 3]) and collect(['a' => 1, 'b' => 2, 'c' => 3]) for 7.5, -7.5, 0.5, NAN, INF, -INF, 1e19 and -1e19: the keys and values, or the class and message thrown", fn () => array_map(fn (array $items) => array_map(fn ($size) => c32c_outcome(fn () => $keysAndValues(@collect($items)->pad($size, 0))), $padSizes), ['list' => [1, 2, 3], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3]]));
 probe('C32-B-pad-past-maximum-array-size', "collect([1, 2, 3])->pad(\$size, 0) for 1073741825, -1073741825 and 1e18: the class and message thrown", fn () => array_map(fn ($size) => c32c_outcome(fn () => collect([1, 2, 3])->pad($size, 0)->all()), ['1073741825' => 1073741825, '-1073741825' => -1073741825, '1e18' => 1e18]));
 probe('C32-B-pad-fractional-size-out-of-order-keys', "collect([2 => 'c', 0 => 'a', 1 => 'b'])->pad(\$size, 'P') for 4.5, -4.5 and NAN: the keys and values, or the class and message thrown", fn () => array_map(fn ($size) => c32c_outcome(fn () => $keysAndValues(@collect([2 => 'c', 0 => 'a', 1 => 'b'])->pad($size, 'P'))), ['4.5' => 4.5, '-4.5' => -4.5, 'NAN' => NAN]));
+probe('C32-B-pad-far-past-maximum-array-size', "collect([1, 2, 3])->pad(\$size, 0) for 1e18 and -1e18: the class and message thrown", fn () => array_map(fn ($size) => c32c_outcome(fn () => collect([1, 2, 3])->pad($size, 0)->all()), ['1e18' => 1e18, '-1e18' => -1e18]));
 $spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
     $c = collect($items);
     $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
@@ -445,6 +458,10 @@ probe('C32-B-splice-fractional-and-non-finite-lengths', "splice(1, \$length) and
     'no replacement' => $spliceOutcome($items, [1, $length]),
     'replacement' => $spliceOutcome($items, [1, $length, ['x']]),
 ], ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19]), $spliceBackings));
+probe('C32-B-splice-null-length-to-the-end', "splice(1, null) and splice(-1, null) over collect([1, 2, 3, 4]) and collect(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]): the keys and values removed, and the keys and values left", fn () => array_map(fn (array $items) => [
+    '1' => $spliceOutcome($items, [1, null]),
+    '-1' => $spliceOutcome($items, [-1, null]),
+], $spliceBackings));
 
 // ---- Family C ------------------------------------------------------------
 
@@ -1672,6 +1689,45 @@ probe('C32-G-sort-comparator-int-cast', "(new Collection([3, 1, 2]))->sort(\$com
     'infinity' => fn ($a, $b) => ($a <=> $b) * INF,
     'NAN' => fn () => NAN,
 ]));
+// a bool comparator is deprecated but still sorts: true is 1, and false asks again with the operands swapped, where
+// true is -1 (the deprecation notices are silenced)
+probe('C32-G-sort-bool-comparator', "usort, uasort and uksort, then Collection::sort() and sortKeysUsing(), with a comparator answering a bool", function () {
+    $usort = [3, 1, 2];
+    @usort($usort, fn ($a, $b) => $a > $b);
+    $usortDescending = [3, 1, 2];
+    @usort($usortDescending, fn ($a, $b) => $a < $b);
+    $usortLonger = [5, 3, 9, 1, 7, 2, 8];
+    @usort($usortLonger, fn ($a, $b) => $a > $b);
+    $usortFalse = [3, 1, 2];
+    @usort($usortFalse, fn () => false);
+    $uasort = [3, 1, 2];
+    @uasort($uasort, fn ($a, $b) => $a > $b);
+    $uksort = ['c' => 1, 'a' => 2, 'b' => 3];
+    @uksort($uksort, fn ($a, $b) => $a > $b);
+    $sorted = @(new Collection([3, 1, 2]))->sort(fn ($a, $b) => $a > $b);
+    $sortedKeyed = @(new Collection(['x' => 3, 'y' => 1, 'z' => 2]))->sort(fn ($a, $b) => $a > $b);
+    $sortedKeys = @(new Collection(['c' => 1, 'a' => 2, 'b' => 3]))->sortKeysUsing(fn ($a, $b) => $a > $b);
+
+    return [
+        'usort' => $usort,
+        'usort descending' => $usortDescending,
+        'usort longer' => $usortLonger,
+        'usort always false' => $usortFalse,
+        'uasort' => ['keys' => array_keys($uasort), 'values' => array_values($uasort)],
+        'uksort' => array_keys($uksort),
+        'sort' => ['keys' => $sorted->keys()->all(), 'values' => $sorted->values()->all()],
+        'sort keyed' => ['keys' => $sortedKeyed->keys()->all(), 'values' => $sortedKeyed->values()->all()],
+        'sortKeysUsing' => $sortedKeys->keys()->all(),
+    ];
+});
+probe('C32-G-sortBy-bool-comparator', "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator", fn () => [
+    'alone' => @(new Collection([['x' => 3], ['x' => 1], ['x' => 2]]))->sortBy([fn ($p, $q) => $p['x'] > $q['x']])->values()->all(),
+    'ahead of y' => @(new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => $p['x'] > $q['x'], 'y'])->values()->all(),
+    'zero ahead of y' => (new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => 0, 'y'])->values()->all(),
+    'fraction ahead of y' => @(new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => 0.5, 'y'])->values()->all(),
+    'Arr::sort list' => @Arr::sort([3, 1, 2], [fn ($a, $b) => $a > $b]),
+    'Arr::sort keyed' => @Arr::sort(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
+]);
 probe('C32-G-sortBy-out-of-order-ties', "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order", fn () => [
     'sortBy' => (new Collection($gTies))->sortBy('n')->pluck('id')->all(),
     'sortByDesc' => (new Collection($gTies))->sortByDesc('n')->pluck('id')->all(),
@@ -1858,6 +1914,19 @@ probe('C32-H-join-array-and-object-pieces', "@join(', ', ' and ') of [1, [2]] an
     @(new Collection([1, [2]]))->join(', ', ' and '),
     @(new Collection([1, [2], 3]))->join(', ', ' and '),
     c32c_outcome(fn () => (new Collection([1, new stdClass]))->join(', ', ' and ')),
+]);
+probe('C32-H-arr-join-pieces', "Arr::join() casting each piece as implode() does, the final item as . does, and handing a lone item back as it is", fn () => [
+    'array piece' => @Arr::join([1, [2, 3]], ','),
+    'scalars' => Arr::join([true, false, null, 1.5, 'x'], ','),
+    'keyed array piece' => @Arr::join(['a' => 1, 'b' => [2]], ','),
+    'object piece' => c32c_outcome(fn () => Arr::join([1, new stdClass], ',')),
+    'closure piece' => c32c_outcome(fn () => Arr::join([1, fn () => 1], ',')),
+    'toString piece' => Arr::join([1, new C32HToString('T')], ','),
+    'final array piece' => @Arr::join([1, [2]], ', ', ' and '),
+    'final object piece' => c32c_outcome(fn () => Arr::join([1, new stdClass], ', ', ' and ')),
+    'final scalars' => Arr::join([true, null, false], ', ', ' and '),
+    'lone array' => Arr::join([[1, 2]], ', ', ' and '),
+    'lone bool' => Arr::join([true], ', ', ' and '),
 ]);
 
 // reduce without an initial value: $initial = null, every item reaches the callback
