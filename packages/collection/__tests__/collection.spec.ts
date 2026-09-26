@@ -6055,6 +6055,15 @@ describe("Collection", () => {
             ).toEqual([{ a: 1 }]);
         });
 
+        it("reads none of a Collection item's own fields, which hold its items and state", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-row-fields"
+            expect(
+                collect([collect({ a: 1 })])
+                    .select("items", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
         it("reads a dotted key literally, never as a path", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-dot-path-literal"
             expect(

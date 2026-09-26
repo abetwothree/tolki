@@ -2354,10 +2354,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(this.items);
         }
 
-        // PHP reads a Collection item through ArrayAccess, which only its items answer.
-        return this.newInstance(
-            handOver(dataSelect(this.itemsToRawValues(), keysToSelect)),
-        );
+        return this.newInstance(handOver(dataSelect(this.items, keysToSelect)));
     }
 
     /**
