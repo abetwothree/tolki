@@ -95,8 +95,8 @@ export function phpTypeName(value: unknown): string {
  * Name a value's type as PHP's `get_debug_type()` does, for messages that name what they were given.
  *
  * @param value - The value to name
- * @returns null, int, float, string, bool, array, Closure for a function, or the class's name (class@anonymous for an
- * anonymous one), else the JavaScript typeof name
+ * @returns null, int, float, string, bool, array, Closure for a function, or the class's name (Parent@anonymous for an
+ * anonymous class extending Parent, class@anonymous for one extending none), else the JavaScript typeof name
  *
  * @example
  * phpDebugType(1.5); -> "float"
@@ -133,9 +133,26 @@ export function phpDebugType(value: unknown): string {
     }
 
     if (isObject(value) && isFunction(value["constructor"])) {
-        return value["constructor"].name || "class@anonymous";
+        return className(value["constructor"]);
     }
 
     // JS-only: PHP has no symbol, bigint or classless object, so each keeps its typeof name.
     return typeOf(value);
+}
+
+/**
+ * Name a class as PHP's `get_debug_type()` names it.
+ *
+ * @param constructor - The class to name
+ * @returns The class's name, or for an anonymous class the name of the class it extends and `@anonymous`
+ */
+function className(constructor: { name: string }): string {
+    if (constructor.name) {
+        return constructor.name;
+    }
+
+    const parent: unknown = Object.getPrototypeOf(constructor);
+
+    // An anonymous class extending none has Function.prototype, whose name is empty, as its parent.
+    return `${isFunction(parent) && parent.name ? parent.name : "class"}@anonymous`;
 }

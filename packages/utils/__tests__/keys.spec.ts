@@ -366,6 +366,19 @@ describe("Utils", () => {
             );
         });
 
+        it("names an instance of an anonymous subclass after the class it extends", () => {
+            class Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-anonymous-subclass-key"
+            expect(() =>
+                Utils.phpComputedKey(new (class extends Parent {})()),
+            ).toThrow(
+                new TypeError(
+                    "Cannot access offset of type Parent@anonymous on array",
+                ),
+            );
+        });
+
         it("names a key with no class by its JavaScript type rather than failing to name it", () => {
             // JS-only: PHP has no object without a class; the name is the one phpDebugType gives it
             expect(() =>

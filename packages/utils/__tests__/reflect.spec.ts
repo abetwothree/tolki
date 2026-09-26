@@ -73,6 +73,19 @@ describe("Utils", () => {
             expect(Utils.phpDebugType(new Point())).toBe("Point");
         });
 
+        it("names an instance of an anonymous subclass after the class it extends, as get_debug_type() does", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-anonymous-subclass-name"
+            expect(Utils.phpDebugType(new (class extends Parent {})())).toBe(
+                "Parent@anonymous",
+            );
+            expect(Utils.phpDebugType(new (class extends Child {})())).toBe(
+                "Child@anonymous",
+            );
+        });
+
         it("names what PHP has no type for by its JavaScript type", () => {
             // JS-only: a symbol, a bigint and an object with no class have no PHP type name
             expect(

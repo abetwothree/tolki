@@ -16486,6 +16486,27 @@ describe("Collection", () => {
             ).toBe(1);
         });
 
+        it("names an instance of an anonymous subclass after the class it extends, as get_debug_type() does", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-anonymous-subclass-name"
+            expect(() =>
+                collect([new (class extends Parent {})()]).ensure("int"),
+            ).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'Parent@anonymous' found at position 0.",
+                ),
+            );
+            expect(() =>
+                collect([new (class extends Child {})()]).ensure("int"),
+            ).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'Child@anonymous' found at position 0.",
+                ),
+            );
+        });
+
         it("names what PHP has no type for by its JavaScript type", () => {
             const orphan: unknown = Object.create(Object.create(null));
 
@@ -23216,6 +23237,21 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key"
                 () => collect([{ v: 1 }]).pluck("v", () => () => 1),
                 new TypeError("Cannot access offset of type Closure on array"),
+            ],
+            [
+                "pluck throws for an anonymous subclass's instance as a key, naming the class it extends",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-anonymous-subclass-key"
+                () => {
+                    class Parent {}
+
+                    return collect([{ v: 1 }]).pluck(
+                        "v",
+                        () => new (class extends Parent {})(),
+                    );
+                },
+                new TypeError(
+                    "Cannot access offset of type Parent@anonymous on array",
+                ),
             ],
             [
                 "pluck throws for an enum case key, which it does not unwrap",
