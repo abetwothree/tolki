@@ -1822,6 +1822,7 @@ describe("Collection", () => {
 
     describe("crossJoin", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testCrossJoin
             expect(collect([1, 2]).crossJoin(["a", "b"]).all()).toEqual([
                 [1, "a"],
                 [1, "b"],
@@ -1919,6 +1920,7 @@ describe("Collection", () => {
 
     describe("diff", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffCollection
             const c = collect({ id: 1, first_word: "Hello" });
             expect(
                 c
@@ -1926,6 +1928,7 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ id: 1 });
 
+            // CollectionTest::testDiffUsingWithCollection
             const d = collect(["en_GB", "fr", "HR"]);
             expect(
                 d
@@ -1934,6 +1937,7 @@ describe("Collection", () => {
                     .toArray(),
             ).toEqual(["en_GB", "fr", "HR"]);
 
+            // CollectionTest::testDiffNull
             const e = collect({ id: 1, first_word: "Hello" });
             expect(e.diff(null).all()).toEqual({ id: 1, first_word: "Hello" });
         });
@@ -1972,7 +1976,7 @@ describe("Collection", () => {
         it("Laravel Tests", () => {
             const d = collect(["en_GB", "fr", "HR"]);
 
-            // Test case-insensitive diff: 'en_GB' matches 'en_gb', 'HR' matches 'hr', only 'fr' remains
+            // CollectionTest::testDiffUsingWithCollection
             expect(
                 d
                     .diffUsing(collect(["en_gb", "hr"]), strcasecmp)
@@ -1980,7 +1984,7 @@ describe("Collection", () => {
                     .toArray(),
             ).toEqual(["fr"]);
 
-            // Test diff against empty collection: all items should remain
+            // CollectionTest::testDiffUsingWithNull
             expect(d.diffUsing(null, strcasecmp).values().toArray()).toEqual([
                 "en_GB",
                 "fr",
@@ -2029,31 +2033,29 @@ describe("Collection", () => {
 
     describe("diffAssoc", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffAssoc
             const c1 = collect({
                 id: 1,
                 first_word: "Hello",
                 not_affected: "value",
             });
-            const c2 = { id: 123, foo_bar: "Hello", not_affected: "value" };
+            const c2 = collect({
+                id: 123,
+                foo_bar: "Hello",
+                not_affected: "value",
+            });
 
-            // diffAssoc compares BOTH keys AND values
-            // 'id' has same key but different value (1 vs 123) → included
-            // 'first_word' has different key from 'foo_bar' → included
-            // 'not_affected' has same key AND same value → excluded
+            // Only not_affected holds the same key and the same value on both sides.
             expect(c1.diffAssoc(c2).all()).toEqual({
                 id: 1,
                 first_word: "Hello",
             });
 
-            // Test case-sensitive key comparison
+            // CollectionTest::testDiffAssocUsing
             const c3 = collect({ a: "green", b: "brown", c: "blue", 0: "red" });
             const c4 = collect({ A: "green", 0: "yellow", 1: "red" });
 
-            // diffAssoc is case-sensitive for keys:
-            // 'a' !== 'A', so 'a: green' is included
-            // 'b' doesn't exist in c4, so 'b: brown' is included
-            // 'c' doesn't exist in c4, so 'c: blue' is included
-            // index 0 has different value ('red' vs 'yellow'), so '0: red' is included
+            // Keys match case-sensitively, so only index 0 pairs up, and its values differ.
             expect(c3.diffAssoc(c4).all()).toEqual({
                 a: "green",
                 b: "brown",
@@ -2061,12 +2063,7 @@ describe("Collection", () => {
                 0: "red",
             });
 
-            // diffAssocUsing uses callback for KEY comparison (case-insensitive), values compared strictly
-            // Expected: { b: "brown", c: "blue", 0: "red" }
-            // 'a' matches 'A' case-insensitively with same value → excluded
-            // 'b' has no case-insensitive match → included
-            // 'c' has no case-insensitive match → included
-            // index 0 exists in both BUT different value ('red' vs 'yellow') → included
+            // strcasecmp pairs a with A, whose values match, and 0 with 0, whose values differ.
             expect(c3.diffAssocUsing(c4, strcasecmp).all()).toEqual({
                 b: "brown",
                 c: "blue",
@@ -2169,10 +2166,12 @@ describe("Collection", () => {
 
     describe("diffKeys", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffKeys
             const c1 = collect({ id: 1, first_word: "Hello" });
             const c2 = collect({ id: 123, foo_bar: "Hello" });
             expect(c1.diffKeys(c2).all()).toEqual({ first_word: "Hello" });
 
+            // CollectionTest::testDiffKeysUsing
             const d1 = collect({ id: 1, first_word: "Hello" });
             const d2 = collect({ ID: 123, foo_bar: "Hello" });
             expect(d1.diffKeys(d2).all()).toEqual({
@@ -2182,6 +2181,8 @@ describe("Collection", () => {
         });
 
         it("signature examples", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffKeys-signature-examples"
+            // PHP keeps the list's keys 3 and 4; a list backing reindexes, as a JS array holds no sparse keys.
             expect(
                 new Collection({ a: 1, b: 2, c: 3 }).diffKeys({ b: 2 }).all(),
             ).toEqual({ a: 1, c: 3 });
@@ -2225,6 +2226,7 @@ describe("Collection", () => {
 
     describe("diffKeysUsing", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffKeysUsing
             const c1 = collect({ id: 1, first_word: "Hello" });
             const c2 = { ID: 123, foo_bar: "Hello" } as Record<string, unknown>;
 
@@ -4362,6 +4364,7 @@ describe("Collection", () => {
     describe("intersect", () => {
         describe("Laravel Tests", () => {
             it("test intersect null", () => {
+                // CollectionTest::testIntersectNull
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(c.intersect(null).all()).toEqual({});
 
@@ -4370,8 +4373,7 @@ describe("Collection", () => {
             });
 
             it("test intersect collection", () => {
-                // Uses `first_world` (not `first_word`) on the other side — matching
-                // Laravel's actual CollectionTest.php:1787.
+                // CollectionTest::testIntersectCollection, whose operand spells first_world, not first_word
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
@@ -4461,6 +4463,7 @@ describe("Collection", () => {
     describe("intersectUsing", () => {
         describe("Laravel Tests", () => {
             it("test intersect using with null", () => {
+                // CollectionTest::testIntersectUsingWithNull
                 const c = collect(["green", "brown", "blue"]);
                 expect(c.intersectUsing(null, strcasecmp).all()).toEqual([]);
 
@@ -4469,6 +4472,7 @@ describe("Collection", () => {
             });
 
             it("test intersect using collection", () => {
+                // CollectionTest::testIntersectUsingCollection
                 const c = collect(["green", "brown", "blue"]);
                 expect(
                     c
@@ -4510,6 +4514,7 @@ describe("Collection", () => {
     describe("intersectAssoc", () => {
         describe("Laravel Tests", () => {
             it("test intersect assoc with null", () => {
+                // CollectionTest::testIntersectAssocWithNull
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -4521,6 +4526,7 @@ describe("Collection", () => {
             });
 
             it("test intersect assoc collection", () => {
+                // CollectionTest::testIntersectAssocCollection
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -4634,6 +4640,7 @@ describe("Collection", () => {
     describe("intersectAssocUsing", () => {
         describe("Laravel Tests", () => {
             it("test intersect assoc using with null", () => {
+                // CollectionTest::testIntersectAssocUsingWithNull
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -4647,6 +4654,7 @@ describe("Collection", () => {
             });
 
             it("test intersect assoc using collection", () => {
+                // CollectionTest::testIntersectAssocUsingCollection
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -4769,6 +4777,7 @@ describe("Collection", () => {
     describe("intersectByKeys", () => {
         describe("Laravel Tests", () => {
             it("test intersect by keys null", () => {
+                // CollectionTest::testIntersectByKeysNull
                 const c = collect({ name: "Mateus", age: 18 });
                 expect(c.intersectByKeys(null).all()).toEqual({});
 
@@ -4777,6 +4786,7 @@ describe("Collection", () => {
             });
 
             it("test intersect by keys", () => {
+                // CollectionTest::testIntersectByKeys
                 const c = collect({ name: "Mateus", age: 18 });
                 expect(
                     c
@@ -4788,6 +4798,7 @@ describe("Collection", () => {
             });
 
             it("test intersect by keys with different values", () => {
+                // CollectionTest::testIntersectByKeys
                 const c = collect({
                     name: "taylor",
                     family: "otwell",
@@ -5953,22 +5964,26 @@ describe("Collection", () => {
     describe("merge", () => {
         describe("Laravel Tests", () => {
             it("test merge null", () => {
+                // CollectionTest::testMergeNull
                 const c = collect({ name: "hello" });
                 expect(c.merge(null).all()).toEqual({ name: "hello" });
             });
 
             it("test merge array", () => {
+                // CollectionTest::testMergeArray
                 const c = collect({ name: "Hello" });
                 expect(c.merge({ id: 1 }).all()).toEqual({
                     name: "Hello",
                     id: 1,
                 });
 
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-scalar-operand"
                 const d = collect(["hello"]);
                 expect(d.merge(1).all()).toEqual(["hello", 1]);
             });
 
             it("test merge collection", () => {
+                // CollectionTest::testMergeCollection
                 const c = collect({ name: "Hello" });
                 expect(
                     c.merge(collect({ name: "World", id: 1 })).all(),
@@ -6091,11 +6106,13 @@ describe("Collection", () => {
     describe("mergeRecursive", () => {
         describe("Laravel Tests", () => {
             it("test merge recursive null", () => {
+                // CollectionTest::testMergeRecursiveNull
                 const c = collect({ name: "hello" });
                 expect(c.mergeRecursive(null).all()).toEqual({ name: "hello" });
             });
 
             it("test merge recursive array", () => {
+                // CollectionTest::testMergeRecursiveArray
                 const c = collect({ name: "Hello", id: 1 });
                 expect(c.mergeRecursive({ id: 2 }).all()).toEqual({
                     name: "Hello",
@@ -6110,6 +6127,7 @@ describe("Collection", () => {
             });
 
             it("test merge recursive collection", () => {
+                // CollectionTest::testMergeRecursiveCollection
                 const c = collect({
                     name: "Hello",
                     id: 1,
@@ -6138,6 +6156,7 @@ describe("Collection", () => {
         });
 
         it("test target is array and source is not", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-list-meets-scalar"
             const target = collect({ a: [1, 2, 3] });
             const source = collect({ a: 4 });
             expect(target.mergeRecursive(source).all()).toEqual({
@@ -6146,6 +6165,7 @@ describe("Collection", () => {
         });
 
         it("test source is array and target is not", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-meets-list"
             const target = collect({ a: 7 });
             const source = collect({ a: [1, 2, 3] });
             expect(target.mergeRecursive(source).all()).toEqual({
@@ -6154,6 +6174,8 @@ describe("Collection", () => {
         });
 
         it("test merging existing keys and adding new keys", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-mergeRecursive-spec-existing-and-new-keys"
             const target = collect({ a: 5, b: [3, 4], c: { z: 5, y: [9, 0] } });
             const source = collect({
                 a: 6,
@@ -6209,6 +6231,7 @@ describe("Collection", () => {
         });
 
         it("test merging object and arrays", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-object-and-arrays"
             const target = collect({ a: 1, b: [2, 3], c: { x: 4, y: 5 } });
             const source = collect({ a: [6, 7], b: 4, c: { x: [8, 9] } });
             expect(target.mergeRecursive(source).all()).toEqual({
@@ -6397,6 +6420,7 @@ describe("Collection", () => {
             });
 
             it("test combine with collection", () => {
+                // CollectionTest::testCombineWithCollection
                 const c = collect([1, 2, 3]);
                 expect(c.combine(collect([4, 5, 6])).all()).toEqual({
                     1: 4,
@@ -6427,6 +6451,7 @@ describe("Collection", () => {
         });
 
         it("throws with fewer or with more values than keys", () => {
+            // CollectionTest::testCombineWithFewerValuesThanKeysThrows and testCombineWithMoreValuesThanKeysThrows
             // docs/php-parity/task-31-laravel-13-33-sync.json, "combine-fewer-values" and "combine-more-values":
             // PHP throws a ValueError, which this port raises as an Error carrying the same message.
             const message =
@@ -6507,11 +6532,13 @@ describe("Collection", () => {
     describe("union", () => {
         describe("Laravel Tests", () => {
             it("test union null", () => {
+                // CollectionTest::testUnionNull
                 const c = collect({ name: "Hello" });
                 expect(c.union(null).all()).toEqual({ name: "Hello" });
             });
 
             it("test union array", () => {
+                // CollectionTest::testUnionArray
                 const c = collect({ name: "Hello" });
                 expect(c.union({ id: 1 }).all()).toEqual({
                     name: "Hello",
@@ -8738,6 +8765,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test replace null", () => {
+                // CollectionTest::testReplaceNull
                 const c = collect(["a", "b", "c"]);
                 expect(c.replace(null).all()).toEqual(["a", "b", "c"]);
             });
@@ -8895,6 +8923,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test replace recursive null", () => {
+                // CollectionTest::testReplaceRecursiveNull
                 const c = collect(["a", "b", ["c", "d"]]);
                 expect(c.replaceRecursive(null).all()).toEqual([
                     "a",
@@ -12214,6 +12243,7 @@ describe("Collection", () => {
     describe("zip", () => {
         describe("Laravel Tests", () => {
             it("test zip", () => {
+                // CollectionTest::testZip
                 const c = collect([1, 2, 3]).zip(collect([4, 5, 6]));
                 expect(c).toBeInstanceOf(Collection);
                 expect(c.get(0)).toBeInstanceOf(Collection);
@@ -12241,8 +12271,9 @@ describe("Collection", () => {
         it("handles shorter array in list", () => {
             const c = collect([1, 2, 3]);
             const zipped = c.zip([4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-operand-shorter"
             expect(zipped.count()).toBe(3);
-            // Third row: this collection has value, but zipped array is shorter
             expect(zipped.all()[2]?.all()).toEqual([3, null]);
         });
 
@@ -12283,7 +12314,7 @@ describe("Collection", () => {
         });
 
         it("handles object-based items in zip list", () => {
-            // Test with object-based collection to cover Object.values branch
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-assoc-operand"
             const c = collect([1, 2]);
             const zipped = c.zip({ a: "x", b: "y" });
             expect(zipped.count()).toBe(2);
@@ -15960,6 +15991,7 @@ describe("Collection", () => {
     describe("pipeThrough", () => {
         describe("Laravel Tests", () => {
             it("test pipe through", () => {
+                // CollectionTest::testPipeThrough
                 const data = collect([1, 2, 3]);
 
                 const result = data.pipeThrough([
