@@ -2016,6 +2016,16 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["b"] };
+            const result = collect(["a", "b"]).diff(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value": PHP's all member casts to 'zzz', since array_diff
+            // cannot cast a Closure, and a function matches by identity here, so neither matches an item
+            expect(result.all()).toEqual(["a", "b"]);
+        });
     });
 
     describe("diffUsing", () => {
@@ -4637,6 +4647,16 @@ describe("Collection", () => {
                 new Collection({ a: 10, b: 20 }).intersect(map as never).all(),
             ).toEqual({ b: 20 });
         });
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["b"] };
+            const result = collect(["a", "b"]).intersect(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value": PHP's all member casts to 'zzz', since array_intersect
+            // cannot cast a Closure, and a function matches by identity here, so neither matches an item
+            expect(result.all()).toEqual([]);
+        });
     });
 
     describe("intersectUsing", () => {
@@ -4716,6 +4736,18 @@ describe("Collection", () => {
                     .intersectUsing(map as never, (a, b) => a === b)
                     .all(),
             ).toEqual({ b: 20 });
+        });
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["b"] };
+            const result = collect(["a", "b"]).intersectUsing(
+                operand,
+                (x, y) => (x === y ? 0 : 1),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value"
+            expect(result.all()).toEqual([]);
         });
     });
 
@@ -9352,6 +9384,17 @@ describe("Collection", () => {
             expect(replaced.all()).toEqual({ 0: "a", 1: "b", 2: "c" });
             expect(replaced.keys().all()).toEqual([0, 2, 1]);
             expect(replaced.values().all()).toEqual(["a", "c", "b"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).replaceRecursive(operand as never);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
         });
     });
 
