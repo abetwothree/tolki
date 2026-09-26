@@ -913,6 +913,13 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3, 4, 5, 6]);
             expect(collection.median()).toBe(3.5);
         });
+        it("skips undefined as it skips null", () => {
+            // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it
+            expect([
+                collect([1, undefined, 3]).median(),
+                collect([1, undefined, 3, 5]).median(),
+            ]).toEqual([2, 3]);
+        });
         it("throws PHP's TypeError when it averages two middle values that are not numbers", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-non-numeric-middle-values"
             expect(() => collect(["b", "a"]).median()).toThrow(

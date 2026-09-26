@@ -382,7 +382,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     median(key: PropertyKey | null = null): TValue | null {
         const values = (!isNull(key) ? this.pluck(key) : this)
-            .reject((item) => isNull(item))
+            // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
+            .reject((item) => isNull(item) || isUndefined(item))
             .sort()
             .values();
 
