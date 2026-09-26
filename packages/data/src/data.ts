@@ -8,6 +8,7 @@ import {
     collapse as arrCollapse,
     combine as arrCombine,
     contains as arrContains,
+    containsStrict as arrContainsStrict,
     crossJoin as arrCrossJoin,
     diff as arrDiff,
     diffAssoc as arrDiffAssoc,
@@ -95,6 +96,7 @@ import {
     collapse as objCollapse,
     combine as objCombine,
     contains as objContains,
+    containsStrict as objContainsStrict,
     crossJoin as objCrossJoin,
     diff as objDiff,
     diffAssoc as objDiffAssoc,
@@ -2455,6 +2457,29 @@ export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
  * dataContains(new Map([[1, 'a'], ['1', 'b']]), 'a'); -> false
  */
 export const dataContains = dispatch(arrContains, objContains);
+
+/**
+ * Determine if data contains a value, using strict comparison.
+ *
+ * A Map is read in its insertion order, so a callback is handed its keys in the order PHP
+ * walks the array, and the keys PHP stores as one (`1` and `"1"`) hold only the last value.
+ *
+ * @param data - The data to search
+ * @param key - The value to search for, a callback, or the key path to compare when `value` is given
+ * @param value - The value the key path must strictly equal
+ * @returns True if a match is found, false otherwise
+ *
+ * @example
+ *
+ * dataContainsStrict([1, 3, 5, '02'], '02'); -> true
+ * dataContainsStrict([1, 3, 5, '02'], 2); -> false
+ * dataContainsStrict({ a: 1, b: null }, (value) => value === null); -> true
+ * dataContainsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
+ */
+export const dataContainsStrict = dispatch(
+    arrContainsStrict,
+    objContainsStrict,
+);
 
 /**
  * Get the differences between data collections.

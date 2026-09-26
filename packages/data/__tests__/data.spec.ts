@@ -8206,6 +8206,122 @@ describe("Data", () => {
         });
     });
 
+    describe("dataContainsStrict", () => {
+        it("compares a value with PHP's === on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            expect(Data.dataContainsStrict([1, 3, 5, "02"], "02")).toBe(true);
+            expect(Data.dataContainsStrict([1, 3, 5, "02"], 2)).toBe(false);
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "L9 containsStrict (assoc)", "mixed"
+            const mixed = { a: 1, b: 3, c: 5, d: "02" };
+            expect(Data.dataContainsStrict(mixed, 1)).toBe(true);
+            expect(Data.dataContainsStrict(mixed, "1")).toBe(false);
+            expect(Data.dataContainsStrict(mixed, 2)).toBe(false);
+            expect(Data.dataContainsStrict(mixed, "02")).toBe(true);
+            expect(Data.dataContainsStrict(mixed, true)).toBe(false);
+            expect(
+                Data.dataContainsStrict(mixed, (value) => Number(value) < 5),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(mixed, (value) => Number(value) > 5),
+            ).toBe(false);
+        });
+
+        it("compares a key path strictly when a second argument is given, on both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            expect(
+                Data.dataContainsStrict([{ tags: ["a", "b"] }], "tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict([{ t: { x: 1, y: 2 } }], "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(Data.dataContainsStrict([{ a: 1 }], "name", null)).toBe(
+                true,
+            );
+
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-assoc-backed-contains",
+            // "containsStrict-two-args"
+            expect(
+                Data.dataContainsStrict({ r: { tags: ["a", "b"] } }, "tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict({ r: { t: { x: 1, y: 2 } } }, "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                Data.dataContainsStrict({ r: { name: "x" } }, "name", null),
+            ).toBe(false);
+        });
+
+        it("counts a callback match holding null, as array_any does, on both backings", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "containsStrict-list-null-callback" and "containsStrict-list-zero-callback"
+            expect(
+                Data.dataContainsStrict(
+                    [1, null, 2],
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict([1, null, 2], (value) => value === 0),
+            ).toBe(false);
+            // Same file, "containsStrict-assoc-null-callback" and "containsStrict-assoc-zero-callback"
+            expect(
+                Data.dataContainsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === 0,
+                ),
+            ).toBe(false);
+        });
+
+        it("reads a Map in its insertion order, keeping only the last value of keys PHP stores as one", () => {
+            const seen: unknown[] = [];
+
+            Data.dataContainsStrict(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+                (_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-callback-order"
+            expect(seen).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-collision"
+            expect(
+                Data.dataContainsStrict(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                    "a",
+                ),
+            ).toBe(false);
+        });
+    });
+
     describe("dataDiff", () => {
         it("is object", () => {
             expect(
