@@ -7467,6 +7467,184 @@
             ]
         },
         {
+            "label": "C32-F-receiver-out-of-order",
+            "php": "each set operation on collect([2 => 'c', 0 => 'a', 1 => 'b']): the kept keys and values, or the rows built",
+            "value": {
+                "diff": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffAssoc": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffKeys": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "diffKeysUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersect": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectAssoc": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectAssocUsing": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "intersectByKeys": {
+                    "keys": [
+                        2,
+                        1
+                    ],
+                    "values": [
+                        "c",
+                        "b"
+                    ]
+                },
+                "crossJoin": [
+                    [
+                        "c",
+                        "x"
+                    ],
+                    [
+                        "a",
+                        "x"
+                    ],
+                    [
+                        "b",
+                        "x"
+                    ]
+                ],
+                "zip": [
+                    [
+                        "c",
+                        "x"
+                    ],
+                    [
+                        "a",
+                        "y"
+                    ],
+                    [
+                        "b",
+                        "z"
+                    ]
+                ],
+                "multiply": [
+                    "c",
+                    "a",
+                    "b",
+                    "c",
+                    "a",
+                    "b"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-operand-out-of-order",
+            "php": "collect([1])->crossJoin([2 => 'c', 0 => 'a']) / collect([1, 2])->zip([2 => 'c', 0 => 'a']) / collect(['x', 'y'])->combine([2 => 'c', 0 => 'a'])",
+            "value": {
+                "crossJoin": [
+                    [
+                        1,
+                        "c"
+                    ],
+                    [
+                        1,
+                        "a"
+                    ]
+                ],
+                "zip": [
+                    [
+                        1,
+                        "c"
+                    ],
+                    [
+                        2,
+                        "a"
+                    ]
+                ],
+                "combine": {
+                    "keys": [
+                        "x",
+                        "y"
+                    ],
+                    "values": [
+                        "c",
+                        "a"
+                    ]
+                }
+            }
+        },
+        {
             "label": "C32-G-sort-comparator",
             "php": "(new Collection([5, 3, 1, 2, 4]))->sort(fn ($a, $b) => $a <=> $b)->values()->all()",
             "value": [

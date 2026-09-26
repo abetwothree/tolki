@@ -1343,6 +1343,29 @@ probe('C32-F-plain-object-all-member-is-data-by-key', "collect(['a' => 1, 'b' =>
 ]);
 probe('C32-F-combine-int-key-order', "(new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()", fn () => (new Collection([3, 1, 2]))->combine(['c', 'a', 'b'])->keys()->all());
 
+// out-of-order integer keys, which only a Map holds in JS: the receiver's order, and an operand's
+$fKeysValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
+probe('C32-F-receiver-out-of-order', "each set operation on collect([2 => 'c', 0 => 'a', 1 => 'b']): the kept keys and values, or the rows built", fn () => [
+    'diff' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->diff(['a'])),
+    'diffUsing' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->diffUsing(['A'], 'strcasecmp')),
+    'diffAssoc' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->diffAssoc([0 => 'a'])),
+    'diffKeys' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->diffKeys([0 => 'x'])),
+    'diffKeysUsing' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->diffKeysUsing([0 => 'x'], 'strcasecmp')),
+    'intersect' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->intersect(['c', 'b'])),
+    'intersectUsing' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->intersectUsing(['C', 'B'], 'strcasecmp')),
+    'intersectAssoc' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->intersectAssoc([2 => 'c', 1 => 'b'])),
+    'intersectAssocUsing' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->intersectAssocUsing([2 => 'c', 1 => 'b'], 'strcasecmp')),
+    'intersectByKeys' => $fKeysValues(collect([2 => 'c', 0 => 'a', 1 => 'b'])->intersectByKeys([2 => 'x', 1 => 'y'])),
+    'crossJoin' => collect([2 => 'c', 0 => 'a', 1 => 'b'])->crossJoin(['x'])->all(),
+    'zip' => $fRows(collect([2 => 'c', 0 => 'a', 1 => 'b'])->zip(['x', 'y', 'z'])),
+    'multiply' => collect([2 => 'c', 0 => 'a', 1 => 'b'])->multiply(2)->all(),
+]);
+probe('C32-F-operand-out-of-order', "collect([1])->crossJoin([2 => 'c', 0 => 'a']) / collect([1, 2])->zip([2 => 'c', 0 => 'a']) / collect(['x', 'y'])->combine([2 => 'c', 0 => 'a'])", fn () => [
+    'crossJoin' => collect([1])->crossJoin([2 => 'c', 0 => 'a'])->all(),
+    'zip' => $fRows(collect([1, 2])->zip([2 => 'c', 0 => 'a'])),
+    'combine' => $fKeysValues(collect(['x', 'y'])->combine([2 => 'c', 0 => 'a'])),
+]);
+
 // ---- Family G ------------------------------------------------------------
 
 // Key-preserving probes return [[key, value], ...] so integer keys and order survive json_encode.
