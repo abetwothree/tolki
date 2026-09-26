@@ -4230,6 +4230,13 @@ describe("Arr", () => {
             expect(Arr.only(["a", "b", "c"], [2, 0, 2])).toEqual(["a", "c"]);
             expect(Arr.only(["a", "b", "c", "d"], [3, 1])).toEqual(["b", "d"]);
         });
+
+        it("skips a key array_flip cannot store, such as an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
+            expect(
+                Arr.only(["x", "y"], [0, [1]] as unknown as number[]),
+            ).toEqual(["x"]);
+        });
     });
 
     describe("prepend", () => {

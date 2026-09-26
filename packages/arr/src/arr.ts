@@ -2146,8 +2146,9 @@ export function only<TValue>(
 ): TValue[] {
     const values = getAccessibleValues(data) as TValue[];
     const keyList = isArray(keys) ? keys : isNull(keys) ? [] : [keys];
-    // array_flip keys the selection by each index, so a repeated index still picks its item once.
-    const wanted = new Set(keyList.map(String));
+    // array_flip keys the selection by each index, so a repeated index still picks its item once, and it skips any
+    // key but a string or an integer.
+    const wanted = new Set(keyList.filter(isPhpArrayKey).map(String));
 
     return values.filter((_, index) => wanted.has(String(index)));
 }

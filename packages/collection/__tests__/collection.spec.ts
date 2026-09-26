@@ -5763,6 +5763,29 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-empty-array"
                 expect(person().only([]).all()).toEqual({});
             });
+
+            it("skips a later key array_flip cannot store: a null, an array or a collection", () => {
+                const odd = collect({ a: 1, b: 2 });
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
+                expect(
+                    collect({ null: 1, a: 2 }).only("a", null).all(),
+                ).toEqual({
+                    a: 2,
+                });
+                expect(odd.only("a", ["b"]).all()).toEqual({ a: 1 });
+                expect(
+                    odd.only("a", collect(["b"]) as unknown as string).all(),
+                ).toEqual({ a: 1 });
+                expect(collect(["x", "y"]).only(0, [1]).all()).toEqual(["x"]);
+            });
+
+            it("skips a later undefined key, as it skips null", () => {
+                // JS-only: undefined stands for PHP's null, which array_flip skips.
+                expect(
+                    collect({ undefined: 1, a: 2 }).only("a", undefined).all(),
+                ).toEqual({ a: 2 });
+            });
         });
 
         it("reads a dotted key literally, never as a path", () => {

@@ -2939,9 +2939,9 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
         : isArray(keys)
           ? keys
           : [keys]) as readonly PathKey[] as PropertyKey[];
-    // A key names an entry the way a property key does, so 0 and "0" select the same one. A
-    // symbol is left out: String() would let it match a key spelled "Symbol(...)".
-    const wanted = new Set(keyList.filter((key) => !isSymbol(key)).map(String));
+    // A key names an entry the way a property key does, so 0 and "0" select the same one. array_flip skips any key
+    // but a string or an integer; a symbol, which String() would let match "Symbol(...)", is looked up below.
+    const wanted = new Set(keyList.filter(isPhpArrayKey).map(String));
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
         if (wanted.has(key)) {

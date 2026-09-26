@@ -6663,6 +6663,18 @@ describe("Obj", () => {
 
             expect(Obj.only(spelled, [sym])).toEqual({});
         });
+
+        it("skips a key array_flip cannot store: a null or an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
+            expect(Obj.only({ null: 1, a: 2 }, ["a", null])).toEqual({ a: 2 });
+            expect(
+                Obj.only({ a: 1, b: 2 }, ["a", ["b"]] as unknown as string[]),
+            ).toEqual({ a: 1 });
+            // JS-only: undefined stands for PHP's null, which array_flip skips too.
+            expect(Obj.only({ undefined: 1, a: 2 }, ["a", undefined])).toEqual({
+                a: 2,
+            });
+        });
     });
 
     describe("select", () => {
