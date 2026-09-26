@@ -5114,9 +5114,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that match any of the given values for the specified key
      */
-    whereIn<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereIn<TSetValue, TSetKey extends PropertyKey>(
         key: PathKey,
-        values: TValueSet,
+        values:
+            | DataItems<unknown, PropertyKey>
+            | Collection<TSetValue, TSetKey>,
         strict: boolean = false,
     ) {
         const valueSet = Object.values(this.getRawItems(values));
@@ -5133,9 +5135,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that match any of the given values for the specified key using strict comparison
      */
-    whereInStrict<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereInStrict<TSetValue, TSetKey extends PropertyKey>(
         key: PathKey,
-        values: TValueSet,
+        values:
+            | DataItems<unknown, PropertyKey>
+            | Collection<TSetValue, TSetKey>,
     ) {
         return this.whereIn(key, values, true);
     }
@@ -5147,9 +5151,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key between the given values
      */
-    whereBetween<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereBetween<TSetValue, TSetKey extends PropertyKey>(
         key: PathKey,
-        values: TValueSet,
+        values:
+            | DataItems<unknown, PropertyKey>
+            | Collection<TSetValue, TSetKey>,
     ) {
         const valueSet = this.getRawItems(values);
         const valuesArray = Object.values(valueSet);
@@ -5168,9 +5174,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key not between the given values
      */
-    whereNotBetween<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereNotBetween<TSetValue, TSetKey extends PropertyKey>(
         key: PathKey,
-        values: TValueSet,
+        values:
+            | DataItems<unknown, PropertyKey>
+            | Collection<TSetValue, TSetKey>,
     ) {
         return this.filter((item: TValue) => {
             const retrieved = itemValue(item, key);
@@ -5193,9 +5201,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that do not match any of the given values for the specified key
      */
-    whereNotIn<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereNotIn<TSetValue, TSetKey extends PropertyKey>(
         key: PathKey,
-        values: TValueSet,
+        values:
+            | DataItems<unknown, PropertyKey>
+            | Collection<TSetValue, TSetKey>,
         strict: boolean = false,
     ) {
         const valueSet = Object.values(this.getRawItems(values));
@@ -5212,9 +5222,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that do not match any of the given values for the specified key using strict comparison
      */
-    whereNotInStrict<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereNotInStrict<TSetValue, TSetKey extends PropertyKey>(
         key: PathKey,
-        values: TValueSet,
+        values:
+            | DataItems<unknown, PropertyKey>
+            | Collection<TSetValue, TSetKey>,
     ) {
         return this.whereNotIn(key, values, true);
     }
