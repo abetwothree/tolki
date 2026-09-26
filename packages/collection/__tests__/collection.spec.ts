@@ -6354,6 +6354,23 @@ describe("Collection", () => {
             expect(c.values().all()).toEqual(["a", "c"]);
         });
 
+        it("checks a float key as its string form, then reads and removes it as an integer key", () => {
+            const list = collect(["a", "b", "c"]);
+            const listReturned = list.pull(1.5);
+            const record = collect({ "1.5": "x", 1: "y" });
+            const recordReturned = record.pull(1.5);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-float-key-exists-as-its-string-form"
+            expect({
+                list: { returned: listReturned, all: list.all() },
+                record: { returned: recordReturned, all: record.all() },
+            }).toEqual({
+                list: { returned: null, all: ["a", "b", "c"] },
+                record: { returned: "y", all: { "1.5": "x" } },
+            });
+        });
+
         it("keeps a list a list when the key is missing", () => {
             const c = collect(["foo", "bar"]);
             const returned = [c.pull(2), c.pull(-1)];

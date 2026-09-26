@@ -68,6 +68,7 @@ import {
     isBoolean,
     isEnumCase,
     isFiniteNumber,
+    isFloat,
     isFunction,
     isInteger,
     isIntegerLikeKey,
@@ -2640,11 +2641,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.castToItems(this.items) as unknown as TValue;
         }
 
-        const ownKey = this.ownKey(key);
-
-        if (!isUndefined(ownKey)) {
-            const value = (this.items as Record<PropertyKey, TValue>)[ownKey];
-            this.offsetUnset(ownKey);
+        // Arr::exists checks a float key as its string form; the read and the unset that follow cast it to an integer.
+        if (!isUndefined(this.ownKey(isFloat(key) ? String(key) : key))) {
+            const value = this.offsetGet(key);
+            this.offsetUnset(key);
 
             return value as TValue;
         }
