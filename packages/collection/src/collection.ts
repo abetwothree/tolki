@@ -3517,21 +3517,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
                   ([, value]) => value as TValue,
               );
 
-        // A null length reaches the end, as array_splice's does.
-        const count = length ?? undefined;
-
         // A plain object lists its integer keys first, so a keyed backing is read in the order PHP's array holds it.
         if (!isArray(this.items)) {
             return this.spliceOrdered(
                 this.entriesInOrder(),
                 offset,
-                count,
+                length,
                 values,
             );
         }
 
         return this.newInstance(
-            handOver(dataSplice(this.items, offset, count, values)),
+            handOver(dataSplice(this.items, offset, length, values)),
         );
     }
 
@@ -6117,14 +6114,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param ordered - The backing's entries, in the order PHP's array holds them
      * @param offset - Where to start, counting back from the end when negative
-     * @param length - How many entries to remove, leaving that many at the end when negative
+     * @param length - How many entries to remove, leaving that many at the end when negative; null or none runs to the
+     * end
      * @param replacement - The values to insert, whose own keys array_splice discards
      * @returns A new collection of the removed entries
      */
     protected spliceOrdered(
         ordered: Array<[TKey, TValue]>,
         offset: number,
-        length: number | undefined,
+        length: number | null | undefined,
         replacement: TValue[],
     ) {
         const entries: Array<[PropertyKey, TValue]> = [...ordered];
