@@ -7127,6 +7127,44 @@ describe("Collection", () => {
             }).toThrowError("Step value must be at least 1.");
         });
 
+        it("steps as PHP's % does, which drops a fraction from the step", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
+            expect(numbers.nth(1.5).all()).toEqual([1, 2, 3, 4, 5]);
+            expect(numbers.nth(2.5).all()).toEqual([1, 3, 5]);
+            expect(numbers.nth(1e19).all()).toEqual([1]);
+        });
+
+        it("divides by zero for a NAN or infinite step, once there is an item to step over", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
+            for (const step of [NaN, Infinity]) {
+                expect(() => collect([1, 2, 3, 4, 5]).nth(step)).toThrowError(
+                    "Modulo by zero",
+                );
+            }
+
+            expect(collect([]).nth(NaN).all()).toEqual([]);
+        });
+
+        it("slices from its offset as slice() does, dropping a fraction and refusing a NAN", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
+            expect(numbers.nth(1, 1.5).all()).toEqual([2, 3, 4, 5]);
+
+            for (const collection of [numbers, outOfOrderKeys()]) {
+                for (const offset of [NaN, 1e19]) {
+                    expect(() => collection.nth(1, offset)).toThrowError(
+                        TypeError,
+                    );
+                    expect(() => collection.nth(1, offset)).toThrowError(
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                    );
+                }
+            }
+        });
+
         it("uses itemsWithOrder when available", () => {
             // Only a Map-built collection carries itemsWithOrder now; sortBy
             // renumbers its keys instead, so the object itself holds the order.

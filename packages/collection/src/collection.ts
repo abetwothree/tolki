@@ -2177,10 +2177,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Create a new collection consisting of every n-th element.
      *
-     * @param step - The step interval to take elements
-     * @param offset - The offset to start from, defaults to 0
+     * @param step - The step interval to take elements; a fraction is dropped, as PHP's `%` drops it
+     * @param offset - The offset to start from, defaults to 0, read as slice() reads it
      * @returns A new collection with every n-th element
      * @throws InvalidArgumentException if step is less than 1
+     * @throws Error when the step is NAN or infinite and there is an item to step over, as PHP's `%` divides by zero
      *
      * @example
      *
@@ -2193,28 +2194,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        const newItems: TValue[] = [];
+        const values = this.slice(offset).orderedValues();
+        // PHP's % casts the step to an int, which makes NAN or an infinity 0, and divides only once an item comes.
+        const divisor = phpInt(step);
 
-        let position = 0;
-
-        // Use the ordered entries when available to preserve numeric key insertion order
-        const ordered = this.orderedEntries();
-        const entries = ordered
-            ? ordered.slice(offset)
-            : Object.entries(this.slice(offset).all() as Record<TKey, TValue>);
-
-        for (const [, value] of entries) {
-            if (position % step === 0) {
-                newItems.push(value as TValue);
-            }
-
-            position++;
+        if (divisor === 0 && values.length > 0) {
+            throw new Error("Modulo by zero");
         }
 
-        return this.newInstance(handOver(newItems)) as unknown as Collection<
-            TValue[],
-            number
-        >;
+        return this.newInstance(
+            handOver(values.filter((_, position) => position % divisor === 0)),
+        ) as unknown as Collection<TValue[], number>;
     }
 
     /**
