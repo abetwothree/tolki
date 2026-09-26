@@ -7099,12 +7099,20 @@ describe("Collection", () => {
         });
 
         it("throws exception for invalid step", () => {
+            // CollectionTest::testNthThrowsExceptionForInvalidStep
+            expect(() => {
+                collect([1, 2, 3]).nth(0);
+            }).toThrowError(InvalidArgumentException);
             expect(() => {
                 collect([1, 2, 3]).nth(0);
             }).toThrowError("Step value must be at least 1.");
         });
 
         it("throws exception for negative step", () => {
+            // CollectionTest::testNthThrowsExceptionForNegativeStep
+            expect(() => {
+                collect([1, 2, 3]).nth(-1);
+            }).toThrowError(InvalidArgumentException);
             expect(() => {
                 collect([1, 2, 3]).nth(-1);
             }).toThrowError("Step value must be at least 1.");
@@ -10031,22 +10039,24 @@ describe("Collection", () => {
                 expect(chunks.skip(1).first()).toBeInstanceOf(Collection);
 
                 // Test invalid size parameter (size must be at least 1)
-                expect(() =>
-                    Collection.times(5).sliding(0, 1).toArray(),
-                ).toThrow("Size value must be at least 1.");
-
-                expect(() =>
-                    Collection.times(5).sliding(-1, 1).toArray(),
-                ).toThrow("Size value must be at least 1.");
+                for (const size of [0, -1]) {
+                    expect(() =>
+                        Collection.times(5).sliding(size, 1).toArray(),
+                    ).toThrow(InvalidArgumentException);
+                    expect(() =>
+                        Collection.times(5).sliding(size, 1).toArray(),
+                    ).toThrow("Size value must be at least 1.");
+                }
 
                 // Test invalid step parameter (step must be at least 1)
-                expect(() =>
-                    Collection.times(5).sliding(2, 0).toArray(),
-                ).toThrow("Step value must be at least 1.");
-
-                expect(() =>
-                    Collection.times(5).sliding(2, -1).toArray(),
-                ).toThrow("Step value must be at least 1.");
+                for (const step of [0, -1]) {
+                    expect(() =>
+                        Collection.times(5).sliding(2, step).toArray(),
+                    ).toThrow(InvalidArgumentException);
+                    expect(() =>
+                        Collection.times(5).sliding(2, step).toArray(),
+                    ).toThrow("Step value must be at least 1.");
+                }
             });
         });
     });
@@ -10440,12 +10450,20 @@ describe("Collection", () => {
             });
 
             it("throws exception for invalid number of groups", () => {
+                // CollectionTest::testSplitThrowsExceptionForInvalidNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).split(0);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).split(0);
                 }).toThrowError("Number of groups must be at least 1.");
             });
 
             it("throws exception for negative number of groups", () => {
+                // CollectionTest::testSplitThrowsExceptionForNegativeNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).split(-1);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).split(-1);
                 }).toThrowError("Number of groups must be at least 1.");
@@ -10468,12 +10486,20 @@ describe("Collection", () => {
             });
 
             it("throws exception for invalid number of groups", () => {
+                // CollectionTest::testSplitInThrowsExceptionForInvalidNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).splitIn(0);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).splitIn(0);
                 }).toThrowError("Number of groups must be at least 1.");
             });
 
             it("throws exception for negative number of groups", () => {
+                // CollectionTest::testSplitInThrowsExceptionForNegativeNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).splitIn(-1);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).splitIn(-1);
                 }).toThrowError("Number of groups must be at least 1.");

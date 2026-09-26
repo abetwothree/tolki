@@ -2185,7 +2185,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param step - The step interval to take elements
      * @param offset - The offset to start from, defaults to 0
      * @returns A new collection with every n-th element
-     * @throws Error if step is less than 1
+     * @throws InvalidArgumentException if step is less than 1
      *
      * @example
      *
@@ -2193,7 +2193,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     nth(step: number, offset: number = 0): Collection<TValue[], number> {
         if (step < 1) {
-            throw new Error("Step value must be at least 1.");
+            throw new InvalidArgumentException(
+                "Step value must be at least 1.",
+            );
         }
 
         const newItems: TValue[] = [];
@@ -2831,7 +2833,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param size - The size of each chunk, defaults to 2 (must be at least 1)
      * @param step - The number of items to skip between chunks, defaults to 1 (must be at least 1)
      * @returns A new collection with the sliding window chunks
-     * @throws Error if size or step is less than 1
+     * @throws InvalidArgumentException if size or step is less than 1
      *
      * @example
      *
@@ -2842,11 +2844,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     sliding(size: number = 2, step: number = 1) {
         if (size < 1) {
-            throw new Error("Size value must be at least 1.");
+            throw new InvalidArgumentException(
+                "Size value must be at least 1.",
+            );
         }
 
         if (step < 1) {
-            throw new Error("Step value must be at least 1.");
+            throw new InvalidArgumentException(
+                "Step value must be at least 1.",
+            );
         }
 
         const chunks = Math.floor((this.count() - size) / step) + 1;
@@ -2940,7 +2946,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param numberOfGroups - The number of groups to split into
      * @returns A new collection with the split groups
-     * @throws Error if numberOfGroups is less than 1
+     * @throws InvalidArgumentException if numberOfGroups is less than 1
      *
      * @example
      *
@@ -2952,7 +2958,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         numberOfGroups: number,
     ): Collection<Collection<TValue, TKey>, number> {
         if (numberOfGroups < 1) {
-            throw new Error("Number of groups must be at least 1.");
+            throw new InvalidArgumentException(
+                "Number of groups must be at least 1.",
+            );
         }
 
         const groups = this.newInstance() as unknown as Collection<
@@ -2996,7 +3004,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param numberOfGroups - The number of groups to split into
      * @returns A new collection with the split groups
-     * @throws Error if numberOfGroups is less than 1
+     * @throws InvalidArgumentException if numberOfGroups is less than 1
      *
      * @example
      *
@@ -3006,7 +3014,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     splitIn(numberOfGroups: number) {
         if (numberOfGroups < 1) {
-            throw new Error("Number of groups must be at least 1.");
+            throw new InvalidArgumentException(
+                "Number of groups must be at least 1.",
+            );
         }
 
         return this.chunk(Math.ceil(this.count() / numberOfGroups));
