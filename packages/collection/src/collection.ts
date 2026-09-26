@@ -5211,7 +5211,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Reduce the collection to a single value.
      *
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
-     * @param initial - The initial value to start the reduction with
+     * @param initial - The carry the first item is reduced into, null when none is given
      * @returns The reduced value, or the initial value if the collection is empty
      */
     reduce(
@@ -5229,29 +5229,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         ) => TReduce,
         initial?: TReduce,
     ) {
-        const entries = Object.entries(this.items);
+        // PHP's $initial defaults to null, so the first item reaches the callback too, unlike Array.prototype.reduce.
+        let result = (isUndefined(initial) ? null : initial) as TReduce;
 
-        if (entries.length === 0) {
-            // PHP's reduce never throws: an empty backing hands back $initial,
-            // which defaults to null (EnumeratesValues.php:845).
-            return isUndefined(initial) ? null : (initial as TReduce);
-        }
-
-        let result: TReduce;
-        let startIndex: number;
-
-        if (isUndefined(initial)) {
-            // Use first element as initial value (like native JS Array.reduce)
-            result = entries[0]![1] as unknown as TReduce;
-            startIndex = 1;
-        } else {
-            result = initial;
-            startIndex = 0;
-        }
-
-        for (let i = startIndex; i < entries.length; i++) {
-            const [key, value] = entries[i]!;
-
+        for (const [key, value] of Object.entries(this.items)) {
             result = callback(
                 result,
                 value as TValue,

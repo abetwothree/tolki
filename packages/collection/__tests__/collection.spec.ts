@@ -17568,6 +17568,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test reduce", () => {
+                // CollectionTest::testReduce
                 const data = collect([1, 2, 3]);
 
                 expect(
@@ -17584,13 +17585,43 @@ describe("Collection", () => {
 
                 const data2 = collect({ foo: "bar", baz: "qux" });
 
-                // Using initial value is the clean approach when you need all keys processed
+                // PHP's .= reads the null carry as "", where JS's + would write "null"
                 expect(
                     data2.reduce((carry, element, key) => {
-                        return carry + key + element;
-                    }, ""),
+                        return (carry ?? "") + key + element;
+                    }),
                 ).toBe("foobarbazqux");
             });
+        });
+
+        it("seeds the carry with null and hands the callback every item", () => {
+            const seen: unknown[] = [];
+
+            collect([10, 20, 30]).reduce((carry, value, key) => {
+                seen.push([carry, value, key]);
+
+                return value;
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-no-initial-trace"
+            expect(seen).toEqual([
+                [null, 10, 0],
+                [10, 20, 1],
+                [20, 30, 2],
+            ]);
+        });
+
+        it("hands a lone item to the callback with a null carry", () => {
+            let pair: unknown = "not called";
+
+            collect([5]).reduce((carry, value) => {
+                pair = [carry, value];
+
+                return value;
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-no-initial-single"
+            expect(pair).toEqual([null, 5]);
         });
 
         describe("empty collection behaviour", () => {
