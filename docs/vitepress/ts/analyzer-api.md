@@ -31,7 +31,7 @@ $result = resolve(AstEngine::class)->analyze(App\Services\CartSummary::class, 't
 
 `analyze()` writes nothing to disk. The file, its formatting, and any barrel entry are up to you.
 
-::: warning `analyze()` is the whole public API
+::: warning `analyze()` Is the Whole Public API
 `analyze()` and the `AnalysisResult` it returns are the only supported parts of the engine. Every other class under `AbeTwoThree\LaravelTsPublish\Ast`, and every other method on `AstEngine`, is `@internal`. Those change without notice, so code that calls them can break on any update.
 :::
 

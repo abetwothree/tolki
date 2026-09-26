@@ -281,11 +281,11 @@ File watchers such as the [Vite plugin](./vite-plugin.md) read it to know which 
 
 `ts:publish` supports three verbosity levels through Artisan's standard flags:
 
-| Flag              | Output                                                                                                                                                       |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--quiet`, `-q`   | Nothing, except errors on stderr. The exit code reports the result, which suits tools such as the [Vite plugin](./vite-plugin.md).                           |
-| _(none)_          | A summary: the output directory, the cache state, file counts per feature, extra files such as barrels and the globals and JSON files, and the elapsed time. |
-| `--verbose`, `-v` | The summary, plus tables that list every generated file with its details, such as enum cases and methods, or model columns, mutators, and relations.         |
+| Flag              | Output                                                                                                                                                                                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--quiet`, `-q`   | Nothing, except errors on stderr. The exit code reports the result, which suits tools such as the [Vite plugin](./vite-plugin.md).                                                                                                                                                        |
+| _(none)_          | A summary: the output directory, the cache state, file counts per feature, extra files such as barrels and the globals and JSON files, and the elapsed time.                                                                                                                              |
+| `--verbose`, `-v` | The summary, plus a table for each of enums, models, model metadata, resources, routes, and form requests, with details such as enum cases and methods, or model columns, mutators, and relations. A last table lists the extra files, such as barrels, globals, and the broadcast files. |
 
 This example shows each level:
 

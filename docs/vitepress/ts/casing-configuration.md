@@ -24,7 +24,7 @@ For a relation method named `ownedTeams()`, each value gives these names:
 
 Only the relation name is cased. The `_count` and `_exists` suffixes are added as they are, so `'camel'` gives you `ownedTeams_count`, not `ownedTeamsCount`.
 
-::: info Count and exists properties
+::: info Count and Exists Properties
 For every relation on a model, the package also publishes a `_count` and an `_exists` property. They type the attributes that Laravel's [`withCount` and `withExists`](https://laravel.com/docs/eloquent-relationships#counting-related-models) add, and they appear in every generated model's interfaces. Laravel always names these attributes in snake case, such as `owned_teams_count`. Under `'camel'` or `'pascal'`, the published `_count` and `_exists` names don't match them.
 :::
 
@@ -48,7 +48,7 @@ For a method named `getLabel()` and a static method named `AllLabels()`, each va
 | `'camel'`    | `getLabel`          | `allLabels`                 |
 | `'pascal'`   | `GetLabel`          | `AllLabels`                 |
 
-::: tip Renamed methods are cased too
+::: tip Renamed Methods Are Cased Too
 The setting applies to every published enum method, instance or static, however it was included. You can rename one method with the `name` parameter of `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`. That name goes through this setting as well, so under the default `'camel'`, `#[TsEnumMethod(name: 'get_label')]` publishes `getLabel`. Write the name in your configured casing to keep it as written. A case renamed with `#[TsCase(name:)]` isn't affected, and publishes exactly as written.
 :::
 
@@ -72,7 +72,7 @@ For controller methods named `updateProfile()` and `store()`, each value gives t
 | `'camel'`    | `updateProfile`                     | `store`                     |
 | `'pascal'`   | `UpdateProfile`                     | `Store`                     |
 
-::: info Reserved words
+::: info Reserved Words
 If the cased name is a reserved JavaScript word, such as `delete`, the package adds `Method` to it, so the export is `deleteMethod` and stays a valid identifier.
 :::
 

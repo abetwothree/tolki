@@ -54,7 +54,7 @@ resources/js/types/data/
 
 Each namespace directory gets a barrel `index.ts` that exports every file in it. See [Barrel Files](#barrel-files).
 
-::: tip Broadcast event files keep their class name
+::: tip Broadcast Event Files Keep Their Class Name
 A broadcast event's file is named after its PHP class, such as `OrderShipped.ts` rather than `order-shipped.ts`. Every other feature kebab-cases its file names.
 :::
 
@@ -180,7 +180,7 @@ import type { InvoiceStatusType } from "@data/accounting/enums";
 
 Models, enums, resources, form requests, broadcast events, and routes each write their own barrels. A route barrel re-exports each controller's default export by name, such as `export { default as PostController } from './post-controller';`, rather than using `export *`. That keeps two controllers with a method of the same name from clashing.
 
-::: tip Checking barrel output
+::: tip Checking Barrel Output
 `ts:publish --preview=true` prints each barrel's contents under its own label, such as `Model Barrel Files:` or `Enum Barrel Files:`, next to the per-class files. A verbose run, `ts:publish -v`, lists each barrel file's path in its Extras table.
 :::
 

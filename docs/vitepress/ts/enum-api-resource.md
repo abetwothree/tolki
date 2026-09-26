@@ -102,7 +102,7 @@ That call returns this response:
 - `enums.method_case` sets the casing of the method keys in the response. See [`enums.method_case`](./casing-configuration.md#enums-method-case) on the Casing Configurations page.
 - `#[TsExclude]` on a method removes it from both the TypeScript output and the response. See [Excluding Enum Methods](./excluding-content.md#excluding-enum-methods).
 
-Because both follow the same rules, the JSON response has the same keys as the TypeScript enum this package publishes, with no second serializer to keep in sync.
+Because both follow the same rules, the JSON response has the same keys as the `AsEnum` type for that enum, with no second serializer to keep in sync.
 
 ## Typing API Responses With `AsEnum`
 

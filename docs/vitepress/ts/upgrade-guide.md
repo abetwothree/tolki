@@ -1,6 +1,6 @@
 # Upgrade Guide
 
-This guide lists the changes in each release that can change your generated types or break a custom class, newest first.
+This guide covers the changes in each release that most often need action when you upgrade, newest first. The [release notes](https://github.com/abetwothree/laravel-ts-publish/releases) list every change.
 
 ## Upgrading to 2.5 From 2.4
 
@@ -16,7 +16,7 @@ The package no longer requires `laravel/surveyor` or `laravel/ranger`. If your a
 
 #### `inertia-config.blade.php`
 
-If you published the views and share an `EnumResource` through Inertia, update your copy of `inertia-config.blade.php`. A copy published before 2.5.0 drops the enum value imports that the shared prop needs, and nothing reports the problem. Merge the new import block from the package's template into your copy, or publish the views again.
+If you published the views and your app uses Inertia, update your copy of `inertia-config.blade.php` before you publish. A copy published before 2.5.0 reads an `$importStatements` variable the package no longer passes, so `ts:publish` stops partway with an `Undefined variable $importStatements` error. Publish the views again with `php artisan vendor:publish --tag="laravel-ts-publish-views" --force` and reapply your changes, or copy the new import block from the package's template into your copy.
 
 ### Single-Class Republishing
 
@@ -59,20 +59,7 @@ A subclass that passes a second argument to `parent::__construct()` must drop it
 
 `modelFromDocblock()`, `modelFromAncestorDocblock()`, `guessModelFromConvention()`, `guessModelFromUseResourceAttribute()`, and `substituteEnumResourceType()` are gone. An override of one of them still loads, but it never runs, and nothing reports an error. A resource that one of the four model methods covered is typed against the model the package finds on its own. An override of `substituteEnumResourceType()` no longer changes how a property that returns an `EnumResource` is typed. No method that remains changed its signature, so none of these overrides fails when the class loads.
 
-To keep a custom convention, override `resolveModelClass()`. Set `$this->modelClass` and return `$this`:
-
-```php
-protected function resolveModelClass(): self
-{
-    parent::resolveModelClass();
-
-    $this->modelClass ??= MyConvention::modelFor($this->reflectionResource);
-
-    return $this;
-}
-```
-
-`resolveModelClass()` changes what `ts:publish` writes. [`AstEngine::analyze()`](./analyzer-api.md) doesn't use your transformer, so it still finds the model the default way. Pass the model as its third argument to choose it yourself.
+To keep a custom convention, override `resolveModelClass()`, as [Changing How a Resource Finds Its Model](./customizing-the-pipeline.md#changing-how-a-resource-finds-its-model) shows.
 
 #### Renamed Constant
 
@@ -90,9 +77,13 @@ A `barrel_writer_class` that overrides `writeModular()` must now override `write
 
 ### API Resources
 
-#### Relation `except()` Publishes `Pick<>`
+#### Relation `except()` Publishes Database Columns Only
 
-A relation's `except()` used to publish `Omit<Post, "created_at" | "updated_at">`, which widened under a model template whose interface also carries mutators, relations, and counts. It now picks the remaining columns, as in `Pick<Post, "id" | "title" | "content" | "user_id">`. Under the default template, both carry the same columns, so you don't need to change anything.
+A relation's `except()`, such as `$this->post?->except(['created_at', 'updated_at'])`, now publishes only the related model's database columns minus the keys you name, which is what `Model::except()` returns. When the relation holds one model and every key you name is a column, it publishes a `Pick<>` of the remaining columns, such as `Pick<Post, 'id' | 'title' | 'content' | 'user_id'>`, instead of `Omit<Post, 'created_at' | 'updated_at'>`. Otherwise it writes the remaining columns inline, where it used to add every accessor and relation of the model.
+
+The old `Omit<>` kept more than columns. Under the default template, it kept the model's `$appends` attributes. Under the [`model-full` template](./models.md#model-templates), it also kept mutators, relations, and counts.
+
+If your frontend read an accessor, an appended attribute, a relation, or a count from an `except()` result, TypeScript now reports it, because the response never held that key. Switch that property to `only([...])`, or give the key its own entry in `toArray()`.
 
 #### A Child Resource Inherits Its Parent's `toArray()`
 
@@ -114,33 +105,27 @@ TypeScript now flags code that assigns an unlisted value to one of these fields,
 
 ## Upgrading to 2.3 From 2.2
 
-### API Resources
-
-#### Relation `except()` Publishes Database Columns Only
-
-A relation's `except()` used to publish every accessor and relation of the related model, minus the named keys, even though `Model::except()` never returns them. It now publishes the model's database columns only. If your frontend read an accessor or a relation from an `except()` result, switch that property to `only([...])`, or give the key its own entry in `toArray()`. TypeScript reports every place that reads a key that's gone.
-
 ### Models
 
 #### A Bare `tinyint` Is Now `number`
 
-Only `tinyint(1)` publishes as `boolean`. It's what Laravel's `boolean()` column creates on MySQL and SQLite, so real boolean columns are unaffected. A column created with `tinyInteger()` used to publish as [`boolean`](./models.md#booleans) and now publishes as [`number`](./models.md#numbers).
+Only `tinyint(1)` publishes as `boolean`. That's the type Laravel's `boolean()` column creates on MySQL and SQLite. A column created with `tinyInteger()` used to publish as [`boolean`](./models.md#booleans) and now publishes as [`number`](./models.md#numbers).
 
 The same change fixes some real boolean columns. Their sized `tinyint(1)` type didn't match the map before, so they published as `number`, and they now publish as `boolean`.
 
 If you compare a `tinyInteger()` column with `=== true`, or use it directly in a condition, compare it with a number instead. TypeScript flags every place that needs the change.
 
-#### The `As*ArrayObject` Casts Also Allow Arrays
+#### The `As*ArrayObject` Casts Also Allow Objects
 
-`AsArrayObject`, `AsEncryptedArrayObject`, and `AsEnumArrayObject` publish as [`unknown[] | Record<string, unknown>`](./models.md#arrays-objects) instead of `Record<string, unknown>` alone. An `ArrayObject` filled from a list serializes as a JSON array, so the old type rejected valid payloads from your API.
+`AsArrayObject`, `AsEncryptedArrayObject`, and `AsEnumArrayObject` publish as [`unknown[] | Record<string, unknown>`](./models.md#arrays-objects) instead of `unknown[]`. An `ArrayObject` with string keys serializes as a JSON object, so the old type rejected valid payloads from your API.
 
-Narrow the value before you treat it as an object: `Object.keys(x.meta)` no longer compiles on its own, so check `Array.isArray(x.meta)` first. You can also pin the property to the shape your column holds with [`#[TsCasts]`](./models.md#tscasts).
+Narrow the value before you use it as a list: an array method such as `x.meta.map()` no longer compiles on its own, so check `Array.isArray(x.meta)` first. You can also pin the property to the shape your column holds with [`#[TsCasts]`](./models.md#tscasts).
 
 ### JSON Definitions File
 
 #### Entries Are Keyed by Fully-Qualified Class Name
 
-Before 2.3.0, the [JSON definitions file](./publishing.md#json-definitions-file) keyed its entries by short class name, so two classes with the same short name overwrote each other. Each top-level object is now keyed by fully-qualified class name, and each entry has a `name` field that holds the short name. Update code that reads the file to look entries up by fully-qualified name, and to read `name` for display.
+Before 2.3.0, the [JSON definitions file](./publishing.md#json-definitions-file) keyed its entries by short class name, and broadcast events by broadcast name, so two classes with the same short name overwrote each other. Each top-level object is now keyed by fully-qualified class name, and each entry has a `name` field that holds the short name. The property list of a model or resource also moved under a `properties` key, where the entry used to be the list itself. Update code that reads the file to look entries up by fully-qualified name, read `name` for display, and read properties from `properties`.
 
 ## Upgrading to 2.0 From 1.x
 

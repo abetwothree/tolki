@@ -26,7 +26,7 @@ Optionally, publish the Blade views that render each generated file:
 php artisan vendor:publish --tag="laravel-ts-publish-views"
 ```
 
-If you're upgrading from version 1.x, follow the [Upgrade Guide](./upgrade-guide.md).
+If you're upgrading from an earlier version, follow the [Upgrade Guide](./upgrade-guide.md).
 
 ## Installing `@tolki/ts`
 

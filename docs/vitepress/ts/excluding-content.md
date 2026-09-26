@@ -30,7 +30,7 @@ This table shows what the attribute does on each target:
 | Controller class      | None of the controller's routes are published                          |
 | Controller action     | The action is left out of the controller's route file                  |
 
-::: tip `#[TsExclude]` always wins
+::: tip `#[TsExclude]` Always Wins
 A method with `#[TsExclude]` is left out even when it also has `#[TsEnumMethod]` or `#[TsEnumStaticMethod]`. The same goes for a method that `enums.auto_include_methods` or `enums.auto_include_static_methods` would include.
 :::
 

@@ -65,7 +65,7 @@ A few writers don't belong to a single feature. Each one has its own config key:
 
 Route barrels have a different format, so the route writer (`routes.writer_class`) writes them.
 
-::: warning A custom barrel writer needs both write methods
+::: warning A Custom Barrel Writer Needs Both Write Methods
 If your `barrel_writer_class` overrides `writeModular()`, override `writeModularPreserving()` as well. A run that skips models or model metadata while it's enabled in config, or where a metadata provider fails for a model, writes model barrels through `writeModularPreserving()`. `ts:publish --only-models` does this while model metadata is enabled.
 :::
 
@@ -145,7 +145,7 @@ public function collect(): Collection; // concrete
 
 `collect()` scans the default directory plus the `additional_directories` and `included` settings. It keeps the classes your `classFilter()` accepts, then drops anything listed in `excluded` or marked `#[TsExclude]`. A custom collector usually implements only the three abstract methods.
 
-::: warning Collectors cache each directory's class list
+::: warning Collectors Cache Each Directory's Class List
 A collector reads each directory once per PHP process and reuses that list. `ts:publish` clears the cache at the start of every run, so a publish always sees the files on disk.
 
 Your own code can still see an old list. For example, a test helper or a `tinker` session might call `collect()` or `allows()`, write a PHP file, and call it again. The second call returns the list from before the write. Clear the cache between the write and the second call:
@@ -256,6 +256,6 @@ To use a template with a different name, point the feature's template key at it.
 
 Inertia's `inertia-config.blade.php` and Vite env's `vite-env.blade.php` have no template key. Edit your published copies to change them.
 
-::: warning Published templates don't update with the package
+::: warning Published Templates Don't Update With the Package
 Your copies stay as they were when you published them. After you upgrade the package, compare them with the package's new templates and merge the changes. A stale copy can leave out output the new version adds.
 :::
