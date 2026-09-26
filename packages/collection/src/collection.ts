@@ -459,9 +459,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     collapse() {
         // Arr::collapse merges the items alone, so the receiver's own keys never shape the result.
-        return this.newInstance(
-            handOver(dataCollapse(this.getItemValues(this.items))),
-        );
+        return this.newInstance(handOver(dataCollapse(this.orderedValues())));
     }
 
     /**

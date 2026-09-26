@@ -1153,6 +1153,21 @@ describe("Collection", () => {
             expect(collapsed.values().all()).toEqual([1, 2, 3]);
         });
 
+        it("collapses a Map-built collection's items in the order it holds them", () => {
+            const collapsed = collect(
+                new Map([
+                    [2, ["c"]],
+                    [0, ["a"]],
+                    [1, ["b"]],
+                ]),
+            ).collapse();
+
+            // docs/php-parity/task-30-map-order.json, "collapse-out-of-order-lists"
+            expect(collapsed.all()).toEqual(["c", "a", "b"]);
+            expect(collapsed.keys().all()).toEqual([0, 1, 2]);
+            expect(collapsed.values().all()).toEqual(["c", "a", "b"]);
+        });
+
         it("renumbers a negative integer key on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
             expect(
