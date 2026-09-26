@@ -5241,28 +5241,6 @@ describe("Collection", () => {
                     B: ["B", "B"],
                     C: ["C"],
                 });
-
-                const groups3 = data.mapToDictionary((item) => {
-                    return [item.name, item.id];
-                });
-
-                expect(groups3.all()).toEqual({
-                    A: [1],
-                    B: [2, 4],
-                    C: [3],
-                });
-
-                expect(() =>
-                    data.mapToDictionary((item) => {
-                        return [item.name];
-                    }),
-                ).toThrowError();
-
-                expect(() =>
-                    data.mapToDictionary((item) => {
-                        return [item.name, item.id, "error"];
-                    }),
-                ).toThrowError();
             });
 
             it("test map to dictionary with numeric keys", () => {
@@ -5288,17 +5266,47 @@ describe("Collection", () => {
                     a: [1, 3],
                     b: [2],
                 });
-
-                const groups3 = data.mapToDictionary((item, key) => {
-                    return [item, key];
-                });
-
-                expect(groups3.all()).toEqual({
-                    1: [0, 4],
-                    2: [1, 3],
-                    3: [2],
-                });
             });
+        });
+
+        it("files only the first pair the callback returns", () => {
+            const dictionary = collect([1, 2]).mapToDictionary((value) => ({
+                a: value,
+                b: value * 10,
+            }));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-multi-pair-takes-first"
+            expect(dictionary.all()).toEqual({ a: [1, 2] });
+            expect(dictionary.keys().all()).toEqual(["a"]);
+            expect(dictionary.values().all()).toEqual([[1, 2]]);
+        });
+
+        it("files a list the callback returns under key 0, its first pair", () => {
+            const rows = collect([
+                { id: 1, name: "A" },
+                { id: 2, name: "B" },
+            ]);
+
+            const pairs = rows.mapToDictionary((row) => [row.name, row.id]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-list-return"
+            expect(pairs.all()).toEqual({ 0: ["A", "B"] });
+            expect(pairs.keys().all()).toEqual([0]);
+            expect(pairs.values().all()).toEqual([["A", "B"]]);
+
+            const singles = rows.mapToDictionary((row) => [row.name]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-one-item-list-return"
+            expect(singles.all()).toEqual({ 0: ["A", "B"] });
+            expect(singles.keys().all()).toEqual([0]);
+            expect(singles.values().all()).toEqual([["A", "B"]]);
+        });
+
+        it("files false under an empty key when the callback returns no pair", () => {
+            const dictionary = collect([1, 2]).mapToDictionary(() => []);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-empty-return"
+            expect(dictionary.all()).toEqual({ "": [false, false] });
+            expect(dictionary.keys().all()).toEqual([""]);
+            expect(dictionary.values().all()).toEqual([[false, false]]);
         });
     });
 
@@ -20192,19 +20200,6 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             () =>
                 new Collection([{ n: "__proto__", i: 1 }])
                     .mapToDictionary((item) => ({ [item.n]: item.i }))
-                    .all(),
-        ],
-        [
-            "mapToDictionary (tuple)",
-            () =>
-                new Collection([1])
-                    .mapToDictionary(
-                        () =>
-                            ["__proto__", 1] as unknown as Record<
-                                string,
-                                number
-                            >,
-                    )
                     .all(),
         ],
         [

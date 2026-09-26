@@ -1915,7 +1915,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Run a dictionary map over the items.
      *
-     * The callback should return an array with two elements: [key, value] or an object with a single key/value pair.
+     * The callback should return an object with a single key/value pair. Only its first pair is read, so a list it
+     * returns files its first value under key 0.
      *
      * @param callback - The callback function to map with
      * @returns A new collection with mapped items as a dictionary where each value is an array of accumulated values
@@ -1923,6 +1924,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([{id: 1, name: 'A'}, {id: 2, name: 'B'}, {id: 3, name: 'A'}]).mapToDictionary(item => ({[item.name]: item.id})); -> new Collection({A: [1, 3], B: [2]})
+     * new Collection([{id: 1, name: 'A'}]).mapToDictionary(item => [item.name, item.id]); -> new Collection({0: ['A']})
      */
     mapToDictionary<
         TMapToDictionaryValue,
@@ -1933,42 +1935,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
     ) {
-        const dictionary = new Map<string | number, TMapToDictionaryValue[]>();
-
-        const bucket = (name: PropertyKey): TMapToDictionaryValue[] => {
-            const key = phpArrayKey(name);
-            const existing = dictionary.get(key);
-
-            if (existing) {
-                return existing;
-            }
-
-            const created: TMapToDictionaryValue[] = [];
-            dictionary.set(key, created);
-
-            return created;
-        };
+        const dictionary = new Map<string | number, unknown[]>();
 
         for (const [key, value] of this.entriesInOrder()) {
-            const mapped = callback(value, key);
+            // PHP reads the pair with key() and reset(), which give null and false when there is none.
+            const [pairKey, pairValue] = Object.entries(
+                callback(value, key),
+            )[0] ?? [null, false];
+            const dictionaryKey = phpArrayKey(pairKey);
+            const values = dictionary.get(dictionaryKey);
 
-            if (isArray(mapped)) {
-                if (mapped.length !== 2) {
-                    throw new Error(
-                        "When returning an array from the mapToDictionary callback, it must have exactly two elements: [key, value]",
-                    );
-                }
-
-                const [mappedKey, mappedValue] = mapped;
-
-                bucket(mappedKey as PropertyKey).push(
-                    mappedValue as TMapToDictionaryValue,
-                );
-                continue;
-            }
-
-            for (const [mappedKey, mappedValue] of Object.entries(mapped)) {
-                bucket(mappedKey).push(mappedValue as TMapToDictionaryValue);
+            if (values) {
+                values.push(pairValue);
+            } else {
+                dictionary.set(dictionaryKey, [pairValue]);
             }
         }
 
@@ -4783,7 +4763,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param callback - The callback to execute, receives the value and key as arguments, should return a [groupKey, groupValue] tuple
+     * @param callback - The callback to execute, receives the value and key as arguments, should return an object with
+     * a single key/value pair
      * @returns A new collection with the grouped items as collections
      */
     mapToGroups<
@@ -4793,16 +4774,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (
             value: TValue,
             key: TKey,
-        ) =>
-            | Record<TMapToGroupsKey, TMapToGroupsValue>
-            | [TMapToGroupsKey, TMapToGroupsValue],
+        ) => Record<TMapToGroupsKey, TMapToGroupsValue>,
     ) {
-        const dictionary = this.mapToDictionary(
-            callback as (
-                value: TValue,
-                key: TKey,
-            ) => Record<TMapToGroupsKey, TMapToGroupsValue>,
-        );
+        const dictionary = this.mapToDictionary(callback);
 
         // map() reads the plain object, which re-sorts integer keys, so the groups follow the dictionary's order.
         const entries = (dictionary.orderedEntries() ??
