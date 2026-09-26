@@ -7165,6 +7165,7 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
             expect(numbers.nth(1, 1.5).all()).toEqual([2, 3, 4, 5]);
 
+            // Same row over [1..5], and "C32-G-nth-out-of-order-offset" over PHP's [2 => 'c', 0 => 'a', 1 => 'b']
             for (const collection of [numbers, outOfOrderKeys()]) {
                 for (const offset of [NaN, 1e19]) {
                     expect(() => collection.nth(1, offset)).toThrowError(
