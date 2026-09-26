@@ -3819,7 +3819,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     zip<TZipValue>(
         // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        ...list: Array<
+        ...list: AtLeastOne<
             | DataItems<TZipValue, PropertyKey>
             | Collection<any, any>
             | null
@@ -6497,6 +6497,9 @@ type CollectionClass<TValue, TKey extends PropertyKey> = new (
     items?: unknown,
     ...args: unknown[]
 ) => Collection<TValue, TKey>;
+
+/** A rest parameter holding at least one argument, as a required PHP parameter read on with func_get_args(). */
+type AtLeastOne<TItem> = [TItem, ...TItem[]];
 
 /** An `@tolki/enum` definition, whose from() resolves a backing value to its case, as BackedEnum::from() does. */
 type EnumDefinition<TValue> = {

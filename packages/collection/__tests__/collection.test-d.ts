@@ -121,6 +121,13 @@ describe("collection type tests", () => {
         });
     });
 
+    describe("zip", () => {
+        it("requires the list to zip with, as PHP's zip($items) does", () => {
+            // @ts-expect-error - PHP throws ArgumentCountError for a zip() with no list
+            collect([1, 2]).zip();
+        });
+    });
+
     describe("mode", () => {
         it("answers the PHP array keys the values were counted under, or null", () => {
             expectTypeOf(collect([1, 2, 2]).mode()).toEqualTypeOf<Array<
