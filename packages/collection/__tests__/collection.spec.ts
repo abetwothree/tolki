@@ -16135,6 +16135,19 @@ describe("Collection", () => {
             ]).toEqual([3, null]);
         });
 
+        it("gives way to the next value after a null callback answer, and undefined with it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-null-callback-answers"
+            expect([
+                collect([1, 2]).max(() => null),
+                collect([1, 2]).max((value) => (value === 1 ? null : 0)),
+            ]).toEqual([null, 0]);
+            // JS-only: undefined stands for PHP's null, so it is read as null
+            expect([
+                collect([1, 2]).max(() => undefined),
+                collect([1, 2]).max((value) => (value === 1 ? undefined : 0)),
+            ]).toEqual([null, 0]);
+        });
+
         it("compares other strings as text, and never throws", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
             expect(collect(["b", "a", "c"]).max()).toBe("c");

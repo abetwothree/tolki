@@ -4768,7 +4768,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The key or callback to determine the value to max, or null to max the items directly
      * @returns The largest value of an item that is not null, compared as PHP's `>` compares them, or null when none is
      */
-    max(callback: ((value: TValue, key: TKey) => number) | PathKey = null) {
+    max(
+        callback:
+            | ((value: TValue, key: TKey) => number | null | undefined)
+            | PathKey = null,
+    ) {
         const callbackValue = this.valueRetriever(
             callback as PathKey | ((...args: (TValue | TKey)[]) => number),
         );
@@ -4778,7 +4782,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             (value: TValue) => isNull(value) || isUndefined(value),
         ).reduce(
             ((carry: number | null, item: TValue) => {
-                const value = callbackValue(item as TValue | TKey) as number;
+                // A callback's undefined is PHP's null too: the next value replaces it, and it answers when none does.
+                const value = (callbackValue(item as TValue | TKey) ??
+                    null) as number;
 
                 // PHP compiles $value > $result as $result < $value, which differs where <=> answers 1 both ways.
                 if (isNull(carry) || compareValues(carry, value) < 0) {
