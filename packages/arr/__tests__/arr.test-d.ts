@@ -6,6 +6,20 @@ import { describe, expectTypeOf, it } from "vitest";
 /** A depth the caller may leave out, which flattens every level. */
 declare const maybeDepth: number | undefined;
 
+/** A Collection-like item: a class instance whose items sit behind all(). */
+class ListBag {
+    all(): number[] {
+        return [1, 2];
+    }
+}
+
+/** A Collection-like item whose all() may hand back a list or a record, as Collection's is declared. */
+class EitherBag {
+    all(): number[] | Record<number, number> {
+        return [1, 2];
+    }
+}
+
 describe("arr type tests", () => {
     describe("accessible", () => {
         it("returns boolean for any input", () => {
@@ -1880,12 +1894,35 @@ describe("arr type tests", () => {
                 }>();
             });
 
-            it("answers a loose record once a list sits among the records", () => {
+            it("answers either shape for items that may be lists or records, as either may be all it holds", () => {
                 const data: (number[] | { x: number })[] = [[1], { x: 2 }];
 
                 expectTypeOf(Arr.collapse(data)).toEqualTypeOf<
-                    Record<string | number, unknown>
+                    number[] | Record<string | number, unknown>
                 >();
+            });
+        });
+
+        describe("items that are not plain objects", () => {
+            it("joins the lists Collection-like items hold, reading each through all()", () => {
+                expectTypeOf(
+                    Arr.collapse([new ListBag(), new ListBag()]),
+                ).toEqualTypeOf<number[]>();
+            });
+
+            it("answers either shape for Collection-like items whose all() may hold a list or a record", () => {
+                expectTypeOf(Arr.collapse([new EitherBag()])).toEqualTypeOf<
+                    number[] | Record<string | number, unknown>
+                >();
+            });
+
+            it("skips a Date or a Map, so a list of them collapses to an empty list", () => {
+                expectTypeOf(Arr.collapse([new Date()])).toEqualTypeOf<
+                    never[]
+                >();
+                expectTypeOf(
+                    Arr.collapse([new Map<string, number>()]),
+                ).toEqualTypeOf<never[]>();
             });
 
             it("merges explicitly typed Record array into single record", () => {

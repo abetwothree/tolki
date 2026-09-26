@@ -1,4 +1,5 @@
 import * as Arr from "@tolki/arr";
+import { collect } from "@tolki/collection";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
@@ -22,6 +23,13 @@ import {
 
 /** Not a fixture: the Set keeps its own type here, since the point is that a row takes one. */
 const numberSet = new Set([7, 8]);
+
+/** A Collection-like item: a class instance whose items sit behind all(). */
+class ListBag {
+    all(): number[] {
+        return [1, 2];
+    }
+}
 
 describe("data setops type tests", () => {
     describe("dataDiff", () => {
@@ -337,6 +345,36 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataCollapse(nestedRecord)).toEqualTypeOf(
                 Obj.collapse(nestedRecord),
             );
+        });
+
+        it("matches arr.collapse for a list of Collection-likes, joining the lists they hold", () => {
+            const bags = [new ListBag(), new ListBag()];
+
+            expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf(
+                Arr.collapse(bags),
+            );
+            expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf<number[]>();
+        });
+
+        it("matches arr.collapse for a list of Collections, whose all() may hand back either shape", () => {
+            const collections = [collect([1, 2]), collect([3])];
+
+            expectTypeOf(Data.dataCollapse(collections)).toEqualTypeOf(
+                Arr.collapse(collections),
+            );
+            // A Collection declares all() as a list or a record until its shape decides it, so either may come back.
+            expectTypeOf(Data.dataCollapse(collections)).toEqualTypeOf<
+                number[] | Record<string | number, unknown>
+            >();
+        });
+
+        it("matches arr.collapse for a list of Dates, which it skips", () => {
+            const dates = [new Date()];
+
+            expectTypeOf(Data.dataCollapse(dates)).toEqualTypeOf(
+                Arr.collapse(dates),
+            );
+            expectTypeOf(Data.dataCollapse(dates)).toEqualTypeOf<never[]>();
         });
 
         it("matches arr.collapse for a list of records, merging their keys", () => {

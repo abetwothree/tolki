@@ -211,6 +211,48 @@ type DotLeaf<T, D extends number = 5> = [D] extends [never]
           : T;
 type DotDepth = [never, 0, 1, 2, 3, 4];
 
+// CollapseRead (collapse): an item as collapse reads it, a Collection-like one through all().
+type CollapseRead<T> = T extends { all: (...args: never[]) => infer R } ? R : T;
+// A list, Date, Map, Set, Promise, function or scalar item is joined or skipped, never merged. Each member of an item
+// type is judged on its own: a list is assignable to Record<number, V>, so Exclude would drop it along with one.
+type CollapseNotPlain =
+    | readonly unknown[]
+    | NonObjectItems
+    | Date
+    | RegExp
+    | Promise<unknown>;
+type CollapsePlain<T> =
+    CollapseRead<T> extends infer U
+        ? U extends CollapseNotPlain
+            ? never
+            : U extends object
+              ? U
+              : never
+        : never;
+type CollapseOther<T> =
+    CollapseRead<T> extends infer U
+        ? U extends CollapseNotPlain
+            ? U
+            : U extends object
+              ? never
+              : U
+        : never;
+type CollapseListItem<T> =
+    CollapseRead<T> extends infer U
+        ? U extends readonly (infer E)[]
+            ? E
+            : never
+        : never;
+// ArrCollapse (collapse): a plain object among the items hands the list to obj.collapse; without one, the lists' items
+// are joined and any other item is skipped. An item type that may be either kind may give either answer.
+type ArrCollapse<TItem> =
+    | ([CollapseOther<TItem>] extends [never]
+          ? never
+          : CollapseListItem<TItem>[])
+    | ([CollapsePlain<TItem>] extends [never]
+          ? never
+          : CollapsedObject<Record<number, TItem>>);
+
 // PrependedItem (prepend): an element type that already holds the value keeps it, since TypeScript leaves a union of
 // two equal object types, such as a declared row and an object literal, unmerged.
 type PrependedItem<TValue, TPrependValue> = [TPrependValue] extends [TValue]
@@ -652,10 +694,10 @@ export function collapse<TValue>(data: TValue[][]): TValue[];
 export function collapse<TValue extends ArrayItems<ArrayItems<unknown>>>(
     data: TValue,
 ): ArrayInnerValue<TValue[number]>[];
-// A plain object among the items hands the whole list to obj.collapse, so it answers what that answers for a list.
+// A list of objects: each is read through all(), and ArrCollapse answers what the runtime gives either way.
 export function collapse<TItem extends object>(
     data: ArrayItems<TItem>,
-): CollapsedObject<Record<number, TItem>>;
+): ArrCollapse<TItem>;
 export function collapse<TValue extends ArrayItems<unknown>>(
     data: TValue,
 ): Record<string, unknown> | ArrayInnerValue<TValue[number]>[] | unknown[];
