@@ -2886,7 +2886,8 @@ export function random<TValue>(
         );
     }
 
-    if (numberProvided && operatorMatch(requested, "<=", 0)) {
+    // Arr::random's empty($array) guard answers before the count reaches pickArrayKeys, a NAN count included.
+    if (count === 0 || (numberProvided && operatorMatch(requested, "<=", 0))) {
         return [];
     }
 

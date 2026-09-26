@@ -7614,6 +7614,12 @@ describe("Obj", () => {
                 "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
             );
         });
+
+        it("picks nothing from an empty object at a NAN count, as Arr::random's empty guard answers first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-nan-count-on-empty"
+            expect(Obj.random({}, NaN)).toEqual({});
+            expect(Obj.random({}, NaN, true)).toEqual({});
+        });
     });
 
     describe("shift", () => {

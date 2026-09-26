@@ -4226,10 +4226,9 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
         );
     }
 
-    // Reaching this point with `number` null/undefined would mean requested === 1
-    // survived the throw guard above (which requires count >= 1), so `number` is
-    // always provided here — Arr.php:983's empty-or-non-positive short-circuit yields [].
-    if (operatorMatch(requested, "<=", 0)) {
+    // Arr::random's empty($array) guard answers before the count reaches pickArrayKeys, a NAN count included;
+    // a null count is 1 here, which the check above already threw for when the object is empty.
+    if (count === 0 || operatorMatch(requested, "<=", 0)) {
         return {} as Record<TKey, TValue>;
     }
 

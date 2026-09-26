@@ -6999,6 +6999,16 @@ describe("Collection", () => {
             );
         });
 
+        it("picks nothing from an empty collection at a NAN count, as Arr::random's empty guard answers first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-nan-count-on-empty"
+            expect(collect([]).random(NaN).all()).toEqual([]);
+            expect(
+                collect([])
+                    .random(() => NaN)
+                    .all(),
+            ).toEqual([]);
+        });
+
         it("reindexes from zero by default into a list, either backing", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-record-count-is-list"
             for (const picked of [

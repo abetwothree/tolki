@@ -5393,6 +5393,12 @@ describe("Arr", () => {
             );
         });
 
+        it("picks nothing from an empty array at a NAN count, as Arr::random's empty guard answers first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-nan-count-on-empty"
+            expect(Arr.random([], NaN)).toEqual([]);
+            expect(Arr.random([], NaN, true)).toEqual([]);
+        });
+
         it("returns the picked values in the array's own order, not the order drawn", () => {
             // docs/php-parity/task-30-map-order.json, "random-list-full-count"
             expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([
