@@ -7548,6 +7548,32 @@ describe("Obj", () => {
                 "You requested 3 items, but there are only 2 items available.",
             );
         });
+
+        it("truncates a fractional count, as Arr::random's int cast does", () => {
+            const data = { a: 1, b: 2, c: 3 };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            expect(Object.keys(Obj.random(data, 1.2))).toHaveLength(1);
+            expect(Object.keys(Obj.random(data, 2.9))).toHaveLength(2);
+            expect(Object.keys(Obj.random(data, 1.5, true))).toHaveLength(1);
+        });
+
+        it("checks a fractional count against the items before truncating it", () => {
+            const data = { a: 1, b: 2, c: 3 };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            expect(() => Obj.random(data, 3.5)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Obj.random(data, 3.5)).toThrow(
+                "You requested 3.5 items, but there are only 3 items available.",
+            );
+            expect(() => Obj.random(data, 0.5)).toThrow(
+                new Error(
+                    "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
+                ),
+            );
+        });
     });
 
     describe("shift", () => {

@@ -5335,6 +5335,30 @@ describe("Arr", () => {
             );
         });
 
+        it("truncates a fractional count, as Arr::random's int cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            expect(Arr.random([1, 2, 3], 1.2)).toHaveLength(1);
+            expect(Arr.random([1, 2, 3], 2.9)).toHaveLength(2);
+            expect(Object.keys(Arr.random([1, 2, 3], 1.5, true))).toHaveLength(
+                1,
+            );
+        });
+
+        it("checks a fractional count against the items before truncating it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            expect(() => Arr.random([1, 2, 3], 3.5)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.random([1, 2, 3], 3.5)).toThrow(
+                "You requested 3.5 items, but there are only 3 items available.",
+            );
+            expect(() => Arr.random([1, 2, 3], 0.5)).toThrow(
+                new Error(
+                    "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
+                ),
+            );
+        });
+
         it("returns the picked values in the array's own order, not the order drawn", () => {
             // docs/php-parity/task-30-map-order.json, "random-list-full-count"
             expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([

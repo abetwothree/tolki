@@ -6784,6 +6784,14 @@ describe("Collection", () => {
             );
         });
 
+        it("truncates a fractional count, as Arr::random's int cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-float-count"
+            expect([
+                collect([1, 2, 3]).random(1.2).count(),
+                collect([1, 2, 3]).random(2.9).count(),
+            ]).toEqual([1, 2]);
+        });
+
         // Arr.php:971 defaults $preserveKeys = false. Array- and object-backed
         // Collections must agree, per the unison rule.
         it("reindexes from zero by default, either backing", () => {

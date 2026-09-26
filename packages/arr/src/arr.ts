@@ -2828,10 +2828,11 @@ export function query(data: unknown): string {
  * The picked items come back in the array's own order, as `Randomizer::pickArrayKeys` returns them.
  *
  * @param data - The array to get random values from. Non-array-like input is treated as absent, not as an empty array.
- * @param number - The number of items to return. If null, returns a single item.
+ * @param number - The number of items to return, a fraction truncated. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
  * @returns A single random item, an array of random items, an empty array when zero or fewer items are requested, or null when no count is given and the input isn't array-like.
  * @throws InvalidArgumentException if more items are requested than are available, including requesting a single item (or any positive count) from an empty array.
+ * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it.
  *
  * @example
  *
@@ -2886,11 +2887,20 @@ export function random<TValue>(
         return [];
     }
 
+    // Randomizer::pickArrayKeys takes an int count, so PHP truncates a fraction and rejects one left below 1.
+    const picks = Math.trunc(requested);
+
+    if (picks < 1) {
+        throw new Error(
+            "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
+        );
+    }
+
     // Generate random indices
     const selectedIndices: number[] = [];
     const availableIndices = Array.from({ length: count }, (_, i) => i);
 
-    for (let i = 0; i < requested; i++) {
+    for (let i = 0; i < picks; i++) {
         const randomIndex = randomInt(0, availableIndices.length - 1);
         selectedIndices.push(availableIndices[randomIndex] as number);
         availableIndices.splice(randomIndex, 1);
