@@ -1232,6 +1232,15 @@ describe("Collection", () => {
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
 
+        it("skips an item that is an object but no plain object, as collapse does", () => {
+            const collapsed = collect([[1, 2], new Date(0)]).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-skips-object-item"
+            expect(collapsed.all()).toEqual([1, 2]);
+            expect(collapsed.keys().all()).toEqual([0, 1]);
+            expect(collapsed.values().all()).toEqual([1, 2]);
+        });
+
         it("collapses an outer collection with string keys", () => {
             // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
             // "collapseWithKeys-mixed-keys" and "collapseWithKeys-string-keys-lists"

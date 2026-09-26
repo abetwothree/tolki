@@ -484,8 +484,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return value.all();
             }
 
-            // If it's not an array or object, skip it
-            if (!isArray(value) && !isObject(value)) {
+            // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
+            if (!isArray(value) && !isPlainObject(value)) {
                 return null;
             }
 
