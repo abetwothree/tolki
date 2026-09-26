@@ -8262,6 +8262,68 @@ describe("Data", () => {
             expect(
                 Data.dataContainsStrict({ r: { name: "x" } }, "name", null),
             ).toBe(false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-containsStrict-two-args-dot-path"
+            const users = [{ user: { id: 1 } }, { user: { id: 2 } }];
+            expect(Data.dataContainsStrict(users, "user.id", 2)).toBe(true);
+            expect(Data.dataContainsStrict(users, "user.id", "2")).toBe(false);
+            expect(
+                Data.dataContainsStrict(
+                    { r: { user: { id: 2 } } },
+                    "user.id",
+                    2,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    { r: { user: { id: 2 } } },
+                    "user.id",
+                    "2",
+                ),
+            ).toBe(false);
+        });
+
+        it("compares a key path strictly through a Map, as through the record it mirrors", () => {
+            // JS-only: PHP has no Map, so each answer is its keyed array's.
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-assoc-backed-contains",
+            // "containsStrict-two-args": "array", "reordered" and "null-missing"
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { tags: ["a", "b"] }]]),
+                    "tags",
+                    ["a", "b"],
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { t: { x: 1, y: 2 } }]]),
+                    "t",
+                    { y: 2, x: 1 },
+                ),
+            ).toBe(false);
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { a: 1 }]]),
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-C-containsStrict-two-args-dot-path", "keyed"
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { user: { id: 2 } }]]),
+                    "user.id",
+                    2,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { user: { id: 2 } }]]),
+                    "user.id",
+                    "2",
+                ),
+            ).toBe(false);
         });
 
         it("counts a callback match holding null, as array_any does, on both backings", () => {

@@ -2426,8 +2426,9 @@ export const dataContains = dispatch(arrContains, objContains);
  * walks the array, and the keys PHP stores as one (`1` and `"1"`) hold only the last value.
  *
  * @param data - The data to search
- * @param key - The value to search for, a callback, or the key path to compare when `value` is given
- * @param value - The value the key path must strictly equal
+ * @param key - The value to search for, a callback, or the dot path to compare when `value` is given; the path takes
+ * no `*` wildcard, where PHP's `data_get` reads one
+ * @param value - The value the path must strictly equal
  * @returns True if a match is found, false otherwise
  *
  * @example
@@ -2436,6 +2437,7 @@ export const dataContains = dispatch(arrContains, objContains);
  * dataContainsStrict([1, 3, 5, '02'], 2); -> false
  * dataContainsStrict({ a: 1, b: null }, (value) => value === null); -> true
  * dataContainsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
+ * dataContainsStrict([{ user: { id: 2 } }], 'user.id', 2); -> true
  */
 export const dataContainsStrict = dispatch(
     arrContainsStrict,
