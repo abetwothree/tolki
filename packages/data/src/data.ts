@@ -1942,11 +1942,13 @@ export const dataSortRecursiveDesc = dispatch(
  *
  * @param data - The data to splice. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
- * @param offset - The starting index
- * @param length - The number of items to remove. Defaults to everything
+ * @param offset - The starting index; a fraction is dropped
+ * @param length - The number of items to remove, a fraction dropped. Defaults to everything
  * from offset to the end.
  * @param replacement - The items to insert
  * @returns The removed items.
+ * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
+ * refuses.
  *
  * @example
  *
@@ -2233,9 +2235,11 @@ export const dataReverse = dispatch(arrReverse, objReverse);
  * each value lands on the key PHP's padded array gives it.
  *
  * @param data - The data to pad
- * @param size - The desired size
+ * @param size - The desired size; a fraction is dropped
  * @param value - The value to pad with
  * @returns Padded data
+ * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it.
+ * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError.
  *
  * @example
  *
