@@ -2112,6 +2112,8 @@ export function prependKeysWith<TValue>(
  * Mirrors PHP's `(array) $keys` cast in `Arr::only` (Arr.php:744): `null` becomes
  * no keys, a bare index becomes a single-index selection.
  *
+ * Items keep the array's order, not the order of `keys`, as with `array_intersect_key`.
+ *
  * @param data - The array to get items from.
  * @param keys - The index, indices, or null to select.
  * @returns A new array with only the specified indices.
@@ -2119,6 +2121,7 @@ export function prependKeysWith<TValue>(
  * @example
  *
  * only(['a', 'b', 'c', 'd'], [0, 2]); -> ['a', 'c']
+ * only(['a', 'b', 'c', 'd'], [3, 1]); -> ['b', 'd']
  */
 export function only<TValue>(
     data: ArrayItems<TValue>,
@@ -2132,17 +2135,12 @@ export function only<TValue>(
     data: ArrayItems<TValue> | unknown,
     keys: number | number[] | null,
 ): TValue[] {
-    const values = getAccessibleValues(data);
-    const result: TValue[] = [];
+    const values = getAccessibleValues(data) as TValue[];
     const keyList = isArray(keys) ? keys : isNull(keys) ? [] : [keys];
+    // array_flip keys the selection by each index, so a repeated index still picks its item once.
+    const wanted = new Set(keyList.map(String));
 
-    for (const key of keyList) {
-        if (key >= 0 && key < values.length) {
-            result.push(values[key] as TValue);
-        }
-    }
-
-    return result;
+    return values.filter((_, index) => wanted.has(String(index)));
 }
 
 /**

@@ -4070,6 +4070,13 @@ describe("Arr", () => {
             expect(Arr.only([10, 20, 30, 40], 1)).toEqual([20]);
             expect(Arr.only([10, 20, 30, 40], null)).toEqual([]);
         });
+
+        it("keeps the array's order and lists a repeated index once, as array_intersect_key does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-only-repeated-keys" and
+            // "C32-D-only-list-keys", whose keys name these items; a list renumbers them, as every removal does
+            expect(Arr.only(["a", "b", "c"], [2, 0, 2])).toEqual(["a", "c"]);
+            expect(Arr.only(["a", "b", "c", "d"], [3, 1])).toEqual(["b", "d"]);
+        });
     });
 
     describe("prepend", () => {

@@ -5545,6 +5545,15 @@ describe("Collection", () => {
             });
             expect(collect({ a: 1 }).only(null).all()).toEqual({ a: 1 });
         });
+
+        it("keeps a list's own order, not the order of the keys", () => {
+            const only = collect(["a", "b", "c", "d"]).only([3, 1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-list-keys", whose keys 1 and 3
+            // name these items; a list renumbers them, as every removal from a list does
+            expect(only.all()).toEqual(["b", "d"]);
+            expect(only.keys().all()).toEqual([0, 1]);
+        });
     });
 
     describe("select", () => {
