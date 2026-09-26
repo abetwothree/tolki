@@ -12548,6 +12548,27 @@ describe("Collection", () => {
             expect(inactive.all()).toEqual([{ status: "inactive" }]);
         });
 
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            const rows = () => collect([{ v: null }, { v: 0 }, { v: 1 }]);
+            const [passed, failed] = rows().partition("v", null);
+            const [passedUndefined, failedUndefined] = rows().partition(
+                "v",
+                undefined,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-two-arg-null", whose keys
+            // [0, 1] and [2] name these rows; a list half renumbers its keys, as every removal from a list does
+            expect([passed.pluck("v").all(), failed.pluck("v").all()]).toEqual([
+                [null, 0],
+                [1],
+            ]);
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                passedUndefined.pluck("v").all(),
+                failedUndefined.pluck("v").all(),
+            ]).toEqual([[null, 0], [1]]);
+        });
+
         it("partitions the items themselves by PHP truthiness for a null key", () => {
             const [passed, failed] = collect([
                 1,
@@ -13129,6 +13150,17 @@ describe("Collection", () => {
                     { v: 2, g: null },
                 ]);
             });
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            const rows = collect([{ a: 1 }, { b: 2 }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-missing-key-null"
+            expect(rows.where("missing", null).keys().all()).toEqual([0, 1]);
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect(rows.where("missing", undefined).keys().all()).toEqual([
+                0, 1,
+            ]);
         });
 
         it("keeps no item whose value is an object when given only a key", () => {

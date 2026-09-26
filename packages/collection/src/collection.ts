@@ -4890,19 +4890,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
         operator?: unknown,
         value?: unknown,
+    ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>>;
+    partition(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>> {
-        let callback;
-        if (isUndefined(operator) && isUndefined(value)) {
-            callback = this.valueRetriever(
-                key as PathKey | ((...args: (TValue | TKey)[]) => unknown),
-            );
-        } else {
-            callback = this.operatorForWhere(
-                key as PathKey | ((value: TValue, index: TKey) => unknown),
-                operator as string | undefined,
-                value,
-            );
-        }
+        const callback: (value: TValue, key: TKey) => unknown =
+            args.length === 1
+                ? this.valueRetriever(
+                      args[0] as
+                          | PathKey
+                          | ((...args: (TValue | TKey)[]) => unknown),
+                  )
+                : this.operatorForWhereArgs(args);
 
         const [passed, failed] = dataPartition(this.items, (item, key) =>
             callback(item as TValue, key as TKey),
@@ -5047,10 +5050,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, index: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
-    ) {
-        return this.filter(
-            this.operatorForWhere(key, operator as string | undefined, value),
-        );
+    ): this;
+    where(
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): this {
+        return this.filter(this.operatorForWhereArgs(args));
     }
 
     /**
