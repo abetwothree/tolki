@@ -207,6 +207,71 @@ describe("Utils", () => {
             }
         });
 
+        it("prints a float range's figures as %.1f does, an exact half to even and its sign from the value", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-size-message-rounding" and
+            // "C32-A-range-size-message-signs-and-carries"
+            for (const [[start, end, step], message] of [
+                [
+                    [0.25, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258176.8 elements: start=0.2, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [-0.25, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258177.2 elements: start=-0.2, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [1.75, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258175.2 elements: start=1.8, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [0, 1e10, 1.25],
+                    "The supplied range exceeds the maximum array size by 6926258177.0 elements: start=0.0, end=10000000000.0, step=1.2. Max size: 1073741824",
+                ],
+                [
+                    [-0, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=0.0, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [-0.04, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=-0.0, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [0.05, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258177.0 elements: start=0.1, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [99.95, 1e10, 1],
+                    "The supplied range exceeds the maximum array size by 8926258077.0 elements: start=100.0, end=10000000000.0, step=1.0. Max size: 1073741824",
+                ],
+            ] as [[number, number, number], string][]) {
+                expect(() => Utils.resolveRangeSize(start, end, step)).toThrow(
+                    new Error(message),
+                );
+            }
+        });
+
+        it("prints a size that overflows as inf", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-size-message-infinite"
+            for (const [[start, end, step], message] of [
+                [
+                    [0, 1, 5e-324],
+                    "The supplied range exceeds the maximum array size by inf elements: start=0.0, end=1.0, step=0.0. Max size: 1073741824",
+                ],
+                [
+                    [-1e308, 1e308, 1],
+                    "The supplied range exceeds the maximum array size by inf elements: start=-100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, end=100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, step=1.0. Max size: 1073741824",
+                ],
+                [
+                    [0, 1e308, 1e-10],
+                    "The supplied range exceeds the maximum array size by inf elements: start=0.0, end=100000000000000001097906362944045541740492309677311846336810682903157585404911491537163328978494688899061249669721172515611590283743140088328307009198146046031271664502933027185697489699588559043338384466165001178426897626212945177628091195786707458122783970171784415105291802893207873272974885715430223118336.0, step=0.0. Max size: 1073741824",
+                ],
+            ] as [[number, number, number], string][]) {
+                expect(() => Utils.resolveRangeSize(start, end, step)).toThrow(
+                    new Error(message),
+                );
+            }
+        });
+
         it("throws range()'s ValueError for a count past the maximum array size, as times() hands range() one", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-past-maximum-array-size"
             for (const [[start, end, step], message] of [

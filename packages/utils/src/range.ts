@@ -194,9 +194,9 @@ export function resolveRangeSize(
     }
 
     const sized = span / stride + 1;
-    // A number is one of PHP's ints exactly when PHP can store it as an array key: an integer within 64 bits.
-    const isFloatRange = ![start, end, step].every((bound) =>
-        isPhpArrayKey(bound),
+    // A number is one of PHP's ints exactly when PHP can store it as an array key, and PHP has no integer -0.
+    const isFloatRange = ![start, end, step].every(
+        (bound) => isPhpArrayKey(bound) && !Object.is(bound, -0),
     );
 
     if (sized >= PHP_MAX_ARRAY_SIZE) {
@@ -262,12 +262,38 @@ function rangeTooLarge(
 }
 
 /**
- * Print a float the way PHP's `%.1f` does, every digit of a large one included.
+ * Print a number as `%.1f` prints it in PHP's messages: its exact value rounded to one decimal, an exact half to even.
  *
- * @param value - The finite float to print
- * @returns The number with one decimal
+ * @param value - The number to print
+ * @returns The number with one decimal, every digit of a large one included, or inf for a size that overflows
  */
 function phpFixedPoint(value: number): string {
-    // toFixed() switches to an exponent from 1e21 on, where %.1f keeps printing digits; such a double is an integer.
-    return Math.abs(value) < 1e21 ? value.toFixed(1) : `${BigInt(value)}.0`;
+    // Only a range's size can overflow, and only upward.
+    if (!isFiniteNumber(value)) {
+        return "inf";
+    }
+
+    // Doubling is exact, so the magnitude is scaled / 2^places, and scaled * 10 / 2^places its exact tenths.
+    let scaled = Math.abs(value);
+    let places = 0;
+
+    while (!isInteger(scaled)) {
+        scaled *= 2;
+        places++;
+    }
+
+    const divisor = 2n ** BigInt(places);
+    const exact = BigInt(scaled) * 10n;
+    const twiceRemainder = (exact % divisor) * 2n;
+    let tenths = exact / divisor;
+
+    if (
+        twiceRemainder > divisor ||
+        (twiceRemainder === divisor && tenths % 2n === 1n)
+    ) {
+        tenths += 1n;
+    }
+
+    // The sign follows the value, so -0.04 prints -0.0 while -0 prints 0.0.
+    return `${value < 0 ? "-" : ""}${tenths / 10n}.${tenths % 10n}`;
 }
