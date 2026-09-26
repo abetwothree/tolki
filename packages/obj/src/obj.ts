@@ -4101,7 +4101,7 @@ export function query(data: unknown): string {
  * @param number - The number of items to return, a fraction truncated. If null, returns a single item.
  * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
- * @throws InvalidArgumentException if more items are requested than available, even against an empty object (Arr.php:977).
+ * @throws InvalidArgumentException if more items are requested than available, even against an empty object.
  * @throws TypeError for a NAN count or a string that is not numeric, which PHP's Randomizer rejects too.
  * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it.
  *

@@ -2831,7 +2831,8 @@ export function query(data: unknown): string {
  * @param number - The number of items to return, a fraction truncated. If null, returns a single item.
  * @param preserveKeys - Whether to preserve the original keys when returning multiple items.
  * @returns A single random item, an array of random items, an empty array when zero or fewer items are requested, or null when no count is given and the input isn't array-like.
- * @throws InvalidArgumentException if more items are requested than are available, including requesting a single item (or any positive count) from an empty array.
+ * @throws InvalidArgumentException if more items are requested than are available, including requesting a single
+ * item (or any positive count) from an empty array.
  * @throws TypeError for a NAN count or a string that is not numeric, which PHP's Randomizer rejects too.
  * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it.
  *
