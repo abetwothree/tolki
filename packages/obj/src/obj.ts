@@ -7,6 +7,7 @@ import {
     getObjectValue,
     hasMixed,
     isArrayAccess,
+    isEnumerable,
     readPluckKey,
     resolvePluckPath,
     setObjectValue,
@@ -7193,7 +7194,8 @@ function selectItem(
     }
 
     // An array's entries are its own keys, as PHP stores them; an object's are the properties isset() finds set.
-    const entries = new Map(keyedEntries(item));
+    // JS-only: an Enumerable gives none, as JS cannot tell a public property from state such as its items.
+    const entries = new Map(isEnumerable(item) ? [] : keyedEntries(item));
     const readsIsset = !isPhpAccessible(item);
 
     for (const key of keys) {

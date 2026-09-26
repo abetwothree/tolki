@@ -219,6 +219,6 @@ export function isArrayAccess(value: unknown): value is {
  * @param value - The value to test.
  * @returns True for an object other than a plain one with an `all` method; a plain object is data.
  */
-function isEnumerable(value: unknown): value is { all(): unknown } {
+export function isEnumerable(value: unknown): value is { all(): unknown } {
     return isObject(value) && !isPlainObject(value) && isFunction(value["all"]);
 }

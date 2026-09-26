@@ -6794,6 +6794,33 @@ describe("Obj", () => {
             ]);
         });
 
+        it("reads none of an Enumerable item's own fields, which hold its items and state", () => {
+            class Rows {
+                readonly items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.items = items;
+                }
+
+                all(): Record<string, unknown> {
+                    return this.items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.items[offset];
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-row-fields"
+            expect(
+                Obj.select({ r: new Rows({ a: 1 }) }, ["items", "a"]),
+            ).toEqual({ r: { a: 1 } });
+        });
+
         it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
             const data = { r: { "": "e", a: 1 } };
 
