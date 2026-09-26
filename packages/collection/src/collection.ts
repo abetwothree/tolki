@@ -6528,6 +6528,16 @@ function handOver<TItems extends object>(items: TItems): TItems {
 }
 
 /**
+ * Whether entries' keys run 0..n-1 in order, as a PHP list's keys do.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns True when the keys are exactly 0, 1, 2 and on, in turn
+ */
+function isListOrder(entries: Map<PropertyKey, unknown>): boolean {
+    return [...entries.keys()].every((key, index) => key === index);
+}
+
+/**
  * Hand over entries in PHP's order: as a list while their keys run 0..n-1, otherwise as the Map that holds the order.
  *
  * @param entries - The entries, in the order PHP's array holds them
@@ -6536,7 +6546,7 @@ function handOver<TItems extends object>(items: TItems): TItems {
 function inPhpOrder<TValue>(
     entries: Map<PropertyKey, TValue>,
 ): TValue[] | Map<PropertyKey, TValue> {
-    if ([...entries.keys()].every((key, index) => key === index)) {
+    if (isListOrder(entries)) {
         return handOver([...entries.values()]);
     }
 
@@ -6620,7 +6630,7 @@ function nextIntegerKey(entries: Map<PropertyKey, unknown>): number {
 function phpArrayValue(
     entries: Map<PropertyKey, unknown>,
 ): unknown[] | Record<string, unknown> {
-    if ([...entries.keys()].every((key, index) => key === index)) {
+    if (isListOrder(entries)) {
         return [...entries.values()];
     }
 
