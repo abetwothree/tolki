@@ -52,6 +52,20 @@ export class Point {
     y = 2;
 }
 
+/** A class instance with a method, which the runtime's copy of its own fields leaves out. */
+export class User {
+    name = "Taylor";
+
+    /**
+     * Greet the user.
+     *
+     * @returns The greeting's length
+     */
+    greet(): number {
+        return this.name.length;
+    }
+}
+
 /** An Arrayable whose toArray() answers a list. */
 export class ArrayableNumbers {
     /**

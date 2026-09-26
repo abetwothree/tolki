@@ -177,7 +177,8 @@ type ItemsCollection<TItems> = Collection<
  * @returns A new collection holding a copy of the items
  *
  * @remarks A plain object with a toArray, toJson or jsonSerialize member is typed by the interface it matches,
- * though at runtime every plain object is data.
+ * though at runtime every plain object is data. A class instance's methods are typed among its items, since
+ * TypeScript cannot tell a method from a function-valued field, though only its own fields are copied.
  *
  * @example
  *

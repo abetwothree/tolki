@@ -19,6 +19,7 @@ import {
     SerializesScalar,
     settings,
     Tagged,
+    User,
 } from "./fixtures";
 
 describe("collection foundation type tests", () => {
@@ -167,6 +168,13 @@ describe("collection foundation type tests", () => {
         it("reads a class instance as the record of its fields", () => {
             expectTypeOf(collect(new Point())).toEqualTypeOf<
                 Collection<number, "x" | "y", "keyed">
+            >();
+        });
+
+        it("types a class instance's methods among its items", () => {
+            // TypeScript cannot tell a method from a function-valued field, so greet() is typed though never copied.
+            expectTypeOf(collect(new User())).toEqualTypeOf<
+                Collection<string | (() => number), "name" | "greet", "keyed">
             >();
         });
     });
