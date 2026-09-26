@@ -13379,6 +13379,34 @@ describe("Collection", () => {
                 expect(mapped.get(1)!.value).toBe("second");
             });
         });
+
+        it("hands the class each value and its key", () => {
+            class RecordsArguments {
+                public args: unknown[];
+
+                constructor(...args: unknown[]) {
+                    this.args = args;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-constructor-args"
+            expect(
+                collect(["first", "second"])
+                    .mapInto(RecordsArguments)
+                    .map((object) => object.args)
+                    .all(),
+            ).toEqual([
+                ["first", 0],
+                ["second", 1],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-constructor-args-assoc"
+            expect(
+                collect({ x: "first" })
+                    .mapInto(RecordsArguments)
+                    .map((object) => object.args)
+                    .all(),
+            ).toEqual({ x: ["first", "x"] });
+        });
     });
 
     describe("min", () => {

@@ -4814,16 +4814,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Map the values into a new class.
      *
-     * @param className - The class to map the values into, should have a constructor that accepts the value
+     * @param className - The class to map the values into, whose constructor receives each value and its key
      * @returns A new collection with the values mapped into the new class
      */
     mapInto<TMapIntoValue>(
         className: new (...args: unknown[]) => TMapIntoValue,
     ): Collection<TMapIntoValue, TKey> {
-        return this.map((item) => new className(item)) as unknown as Collection<
-            TMapIntoValue,
-            TKey
-        >;
+        return this.map(
+            (value, key) => new className(value, key),
+        ) as unknown as Collection<TMapIntoValue, TKey>;
     }
 
     /**
