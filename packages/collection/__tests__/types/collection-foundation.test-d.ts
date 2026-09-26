@@ -1,6 +1,6 @@
 import type * as Exported from "@tolki/collection";
 import { collect, Collection } from "@tolki/collection";
-import type { MapArrayKey } from "@tolki/types";
+import type { Arrayable, MapArrayKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 import {
@@ -273,6 +273,25 @@ describe("collection foundation type tests", () => {
 
         it("keeps a subclass assignable where the base collection is expected", () => {
             expectTypeOf(new Tagged()).toExtend<Collection<number, number>>();
+        });
+
+        it("takes an Arrayable, a list or a scalar a subclass's constructor hands on", () => {
+            class Forwarding extends Collection<number, number> {
+                constructor(
+                    items?:
+                        | number
+                        | readonly number[]
+                        | Arrayable<number>
+                        | Iterable<number>
+                        | null,
+                ) {
+                    super(items);
+                }
+            }
+
+            expectTypeOf(new Forwarding(new ArrayableNumbers())).toExtend<
+                Collection<number, number>
+            >();
         });
     });
 

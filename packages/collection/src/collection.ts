@@ -335,6 +335,10 @@ export class Collection<
         items?:
             | DataIterableItems<TValue, TKey>
             | Collection<TValue, TKey, TShape>
+            | ReadonlyMap<TKey, TValue>
+            | { toArray(): readonly TValue[] | Record<TKey, TValue> }
+            | { jsonSerialize(): readonly TValue[] | Record<TKey, TValue> }
+            | (TValue & (string | number | boolean | symbol))
             | null,
     );
     constructor(items?: unknown) {
