@@ -91,6 +91,7 @@ import {
     isPhpFalsy,
     isPlainObject,
     isString,
+    isStringable,
     isSymbol,
     isTruthyObject,
     isUndefined,
@@ -1500,31 +1501,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const first = this.first();
 
-        if (!isNull(value)) {
-            // Check if we should pluck: first item is an array or a plain object
-            // Note: We check isArray first, then isObject. For objects, we want to pluck
-            // unless they are Stringable objects (which have custom toString).
-            // Plain objects inherit toString from Object.prototype, so we need to check
-            // if toString is a custom method or the inherited one.
-            if (
-                isArray(first) ||
-                (isObject(first) && first.constructor === Object)
-            ) {
-                // With no key argument `pluck` answers a list in iteration order, so
-                // plucking the ORDERED values keeps PHP's order. The cast re-narrows what
-                // isFunction left: its constraint takes unknown[], so it subtracts nothing.
-                const items = dataPluck(
-                    this.orderedValues(),
-                    value as PropertyKey as string,
-                    null,
-                );
-
-                return joinItems(items as unknown[], glue);
-            }
+        if (isArray(first) || (isObject(first) && !joinsAsString(first))) {
+            // The cast re-narrows what isFunction left: its constraint takes unknown[], so it subtracts nothing.
+            return joinItems(
+                this.orderedValues().map((item) =>
+                    itemValue(item, value as PathKey),
+                ),
+                glue,
+            );
         }
 
-        // When dealing with simple values (strings, numbers, etc.),
-        // the value parameter becomes the glue
         return joinItems(this.orderedValues(), value as string | null);
     }
 
@@ -7041,6 +7027,22 @@ function inArray(
     const equals = strict ? strictEqual : looseEqual;
 
     return haystack.some((value) => equals(needle, value));
+}
+
+/**
+ * Determine whether implode() joins an item as it is, as PHP's does an Illuminate\Support\Stringable, over plucking it.
+ *
+ * @param item - The collection's first item, an object
+ * @returns True for an object with its own toString, but for a collection, whose toString is its JSON
+ */
+function joinsAsString(item: unknown): boolean {
+    // JS-only: any object with its own toString is exempt; @tolki/str is not a dependency
+    return (
+        isStringable(item) &&
+        item.toString !== Object.prototype.toString &&
+        // PHP plucks a collection, which is no Illuminate\Support\Stringable.
+        !(item instanceof Collection)
+    );
 }
 
 /**

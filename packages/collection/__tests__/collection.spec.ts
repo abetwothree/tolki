@@ -4522,6 +4522,87 @@ describe("Collection", () => {
                     data5.implode((user) => `${user.name}-${user.email}`, ","),
                 ).toBe("taylor-foo,dayle-bar");
             });
+
+            it("test implode models", () => {
+                // CollectionTest::testImplodeModels, whose Eloquent models a class with a public property stands in for
+                class Model {
+                    email: string;
+
+                    constructor(email: string) {
+                        this.email = email;
+                    }
+                }
+
+                const data = collect([new Model("foo"), new Model("bar")]);
+
+                expect(data.implode("email")).toBe("foobar");
+                expect(data.implode("email", ",")).toBe("foo,bar");
+            });
+        });
+
+        it("plucks a key from class instances, as PHP plucks one from any object but a Stringable", () => {
+            class User {
+                email: string;
+
+                constructor(email: string) {
+                    this.email = email;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-class-instances-by-key"
+            expect(
+                collect([new User("foo"), new User("bar")]).implode(
+                    "email",
+                    ",",
+                ),
+            ).toBe("foo,bar");
+        });
+
+        it("plucks a key from Collection rows, though their toString is their JSON", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-nested-collections-by-key"
+            expect(
+                collect([collect({ a: "x" }), collect({ a: "y" })]).implode(
+                    "a",
+                    ",",
+                ),
+            ).toBe("x,y");
+        });
+
+        it("plucks a key from Map rows and rows without a prototype, as from the arrays they stand for", () => {
+            const bare = (email: string) =>
+                Object.assign(Object.create(null) as { email: string }, {
+                    email,
+                });
+
+            // CollectionTest::testImplode
+            // JS-only: a Map and an object without a prototype each stand for a PHP array, as testImplode's rows are
+            expect([
+                collect([
+                    new Map([["email", "foo"]]),
+                    new Map([["email", "bar"]]),
+                ]).implode("email", ","),
+                collect([bare("foo"), bare("bar")]).implode("email", ","),
+            ]).toEqual(["foo,bar", "foo,bar"]);
+        });
+
+        it("joins an object with its own toString as it is, where PHP plucks it", () => {
+            class Label {
+                v: string;
+
+                constructor(v: string) {
+                    this.v = v;
+                }
+
+                toString(): string {
+                    return `S:${this.v}`;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-tostring-objects-are-plucked"
+            // JS-only: any object with its own toString is exempt; @tolki/str is not a dependency
+            expect(collect([new Label("a"), new Label("b")]).implode(",")).toBe(
+                "S:a,S:b",
+            );
         });
 
         it("converts non-string items to string", () => {
@@ -21310,6 +21391,12 @@ describe("Collection", () => {
                 (keyed: boolean) =>
                     collectionRows(keyed).containsStrict("k", "a"),
                 { list: true, keyed: true },
+            ],
+            [
+                "implode reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-collection-rows-by-backing"
+                (keyed: boolean) => collectionRows(keyed).implode("k", ","),
+                { list: "b,a,b", keyed: "b,a,b" },
             ],
         ] as [
             string,
