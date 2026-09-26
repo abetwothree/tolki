@@ -966,7 +966,7 @@ probe('C32-D-skip-take-callback-index', "(new Collection(['x', 'y', 'z'])): skip
     'skipUntil' => pairs((new Collection(['x', 'y', 'z']))->skipUntil(fn ($v, $k) => $k === 1)),
     'takeUntil' => pairs((new Collection(['x', 'y', 'z']))->takeUntil(fn ($v, $k) => $k === 1)),
 ]);
-probe('C32-D-skip-take-out-of-order-keys',"(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')", fn () => [
+probe('C32-D-skip-take-out-of-order-keys', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])): skipWhile('c'), takeUntil('a') and takeWhile('c')", fn () => [
     'skipWhile' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->skipWhile('c')),
     'takeUntil' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->takeUntil('a')),
     'takeWhile' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->takeWhile('c')),
