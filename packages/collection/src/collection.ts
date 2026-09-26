@@ -5731,7 +5731,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute if the value is truthy
      * @param defaultCallback - The callback to execute if the value is falsy
      * @returns The result of the callback if executed, otherwise the current instance
-     * @throws Error `Value of type null is not callable` when the value is truthy and the callback null, as PHP's
+     * @throws Error `Value of type null is not callable` when the value is truthy and the callback null, as PHP's does
      *
      * @example
      *
@@ -5775,7 +5775,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute if the value is falsy
      * @param defaultCallback - The callback to execute if the value is truthy
      * @returns The result of the callback if executed, otherwise the current instance
-     * @throws Error `Value of type null is not callable` when the value is falsy and the callback null, as PHP's
+     * @throws Error `Value of type null is not callable` when the value is falsy and the callback null, as PHP's does
      *
      * @example
      *
