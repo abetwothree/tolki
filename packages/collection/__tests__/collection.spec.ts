@@ -11273,27 +11273,6 @@ describe("Collection", () => {
             });
         });
 
-        it("keeps ties in their original relative order, array backing", () => {
-            // PHP-verified (task-12-regression-pins.json): sortByDesc on this data
-            // gives d,a,c,b. A naive sort().reverse() reverses tie order too: d,c,a,b.
-            const items: Array<{ id: string; k: number }> = [
-                { id: "a", k: 2 },
-                { id: "b", k: 1 },
-                { id: "c", k: 2 },
-                { id: "d", k: 3 },
-            ];
-            const result = new Collection<{ id: string; k: number }, number>(
-                items,
-            ).sortDesc((item) => item.k);
-            const ordered = result.values().all() as Array<{ id: string }>;
-            expect(ordered.map((item) => item.id)).toEqual([
-                "d",
-                "a",
-                "c",
-                "b",
-            ]);
-        });
-
         it("sorts an integer-keyed object instead of silently no-opping", () => {
             // PHP-verified (task-10-pluck-sort.json, "sort/sortDesc/reverse preserve
             // integer keys and their order"): sort_values [1,2,3], sortdesc_values [3,2,1].
@@ -11341,6 +11320,24 @@ describe("Collection", () => {
                     .values()
                     .all(),
             );
+        });
+
+        it("keeps ties in their original relative order through sortByDesc", () => {
+            const items = collect([
+                { id: "a", k: 2 },
+                { id: "b", k: 1 },
+                { id: "c", k: 2 },
+                { id: "d", k: 3 },
+            ]);
+
+            // docs/php-parity/task-12-regression-pins.json, "sortDesc ties fall back to original order, not a full reverse"
+            expect(
+                items
+                    .sortByDesc((item) => item.k)
+                    .pluck("id")
+                    .values()
+                    .all(),
+            ).toEqual(["d", "a", "c", "b"]);
         });
 
         it("keeps all() and values() in agreement over integer keys", () => {

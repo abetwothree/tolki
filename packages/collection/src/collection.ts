@@ -3242,24 +3242,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Sort items in descending order.
      *
-     * @param callback - The value extractor callback, a path key to get values from, or null for default sort
      * @returns A new collection with the sorted items in descending order
      *
      * @example
      *
      * new Collection([1, 2, 3]).sortDesc(); -> new Collection([3, 2, 1])
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc('id'); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc((item) => item.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection({a: 1, b: 3, c: 2}).sortDesc(); -> new Collection({b: 3, c: 2, a: 1})
      */
-    sortDesc(
-        callback:
-            | ((value: TValue, key: PropertyKey) => unknown)
-            | string
-            | null = null,
-    ) {
-        return this.newInstance(
-            handOver(dataSortDesc(this.items as TValue[], callback)),
-        );
+    sortDesc() {
+        return this.newInstance(handOver(dataSortDesc(this.items as TValue[])));
     }
 
     /**
