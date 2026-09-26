@@ -4579,31 +4579,43 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Determine if all items pass the given truth test.
      *
      * @param key - The key or callback to determine the item to check for, or null to check the items directly
-     * @param operator - The operator to use for comparison, if key is not a callback or null
-     * @param value - The value to compare against, if key is not a callback or null
+     * @param operator - The operator to compare with, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns True if all items pass the truth test, false otherwise
      *
      * @example
      *
      * new Collection([1, 2, 3]).every(x => x > 0); -> true
      * new Collection([1, 2, 3]).every(x => x > 1); -> false
+     * new Collection([{id: 1}, {id: 1}]).every('id', 1); -> true
      * new Collection([{id: 1}, {id: 2}]).every('id', '>=', 1); -> true
      * new Collection([{id: 1}, {id: 2}]).every('id', '>', 1); -> false
      * new Collection([1, 2, 3]).every(2); -> false
      */
     every(
         key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
-        operator: unknown = null,
-        value: unknown = null,
+        operator?: unknown,
+        value?: unknown,
+    ): boolean;
+    every(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        if (isNull(operator) && isNull(value)) {
+        // PHP tells the forms apart by func_num_args(), not by null; a given undefined becomes null,
+        // since operatorForWhere reads undefined as an argument never passed.
+        const [key, operator = null, value = null] = args;
+
+        if (args.length < 2) {
             const callback = this.valueRetriever(
                 key as PathKey | ((...args: (TValue | TKey)[]) => unknown),
             );
-            for (const [key, value] of Object.entries(this.items)) {
+            for (const [itemKey, item] of Object.entries(this.items)) {
                 if (
                     isPhpFalsy(
-                        callback(value as TValue, phpArrayKey(key) as TKey),
+                        callback(item as TValue, phpArrayKey(itemKey) as TKey),
                     )
                 ) {
                     return false;
@@ -4613,12 +4625,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return true;
         }
 
+        const path = key as PathKey | ((value: TValue, index: TKey) => unknown);
+
         return this.every(
-            this.operatorForWhere(
-                key as PathKey | ((value: TValue, index: TKey) => unknown),
-                isString(operator) ? operator : undefined,
-                value,
-            ),
+            args.length === 2
+                ? this.operatorForWhere(path, operator as string)
+                : this.operatorForWhere(path, operator as string, value),
         );
     }
 

@@ -10898,6 +10898,7 @@ describe("Collection", () => {
     describe("every", () => {
         describe("Laravel Tests", () => {
             it("test every", () => {
+                // CollectionTest::testEvery
                 const c = collect([]);
                 expect(c.every("key", "value")).toBe(true);
                 expect(
@@ -10908,6 +10909,16 @@ describe("Collection", () => {
 
                 const d = collect([{ age: 18 }, { age: 20 }, { age: 20 }]);
                 expect(d.every("age", 18)).toBe(false);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-two-args-key-value"
+                expect(
+                    collect([{ age: 18 }, { age: 18 }]).every("age", 18),
+                ).toBe(true);
+                expect(
+                    collect([{ status: "active" }, { status: "active" }]).every(
+                        "status",
+                        "active",
+                    ),
+                ).toBe(true);
                 expect(d.every("age", ">=", 18)).toBe(true);
                 expect(
                     d.every((item) => {
@@ -10945,6 +10956,28 @@ describe("Collection", () => {
         it("uses operatorForWhere when operator provided", () => {
             const c = collect([{ status: "active" }, { status: "active" }]);
             expect(c.every("status", "=", "active")).toBe(true);
+        });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-two-args-null-value"
+            expect([
+                collect([{ x: null }, { x: null }]).every("x", null),
+                collect([{ x: 1 }]).every("x", null),
+            ]).toEqual([true, false]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it is a second argument too
+            expect([
+                collect([{ x: null }, { x: null }]).every("x", undefined),
+                collect([{ x: 1 }]).every("x", undefined),
+            ]).toEqual([true, false]);
+        });
+
+        it("compares loosely for a null operator, as PHP's switch falls to its default arm", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-null-operator"
+            expect([
+                collect([{ x: 5 }, { x: "5" }]).every("x", null, 5),
+                collect([{ x: 5 }, { x: 6 }]).every("x", null, 5),
+            ]).toEqual([true, false]);
         });
 
         it("judges a path's value, or the item itself, by PHP truthiness", () => {
