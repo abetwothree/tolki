@@ -12548,6 +12548,22 @@ describe("Collection", () => {
             expect(inactive.all()).toEqual([{ status: "inactive" }]);
         });
 
+        it("reads each half by index, as PHP's $partition[0] and [1] read them", () => {
+            const halves = collect({ a: 1, b: 2 }).partition(
+                (value) => value > 1,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-offset-get"
+            expect([halves[0].all(), halves[1].all()]).toEqual([
+                { b: 2 },
+                { a: 1 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-outer-keys"
+            expect(halves.keys().all()).toEqual([0, 1]);
+            // JS-only: an index reads the items, as offsetGet() does, and is no own enumerable key of the collection
+            expect(Object.keys(halves)).not.toContain("0");
+        });
+
         it("reads an explicit undefined second argument as PHP's null", () => {
             const rows = () => collect([{ v: null }, { v: 0 }, { v: 1 }]);
             const [passed, failed] = rows().partition("v", null);

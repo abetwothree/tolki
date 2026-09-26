@@ -4911,7 +4911,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             callback(item as TValue, key as TKey),
         );
 
-        return this.newInstance(
+        const halves = this.newInstance(
             handOver([
                 this.newInstance(
                     handOver(passed as DataItems<TValue, TKey>),
@@ -4920,7 +4920,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     handOver(failed as DataItems<TValue, TKey>),
                 ) as unknown as Collection<TValue, TKey>,
             ]),
-        ) as unknown as Collection<
+        );
+
+        // PHP reads $partition[0] through ArrayAccess; a non-enumerable getter reads [0] and [1] the same way.
+        for (const index of [0, 1]) {
+            Object.defineProperty(halves, index, {
+                get: () => halves.offsetGet(index),
+            });
+        }
+
+        return halves as unknown as Collection<
             Collection<TValue, TKey>,
             number
         > as TupleCollection<
