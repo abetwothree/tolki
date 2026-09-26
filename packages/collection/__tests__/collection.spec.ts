@@ -5377,6 +5377,47 @@ describe("Collection", () => {
             expect(collection.isEmpty()).toBe(true);
             expect(collection.count()).toBe(0);
         });
+
+        it("agrees with count() on a list whose item follows a hole", () => {
+            const holes: string[] = [];
+            holes[1] = "b";
+            const collection = new Collection(holes);
+
+            // JS-only: PHP has no sparse array; the hole holds no item, but the index after it does.
+            expect(collection.isEmpty()).toBe(false);
+            expect(collection.isNotEmpty()).toBe(true);
+            expect(collection.count()).toBe(1);
+        });
+
+        it("reads a list only up to its first item", () => {
+            const read = new Set<string>();
+            const list = new Proxy(
+                Array.from({ length: 1000 }, (_, index) => index),
+                {
+                    has(target, key) {
+                        read.add(String(key));
+
+                        return Reflect.has(target, key);
+                    },
+                    getOwnPropertyDescriptor(target, key) {
+                        read.add(String(key));
+
+                        return Reflect.getOwnPropertyDescriptor(target, key);
+                    },
+                },
+            );
+
+            class Watched extends Collection<number, number> {
+                constructor() {
+                    super([]);
+                    this.items = list;
+                }
+            }
+
+            // JS-only: a bound on the work, so a loop that asks isEmpty() before each shift() stays linear.
+            expect(new Watched().isEmpty()).toBe(false);
+            expect([...read].filter((key) => /^\d+$/.test(key))).toEqual(["0"]);
+        });
     });
 
     describe("containsOneItem", () => {

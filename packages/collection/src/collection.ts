@@ -1682,7 +1682,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).isEmpty(); -> false
      */
     isEmpty(): boolean {
-        return this.count() === 0;
+        // some() skips a list's holes, which count() does not count, and stops at the first item.
+        return isArray(this.items)
+            ? !this.items.some(() => true)
+            : Object.keys(this.items).length === 0;
     }
 
     /**
