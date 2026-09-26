@@ -4583,14 +4583,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key or callback to determine the item to find, or null to check the items directly
      * @param operator - The operator to use for comparison, if key is not a callback or null
      * @param value - The value to compare against, if key is not a callback or null
-     * @returns The first item that matches the given key value pair, or undefined if not found
+     * @returns The first item that matches the given key value pair, or null if none does
      *
      * @example
      *
      * new Collection([1, 2, 3]).firstWhere(x => x > 1); -> 2
-     * new Collection([1, 2, 3]).firstWhere(2); -> 2
+     * new Collection([{active: false}, {active: true}]).firstWhere('active'); -> {active: true}
      * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>=', 2); -> {id: 2}
-     * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> undefined
+     * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> null
      */
     firstWhere(
         key: ((value: TValue, key: TKey) => unknown) | PathKey,
