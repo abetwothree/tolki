@@ -97,6 +97,24 @@ describe("createSortSpecComparator", () => {
 });
 
 describe("phpSortComparator", () => {
+    it("casts a number past PHP's int range to its low 64 bits, so 1e19 sorts backwards and 2**64 ties", () => {
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-past-int-range"
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator(
+                    (a: number, b: number) => Math.sign(a - b) * 1e19,
+                ),
+            ),
+        ).toEqual([3, 2, 1]);
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator(
+                    (a: number, b: number) => Math.sign(a - b) * 2 ** 64,
+                ),
+            ),
+        ).toEqual([3, 1, 2]);
+    });
+
     it("sorts by a comparator answering a bool, as PHP's usort() falls back for one", () => {
         // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
         expect(

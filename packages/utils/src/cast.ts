@@ -405,6 +405,33 @@ export function phpIntArgument(value: number, message: string): number {
 }
 
 /**
+ * Cast a number to an int as PHP's `(int)` cast does, as it also reads a comparator's answer and the operands of `%`.
+ *
+ * @param value - The number to cast
+ * @returns The number without its fraction; past PHP's 64-bit int range its low 64 bits as PHP 8 keeps them, and 0 for
+ * NAN or an infinity
+ *
+ * @example
+ * phpIntCast(2.7); -> 2
+ * phpIntCast(1e19); -> -8446744073709551616
+ * phpIntCast(NaN); -> 0
+ */
+export function phpIntCast(value: number): number {
+    if (!isFiniteNumber(value)) {
+        return 0;
+    }
+
+    const truncated = Math.trunc(value);
+
+    if (truncated >= -(2 ** 63) && truncated < 2 ** 63) {
+        return truncated === 0 ? 0 : truncated;
+    }
+
+    // A double past 2^63 is a multiple of 2^11, so its low 64 bits fit a double exactly.
+    return Number(BigInt.asIntN(64, BigInt(truncated)));
+}
+
+/**
  * Cast a value to a string as PHP's `(string)` cast does, as `implode()` casts each piece and `.` its operands.
  *
  * @param value - The value to cast

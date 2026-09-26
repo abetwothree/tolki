@@ -6,6 +6,7 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPhpInt,
     isPlainObject,
     isString,
     isUndefined,
@@ -111,7 +112,7 @@ export function phpDebugType(value: unknown): string {
     }
 
     if (typeOf(value) === "number") {
-        return isInteger(value) ? "int" : "float";
+        return isPhpInt(value) ? "int" : "float";
     }
 
     if (isString(value)) {

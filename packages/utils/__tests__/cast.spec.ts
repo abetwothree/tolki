@@ -421,6 +421,34 @@ describe("Utils", () => {
         });
     });
 
+    describe("phpIntCast", () => {
+        it("drops a fraction, keeps a number past PHP's int range to its low 64 bits, and reads NAN or INF as 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-int-cast-past-int-range"
+            for (const [value, int] of [
+                [1e19, -8446744073709551616],
+                [-1e19, 8446744073709551616],
+                [2 ** 63, -9223372036854775808],
+                [-(2 ** 63), -9223372036854775808],
+                [2 ** 64, 0],
+                [3 * 2 ** 63, -9223372036854775808],
+                [1.5e19, -3446744073709551616],
+                [1e20, 7766279631452241920],
+                [1e30, 5076964154930102272],
+                [-1e30, -5076964154930102272],
+                [2 ** 63 + 2048, -9223372036854773760],
+                [2 ** 64 - 2048, -2048],
+                [NaN, 0],
+                [Infinity, 0],
+                [-Infinity, 0],
+                [-0, 0],
+                [2.5, 2],
+                [-2.5, -2],
+            ]) {
+                expect(Utils.phpIntCast(value as number)).toBe(int);
+            }
+        });
+    });
+
     describe("phpIntArgument", () => {
         const message =
             "array_slice(): Argument #2 ($offset) must be of type int, float given";

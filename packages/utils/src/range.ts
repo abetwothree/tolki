@@ -1,6 +1,11 @@
 import { phpIntArgument } from "./cast";
-import { isFiniteNumber, isInteger, isNull, isUndefined } from "./guards";
-import { isPhpArrayKey } from "./keys";
+import {
+    isFiniteNumber,
+    isInteger,
+    isNull,
+    isPhpInt,
+    isUndefined,
+} from "./guards";
 
 /** The most items a PHP array holds: HT_MAX_SIZE on a 64-bit build. */
 const PHP_MAX_ARRAY_SIZE = 2 ** 30;
@@ -194,10 +199,7 @@ export function resolveRangeSize(
     }
 
     const sized = span / stride + 1;
-    // A number is one of PHP's ints exactly when PHP can store it as an array key, and PHP has no integer -0.
-    const isFloatRange = ![start, end, step].every(
-        (bound) => isPhpArrayKey(bound) && !Object.is(bound, -0),
-    );
+    const isFloatRange = ![start, end, step].every((bound) => isPhpInt(bound));
 
     if (sized >= PHP_MAX_ARRAY_SIZE) {
         throw rangeTooLarge(

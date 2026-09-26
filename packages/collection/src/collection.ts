@@ -110,6 +110,7 @@ import {
     phpComputedKey,
     phpDebugType,
     phpIntArgument,
+    phpIntCast,
     phpSortComparator,
     phpStringCast,
     phpTypeName,
@@ -2160,7 +2161,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const values = this.slice(offset).orderedValues();
         // PHP's % casts the step to an int, which makes NAN or an infinity 0, and divides only once an item comes.
-        const divisor = phpInt(step);
+        const divisor = phpIntCast(step);
 
         if (divisor === 0 && values.length > 0) {
             throw new Error("Modulo by zero");
@@ -2953,7 +2954,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const entries = this.entriesInOrder();
         // PHP's % casts the number of groups to an int, which makes NAN or an infinity 0.
-        const divisor = phpInt(numberOfGroups);
+        const divisor = phpIntCast(numberOfGroups);
 
         if (divisor === 0) {
             throw new Error("Modulo by zero");
@@ -3016,7 +3017,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // PHP's (int) cast of the size makes NAN 0, which chunk() answers with no chunks.
-        return this.chunk(phpInt(Math.ceil(this.count() / numberOfGroups)));
+        return this.chunk(phpIntCast(Math.ceil(this.count() / numberOfGroups)));
     }
 
     /**
@@ -6724,17 +6725,6 @@ function phpArrayValue(
     return value;
 }
 
-/**
- * Cast a number to an int as PHP's (int) does: the fraction is dropped, and NAN or an infinity becomes 0.
- *
- * @param value - The number PHP casts, such as a comparator's answer or the divisor of a `%`
- * @returns The number without its fraction, or 0 when it is not finite; one beyond PHP's int range, which PHP
- * wraps round, is kept as it is
- */
-function phpInt(value: number): number {
-    return isFiniteNumber(value) ? Math.trunc(value) : 0;
-}
-
 /** The number a string opens with, as PHP's arithmetic reads it: optional whitespace, then a decimal or exponent. */
 const PHP_LEADING_NUMBER =
     /^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/;
@@ -6821,7 +6811,7 @@ function equalityTest<TLeft, TRight>(
 
         // PHP casts the answer to an int, so a number means equal only where that cast makes it 0.
         if (typeOf(answer) === "number") {
-            return phpInt(answer as number) === 0;
+            return phpIntCast(answer as number) === 0;
         }
 
         return answer as boolean;

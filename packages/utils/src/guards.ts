@@ -250,6 +250,28 @@ export function isFloat(value: unknown): value is number {
 }
 
 /**
+ * Check if a value is a number PHP holds as an int: an integer within its 64-bit range, and never -0.
+ *
+ * @param value - The value to check
+ * @returns True if PHP would hold the number as an int, false for a float PHP holds, such as 1.5, 1e19 or -0.0
+ *
+ * @example
+ *
+ * isPhpInt(2 ** 62); -> true
+ * isPhpInt(1e19); -> false
+ * isPhpInt(-0); -> false
+ */
+export function isPhpInt(value: unknown): value is number {
+    // PHP_INT_MAX (2^63 - 1) rounds up to 2^63 as a double, so the upper bound is exclusive; PHP has no integer -0.
+    return (
+        isInteger(value) &&
+        value >= -(2 ** 63) &&
+        value < 2 ** 63 &&
+        !Object.is(value, -0)
+    );
+}
+
+/**
  * Check if a value is a positive number.
  *
  * @param value - The value to check

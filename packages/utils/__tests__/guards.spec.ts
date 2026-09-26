@@ -221,6 +221,22 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPhpInt", () => {
+        it("answers true for an integer PHP holds as an int, and false for a float it holds, -0 included", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            expect(
+                [2 ** 62, -(2 ** 63), 0, 7].map((value) =>
+                    Utils.isPhpInt(value),
+                ),
+            ).toEqual([true, true, true, true]);
+            expect(
+                [1e19, -1e19, 2 ** 63, -0, 1.5, NaN, "1"].map((value) =>
+                    Utils.isPhpInt(value),
+                ),
+            ).toEqual([false, false, false, false, false, false, false]);
+        });
+    });
+
     describe("isPositiveNumber", () => {
         it("returns true for positive numbers", () => {
             expect(Utils.isPositiveNumber(123)).toBe(true);

@@ -40,6 +40,15 @@ describe("Utils", () => {
     });
 
     describe("phpDebugType", () => {
+        it("names a number past PHP's int range, or -0, float, as PHP holds each", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            expect(
+                [1e19, -1e19, -0, 2 ** 63, 2 ** 62].map((value) =>
+                    Utils.phpDebugType(value),
+                ),
+            ).toEqual(["float", "float", "float", "float", "int"]);
+        });
+
         it("names a scalar, null or an array as get_debug_type() does", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-debug-type-names",
             // "C32-A-ensure-scalar-message" and "C32-A-ensure-array-rejects-null"

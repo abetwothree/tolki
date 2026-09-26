@@ -2169,6 +2169,28 @@ describe("Collection", () => {
             expect(diffed(-Infinity)).toEqual([]);
         });
 
+        it("casts a comparator answer past PHP's int range to its low 64 bits, so 2**64 means equal", () => {
+            const byTimes = (times: number) => (a: number, b: number) =>
+                Math.sign(a - b) * times;
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-comparator-past-int-range"
+            expect(
+                collect([1, 2, 3])
+                    .diffUsing([2], byTimes(2 ** 64))
+                    .values()
+                    .all(),
+            ).toEqual([]);
+            expect(
+                collect([1, 2, 3])
+                    .intersectUsing([2], byTimes(2 ** 64))
+                    .values()
+                    .all(),
+            ).toEqual([1, 2, 3]);
+            expect(
+                collect([1, 2, 3]).diffUsing([2], byTimes(1e19)).values().all(),
+            ).toEqual([1, 3]);
+        });
+
         it("keeps a record's keys", () => {
             const diffed = collect({
                 a: "green",
@@ -7382,6 +7404,13 @@ describe("Collection", () => {
     });
 
     describe("nth", () => {
+        it("throws PHP's Modulo by zero for a step the int cast wraps to 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-and-split-by-a-count-cast-to-0"
+            expect(() => collect([1, 2, 3]).nth(2 ** 64)).toThrow(
+                new Error("Modulo by zero"),
+            );
+        });
+
         it("test nth", () => {
             // CollectionTest::testNth
             // Use Map to preserve insertion order for numeric keys (JavaScript objects auto-sort numeric keys)
@@ -11082,6 +11111,13 @@ describe("Collection", () => {
     });
 
     describe("split", () => {
+        it("throws PHP's Modulo by zero for a number of groups the int cast wraps to 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-and-split-by-a-count-cast-to-0"
+            expect(() => collect([1, 2, 3]).split(2 ** 64)).toThrow(
+                new Error("Modulo by zero"),
+            );
+        });
+
         describe("Laravel Tests", () => {
             it("test split collection with a divisible count", () => {
                 // CollectionTest::testSplitCollectionWithADivisibleCount
@@ -12282,6 +12318,17 @@ describe("Collection", () => {
             expect(keyed.all()).toEqual({ y: 1, z: 2, x: 3 });
             expect(keyed.keys().all()).toEqual(["y", "z", "x"]);
             expect(keyed.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("casts a comparator answer past PHP's int range to its low 64 bits, so 1e19 sorts backwards", () => {
+            const sorted = collect([3, 1, 2]).sort(
+                (a, b) => Math.sign(a - b) * 1e19,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-past-int-range"
+            expect(sorted.values().all()).toEqual([3, 2, 1]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 0, 2 and 1
+            expect(sorted.keys().all()).toEqual([0, 1, 2]);
         });
 
         describe("Laravel Tests", () => {
@@ -16524,6 +16571,20 @@ describe("Collection", () => {
             ).toThrow(
                 new UnexpectedValueException(
                     "Collection should only include [int] items, but 'Child@anonymous' found at position 0.",
+                ),
+            );
+        });
+
+        it("names a number past PHP's int range, or -0, float, as get_debug_type() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            expect(() => collect([1e19]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'float' found at position 0.",
+                ),
+            );
+            expect(() => collect([-0]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'float' found at position 0.",
                 ),
             );
         });

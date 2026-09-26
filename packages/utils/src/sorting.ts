@@ -1,11 +1,12 @@
 import type { PathKey, SortSpec } from "@tolki/types";
 
+import { phpIntCast } from "./cast";
 import { compareValues } from "./equality";
 import {
     isArray,
     isBoolean,
-    isFiniteNumber,
     isFunction,
+    isNumber,
     isUndefined,
 } from "./guards";
 
@@ -110,12 +111,12 @@ export function phpSortComparator<TValue>(
  * The sign of a comparator's answer once PHP casts it to an int.
  *
  * @param answer - The comparator's answer
- * @returns 1 for true or a number of 1 or more, -1 for one of -1 or less, else 0, NAN and the infinities included
+ * @returns 1 for true, the sign of the int PHP casts a number to (1e19's is -1, as its low 64 bits are), else 0
  */
 function comparatorSign(answer: unknown): number {
     if (isBoolean(answer)) {
         return answer ? 1 : 0;
     }
 
-    return isFiniteNumber(answer) ? Math.sign(Math.trunc(answer)) : 0;
+    return isNumber(answer) ? Math.sign(phpIntCast(answer)) : 0;
 }
