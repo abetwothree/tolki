@@ -17624,6 +17624,16 @@ describe("Collection", () => {
             expect(pair).toEqual([null, 5]);
         });
 
+        it("walks a Map-built collection in its insertion order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
+            expect(
+                outOfOrderKeys().reduce(
+                    (carry, value, key) => `${carry}${key}${value}`,
+                    "",
+                ),
+            ).toBe("2c0a1b");
+        });
+
         describe("empty collection behaviour", () => {
             it("returns null when reducing an empty collection with no initial value", () => {
                 // docs/php-parity/task-24-data-release-readiness.json, "reduce-empty-no-initial"
@@ -17734,6 +17744,18 @@ describe("Collection", () => {
                 ).toEqual([]);
             });
         });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            const pieces = outOfOrderKeys().reduceInto(
+                [] as string[],
+                (result, value, key) => {
+                    result.push(`${key}${value}`);
+                },
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
+            expect(pieces.join("")).toBe("2c0a1b");
+        });
     });
 
     describe("reduceSpread", () => {
@@ -17769,6 +17791,16 @@ describe("Collection", () => {
                     }, null);
                 }).toThrow(Error);
             });
+        });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
+            expect(
+                outOfOrderKeys().reduceSpread(
+                    (carry, value, key) => [`${carry}${String(key)}${value}`],
+                    "",
+                ),
+            ).toEqual(["2c0a1b"]);
         });
     });
 

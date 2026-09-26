@@ -5232,12 +5232,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // PHP's $initial defaults to null, so the first item reaches the callback too, unlike Array.prototype.reduce.
         let result = (isUndefined(initial) ? null : initial) as TReduce;
 
-        for (const [key, value] of Object.entries(this.items)) {
-            result = callback(
-                result,
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            );
+        for (const [key, value] of this.entriesInOrder()) {
+            result = callback(result, value, key);
         }
 
         return result;
@@ -5261,12 +5257,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ): TReduce {
         let result = initial;
 
-        for (const [key, value] of Object.entries(this.items)) {
-            const returned = callback(
-                result,
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            ) as TReduce | undefined;
+        for (const [key, value] of this.entriesInOrder()) {
+            const returned = callback(result, value, key) as
+                | TReduce
+                | undefined;
 
             if (!isUndefined(returned)) {
                 result = returned;
@@ -5289,10 +5283,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ): [...TSpread] {
         let result = initial as unknown[];
 
-        for (const [key, value] of Object.entries(this.items)) {
+        for (const [key, value] of this.entriesInOrder()) {
             const callbackResult = (
                 callback as (...args: unknown[]) => unknown
-            )(...result, value, phpArrayKey(key));
+            )(...result, value, key);
 
             if (!isArray(callbackResult)) {
                 const resultType = typeOf(callbackResult);
