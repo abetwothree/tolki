@@ -6132,8 +6132,8 @@ describe("Collection", () => {
         });
 
         it("skips an array key over a Collection item", () => {
-            // JS-only: PHP's has() reads the array as a list of keys and, when the item holds them all, offsetGet
-            // throws for the array itself; an item missing any of them skips it, as here.
+            // JS-only: PHP's has() reads the array as a list of keys; as this item holds them all, offsetGet then
+            // throws for the array itself, where an item missing any of them skips it, as JS does for every item.
             expect(
                 collect([collect({ a: 1, b: 2 })])
                     .select("a", ["b"])
