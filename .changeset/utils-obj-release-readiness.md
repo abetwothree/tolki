@@ -39,3 +39,7 @@ Add `phpComputedKey(value, options)`: the key a Laravel method stores for a valu
 Add `isEnumCase(value)`: whether a value is an `@tolki/enum` case, the shape `from()` and `cases()` build: a plain object with its own string `name` and its own string or number `value`. `phpComputedKey` reads such a case as its value when a method unwraps enum cases, and a caller can tell a case apart from an ordinary plain object with it.
 
 Add `getCount()` to `MultipleItemsFoundException`: it answers the `count`, as Laravel's exception's `getCount()` does.
+
+Add `isIllegalOffset(value)`: whether a value is a key no PHP array can hold, which PHP throws a `TypeError` for wherever it reads or writes one: an array, a plain object, any other object, or a function, which PHP reads as a `Closure`. A string, a number, a boolean, `null` or `undefined` is not, since PHP casts each to a key. `phpComputedKey` asks it which keys to throw for.
+
+Add `arrayKeyExistsError()`: the `TypeError` Laravel's calls to `array_key_exists` throw for such a key, `array_key_exists(): Argument #1 ($key) must be a valid array offset type`. Laravel calls the function from a namespace, where PHP runs its own argument check; code outside a namespace compiles it to an opcode that throws `Cannot access offset of type array on array` instead. `forget` and `except` in `@tolki/arr`, `@tolki/obj` and `@tolki/data`, `except` in `@tolki/collection`, `select` over an item PHP reads as an array in all four, and `groupBy` in `@tolki/collection` throw it, as their PHP does.
