@@ -101,6 +101,7 @@ import {
     operatorMatch,
     phpArrayKey,
     phpComputedKey,
+    phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
     resolveDefault,
@@ -5276,6 +5277,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the spread carry values, value, and key as arguments
      * @param initial - The initial values to start the reduction with
      * @returns The reduced values as an array
+     * @throws UnexpectedValueException when the reducer answers anything but an array, named as gettype() names it
      */
     reduceSpread<TSpread extends unknown[]>(
         callback: (...args: [...TSpread, TValue, PropertyKey]) => [...TSpread],
@@ -5289,10 +5291,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             )(...result, value, key);
 
             if (!isArray(callbackResult)) {
-                const resultType = typeOf(callbackResult);
+                const type = phpTypeName(callbackResult);
 
-                throw new Error(
-                    `The reduceSpread function expect the reducer callback to return an array, but got ${resultType}`,
+                throw new UnexpectedValueException(
+                    `Collection::reduceSpread expects reducer to return an array, but got a '${type}' instead.`,
                 );
             }
 

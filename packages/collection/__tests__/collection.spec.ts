@@ -17782,15 +17782,53 @@ describe("Collection", () => {
             });
 
             it("test reduce spread throws an exception if reducer does not return an array", () => {
+                // CollectionTest::testReduceSpreadThrowsAnExceptionIfReducerDoesNotReturnAnArray
                 const data = collect([1]);
 
-                expect(() => {
-                    // @ts-expect-error - intentionally passing wrong callback type
-                    data.reduceSpread(() => {
-                        return false;
-                    }, null);
-                }).toThrow(Error);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-throws-boolean"
+                expect(() =>
+                    Reflect.apply(data.reduceSpread, data, [() => false, null]),
+                ).toThrow(
+                    new UnexpectedValueException(
+                        "Collection::reduceSpread expects reducer to return an array, but got a 'boolean' instead.",
+                    ),
+                );
             });
+        });
+
+        it("names the type its reducer returned as PHP's gettype() does", () => {
+            const data = collect([1]);
+            const returning = (value: unknown) => () =>
+                Reflect.apply(data.reduceSpread, data, [() => value, null]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-throws-integer",
+            // "C32-H-reduceSpread-throws-double", "C32-H-reduceSpread-throws-null",
+            // "C32-H-reduceSpread-throws-string" and "C32-H-reduceSpread-throws-object"
+            expect(returning(5)).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'integer' instead.",
+                ),
+            );
+            expect(returning(1.5)).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'double' instead.",
+                ),
+            );
+            expect(returning(null)).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'NULL' instead.",
+                ),
+            );
+            expect(returning("x")).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'string' instead.",
+                ),
+            );
+            expect(returning(new (class {})())).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'object' instead.",
+                ),
+            );
         });
 
         it("walks a Map-built collection in its insertion order", () => {
