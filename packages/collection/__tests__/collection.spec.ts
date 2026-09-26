@@ -2529,6 +2529,25 @@ describe("Collection", () => {
                 expect(res2).toEqual({ name: "taylor" });
             });
         });
+
+        it("reads a dotted key literally, never as a path", () => {
+            const collection = collect({ a: { b: 1 } }).forget("a.b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-dot-path-is-literal"
+            expect(collection.all()).toEqual({ a: { b: 1 } });
+            expect(collection.keys().all()).toEqual(["a"]);
+            expect(collection.values().all()).toEqual([{ b: 1 }]);
+        });
+
+        it("drops a repeated key once", () => {
+            const collection = collect(["a", "b", "c"]).forget([1, 1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-repeated-key-on-list"
+            // PHP keeps the gap ({0: "a", 2: "c"}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(collection.all()).toEqual(["a", "c"]);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual(["a", "c"]);
+        });
     });
 
     describe("get", () => {

@@ -18,7 +18,6 @@ import {
     dataFilter,
     dataFirst,
     dataFlatten,
-    dataForget,
     dataGet,
     dataIntersect,
     dataIntersectAssoc,
@@ -1121,13 +1120,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Remove one or more items from the collection by key or keys.
+     * Remove an item from the collection by key.
+     *
+     * Each key is unset literally, as offsetUnset does, so a dotted key never reaches a nested value.
      *
      * @param keys - The key or keys to remove, or a collection of keys
      * @returns The collection instance after removing the specified keys
      *
      * @example
      *
+     * new Collection({a: {b: 1}}).forget('a.b'); -> new Collection({a: {b: 1}})
      * new Collection({a: 1, b: 2, c: 3}).forget('b'); -> new Collection({a: 1, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).forget(['a', 'c']); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).forget(new Collection(['a', 'c'])); -> new Collection({b: 2})
@@ -1138,11 +1140,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
     forget<T, K extends PropertyKey = PropertyKey>(
         keys: PathKeys | Collection<T, K>,
     ) {
-        keys = this.getRawItems(keys) as PathKey[];
-        this.items = dataForget(this.items as TValue[], keys);
+        const ownKeys = new Set<string | number>();
 
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
+        for (const key of Object.values(this.getRawItems(keys))) {
+            const ownKey = this.ownKey(key);
+
+            if (!isUndefined(ownKey)) {
+                ownKeys.add(ownKey);
+            }
+        }
+
+        // Each removal shifts a list's later indexes down, so a list drops its highest index first.
+        const ordered = isArray(this.items)
+            ? [...ownKeys].sort((a, b) => Number(b) - Number(a))
+            : ownKeys;
+
+        for (const key of ordered) {
+            this.offsetUnset(key);
         }
 
         return this;
