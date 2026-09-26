@@ -972,6 +972,29 @@ probe('C32-D-skip-take-out-of-order-keys', "(new Collection([2 => 'c', 0 => 'a',
     'takeWhile' => pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->takeWhile('c')),
 ]);
 
+// Arr::exists casts a null key to '', while Arr::wrap turns a bare null into no keys at all.
+probe('C32-D-select-null-key-cast', "select([null, 'a']) and select('a', null) over [['' => 'e', 'a' => 1]], and Arr::select() of it with [null] and with a bare null", fn () => [
+    'collection-array' => pairs(@(new Collection([['' => 'e', 'a' => 1]]))->select([null, 'a'])),
+    'collection-args' => pairs(@(new Collection([['' => 'e', 'a' => 1]]))->select('a', null)),
+    'arr-list' => pairs(@Arr::select([['' => 'e', 'a' => 1]], [null])),
+    'arr-bare-null' => pairs(Arr::select([['' => 'e', 'a' => 1]], null)),
+]);
+
+/** An ArrayAccess row whose offsets answer apart from its public properties. */
+class C32D_SelectAccess implements ArrayAccess
+{
+    public $a = 'prop-a';
+    public $p = 'prop-p';
+    public $q = null;
+    public function __construct(private array $items) {}
+    public function offsetExists(mixed $offset): bool { return array_key_exists($offset, $this->items); }
+    public function offsetGet(mixed $offset): mixed { return $this->items[$offset]; }
+    public function offsetSet(mixed $offset, mixed $value): void { $this->items[$offset] = $value; }
+    public function offsetUnset(mixed $offset): void { unset($this->items[$offset]); }
+}
+
+probe('C32-D-select-arrayaccess-rows', "(new Collection([new C32D_SelectAccess(['a' => 'offset-a', 'n' => null])]))->select('a', 'n', 'p', 'q', 'missing'), with public \$a = 'prop-a', \$p = 'prop-p', \$q = null", fn () => pairs((new Collection([new C32D_SelectAccess(['a' => 'offset-a', 'n' => null])]))->select('a', 'n', 'p', 'q', 'missing')));
+
 // ---- Family E ------------------------------------------------------------
 
 enum C32E_Pure { case A; }

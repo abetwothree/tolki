@@ -4531,6 +4531,67 @@
             }
         },
         {
+            "label": "C32-D-select-null-key-cast",
+            "php": "select([null, 'a']) and select('a', null) over [['' => 'e', 'a' => 1]], and Arr::select() of it with [null] and with a bare null",
+            "value": {
+                "collection-array": [
+                    [
+                        [
+                            "",
+                            "e"
+                        ],
+                        [
+                            "a",
+                            1
+                        ]
+                    ]
+                ],
+                "collection-args": [
+                    [
+                        [
+                            "a",
+                            1
+                        ],
+                        [
+                            "",
+                            "e"
+                        ]
+                    ]
+                ],
+                "arr-list": [
+                    [
+                        [
+                            "",
+                            "e"
+                        ]
+                    ]
+                ],
+                "arr-bare-null": [
+                    []
+                ]
+            }
+        },
+        {
+            "label": "C32-D-select-arrayaccess-rows",
+            "php": "(new Collection([new C32D_SelectAccess(['a' => 'offset-a', 'n' => null])]))->select('a', 'n', 'p', 'q', 'missing'), with public $a = 'prop-a', $p = 'prop-p', $q = null",
+            "value": [
+                [
+                    [
+                        "a",
+                        "offset-a"
+                    ],
+                    [
+                        "n",
+                        null
+                    ],
+                    [
+                        "p",
+                        "prop-p"
+                    ]
+                ]
+            ]
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
