@@ -111,6 +111,7 @@ import {
     phpDebugType,
     phpIntArgument,
     phpSortComparator,
+    phpStringCast,
     phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
@@ -7090,33 +7091,6 @@ function joinsAsString(item: unknown): boolean {
         // PHP plucks a collection, which is no Illuminate\Support\Stringable.
         !(item instanceof Collection)
     );
-}
-
-/**
- * Cast a value to a string as PHP's `(string)` cast does, as implode() casts each piece and `.` its operands.
- *
- * @param value - The value to cast
- * @returns "Array" for an array or what stands for one, an object's own toString, else toPhpKeyString()'s cast of a
- * scalar: true to "1", false and null to "", a float to 14 digits
- * @throws Error `Object of class X could not be converted to string` for any other object and for a closure
- */
-function phpStringCast(value: unknown): string {
-    // PHP prints an array as "Array", with a warning the port cannot raise.
-    if (isPhpAccessible(value)) {
-        return "Array";
-    }
-
-    if (hasOwnToString(value)) {
-        return String(value.toString());
-    }
-
-    if (isObject(value) || isFunction(value)) {
-        throw new Error(
-            `Object of class ${phpDebugType(value)} could not be converted to string`,
-        );
-    }
-
-    return toPhpKeyString(value);
 }
 
 /**

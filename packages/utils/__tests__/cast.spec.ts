@@ -378,6 +378,49 @@ describe("Utils", () => {
         });
     });
 
+    describe("phpStringCast", () => {
+        it("casts an array, or a plain object or a Map that stands for one, to Array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-array-pieces"
+            expect(
+                [[2, 3], { b: 1 }, new Map([[1, 2]])].map((value) =>
+                    Utils.phpStringCast(value),
+                ),
+            ).toEqual(["Array", "Array", "Array"]);
+        });
+
+        it("casts a scalar as PHP's (string) cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-bool-items",
+            // "C32-H-join-null-last-item" and "C32-H-join-float-casts"
+            expect(
+                [true, false, null, 0.1 + 0.2, 1e25, -0, "x"].map((value) =>
+                    Utils.phpStringCast(value),
+                ),
+            ).toEqual(["1", "", "", "0.3", "1.0E+25", "-0", "x"]);
+        });
+
+        it("casts an object with its own toString to that string, and throws PHP's Error for any other object", () => {
+            class Label {
+                toString(): string {
+                    return "S:T";
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces": a JS Date
+            // names its own class, where PHP's message names DateTime.
+            expect(Utils.phpStringCast(new Label())).toBe("S:T");
+            expect(() => Utils.phpStringCast(new Date(0))).toThrow(
+                new Error(
+                    "Object of class Date could not be converted to string",
+                ),
+            );
+            expect(() => Utils.phpStringCast(() => 1)).toThrow(
+                new Error(
+                    "Object of class Closure could not be converted to string",
+                ),
+            );
+        });
+    });
+
     describe("phpIntArgument", () => {
         const message =
             "array_slice(): Argument #2 ($offset) must be of type int, float given";
