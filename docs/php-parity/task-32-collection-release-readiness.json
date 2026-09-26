@@ -1432,6 +1432,20 @@
             }
         },
         {
+            "label": "C32-B-pull-through-array-into-collection",
+            "php": "$c = collect(['a' => ['b' => collect(['x' => 1, 'y' => 2])]]); $c->pull('a.b.x')",
+            "value": {
+                "returned": 1,
+                "toArray": {
+                    "a": {
+                        "b": {
+                            "y": 2
+                        }
+                    }
+                }
+            }
+        },
+        {
             "label": "C32-B-forget-repeated-key-on-list",
             "php": "collect(['a', 'b', 'c'])->forget([1, 1])->all()",
             "value": {
