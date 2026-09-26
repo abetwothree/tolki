@@ -2543,27 +2543,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1}).push(2); -> new Collection({a: 1, 0: 2})
      */
     push<T>(...values: T[]) {
-        if (isArray(this.items)) {
-            // For arrays, simply push each value
-            for (const value of values) {
-                (this.items as TValue[]).push(value as unknown as TValue);
-            }
-        } else {
-            let nextIndex = this.nextAppendKey();
-
-            for (const value of values) {
-                defineKey(
-                    this.items as Record<string, TValue>,
-                    nextIndex,
-                    value as unknown as TValue,
-                );
-                nextIndex++;
-            }
-
-            if (this.itemsWithOrder) {
-                this.reorderAfterMutation(this.itemsWithOrder);
-            }
-        }
+        this.appendItems(values as unknown as TValue[]);
 
         return this;
     }
@@ -4111,21 +4091,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({5: 'a'}).add('z'); -> collection is now {5: 'a', 6: 'z'}
      */
     add<T>(item: T) {
-        if (isArray(this.items)) {
-            (this.items as TValue[]).push(item as unknown as TValue);
-
-            return this;
-        }
-
-        defineKey(
-            this.items as Record<string, TValue>,
-            this.nextAppendKey(),
-            item as unknown as TValue,
-        );
-
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
-        }
+        this.putKey(null, item as unknown as TValue);
 
         return this;
     }
@@ -4204,16 +4170,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
      */
     offsetSet(key: PropertyKey | null, value: TValue | unknown) {
-        const offset = key ?? null;
-
         // A null or undefined offset appends, as PHP's `$items[] = $value` does.
-        if (isNull(offset)) {
-            this.add(value);
-
-            return;
-        }
-
-        this.putKey(offset, value as TValue);
+        this.putKey(key ?? null, value as TValue);
     }
 
     /**
@@ -6204,12 +6162,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Write a value under a key, as PHP's `$items[$key] = $value` does.
+     * Write a value under a key, or append it for a null key, as PHP's `$items[$key] = $value` and
+     * `$items[] = $value` do.
      *
-     * @param key - The key to write, cast as PHP casts an array key
+     * @param key - The key to write, cast as PHP casts an array key, or null to append past the highest integer key
      * @param value - The value to store under the key
      */
-    protected putKey(key: PropertyKey, value: TValue): void {
+    protected putKey(key: PropertyKey | null, value: TValue): void {
+        if (isNull(key)) {
+            this.appendItems([value]);
+
+            return;
+        }
+
         const phpKey = phpArrayKey(key);
 
         if (isArray(this.items)) {
@@ -6233,6 +6198,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         defineKey(this.items as Record<string, TValue>, phpKey, value);
+
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
+    }
+
+    /**
+     * Append values past the highest integer key, as PHP's `$items[] = $value` does for each in turn.
+     *
+     * @param values - The values to append, in order
+     */
+    protected appendItems(values: readonly TValue[]): void {
+        if (isArray(this.items)) {
+            for (const value of values) {
+                this.items.push(value);
+            }
+
+            return;
+        }
+
+        let key = this.nextAppendKey();
+
+        for (const value of values) {
+            defineKey(this.items as Record<string, TValue>, key++, value);
+        }
 
         if (this.itemsWithOrder) {
             this.reorderAfterMutation(this.itemsWithOrder);
