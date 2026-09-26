@@ -2271,7 +2271,7 @@ describe("Collection", () => {
         // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
             expect(
-                new Collection({ a: 0 }).diffAssoc({ a: "0" } as never).all(),
+                new Collection({ a: 0 }).diffAssoc({ a: "0" }).all(),
             ).toEqual({});
         });
 
@@ -4889,9 +4889,7 @@ describe("Collection", () => {
 
             const arrayable = new ArrayableOperand();
             expect(
-                new Collection({ a: 10, b: 20 })
-                    .intersect(arrayable as never)
-                    .all(),
+                new Collection({ a: 10, b: 20 }).intersect(arrayable).all(),
             ).toEqual({ b: 20 });
         });
 
@@ -4899,7 +4897,7 @@ describe("Collection", () => {
             // JS-only: PHP has no Map; a Map operand stands in for the array it holds
             const map = new Map([["b", 20]]);
             expect(
-                new Collection({ a: 10, b: 20 }).intersect(map as never).all(),
+                new Collection({ a: 10, b: 20 }).intersect(map).all(),
             ).toEqual({ b: 20 });
         });
 
@@ -4988,7 +4986,7 @@ describe("Collection", () => {
             const map = new Map([["b", 20]]);
             expect(
                 new Collection({ a: 10, b: 20 })
-                    .intersectUsing(map as never, (a, b) => a === b)
+                    .intersectUsing(map, (a, b) => a === b)
                     .all(),
             ).toEqual({ b: 20 });
         });
@@ -5093,18 +5091,14 @@ describe("Collection", () => {
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 20]]);
             expect(
-                new Collection({ a: 10, b: 20 })
-                    .intersectAssoc(map as never)
-                    .all(),
+                new Collection({ a: 10, b: 20 }).intersectAssoc(map).all(),
             ).toEqual({ b: 20 });
         });
 
         // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
             expect(
-                new Collection({ a: 0 })
-                    .intersectAssoc({ a: "0" } as never)
-                    .all(),
+                new Collection({ a: 0 }).intersectAssoc({ a: "0" }).all(),
             ).toEqual({ a: 0 });
         });
 
@@ -5138,9 +5132,7 @@ describe("Collection", () => {
 
         it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
-            const result = collect({ a: 1, b: 2 }).intersectAssoc(
-                operand as never,
-            );
+            const result = collect({ a: 1, b: 2 }).intersectAssoc(operand);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
             expect(result.all()).toEqual({});
@@ -5242,7 +5234,7 @@ describe("Collection", () => {
             ]);
             expect(
                 new Collection({ a: "green", b: "brown" })
-                    .intersectAssocUsing(map as never, strcasecmp)
+                    .intersectAssocUsing(map, strcasecmp)
                     .all(),
             ).toEqual({ a: "green" });
         });
@@ -5251,7 +5243,7 @@ describe("Collection", () => {
         it("matches values by PHP's string cast, like intersectAssoc", () => {
             expect(
                 new Collection({ a: 0 })
-                    .intersectAssocUsing({ a: "0" } as never, (x, y) => x === y)
+                    .intersectAssocUsing({ a: "0" }, (x, y) => x === y)
                     .all(),
             ).toEqual({ a: 0 });
         });
@@ -5292,7 +5284,7 @@ describe("Collection", () => {
         it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
             const result = collect({ a: 1, b: 2 }).intersectAssocUsing(
-                operand as never,
+                operand,
                 strcasecmp,
             );
 
@@ -5370,9 +5362,7 @@ describe("Collection", () => {
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 999]]);
             expect(
-                new Collection({ a: 1, b: 2 })
-                    .intersectByKeys(map as never)
-                    .all(),
+                new Collection({ a: 1, b: 2 }).intersectByKeys(map).all(),
             ).toEqual({ b: 2 });
         });
 
@@ -5407,9 +5397,7 @@ describe("Collection", () => {
 
         it("reads a plain object's all member as one of its keys, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
-            const result = collect({ all: 1, b: 2 }).intersectByKeys(
-                operand as never,
-            );
+            const result = collect({ all: 1, b: 2 }).intersectByKeys(operand);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
             expect(result.all()).toEqual({ all: 1 });
@@ -6727,7 +6715,7 @@ describe("Collection", () => {
 
         it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
-            const result = collect({ a: 1 }).merge(operand as never);
+            const result = collect({ a: 1 }).merge(operand);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
             expect(result.all()).toEqual({ a: 1, all: operand.all });
@@ -7380,7 +7368,7 @@ describe("Collection", () => {
 
         it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
-            const result = collect({ a: 1 }).union(operand as never);
+            const result = collect({ a: 1 }).union(operand);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
             expect(result.all()).toEqual({ a: 1, all: operand.all });
@@ -9868,7 +9856,7 @@ describe("Collection", () => {
 
         it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
-            const result = collect({ a: 1 }).replace(operand as never);
+            const result = collect({ a: 1 }).replace(operand);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
             expect(result.all()).toEqual({ a: 1, all: operand.all });
@@ -9989,7 +9977,7 @@ describe("Collection", () => {
 
         it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
             const operand = { all: () => ({ b: 2 }) };
-            const result = collect({ a: 1 }).replaceRecursive(operand as never);
+            const result = collect({ a: 1 }).replaceRecursive(operand);
 
             // docs/php-parity/task-32-collection-release-readiness.json,
             // "C32-F-plain-object-all-member-is-data-by-value"
@@ -21233,12 +21221,9 @@ describe("Collection", () => {
             expect(views(collection)).toEqual(untouched);
         });
 
-        it("diff leaves the receiver's three views alone", () => {
+        it("diff against a Map operand leaves the receiver's three views alone", () => {
             const collection = collect([1, 2, 3]);
-
-            // `diff`'s operand type takes a Collection, not a bare Map; the Collection
-            // built from one carries the same ordered view, so it pins the same defect.
-            collection.diff(collect(operand()));
+            collection.diff(operand());
 
             // docs/php-parity/task-26-collection-order.json, "order-diff-leaves-the-receiver-alone"
             expect(views(collection)).toEqual(untouched);
