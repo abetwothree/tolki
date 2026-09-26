@@ -4160,11 +4160,33 @@ describe("Collection", () => {
             expect(c.hasSole("status", "=", "active")).toBe(true);
         });
 
-        it("uses operatorForWhere with non-callable key (path string)", () => {
-            // Test the branch where key is not null and not callable
-            const c = collect([{ active: true }, { active: false }]);
-            // Here "active" is a path key, not a callable - triggers operatorForWhere(key)
-            expect(c.hasSole("active")).toBe(true);
+        it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
+            const collection = collect([{ name: "foo" }]);
+            const hasSole = (key: unknown) => () =>
+                Reflect.apply(collection.hasSole, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(hasSole("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect(hasSole("0")).toThrowError(TypeError);
+            expect(hasSole(1)).toThrowError(TypeError);
+        });
+
+        it("counts every item for a lone key PHP compares equal to null", () => {
+            const collection = collect([{ name: "foo" }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect([
+                Reflect.apply(collection.hasSole, collection, [0]),
+                Reflect.apply(collection.hasSole, collection, [""]),
+            ]).toEqual([true, true]);
         });
     });
 
@@ -4227,15 +4249,33 @@ describe("Collection", () => {
             expect(c.hasMany("status", "=", "active")).toBe(true);
         });
 
-        it("uses operatorForWhere with non-callable key (path string)", () => {
-            // Test the branch where key is not null and not callable (just a string path)
-            const c = collect([
-                { status: "active" },
-                { status: "active" },
-                { status: "inactive" },
-            ]);
-            // Here "status" is a path key, not a callable - triggers operatorForWhere(key)
-            expect(c.hasMany("status")).toBe(true);
+        it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
+            const collection = collect([{ name: "foo" }, { name: "bar" }]);
+            const hasMany = (key: unknown) => () =>
+                Reflect.apply(collection.hasMany, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(hasMany("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect(hasMany("0")).toThrowError(TypeError);
+            expect(hasMany(1)).toThrowError(TypeError);
+        });
+
+        it("counts every item for a lone key PHP compares equal to null", () => {
+            const collection = collect([{ name: "foo" }, { name: "bar" }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect([
+                Reflect.apply(collection.hasMany, collection, [0]),
+                Reflect.apply(collection.hasMany, collection, [""]),
+            ]).toEqual([true, true]);
         });
     });
 
@@ -7862,6 +7902,35 @@ describe("Collection", () => {
                 }),
             );
         });
+
+        it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
+            const collection = collect([{ name: "foo" }]);
+            const sole = (key: unknown) => () =>
+                Reflect.apply(collection.sole, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(sole("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect(sole("0")).toThrowError(TypeError);
+            expect(sole(1)).toThrowError(TypeError);
+        });
+
+        it("answers the sole item for a lone key PHP compares equal to null", () => {
+            const collection = collect([{ name: "foo" }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect([
+                Reflect.apply(collection.sole, collection, [0]),
+                Reflect.apply(collection.sole, collection, [""]),
+            ]).toEqual([{ name: "foo" }, { name: "foo" }]);
+        });
     });
 
     describe("firstOrFail", () => {
@@ -7986,6 +8055,34 @@ describe("Collection", () => {
                     ),
                 ).toBeNull();
             });
+        });
+
+        it("throws TypeError for a lone key it cannot call, as PHP's first() does", () => {
+            const collection = collect([{ name: "foo" }]);
+            const firstOrFail = (key: unknown) => () =>
+                Reflect.apply(collection.firstOrFail, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(firstOrFail("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::first(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            expect(firstOrFail(1)).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::first(): Argument #1 ($callback) must be of type ?callable, int given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class":
+            // first() takes a null callback only, so even the keys PHP compares equal to null throw
+            expect(firstOrFail(0)).toThrowError(TypeError);
+            expect(firstOrFail("")).toThrowError(TypeError);
+            expect(firstOrFail("0")).toThrowError(TypeError);
         });
     });
 

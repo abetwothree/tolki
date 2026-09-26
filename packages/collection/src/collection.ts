@@ -1424,10 +1424,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Determine if the collection contains multiple items, optionally matching the given criteria.
      *
-     * @param key - The key, callback, or null to check for multiple items
-     * @param operator - The operator to use for comparison (if using key-value matching)
+     * @param key - A callback, the key to compare when an operator or value follows, or null to count every item
+     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
      * @param value - The value to compare against (if using key-value matching)
      * @returns True if multiple items exist or match the condition, false otherwise
+     * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
      * @example
      *
@@ -1441,36 +1442,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
         operator?: unknown,
         value?: unknown,
     ): boolean {
-        let filter: ((value: TValue, key: TKey) => unknown) | null;
-
-        if (!isUndefined(operator) || !isUndefined(value)) {
-            filter = this.operatorForWhere(
-                key as ((value: TValue, index: TKey) => unknown) | PathKey,
-                operator as string | undefined,
-                value,
-            );
-        } else {
-            filter = isNull(key)
-                ? null
-                : this.useAsCallable(key)
-                  ? (key as (value: TValue, key: TKey) => unknown)
-                  : this.operatorForWhere(key);
-        }
-
-        const collection = isNull(filter)
-            ? this
-            : this.filter(filter as (value: TValue, key: TKey) => unknown);
-
-        return collection.take(2).count() === 2;
+        return (
+            this.filterUnlessNull(key, operator, value).take(2).count() === 2
+        );
     }
 
     /**
      * Determine if the collection contains a single item, optionally matching the given criteria.
      *
-     * @param key - The key, callback, or null to check for a single item
-     * @param operator - The operator to use for comparison (if using key-value matching)
+     * @param key - A callback, the key to compare when an operator or value follows, or null to count every item
+     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
      * @param value - The value to compare against (if using key-value matching)
      * @returns True if exactly one item exists or matches the condition, false otherwise
+     * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
      * @example
      *
@@ -1484,27 +1468,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         operator?: unknown,
         value?: unknown,
     ): boolean {
-        let filter: ((value: TValue, key: TKey) => unknown) | null;
-
-        if (!isUndefined(operator) || !isUndefined(value)) {
-            filter = this.operatorForWhere(
-                key as ((value: TValue, index: TKey) => unknown) | PathKey,
-                operator as string | undefined,
-                value,
-            );
-        } else {
-            filter = isNull(key)
-                ? null
-                : this.useAsCallable(key)
-                  ? (key as (value: TValue, key: TKey) => unknown)
-                  : this.operatorForWhere(key);
-        }
-
-        if (isNull(filter)) {
-            return this.count() === 1;
-        }
-
-        return this.filter(filter).count() === 1;
+        return this.filterUnlessNull(key, operator, value).count() === 1;
     }
 
     /**
@@ -3113,11 +3077,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the first item in the collection, but only if exactly one item exists. Otherwise, throw an exception.
      *
-     * @param key - The key or callback to determine the item to retrieve, or null for the first item
-     * @param operator - The operator to use for comparison, or null if key is a callback or null
+     * @param key - A callback, the key to compare when an operator or value follows, or null to count every item
+     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
      * @param value - The value to compare against, or null if key is a callback or null
      * @returns The single item in the collection
      * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
+     * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
      * @example
      *
@@ -3130,27 +3095,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         operator?: string,
         value?: unknown,
     ) {
-        let filter: ((value: TValue, key: TKey) => unknown) | null;
-        if (isUndefined(operator) && isUndefined(value)) {
-            filter = isNull(key)
-                ? key
-                : (this.valueRetriever(
-                      key as
-                          | PathKey
-                          | ((...args: (TValue | TKey)[]) => unknown),
-                  ) as (value: TValue, key: TKey) => unknown);
-        } else {
-            filter = this.operatorForWhere(
-                key,
-                operator as string | undefined,
-                value,
-            );
-        }
-
-        // Laravel's `unless(...)` hands back a HigherOrderWhenProxy that SKIPS the
-        // forwarded filter; this port's `unless` returns the collection, so calling
-        // `filter(null)` would drop every falsy item before the count.
-        const items = isNull(filter) ? this : this.filter(filter);
+        const items = this.filterUnlessNull(key, operator, value);
 
         const count = items.count();
 
@@ -3168,11 +3113,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the first item in the collection but throw an exception if no matching items exist.
      *
-     * @param key - The key or callback to determine the item to retrieve
-     * @param operator - The operator to use for comparison, or null if key is a callback
+     * @param key - A callback, the key to compare when an operator or value follows, or null for the first item
+     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
      * @param value - The value to compare against, or null if key is a callback
      * @returns The first matching item in the collection
      * @throws ItemNotFoundException if no item matches.
+     * @throws TypeError for a lone key that is neither callable nor null, as first() takes no other
      *
      * @example
      *
@@ -3186,21 +3132,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
         operator?: string,
         value?: unknown,
     ) {
-        let filter: ((value: TValue, key: TKey) => unknown) | null;
-        if (isUndefined(operator) && isUndefined(value)) {
-            filter = isNull(key)
+        const filter =
+            isUndefined(operator) && isUndefined(value)
                 ? key
-                : (this.valueRetriever(
-                      key as
-                          | PathKey
-                          | ((...args: (TValue | TKey)[]) => unknown),
-                  ) as (value: TValue, key: TKey) => unknown);
-        } else {
-            filter = this.operatorForWhere(
-                key,
-                operator as string | undefined,
-                value,
-            );
+                : this.operatorForWhere(key, operator, value);
+
+        // PHP hands the filter straight to first()'s ?callable, with no unless() to skip one equal to null.
+        if (!isNull(filter) && !isUndefined(filter) && !isFunction(filter)) {
+            throw notCallable("first", filter);
         }
 
         // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
@@ -5741,6 +5680,43 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Filter the items by what a key-or-callback method was given, as `unless($filter == null)->filter($filter)` does.
+     *
+     * @param key - A callback, the key to compare when an operator or value follows, or a lone filter
+     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against
+     * @returns The items that pass the filter, or this collection itself when the filter equals null
+     * @throws TypeError for a filter that is neither callable nor equal to null, as filter()'s `?callable` rejects it
+     */
+    protected filterUnlessNull(
+        key: unknown,
+        operator?: unknown,
+        value?: unknown,
+    ): this {
+        const filter =
+            isUndefined(operator) && isUndefined(value)
+                ? key
+                : this.operatorForWhere(
+                      key as
+                          | PathKey
+                          | ((value: TValue, index: TKey) => unknown),
+                      operator as string | undefined,
+                      value,
+                  );
+
+        // PHP's unless() proxy skips filter() for a filter == null, so a falsy item is still counted.
+        if (looseEqual(filter, null)) {
+            return this;
+        }
+
+        if (!isFunction(filter)) {
+            throw notCallable("filter", filter);
+        }
+
+        return this.filter(filter as (value: TValue, key: TKey) => unknown);
+    }
+
+    /**
      * Wrap each plain chunk from `@tolki/data` in a collection, then wrap the list of them.
      *
      * @param chunked - The chunks as `dataChunk*` returned them
@@ -6626,6 +6602,19 @@ function unconvertibleKey(type: string): Error {
 function issetOffset(type: string): TypeError {
     return new TypeError(
         `Cannot access offset of type ${type} in isset or empty`,
+    );
+}
+
+/**
+ * The error PHP throws when a method whose callback is `?callable` is handed something it cannot call.
+ *
+ * @param method - The method whose parameter rejects the argument
+ * @param argument - The argument it rejects
+ * @returns The TypeError PHP throws, naming the argument's type as get_debug_type() does
+ */
+function notCallable(method: string, argument: unknown): TypeError {
+    return new TypeError(
+        `Collection::${method}(): Argument #1 ($callback) must be of type ?callable, ${getDebugType(argument)} given`,
     );
 }
 
