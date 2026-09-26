@@ -24,6 +24,7 @@ import {
     dataIntersectAssoc,
     dataIntersectAssocUsing,
     dataIntersectByKeys,
+    dataIntersectUsing,
     dataKeys,
     dataLast,
     dataMap,
@@ -1563,7 +1564,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         return this.newInstance(
             handOver(
-                dataIntersect(
+                dataIntersectUsing(
                     this.items,
                     this.getRawItems(items) as DataItems<TValue, TKey>,
                     // `this.items` is a union, so the call lands on obj's widest row, whose
