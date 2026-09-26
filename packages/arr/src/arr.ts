@@ -111,16 +111,11 @@ type NonBooleanValue =
     | null
     | undefined;
 
-// AnyValueOr (skipUntil, skipWhile, takeUntil, takeWhile): every value, spelled out rather than `unknown`, which
+// AnyValueOr (skipUntil, skipWhile, takeUntil, takeWhile): every value, as `{} | null | undefined`; a bare `unknown`
 // would absorb the callback member that types an inline callback's parameters.
 type AnyValueOr<TCallback> =
     | TCallback
-    | string
-    | number
-    | bigint
-    | boolean
-    | symbol
-    | object
+    | NonNullable<unknown>
     | null
     | undefined;
 
