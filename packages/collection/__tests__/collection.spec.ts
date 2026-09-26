@@ -18056,6 +18056,22 @@ describe("Collection", () => {
             );
         });
 
+        it("names the subclass it was called on in its message, as class_basename(static::class) does", () => {
+            // Named as the probe's own subclass, which PHP's message prints
+            class C32ASub extends Collection<number, number> {}
+
+            const data = new C32ASub([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-subclass-message"
+            expect(() =>
+                Reflect.apply(data.reduceSpread, data, [() => false, null]),
+            ).toThrow(
+                new UnexpectedValueException(
+                    "C32ASub::reduceSpread expects reducer to return an array, but got a 'boolean' instead.",
+                ),
+            );
+        });
+
         it("answers the initial values for an empty collection, without calling the reducer", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-empty"
             expect(

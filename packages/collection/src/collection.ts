@@ -5300,7 +5300,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the spread carry values, value, and key as arguments
      * @param initial - The initial values to start the reduction with
      * @returns The reduced values as an array
-     * @throws UnexpectedValueException when the reducer answers anything but an array, named as gettype() names it
+     * @throws UnexpectedValueException when the reducer answers anything but an array, named as gettype() names it,
+     * under the name of the class it was called on, which a minified build may rename
      */
     reduceSpread<TSpread extends unknown[]>(
         callback: (...args: [...TSpread, TValue, PropertyKey]) => [...TSpread],
@@ -5315,9 +5316,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             if (!isArray(callbackResult)) {
                 const type = phpTypeName(callbackResult);
+                // PHP names the class with class_basename(static::class), so a subclass gives its own name.
+                const name = this.constructor.name;
 
                 throw new UnexpectedValueException(
-                    `Collection::reduceSpread expects reducer to return an array, but got a '${type}' instead.`,
+                    `${name}::reduceSpread expects reducer to return an array, but got a '${type}' instead.`,
                 );
             }
 
