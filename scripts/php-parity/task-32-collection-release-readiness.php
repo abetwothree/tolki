@@ -1559,6 +1559,11 @@ probe('C32-G-sortBy-descriptor-direction-forms', "sortBy([[\$key, \$direction]])
         'sortByDesc comparator' => (new Collection([['age' => 2], ['age' => 10]]))->sortByDesc([fn ($a, $b) => $a['age'] <=> $b['age']])->pluck('age')->all(),
     ];
 });
+probe('C32-G-sort-desc-mixed-keys', "(new Collection([0 => 1, 'x' => 2])) sorted descending by sort(fn (\$a, \$b) => \$b <=> \$a), sortByDesc(fn (\$v) => \$v) and sortDesc()", fn () => [
+    'sort' => $pairs((new Collection([0 => 1, 'x' => 2]))->sort(fn ($a, $b) => $b <=> $a)),
+    'sortByDesc' => $pairs((new Collection([0 => 1, 'x' => 2]))->sortByDesc(fn ($v) => $v)),
+    'sortDesc' => $pairs((new Collection([0 => 1, 'x' => 2]))->sortDesc()),
+]);
 probe('C32-G-split-out-of-order', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->split(2) and (new Collection([2 => 'c', 'x' => 'a', 1 => 'b']))->split(2)", fn () => [
     'out-of-order' => $pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->split(2)),
     'mixed' => $pairs((new Collection([2 => 'c', 'x' => 'a', 1 => 'b']))->split(2)),
@@ -1567,22 +1572,26 @@ probe('C32-G-splitIn-out-of-order', "(new Collection([2 => 'c', 0 => 'a', 1 => '
     fn () => $pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->splitIn(2)));
 
 // Counts: a float reaches array_chunk(), array_slice(), range() or %, each of which casts it or throws.
-probe('C32-G-chunk-counts', "(new Collection([1, 2, 3, 4, 5]))->chunk(\$size) for 1.5, 0.5, NAN, INF, -INF and 1e19, and (new Collection([]))->chunk(NAN): the chunks, or the class and message thrown", fn () => [
+probe('C32-G-chunk-counts', "(new Collection([1, 2, 3, 4, 5]))->chunk(\$size) for 1.5, 0.5, NAN, INF, -INF and 1e19, and (new Collection([]))->chunk(\$size) for NAN, INF and 1e19: the chunks, or the class and message thrown", fn () => [
     ...array_map(fn (float $size) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->chunk($size))), ['1.5' => 1.5, '0.5' => 0.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19]),
-    'empty NAN' => c32c_outcome(fn () => $pairs(@(new Collection([]))->chunk(NAN))),
+    ...array_map(fn (float $size) => c32c_outcome(fn () => $pairs(@(new Collection([]))->chunk($size))), ['empty NAN' => NAN, 'empty INF' => INF, 'empty 1e19' => 1e19]),
 ]);
 probe('C32-G-nth-counts', "(new Collection([1, 2, 3, 4, 5]))->nth(\$step) for 1.5, 2.5, NAN, INF and 1e19, ->nth(1, \$offset) for 1.5, NAN and 1e19, and (new Collection([]))->nth(NAN)", fn () => [
     'step' => array_map(fn (float $step) => c32c_outcome(fn () => @(new Collection([1, 2, 3, 4, 5]))->nth($step)->all()), ['1.5' => 1.5, '2.5' => 2.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),
     'offset' => array_map(fn (float $offset) => c32c_outcome(fn () => @(new Collection([1, 2, 3, 4, 5]))->nth(1, $offset)->all()), ['1.5' => 1.5, 'NAN' => NAN, '1e19' => 1e19]),
     'empty NAN' => c32c_outcome(fn () => @(new Collection([]))->nth(NAN)->all()),
 ]);
+probe('C32-G-nth-out-of-order-offset', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->nth(1, \$offset) for NAN and 1e19: the class and message thrown", fn () => array_map(
+    fn (float $offset) => c32c_outcome(fn () => @(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->nth(1, $offset)->all()),
+    ['NAN' => NAN, '1e19' => 1e19],
+));
 probe('C32-G-take-counts', "(new Collection([1, 2, 3, 4, 5, 6]))->take(\$limit) for 1.5, -1.5, NAN, INF, -INF, 1e19 and -1e19", fn () => array_map(
     fn (float $limit) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5, 6]))->take($limit))),
     ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19, '-1e19' => -1e19],
 ));
-probe('C32-G-slice-counts', "(new Collection([1, 2, 3, 4, 5]))->slice(\$offset) for 1.5, -1.5, NAN and 1e19, and ->slice(0, \$length) for 1.5, NAN and 1e19", fn () => [
-    'offset' => array_map(fn (float $offset) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->slice($offset))), ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, '1e19' => 1e19]),
-    'length' => array_map(fn (float $length) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->slice(0, $length))), ['1.5' => 1.5, 'NAN' => NAN, '1e19' => 1e19]),
+probe('C32-G-slice-counts', "(new Collection([1, 2, 3, 4, 5]))->slice(\$offset) for 1.5, -1.5, NAN, INF and 1e19, and ->slice(0, \$length) for 1.5, NAN, INF and 1e19", fn () => [
+    'offset' => array_map(fn (float $offset) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->slice($offset))), ['1.5' => 1.5, '-1.5' => -1.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),
+    'length' => array_map(fn (float $length) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->slice(0, $length))), ['1.5' => 1.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),
 ]);
 probe('C32-G-sliding-counts', "(new Collection([1, 2, 3, 4, 5]))->sliding(\$size) for 1.5, 2.5, NAN, INF and 1e19, ->sliding(2, \$step) for 1.5, NAN, INF and 1e19, and (new Collection([]))->sliding(2, INF)", fn () => [
     'size' => array_map(fn (float $size) => c32c_outcome(fn () => $pairs(@(new Collection([1, 2, 3, 4, 5]))->sliding($size))), ['1.5' => 1.5, '2.5' => 2.5, 'NAN' => NAN, 'INF' => INF, '1e19' => 1e19]),

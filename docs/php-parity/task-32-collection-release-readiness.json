@@ -8678,6 +8678,42 @@
             }
         },
         {
+            "label": "C32-G-sort-desc-mixed-keys",
+            "php": "(new Collection([0 => 1, 'x' => 2])) sorted descending by sort(fn ($a, $b) => $b <=> $a), sortByDesc(fn ($v) => $v) and sortDesc()",
+            "value": {
+                "sort": [
+                    [
+                        "x",
+                        2
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                "sortByDesc": [
+                    [
+                        "x",
+                        2
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ],
+                "sortDesc": [
+                    [
+                        "x",
+                        2
+                    ],
+                    [
+                        0,
+                        1
+                    ]
+                ]
+            }
+        },
+        {
             "label": "C32-G-split-out-of-order",
             "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->split(2) and (new Collection([2 => 'c', 'x' => 'a', 1 => 'b']))->split(2)",
             "value": {
@@ -8761,7 +8797,7 @@
         },
         {
             "label": "C32-G-chunk-counts",
-            "php": "(new Collection([1, 2, 3, 4, 5]))->chunk($size) for 1.5, 0.5, NAN, INF, -INF and 1e19, and (new Collection([]))->chunk(NAN): the chunks, or the class and message thrown",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->chunk($size) for 1.5, 0.5, NAN, INF, -INF and 1e19, and (new Collection([]))->chunk($size) for NAN, INF and 1e19: the chunks, or the class and message thrown",
             "value": {
                 "1.5": [
                     [
@@ -8830,6 +8866,14 @@
                 "empty NAN": [
                     "TypeError",
                     "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "empty INF": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
+                ],
+                "empty 1e19": [
+                    "TypeError",
+                    "array_chunk(): Argument #2 ($length) must be of type int, float given"
                 ]
             }
         },
@@ -8882,6 +8926,20 @@
             }
         },
         {
+            "label": "C32-G-nth-out-of-order-offset",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->nth(1, $offset) for NAN and 1e19: the class and message thrown",
+            "value": {
+                "NAN": [
+                    "TypeError",
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                ],
+                "1e19": [
+                    "TypeError",
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                ]
+            }
+        },
+        {
             "label": "C32-G-take-counts",
             "php": "(new Collection([1, 2, 3, 4, 5, 6]))->take($limit) for 1.5, -1.5, NAN, INF, -INF, 1e19 and -1e19",
             "value": {
@@ -8921,7 +8979,7 @@
         },
         {
             "label": "C32-G-slice-counts",
-            "php": "(new Collection([1, 2, 3, 4, 5]))->slice($offset) for 1.5, -1.5, NAN and 1e19, and ->slice(0, $length) for 1.5, NAN and 1e19",
+            "php": "(new Collection([1, 2, 3, 4, 5]))->slice($offset) for 1.5, -1.5, NAN, INF and 1e19, and ->slice(0, $length) for 1.5, NAN, INF and 1e19",
             "value": {
                 "offset": {
                     "1.5": [
@@ -8952,6 +9010,10 @@
                         "TypeError",
                         "array_slice(): Argument #2 ($offset) must be of type int, float given"
                     ],
+                    "INF": [
+                        "TypeError",
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given"
+                    ],
                     "1e19": [
                         "TypeError",
                         "array_slice(): Argument #2 ($offset) must be of type int, float given"
@@ -8965,6 +9027,10 @@
                         ]
                     ],
                     "NAN": [
+                        "TypeError",
+                        "array_slice(): Argument #3 ($length) must be of type ?int, float given"
+                    ],
+                    "INF": [
                         "TypeError",
                         "array_slice(): Argument #3 ($length) must be of type ?int, float given"
                     ],
