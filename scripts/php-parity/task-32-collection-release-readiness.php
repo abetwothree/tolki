@@ -394,6 +394,8 @@ probe('C32-B-offset-illegal-key', "offsetGet(\$key), offsetExists(\$key) and off
 ], $illegalKeys));
 probe('C32-B-pull-illegal-key', "pull(\$key) over both backings, for \$key = ['a'], new stdClass and fn () => 1", fn () => array_map(fn ($key) => $overBackings(fn (Collection $c) => $c->pull($key)), $illegalKeys));
 
+$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
+
 // shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
 // of items over a NAN; range() refuses a float end less than one step from 1
 $takeOutcome = function (string $method, array $items, $count) {
@@ -415,13 +417,19 @@ foreach (['shift', 'pop'] as $takeMethod) {
         'empty' => $takeOutcome($takeMethod, [], 1.5),
     ]);
 }
+probe('C32-B-shift-and-pop-counts-out-of-order-keys', "shift(\$count) and pop(\$count) over collect([2 => 'c', 0 => 'a', 1 => 'b']) for 2.5, 1.5 and NAN: what each returns, or the class and message thrown, and the keys and values left", fn () => array_map(fn (string $method) => array_map(function ($count) use ($method, $keysAndValues) {
+    $c = collect([2 => 'c', 0 => 'a', 1 => 'b']);
+    $returned = c32c_outcome(fn () => $c->$method($count)->all());
+
+    return ['returned' => $returned] + $keysAndValues($c);
+}, ['2.5' => 2.5, '1.5' => 1.5, 'NAN' => NAN]), ['shift' => 'shift', 'pop' => 'pop']));
 
 // array_pad() and array_splice() read their counts as int parameters: a fraction is dropped (with a deprecation,
 // silenced here), and a float no int can hold is refused before anything changes
-$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
 $padSizes = ['7.5' => 7.5, '-7.5' => -7.5, '0.5' => 0.5, 'NAN' => NAN, 'INF' => INF, '-INF' => -INF, '1e19' => 1e19, '-1e19' => -1e19];
 probe('C32-B-pad-fractional-and-non-int-sizes', "pad(\$size, 0) over collect([1, 2, 3]) and collect(['a' => 1, 'b' => 2, 'c' => 3]) for 7.5, -7.5, 0.5, NAN, INF, -INF, 1e19 and -1e19: the keys and values, or the class and message thrown", fn () => array_map(fn (array $items) => array_map(fn ($size) => c32c_outcome(fn () => $keysAndValues(@collect($items)->pad($size, 0))), $padSizes), ['list' => [1, 2, 3], 'keyed' => ['a' => 1, 'b' => 2, 'c' => 3]]));
 probe('C32-B-pad-past-maximum-array-size', "collect([1, 2, 3])->pad(\$size, 0) for 1073741825, -1073741825 and 1e18: the class and message thrown", fn () => array_map(fn ($size) => c32c_outcome(fn () => collect([1, 2, 3])->pad($size, 0)->all()), ['1073741825' => 1073741825, '-1073741825' => -1073741825, '1e18' => 1e18]));
+probe('C32-B-pad-fractional-size-out-of-order-keys', "collect([2 => 'c', 0 => 'a', 1 => 'b'])->pad(\$size, 'P') for 4.5, -4.5 and NAN: the keys and values, or the class and message thrown", fn () => array_map(fn ($size) => c32c_outcome(fn () => $keysAndValues(@collect([2 => 'c', 0 => 'a', 1 => 'b'])->pad($size, 'P'))), ['4.5' => 4.5, '-4.5' => -4.5, 'NAN' => NAN]));
 $spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
     $c = collect($items);
     $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
