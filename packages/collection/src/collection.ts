@@ -6639,7 +6639,7 @@ function phpArrayValue(
 /**
  * Read a `*Using` callback as the equality test the data helpers take, so a PHP comparator gives PHP's answer.
  *
- * @param callback - A comparator answering a number, which means equal only at 0, or a test answering a boolean
+ * @param callback - A comparator answering a number, equal where PHP's int cast makes it 0, or a boolean test
  * @returns A test answering whether its two arguments are equal
  */
 function equalityTest<TLeft, TRight>(
@@ -6648,7 +6648,12 @@ function equalityTest<TLeft, TRight>(
     return (left, right) => {
         const answer = callback(left, right);
 
-        return isNumber(answer) ? answer === 0 : answer;
+        // PHP casts the answer to an int, which drops a fraction and turns NAN or an infinity into 0.
+        if (typeOf(answer) === "number") {
+            return !isFiniteNumber(answer) || Math.trunc(answer) === 0;
+        }
+
+        return answer as boolean;
     };
 }
 

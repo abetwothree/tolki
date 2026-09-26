@@ -2063,6 +2063,30 @@ describe("Collection", () => {
             expect(diffed.values().all()).toEqual([1, 3]);
         });
 
+        it("drops a fraction from a comparator's answer, as PHP's int cast does", () => {
+            const diffed = (answer: number) =>
+                collect([1, 2, 3])
+                    .diffUsing([2], () => answer)
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-fractional-comparator"
+            expect(diffed(0.5)).toEqual([]);
+            expect(diffed(-0.99)).toEqual([]);
+            expect(diffed(1.5)).toEqual([1, 2, 3]);
+        });
+
+        it("reads a NAN or infinite comparator answer as equal, as PHP's int cast makes it 0", () => {
+            const diffed = (answer: number) =>
+                collect([1, 2, 3])
+                    .diffUsing([2], () => answer)
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-non-finite-comparator"
+            expect(diffed(NaN)).toEqual([]);
+            expect(diffed(Infinity)).toEqual([]);
+            expect(diffed(-Infinity)).toEqual([]);
+        });
+
         it("keeps a record's keys", () => {
             const diffed = collect({
                 a: "green",
@@ -4651,6 +4675,18 @@ describe("Collection", () => {
             expect(intersected.all()).toEqual([2, 3]);
             expect(intersected.keys().all()).toEqual([0, 1]);
             expect(intersected.values().all()).toEqual([2, 3]);
+        });
+
+        it("drops a fraction from a comparator's answer, as PHP's int cast does", () => {
+            const intersected = (answer: number) =>
+                collect([1, 2, 3])
+                    .intersectUsing([2], () => answer)
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-fractional-comparator"
+            expect(intersected(0.5)).toEqual([1, 2, 3]);
+            expect(intersected(-0.99)).toEqual([1, 2, 3]);
+            expect(intersected(1.5)).toEqual([]);
         });
 
         it.fails(
