@@ -2325,6 +2325,26 @@ describe("Collection", () => {
                 expect(person().except([]).all()).toEqual(person().all());
             });
 
+            it("reads a null among the keys as the '' key, where a bare null keeps every item", () => {
+                const blank = () => collect({ "": 1, a: 2 });
+                const except = blank().except([null]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-forget-null-key"
+                expect(blank().except(null).all()).toEqual({ "": 1, a: 2 });
+                expect([except.keys().all(), except.values().all()]).toEqual([
+                    ["a"],
+                    [2],
+                ]);
+                expect(blank().except("a", null).all()).toEqual({});
+                expect(
+                    blank()
+                        .except(collect([null]))
+                        .all(),
+                ).toEqual({ a: 2 });
+                // JS-only: undefined stands for PHP's null.
+                expect(blank().except([undefined]).all()).toEqual({ a: 2 });
+            });
+
             it("throws array_key_exists()'s TypeError for a later array or collection key, even over no items", () => {
                 const failure = new TypeError(
                     "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
@@ -2351,6 +2371,29 @@ describe("Collection", () => {
                 ["a"],
                 [{ b: 2 }],
             ]);
+        });
+
+        it("looks a float up by its string form, then removes its integer part, as unset casts it", () => {
+            const except = collect({ "1.5": "a", 1: "b", c: "d" }).except([
+                1.5,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            expect([except.keys().all(), except.values().all()]).toEqual([
+                ["1.5", "c"],
+                ["a", "d"],
+            ]);
+            expect(collect({ "1.5": "a", c: "d" }).except([1.5]).all()).toEqual(
+                {
+                    "1.5": "a",
+                    c: "d",
+                },
+            );
+            expect(
+                collect({ 1: { 5: "x", 6: "y" } })
+                    .except([1.5])
+                    .all(),
+            ).toEqual({ 1: { 6: "y" } });
         });
 
         it("reads a numeric string as a list's index", () => {
@@ -2856,6 +2899,26 @@ describe("Collection", () => {
             expect(collection.all()).toEqual({ a: { b: 1 } });
             expect(collection.keys().all()).toEqual(["a"]);
             expect(collection.values().all()).toEqual([{ b: 1 }]);
+        });
+
+        it("reads a null among the keys as the '' key and unsets a float's integer part, as offsetUnset does", () => {
+            const forgotten = collect({ "": 1, a: 2 }).forget([null]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-forget-null-key"
+            expect(collect({ "": 1, a: 2 }).forget(null).all()).toEqual({
+                "": 1,
+                a: 2,
+            });
+            expect([forgotten.keys().all(), forgotten.values().all()]).toEqual([
+                ["a"],
+                [2],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            expect(collect({ "1.5": "a", 1: "b" }).forget([1.5]).all()).toEqual(
+                {
+                    "1.5": "a",
+                },
+            );
         });
 
         it("drops a repeated key once", () => {

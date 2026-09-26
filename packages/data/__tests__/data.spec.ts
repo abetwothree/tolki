@@ -1706,6 +1706,11 @@ describe("Data", () => {
             });
             expect(Data.dataExcept([1, 2, 3], null)).toEqual([1, 2, 3]);
         });
+
+        it("reads a null among the keys as the '' key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-null-key"
+            expect(Data.dataExcept({ "": 1, a: 2 }, [null])).toEqual({ a: 2 });
+        });
     });
 
     describe("dataExists", () => {

@@ -2185,6 +2185,27 @@ describe("Obj", () => {
             expect(Obj.except(42, "a")).toEqual({});
         });
 
+        it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-null-key"
+            expect(Obj.except({ "": 1, a: 2 }, null)).toEqual({ "": 1, a: 2 });
+            expect(Obj.except({ "": 1, a: 2 }, [null])).toEqual({ a: 2 });
+            expect(Obj.except({ a: { "": 1 } }, [null])).toEqual({
+                a: { "": 1 },
+            });
+        });
+
+        it("looks a float up by its string form, then removes its integer part, as unset casts it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            expect(Obj.except({ "1.5": "a", 1: "b", c: "d" }, [1.5])).toEqual({
+                "1.5": "a",
+                c: "d",
+            });
+            expect(Obj.except({ "1.5": "a", c: "d" }, [1.5])).toEqual({
+                "1.5": "a",
+                c: "d",
+            });
+        });
+
         it("throws array_key_exists()'s TypeError for an array key", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
             expect(() =>
@@ -2277,6 +2298,11 @@ describe("Obj", () => {
             expect(Obj.forget(data, [])).toEqual({
                 products: { desk: { price: 100 } },
             });
+        });
+
+        it("reads a null among the keys as the '' key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-null-key"
+            expect(Obj.forget({ "": 1, a: 2 }, [null])).toEqual({ a: 2 });
         });
 
         it("leaves an emptied parent behind", () => {

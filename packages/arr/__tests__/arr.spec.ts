@@ -890,6 +890,14 @@ describe("Arr", () => {
             ]);
         });
 
+        it("walks a float as the path its string form names", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-float-list-path"
+            expect(Arr.except([["a", "b", "c", "d", "e", "f"]], [0.5])).toEqual(
+                [["a", "b", "c", "d", "e"]],
+            );
+            expect(Arr.except(["a", "b", "c"], [1.5])).toEqual(["a", "b", "c"]);
+        });
+
         it("throws array_key_exists()'s TypeError for an array key, even over no items", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
             expect(() =>
