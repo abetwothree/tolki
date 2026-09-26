@@ -2441,7 +2441,7 @@ export class Collection<
      * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
      * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
-    concat<TOperand extends Operand>(source: TOperand) {
+    concat<TOperand extends NonNullable<Operand>>(source: TOperand) {
         // PHP's `new static($this)` copies the array, because an array is a value there.
         // A JS backing is a reference, so without a copy every `push` below would append
         // to this collection as well as to the result.
@@ -5123,7 +5123,10 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key between the given values
      */
-    whereBetween<TOperand extends Operand>(key: PathKey, values: TOperand) {
+    whereBetween<TOperand extends NonNullable<Operand>>(
+        key: PathKey,
+        values: TOperand,
+    ) {
         const valueSet = this.getRawItems(values);
         const valuesArray = Object.values(valueSet);
 
@@ -5141,7 +5144,10 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key not between the given values
      */
-    whereNotBetween<TOperand extends Operand>(key: PathKey, values: TOperand) {
+    whereNotBetween<TOperand extends NonNullable<Operand>>(
+        key: PathKey,
+        values: TOperand,
+    ) {
         return this.filter((item: TValue) => {
             const retrieved = itemValue(item, key);
             const valueSet = this.getRawItems(values);

@@ -134,4 +134,25 @@ describe("collection set operation type tests", () => {
             record.forget(collect([{ a: 1 }]));
         });
     });
+
+    describe("concat", () => {
+        it("rejects null, over which PHP's foreach warns", () => {
+            // @ts-expect-error - PHP's parameter is iterable, which null is not
+            list.concat(null);
+        });
+    });
+
+    describe("whereBetween", () => {
+        it("rejects null, which PHP's reset() refuses with a TypeError", () => {
+            // @ts-expect-error - PHP's parameter is Arrayable|iterable, which null is not
+            rows.whereBetween("id", null);
+        });
+    });
+
+    describe("whereNotBetween", () => {
+        it("rejects null, which PHP's reset() refuses with a TypeError", () => {
+            // @ts-expect-error - PHP's parameter is Arrayable|iterable, which null is not
+            rows.whereNotBetween("id", null);
+        });
+    });
 });
