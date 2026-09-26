@@ -2875,20 +2875,21 @@ export function random<TValue>(
 
     const values = data as TValue[];
     const count = values.length;
-    const requested = numberProvided ? (number as number) : 1;
+    const requested = numberProvided ? number : 1;
 
-    if (requested > count) {
+    // PHP compares a count that is not numeric as a string, and orders NAN with nothing.
+    if (operatorMatch(requested, ">", count)) {
         throw new InvalidArgumentException(
             `You requested ${toPhpKeyString(requested)} items, but there are only ${count} items available.`,
         );
     }
 
-    if (numberProvided && requested <= 0) {
+    if (numberProvided && operatorMatch(requested, "<=", 0)) {
         return [];
     }
 
     // Randomizer::pickArrayKeys takes an int count, so PHP truncates a fraction and rejects one left below 1.
-    const picks = Math.trunc(requested);
+    const picks = Math.trunc(requested as number);
 
     if (picks < 1) {
         throw new Error(

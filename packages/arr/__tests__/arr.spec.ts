@@ -5370,6 +5370,16 @@ describe("Arr", () => {
             expect(Arr.random([1, 2, 3], -Infinity)).toEqual([]);
         });
 
+        it("compares a count that is not numeric as a string, as PHP does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => Arr.random([1, 2, 3], "abc")).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.random([1, 2, 3], "abc")).toThrow(
+                "You requested abc items, but there are only 3 items available.",
+            );
+        });
+
         it("returns the picked values in the array's own order, not the order drawn", () => {
             // docs/php-parity/task-30-map-order.json, "random-list-full-count"
             expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([

@@ -4216,10 +4216,10 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 
     const entries = keyedEntries<TValue>(data);
     const count = entries.length;
-    const requested =
-        isNull(number) || isUndefined(number) ? 1 : (number as number);
+    const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
-    if (requested > count) {
+    // PHP compares a count that is not numeric as a string, and orders NAN with nothing.
+    if (operatorMatch(requested, ">", count)) {
         throw new InvalidArgumentException(
             `You requested ${toPhpKeyString(requested)} items, but there are only ${count} items available.`,
         );
@@ -4228,12 +4228,12 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     // Reaching this point with `number` null/undefined would mean requested === 1
     // survived the throw guard above (which requires count >= 1), so `number` is
     // always provided here — Arr.php:983's empty-or-non-positive short-circuit yields [].
-    if (requested <= 0) {
+    if (operatorMatch(requested, "<=", 0)) {
         return {} as Record<TKey, TValue>;
     }
 
     // Randomizer::pickArrayKeys takes an int count, so PHP truncates a fraction and rejects one left below 1.
-    const picks = Math.trunc(requested);
+    const picks = Math.trunc(requested as number);
 
     if (picks < 1) {
         throw new Error(

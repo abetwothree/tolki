@@ -7587,6 +7587,18 @@ describe("Obj", () => {
             );
             expect(Obj.random(data, -Infinity)).toEqual({});
         });
+
+        it("compares a count that is not numeric as a string, as PHP does", () => {
+            const data = { a: 1, b: 2, c: 3 };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => Obj.random(data, "abc")).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Obj.random(data, "abc")).toThrow(
+                "You requested abc items, but there are only 3 items available.",
+            );
+        });
     });
 
     describe("shift", () => {

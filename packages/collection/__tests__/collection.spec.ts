@@ -6899,6 +6899,18 @@ describe("Collection", () => {
             expect(collection.random(-Infinity).all()).toEqual([]);
         });
 
+        it("compares a count that is not numeric as a string, as PHP does", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => collection.random("abc")).toThrowError(
+                InvalidArgumentException,
+            );
+            expect(() => collection.random("abc")).toThrowError(
+                "You requested abc items, but there are only 3 items available.",
+            );
+        });
+
         it("reindexes from zero by default into a list, either backing", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-record-count-is-list"
             for (const picked of [
