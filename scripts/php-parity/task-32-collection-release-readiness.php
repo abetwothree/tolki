@@ -935,6 +935,34 @@ probe('C32-D-data-has-array-and-object-targets', "data_has(['a' => null], 'a') /
     data_has(new C32D_Point, 'q'),
 ]);
 
+probe('C32-D-partition-offset-get', "(new Collection(['a' => 1, 'b' => 2]))->partition(fn (\$v) => \$v > 1): its [0] and [1]", function () {
+    $halves = (new Collection(['a' => 1, 'b' => 2]))->partition(fn ($v) => $v > 1);
+
+    return [pairs($halves[0]), pairs($halves[1])];
+});
+probe('C32-D-null-keys-copy', "\$c = new Collection(['a' => 1]); only(null), except(null) and select(null), each then put('b', 2): \$c and each copy", function () {
+    $c = new Collection(['a' => 1]);
+    $copies = [$c->only(null), $c->except(null), $c->select(null)];
+
+    foreach ($copies as $copy) {
+        $copy->put('b', 2);
+    }
+
+    return array_map(fn (Collection $collection) => $collection->all(), [$c, ...$copies]);
+});
+probe('C32-D-skip-take-callback-php-truthiness', "skipUntil / skipWhile / takeUntil / takeWhile over new Collection(c32c_items(list | keyed)), with a callback answering '0', [] and new DateTime('@0')", fn () => array_map(fn (bool $keyed) => [
+    'skipUntil' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->skipUntil($cb)),
+    'skipWhile' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->skipWhile($cb)),
+    'takeUntil' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->takeUntil($cb)),
+    'takeWhile' => c32c_truthiness(fn ($cb) => (new Collection(c32c_items($keyed)))->takeWhile($cb)),
+], ['list' => false, 'keyed' => true]));
+probe('C32-D-arr-only-repeated-keys', "Arr::only(['a', 'b', 'c'], [2, 0, 2])", fn () => pairs(Arr::only(['a', 'b', 'c'], [2, 0, 2])));
+probe('C32-D-select-string-index-and-length', "(new Collection([[10, 20, 30]]))->select(['1', 'length'])", fn () => pairs((new Collection([[10, 20, 30]]))->select(['1', 'length'])));
+probe('C32-D-select-integer-string-key', "(new Collection([['a' => 1, 1 => 'x']]))->select('1', 'a')", fn () => pairs((new Collection([['a' => 1, 1 => 'x']]))->select('1', 'a')));
+probe('C32-D-select-object-falsy-props', "(new Collection([(object) ['a' => null, 'b' => 1, 'c' => 0, 'd' => '']]))->select('a', 'b', 'c', 'd', 'e')", fn () => pairs((new Collection([(object) ['a' => null, 'b' => 1, 'c' => 0, 'd' => '']]))->select('a', 'b', 'c', 'd', 'e')));
+probe('C32-D-select-keyed-collection-arg', "(new Collection([['first' => 'T', 'last' => 'O', 'email' => 'e']]))->select(new Collection(['x' => 'first', 'y' => 'email']))", fn () => pairs((new Collection([['first' => 'T', 'last' => 'O', 'email' => 'e']]))->select(new Collection(['x' => 'first', 'y' => 'email']))));
+probe('C32-D-select-array-then-extra-arg', "(new Collection([['first' => 'T', 'last' => 'O']]))->select(['first'], 'last')", fn () => pairs((new Collection([['first' => 'T', 'last' => 'O']]))->select(['first'], 'last')));
+
 // ---- Family E ------------------------------------------------------------
 
 enum C32E_Pure { case A; }

@@ -4239,6 +4239,257 @@
             ]
         },
         {
+            "label": "C32-D-partition-offset-get",
+            "php": "(new Collection(['a' => 1, 'b' => 2]))->partition(fn ($v) => $v > 1): its [0] and [1]",
+            "value": [
+                [
+                    [
+                        "b",
+                        2
+                    ]
+                ],
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-null-keys-copy",
+            "php": "$c = new Collection(['a' => 1]); only(null), except(null) and select(null), each then put('b', 2): $c and each copy",
+            "value": [
+                {
+                    "a": 1
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                },
+                {
+                    "a": 1,
+                    "b": 2
+                }
+            ]
+        },
+        {
+            "label": "C32-D-skip-take-callback-php-truthiness",
+            "php": "skipUntil / skipWhile / takeUntil / takeWhile over new Collection(c32c_items(list | keyed)), with a callback answering '0', [] and new DateTime('@0')",
+            "value": {
+                "list": {
+                    "skipUntil": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "skipWhile": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "a",
+                            "b"
+                        ],
+                        []
+                    ],
+                    "takeUntil": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "a",
+                            "b"
+                        ],
+                        []
+                    ],
+                    "takeWhile": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ]
+                },
+                "keyed": {
+                    "skipUntil": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "skipWhile": [
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        []
+                    ],
+                    "takeUntil": [
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        []
+                    ],
+                    "takeWhile": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "label": "C32-D-arr-only-repeated-keys",
+            "php": "Arr::only(['a', 'b', 'c'], [2, 0, 2])",
+            "value": [
+                [
+                    0,
+                    "a"
+                ],
+                [
+                    2,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-string-index-and-length",
+            "php": "(new Collection([[10, 20, 30]]))->select(['1', 'length'])",
+            "value": [
+                [
+                    [
+                        1,
+                        20
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-integer-string-key",
+            "php": "(new Collection([['a' => 1, 1 => 'x']]))->select('1', 'a')",
+            "value": [
+                [
+                    [
+                        1,
+                        "x"
+                    ],
+                    [
+                        "a",
+                        1
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-object-falsy-props",
+            "php": "(new Collection([(object) ['a' => null, 'b' => 1, 'c' => 0, 'd' => '']]))->select('a', 'b', 'c', 'd', 'e')",
+            "value": [
+                [
+                    [
+                        "b",
+                        1
+                    ],
+                    [
+                        "c",
+                        0
+                    ],
+                    [
+                        "d",
+                        ""
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-keyed-collection-arg",
+            "php": "(new Collection([['first' => 'T', 'last' => 'O', 'email' => 'e']]))->select(new Collection(['x' => 'first', 'y' => 'email']))",
+            "value": [
+                [
+                    [
+                        "first",
+                        "T"
+                    ],
+                    [
+                        "email",
+                        "e"
+                    ]
+                ]
+            ]
+        },
+        {
+            "label": "C32-D-select-array-then-extra-arg",
+            "php": "(new Collection([['first' => 'T', 'last' => 'O']]))->select(['first'], 'last')",
+            "value": [
+                [
+                    [
+                        "first",
+                        "T"
+                    ]
+                ]
+            ]
+        },
+        {
             "label": "C32-E-mapWithKeys-overwriting-keys",
             "php": "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])",
             "value": [
