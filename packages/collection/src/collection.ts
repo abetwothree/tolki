@@ -6731,6 +6731,9 @@ const PHP_LEADING_NUMBER =
 /**
  * Add a value to a running total as PHP's `+` does.
  *
+ * JS has one number type, so a whole-number total is named "int" where PHP's may be a float: sum([0.5, 0.5, 'a']) says
+ * "int + string" where PHP says "float + string". A Map is named "Map", though the port reads it as a PHP array.
+ *
  * @param total - The total so far, an int or a float to PHP
  * @param value - The value to add: a number, a string that is or opens with a number, a boolean or null
  * @returns The new total
