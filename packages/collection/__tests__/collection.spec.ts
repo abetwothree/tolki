@@ -2615,8 +2615,7 @@ describe("Collection", () => {
         });
 
         it("get() reads a literal dotted key, through the object backing", () => {
-            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
-            // — literal dotted key wins".
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-has-literal-dotted-key"
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.get("products.desk")).toEqual({ price: 100 });
         });
@@ -3313,9 +3312,8 @@ describe("Collection", () => {
             expect(collection.has([0, 5])).toBe(false);
         });
 
-        it("has() resolves a literal dotted key before traversing, through the object backing", () => {
-            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
-            // — literal dotted key".
+        it("has() finds a literal dotted key, through the object backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-has-literal-dotted-key"
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.has("products.desk")).toBe(true);
         });
@@ -6276,8 +6274,8 @@ describe("Collection", () => {
                 nested: { valid: "data" },
             });
 
-            // A first-level key containing dots must be both retrieved AND removed;
-            // dataGet already resolved it, but dataForget still had to stop traversing.
+            // A key the items hold is read and removed whole, dots and all, before any dot path, as Arr::exists
+            // is asked first.
             const c8b = collect({
                 "joe@example.com": "Joe",
                 "jane@localhost": "Jane",
@@ -13556,6 +13554,14 @@ describe("Collection", () => {
             // Ordered-backing gap: PHP writes the keys in insertion order, 2 before 1
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-integer-keys-out-of-order"
             expect(collection.toJson()).toBe('{"2":"a","1":"b"}');
+        });
+
+        it.fails("encodes a key pushed past a string key last", () => {
+            const collection = collect({ a: 1 }).push("z");
+
+            // Ordered-backing gap: PHP writes the pushed key after the string key, a before 0
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-onto-string-keyed-toJson"
+            expect(collection.toJson()).toBe('{"a":1,"0":"z"}');
         });
     });
 
