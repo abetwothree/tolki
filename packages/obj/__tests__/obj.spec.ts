@@ -193,6 +193,13 @@ describe("Obj", () => {
     });
 
     describe("objectItem", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::array does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "array-int-value"
+            expect(() => Obj.objectItem({ a: 5 }, "a")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("should return array values", () => {
             const obj = { items: { 0: "a", 1: "b", 2: "c" } };
             expect(Obj.objectItem(obj, "items")).toEqual({
@@ -261,6 +268,13 @@ describe("Obj", () => {
     });
 
     describe("boolean", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::boolean does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-string-value"
+            expect(() => Obj.boolean({ string: "foo bar" }, "string")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("should return boolean values", () => {
             const obj = { active: true, disabled: false };
             expect(Obj.boolean(obj, "active")).toBe(true);
@@ -2390,6 +2404,11 @@ describe("Obj", () => {
     });
 
     describe("from", () => {
+        it("throws InvalidArgumentException for a scalar, as Laravel's Arr::from does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-arr-from-scalar-throws"
+            expect(() => Obj.from(123)).toThrow(InvalidArgumentException);
+        });
+
         it("converts a list to an index-keyed object", () => {
             const items = [1, 2, 3];
             const result = Obj.from(items);
@@ -3928,6 +3947,13 @@ describe("Obj", () => {
     });
 
     describe("string", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::string does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value"
+            expect(() =>
+                Obj.string({ string: "foo bar", integer: 1234 }, "integer"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("should return string values", () => {
             const obj = { name: "John", title: "Developer" };
             expect(Obj.string(obj, "name")).toBe("John");
@@ -3954,6 +3980,13 @@ describe("Obj", () => {
     });
 
     describe("float", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::float does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "float-string-value"
+            expect(() => Obj.float({ string: "foo bar" }, "string")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("should return float values", () => {
             const obj = { price: 19.99, discount: 0.1 };
             expect(Obj.float(obj, "price")).toBe(19.99);
@@ -3992,6 +4025,13 @@ describe("Obj", () => {
     });
 
     describe("integer", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::integer does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-string-value"
+            expect(() => Obj.integer({ string: "foo bar" }, "string")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("should return integer values", () => {
             const obj = { age: 30, count: 100 };
             expect(Obj.integer(obj, "age")).toBe(30);
@@ -7859,6 +7899,13 @@ describe("Obj", () => {
     });
 
     describe("shift", () => {
+        it("throws InvalidArgumentException for a negative count, as Collection::shift does", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "SH3 shift(-2) throws"
+            expect(() => Obj.shift({ a: 1 }, -2)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("leaves a prototype object untouched instead of clearing it", () => {
             // JS-only: a PHP array has no prototype; defineKey won't write into one, so the survivors would be lost.
             class Holder {}
@@ -8058,6 +8105,13 @@ describe("Obj", () => {
     });
 
     describe("push", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "push-boolean-at-dotted"
+            expect(() =>
+                Obj.push({ foo: { bar: false } }, "foo.bar", "baz"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("pushes several values onto a top-level list", () => {
             const obj = { items: ["a", "b"] };
             const result = Obj.push(obj, "items", "c", "d");

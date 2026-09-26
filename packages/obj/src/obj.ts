@@ -590,13 +590,13 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The objct value.
- * @throws Error if the value is not an object.
+ * @throws InvalidArgumentException if the value is not an object.
  *
  * @example
  *
  * objectItem({ items: { a: 1 } }, 'items'); -> { a: 1 }
- * objectItem({ items: ['a', 'b'] }, 'items'); -> throws Error (a list is not an object)
- * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
+ * objectItem({ items: ['a', 'b'] }, 'items'); -> throws InvalidArgumentException (a list is not an object)
+ * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws InvalidArgumentException
  */
 export function objectItem(
     data: NonObjectItems,
@@ -630,7 +630,7 @@ export function objectItem<
 
     if (!isObject(value)) {
         const typeName = phpTypeName(value);
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be an object, ${typeName} found.`,
         );
     }
@@ -646,13 +646,13 @@ export function objectItem<
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The boolean value.
- * @throws Error if the value is not a boolean.
+ * @throws InvalidArgumentException if the value is not a boolean.
  *
  * @example
  *
  * boolean({ active: true }, 'active'); -> true
  * boolean({ user: { verified: false } }, 'user.verified'); -> false
- * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
+ * boolean({ user: { name: 'John' } }, 'user.name'); -> throws InvalidArgumentException
  */
 export function boolean(
     data: unknown,
@@ -671,7 +671,7 @@ export function boolean<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isBoolean(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be a boolean, ${phpTypeName(value)} found.`,
         );
     }
@@ -2109,13 +2109,13 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The float value.
- * @throws Error if the value is not a number.
+ * @throws InvalidArgumentException if the value is not a number.
  *
  * @example
  *
  * float({ price: 19.99, discount: 0.1 }, 'price'); -> 19.99
  * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
- * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
+ * float({ product: { name: 'Widget' } }, 'product.name'); -> throws InvalidArgumentException
  */
 export function float(
     data: unknown,
@@ -2134,7 +2134,7 @@ export function float<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isNumber(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be a float, ${phpTypeName(value)} found.`,
         );
     }
@@ -2207,7 +2207,8 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
  * @remarks A Map's keys are cast as PHP casts an array key. The record lists out-of-sequence integer keys ascending,
  * so the helpers that walk a Map in its insertion order read the Map itself, not this record.
  *
- * @throws Error if items cannot be converted to an object.
+ * @throws InvalidArgumentException if items is a scalar value.
+ * @throws Error if items is a WeakMap, whose values JavaScript cannot enumerate.
  */
 export function from<V>(items: ReadonlyMap<unknown, V>): Record<string, V>;
 export function from<TMap>(
@@ -2265,7 +2266,9 @@ export function from(items: unknown): Record<string, unknown> {
         return { ...items };
     }
 
-    throw new Error("Items cannot be represented by a scalar value.");
+    throw new InvalidArgumentException(
+        "Items cannot be represented by a scalar value.",
+    );
 }
 
 /**
@@ -2633,13 +2636,13 @@ export function some<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @returns The integer value.
  *
- * @throws Error if the value is not an integer.
+ * @throws InvalidArgumentException if the value is not an integer.
  *
  * @example
  *
  * integer({ age: 30, score: 100 }, 'age'); -> 30
  * integer({ user: { age: 30 } }, 'user.age'); -> 30
- * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
+ * integer({ user: { name: 'John' } }, 'user.name'); -> throws InvalidArgumentException
  */
 export function integer(
     data: unknown,
@@ -2658,7 +2661,7 @@ export function integer<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isInteger(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be an integer, ${phpTypeName(value)} found.`,
         );
     }
@@ -4320,7 +4323,7 @@ function pickArrayKeysCount(requested: unknown): number {
  * @param data - The object or Map to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s), or null if the object had nothing to shift.
- * @throws Error if count is negative.
+ * @throws InvalidArgumentException if count is negative.
  *
  * @example
  *
@@ -4383,7 +4386,9 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     count: number = 1,
 ): TValue | TValue[] | null {
     if (count < 0) {
-        throw new Error("Number of shifted items may not be less than zero.");
+        throw new InvalidArgumentException(
+            "Number of shifted items may not be less than zero.",
+        );
     }
 
     // Collection::shift checks isEmpty() before the count, so non-object data yields null for any count.
@@ -4477,6 +4482,7 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  * to the object itself under the next integer-like key, mirroring Arr::push.
  * @param values - The values to push.
  * @returns A new object with the values pushed in.
+ * @throws InvalidArgumentException if the value at the key is not an array.
  *
  * @example
  *
@@ -4561,7 +4567,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
         return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
     }
 
-    throw new Error(arrayValueMessage(existingValue, key));
+    throw new InvalidArgumentException(arrayValueMessage(existingValue, key));
 }
 
 /**
@@ -5527,13 +5533,13 @@ export function takeWhile<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The string value.
- * @throws Error if the value is not a string.
+ * @throws InvalidArgumentException if the value is not a string.
  *
  * @example
  *
  * string({ name: 'John', age: 30 }, 'name'); -> 'John'
  * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
- * string({ user: { age: 30 } }, 'user.age'); -> throws Error
+ * string({ user: { age: 30 } }, 'user.age'); -> throws InvalidArgumentException
  */
 export function string(
     data: unknown,
@@ -5552,7 +5558,7 @@ export function string<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isString(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be a string, ${phpTypeName(value)} found.`,
         );
     }

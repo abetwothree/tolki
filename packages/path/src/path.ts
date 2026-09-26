@@ -12,6 +12,7 @@ import {
     arrayValueMessage,
     castableToArray,
     defineKey,
+    InvalidArgumentException,
     isArray,
     isFloat,
     isFunction,
@@ -721,6 +722,7 @@ export function setImmutable<TValue>(
  * @param key - The path where to push values (number, string, null, or undefined).
  * @param values - The values to push.
  * @returns The modified array with values pushed at the specified path.
+ * @throws InvalidArgumentException if a value along the path is not an array.
  *
  * @example
  *
@@ -791,7 +793,7 @@ export function pushWithPath<TValue>(
             continue;
         }
 
-        throw new Error(arrayValueMessage(next, key));
+        throw new InvalidArgumentException(arrayValueMessage(next, key));
     }
 
     // `Arr::push` appends into the array AT the key, never beside it; an existing
@@ -800,7 +802,9 @@ export function pushWithPath<TValue>(
     const leaf = clamp(numericSegs[numericSegs.length - 1]!, cursor.length);
 
     if (leaf < cursor.length && !isArray(cursor[leaf])) {
-        throw new Error(arrayValueMessage(cursor[leaf], key));
+        throw new InvalidArgumentException(
+            arrayValueMessage(cursor[leaf], key),
+        );
     }
 
     if (leaf === cursor.length) {

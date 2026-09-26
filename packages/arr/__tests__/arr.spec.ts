@@ -263,6 +263,13 @@ describe("Arr", () => {
     });
 
     describe("arrayItem", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::array does", () => {
+            // docs/php-parity/task-12-regression-pins.json, "Arr::array requires an array at the key"
+            expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("arrayItem", () => {
             // Valid arrays
             expect(
@@ -305,6 +312,13 @@ describe("Arr", () => {
     });
 
     describe("boolean", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::boolean does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-list-int-key"
+            expect(() => Arr.boolean(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("boolean", () => {
             // Valid booleans
             expect(Arr.boolean([true, false], 0)).toBe(true);
@@ -1490,6 +1504,11 @@ describe("Arr", () => {
     });
 
     describe("from", () => {
+        it("throws InvalidArgumentException for a scalar, as Laravel's Arr::from does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-arr-from-scalar-throws"
+            expect(() => Arr.from(123)).toThrow(InvalidArgumentException);
+        });
+
         it("from", () => {
             expect(Arr.from(keyed({ foo: "bar" }))).toEqual({ foo: "bar" });
             expect(Arr.from(keyed(new Object({ foo: "bar" })))).toEqual({
@@ -1970,6 +1989,13 @@ describe("Arr", () => {
     });
 
     describe("integer", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::integer does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-list-int-key"
+            expect(() => Arr.integer(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("integer", () => {
             const testArray = ["foo bar", 1234];
 
@@ -2252,6 +2278,13 @@ describe("Arr", () => {
     });
 
     describe("push", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-12-regression-pins.json, "push requires an array at the key"
+            expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("push", () => {
             let data: unknown[] = [];
 
@@ -5020,6 +5053,13 @@ describe("Arr", () => {
     });
 
     describe("float", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::float does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "float-list-int-key"
+            expect(() => Arr.float(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("float", () => {
             // Valid numbers
             expect(Arr.float([1.5, 2.3], 1)).toBe(2.3);
@@ -5044,6 +5084,13 @@ describe("Arr", () => {
     });
 
     describe("string", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::string does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            expect(() => Arr.string([1234], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("string", () => {
             // Valid strings
             expect(Arr.string(["hello", "world"], 0)).toBe("hello");
@@ -5722,6 +5769,13 @@ describe("Arr", () => {
     });
 
     describe("shift", () => {
+        it("throws InvalidArgumentException for a negative count, as Collection::shift does", () => {
+            // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
+            expect(() => Arr.shift([10, 20, 30, 40], -1)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("removes the first item from the source, like array_shift", () => {
             const data = [1, 2, 3];
             expect(Arr.shift(data)).toBe(1);

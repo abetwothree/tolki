@@ -2,6 +2,7 @@ import * as Arr from "@tolki/arr";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
 import {
+    InvalidArgumentException,
     ItemNotFoundException,
     MultipleItemsFoundException,
 } from "@tolki/utils";
@@ -182,6 +183,16 @@ describe("Data", () => {
     });
 
     describe("dataItem", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::array does", () => {
+            // docs/php-parity/task-12-regression-pins.json, "Arr::array requires an array at the key"
+            expect(() => Data.dataItem([1, 2, 3], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Data.dataItem({ a: 5 }, "a")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("is object", () => {
             const result = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b");
             expect(result).toEqual({ g: 4 });
@@ -266,6 +277,16 @@ describe("Data", () => {
     });
 
     describe("dataBoolean", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::boolean does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-string-value", "boolean-list-int-key"
+            expect(() => Data.dataBoolean(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataBoolean({ string: "foo bar" }, "string"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             expect(Data.dataBoolean({ active: true }, "active", false)).toBe(
                 true,
@@ -2104,6 +2125,16 @@ describe("Data", () => {
     });
 
     describe("dataFloat", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::float does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "float-string-value", "float-list-int-key"
+            expect(() => Data.dataFloat(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataFloat({ string: "foo bar" }, "string"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             const result = Data.dataFloat(
                 { price: 19.99, discount: 0.1 },
@@ -2201,6 +2232,11 @@ describe("Data", () => {
     });
 
     describe("dataFrom", () => {
+        it("throws InvalidArgumentException for a scalar, as Laravel's Arr::from does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-arr-from-scalar-throws"
+            expect(() => Data.dataFrom(123)).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             const result = Data.dataFrom({ a: 1, b: 2, c: 3 });
             expect(result).toEqual({ a: 1, b: 2, c: 3 });
@@ -2627,6 +2663,16 @@ describe("Data", () => {
     });
 
     describe("dataInteger", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::integer does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-string-value", "integer-list-int-key"
+            expect(() => Data.dataInteger(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataInteger({ string: "foo bar" }, "string"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             const result = Data.dataInteger({ count: 42 }, "count", 0);
             expect(result).toBe(42);
@@ -4411,6 +4457,16 @@ describe("Data", () => {
     });
 
     describe("dataShift", () => {
+        it("throws InvalidArgumentException for a negative count on either backing, as Collection::shift does", () => {
+            // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
+            expect(() => Data.dataShift([1], -1)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Data.dataShift({ a: 1 }, -1)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("renumbers a negative integer key through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const data = { x: "a", "-1": "b", y: "c" };
@@ -4647,6 +4703,16 @@ describe("Data", () => {
     });
 
     describe("dataPush", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-12-regression-pins.json, "push requires an array at the key"
+            expect(() => Data.dataPush([1, 2, 3], 0, 9)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Data.dataPush({ 0: 1, 1: 2, 2: 3 }, "0", 9)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("is object", () => {
             const obj = { items: ["a", "b"] };
             const result = Data.dataPush(obj, "items", "c", "d");
@@ -6025,6 +6091,20 @@ describe("Data", () => {
     });
 
     describe("dataString", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::string does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value"
+            expect(() => Data.dataString([1234], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataString(
+                    { string: "foo bar", integer: 1234 },
+                    "integer",
+                ),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
             expect(Data.dataString({}, "missing", "default")).toBe("default");

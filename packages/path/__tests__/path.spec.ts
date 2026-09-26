@@ -1,4 +1,5 @@
 import * as Path from "@tolki/path";
+import { InvalidArgumentException } from "@tolki/utils";
 import { afterEach, describe, expect, it } from "vitest";
 
 /**
@@ -748,6 +749,13 @@ describe("Path Functions", () => {
     });
 
     describe("pushWithPath", () => {
+        it("throws InvalidArgumentException for a non-array at the key, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-16-final-review.json, "push rejects a boolean at the leaf"
+            expect(() => Path.pushWithPath([true], "0", "value")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("pushes to root array when key is null", () => {
             const data = ["a"];
             expect(Path.pushWithPath(data, null, "b", "c")).toEqual([

@@ -341,13 +341,13 @@ export function add<TValue, TAddValue>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The array value.
- * @throws Error if the value is not an array.
+ * @throws InvalidArgumentException if the value is not an array.
  *
  * @example
  *
  * arrayItem([['a', 'b'], ['c', 'd']], 0); -> ['a', 'b']
  * arrayItem([{items: ['x', 'y']}], '0.items'); -> ['x', 'y']
- * arrayItem([{items: 'not array'}], '0.items'); -> throws Error
+ * arrayItem([{items: 'not array'}], '0.items'); -> throws InvalidArgumentException
  */
 // Overload: typed array + literal path → inferred array element type
 export function arrayItem<
@@ -378,7 +378,7 @@ export function arrayItem<TValue, TDefault = null>(
     const value = getMixedValue(data, key, defaultValue);
 
     if (!isArray(value)) {
-        throw new Error(arrayValueMessage(value, key));
+        throw new InvalidArgumentException(arrayValueMessage(value, key));
     }
 
     return value;
@@ -392,13 +392,13 @@ export function arrayItem<TValue, TDefault = null>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The boolean value.
- * @throws Error if the value is not a boolean.
+ * @throws InvalidArgumentException if the value is not a boolean.
  *
  * @example
  *
  * boolean([true, false], 0); -> true
  * boolean([{active: true}], '0.active'); -> true
- * boolean([{active: 'yes'}], '0.active'); -> throws Error
+ * boolean([{active: 'yes'}], '0.active'); -> throws InvalidArgumentException
  */
 // Overload: typed array → boolean value
 export function boolean<TValue, TDefault = null>(
@@ -421,7 +421,7 @@ export function boolean<TValue, TDefault = null>(
     const value = getMixedValue(data, key, defaultValue);
 
     if (!isBoolean(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Array value for key [${key}] must be a boolean, ${phpTypeName(value)} found.`,
         );
     }
@@ -1448,13 +1448,13 @@ export function flip<TValue>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The float value.
- * @throws Error if the value is not a number.
+ * @throws InvalidArgumentException if the value is not a number.
  *
  * @example
  *
  * float([1.5, 2.3], 1); -> 2.3
  * float([{price: 19.99}], '0.price'); -> 19.99
- * float([{price: 'free'}], '0.price'); -> throws Error
+ * float([{price: 'free'}], '0.price'); -> throws InvalidArgumentException
  */
 // Overload: typed array → float value
 export function float<TValue, TDefault = null>(
@@ -1478,7 +1478,7 @@ export function float<TValue, TDefault = null>(
 
     // Accept both integers and floats as valid numbers
     if (!isNumber(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Array value for key [${key}] must be a float, ${phpTypeName(value)} found.`,
         );
     }
@@ -1522,7 +1522,8 @@ export function forget<TValue>(
  * from(new Map([['foo', 'bar']])); -> { foo: 'bar' }
  * from(new Set([1, 2])); -> [1, 2]
  *
- * @throws Error if items is a WeakMap or a scalar value.
+ * @throws InvalidArgumentException if items is a scalar value.
+ * @throws Error if items is a WeakMap, whose values JavaScript cannot enumerate.
  */
 export function from<TValue>(items: ArrayItems<TValue>): TValue[];
 export function from<TValue, TKey extends PropertyKey = PropertyKey>(
@@ -1579,7 +1580,9 @@ function fromItems(items: unknown): unknown[] | Record<string, unknown> {
     }
 
     // Scalars not supported
-    throw new Error("Items cannot be represented by a scalar value.");
+    throw new InvalidArgumentException(
+        "Items cannot be represented by a scalar value.",
+    );
 }
 
 /**
@@ -1930,13 +1933,13 @@ export function some<TValue>(
  *
  * @returns The integer value.
  *
- * @throws Error if the value is not an integer.
+ * @throws InvalidArgumentException if the value is not an integer.
  *
  * @example
  *
  * integer([10, 20, 30], 1); -> 20
  * integer([10, 20, 30], 5, 100); -> 100
- * integer(["house"], 0); -> Error: The value is not an integer.
+ * integer(["house"], 0); -> throws InvalidArgumentException
  */
 // Overload: typed array → integer value
 export function integer<TValue, TDefault = null>(
@@ -1959,7 +1962,7 @@ export function integer<TValue, TDefault = null>(
     const value = getMixedValue(data, key, defaultValue);
 
     if (!isInteger(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Array value for key [${key}] must be an integer, ${phpTypeName(value)} found.`,
         );
     }
@@ -2955,7 +2958,7 @@ function pickArrayKeysCount(requested: unknown): number {
  * @param data - The array to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1.
  * @returns The shifted item(s), or null if the array had nothing to shift.
- * @throws Error if count is negative.
+ * @throws InvalidArgumentException if count is negative.
  */
 export function shift<TValue>(data: TValue[]): TValue | null;
 export function shift<TValue>(data: TValue[], count: number): TValue[];
@@ -2968,7 +2971,9 @@ export function shift<TValue>(
     count: number = 1,
 ): TValue | TValue[] | null {
     if (count < 0) {
-        throw new Error("Number of shifted items may not be less than zero.");
+        throw new InvalidArgumentException(
+            "Number of shifted items may not be less than zero.",
+        );
     }
 
     // Collection::shift checks isEmpty() before the count, so non-array data yields null for any count.
@@ -3087,6 +3092,7 @@ export function set(
  * @param key - The key or dot-notated path of the array to push into. If null, push into root.
  * @param values - The values to push.
  * @returns The array with the values pushed into the array at the key.
+ * @throws InvalidArgumentException if the value at the key is not an array.
  */
 // Overload: typed array → element type preserved (including unions)
 export function push<TValue>(
@@ -3827,13 +3833,13 @@ export function takeWhile<TValue>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The string value.
- * @throws Error if the value is not a string.
+ * @throws InvalidArgumentException if the value is not a string.
  *
  * @example
  *
  * string(['hello', 'world'], 0); -> 'hello'
  * string([{name: 'John'}], '0.name'); -> 'John'
- * string([{name: 123}], '0.name'); -> throws Error
+ * string([{name: 123}], '0.name'); -> throws InvalidArgumentException
  */
 // Overload: typed array → string value
 export function string<TValue, TDefault = null>(
@@ -3856,7 +3862,7 @@ export function string<TValue, TDefault = null>(
     const value = getMixedValue(data, key, defaultValue);
 
     if (!isString(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Array value for key [${key}] must be a string, ${phpTypeName(value)} found.`,
         );
     }
