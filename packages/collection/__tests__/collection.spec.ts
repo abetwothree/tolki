@@ -6315,6 +6315,15 @@ describe("Collection", () => {
             expect(() => collect([1]).combine([2, 3])).toThrow(message);
         });
 
+        it("hands back an empty list for a null operand when there are no keys", () => {
+            const combined = collect([]).combine(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-null-operand-on-empty"
+            expect(combined.all()).toEqual([]);
+            expect(combined.keys().all()).toEqual([]);
+            expect(combined.values().all()).toEqual([]);
+        });
+
         it("throws for a null operand while there are keys to pair", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-null-operand-throws"
             expect(() => collect(["a"]).combine(null)).toThrow(

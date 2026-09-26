@@ -2129,6 +2129,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             this.getRawItems(values) as TValue[],
         ) as Record<string, unknown>;
 
+        // PHP's empty array is a list, where a Map holding no entries would build an empty record.
+        if (keys.length === 0) {
+            return this.newInstance(handOver([]));
+        }
+
         // A plain object re-sorts integer keys, so the combined pairs are laid out again in the order the keys come.
         return this.newInstance(
             new Map(
