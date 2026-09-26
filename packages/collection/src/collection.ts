@@ -2577,7 +2577,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // and kept keys that run 0..n-1 in order make a list as well.
         return this.newInstance(
             handOver(
-                Object.keys(picked).every((key, index) => key === String(index))
+                isListOrder(Object.keys(picked).map((key) => phpArrayKey(key)))
                     ? Object.values(picked)
                     : picked,
             ),
@@ -5459,7 +5459,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         // json_encode writes a list only for keys 0..n-1 in order, whichever backing holds them.
-        if (entries.every(([key], index) => key === index)) {
+        if (isListOrder(entries.map(([key]) => key))) {
             return entries.map(([, value]) => value) as TValue[];
         }
 
@@ -6058,7 +6058,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         // all() cannot express integer keys out of ascending order, so a list is handed over as its values.
-        if (entries.every(([key], index) => key === String(index))) {
+        if (isListOrder(entries.map(([key]) => phpArrayKey(key)))) {
             return entries.map(([, value]) => value);
         }
 
@@ -6559,13 +6559,13 @@ function handOver<TItems extends object>(items: TItems): TItems {
 }
 
 /**
- * Whether entries' keys run 0..n-1 in order, as a PHP list's keys do.
+ * Whether keys run 0..n-1 in order, as a PHP list's keys do.
  *
- * @param entries - The entries, in the order PHP's array holds them
+ * @param keys - The keys, each as PHP stores it, in the order PHP's array holds them
  * @returns True when the keys are exactly 0, 1, 2 and on, in turn
  */
-function isListOrder(entries: Map<PropertyKey, unknown>): boolean {
-    return [...entries.keys()].every((key, index) => key === index);
+function isListOrder(keys: Iterable<PropertyKey>): boolean {
+    return [...keys].every((key, index) => key === index);
 }
 
 /**
@@ -6577,7 +6577,7 @@ function isListOrder(entries: Map<PropertyKey, unknown>): boolean {
 function inPhpOrder<TValue>(
     entries: Map<PropertyKey, TValue>,
 ): TValue[] | Map<PropertyKey, TValue> {
-    if (isListOrder(entries)) {
+    if (isListOrder(entries.keys())) {
         return handOver([...entries.values()]);
     }
 
@@ -6594,6 +6594,7 @@ function inPhpOrder<TValue>(
 function renumberIntegerKeys<TValue>(
     entries: Array<[PropertyKey, TValue]>,
 ): Map<PropertyKey, TValue> {
+    // A Map folds a repeated string key as array_merge() does, where utils' renumberPhpIntegerKeys() keeps both.
     const renumbered = new Map<PropertyKey, TValue>();
     let next = 0;
 
@@ -6681,7 +6682,7 @@ function nextIntegerKey(entries: Map<PropertyKey, unknown>): number {
 function phpArrayValue(
     entries: Map<PropertyKey, unknown>,
 ): unknown[] | Record<string, unknown> {
-    if (isListOrder(entries)) {
+    if (isListOrder(entries.keys())) {
         return [...entries.values()];
     }
 
