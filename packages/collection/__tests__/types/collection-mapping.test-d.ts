@@ -1665,6 +1665,18 @@ describe("collection mapping, keying and grouping type tests", () => {
             );
         });
 
+        it("agrees with dataCollapse's items for a list of list collections", () => {
+            const lists = [collect([1, 2]), collect([3])];
+            const joined = collect(lists).collapse();
+            const collapsed = Data.dataCollapse(lists);
+
+            expectTypeOf<ItemsOf<typeof joined>>().toEqualTypeOf<
+                typeof collapsed
+            >();
+            // Stated too: dataCollapse reads each item's all(), which answers a list collection's items as a list.
+            expectTypeOf(collapsed).toEqualTypeOf<number[]>();
+        });
+
         it("differs from dataCollapse for a record of lists, which it types as a record", () => {
             // Arr::collapse merges a record's lists into a list, which dataCollapse types as obj's record.
             const joined = collect(recordOfLists).collapse();

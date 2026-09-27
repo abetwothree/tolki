@@ -1293,6 +1293,12 @@ describe("collection filtering and subsets type tests", () => {
             >();
         });
 
+        it("reads no key it dropped from all()", () => {
+            expectTypeOf(record.except("a").all().b).toEqualTypeOf<number>();
+            // @ts-expect-error - except() dropped the key a
+            void record.except("a").all().a;
+        });
+
         it("keeps every key for an empty array or a null first argument", () => {
             expectTypeOf(record.except([])).toEqualTypeOf<
                 Collection<number, "a" | "b" | "c", "keyed">

@@ -172,6 +172,14 @@ export type CollectionItems<
         ? Partial<Record<TKey, TValue>>
         : TValue[] | Partial<Record<TKey, TValue>>;
 
+/**
+ * One item as toArray() hands it back: an Arrayable's own array, else the item. A plain object's toArray member types
+ * the same, though the runtime keeps a plain object as data.
+ */
+type ToArrayValue<TValue> = TValue extends { toArray(): infer TArray }
+    ? TArray
+    : TValue;
+
 /** A collection of an object's items: a list's under number keys, any other object's under its own keys. */
 type ItemsCollection<TItems> = Collection<
     TItems extends readonly (infer TValue)[] ? TValue : ObjectValue<TItems>,
@@ -982,7 +990,8 @@ export class Collection<
     protected shouldEscapeWhenCastingToString = false;
 
     /**
-     * The shape the type declares, never set: it lets the type system tell shapes apart before all() reads the shape.
+     * The shape the type declares, never set. all() reads the shape only through a conditional type, which alone would
+     * let a collection that may be keyed pass where a list is expected, and so match a list-only overload.
      */
     declare protected readonly collectionShape: TShape;
 
@@ -1079,7 +1088,8 @@ export class Collection<
      * new Collection([1, 2, 3]).all(); -> [1, 2, 3]
      * new Collection({a: 1, b: 2}).all(); -> {a: 1, b: 2}
      */
-    all() {
+    all(): CollectionItems<TValue, TKey, TShape>;
+    all(): unknown {
         return this.items;
     }
 
@@ -7096,32 +7106,35 @@ export class Collection<
      *
      * @returns An array of the collection's items
      */
-    toArray(): TValue[] | Record<TKey, TValue> {
-        // A plain object is data, as a PHP array is, so only an object a class built is Arrayable. An Arrayable item's
-        // array keeps the item's type, which operands read through toArray() rely on.
+    toArray(): CollectionItems<ToArrayValue<TValue>, TKey, TShape>;
+    toArray(): unknown {
+        // A plain object is data, as a PHP array is, so only an object a class built is Arrayable.
         return this.map((value) =>
             !isPlainObject(value) && toArrayable(value)
                 ? value.toArray()
                 : value,
-        ).all() as TValue[] | Record<TKey, TValue>;
+        ).all();
     }
 
     /**
      * Convert the object into something JSON serializable.
      *
-     * @returns The items, each converted to a JSON-serializable form: a list when the keys are 0..n-1 in order
+     * @returns The items, each converted to a JSON-serializable form: a list when the keys are 0..n-1 in order or
+     * there are none, else a record
      */
-    jsonSerialize() {
+    jsonSerialize(this: Collection<TValue, TKey, "list">): unknown[];
+    jsonSerialize(): unknown[] | CollectionItems<unknown, TKey, TShape>;
+    jsonSerialize(): unknown {
         const entries = this.entriesInOrder().map(
             ([key, value]) => [key, jsonSerializeItem(value)] as const,
         );
 
         // json_encode writes a list only for keys 0..n-1 in order, whichever backing holds them.
         if (isListOrder(entries.map(([key]) => key))) {
-            return entries.map(([, value]) => value) as TValue[];
+            return entries.map(([, value]) => value);
         }
 
-        return Object.fromEntries(entries) as Record<TKey, TValue>;
+        return Object.fromEntries(entries);
     }
 
     /**

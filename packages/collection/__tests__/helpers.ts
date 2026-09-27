@@ -3,14 +3,10 @@
  * pattern, so it is never collected as a test.
  */
 
-import type { Collection, CollectionItems } from "@tolki/collection";
 import { expect } from "vitest";
 
-/** The items a collection's type arguments declare: a list, a record, or a record that may lack some keys. */
-export type ItemsOf<C> =
-    C extends Collection<infer V, infer K, infer S>
-        ? CollectionItems<V, K, S>
-        : never;
+/** The items a collection's all() answers, read from the method, since a subclass infers no type arguments. */
+export type ItemsOf<C> = C extends { all(): infer I } ? I : never;
 
 /** The shape names a collection's all() type allows: "list" for a list, "keyed" for a record, either for a union. */
 type ShapeOf<TCollection> = TCollection extends { all(): infer TItems }

@@ -30,7 +30,7 @@ class ListBag {
     }
 }
 
-/** A Collection-like item whose all() may hand back a list or a record, as Collection's is declared. */
+/** A Collection-like item whose all() may hand back a list or a record, as a collection of either shape declares. */
 class EitherBag {
     all(): number[] | Record<number, number> {
         return [1, 2];
@@ -368,7 +368,7 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf(
                 Arr.collapse(bags),
             );
-            // Collection declares all() as a list or a record until its shape decides it, so either may come back.
+            // A collection that may be either shape declares all() as a list or a record, so either may come back.
             expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf<
                 number[] | Record<string | number, unknown>
             >();
