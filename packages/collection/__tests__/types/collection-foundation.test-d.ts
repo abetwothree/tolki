@@ -42,6 +42,18 @@ declare const typeName: string;
 declare const oneOrMany: number | number[];
 declare const oneOrManyOrNone: string | string[] | null;
 declare const listOrCollection: number[] | Collection<number, number, "list">;
+declare const numberOrCollection: number | Collection<number, number, "list">;
+declare const textOrTexts:
+    | string
+    | string[]
+    | Collection<string, number, "list">;
+declare const recordOrNull: Record<string, number> | null;
+declare const textOrRecord: string | Record<string, string>;
+declare const pairOrNone: { a: number; b: number } | undefined;
+declare const keyedOrNull: Collection<number, "a", "keyed"> | null;
+declare const mapOrNull: Map<string, number> | null;
+declare const maybeTagged: Tagged | null;
+declare const anything: unknown;
 
 describe("collection foundation type tests", () => {
     describe("collect", () => {
@@ -503,6 +515,85 @@ describe("collection foundation type tests", () => {
             // TypeScript cannot tell a class instance from the plain object wrap() takes as a record.
             expectTypeOf(Collection.wrap(new Point())).toEqualTypeOf<
                 Collection<number, "x" | "y", "keyed">
+            >();
+        });
+
+        it("keeps a built-in object, a function or a class whole, as the runtime does", () => {
+            expectTypeOf(Collection.wrap(new Date())).toEqualTypeOf<
+                Collection<Date, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(new Set([1]))).toEqualTypeOf<
+                Collection<Set<number>, number, "list">
+            >();
+            expectTypeOf(
+                Collection.wrap(new WeakMap<object, number>()),
+            ).toEqualTypeOf<
+                Collection<WeakMap<object, number>, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(new WeakSet<object>())).toEqualTypeOf<
+                Collection<WeakSet<object>, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(/a/)).toEqualTypeOf<
+                Collection<RegExp, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(Promise.resolve(1))).toEqualTypeOf<
+                Collection<Promise<number>, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(() => 1)).toEqualTypeOf<
+                Collection<() => 1, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(Point)).toEqualTypeOf<
+                Collection<typeof Point, number, "list">
+            >();
+        });
+
+        it("wraps each member of a union as it wraps that member alone", () => {
+            expectTypeOf(Collection.wrap(listOrCollection)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(numberOrCollection)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(textOrTexts)).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(maybeTagged)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("types the items a union wraps, so a callback reads them", () => {
+            Collection.wrap(textOrTexts).map((text) => {
+                expectTypeOf(text).toEqualTypeOf<string>();
+
+                return text.toUpperCase();
+            });
+        });
+
+        it("types a record, a Map or a collection that may be missing as a list or a keyed collection", () => {
+            expectTypeOf(Collection.wrap(recordOrNull)).toEqualTypeOf<
+                Collection<number, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(Collection.wrap(pairOrNone)).toEqualTypeOf<
+                Collection<number, "a" | "b", "list" | "keyed">
+            >();
+            expectTypeOf(Collection.wrap(mapOrNull)).toEqualTypeOf<
+                Collection<number, MapArrayKey<string>, "list" | "keyed">
+            >();
+            expectTypeOf(Collection.wrap(keyedOrNull)).toEqualTypeOf<
+                Collection<number, "a", "list" | "keyed">
+            >();
+        });
+
+        it("types a scalar or a record as a list or a keyed collection", () => {
+            expectTypeOf(Collection.wrap(textOrRecord)).toEqualTypeOf<
+                Collection<string, string | number, "list" | "keyed">
+            >();
+        });
+
+        it("types a value of unknown type as unknown items in either shape", () => {
+            expectTypeOf(Collection.wrap(anything)).toEqualTypeOf<
+                Collection<unknown, PropertyKey, CollectionShape>
             >();
         });
 

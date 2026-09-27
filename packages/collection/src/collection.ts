@@ -169,6 +169,48 @@ type ItemsCollection<TItems> = Collection<
     TItems extends readonly unknown[] ? "list" : "keyed"
 >;
 
+/**
+ * The value, key and shape wrap() gives one member of its input's type: a collection's own, the items of a list, a Map
+ * or a record, none for null, and a one-item list of anything else. An input of unknown type may be any of them.
+ */
+type WrapParts<TInput> = unknown extends TInput
+    ? [unknown, PropertyKey, CollectionShape]
+    : TInput extends null | undefined
+      ? [never, never, "list"]
+      : TInput extends Collection<
+              infer TItemValue,
+              infer TItemKey,
+              infer TItemShape
+          >
+        ? [TItemValue, TItemKey, TItemShape]
+        : TInput extends readonly (infer TItemValue)[]
+          ? [TItemValue, number, "list"]
+          : TInput extends ReadonlyMap<infer TMapKey, infer TItemValue>
+            ? [TItemValue, MapArrayKey<TMapKey>, "keyed"]
+            : TInput extends WrappedWhole
+              ? [TInput, number, "list"]
+              : TInput extends object
+                ? [ObjectValue<TInput>, ObjectKey<TInput>, "keyed"]
+                : [TInput, number, "list"];
+
+/** An object wrap() keeps whole that TypeScript can tell from a record: a function, a class or a built-in. */
+type WrappedWhole =
+    | ((...args: never[]) => unknown)
+    | (abstract new (...args: never[]) => unknown)
+    | Date
+    | ReadonlySet<unknown>
+    | WeakMap<object, unknown>
+    | WeakSet<object>
+    | RegExp
+    | Promise<unknown>;
+
+/** The collection wrap() makes of a value, typed member by member when its type is a union. */
+type WrapCollection<TInput> = Collection<
+    WrapParts<TInput>[0],
+    WrapParts<TInput>[1],
+    WrapParts<TInput>[2]
+>;
+
 /** What unwrap() hands back for a value: a collection's items, and anything else unchanged. */
 type Unwrapped<TValue> =
     TValue extends Collection<
@@ -4263,8 +4305,8 @@ export class Collection<
      * Collection.wrap(123); -> new Collection([123])
      * Collection.wrap(null); -> new Collection([])
      *
-     * @remarks A class instance is typed by its fields, like collect() types one, though wrap() keeps the instance
-     * whole in a one-item list: TypeScript cannot tell it from a plain object, whose entries wrap() takes.
+     * @remarks An instance of a class of your own is typed by its fields, like collect() types one, though wrap() keeps
+     * it whole in a one-item list: TypeScript cannot tell it from a plain object, whose entries wrap() takes.
      */
     static wrap<
         TWrapValue,
@@ -4286,14 +4328,10 @@ export class Collection<
         value: null | undefined,
         ...args: unknown[]
     ): Collection<never, number, "list">;
-    static wrap<TItems extends object>(
-        value: TItems,
+    static wrap<TWrapInput>(
+        value: TWrapInput,
         ...args: unknown[]
-    ): ItemsCollection<TItems>;
-    static wrap<TWrapValue>(
-        value: TWrapValue | readonly TWrapValue[] | null | undefined,
-        ...args: unknown[]
-    ): Collection<TWrapValue, number, "list">;
+    ): WrapCollection<TWrapInput>;
     static wrap(value: unknown, ...args: unknown[]): unknown {
         const Static = this as CollectionClass<unknown, PropertyKey>;
 
