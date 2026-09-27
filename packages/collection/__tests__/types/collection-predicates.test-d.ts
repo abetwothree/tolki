@@ -491,16 +491,22 @@ describe("collection predicate type tests", () => {
         });
 
         it("answers the item or the default, as dataFirst does", () => {
+            const dataFirstOver = Data.dataFirst(
+                numberList,
+                (value) => value > 1,
+            );
+            const dataFirstOrText = Data.dataFirst(abc, null, text);
+
             expectTypeOf(list.first()).toEqualTypeOf(
                 Data.dataFirst(numberList),
             );
             expectTypeOf(record.first()).toEqualTypeOf(Data.dataFirst(abc));
-            expectTypeOf(list.first((value) => value > 1)).toEqualTypeOf(
-                Data.dataFirst(numberList, (value) => value > 1),
-            );
-            expectTypeOf(record.first(null, text)).toEqualTypeOf(
-                Data.dataFirst(abc, null, text),
-            );
+            expectTypeOf(list.first((value) => value > 1)).toEqualTypeOf<
+                typeof dataFirstOver
+            >();
+            expectTypeOf(record.first(null, text)).toEqualTypeOf<
+                typeof dataFirstOrText
+            >();
             // Kept beside the pins, which answer number | null for both backings and so cannot tell them apart.
             expectTypeOf(list.first()).toEqualTypeOf<number | null>();
             expectTypeOf(record.first()).toEqualTypeOf<number | null>();
@@ -590,14 +596,20 @@ describe("collection predicate type tests", () => {
         });
 
         it("answers the item or the default, as dataLast does", () => {
+            const dataLastOver = Data.dataLast(
+                numberList,
+                (value) => value > 1,
+            );
+            const dataLastOrText = Data.dataLast(abc, null, text);
+
             expectTypeOf(list.last()).toEqualTypeOf(Data.dataLast(numberList));
             expectTypeOf(record.last()).toEqualTypeOf(Data.dataLast(abc));
-            expectTypeOf(list.last((value) => value > 1)).toEqualTypeOf(
-                Data.dataLast(numberList, (value) => value > 1),
-            );
-            expectTypeOf(record.last(null, text)).toEqualTypeOf(
-                Data.dataLast(abc, null, text),
-            );
+            expectTypeOf(list.last((value) => value > 1)).toEqualTypeOf<
+                typeof dataLastOver
+            >();
+            expectTypeOf(record.last(null, text)).toEqualTypeOf<
+                typeof dataLastOrText
+            >();
             // Kept beside the pins, which answer number | null for both backings and so cannot tell them apart.
             expectTypeOf(list.last()).toEqualTypeOf<number | null>();
             expectTypeOf(record.last()).toEqualTypeOf<number | null>();
@@ -820,11 +832,13 @@ describe("collection predicate type tests", () => {
         });
 
         it("answers the item dataSole does", () => {
+            const dataSoleRow = Data.dataSole(rows, (row) => row.id === 1);
+
             expectTypeOf(list.sole()).toEqualTypeOf(Data.dataSole(numberList));
             expectTypeOf(record.sole()).toEqualTypeOf(Data.dataSole(abc));
-            expectTypeOf(people.sole((row) => row.id === 1)).toEqualTypeOf(
-                Data.dataSole(rows, (row) => row.id === 1),
-            );
+            expectTypeOf(people.sole((row) => row.id === 1)).toEqualTypeOf<
+                typeof dataSoleRow
+            >();
             // Kept beside the pins, which answer number for both backings and so cannot tell them apart.
             expectTypeOf(record.sole()).toEqualTypeOf<number>();
         });
@@ -1033,12 +1047,13 @@ describe("collection predicate type tests", () => {
 
     describe("search", () => {
         it("answers the key, the index or false, as dataSearch does", () => {
-            expectTypeOf(list.search(2)).toEqualTypeOf(
-                Data.dataSearch(numberList, 2),
-            );
-            expectTypeOf(record.search(2)).toEqualTypeOf(
-                Data.dataSearch(abc, 2),
-            );
+            const dataListFound = Data.dataSearch(numberList, 2);
+            const dataRecordFound = Data.dataSearch(abc, 2);
+
+            expectTypeOf(list.search(2)).toEqualTypeOf<typeof dataListFound>();
+            expectTypeOf(record.search(2)).toEqualTypeOf<
+                typeof dataRecordFound
+            >();
             expectTypeOf(list.search(2)).toEqualTypeOf<number | false>();
             expectTypeOf(record.search(2)).toEqualTypeOf<
                 "a" | "b" | "c" | number | false
@@ -1094,12 +1109,13 @@ describe("collection predicate type tests", () => {
 
     describe("before", () => {
         it("answers the item before the match, or null, as dataBefore does", () => {
-            expectTypeOf(list.before(2)).toEqualTypeOf(
-                Data.dataBefore(numberList, 2),
-            );
-            expectTypeOf(record.before(2)).toEqualTypeOf(
-                Data.dataBefore(abc, 2),
-            );
+            const dataListBefore = Data.dataBefore(numberList, 2);
+            const dataRecordBefore = Data.dataBefore(abc, 2);
+
+            expectTypeOf(list.before(2)).toEqualTypeOf<typeof dataListBefore>();
+            expectTypeOf(record.before(2)).toEqualTypeOf<
+                typeof dataRecordBefore
+            >();
             // Kept beside the pins, which answer number | null for both backings and so cannot tell them apart.
             expectTypeOf(list.before(2)).toEqualTypeOf<number | null>();
             expectTypeOf(record.before(2)).toEqualTypeOf<number | null>();
@@ -1143,10 +1159,13 @@ describe("collection predicate type tests", () => {
 
     describe("after", () => {
         it("answers the item after the match, or null, as dataAfter does", () => {
-            expectTypeOf(list.after(2)).toEqualTypeOf(
-                Data.dataAfter(numberList, 2),
-            );
-            expectTypeOf(record.after(2)).toEqualTypeOf(Data.dataAfter(abc, 2));
+            const dataListAfter = Data.dataAfter(numberList, 2);
+            const dataRecordAfter = Data.dataAfter(abc, 2);
+
+            expectTypeOf(list.after(2)).toEqualTypeOf<typeof dataListAfter>();
+            expectTypeOf(record.after(2)).toEqualTypeOf<
+                typeof dataRecordAfter
+            >();
             // Kept beside the pins, which answer number | null for both backings and so cannot tell them apart.
             expectTypeOf(list.after(2)).toEqualTypeOf<number | null>();
             expectTypeOf(record.after(2)).toEqualTypeOf<number | null>();
@@ -1214,10 +1233,11 @@ describe("collection predicate type tests", () => {
 
         it("lists a list's picks, as dataRandom does", () => {
             const picked = list.random(2);
+            const dataPicked = Data.dataRandom(numberList, 2);
 
-            expectTypeOf<ItemsOf<typeof picked>>().toEqualTypeOf(
-                Data.dataRandom(numberList, 2),
-            );
+            expectTypeOf<ItemsOf<typeof picked>>().toEqualTypeOf<
+                typeof dataPicked
+            >();
         });
 
         it("lists a record's picks, which dataRandom types as a record", () => {

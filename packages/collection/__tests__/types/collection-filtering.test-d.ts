@@ -321,13 +321,18 @@ describe("collection filtering and subsets type tests", () => {
             const listTruthy = list.filter();
             const mixedTruthy = collect(mixed).filter();
             const recordTruthy = record.filter();
+            const dataListKept = Data.dataFilter(
+                numberList,
+                (value) => value > 1,
+            );
+            const dataRecordKept = Data.dataFilter(abc, (value) => value > 1);
 
-            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf(
-                Data.dataFilter(numberList, (value) => value > 1),
-            );
-            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf(
-                Data.dataFilter(abc, (value) => value > 1),
-            );
+            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf<
+                typeof dataListKept
+            >();
+            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf<
+                typeof dataRecordKept
+            >();
             expectTypeOf<ItemsOf<typeof listTruthy>>().toEqualTypeOf(
                 Data.dataFilter(numberList),
             );
@@ -473,13 +478,18 @@ describe("collection filtering and subsets type tests", () => {
         it("agrees with dataReject's items", () => {
             const listKept = list.reject((value) => value > 1);
             const recordKept = record.reject((value) => value > 1);
+            const dataListKept = Data.dataReject(
+                numberList,
+                (value) => value > 1,
+            );
+            const dataRecordKept = Data.dataReject(abc, (value) => value > 1);
 
-            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf(
-                Data.dataReject(numberList, (value) => value > 1),
-            );
-            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf(
-                Data.dataReject(abc, (value) => value > 1),
-            );
+            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf<
+                typeof dataListKept
+            >();
+            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf<
+                typeof dataRecordKept
+            >();
         });
 
         it("rejects a callback over another item type", () => {
@@ -1304,13 +1314,15 @@ describe("collection filtering and subsets type tests", () => {
         it("agrees with dataOnly's items", () => {
             const listKept = list.only([0, 2]);
             const recordKept = record.only(["a"]);
+            const dataListKept = Data.dataOnly(numberList, [0, 2]);
+            const dataRecordKept = Data.dataOnly(abc, ["a"]);
 
-            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf(
-                Data.dataOnly(numberList, [0, 2]),
-            );
-            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf(
-                Data.dataOnly(abc, ["a"]),
-            );
+            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf<
+                typeof dataListKept
+            >();
+            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf<
+                typeof dataRecordKept
+            >();
         });
 
         it("requires the keys and takes no object key", () => {
@@ -1432,13 +1444,15 @@ describe("collection filtering and subsets type tests", () => {
         it("agrees with dataExcept's items", () => {
             const listKept = list.except([0, 2]);
             const recordKept = record.except(["a"]);
+            const dataListKept = Data.dataExcept(numberList, [0, 2]);
+            const dataRecordKept = Data.dataExcept(abc, ["a"]);
 
-            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf(
-                Data.dataExcept(numberList, [0, 2]),
-            );
-            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf(
-                Data.dataExcept(abc, ["a"]),
-            );
+            expectTypeOf<ItemsOf<typeof listKept>>().toEqualTypeOf<
+                typeof dataListKept
+            >();
+            expectTypeOf<ItemsOf<typeof recordKept>>().toEqualTypeOf<
+                typeof dataRecordKept
+            >();
         });
 
         it("requires the keys and takes no object key", () => {
@@ -1536,10 +1550,11 @@ describe("collection filtering and subsets type tests", () => {
 
         it("agrees with dataSelect's items", () => {
             const picked = people.select("id");
+            const dataPicked = Data.dataSelect(rows, ["id"]);
 
-            expectTypeOf<ItemsOf<typeof picked>>().toEqualTypeOf(
-                Data.dataSelect(rows, ["id"]),
-            );
+            expectTypeOf<ItemsOf<typeof picked>>().toEqualTypeOf<
+                typeof dataPicked
+            >();
         });
 
         it("rejects a collection whose values are not key names", () => {
@@ -1667,13 +1682,21 @@ describe("collection filtering and subsets type tests", () => {
         it("agrees with dataPartition's halves", () => {
             const [listPass] = list.partition((value) => value > 1);
             const [recordPass] = record.partition((value) => value > 1);
+            const [dataListPass] = Data.dataPartition(
+                numberList,
+                (value) => value > 1,
+            );
+            const [dataRecordPass] = Data.dataPartition(
+                abc,
+                (value) => value > 1,
+            );
 
-            expectTypeOf<ItemsOf<typeof listPass>>().toEqualTypeOf(
-                Data.dataPartition(numberList, (value) => value > 1)[0],
-            );
-            expectTypeOf<ItemsOf<typeof recordPass>>().toEqualTypeOf(
-                Data.dataPartition(abc, (value) => value > 1)[0],
-            );
+            expectTypeOf<ItemsOf<typeof listPass>>().toEqualTypeOf<
+                typeof dataListPass
+            >();
+            expectTypeOf<ItemsOf<typeof recordPass>>().toEqualTypeOf<
+                typeof dataRecordPass
+            >();
         });
 
         it("requires the key, and rejects a callback over another item type", () => {
@@ -1792,19 +1815,26 @@ describe("collection filtering and subsets type tests", () => {
             const skippedWhile = record.skipWhile((value) => value < 2);
             const takenUntil = list.takeUntil(2);
             const takenWhile = record.takeWhile(1);
+            const dataSkippedUntil = Data.dataSkipUntil(numberList, 2);
+            const dataSkippedWhile = Data.dataSkipWhile(
+                abc,
+                (value) => value < 2,
+            );
+            const dataTakenUntil = Data.dataTakeUntil(numberList, 2);
+            const dataTakenWhile = Data.dataTakeWhile(abc, 1);
 
-            expectTypeOf<ItemsOf<typeof skippedUntil>>().toEqualTypeOf(
-                Data.dataSkipUntil(numberList, 2),
-            );
-            expectTypeOf<ItemsOf<typeof skippedWhile>>().toEqualTypeOf(
-                Data.dataSkipWhile(abc, (value) => value < 2),
-            );
-            expectTypeOf<ItemsOf<typeof takenUntil>>().toEqualTypeOf(
-                Data.dataTakeUntil(numberList, 2),
-            );
-            expectTypeOf<ItemsOf<typeof takenWhile>>().toEqualTypeOf(
-                Data.dataTakeWhile(abc, 1),
-            );
+            expectTypeOf<ItemsOf<typeof skippedUntil>>().toEqualTypeOf<
+                typeof dataSkippedUntil
+            >();
+            expectTypeOf<ItemsOf<typeof skippedWhile>>().toEqualTypeOf<
+                typeof dataSkippedWhile
+            >();
+            expectTypeOf<ItemsOf<typeof takenUntil>>().toEqualTypeOf<
+                typeof dataTakenUntil
+            >();
+            expectTypeOf<ItemsOf<typeof takenWhile>>().toEqualTypeOf<
+                typeof dataTakenWhile
+            >();
         });
 
         it("reject a value of another type, which no item is identical to", () => {

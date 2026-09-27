@@ -284,13 +284,14 @@ describe("collection mapping, keying and grouping type tests", () => {
         it("agrees with dataMap's items", () => {
             const listMapped = list.map(String);
             const recordMapped = record.map((value) => value > 1);
+            const dataRecordMapped = Data.dataMap(abc, (value) => value > 1);
 
             expectTypeOf<ItemsOf<typeof listMapped>>().toEqualTypeOf(
                 Data.dataMap(numberList, String),
             );
-            expectTypeOf<ItemsOf<typeof recordMapped>>().toEqualTypeOf(
-                Data.dataMap(abc, (value) => value > 1),
-            );
+            expectTypeOf<ItemsOf<typeof recordMapped>>().toEqualTypeOf<
+                typeof dataRecordMapped
+            >();
         });
 
         it("rejects a callback over another item type", () => {
@@ -757,18 +758,21 @@ describe("collection mapping, keying and grouping type tests", () => {
                 x: [1, "a"] as [number, string],
             }).mapSpread((number, letter) => `${number}${letter}`);
 
-            expectTypeOf<ItemsOf<typeof listSpread>>().toEqualTypeOf(
-                Data.dataMapSpread(
-                    pairs,
-                    (number, letter) => `${number}${letter}`,
-                ),
+            const dataListSpread = Data.dataMapSpread(
+                pairs,
+                (number, letter) => `${number}${letter}`,
             );
-            expectTypeOf<ItemsOf<typeof recordSpread>>().toEqualTypeOf(
-                Data.dataMapSpread(
-                    { x: [1, "a"] as [number, string] },
-                    (number, letter) => `${number}${letter}`,
-                ),
+            const dataRecordSpread = Data.dataMapSpread(
+                { x: [1, "a"] as [number, string] },
+                (number, letter) => `${number}${letter}`,
             );
+
+            expectTypeOf<ItemsOf<typeof listSpread>>().toEqualTypeOf<
+                typeof dataListSpread
+            >();
+            expectTypeOf<ItemsOf<typeof recordSpread>>().toEqualTypeOf<
+                typeof dataRecordSpread
+            >();
         });
 
         it("rejects a callback over another row type", () => {
@@ -1331,13 +1335,15 @@ describe("collection mapping, keying and grouping type tests", () => {
         it("agrees with dataKeyBy's items", () => {
             const byId = people.keyBy("id");
             const keyedById = collect(keyedRows).keyBy("id");
+            const dataById = Data.dataKeyBy(rows, "id");
+            const dataKeyedById = Data.dataKeyBy(keyedRows, "id");
 
-            expectTypeOf<ItemsOf<typeof byId>>().toEqualTypeOf(
-                Data.dataKeyBy(rows, "id"),
-            );
-            expectTypeOf<ItemsOf<typeof keyedById>>().toEqualTypeOf(
-                Data.dataKeyBy(keyedRows, "id"),
-            );
+            expectTypeOf<ItemsOf<typeof byId>>().toEqualTypeOf<
+                typeof dataById
+            >();
+            expectTypeOf<ItemsOf<typeof keyedById>>().toEqualTypeOf<
+                typeof dataKeyedById
+            >();
             // Kept beside the pins, which answer Record<number, Row> for both backings and so cannot tell them apart.
             expectTypeOf<ItemsOf<typeof keyedById>>().toEqualTypeOf<
                 Record<number, Row>
@@ -1529,13 +1535,15 @@ describe("collection mapping, keying and grouping type tests", () => {
         it("agrees with dataPluck's items without a key", () => {
             const names = people.pluck("name");
             const keyedNames = keyedPeople.pluck("name");
+            const dataNames = Data.dataPluck(rows, "name");
+            const dataKeyedNames = Data.dataPluck(keyedRows, "name");
 
-            expectTypeOf<ItemsOf<typeof names>>().toEqualTypeOf(
-                Data.dataPluck(rows, "name"),
-            );
-            expectTypeOf<ItemsOf<typeof keyedNames>>().toEqualTypeOf(
-                Data.dataPluck(keyedRows, "name"),
-            );
+            expectTypeOf<ItemsOf<typeof names>>().toEqualTypeOf<
+                typeof dataNames
+            >();
+            expectTypeOf<ItemsOf<typeof keyedNames>>().toEqualTypeOf<
+                typeof dataKeyedNames
+            >();
             // Kept beside the pins, which answer string[] for both backings and so cannot tell them apart.
             expectTypeOf<ItemsOf<typeof keyedNames>>().toEqualTypeOf<
                 string[]
@@ -1833,13 +1841,14 @@ describe("collection mapping, keying and grouping type tests", () => {
             const listFlat = collect(nestedLists).flatten();
             const listFlatOne = collect(nestedLists).flatten(1);
             const recordFlat = collect(recordOfLists).flatten();
+            const dataListFlatOne = Data.dataFlatten(nestedLists, 1);
 
             expectTypeOf<ItemsOf<typeof listFlat>>().toEqualTypeOf(
                 Data.dataFlatten(nestedLists),
             );
-            expectTypeOf<ItemsOf<typeof listFlatOne>>().toEqualTypeOf(
-                Data.dataFlatten(nestedLists, 1),
-            );
+            expectTypeOf<ItemsOf<typeof listFlatOne>>().toEqualTypeOf<
+                typeof dataListFlatOne
+            >();
             expectTypeOf<ItemsOf<typeof recordFlat>>().toEqualTypeOf(
                 Data.dataFlatten(recordOfLists),
             );

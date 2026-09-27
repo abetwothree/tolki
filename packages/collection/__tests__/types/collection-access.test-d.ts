@@ -739,10 +739,11 @@ describe("collection keyed access and mutation type tests", () => {
     describe("pad", () => {
         it("widens a list's values with the padding, as dataPad does", () => {
             const padded = list.pad(5, "s");
+            const dataPadded = Data.dataPad(numberList, 5, "s");
 
-            expectTypeOf<ItemsOf<typeof padded>>().toEqualTypeOf(
-                Data.dataPad(numberList, 5, "s"),
-            );
+            expectTypeOf<ItemsOf<typeof padded>>().toEqualTypeOf<
+                typeof dataPadded
+            >();
             expectTypeOf(padded).toEqualTypeOf<
                 Collection<string | number, number, "list">
             >();
