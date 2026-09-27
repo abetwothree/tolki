@@ -1054,6 +1054,11 @@ describe("collection foundation type tests", () => {
                 number | string
             >();
         });
+
+        it("rejects a hint that is not a string", () => {
+            // @ts-expect-error - JavaScript hands the method "number", "string" or "default"
+            listCollection[Symbol.toPrimitive](1);
+        });
     });
 
     describe("escapeWhenCastingToString", () => {
