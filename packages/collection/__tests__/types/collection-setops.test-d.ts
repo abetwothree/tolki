@@ -1,5 +1,6 @@
 import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import * as Data from "@tolki/data";
+import type { JsonSerializable } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 import type { ItemsOf } from "../helpers";
@@ -26,6 +27,8 @@ declare const maybeFields: { c: string } | undefined;
 declare const eitherFields: { c: string } | { d: string };
 declare const optionalFields: { c?: string };
 declare const maybeCount: number | null;
+declare const serializable: JsonSerializable;
+declare const unknownArrayable: { toArray(): unknown };
 
 /** Operands declared apart, so a pin's data call is typed on its own, not by the answer it is checked against. */
 const two = [2];
@@ -1663,6 +1666,15 @@ describe("collection set operation type tests", () => {
             >();
         });
 
+        it("reads a toArray() or jsonSerialize() answer typed unknown as either shape, whose keys it cannot name", () => {
+            expectTypeOf(list.merge(serializable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.merge(unknownArrayable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+        });
+
         it("types a generic or a Map-built collection's result", () => {
             expectTypeOf(mapped.merge(["d"])).toEqualTypeOf<
                 Collection<string, number, "list">
@@ -1741,6 +1753,15 @@ describe("collection set operation type tests", () => {
             expectTypeOf(
                 collect({ 5: "x" }).mergeRecursive({ 5: "y" }),
             ).toEqualTypeOf<Collection<string, number, "list">>();
+        });
+
+        it("reads a toArray() or jsonSerialize() answer typed unknown as either shape, whose keys it cannot name", () => {
+            expectTypeOf(list.mergeRecursive(serializable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.mergeRecursive(unknownArrayable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
         });
 
         it("types a generic or a Map-built collection's result", () => {
@@ -1854,6 +1875,15 @@ describe("collection set operation type tests", () => {
             >();
         });
 
+        it("reads a toArray() or jsonSerialize() answer typed unknown as either shape, whose keys it cannot name", () => {
+            expectTypeOf(list.union(serializable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.union(unknownArrayable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+        });
+
         it("types a generic or a Map-built collection's result", () => {
             expectTypeOf(generic.union(["x"])).toEqualTypeOf<
                 Collection<number | string, string | number, "keyed">
@@ -1963,6 +1993,15 @@ describe("collection set operation type tests", () => {
             >();
         });
 
+        it("reads a toArray() or jsonSerialize() answer typed unknown as either shape, whose keys it cannot name", () => {
+            expectTypeOf(list.replace(serializable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.replace(unknownArrayable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+        });
+
         it("types a generic or a Map-built collection's result", () => {
             expectTypeOf(generic.replace(["x"])).toEqualTypeOf<
                 Collection<number | string, string | number, "keyed">
@@ -2062,6 +2101,15 @@ describe("collection set operation type tests", () => {
         it("makes a result partial where a side may lack a key its type names", () => {
             expectTypeOf(partial.replaceRecursive({ c: 1 })).toEqualTypeOf<
                 Collection<number, "a" | "b" | "c", "partial">
+            >();
+        });
+
+        it("reads a toArray() or jsonSerialize() answer typed unknown as either shape, whose keys it cannot name", () => {
+            expectTypeOf(list.replaceRecursive(serializable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.replaceRecursive(unknownArrayable)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
             >();
         });
 

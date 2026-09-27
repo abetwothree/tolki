@@ -337,14 +337,19 @@ type OperandKey<TOperand> = OperandParts<TOperand>[1];
 /** The shape an operand's items take: none for null, which holds no items. */
 type OperandShape<TOperand> = OperandParts<TOperand>[2];
 
-/** The values, keys and shape castToItems() reads: none from null, a list's, an object's own fields, else the value. */
-type CastParts<TItems> = TItems extends null | undefined
-    ? [never, never, "list"]
-    : TItems extends readonly (infer TItemValue)[]
-      ? [TItemValue, number, "list"]
-      : TItems extends object
-        ? [FieldValues<TItems>, FieldKeys<TItems>, FieldsShape<TItems>]
-        : [TItems, number, "list"];
+/**
+ * The values, keys and shape castToItems() reads: none from null, a list's, an object's own fields, else the value.
+ * An answer typed unknown may be any of these, so its keys and shape are unknown too.
+ */
+type CastParts<TItems> = unknown extends TItems
+    ? [TItems, string | number, "list" | "keyed"]
+    : TItems extends null | undefined
+      ? [never, never, "list"]
+      : TItems extends readonly (infer TItemValue)[]
+        ? [TItemValue, number, "list"]
+        : TItems extends object
+          ? [FieldValues<TItems>, FieldKeys<TItems>, FieldsShape<TItems>]
+          : [TItems, number, "list"];
 
 /**
  * The values of an object's own fields: its members that are neither functions nor keyed by a symbol. TypeScript
