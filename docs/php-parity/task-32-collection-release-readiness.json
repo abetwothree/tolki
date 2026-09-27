@@ -5473,6 +5473,15 @@
             }
         },
         {
+            "label": "C32-C-doesntContainStrict-three-args",
+            "php": "(new Collection([['v' => 1]]))->doesntContainStrict('v', 1) / doesntContainStrict('v', '=', 1) / (new Collection(['v']))->doesntContainStrict('v', '=', 1): with a third argument containsStrict() reads the key alone",
+            "value": [
+                false,
+                true,
+                false
+            ]
+        },
+        {
             "label": "C32-D-reject-none-php-falsy",
             "php": "(new Collection([[], '0', 0.0, 'a', '', null, true]))->reject()->values()",
             "value": [

@@ -829,6 +829,11 @@ probe('C32-C-containsStrict-two-args-dot-path', "containsStrict('user.id', 2) an
         (new Collection(['r' => ['user' => ['id' => 2]]]))->containsStrict('user.id', '2'),
     ],
 ]);
+probe('C32-C-doesntContainStrict-three-args', "(new Collection([['v' => 1]]))->doesntContainStrict('v', 1) / doesntContainStrict('v', '=', 1) / (new Collection(['v']))->doesntContainStrict('v', '=', 1): with a third argument containsStrict() reads the key alone", fn () => [
+    (new Collection([['v' => 1]]))->doesntContainStrict('v', 1),
+    (new Collection([['v' => 1]]))->doesntContainStrict('v', '=', 1),
+    (new Collection(['v']))->doesntContainStrict('v', '=', 1),
+]);
 
 // ---- Family D ------------------------------------------------------------
 
