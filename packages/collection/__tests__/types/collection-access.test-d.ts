@@ -54,8 +54,12 @@ describe("collection keyed access and mutation type tests", () => {
         });
 
         it("adds the default's type, or the type its callback answers", () => {
-            expectTypeOf(list.get(0, "x")).toEqualTypeOf<number | string>();
-            expectTypeOf(list.get(0, () => "x")).toEqualTypeOf<
+            // Named as a type argument, since expectTypeOf() widens a literal it infers from its argument.
+            const withText = list.get(0, "x");
+            const withCallback = list.get(0, () => "x");
+
+            expectTypeOf<typeof withText>().toEqualTypeOf<number | "x">();
+            expectTypeOf<typeof withCallback>().toEqualTypeOf<
                 number | string
             >();
             expectTypeOf(list.get(0, null)).toEqualTypeOf<number | null>();
@@ -88,10 +92,11 @@ describe("collection keyed access and mutation type tests", () => {
 
     describe("getOrPut", () => {
         it("answers the item or the value it puts", () => {
+            // Named as a type argument, since expectTypeOf() widens a literal it infers from its argument.
+            const withText = record.getOrPut("d", "s");
+
             expectTypeOf(list.getOrPut(3, 4)).toEqualTypeOf<number>();
-            expectTypeOf(record.getOrPut("d", "s")).toEqualTypeOf<
-                number | string
-            >();
+            expectTypeOf<typeof withText>().toEqualTypeOf<number | "s">();
             expectTypeOf(record.getOrPut("d", () => true)).toEqualTypeOf<
                 number | boolean
             >();
