@@ -841,10 +841,14 @@ type CombinedKey<TValue> = unknown extends TValue
 
 /**
  * The shape of each chunk that keeps its keys. It is a record, since it keeps a list's positions, and one that may
- * lack keys unless the collection is surely a list, whose number keys name none.
+ * lack keys unless the collection is surely a list whose key type names none.
  */
-type ChunkShape<TShape extends CollectionShape> = [TShape] extends ["list"]
-    ? "keyed"
+type ChunkShape<TKey, TShape extends CollectionShape> = [TShape] extends [
+    "list",
+]
+    ? [NamingKeys<TKey>] extends [never]
+        ? "keyed"
+        : "partial"
     : "partial";
 
 /**
@@ -4303,7 +4307,7 @@ export class Collection<
     splitIn(
         numberOfGroups: number,
     ): Collection<
-        Collection<TValue, TKey, ChunkShape<TShape>>,
+        Collection<TValue, TKey, ChunkShape<TKey, TShape>>,
         number,
         "list"
     > {
@@ -4439,7 +4443,7 @@ export class Collection<
         Collection<
             TValue,
             TPreserve extends false ? number : TKey,
-            TPreserve extends false ? "list" : ChunkShape<TShape>
+            TPreserve extends false ? "list" : ChunkShape<TKey, TShape>
         >,
         number,
         "list"

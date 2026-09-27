@@ -678,6 +678,17 @@ describe("collection slicing, chunking and ordering type tests", () => {
             >();
         });
 
+        it("types a chunk as one that may lack keys when the list's key type names them", () => {
+            const pair = new Collection<string, 0 | 1>(["a", "b"]);
+
+            expectTypeOf(pair.chunk(1)).toEqualTypeOf<
+                Collection<Collection<string, 0 | 1, "partial">, number, "list">
+            >();
+            expectTypeOf(pair.chunk(1, false)).toEqualTypeOf<
+                Collection<Collection<string, number, "list">, number, "list">
+            >();
+        });
+
         it("makes each chunk a list when the keys are not preserved", () => {
             expectTypeOf(list.chunk(2, false)).toEqualTypeOf<
                 Collection<Collection<number, number, "list">, number, "list">
@@ -1239,6 +1250,14 @@ describe("collection slicing, chunking and ordering type tests", () => {
             >();
             expectTypeOf(tagged.splitIn(2)).toEqualTypeOf<
                 Collection<Collection<number, number, "keyed">, number, "list">
+            >();
+        });
+
+        it("types a group as one that may lack keys when the list's key type names them", () => {
+            expectTypeOf(
+                new Collection<string, 0 | 1>(["a", "b"]).splitIn(2),
+            ).toEqualTypeOf<
+                Collection<Collection<string, 0 | 1, "partial">, number, "list">
             >();
         });
 
