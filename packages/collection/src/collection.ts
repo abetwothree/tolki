@@ -428,14 +428,21 @@ type IfNamed<TKey, TKeys> =
 /** Any class, abstract or not: `never[]` parameters let a constructor that takes typed parameters match. */
 type AbstractConstructor = abstract new (...args: never[]) => unknown;
 
+/** Distributes over the item types, so each member of a union is narrowed on its own. */
+type InstanceNarrowed<TValue, TInstance> = TValue extends TInstance
+    ? TValue
+    : TInstance extends TValue
+      ? TInstance
+      : never;
+
 /**
- * The items whereInstanceOf() keeps. One class keeps the item types that are its instances, so a union keeps its own
- * member types; the class's instances stand in when no item type is one.
+ * The items whereInstanceOf() keeps. One class narrows each item type the way `instanceof` does: a subtype stays and a
+ * supertype becomes the class, since its items may be plain instances; the class stands in when no item type relates.
  */
 type InstancesOf<TValue, TType> = TType extends AbstractConstructor
-    ? [Extract<TValue, InstanceType<TType>>] extends [never]
+    ? [InstanceNarrowed<TValue, InstanceType<TType>>] extends [never]
         ? InstanceType<TType>
-        : Extract<TValue, InstanceType<TType>>
+        : InstanceNarrowed<TValue, InstanceType<TType>>
     : TType extends readonly AbstractConstructor[]
       ? InstanceType<TType[number]>
       : TType extends Readonly<Record<PropertyKey, AbstractConstructor>>

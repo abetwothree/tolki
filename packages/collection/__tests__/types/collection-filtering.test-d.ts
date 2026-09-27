@@ -58,6 +58,11 @@ class Square extends Shape {
     readonly sides = 4;
 }
 
+/** A square subclass, whose instances a plain square is not. */
+class FancySquare extends Square {
+    readonly color = "red";
+}
+
 /** A generic subclass, whose methods call the family on a `this` typed by its own parameter. */
 class Bag<TItem> extends Collection<TItem> {
     /**
@@ -829,6 +834,14 @@ describe("collection filtering and subsets type tests", () => {
                     Shape,
                 ),
             ).toEqualTypeOf<Collection<Shape, number, "list">>();
+        });
+
+        it("narrows each item type the way instanceof does, a supertype to the class", () => {
+            expectTypeOf(
+                collect<FancySquare | Shape>([new Square()]).whereInstanceOf(
+                    Square,
+                ),
+            ).toEqualTypeOf<Collection<Square | FancySquare, number, "list">>();
         });
 
         it("types the class's instances when no item type is one", () => {
