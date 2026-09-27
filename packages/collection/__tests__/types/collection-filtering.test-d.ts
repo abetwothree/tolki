@@ -698,6 +698,9 @@ describe("collection filtering and subsets type tests", () => {
             expectTypeOf(mapped.whereInStrict(null, ["a"])).toEqualTypeOf<
                 Collection<string, number, "partial">
             >();
+            expectTypeOf(generic.whereInStrict(null, [1])).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
         });
 
         it("rejects a scalar, which is neither Arrayable nor iterable", () => {
@@ -717,6 +720,9 @@ describe("collection filtering and subsets type tests", () => {
             >();
             expectTypeOf(generic.whereNotIn(null, collect([1]))).toEqualTypeOf<
                 Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(mapped.whereNotIn(null, ["a"])).toEqualTypeOf<
+                Collection<string, number, "partial">
             >();
         });
 
@@ -739,6 +745,9 @@ describe("collection filtering and subsets type tests", () => {
             >();
             expectTypeOf(mapped.whereNotInStrict(null, ["a"])).toEqualTypeOf<
                 Collection<string, number, "partial">
+            >();
+            expectTypeOf(generic.whereNotInStrict(null, [1])).toEqualTypeOf<
+                Collection<number, string | number, "partial">
             >();
         });
 
@@ -765,6 +774,9 @@ describe("collection filtering and subsets type tests", () => {
             expectTypeOf(generic.whereBetween(null, [1, 2])).toEqualTypeOf<
                 Collection<number, string | number, "partial">
             >();
+            expectTypeOf(mapped.whereBetween(null, ["a", "b"])).toEqualTypeOf<
+                Collection<string, number, "partial">
+            >();
         });
 
         it("rejects a scalar, which is neither Arrayable nor iterable", () => {
@@ -787,6 +799,9 @@ describe("collection filtering and subsets type tests", () => {
             expectTypeOf(
                 mapped.whereNotBetween(null, ["a", "b"]),
             ).toEqualTypeOf<Collection<string, number, "partial">>();
+            expectTypeOf(generic.whereNotBetween(null, [1, 2])).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
         });
 
         it("rejects a scalar, which is neither Arrayable nor iterable", () => {
@@ -947,6 +962,9 @@ describe("collection filtering and subsets type tests", () => {
             expectTypeOf(mapped.uniqueStrict()).toEqualTypeOf<
                 Collection<string, number, "partial">
             >();
+            expectTypeOf(generic.uniqueStrict()).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
         });
 
         it("types the callback's value and key", () => {
@@ -1068,6 +1086,9 @@ describe("collection filtering and subsets type tests", () => {
             >();
             expectTypeOf(mapped.duplicatesStrict()).toEqualTypeOf<
                 Collection<string, number, "partial">
+            >();
+            expectTypeOf(generic.duplicatesStrict()).toEqualTypeOf<
+                Collection<number, string | number, "partial">
             >();
         });
 
@@ -1618,7 +1639,25 @@ describe("collection filtering and subsets type tests", () => {
             expectTypeOf(generic.skipUntil(2)).toEqualTypeOf<
                 Collection<number, string | number, "partial">
             >();
+            expectTypeOf(generic.skipWhile(1)).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(generic.takeUntil(2)).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(generic.takeWhile(1)).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(mapped.skipUntil("a")).toEqualTypeOf<
+                Collection<string, number, "partial">
+            >();
+            expectTypeOf(mapped.skipWhile("a")).toEqualTypeOf<
+                Collection<string, number, "partial">
+            >();
             expectTypeOf(mapped.takeUntil("b")).toEqualTypeOf<
+                Collection<string, number, "partial">
+            >();
+            expectTypeOf(mapped.takeWhile("a")).toEqualTypeOf<
                 Collection<string, number, "partial">
             >();
         });
