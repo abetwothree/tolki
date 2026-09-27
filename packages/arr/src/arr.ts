@@ -213,8 +213,9 @@ type DotDepth = [never, 0, 1, 2, 3, 4];
 
 // CollapseRead (collapse): an item as collapse reads it, a Collection-like one through all().
 type CollapseRead<T> = T extends { all: (...args: never[]) => infer R } ? R : T;
-// A list, Date, Map, Set, Promise, function or scalar item is joined or skipped, never merged. Each member of an item
-// type is judged on its own: a list is assignable to Record<number, V>, so Exclude would drop it along with one.
+// A list, Date, Map, Set, Promise, function or scalar item is not a plain object, so it alone never sends the list to
+// obj.collapse. Each member of an item type is judged on its own: a list is assignable to Record<number, V>, so
+// Exclude would drop it along with one.
 type CollapseNotPlain =
     | readonly unknown[]
     | NonObjectItems
@@ -694,7 +695,7 @@ export function collapse<TValue>(data: TValue[][]): TValue[];
 export function collapse<TValue extends ArrayItems<ArrayItems<unknown>>>(
     data: TValue,
 ): ArrayInnerValue<TValue[number]>[];
-// A list of objects: each is read through all(), and ArrCollapse answers what the runtime gives either way.
+// A list of objects: a Collection-like item is read through all(), and ArrCollapse answers what the runtime gives.
 export function collapse<TItem extends object>(
     data: ArrayItems<TItem>,
 ): ArrCollapse<TItem>;
@@ -2782,7 +2783,7 @@ export function prepend<TValue>(
     data: null | undefined,
     value: TValue,
 ): TValue[];
-// Overload: untyped array or nullish fallback
+// Overload: a list that may be missing, so the answer's items, the value's included, are typed unknown
 export function prepend(
     data: readonly unknown[] | null | undefined,
     value: unknown,
