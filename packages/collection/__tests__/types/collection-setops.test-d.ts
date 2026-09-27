@@ -2693,4 +2693,235 @@ describe("collection set operation type tests", () => {
             rows.whereNotBetween("id", null);
         });
     });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>, item: TItem) {
+                return {
+                    diff: items.diff([item]).filter(() => true),
+                    diffUsing: items
+                        .diffUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    diffAssoc: items.diffAssoc([item]).filter(() => true),
+                    diffAssocUsing: items
+                        .diffAssocUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    diffKeys: items.diffKeys([item]).filter(() => true),
+                    diffKeysUsing: items
+                        .diffKeysUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    intersect: items.intersect([item]).filter(() => true),
+                    intersectUsing: items
+                        .intersectUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    intersectAssoc: items
+                        .intersectAssoc([item])
+                        .filter(() => true),
+                    intersectAssocUsing: items
+                        .intersectAssocUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    intersectByKeys: items
+                        .intersectByKeys([item])
+                        .filter(() => true),
+                    merge: items.merge([item]).filter(() => true),
+                    mergeRecursive: items
+                        .mergeRecursive([item])
+                        .filter(() => true),
+                    union: items.union([item]).filter(() => true),
+                    replace: items.replace([item]).filter(() => true),
+                    replaceRecursive: items
+                        .replaceRecursive([item])
+                        .filter(() => true),
+                    combine: items.combine([item]).filter(() => true),
+                    crossJoin: items.crossJoin([item]).filter(() => true),
+                    zip: items.zip([item]).filter(() => true),
+                    multiply: items.multiply(2).filter(() => true),
+                };
+            }
+
+            const answers = listed(list, 1);
+
+            expectTypeOf(answers.diff).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.diffUsing).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.diffAssoc).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.diffAssocUsing).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.diffKeys).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.diffKeysUsing).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.intersect).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.intersectUsing).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.intersectAssoc).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.intersectAssocUsing).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.intersectByKeys).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.merge).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.mergeRecursive).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.union).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.replace).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.replaceRecursive).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.combine).toEqualTypeOf<
+                Collection<number, string | number, "list" | "partial">
+            >();
+            expectTypeOf(answers.crossJoin).toEqualTypeOf<
+                Collection<[number, number], number, "list">
+            >();
+            expectTypeOf(answers.zip).toEqualTypeOf<
+                Collection<
+                    Collection<number | null, number, "list">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.multiply).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(items: Collection<TItem, TItemKey, TItemShape>, item: TItem) {
+                return {
+                    diff: items.diff([item]).filter(() => true),
+                    diffUsing: items
+                        .diffUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    diffAssoc: items.diffAssoc([item]).filter(() => true),
+                    diffAssocUsing: items
+                        .diffAssocUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    diffKeys: items.diffKeys([item]).filter(() => true),
+                    diffKeysUsing: items
+                        .diffKeysUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    intersect: items.intersect([item]).filter(() => true),
+                    intersectUsing: items
+                        .intersectUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    intersectAssoc: items
+                        .intersectAssoc([item])
+                        .filter(() => true),
+                    intersectAssocUsing: items
+                        .intersectAssocUsing([item], (a, b) => a === b)
+                        .filter(() => true),
+                    intersectByKeys: items
+                        .intersectByKeys([item])
+                        .filter(() => true),
+                    merge: items.merge([item]).filter(() => true),
+                    mergeRecursive: items
+                        .mergeRecursive([item])
+                        .filter(() => true),
+                    union: items.union([item]).filter(() => true),
+                    replace: items.replace([item]).filter(() => true),
+                    replaceRecursive: items
+                        .replaceRecursive([item])
+                        .filter(() => true),
+                    combine: items.combine([item]).filter(() => true),
+                    crossJoin: items.crossJoin([item]).filter(() => true),
+                    zip: items.zip([item]).filter(() => true),
+                    multiply: items.multiply(2).filter(() => true),
+                };
+            }
+
+            const answers = shaped(record, 1);
+
+            expectTypeOf(answers.diff).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.diffUsing).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.diffAssoc).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.diffAssocUsing).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.diffKeys).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.diffKeysUsing).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.intersect).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.intersectUsing).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.intersectAssoc).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.intersectAssocUsing).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.intersectByKeys).toEqualTypeOf<
+                Collection<number, "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.merge).toEqualTypeOf<
+                Collection<number, number | "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.mergeRecursive).toEqualTypeOf<
+                Collection<number, number | "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.union).toEqualTypeOf<
+                Collection<number, number | "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.replace).toEqualTypeOf<
+                Collection<number, number | "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.replaceRecursive).toEqualTypeOf<
+                Collection<number, number | "a" | "b", "partial">
+            >();
+            expectTypeOf(answers.combine).toEqualTypeOf<
+                Collection<number, string | number, "list" | "partial">
+            >();
+            expectTypeOf(answers.crossJoin).toEqualTypeOf<
+                Collection<[number, number], number, "list">
+            >();
+            expectTypeOf(answers.zip).toEqualTypeOf<
+                Collection<
+                    Collection<number | null, number, "list">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.multiply).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+    });
 });

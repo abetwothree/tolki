@@ -1548,4 +1548,238 @@ describe("collection foundation type tests", () => {
             >();
         });
     });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>, item: TItem) {
+                return {
+                    all: items.all(),
+                    count: items.count(),
+                    length: items.length,
+                    isEmpty: items.isEmpty(),
+                    isNotEmpty: items.isNotEmpty(),
+                    getIterator: items.getIterator(),
+                    iterator: [...items],
+                    toBase: items.toBase().filter(() => true),
+                    dump: items.dump().filter(() => true),
+                    ensure: items.ensure("int").filter(() => true),
+                    collectMethod: items.collect().filter(() => true),
+                    toArray: items.toArray(),
+                    jsonSerialize: items.jsonSerialize(),
+                    toJson: items.toJson(),
+                    toJSON: items.toJSON(),
+                    toPrettyJson: items.toPrettyJson(),
+                    toString: items.toString(),
+                    toPrimitive: items[Symbol.toPrimitive]("number"),
+                    escapeWhenCastingToString: items
+                        .escapeWhenCastingToString()
+                        .filter(() => true),
+                    collect: collect([item]).filter(() => true),
+                    make: Collection.make([item]).filter(() => true),
+                    constructor: new Collection([item]).filter(() => true),
+                    wrap: Collection.wrap(item).filter(() => true),
+                    unwrap: Collection.unwrap(items),
+                    empty: Collection.empty<TItem>().filter(() => true),
+                    times: Collection.times(2, () => item).filter(() => true),
+                    fromJson: Collection.fromJson<TItem>("[]").filter(
+                        () => true,
+                    ),
+                };
+            }
+
+            const answers = listed(listCollection, 1);
+
+            expectTypeOf(answers.all).toEqualTypeOf<number[]>();
+            expectTypeOf(answers.count).toEqualTypeOf<number>();
+            expectTypeOf(answers.length).toEqualTypeOf<number>();
+            expectTypeOf(answers.isEmpty).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.isNotEmpty).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.getIterator).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+            expectTypeOf(answers.iterator).toEqualTypeOf<number[]>();
+            expectTypeOf(answers.toBase).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.dump).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.ensure).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.collectMethod).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.toArray).toEqualTypeOf<number[]>();
+            expectTypeOf(answers.jsonSerialize).toEqualTypeOf<unknown[]>();
+            expectTypeOf(answers.toJson).toEqualTypeOf<string>();
+            expectTypeOf(answers.toJSON).toEqualTypeOf<unknown>();
+            expectTypeOf(answers.toPrettyJson).toEqualTypeOf<string>();
+            expectTypeOf(answers.toString).toEqualTypeOf<string>();
+            expectTypeOf(answers.toPrimitive).toEqualTypeOf<number>();
+            expectTypeOf(answers.escapeWhenCastingToString).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.collect).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.make).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.constructor).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.wrap).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.unwrap).toEqualTypeOf<number[]>();
+            expectTypeOf(answers.empty).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.times).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.fromJson).toEqualTypeOf<
+                Collection<number, PropertyKey, "list" | "partial">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(items: Collection<TItem, TItemKey, TItemShape>) {
+                return {
+                    all: items.all(),
+                    count: items.count(),
+                    length: items.length,
+                    isEmpty: items.isEmpty(),
+                    isNotEmpty: items.isNotEmpty(),
+                    getIterator: items.getIterator(),
+                    iterator: [...items],
+                    toBase: items.toBase().filter(() => true),
+                    dump: items.dump().filter(() => true),
+                    ensure: items.ensure("int").filter(() => true),
+                    collectMethod: items.collect().filter(() => true),
+                    toArray: items.toArray(),
+                    jsonSerialize: items.jsonSerialize(),
+                    toJson: items.toJson(),
+                    toJSON: items.toJSON(),
+                    toPrettyJson: items.toPrettyJson(),
+                    toString: items.toString(),
+                    toPrimitive: items[Symbol.toPrimitive]("number"),
+                    escapeWhenCastingToString: items
+                        .escapeWhenCastingToString()
+                        .filter(() => true),
+                    collect: collect(items).filter(() => true),
+                    make: Collection.make(items).filter(() => true),
+                    constructor: new Collection(items).filter(() => true),
+                    wrap: Collection.wrap(items).filter(() => true),
+                    unwrap: Collection.unwrap(items),
+                    fromJson: Collection.fromJson<TItem, TItemKey>("{}").filter(
+                        () => true,
+                    ),
+                };
+            }
+
+            const answers = shaped(collect(abc));
+
+            expectTypeOf(answers.all).toEqualTypeOf<
+                Record<"a" | "b" | "c", number>
+            >();
+            expectTypeOf(answers.count).toEqualTypeOf<number>();
+            expectTypeOf(answers.length).toEqualTypeOf<number>();
+            expectTypeOf(answers.isEmpty).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.isNotEmpty).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.getIterator).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+            expectTypeOf(answers.iterator).toEqualTypeOf<number[]>();
+            expectTypeOf(answers.toBase).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.dump).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.ensure).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.collectMethod).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.toArray).toEqualTypeOf<
+                Record<"a" | "b" | "c", number>
+            >();
+            expectTypeOf(answers.jsonSerialize).toEqualTypeOf<
+                unknown[] | Record<"a" | "b" | "c", unknown>
+            >();
+            expectTypeOf(answers.toJson).toEqualTypeOf<string>();
+            expectTypeOf(answers.toJSON).toEqualTypeOf<unknown>();
+            expectTypeOf(answers.toPrettyJson).toEqualTypeOf<string>();
+            expectTypeOf(answers.toString).toEqualTypeOf<string>();
+            expectTypeOf(answers.toPrimitive).toEqualTypeOf<number>();
+            expectTypeOf(answers.escapeWhenCastingToString).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.collect).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.make).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.constructor).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.wrap).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.unwrap).toEqualTypeOf<
+                Record<"a" | "b" | "c", number>
+            >();
+            expectTypeOf(answers.fromJson).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "list" | "partial">
+            >();
+        });
+
+        it("compiles each method in a generic subclass, whose member calls it on itself", () => {
+            /** A subclass generic in its items, whose member calls the family on itself. */
+            class Bag<TItem> extends Collection<TItem> {
+                /**
+                 * Call each construction and output method on this bag.
+                 *
+                 * @returns Each method's answer, by name
+                 */
+                called(): Record<string, unknown> {
+                    return {
+                        all: this.all(),
+                        count: this.count(),
+                        length: this.length,
+                        isEmpty: this.isEmpty(),
+                        isNotEmpty: this.isNotEmpty(),
+                        getIterator: this.getIterator(),
+                        iterator: [...this],
+                        toBase: this.toBase().filter(() => true),
+                        dump: this.dump().filter(() => true),
+                        ensure: this.ensure("int").filter(() => true),
+                        collectMethod: this.collect().filter(() => true),
+                        toArray: this.toArray(),
+                        jsonSerialize: this.jsonSerialize(),
+                        toJson: this.toJson(),
+                        toJSON: this.toJSON(),
+                        toPrettyJson: this.toPrettyJson(),
+                        toString: this.toString(),
+                        toPrimitive: this[Symbol.toPrimitive]("number"),
+                        escapeWhenCastingToString:
+                            this.escapeWhenCastingToString().filter(() => true),
+                    };
+                }
+            }
+
+            expectTypeOf(new Bag([1, 2]).called()).toEqualTypeOf<
+                Record<string, unknown>
+            >();
+        });
+    });
 });

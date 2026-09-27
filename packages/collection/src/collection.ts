@@ -518,6 +518,16 @@ type NamedKeys<TKey, TKeys> =
 type IfNamed<TKey, TKeys> =
     NamedKeys<TKey, TKeys> extends false ? never : unknown;
 
+/** The keys an argument surely names, unwrapped from SureKeys' tuple: none when it may name any of its keys. */
+type SurelyNamed<TKeys> =
+    SureKeys<TKeys> extends [infer TNamed] ? TNamed : never;
+
+/**
+ * Admits forget()'s exact row for keys it surely removes. It stays deferred for a key typed by a type parameter, so
+ * such a call reaches the widest row, whose collection type a chained overloaded call can still read.
+ */
+type IfSure<TKeys> = SureKeys<TKeys> extends false ? never : unknown;
+
 /**
  * The fields select() reads from one item. Only an object item has fields: a primitive's or a list's own members are
  * none, so such an item gives the widest row's record of unknown fields.
@@ -1297,8 +1307,9 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
     contains(key: (value: TValue, key: TKey) => unknown): boolean;
-    // A generic caller's needle needs this row, through which items that may be functions take a mis-typed callback.
-    contains(key: TValue | null | undefined): boolean;
+    // A generic caller's needle, or one that may be a string, needs this row, as PHP's PHPDoc takes an item or a
+    // string; through it, items that may be functions take a mis-typed callback.
+    contains(key: TValue | PathKey): boolean;
     contains<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -1343,7 +1354,7 @@ export class Collection<
      * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
     containsStrict(key: (value: TValue, key: TKey) => unknown): boolean;
-    containsStrict(key: TValue | null | undefined): boolean;
+    containsStrict(key: TValue | PathKey): boolean;
     containsStrict<TNeedle>(
         key: NonCallable<TNeedle>,
         value?: unknown,
@@ -1398,7 +1409,7 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
      */
     doesntContain(key: (value: TValue, key: TKey) => unknown): boolean;
-    doesntContain(key: TValue | null | undefined): boolean;
+    doesntContain(key: TValue | PathKey): boolean;
     doesntContain<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -1433,7 +1444,7 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
      */
     doesntContainStrict(key: (value: TValue, key: TKey) => unknown): boolean;
-    doesntContainStrict(key: TValue | null | undefined): boolean;
+    doesntContainStrict(key: TValue | PathKey): boolean;
     doesntContainStrict<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -2010,15 +2021,17 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
     forget<const TForgetKeys extends TKey | readonly TKey[]>(
-        keys: TForgetKeys,
-    ): SureKeys<TForgetKeys> extends [infer TRemoved]
-        ? Collection<TValue, Exclude<TKey, TRemoved>, TShape>
-        : Collection<TValue, TKey, Removed<TShape>>;
+        keys: TForgetKeys & IfSure<TForgetKeys>,
+    ): Collection<TValue, Exclude<TKey, SurelyNamed<TForgetKeys>>, TShape>;
     forget<
         TForgetKey extends PathKey,
         TKeysKey extends PropertyKey = PropertyKey,
     >(
-        keys: PathKeys | Collection<TForgetKey, TKeysKey, CollectionShape>,
+        keys:
+            | TKey
+            | readonly TKey[]
+            | PathKeys
+            | Collection<TForgetKey, TKeysKey, CollectionShape>,
     ): Collection<TValue, TKey, Removed<TShape>>;
     forget(keys: unknown): unknown {
         const requested = Object.values(this.getRawItems(keys));
@@ -3506,7 +3519,8 @@ export class Collection<
         value: TPrependValue,
         key: null | undefined,
     ): Collection<TValue | TPrependValue, TKey | "", WrittenShape<TShape, "">>;
-    prepend<TPrependValue, TPrependKey extends string | number>(
+    // PHP's PHPDoc takes the collection's own key type, which for a generic caller may be one no other key names.
+    prepend<TPrependValue, TPrependKey extends string | number | TKey>(
         value: TPrependValue,
         key: TPrependKey,
     ): Collection<
@@ -3514,7 +3528,7 @@ export class Collection<
         TKey | MapArrayKey<TPrependKey>,
         WrittenShape<TShape, MapArrayKey<TPrependKey>>
     >;
-    prepend<TPrependValue, TPrependKey extends string | number>(
+    prepend<TPrependValue, TPrependKey extends string | number | TKey>(
         value: TPrependValue,
         key: TPrependKey | null | undefined,
     ): Collection<
@@ -3746,7 +3760,8 @@ export class Collection<
         key: null | undefined,
         value: TPutValue,
     ): Collection<TValue | TPutValue, TKey | number, TShape>;
-    put<TPutValue, TPutKey extends string | number | boolean>(
+    // PHP's PHPDoc takes the collection's own key type, which for a generic caller may be one no other key names.
+    put<TPutValue, TPutKey extends string | number | boolean | TKey>(
         key: TPutKey,
         value: TPutValue,
     ): Collection<
@@ -3756,7 +3771,7 @@ export class Collection<
     >;
     // A null key appends under an integer key. Naming that key in WrittenShape, not writing `TShape |`, keeps a
     // subclass's shape inferable where wrap() and unwrap() read it from the members.
-    put<TPutValue, TPutKey extends string | number | boolean>(
+    put<TPutValue, TPutKey extends string | number | boolean | TKey>(
         key: TPutKey | null | undefined,
         value: TPutValue,
     ): Collection<
@@ -5892,7 +5907,7 @@ export class Collection<
      * @see {@link Collection.contains}
      */
     some(key: (value: TValue, key: TKey) => unknown): boolean;
-    some(key: TValue | null | undefined): boolean;
+    some(key: TValue | PathKey): boolean;
     some<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -6000,6 +6015,8 @@ export class Collection<
      * new Collection([1, 2, 3]).every(2); -> false
      */
     every(key: ((value: TValue, key: TKey) => unknown) | PathKey): boolean;
+    // A generic caller's item, or one that may be a path, needs this row, as PHP's PHPDoc takes an item too.
+    every(key: TValue | PathKey): boolean;
     every(key: PathKey, value: unknown): boolean;
     every(key: PathKey, operator: unknown, value: unknown): boolean;
     every(

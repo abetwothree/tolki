@@ -113,6 +113,50 @@ class Bag<TItem> extends Collection<TItem> {
     from(item: TItem) {
         return this.skipUntil(item);
     }
+
+    /**
+     * Call each filtering and subsets method on this bag.
+     *
+     * @param item - One of the bag's items
+     * @returns Each method's answer, by name
+     */
+    called(item: TItem): Record<string, unknown> {
+        return {
+            filter: this.filter((value) => value !== item).filter(() => true),
+            reject: this.reject(item).filter(() => true),
+            where: this.where("id", item).filter(() => true),
+            whereNull: this.whereNull("id").filter(() => true),
+            whereNotNull: this.whereNotNull("id").filter(() => true),
+            whereStrict: this.whereStrict("id", item).filter(() => true),
+            whereIn: this.whereIn("id", [item]).filter(() => true),
+            whereInStrict: this.whereInStrict("id", [item]).filter(() => true),
+            whereNotIn: this.whereNotIn("id", [item]).filter(() => true),
+            whereNotInStrict: this.whereNotInStrict("id", [item]).filter(
+                () => true,
+            ),
+            whereBetween: this.whereBetween("id", [item, item]).filter(
+                () => true,
+            ),
+            whereNotBetween: this.whereNotBetween("id", [item, item]).filter(
+                () => true,
+            ),
+            whereInstanceOf: this.whereInstanceOf(Date).filter(() => true),
+            unique: this.unique().filter(() => true),
+            uniqueStrict: this.uniqueStrict().filter(() => true),
+            duplicates: this.duplicates().filter(() => true),
+            duplicatesStrict: this.duplicatesStrict().filter(() => true),
+            only: this.only(0).filter(() => true),
+            except: this.except(0).filter(() => true),
+            select: this.select("id").filter(() => true),
+            partition: this.partition((value) => value !== item)[0].filter(
+                () => true,
+            ),
+            skipUntil: this.skipUntil(item).filter(() => true),
+            skipWhile: this.skipWhile(item).filter(() => true),
+            takeUntil: this.takeUntil(item).filter(() => true),
+            takeWhile: this.takeWhile(item).filter(() => true),
+        };
+    }
 }
 
 describe("collection filtering and subsets type tests", () => {
@@ -1775,6 +1819,283 @@ describe("collection filtering and subsets type tests", () => {
             list.skipWhile((value: string) => value === "x");
             // @ts-expect-error - a number list's callback takes a number
             list.takeUntil((value: string) => value === "x");
+        });
+    });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>, item: TItem) {
+                return {
+                    filter: items
+                        .filter((value) => value !== item)
+                        .filter(() => true),
+                    reject: items.reject(item).filter(() => true),
+                    where: items.where("id", item).filter(() => true),
+                    whereNull: items.whereNull("id").filter(() => true),
+                    whereNotNull: items.whereNotNull("id").filter(() => true),
+                    whereStrict: items
+                        .whereStrict("id", item)
+                        .filter(() => true),
+                    whereIn: items.whereIn("id", [item]).filter(() => true),
+                    whereInStrict: items
+                        .whereInStrict("id", [item])
+                        .filter(() => true),
+                    whereNotIn: items
+                        .whereNotIn("id", [item])
+                        .filter(() => true),
+                    whereNotInStrict: items
+                        .whereNotInStrict("id", [item])
+                        .filter(() => true),
+                    whereBetween: items
+                        .whereBetween("id", [item, item])
+                        .filter(() => true),
+                    whereNotBetween: items
+                        .whereNotBetween("id", [item, item])
+                        .filter(() => true),
+                    whereInstanceOf: items
+                        .whereInstanceOf(Date)
+                        .filter(() => true),
+                    unique: items.unique().filter(() => true),
+                    uniqueStrict: items.uniqueStrict().filter(() => true),
+                    duplicates: items.duplicates().filter(() => true),
+                    duplicatesStrict: items
+                        .duplicatesStrict()
+                        .filter(() => true),
+                    only: items.only(0).filter(() => true),
+                    except: items.except(0).filter(() => true),
+                    select: items.select("id").filter(() => true),
+                    partition: items
+                        .partition((value) => value !== item)[0]
+                        .filter(() => true),
+                    skipUntil: items.skipUntil(item).filter(() => true),
+                    skipWhile: items.skipWhile(item).filter(() => true),
+                    takeUntil: items.takeUntil(item).filter(() => true),
+                    takeWhile: items.takeWhile(item).filter(() => true),
+                };
+            }
+
+            const answers = listed(list, 1);
+
+            expectTypeOf(answers.filter).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.reject).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.where).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereNull).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereNotNull).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereStrict).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereIn).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereInStrict).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereNotIn).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereNotInStrict).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereBetween).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereNotBetween).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whereInstanceOf).toEqualTypeOf<
+                Collection<Date, number, "list">
+            >();
+            expectTypeOf(answers.unique).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.uniqueStrict).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.duplicates).toEqualTypeOf<
+                Collection<number, number, "partial">
+            >();
+            expectTypeOf(answers.duplicatesStrict).toEqualTypeOf<
+                Collection<number, number, "partial">
+            >();
+            expectTypeOf(answers.only).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.except).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.select).toEqualTypeOf<
+                Collection<Record<string, unknown>, number, "list">
+            >();
+            expectTypeOf(answers.partition).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.skipUntil).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.skipWhile).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.takeUntil).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.takeWhile).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(
+                items: Collection<TItem, TItemKey, TItemShape>,
+                item: TItem,
+                key: TItemKey,
+            ) {
+                return {
+                    filter: items
+                        .filter((value) => value !== item)
+                        .filter(() => true),
+                    reject: items.reject(item).filter(() => true),
+                    where: items.where("id", item).filter(() => true),
+                    whereNull: items.whereNull("id").filter(() => true),
+                    whereNotNull: items.whereNotNull("id").filter(() => true),
+                    whereStrict: items
+                        .whereStrict("id", item)
+                        .filter(() => true),
+                    whereIn: items.whereIn("id", [item]).filter(() => true),
+                    whereInStrict: items
+                        .whereInStrict("id", [item])
+                        .filter(() => true),
+                    whereNotIn: items
+                        .whereNotIn("id", [item])
+                        .filter(() => true),
+                    whereNotInStrict: items
+                        .whereNotInStrict("id", [item])
+                        .filter(() => true),
+                    whereBetween: items
+                        .whereBetween("id", [item, item])
+                        .filter(() => true),
+                    whereNotBetween: items
+                        .whereNotBetween("id", [item, item])
+                        .filter(() => true),
+                    whereInstanceOf: items
+                        .whereInstanceOf(Date)
+                        .filter(() => true),
+                    unique: items.unique().filter(() => true),
+                    uniqueStrict: items.uniqueStrict().filter(() => true),
+                    duplicates: items.duplicates().filter(() => true),
+                    duplicatesStrict: items
+                        .duplicatesStrict()
+                        .filter(() => true),
+                    only: items.only(key).filter(() => true),
+                    except: items.except(key).filter(() => true),
+                    select: items.select("id").filter(() => true),
+                    partition: items
+                        .partition((value) => value !== item)[0]
+                        .filter(() => true),
+                    skipUntil: items.skipUntil(item).filter(() => true),
+                    skipWhile: items.skipWhile(item).filter(() => true),
+                    takeUntil: items.takeUntil(item).filter(() => true),
+                    takeWhile: items.takeWhile(item).filter(() => true),
+                };
+            }
+
+            const answers = shaped(record, 1, "a");
+
+            expectTypeOf(answers.filter).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.reject).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.where).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereNull).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereNotNull).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereStrict).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereIn).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereInStrict).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereNotIn).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereNotInStrict).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereBetween).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereNotBetween).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.whereInstanceOf).toEqualTypeOf<
+                Collection<Date, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.unique).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.uniqueStrict).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.duplicates).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.duplicatesStrict).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.only).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.except).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.select).toEqualTypeOf<
+                Collection<Record<string, unknown>, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.partition).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.skipUntil).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.skipWhile).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.takeUntil).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.takeWhile).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+        });
+
+        it("compiles each method in a generic subclass, whose member calls it on itself", () => {
+            expectTypeOf(new Bag([1, 2]).called(1)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
         });
     });
 });

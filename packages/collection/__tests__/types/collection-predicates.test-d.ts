@@ -1,4 +1,4 @@
-import { collect, Collection } from "@tolki/collection";
+import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import * as Data from "@tolki/data";
 import type { PathKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
@@ -447,6 +447,17 @@ describe("collection predicate type tests", () => {
         it("takes a variable that may hold a callback or a key, as PHP takes either", () => {
             expectTypeOf(list.every(maybeCallback)).toEqualTypeOf<boolean>();
             expectTypeOf(people.every(pathKey)).toEqualTypeOf<boolean>();
+        });
+
+        it("takes an item, which PHP's PHPDoc names and reads as a path", () => {
+            expectTypeOf(people.every(ada)).toEqualTypeOf<boolean>();
+        });
+
+        it("takes a callback over another type where the items may be functions, a cost of the generic item row", () => {
+            // The row a generic caller's item needs takes any function when the items may be functions.
+            expectTypeOf(
+                unknownItems.every((value: string) => value === "x"),
+            ).toEqualTypeOf<boolean>();
         });
 
         it("rejects a callback over another item type or given a value, and a call with no key", () => {
@@ -1368,6 +1379,202 @@ describe("collection predicate type tests", () => {
             people.containsManyItems("id");
             // @ts-expect-error - a number list's callback takes a number
             list.containsManyItems((value: string) => value === "x");
+        });
+    });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(
+                items: Collection<TItem>,
+                item: TItem,
+                needle: TItem | string,
+            ) {
+                return {
+                    contains: [items.contains(item), items.contains(needle)],
+                    containsStrict: [
+                        items.containsStrict(item),
+                        items.containsStrict(needle),
+                    ],
+                    doesntContain: [
+                        items.doesntContain(item),
+                        items.doesntContain(needle),
+                    ],
+                    doesntContainStrict: [
+                        items.doesntContainStrict(item),
+                        items.doesntContainStrict(needle),
+                    ],
+                    some: [items.some(item), items.some(needle)],
+                    every: [items.every(item), items.every(needle)],
+                    first: items.first(),
+                    last: items.last(),
+                    firstWhere: items.firstWhere("id", item),
+                    firstOrFail: items.firstOrFail(),
+                    sole: items.sole(),
+                    hasSole: items.hasSole(),
+                    hasMany: items.hasMany(),
+                    value: items.value("id", item),
+                    search: items.search(item),
+                    before: items.before(item),
+                    after: items.after(item),
+                    random: items.random(2).filter(() => true),
+                    containsOneItem: items.containsOneItem(),
+                    containsManyItems: items.containsManyItems(),
+                };
+            }
+
+            const answers = listed(list, 1, "x");
+
+            expectTypeOf(answers.contains).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.containsStrict).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.doesntContain).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.doesntContainStrict).toEqualTypeOf<
+                boolean[]
+            >();
+            expectTypeOf(answers.some).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.every).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.first).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.last).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.firstWhere).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.firstOrFail).toEqualTypeOf<number>();
+            expectTypeOf(answers.sole).toEqualTypeOf<number>();
+            expectTypeOf(answers.hasSole).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.hasMany).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.value).toEqualTypeOf<unknown>();
+            expectTypeOf(answers.search).toEqualTypeOf<number | false>();
+            expectTypeOf(answers.before).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.after).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.random).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.containsOneItem).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.containsManyItems).toEqualTypeOf<boolean>();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(
+                items: Collection<TItem, TItemKey, TItemShape>,
+                item: TItem,
+                needle: TItem | string,
+            ) {
+                return {
+                    contains: [items.contains(item), items.contains(needle)],
+                    containsStrict: [
+                        items.containsStrict(item),
+                        items.containsStrict(needle),
+                    ],
+                    doesntContain: [
+                        items.doesntContain(item),
+                        items.doesntContain(needle),
+                    ],
+                    doesntContainStrict: [
+                        items.doesntContainStrict(item),
+                        items.doesntContainStrict(needle),
+                    ],
+                    some: [items.some(item), items.some(needle)],
+                    every: [items.every(item), items.every(needle)],
+                    first: items.first(),
+                    last: items.last(),
+                    firstWhere: items.firstWhere("id", item),
+                    firstOrFail: items.firstOrFail(),
+                    sole: items.sole(),
+                    hasSole: items.hasSole(),
+                    hasMany: items.hasMany(),
+                    value: items.value("id", item),
+                    search: items.search(item),
+                    before: items.before(item),
+                    after: items.after(item),
+                    random: items.random(2).filter(() => true),
+                    containsOneItem: items.containsOneItem(),
+                    containsManyItems: items.containsManyItems(),
+                };
+            }
+
+            const answers = shaped(record, 1, "x");
+
+            expectTypeOf(answers.contains).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.containsStrict).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.doesntContain).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.doesntContainStrict).toEqualTypeOf<
+                boolean[]
+            >();
+            expectTypeOf(answers.some).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.every).toEqualTypeOf<boolean[]>();
+            expectTypeOf(answers.first).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.last).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.firstWhere).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.firstOrFail).toEqualTypeOf<number>();
+            expectTypeOf(answers.sole).toEqualTypeOf<number>();
+            expectTypeOf(answers.hasSole).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.hasMany).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.value).toEqualTypeOf<unknown>();
+            expectTypeOf(answers.search).toEqualTypeOf<
+                number | false | "a" | "b" | "c"
+            >();
+            expectTypeOf(answers.before).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.after).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.random).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.containsOneItem).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.containsManyItems).toEqualTypeOf<boolean>();
+        });
+
+        it("compiles each method in a generic subclass, whose member calls it on itself", () => {
+            /** A subclass generic in its items, whose member calls the family on itself. */
+            class Bag<TItem> extends Collection<TItem> {
+                /**
+                 * Call each predicate and search method on this bag.
+                 *
+                 * @param item - One of the bag's items
+                 * @param needle - An item, or a string that may be one
+                 * @returns Each method's answer, by name
+                 */
+                called(
+                    item: TItem,
+                    needle: TItem | string,
+                ): Record<string, unknown> {
+                    return {
+                        contains: [this.contains(item), this.contains(needle)],
+                        containsStrict: [
+                            this.containsStrict(item),
+                            this.containsStrict(needle),
+                        ],
+                        doesntContain: [
+                            this.doesntContain(item),
+                            this.doesntContain(needle),
+                        ],
+                        doesntContainStrict: [
+                            this.doesntContainStrict(item),
+                            this.doesntContainStrict(needle),
+                        ],
+                        some: [this.some(item), this.some(needle)],
+                        every: [this.every(item), this.every(needle)],
+                        first: this.first(),
+                        last: this.last(),
+                        firstWhere: this.firstWhere("id", item),
+                        firstOrFail: this.firstOrFail(),
+                        sole: this.sole(),
+                        hasSole: this.hasSole(),
+                        hasMany: this.hasMany(),
+                        value: this.value("id", item),
+                        search: this.search(item),
+                        before: this.before(item),
+                        after: this.after(item),
+                        random: this.random(2).filter(() => true),
+                        containsOneItem: this.containsOneItem(),
+                        containsManyItems: this.containsManyItems(),
+                    };
+                }
+            }
+
+            expectTypeOf(new Bag([1, 2]).called(1, "x")).toEqualTypeOf<
+                Record<string, unknown>
+            >();
         });
     });
 });

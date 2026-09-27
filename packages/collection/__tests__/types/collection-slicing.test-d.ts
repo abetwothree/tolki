@@ -2415,4 +2415,227 @@ describe("collection slicing, chunking and ordering type tests", () => {
             list.shuffle(1);
         });
     });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>, item: TItem) {
+                return {
+                    slice: items.slice(1).filter(() => true),
+                    skip: items.skip(1).filter(() => true),
+                    take: items.take(1).filter(() => true),
+                    forPage: items.forPage(1, 2).filter(() => true),
+                    nth: items.nth(2).filter(() => true),
+                    chunk: items.chunk(2).filter(() => true),
+                    chunkWhile: items
+                        .chunkWhile((value) => value !== item)
+                        .filter(() => true),
+                    chunkBy: items
+                        .chunkBy((value) => value !== item)
+                        .filter(() => true),
+                    split: items.split(2).filter(() => true),
+                    splitIn: items.splitIn(2).filter(() => true),
+                    sliding: items.sliding(2).filter(() => true),
+                    sort: items.sort().filter(() => true),
+                    sortDesc: items.sortDesc().filter(() => true),
+                    sortBy: items.sortBy("id").filter(() => true),
+                    sortByDesc: items.sortByDesc("id").filter(() => true),
+                    sortKeys: items.sortKeys().filter(() => true),
+                    sortKeysDesc: items.sortKeysDesc().filter(() => true),
+                    sortKeysUsing: items
+                        .sortKeysUsing(() => 0)
+                        .filter(() => true),
+                    reverse: items.reverse().filter(() => true),
+                    shuffle: items.shuffle().filter(() => true),
+                };
+            }
+
+            const answers = listed(list, 1);
+
+            expectTypeOf(answers.slice).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.skip).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.take).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.forPage).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.nth).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.chunk).toEqualTypeOf<
+                Collection<Collection<number, number, "keyed">, number, "list">
+            >();
+            expectTypeOf(answers.chunkWhile).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, number, "list">
+            >();
+            expectTypeOf(answers.chunkBy).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, number, "list">
+            >();
+            expectTypeOf(answers.split).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, number, "list">
+            >();
+            expectTypeOf(answers.splitIn).toEqualTypeOf<
+                Collection<Collection<number, number, "keyed">, number, "list">
+            >();
+            expectTypeOf(answers.sliding).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, number, "list">
+            >();
+            expectTypeOf(answers.sort).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.sortDesc).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.sortBy).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.sortByDesc).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.sortKeys).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.sortKeysDesc).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.sortKeysUsing).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.reverse).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.shuffle).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(items: Collection<TItem, TItemKey, TItemShape>, item: TItem) {
+                return {
+                    slice: items.slice(1).filter(() => true),
+                    skip: items.skip(1).filter(() => true),
+                    take: items.take(1).filter(() => true),
+                    forPage: items.forPage(1, 2).filter(() => true),
+                    nth: items.nth(2).filter(() => true),
+                    chunk: items.chunk(2).filter(() => true),
+                    chunkWhile: items
+                        .chunkWhile((value) => value !== item)
+                        .filter(() => true),
+                    chunkBy: items
+                        .chunkBy((value) => value !== item)
+                        .filter(() => true),
+                    split: items.split(2).filter(() => true),
+                    splitIn: items.splitIn(2).filter(() => true),
+                    sliding: items.sliding(2).filter(() => true),
+                    sort: items.sort().filter(() => true),
+                    sortDesc: items.sortDesc().filter(() => true),
+                    sortBy: items.sortBy("id").filter(() => true),
+                    sortByDesc: items.sortByDesc("id").filter(() => true),
+                    sortKeys: items.sortKeys().filter(() => true),
+                    sortKeysDesc: items.sortKeysDesc().filter(() => true),
+                    sortKeysUsing: items
+                        .sortKeysUsing(() => 0)
+                        .filter(() => true),
+                    reverse: items.reverse().filter(() => true),
+                    shuffle: items.shuffle().filter(() => true),
+                };
+            }
+
+            const answers = shaped(record, 1);
+
+            expectTypeOf(answers.slice).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.skip).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.take).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.forPage).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.nth).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.chunk).toEqualTypeOf<
+                Collection<
+                    Collection<number, "a" | "b" | "c", "partial">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.chunkWhile).toEqualTypeOf<
+                Collection<
+                    Collection<number, "a" | "b" | "c", "partial">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.chunkBy).toEqualTypeOf<
+                Collection<
+                    Collection<number, "a" | "b" | "c", "partial">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.split).toEqualTypeOf<
+                Collection<
+                    Collection<number, "a" | "b" | "c", "partial">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.splitIn).toEqualTypeOf<
+                Collection<
+                    Collection<number, "a" | "b" | "c", "partial">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.sliding).toEqualTypeOf<
+                Collection<
+                    Collection<number, "a" | "b" | "c", "partial">,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(answers.sort).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.sortDesc).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.sortBy).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.sortByDesc).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.sortKeys).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.sortKeysDesc).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.sortKeysUsing).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.reverse).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.shuffle).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+    });
 });

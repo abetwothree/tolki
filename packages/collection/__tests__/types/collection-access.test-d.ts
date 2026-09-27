@@ -1,4 +1,4 @@
-import { collect, Collection } from "@tolki/collection";
+import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import * as Data from "@tolki/data";
 import type { PathKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
@@ -919,6 +919,251 @@ describe("collection keyed access and mutation type tests", () => {
         it("rejects a string, which PHP's foreach warns over", () => {
             // @ts-expect-error - PHP's parameter is iterable, which a string is not
             list.concat("abc");
+        });
+    });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>, item: TItem) {
+                return {
+                    get: items.get(0),
+                    getOrPut: items.getOrPut(0, item),
+                    pull: items.pull(0),
+                    put: items.put(0, item).filter(() => true),
+                    forget: items.forget(0).filter(() => true),
+                    forgetList: items.forget([0]).filter(() => true),
+                    has: items.has(0),
+                    hasAny: items.hasAny(0),
+                    offsetExists: items.offsetExists(0),
+                    offsetGet: items.offsetGet(0),
+                    offsetSet: items.offsetSet(0, item),
+                    offsetUnset: items.offsetUnset(0),
+                    add: items.add(item).filter(() => true),
+                    push: items.push(item).filter(() => true),
+                    unshift: items.unshift(item).filter(() => true),
+                    prepend: items.prepend(item).filter(() => true),
+                    pop: items.pop(),
+                    shift: items.shift(),
+                    splice: items.splice(1, 1, item).filter(() => true),
+                    pad: items.pad(5, item).filter(() => true),
+                    transform: items
+                        .transform((value) => value)
+                        .filter(() => true),
+                    keys: items.keys().filter(() => true),
+                    values: items.values().filter(() => true),
+                    concat: items.concat([item]).filter(() => true),
+                };
+            }
+
+            const answers = listed(list, 1);
+
+            expectTypeOf(answers.get).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.getOrPut).toEqualTypeOf<number>();
+            expectTypeOf(answers.pull).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.put).toEqualTypeOf<
+                Collection<number, number, "list" | "partial">
+            >();
+            expectTypeOf(answers.forget).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.forgetList).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.has).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.hasAny).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.offsetExists).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.offsetGet).toEqualTypeOf<number | undefined>();
+            expectTypeOf(answers.offsetSet).toEqualTypeOf<void>();
+            expectTypeOf(answers.offsetUnset).toEqualTypeOf<void>();
+            expectTypeOf(answers.add).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.push).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.unshift).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.prepend).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.pop).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.shift).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.splice).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.pad).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.transform).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.keys).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.values).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.concat).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(
+                items: Collection<TItem, TItemKey, TItemShape>,
+                item: TItem,
+                key: TItemKey,
+                maybeKey: TItemKey | null,
+            ) {
+                return {
+                    get: items.get(key),
+                    getOrPut: items.getOrPut(key, item),
+                    // pull() reads a dot path, which a key that may be a symbol cannot name, so it takes a path.
+                    pull: items.pull(0),
+                    put: items.put(key, item).filter(() => true),
+                    putMaybe: items.put(maybeKey, item).filter(() => true),
+                    forget: items.forget(key).filter(() => true),
+                    forgetList: items.forget([key]).filter(() => true),
+                    forgetMaybe: items.forget(maybeKey).filter(() => true),
+                    has: items.has(key),
+                    hasAny: items.hasAny(key),
+                    offsetExists: items.offsetExists(key),
+                    offsetGet: items.offsetGet(key),
+                    offsetSet: items.offsetSet(key, item),
+                    offsetUnset: items.offsetUnset(key),
+                    add: items.add(item).filter(() => true),
+                    push: items.push(item).filter(() => true),
+                    unshift: items.unshift(item).filter(() => true),
+                    prepend: items.prepend(item, key).filter(() => true),
+                    prependMaybe: items
+                        .prepend(item, maybeKey)
+                        .filter(() => true),
+                    pop: items.pop(),
+                    shift: items.shift(),
+                    splice: items.splice(1, 1, item).filter(() => true),
+                    pad: items.pad(5, item).filter(() => true),
+                    transform: items
+                        .transform((value) => value)
+                        .filter(() => true),
+                    keys: items.keys().filter(() => true),
+                    values: items.values().filter(() => true),
+                    concat: items.concat([item]).filter(() => true),
+                };
+            }
+
+            const answers = shaped(record, 1, "a", null);
+
+            expectTypeOf(answers.get).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.getOrPut).toEqualTypeOf<number>();
+            expectTypeOf(answers.pull).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.put).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.putMaybe).toEqualTypeOf<
+                Collection<number, number | "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.forget).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.forgetList).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.forgetMaybe).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.has).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.hasAny).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.offsetExists).toEqualTypeOf<boolean>();
+            expectTypeOf(answers.offsetGet).toEqualTypeOf<number | undefined>();
+            expectTypeOf(answers.offsetSet).toEqualTypeOf<void>();
+            expectTypeOf(answers.offsetUnset).toEqualTypeOf<void>();
+            expectTypeOf(answers.add).toEqualTypeOf<
+                Collection<number, number | "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.push).toEqualTypeOf<
+                Collection<number, number | "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.unshift).toEqualTypeOf<
+                Collection<number, number | "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.prepend).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.prependMaybe).toEqualTypeOf<
+                Collection<number, "" | "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.pop).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.shift).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.splice).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.pad).toEqualTypeOf<
+                Collection<number, number | "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.transform).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.keys).toEqualTypeOf<
+                Collection<"a" | "b" | "c", number, "list">
+            >();
+            expectTypeOf(answers.values).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.concat).toEqualTypeOf<
+                Collection<number, number | "a" | "b" | "c", "partial">
+            >();
+        });
+
+        it("compiles each method in a generic subclass, whose member calls it on itself", () => {
+            /** A subclass generic in its items, whose member calls the family on itself. */
+            class Bag<TItem> extends Collection<TItem> {
+                /**
+                 * Call each keyed access and mutation method on this bag.
+                 *
+                 * @param item - One of the bag's items
+                 * @returns Each method's answer, by name
+                 */
+                called(item: TItem): Record<string, unknown> {
+                    return {
+                        get: this.get(0),
+                        getOrPut: this.getOrPut(0, item),
+                        pull: this.pull(0),
+                        put: this.put(0, item).filter(() => true),
+                        forget: this.forget(0).filter(() => true),
+                        forgetList: this.forget([0]).filter(() => true),
+                        has: this.has(0),
+                        hasAny: this.hasAny(0),
+                        offsetExists: this.offsetExists(0),
+                        offsetGet: this.offsetGet(0),
+                        offsetSet: this.offsetSet(0, item),
+                        offsetUnset: this.offsetUnset(0),
+                        add: this.add(item).filter(() => true),
+                        push: this.push(item).filter(() => true),
+                        unshift: this.unshift(item).filter(() => true),
+                        prepend: this.prepend(item).filter(() => true),
+                        pop: this.pop(),
+                        shift: this.shift(),
+                        splice: this.splice(1, 1, item).filter(() => true),
+                        pad: this.pad(5, item).filter(() => true),
+                        transform: this.transform((value) => value).filter(
+                            () => true,
+                        ),
+                        keys: this.keys().filter(() => true),
+                        values: this.values().filter(() => true),
+                        concat: this.concat([item]).filter(() => true),
+                    };
+                }
+            }
+
+            expectTypeOf(new Bag([1, 2]).called(1)).toEqualTypeOf<
+                Record<string, unknown>
+            >();
         });
     });
 });

@@ -74,6 +74,11 @@ class StrBox {
     constructor(readonly value: string) {}
 }
 
+/** A class whose constructor keeps any item, as a caller whose items are a type parameter hands it one. */
+class Held {
+    constructor(readonly value: unknown) {}
+}
+
 /** A class whose constructor takes the item and a number key, as a list hands them. */
 class Indexed {
     constructor(
@@ -150,6 +155,41 @@ class Bag<TItem> extends Collection<TItem> {
      */
     expanded() {
         return this.undot();
+    }
+
+    /**
+     * Call each mapping, keying and grouping method on this bag.
+     *
+     * @returns Each method's answer, by name
+     */
+    called(): Record<string, unknown> {
+        return {
+            map: this.map((value) => [value]).filter(() => true),
+            mapWithKeys: this.mapWithKeys((value) => ({ a: value })).filter(
+                () => true,
+            ),
+            mapToDictionary: this.mapToDictionary((value) => ({
+                a: value,
+            })).filter(() => true),
+            mapToGroups: this.mapToGroups((value) => ({ a: value })).filter(
+                () => true,
+            ),
+            mapSpread: this.mapSpread((...values) => values).filter(() => true),
+            mapInto: this.mapInto(Held).filter(() => true),
+            flatMap: this.flatMap((value) => [value]).filter(() => true),
+            each: this.each(() => undefined).filter(() => true),
+            eachSpread: this.eachSpread(() => undefined).filter(() => true),
+            groupBy: this.groupBy((value) => String(value)).filter(() => true),
+            keyBy: this.keyBy((value) => String(value)).filter(() => true),
+            countBy: this.countBy().filter(() => true),
+            pluck: this.pluck("id").filter(() => true),
+            flip: this.flip().filter(() => true),
+            collapse: this.collapse().filter(() => true),
+            collapseWithKeys: this.collapseWithKeys().filter(() => true),
+            flatten: this.flatten().filter(() => true),
+            dot: this.dot().filter(() => true),
+            undot: this.undot().filter(() => true),
+        };
     }
 }
 
@@ -1956,6 +1996,239 @@ describe("collection mapping, keying and grouping type tests", () => {
             >();
             expectTypeOf(Data.dataUndot(dotted)).toEqualTypeOf<
                 Record<string, UndotObjectValue<number>>
+            >();
+        });
+    });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>) {
+                return {
+                    map: items.map((value) => [value]).filter(() => true),
+                    mapWithKeys: items
+                        .mapWithKeys((value) => ({ a: value }))
+                        .filter(() => true),
+                    mapToDictionary: items
+                        .mapToDictionary((value) => ({ a: value }))
+                        .filter(() => true),
+                    mapToGroups: items
+                        .mapToGroups((value) => ({ a: value }))
+                        .filter(() => true),
+                    mapSpread: items
+                        .mapSpread((...values) => values)
+                        .filter(() => true),
+                    mapInto: items.mapInto(Held).filter(() => true),
+                    flatMap: items
+                        .flatMap((value) => [value])
+                        .filter(() => true),
+                    each: items.each(() => undefined).filter(() => true),
+                    eachSpread: items
+                        .eachSpread(() => undefined)
+                        .filter(() => true),
+                    groupBy: items
+                        .groupBy((value) => String(value))
+                        .filter(() => true),
+                    keyBy: items
+                        .keyBy((value) => String(value))
+                        .filter(() => true),
+                    countBy: items.countBy().filter(() => true),
+                    pluck: items.pluck("id").filter(() => true),
+                    flip: items.flip().filter(() => true),
+                    collapse: items.collapse().filter(() => true),
+                    collapseWithKeys: items
+                        .collapseWithKeys()
+                        .filter(() => true),
+                    flatten: items.flatten().filter(() => true),
+                    dot: items.dot().filter(() => true),
+                    undot: items.undot().filter(() => true),
+                };
+            }
+
+            const answers = listed(list);
+
+            expectTypeOf(answers.map).toEqualTypeOf<
+                Collection<number[], number, "list">
+            >();
+            expectTypeOf(answers.mapWithKeys).toEqualTypeOf<
+                Collection<number, "a", "partial">
+            >();
+            expectTypeOf(answers.mapToDictionary).toEqualTypeOf<
+                Collection<number[], "a", "partial">
+            >();
+            expectTypeOf(answers.mapToGroups).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, "a", "partial">
+            >();
+            expectTypeOf(answers.mapSpread).toEqualTypeOf<
+                Collection<[number, number], number, "list">
+            >();
+            expectTypeOf(answers.mapInto).toEqualTypeOf<
+                Collection<Held, number, "list">
+            >();
+            expectTypeOf(answers.flatMap).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.each).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.eachSpread).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.groupBy).toEqualTypeOf<
+                Collection<
+                    Collection<number, number, "list">,
+                    string | number,
+                    "partial"
+                >
+            >();
+            expectTypeOf(answers.keyBy).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(answers.countBy).toEqualTypeOf<
+                Collection<number, number, "partial">
+            >();
+            expectTypeOf(answers.pluck).toEqualTypeOf<
+                Collection<unknown, number, "list">
+            >();
+            expectTypeOf(answers.flip).toEqualTypeOf<
+                Collection<number, number, "partial">
+            >();
+            expectTypeOf(answers.collapse).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+            expectTypeOf(answers.collapseWithKeys).toEqualTypeOf<
+                Collection<never, never, "list">
+            >();
+            expectTypeOf(answers.flatten).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.dot).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(answers.undot).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(items: Collection<TItem, TItemKey, TItemShape>) {
+                return {
+                    map: items.map((value) => [value]).filter(() => true),
+                    mapWithKeys: items
+                        .mapWithKeys((value) => ({ a: value }))
+                        .filter(() => true),
+                    mapToDictionary: items
+                        .mapToDictionary((value) => ({ a: value }))
+                        .filter(() => true),
+                    mapToGroups: items
+                        .mapToGroups((value) => ({ a: value }))
+                        .filter(() => true),
+                    mapSpread: items
+                        .mapSpread((...values) => values)
+                        .filter(() => true),
+                    mapInto: items.mapInto(Held).filter(() => true),
+                    flatMap: items
+                        .flatMap((value) => [value])
+                        .filter(() => true),
+                    each: items.each(() => undefined).filter(() => true),
+                    eachSpread: items
+                        .eachSpread(() => undefined)
+                        .filter(() => true),
+                    groupBy: items
+                        .groupBy((value) => String(value))
+                        .filter(() => true),
+                    keyBy: items
+                        .keyBy((value) => String(value))
+                        .filter(() => true),
+                    countBy: items.countBy().filter(() => true),
+                    pluck: items.pluck("id").filter(() => true),
+                    flip: items.flip().filter(() => true),
+                    collapse: items.collapse().filter(() => true),
+                    collapseWithKeys: items
+                        .collapseWithKeys()
+                        .filter(() => true),
+                    flatten: items.flatten().filter(() => true),
+                    dot: items.dot().filter(() => true),
+                    undot: items.undot().filter(() => true),
+                };
+            }
+
+            const answers = shaped(record);
+
+            expectTypeOf(answers.map).toEqualTypeOf<
+                Collection<number[], "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.mapWithKeys).toEqualTypeOf<
+                Collection<number, "a", "partial">
+            >();
+            expectTypeOf(answers.mapToDictionary).toEqualTypeOf<
+                Collection<number[], "a", "partial">
+            >();
+            expectTypeOf(answers.mapToGroups).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, "a", "partial">
+            >();
+            expectTypeOf(answers.mapSpread).toEqualTypeOf<
+                Collection<
+                    [number, "a" | "b" | "c"],
+                    "a" | "b" | "c",
+                    "partial"
+                >
+            >();
+            expectTypeOf(answers.mapInto).toEqualTypeOf<
+                Collection<Held, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.flatMap).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.each).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.eachSpread).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.groupBy).toEqualTypeOf<
+                Collection<
+                    Collection<number, number, "list">,
+                    string | number,
+                    "partial"
+                >
+            >();
+            expectTypeOf(answers.keyBy).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(answers.countBy).toEqualTypeOf<
+                Collection<number, number, "partial">
+            >();
+            expectTypeOf(answers.pluck).toEqualTypeOf<
+                Collection<unknown, number, "list">
+            >();
+            expectTypeOf(answers.flip).toEqualTypeOf<
+                Collection<"a" | "b" | "c", number, "partial">
+            >();
+            expectTypeOf(answers.collapse).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+            expectTypeOf(answers.collapseWithKeys).toEqualTypeOf<
+                Collection<never, never, "list">
+            >();
+            expectTypeOf(answers.flatten).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.dot).toEqualTypeOf<
+                Collection<number, string | number, "partial">
+            >();
+            expectTypeOf(answers.undot).toEqualTypeOf<
+                Collection<UndotObjectValue<number>, string | number, "partial">
+            >();
+        });
+
+        it("compiles each method in a generic subclass, whose member calls it on itself", () => {
+            expectTypeOf(new Bag([1, 2]).called()).toEqualTypeOf<
+                Record<string, unknown>
             >();
         });
     });

@@ -2223,4 +2223,193 @@ describe("collection aggregate type tests", () => {
             list.unlessNotEmpty(null);
         });
     });
+
+    describe("type-parameter callers", () => {
+        it("compiles each method for a list whose item type is a type parameter", () => {
+            // Each collection answer chains into filter(), which TypeScript calls on no union of collection types.
+            function listed<TItem>(items: Collection<TItem>, item: TItem) {
+                return {
+                    sum: items.sum(() => 1),
+                    avg: items.avg(() => 1),
+                    average: items.average(() => 1),
+                    min: items.min(),
+                    max: items.max(),
+                    median: items.median(),
+                    mode: items.mode(),
+                    percentage: items.percentage((value) => value === item),
+                    implode: items.implode(() => "x"),
+                    join: items.join(", "),
+                    reduce: items.reduce((_carry, value) => value),
+                    reduceInto: items.reduceInto(item, (carry) => carry),
+                    reduceSpread: items.reduceSpread(
+                        (count: number) => [count],
+                        0,
+                    ),
+                    reduceWithKeys: items.reduceWithKeys(
+                        (_carry, value) => value,
+                    ),
+                    pipe: items.pipe((collection) => collection.count()),
+                    pipeInto: items.pipeInto(Counted),
+                    pipeThrough: items.pipeThrough([
+                        (collection) => collection.count(),
+                    ]),
+                    tap: items.tap(() => undefined).filter(() => true),
+                    when: items.when(true, (collection) => collection.count()),
+                    unless: items.unless(false, (collection) =>
+                        collection.count(),
+                    ),
+                    whenEmpty: items.whenEmpty((collection) =>
+                        collection.count(),
+                    ),
+                    whenNotEmpty: items.whenNotEmpty((collection) =>
+                        collection.count(),
+                    ),
+                    unlessEmpty: items.unlessEmpty((collection) =>
+                        collection.count(),
+                    ),
+                    unlessNotEmpty: items.unlessNotEmpty((collection) =>
+                        collection.count(),
+                    ),
+                };
+            }
+
+            const answers = listed(list, 1);
+
+            expectTypeOf(answers.sum).toEqualTypeOf<number>();
+            expectTypeOf(answers.avg).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.average).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.min).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.max).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.median).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.mode).toEqualTypeOf<
+                (string | number)[] | null
+            >();
+            expectTypeOf(answers.percentage).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.implode).toEqualTypeOf<string>();
+            expectTypeOf(answers.join).toEqualTypeOf<string | number>();
+            expectTypeOf(answers.reduce).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.reduceInto).toEqualTypeOf<number>();
+            expectTypeOf(answers.reduceSpread).toEqualTypeOf<[number]>();
+            expectTypeOf(answers.reduceWithKeys).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.pipe).toEqualTypeOf<number>();
+            expectTypeOf(answers.pipeInto).toEqualTypeOf<Counted>();
+            expectTypeOf(answers.pipeThrough).toEqualTypeOf<number>();
+            expectTypeOf(answers.tap).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.when).toEqualTypeOf<
+                number | Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.unless).toEqualTypeOf<
+                number | Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whenEmpty).toEqualTypeOf<
+                number | Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.whenNotEmpty).toEqualTypeOf<
+                number | Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.unlessEmpty).toEqualTypeOf<
+                number | Collection<number, number, "list">
+            >();
+            expectTypeOf(answers.unlessNotEmpty).toEqualTypeOf<
+                number | Collection<number, number, "list">
+            >();
+        });
+
+        it("compiles each method for a collection whose item, key and shape types are type parameters", () => {
+            function shaped<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            >(items: Collection<TItem, TItemKey, TItemShape>, item: TItem) {
+                return {
+                    sum: items.sum(() => 1),
+                    avg: items.avg(() => 1),
+                    average: items.average(() => 1),
+                    min: items.min(),
+                    max: items.max(),
+                    median: items.median(),
+                    mode: items.mode(),
+                    percentage: items.percentage((value) => value === item),
+                    implode: items.implode(() => "x"),
+                    join: items.join(", "),
+                    reduce: items.reduce((_carry, value) => value),
+                    reduceInto: items.reduceInto(item, (carry) => carry),
+                    reduceSpread: items.reduceSpread(
+                        (count: number) => [count],
+                        0,
+                    ),
+                    reduceWithKeys: items.reduceWithKeys(
+                        (_carry, value) => value,
+                    ),
+                    pipe: items.pipe((collection) => collection.count()),
+                    pipeInto: items.pipeInto(Counted),
+                    pipeThrough: items.pipeThrough([
+                        (collection) => collection.count(),
+                    ]),
+                    tap: items.tap(() => undefined).filter(() => true),
+                    when: items.when(true, (collection) => collection.count()),
+                    unless: items.unless(false, (collection) =>
+                        collection.count(),
+                    ),
+                    whenEmpty: items.whenEmpty((collection) =>
+                        collection.count(),
+                    ),
+                    whenNotEmpty: items.whenNotEmpty((collection) =>
+                        collection.count(),
+                    ),
+                    unlessEmpty: items.unlessEmpty((collection) =>
+                        collection.count(),
+                    ),
+                    unlessNotEmpty: items.unlessNotEmpty((collection) =>
+                        collection.count(),
+                    ),
+                };
+            }
+
+            const answers = shaped(record, 1);
+
+            expectTypeOf(answers.sum).toEqualTypeOf<number>();
+            expectTypeOf(answers.avg).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.average).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.min).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.max).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.median).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.mode).toEqualTypeOf<
+                (string | number)[] | null
+            >();
+            expectTypeOf(answers.percentage).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.implode).toEqualTypeOf<string>();
+            expectTypeOf(answers.join).toEqualTypeOf<string | number>();
+            expectTypeOf(answers.reduce).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.reduceInto).toEqualTypeOf<number>();
+            expectTypeOf(answers.reduceSpread).toEqualTypeOf<[number]>();
+            expectTypeOf(answers.reduceWithKeys).toEqualTypeOf<number | null>();
+            expectTypeOf(answers.pipe).toEqualTypeOf<number>();
+            expectTypeOf(answers.pipeInto).toEqualTypeOf<Counted>();
+            expectTypeOf(answers.pipeThrough).toEqualTypeOf<number>();
+            expectTypeOf(answers.tap).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "partial">
+            >();
+            expectTypeOf(answers.when).toEqualTypeOf<
+                number | Collection<number, "a" | "b" | "c", "keyed">
+            >();
+            expectTypeOf(answers.unless).toEqualTypeOf<
+                number | Collection<number, "a" | "b" | "c", "keyed">
+            >();
+            expectTypeOf(answers.whenEmpty).toEqualTypeOf<
+                number | Collection<number, "a" | "b" | "c", "keyed">
+            >();
+            expectTypeOf(answers.whenNotEmpty).toEqualTypeOf<
+                number | Collection<number, "a" | "b" | "c", "keyed">
+            >();
+            expectTypeOf(answers.unlessEmpty).toEqualTypeOf<
+                number | Collection<number, "a" | "b" | "c", "keyed">
+            >();
+            expectTypeOf(answers.unlessNotEmpty).toEqualTypeOf<
+                number | Collection<number, "a" | "b" | "c", "keyed">
+            >();
+        });
+    });
 });
