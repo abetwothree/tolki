@@ -1409,14 +1409,14 @@ export class Collection<
     get<TGetDefault>(
         key: LookupKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
-    ): TValue | TGetDefault | null {
+    ): unknown {
         const ownKey = this.existingKey(key);
 
         if (isUndefined(ownKey)) {
             return resolveDefault(defaultValue);
         }
 
-        return (this.items as Record<PropertyKey, TValue>)[ownKey] as TValue;
+        return (this.items as Record<PropertyKey, TValue>)[ownKey];
     }
 
     /**
@@ -3829,7 +3829,7 @@ export class Collection<
             );
         }
 
-        return this.sameInstance(
+        return this.newInstance<TValue, SplicedKey<TKey>, Removed<TShape>>(
             handOver(dataSplice(this.items, offset, length, values)),
         );
     }
@@ -4127,15 +4127,24 @@ export class Collection<
         size: number,
         value: TPadValue,
     ): Collection<TValue | TPadValue, TKey | number, TShape>;
-    pad(size: number, value: unknown): unknown {
+    pad<TPadValue>(size: number, value: TPadValue): unknown {
         const length = resolvePadLength(size);
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.sameInstance(this.padOrdered(ordered, length, value));
+            return this.newInstance<TValue | TPadValue, TKey | number, TShape>(
+                this.padOrdered(ordered, length, value),
+            );
         }
 
-        return this.sameInstance(handOver(dataPad(this.items, length, value)));
+        return this.newInstance<TValue | TPadValue, TKey | number, TShape>(
+            handOver(
+                dataPad(this.items, length, value) as DataItems<
+                    TValue | TPadValue,
+                    TKey | number
+                >,
+            ),
+        );
     }
 
     /**
@@ -6177,7 +6186,9 @@ export class Collection<
         TNewKey extends PropertyKey,
         TNewShape extends CollectionShape,
     >(
-        items?: DataItems<TNewValue, TNewKey> | ReadonlyMap<TNewKey, TNewValue>,
+        items?:
+            | DataItems<TNewValue, TNewKey>
+            | ReadonlyMap<PropertyKey, TNewValue>,
     ): Collection<TNewValue, TNewKey, TNewShape> {
         const Static = this.constructor as CollectionClass<
             TNewValue,
@@ -6469,7 +6480,7 @@ export class Collection<
         offset: number,
         length: number | null | undefined,
         replacement: TValue[],
-    ) {
+    ): Collection<TValue, SplicedKey<TKey>, Removed<TShape>> {
         const entries: Array<[PropertyKey, TValue]> = [...ordered];
         const { start, count } = resolveSpliceRange(
             entries.length,
@@ -6488,7 +6499,7 @@ export class Collection<
         this.setOrderedItems(entries, true);
 
         // Both halves renumber their integer keys; a Map is the only backing that can carry the order.
-        return this.sameInstance(
+        return this.newInstance<TValue, SplicedKey<TKey>, Removed<TShape>>(
             new Map(
                 renumberPhpIntegerKeys<TValue>(
                     removed.map(([key, value]) => [String(key), value]),
