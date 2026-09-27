@@ -74,6 +74,7 @@ import type {
     ObjectValue,
     PathKey,
     PathKeys,
+    PluckValue,
     SortSpec,
     UnionToIntersection,
 } from "@tolki/types";
@@ -328,6 +329,18 @@ type FieldValues<TItems> = {
 
 /** A key looked up the way PHP's array_key_exists() looks one up, where null reads the "" key. */
 type LookupKey = PropertyKey | null | undefined;
+
+/** A value to look for that is no callback, so a callback falls to the overload that types its parameters. */
+type NonCallable<TNeedle> = TNeedle extends (...args: never[]) => unknown
+    ? never
+    : TNeedle;
+
+/** A value to look for or a callback over the items, read member by member, so a union may hold both. */
+type NeedleOrCallback<TNeedle, TValue, TKey> = TNeedle extends (
+    ...args: never[]
+) => unknown
+    ? (value: TValue, key: TKey) => unknown
+    : TNeedle;
 
 /**
  * The shape a method that may drop keys leaves: a list reindexes and stays one, and a keyed result may lack keys.
@@ -794,8 +807,13 @@ export class Collection<
      * new Collection([1, 2, 3]).contains(2); -> true
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
-    contains(key: (value: TValue, index: TKey) => unknown): boolean;
-    contains(key: unknown, operator?: unknown, value?: unknown): boolean;
+    contains(key: (value: TValue, key: TKey) => unknown): boolean;
+    contains<TNeedle>(
+        key: NonCallable<TNeedle>,
+        operator?: unknown,
+        value?: unknown,
+    ): boolean;
+    contains<TNeedle>(key: NeedleOrCallback<TNeedle, TValue, TKey>): boolean;
     contains(
         ...args: [
             key: ((value: TValue, index: TKey) => unknown) | unknown,
@@ -833,8 +851,14 @@ export class Collection<
      * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
      * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
-    containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
-    containsStrict(key: unknown, value?: unknown): boolean;
+    containsStrict(key: (value: TValue, key: TKey) => unknown): boolean;
+    containsStrict<TNeedle>(
+        key: NonCallable<TNeedle>,
+        value?: unknown,
+    ): boolean;
+    containsStrict<TNeedle>(
+        key: NeedleOrCallback<TNeedle, TValue, TKey>,
+    ): boolean;
     containsStrict(
         ...args: [
             key: ((value: TValue, index: TKey) => unknown) | unknown,
@@ -881,8 +905,15 @@ export class Collection<
      * new Collection([1, 2, 3]).doesntContain(2); -> false
      * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
      */
-    doesntContain(key: (value: TValue, index: TKey) => unknown): boolean;
-    doesntContain(key: unknown, operator?: unknown, value?: unknown): boolean;
+    doesntContain(key: (value: TValue, key: TKey) => unknown): boolean;
+    doesntContain<TNeedle>(
+        key: NonCallable<TNeedle>,
+        operator?: unknown,
+        value?: unknown,
+    ): boolean;
+    doesntContain<TNeedle>(
+        key: NeedleOrCallback<TNeedle, TValue, TKey>,
+    ): boolean;
     doesntContain(
         ...args: [
             key: ((value: TValue, index: TKey) => unknown) | unknown,
@@ -896,8 +927,9 @@ export class Collection<
     /**
      * Determine if an item is not contained in the enumerable, using strict comparison.
      *
-     * @param key - The value to search for or a callback function
-     * @param value - The value to compare against (if operator is provided)
+     * @param key - The value to search for, a callback, or the path to compare when exactly one more argument follows
+     * @param operator - The value the path must strictly equal, under the name PHP gives it
+     * @param value - A third argument, which makes containsStrict() read the key alone, the way PHP's does
      * @returns True if the item does not exist using strict comparison, false otherwise
      *
      * @example
@@ -907,15 +939,24 @@ export class Collection<
      * new Collection([1, 2, 3]).doesntContainStrict('2'); -> true
      * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
      */
-    doesntContainStrict(key: (value: TValue, index: TKey) => unknown): boolean;
-    doesntContainStrict(key: unknown, value?: unknown): boolean;
+    doesntContainStrict(key: (value: TValue, key: TKey) => unknown): boolean;
+    doesntContainStrict<TNeedle>(
+        key: NonCallable<TNeedle>,
+        operator?: unknown,
+        value?: unknown,
+    ): boolean;
+    doesntContainStrict<TNeedle>(
+        key: NeedleOrCallback<TNeedle, TValue, TKey>,
+    ): boolean;
     doesntContainStrict(
-        ...args: [
-            key: ((value: TValue, index: TKey) => unknown) | unknown,
-            value?: unknown,
-        ]
+        ...args: [key: unknown, operator?: unknown, value?: unknown]
     ): boolean {
-        return !this.containsStrict(...args);
+        const [key, operator] = args;
+
+        // PHP forwards every argument to containsStrict(), which compares a path only when handed exactly two.
+        return args.length === 2
+            ? !this.containsStrict(key, operator)
+            : !this.containsStrict(key);
     }
 
     /**
@@ -1242,8 +1283,8 @@ export class Collection<
      * Get the first item from the collection passing the given truth test.
      *
      * @param callback - The callback function to test with, or null
-     * @param defaultValue - The default value to return if no item is found
-     * @returns The first matching item or default value
+     * @param defaultValue - The default value to return if no item is found, or a callback that returns it
+     * @returns The first matching item, or the default: null when none is given
      *
      * @example
      *
@@ -1253,28 +1294,31 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).first(); -> 1
      * new Collection({a: 1, b: 2, c: 3, d: 4}).first(x => x > 2); -> 3
      */
+    first(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): TValue | null;
+    first<TFirstDefault>(
+        callback: ((value: TValue, key: TKey) => unknown) | null | undefined,
+        defaultValue: TFirstDefault | (() => TFirstDefault),
+    ): TValue | TFirstDefault;
     first<TFirstDefault>(
         callback: ((value: TValue, key: TKey) => unknown) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
-    ): TValue | TFirstDefault | null {
+    ): unknown {
         const ordered = this.orderedEntries();
 
         if (ordered) {
             return this.firstOrdered(ordered, callback, defaultValue);
         }
 
-        // The auto-forwarding chain ends here: `this.items` is the `DataItems` union, which
-        // always picks obj's widest row, so the delegate answers `unknown`. Restating the
-        // class's own generics is the only way to keep them; widening `items` is Part B work.
+        // The `DataItems` union picks obj's widest row, whose `unknown`-valued callback rejects a typed one.
         return dataFirst(
             this.items,
-            // The same union makes obj's row take an `unknown`-valued callback, which
-            // rejects a typed one (contravariance).
             callback as
                 | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
-        ) as TValue | TFirstDefault | null;
+        );
     }
 
     /**
@@ -1641,9 +1685,10 @@ export class Collection<
     /**
      * Determine if the collection contains multiple items, optionally matching the given criteria.
      *
-     * @param key - A callback, the key to compare when an operator or value follows, or null to count every item
-     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
-     * @param value - The value to compare against (if using key-value matching)
+     * @param callback - The test each item must pass, or null to count every item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns True if multiple items exist or match the condition, false otherwise
      * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
@@ -1654,11 +1699,8 @@ export class Collection<
      * new Collection([{age: 2}, {age: 3}]).hasMany('age', '>', 1); -> true
      * new Collection([{age: 2}, {age: 3}]).hasMany(item => item.age > 1); -> true
      */
-    hasMany(
-        key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
-        operator?: unknown,
-        value?: unknown,
-    ): boolean;
+    hasMany(callback?: ((value: TValue, key: TKey) => unknown) | null): boolean;
+    hasMany(key: PathKey, operatorOrValue: unknown, value?: unknown): boolean;
     hasMany(
         ...args: [
             key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
@@ -1672,9 +1714,10 @@ export class Collection<
     /**
      * Determine if the collection contains a single item, optionally matching the given criteria.
      *
-     * @param key - A callback, the key to compare when an operator or value follows, or null to count every item
-     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
-     * @param value - The value to compare against (if using key-value matching)
+     * @param callback - The test each item must pass, or null to count every item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns True if exactly one item exists or matches the condition, false otherwise
      * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
@@ -1685,11 +1728,8 @@ export class Collection<
      * new Collection([{age: 2}, {age: 3}]).hasSole('age', 2); -> true
      * new Collection([{age: 2}, {age: 3}]).hasSole(item => item.age === 2); -> true
      */
-    hasSole(
-        key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
-        operator?: unknown,
-        value?: unknown,
-    ): boolean;
+    hasSole(callback?: ((value: TValue, key: TKey) => unknown) | null): boolean;
+    hasSole(key: PathKey, operatorOrValue: unknown, value?: unknown): boolean;
     hasSole(
         ...args: [
             key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
@@ -1936,7 +1976,7 @@ export class Collection<
      */
     containsOneItem(
         callback: ((value: TValue, key: TKey) => unknown) | null = null,
-    ) {
+    ): boolean {
         return this.hasSole(callback);
     }
 
@@ -2031,8 +2071,8 @@ export class Collection<
      * Get the last item from the collection.
      *
      * @param callback - The callback function to test with, or null
-     * @param defaultValue - The default value to return if no item is found
-     * @returns The last matching item or default value
+     * @param defaultValue - The default value to return if no item is found, or a callback that returns it
+     * @returns The last matching item, or the default: null when none is given
      *
      * @example
      *
@@ -2040,10 +2080,17 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).last(x => x < 4); -> 3
      * new Collection([]).last(null, 'default'); -> 'default'
      */
-    last<D = null>(
+    last(
         callback?: ((value: TValue, key: TKey) => unknown) | null,
-        defaultValue?: D | (() => D),
-    ): TValue | D | null {
+    ): TValue | null;
+    last<TLastDefault>(
+        callback: ((value: TValue, key: TKey) => unknown) | null | undefined,
+        defaultValue: TLastDefault | (() => TLastDefault),
+    ): TValue | TLastDefault;
+    last<TLastDefault>(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+        defaultValue?: TLastDefault | (() => TLastDefault),
+    ): unknown {
         const ordered = this.orderedEntries();
 
         // array_reverse then reset: `last` is `first` over the entries read backwards.
@@ -2055,15 +2102,14 @@ export class Collection<
             );
         }
 
-        // Same as `first`: the `DataItems` union picks obj's widest row, so both the
-        // `unknown`-valued callback and the restated return type are forced here.
+        // The `DataItems` union picks obj's widest row, whose `unknown`-valued callback rejects a typed one.
         return dataLast(
             this.items,
             callback as
                 | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
-        ) as TValue | D | null;
+        );
     }
 
     /**
@@ -2825,7 +2871,7 @@ export class Collection<
      * @param count - The number of items to retrieve, a fraction truncated, a callback that answers it, or null for
      * a single item
      * @param preserveKeys - Whether to preserve the original keys, defaults to false
-     * @returns A single random item or a new collection with the random items
+     * @returns A single random item, or a new collection of the picks: a list, unless it keeps keys other than 0..n-1
      * @throws InvalidArgumentException when more items are requested than the collection holds
      * @throws TypeError for a NAN count or a string that is not numeric, as PHP's Randomizer rejects it
      * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it
@@ -2838,32 +2884,45 @@ export class Collection<
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
      * new Collection([]).random(); -> throws InvalidArgumentException (no items available)
      */
-    random(count?: null, preserveKeys?: boolean): TValue;
+    random(count?: null | undefined, preserveKeys?: boolean): TValue;
+    random(
+        count: number | string | ((collection: this) => number),
+        preserveKeys?: false | undefined,
+    ): Collection<TValue, number, "list">;
+    random(
+        count: number | string | ((collection: this) => number),
+        preserveKeys: true | undefined,
+    ): Collection<TValue, TKey, "list" | "partial">;
     random(
         count: number | string | ((collection: this) => number),
         preserveKeys?: boolean,
-    ): Collection<TValue, TKey>;
+    ): Collection<TValue, TKey | number, "list" | "partial">;
     random(
-        count?: ((collection: this) => number) | number | string | null,
+        count:
+            | ((collection: this) => number)
+            | number
+            | string
+            | null
+            | undefined,
         preserveKeys?: boolean,
-    ): TValue | Collection<TValue, TKey>;
+    ): TValue | Collection<TValue, TKey | number, "list" | "partial">;
     random(
         count?: ((collection: this) => number) | number | string | null,
         preserveKeys: boolean = false,
     ): unknown {
         if (isNull(count) || isUndefined(count)) {
-            return dataRandom(this.items) as TValue;
+            return dataRandom(this.items);
         }
 
         const picked = dataRandom(
             this.items,
             isFunction(count) ? (count(this) as number) : (count as number),
             preserveKeys,
-        ) as TValue[] | Record<string, TValue>;
+        ) as DataItems<TValue, TKey | number>;
 
         // Arr::random appends each pick unless it keeps their keys,
         // and kept keys that run 0..n-1 in order make a list as well.
-        return this.sameInstance(
+        return this.newInstance<TValue, TKey | number, "list" | "partial">(
             handOver(
                 isListOrder(Object.keys(picked).map((key) => phpArrayKey(key)))
                     ? Object.values(picked)
@@ -3318,9 +3377,10 @@ export class Collection<
     /**
      * Get the first item in the collection, but only if exactly one item exists. Otherwise, throw an exception.
      *
-     * @param key - A callback, the key to compare when an operator or value follows, or null to count every item
-     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
-     * @param value - The value to compare against, or null if key is a callback or null
+     * @param callback - The test the item must pass, or null to count every item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns The single item in the collection
      * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
      * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
@@ -3331,11 +3391,8 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).sole('id', '==', 1); -> {id: 1}
      * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
      */
-    sole(
-        key?: ((value: TValue, index: TKey) => unknown) | PathKey,
-        operator?: unknown,
-        value?: unknown,
-    ): unknown;
+    sole(callback?: ((value: TValue, key: TKey) => unknown) | null): TValue;
+    sole(key: PathKey, operatorOrValue: unknown, value?: unknown): TValue;
     sole(
         ...args: [
             key?: ((value: TValue, index: TKey) => unknown) | PathKey,
@@ -3361,9 +3418,10 @@ export class Collection<
     /**
      * Get the first item in the collection but throw an exception if no matching items exist.
      *
-     * @param key - A callback, the key to compare when an operator or value follows, or null for the first item
-     * @param operator - The operator to use for comparison, or the value itself when no third argument is given
-     * @param value - The value to compare against, or null if key is a callback
+     * @param callback - The test the item must pass, or null for the first item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns The first matching item in the collection
      * @throws ItemNotFoundException if no item matches.
      * @throws TypeError for a lone key that is neither callable nor null, as first() takes no other
@@ -3376,14 +3434,17 @@ export class Collection<
      * new Collection([]).firstOrFail(); -> throws ItemNotFoundException
      */
     firstOrFail(
-        key?: ((value: TValue, index: TKey) => unknown) | PathKey,
-        operator?: string,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): TValue;
+    firstOrFail(
+        key: PathKey,
+        operatorOrValue: unknown,
         value?: unknown,
     ): TValue;
     firstOrFail(
         ...args: [
-            key?: ((value: TValue, index: TKey) => unknown) | PathKey,
-            operator?: string,
+            key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+            operator?: unknown,
             value?: unknown,
         ]
     ): TValue {
@@ -3401,9 +3462,7 @@ export class Collection<
 
         // `first` answers `| null` only for its no-default form; this call always hands
         // one over, so the placeholder is the single stand-in for an absent item.
-        const item = this.first<typeof placeholder>(filter, placeholder) as
-            | TValue
-            | typeof placeholder;
+        const item = this.first<typeof placeholder>(filter, placeholder);
 
         if (item === placeholder) {
             throw new ItemNotFoundException();
@@ -4728,14 +4787,16 @@ export class Collection<
      *
      * @see {@link Collection.contains}
      */
-    some(
-        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+    some(key: (value: TValue, key: TKey) => unknown): boolean;
+    some<TNeedle>(
+        key: NonCallable<TNeedle>,
         operator?: unknown,
         value?: unknown,
     ): boolean;
+    some<TNeedle>(key: NeedleOrCallback<TNeedle, TValue, TKey>): boolean;
     some(
         ...args: [
-            key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+            key: ((value: TValue, key: TKey) => unknown) | unknown,
             operator?: unknown,
             value?: unknown,
         ]
@@ -4833,11 +4894,9 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).every('id', '>', 1); -> false
      * new Collection([1, 2, 3]).every(2); -> false
      */
-    every(
-        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
-        operator?: unknown,
-        value?: unknown,
-    ): boolean;
+    every(key: ((value: TValue, key: TKey) => unknown) | PathKey): boolean;
+    every(key: PathKey, value: unknown): boolean;
+    every(key: PathKey, operator: unknown, value: unknown): boolean;
     every(
         ...args: [
             key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
@@ -4894,15 +4953,15 @@ export class Collection<
             value?: unknown,
         ]
     ): TValue | null {
-        return this.first(this.operatorForWhereArgs(args)) as TValue | null;
+        return this.first(this.operatorForWhereArgs(args));
     }
 
     /**
      * Get a single key's value from the first matching item in the collection.
      *
-     * @param key - The key to retrieve the value from
-     * @param defaultValue - The default value to return if the key is not found, or a closure that returns the default value
-     * @returns The value of the key from the first matching item, or the default value if not found
+     * @param key - The key or dot path to read in each item
+     * @param defaultValue - The default value to return if no item holds the key, or a closure that returns it
+     * @returns The value at the key in the first item that holds it, or the default value if none does
      *
      * @example
      *
@@ -4912,10 +4971,17 @@ export class Collection<
      * new Collection([]).value('id', 10); -> 10
      * new Collection([]).value('id'); -> null
      */
-    value<TValueDefault>(
-        key: PathKey,
-        defaultValue: TValueDefault | (() => TValueDefault) | null = null,
-    ) {
+    // NoInfer reads the path from the key alone: inferring it from an expected `any` (vitest's expect() offers one)
+    // walks every member of the items, which overflows for a union of collections.
+    value<TPath extends string>(
+        key: TPath,
+    ): NoInfer<PluckValue<TValue, TPath>> | null;
+    value<TPath extends string, TValueDefault>(
+        key: TPath,
+        defaultValue: TValueDefault | (() => TValueDefault),
+    ): NoInfer<PluckValue<TValue, TPath>> | TValueDefault;
+    value(key: string | number, defaultValue?: unknown): unknown;
+    value(key: PathKey, defaultValue: unknown = null): unknown {
         const item = this.first((target) => itemHas(target, key));
 
         // An item that holds the key is never null, as data_has finds no key in null.

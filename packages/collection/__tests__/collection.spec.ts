@@ -1836,6 +1836,15 @@ describe("Collection", () => {
                 collect([{ a: 1 }]).doesntContainStrict("a", undefined),
             ]).toEqual([false, true]);
         });
+
+        it("reads the key alone once a third argument follows, as PHP's containsStrict() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-doesntContainStrict-three-args"
+            expect([
+                collect([{ v: 1 }]).doesntContainStrict("v", 1),
+                collect([{ v: 1 }]).doesntContainStrict("v", "=", 1),
+                collect(["v"]).doesntContainStrict("v", "=", 1),
+            ]).toEqual([false, true, false]);
+        });
     });
 
     describe("crossJoin", () => {
@@ -9730,6 +9739,15 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("lists the picks, or keeps the keys it is asked to in either shape, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([10, 20, 30]).random(2), "list");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).random(2), "list");
+            expectShape(collect([10, 20, 30]).random(3, true), "list");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).random(2, true), "keyed");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).random(0, true), "list");
+        });
     });
 
     describe("replace", () => {
