@@ -1863,6 +1863,18 @@ export class Collection<
         string | number,
         "keyed"
     >;
+    groupBy<TPreserve extends boolean = false>(
+        groupByValue: ((value: TValue, key: TKey) => unknown) | PathKey,
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            GroupedKey<TKey, TPreserve>,
+            GroupedShape<TShape, TPreserve>
+        >,
+        string | number,
+        "keyed"
+    >;
     groupBy(
         groupByValue:
             | ((value: TValue, key: TKey) => unknown)

@@ -29,6 +29,7 @@ declare const maybeDepth: number | undefined;
 declare const flag: boolean;
 declare const maybeTest: ((value: number, key: number) => boolean) | null;
 declare const pathOrCallback: string | ((row: Row) => number);
+declare const pathOrPaths: string | readonly string[];
 declare const pathKey: PathKey;
 
 /** Rows of one fixed length, which spread by position. */
@@ -1056,15 +1057,41 @@ describe("collection mapping, keying and grouping type tests", () => {
             >();
         });
 
-        it("compiles for a nullable path or a path-or-callback variable", () => {
+        it("keeps the items' type for a nullable path or a path-or-callback variable", () => {
             expectTypeOf(people.groupBy(maybeName)).toEqualTypeOf<
                 Collection<
-                    Collection<unknown, PropertyKey, CollectionShape>,
+                    Collection<Row, number, "list">,
                     string | number,
                     "keyed"
                 >
             >();
             expectTypeOf(people.groupBy(pathOrCallback)).toEqualTypeOf<
+                Collection<
+                    Collection<Row, number, "list">,
+                    string | number,
+                    "keyed"
+                >
+            >();
+            expectTypeOf(people.groupBy(maybeName, flag)).toEqualTypeOf<
+                Collection<
+                    Collection<Row, number, "list" | "partial">,
+                    string | number,
+                    "keyed"
+                >
+            >();
+            expectTypeOf(
+                keyedPeople.groupBy(pathOrCallback, true),
+            ).toEqualTypeOf<
+                Collection<
+                    Collection<Row, "ada" | "grace", "partial">,
+                    string | number,
+                    "keyed"
+                >
+            >();
+        });
+
+        it("types unknown groups for a variable that may be a list of groupings", () => {
+            expectTypeOf(people.groupBy(pathOrPaths)).toEqualTypeOf<
                 Collection<
                     Collection<unknown, PropertyKey, CollectionShape>,
                     string | number,
