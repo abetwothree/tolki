@@ -45,6 +45,16 @@ class Settings extends Collection<number, "a" | "b"> {
 /** A keyed subclass whose keys are integers, which the ordering methods renumber, so its own type cannot survive. */
 class Ranked extends Collection<string, 5 | 6, "keyed"> {}
 
+/** A keyed subclass with state of its own, whose key type names any integer, so it still fits renumbered keys. */
+class Lookup extends Collection<number, string | number, "keyed"> {
+    readonly source = "cache";
+}
+
+/** A keyed subclass with state of its own, keyed by any number. */
+class Tally extends Collection<number, number, "keyed"> {
+    readonly unit = "count";
+}
+
 /** A generic subclass, whose methods call the family on a `this` typed by its own parameter. */
 class Bag<TItem> extends Collection<TItem> {
     /**
@@ -247,6 +257,8 @@ describe("collection slicing, chunking and ordering type tests", () => {
     const tagged = new Tagged([1, 2, 3], "tag");
     const settings = new Settings({ a: 1, b: 2 });
     const ranked = new Ranked({ 5: "a", 6: "b" });
+    const lookup = new Lookup({ a: 1, 0: 2 });
+    const tally = new Tally({ 5: 1, 2: 2 });
 
     describe("slice", () => {
         it("keeps a list's own type and makes a keyed result partial, since it may drop keys", () => {
@@ -1400,7 +1412,9 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sort", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(lookup.sort()).toEqualTypeOf<Lookup>();
+            expectTypeOf(tally.sort()).toEqualTypeOf<Tally>();
             expectTypeOf(list.sort()).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
@@ -1534,7 +1548,8 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sortDesc", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(lookup.sortDesc()).toEqualTypeOf<Lookup>();
             expectTypeOf(list.sortDesc()).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
@@ -1607,7 +1622,10 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sortBy", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(
+                lookup.sortBy((value) => value),
+            ).toEqualTypeOf<Lookup>();
             expectTypeOf(people.sortBy("name")).toEqualTypeOf<
                 Collection<Row, number, "list">
             >();
@@ -1796,7 +1814,10 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sortByDesc", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(
+                lookup.sortByDesc((value) => value),
+            ).toEqualTypeOf<Lookup>();
             expectTypeOf(people.sortByDesc("name")).toEqualTypeOf<
                 Collection<Row, number, "list">
             >();
@@ -1943,7 +1964,8 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sortKeys", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(lookup.sortKeys()).toEqualTypeOf<Lookup>();
             expectTypeOf(list.sortKeys()).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
@@ -2027,7 +2049,8 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sortKeysDesc", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(lookup.sortKeysDesc()).toEqualTypeOf<Lookup>();
             expectTypeOf(list.sortKeysDesc()).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
@@ -2100,7 +2123,12 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("sortKeysUsing", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(
+                lookup.sortKeysUsing((a, b) =>
+                    String(a).localeCompare(String(b)),
+                ),
+            ).toEqualTypeOf<Lookup>();
             expectTypeOf(list.sortKeysUsing((a, b) => b - a)).toEqualTypeOf<
                 Collection<number, number, "list">
             >();
@@ -2214,7 +2242,8 @@ describe("collection slicing, chunking and ordering type tests", () => {
     });
 
     describe("reverse", () => {
-        it("keeps a list's own type and a string-keyed one's", () => {
+        it("keeps a list's own type, and a keyed one's whose key type survives renumbering", () => {
+            expectTypeOf(lookup.reverse()).toEqualTypeOf<Lookup>();
             expectTypeOf(list.reverse()).toEqualTypeOf<
                 Collection<number, number, "list">
             >();

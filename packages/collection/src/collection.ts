@@ -863,12 +863,15 @@ type SplitShape<TKey, TShape extends CollectionShape> = TShape extends "list"
         ? "partial"
         : "list" | "partial";
 
-/** A collection keyed by strings only: a reordering keeps its keys, so it keeps its own type too. */
-type StringKeyed<
+/**
+ * A collection whose key type survives a reordering, so it keeps its own type too: a string key is kept, and a key type
+ * naming any integer still names the renumbered ones.
+ */
+type StableKeyed<
     TValue,
     TKey extends PropertyKey,
     TShape extends CollectionShape,
-> = Collection<TValue, TKey & string, TShape>;
+> = Collection<TValue, number extends TKey ? TKey : TKey & string, TShape>;
 
 /** One comparison sortBy() takes; SortSpec lacks PHP's comparator wrapped in a list, which Arr::wrap() reads alike. */
 type SortDescriptor<TValue> =
@@ -3887,7 +3890,7 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
      */
     reverse(this: Collection<TValue, TKey, "list">): this;
-    reverse(this: StringKeyed<TValue, TKey, TShape>): this;
+    reverse(this: StableKeyed<TValue, TKey, TShape>): this;
     reverse(): Collection<TValue, SplicedKey<TKey>, TShape>;
     reverse(): unknown {
         return this.sameInstance(handOver(dataReverse(this.items)));
@@ -4567,7 +4570,7 @@ export class Collection<
         callback?: ((a: TValue, b: TValue) => number | boolean) | null,
     ): this;
     sort(
-        this: StringKeyed<TValue, TKey, TShape>,
+        this: StableKeyed<TValue, TKey, TShape>,
         callback?: ((a: TValue, b: TValue) => number | boolean) | null,
     ): this;
     sort(
@@ -4600,7 +4603,7 @@ export class Collection<
      * new Collection({a: 1, b: 3, c: 2}).sortDesc(); -> new Collection({b: 3, c: 2, a: 1})
      */
     sortDesc(this: Collection<TValue, TKey, "list">): this;
-    sortDesc(this: StringKeyed<TValue, TKey, TShape>): this;
+    sortDesc(this: StableKeyed<TValue, TKey, TShape>): this;
     sortDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
     sortDesc(): unknown {
         return this.sameInstance(
@@ -4629,7 +4632,7 @@ export class Collection<
         descending?: CaseValue<typeof SortDirection> | boolean,
     ): this;
     sortBy(
-        this: StringKeyed<TValue, TKey, TShape>,
+        this: StableKeyed<TValue, TKey, TShape>,
         callback: SortByCallback<TValue, TKey>,
         descending?: CaseValue<typeof SortDirection> | boolean,
     ): this;
@@ -4689,7 +4692,7 @@ export class Collection<
         callback: SortByCallback<TValue, TKey>,
     ): this;
     sortByDesc(
-        this: StringKeyed<TValue, TKey, TShape>,
+        this: StableKeyed<TValue, TKey, TShape>,
         callback: SortByCallback<TValue, TKey>,
     ): this;
     sortByDesc(
@@ -4724,7 +4727,7 @@ export class Collection<
         descending?: CaseValue<typeof SortDirection> | boolean,
     ): this;
     sortKeys(
-        this: StringKeyed<TValue, TKey, TShape>,
+        this: StableKeyed<TValue, TKey, TShape>,
         descending?: CaseValue<typeof SortDirection> | boolean,
     ): this;
     sortKeys(
@@ -4780,7 +4783,7 @@ export class Collection<
      * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysDesc(); -> new Collection({0: "z", 1: "e", 2: "b"})
      */
     sortKeysDesc(this: Collection<TValue, TKey, "list">): this;
-    sortKeysDesc(this: StringKeyed<TValue, TKey, TShape>): this;
+    sortKeysDesc(this: StableKeyed<TValue, TKey, TShape>): this;
     sortKeysDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
     sortKeysDesc(): unknown {
         return this.sortKeys(SortDirection.Descending);
@@ -4804,7 +4807,7 @@ export class Collection<
         callback: (a: TKey, b: TKey) => number | boolean,
     ): this;
     sortKeysUsing(
-        this: StringKeyed<TValue, TKey, TShape>,
+        this: StableKeyed<TValue, TKey, TShape>,
         callback: (a: TKey, b: TKey) => number | boolean,
     ): this;
     sortKeysUsing(
