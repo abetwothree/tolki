@@ -7139,7 +7139,6 @@ export class Collection<
      * @returns The items, each converted to a JSON-serializable form: a list when the keys are 0..n-1 in order or
      * there are none, else a record
      */
-    jsonSerialize(this: Collection<TValue, TKey, "list">): unknown[];
     jsonSerialize(): unknown[] | CollectionItems<unknown, TKey, TShape>;
     jsonSerialize(): unknown {
         const entries = this.entriesInOrder().map(
