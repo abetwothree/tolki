@@ -4965,7 +4965,7 @@ export class Collection<
     /**
      * Get a single key's value from the first matching item in the collection.
      *
-     * @param key - The key or dot path to read in each item
+     * @param key - The key or dot path to read in each item; a null one answers null, whatever the default
      * @param defaultValue - The default value to return if no item holds the key, or a closure that returns it
      * @returns The value at the key in the first item that holds it, or the default value if none does
      *
@@ -4976,6 +4976,7 @@ export class Collection<
      * new Collection([{name: 'Alice'}, {name: 'Bob'}]).value('age', () => 25); -> 25
      * new Collection([]).value('id', 10); -> 10
      * new Collection([]).value('id'); -> null
+     * new Collection([{id: 1}]).value(null, 10); -> null
      */
     // NoInfer reads the path from the key alone: inferring it from an expected `any` (vitest's expect() offers one)
     // walks every member of the items, which overflows for a union of collections.
@@ -4986,8 +4987,14 @@ export class Collection<
         key: TPath,
         defaultValue: TValueDefault | (() => TValueDefault),
     ): NoInfer<PluckValue<TValue, TPath>> | TValueDefault;
-    value(key: string | number, defaultValue?: unknown): unknown;
+    value(key: null | undefined, defaultValue?: unknown): null;
+    value(key: PathKey, defaultValue?: unknown): unknown;
     value(key: PathKey, defaultValue: unknown = null): unknown {
+        // data_get() hands back its null target for a null key, so PHP answers null whatever the default.
+        if (isNull(key) || isUndefined(key)) {
+            return null;
+        }
+
         const item = this.first((target) => itemHas(target, key));
 
         // An item that holds the key is never null, as data_has finds no key in null.

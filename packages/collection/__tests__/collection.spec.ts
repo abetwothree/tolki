@@ -16447,6 +16447,19 @@ describe("Collection", () => {
                 collect([]).value("a"),
             ]).toEqual(["d", "d", null]);
         });
+
+        it("answers null for a null key whatever the default, as data_get() hands back its null target", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-value-null-key"
+            expect([
+                collect([{ a: 1 }]).value(null),
+                collect([{ a: 1 }]).value(null, "d"),
+                collect([{ a: 1 }]).value(null, () => "lazy"),
+                collect([]).value(null, "d"),
+            ]).toEqual([null, null, null, null]);
+
+            // JS-only: an undefined key stands for PHP's null
+            expect(collect([{ a: 1 }]).value(undefined, "d")).toBeNull();
+        });
     });
 
     describe("ensure", () => {

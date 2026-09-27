@@ -27,6 +27,7 @@ declare const maybeCount: number | null;
 declare const ada: Row;
 declare const partial: Collection<number, "a" | "b", "partial">;
 declare const unknownItems: Collection<unknown>;
+declare const maybeName: string | null;
 
 describe("collection predicate type tests", () => {
     const list = collect(numberList);
@@ -998,13 +999,24 @@ describe("collection predicate type tests", () => {
             ).toEqualTypeOf<unknown>();
         });
 
-        it("rejects a call with no key, an object key and a null one", () => {
+        it("types the answer to a null key as null, whatever the default", () => {
+            expectTypeOf(people.value(null)).toEqualTypeOf<null>();
+            expectTypeOf(people.value(null, "d")).toEqualTypeOf<null>();
+            expectTypeOf(
+                people.value(undefined, () => 1),
+            ).toEqualTypeOf<null>();
+        });
+
+        it("types a key that may be null as unknown", () => {
+            expectTypeOf(people.value(maybeName)).toEqualTypeOf<unknown>();
+            expectTypeOf(people.value(pathKey, "d")).toEqualTypeOf<unknown>();
+        });
+
+        it("rejects a call with no key, and an object key", () => {
             // @ts-expect-error - PHP's value() requires the key
             people.value();
             // @ts-expect-error - PHP's PHPDoc takes a string key
             people.value({});
-            // @ts-expect-error - PHP's PHPDoc takes a string key, and a null one reads no item
-            people.value(null);
         });
     });
 
