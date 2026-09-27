@@ -1446,6 +1446,8 @@ export function take<TValue>(
  * Only arrays and plain objects are flattened, along with the items of a Collection-like item (a class instance
  * with an `all()` method); any other object, a `Date`, `Map` or class instance included, is kept as a value.
  * A plain object is data whatever members it has, so its `all` member is one of its values.
+ * TypeScript cannot tell a class instance from a plain object, so a class instance item is typed as walked while the
+ * runtime keeps it whole.
  *
  * @param data The array to flatten.
  * @param depth Maximum depth to flatten. Use Infinity for full flattening.
@@ -1461,6 +1463,8 @@ export function take<TValue>(
 export function flatten<TValue>(
     data: ArrayItems<TValue>,
 ): ObjectFlatValue<TValue>[];
+// TypeScript cannot tell a class instance from a plain object, so a class instance item is typed as walked while the
+// runtime keeps it whole.
 export function flatten<TValue>(
     data: ArrayItems<TValue>,
     depth?: number,

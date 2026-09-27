@@ -598,8 +598,10 @@ export type FlattenReach<T, D extends number = 5> = [D] extends [never]
     : T | FlattenItemReach<T, D>;
 
 /**
- * Every value flattening the item `T` may push, at any depth: the values a list or plain object holds at every level
- * below it (read through `all()` first), or `T` itself when it is neither, so never a container it unwraps.
+ * The values flattening the item `T` may push, at any depth: those a list or object holds at every level below it,
+ * read through `all()` first, or `T` itself when it is a scalar, `Date`, `RegExp`, `Map`, `Set`, `Promise` or function.
+ * TypeScript cannot tell a class instance from a plain object, so a class instance item is typed as walked while the
+ * runtime keeps it whole.
  *
  * @example
  * FlattenItemReach<number[][]> // number[] | number
