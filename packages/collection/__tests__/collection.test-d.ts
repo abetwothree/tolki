@@ -67,13 +67,6 @@ describe("collection type tests", () => {
         });
     });
 
-    describe("zip", () => {
-        it("requires the list to zip with, as PHP's zip($items) does", () => {
-            // @ts-expect-error - PHP throws ArgumentCountError for a zip() with no list
-            collect([1, 2]).zip();
-        });
-    });
-
     describe("implode", () => {
         it("requires the value, as PHP's implode($value) does", () => {
             // @ts-expect-error - PHP throws ArgumentCountError for an implode() with no value

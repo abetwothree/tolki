@@ -2000,6 +2000,12 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).crossJoin(["a"]), "list");
+            expectShape(collect({ a: 1, b: 2 }).crossJoin(["x"]), "list");
+        });
     });
 
     describe("diff", () => {
@@ -2077,6 +2083,12 @@ describe("Collection", () => {
             // "C32-F-plain-object-all-member-is-data-by-value": PHP's all member casts to 'zzz', since array_diff
             // cannot cast a Closure, and a function matches by identity here, so neither matches an item
             expect(result.all()).toEqual(["a", "b"]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diff([2]), "list");
+            expectShape(collect({ a: 1, b: 2 }).diff([2]), "keyed");
         });
     });
 
@@ -2197,6 +2209,15 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diffUsing([2], strcasecmp), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).diffUsing([2], strcasecmp),
+                "keyed",
+            );
+        });
     });
 
     describe("diffAssoc", () => {
@@ -2380,6 +2401,24 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diffAssoc([1]), "list");
+            expectShape(collect({ a: 1, b: 2 }).diffAssoc({ a: 1 }), "keyed");
+        });
+
+        it("keeps a list's shape and a keyed one's for diffAssocUsing too, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).diffAssocUsing([1], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).diffAssocUsing({ a: 1 }, strcasecmp),
+                "keyed",
+            );
+        });
     });
 
     describe("diffKeys", () => {
@@ -2454,6 +2493,12 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diffKeys([9]), "list");
+            expectShape(collect({ a: 1, b: 2 }).diffKeys({ a: 9 }), "keyed");
+        });
     });
 
     describe("diffKeysUsing", () => {
@@ -2529,6 +2574,18 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).diffKeysUsing([9], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).diffKeysUsing({ A: 9 }, strcasecmp),
+                "keyed",
+            );
+        });
     });
 
     describe("duplicates", () => {
@@ -4933,6 +4990,14 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).intersect([2]), "list");
+            expectShape(collect({ a: 1, b: 2 }).intersect([2]), "keyed");
+            // A keyed result emptied of its keys stays a record.
+            expectShape(collect({ a: 1, b: 2 }).intersect(null), "keyed");
+        });
     });
 
     describe("intersect operand handling", () => {
@@ -5059,6 +5124,18 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).intersectUsing([2], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectUsing([2], strcasecmp),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectUsing operand handling", () => {
@@ -5155,6 +5232,15 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).intersectAssoc([1]), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectAssoc({ a: 1 }),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectAssoc operand handling", () => {
@@ -5294,6 +5380,21 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).intersectAssocUsing([1], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectAssocUsing(
+                    { A: 1 },
+                    strcasecmp,
+                ),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectAssocUsing operand handling", () => {
@@ -5436,6 +5537,15 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).intersectByKeys([9]), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectByKeys({ a: 9 }),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectByKeys operand handling", () => {
@@ -6873,6 +6983,22 @@ describe("Collection", () => {
             expect(result.keys().all()).toEqual(["a", "all"]);
             expect(result.values().all()).toEqual([1, operand.all]);
         });
+
+        it("renumbers into a list unless a string key makes a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const wide: Record<string, number> = {};
+            const maybeFields = (): { c: number } | null => null;
+
+            expectShape(collect([1, 2]).merge([3]), "list");
+            expectShape(collect({ a: 1 }).merge({ b: 2 }), "keyed");
+            expectShape(collect([1, 2]).merge({ c: 3 }), "keyed");
+            // Integer keys renumber, so a record holding only them merges into a list.
+            expectShape(collect([1, 2]).merge({ 5: 3 }), "list");
+            expectShape(collect({ 5: "a" }).merge(null), "list");
+            // A wide key or a nullable operand may hold no string key, which leaves a list.
+            expectShape(collect(wide).merge([1]), "list");
+            expectShape(collect([1]).merge(maybeFields()), "list");
+        });
     });
 
     describe("mergeRecursive", () => {
@@ -7120,6 +7246,14 @@ describe("Collection", () => {
                 collect({ a: first }).mergeRecursive({ a: second }).get("a"),
             ).toEqual([first, second]);
         });
+
+        it("renumbers into a list unless a string key makes a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).mergeRecursive([3]), "list");
+            expectShape(collect({ a: 1 }).mergeRecursive({ a: 2 }), "keyed");
+            // Integer keys renumber, so a record holding only them merges into a list.
+            expectShape(collect({ 5: "a" }).mergeRecursive({ 5: "b" }), "list");
+        });
     });
 
     describe("multiply", () => {
@@ -7213,6 +7347,12 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).multiply(2), "list");
+            expectShape(collect({ a: 1, b: 2 }).multiply(2), "list");
+        });
     });
 
     describe("combine", () => {
@@ -7382,6 +7522,15 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds a keyed result, or an empty list from no keys, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect(["a", "b"]).combine([1, 2]), "keyed");
+            expectShape(collect({ x: "a" }).combine([1]), "keyed");
+            // Keys 0..n-1 still build a record, and no keys an empty list.
+            expectShape(collect([0, 1]).combine(["x", "y"]), "keyed");
+            expectShape(collect([]).combine([]), "list");
+        });
     });
 
     describe("union", () => {
@@ -7554,6 +7703,16 @@ describe("Collection", () => {
                 a: 1,
                 5: 9,
             });
+        });
+
+        it("keeps a record keyed, and a list a list while the operand's keys extend it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).union([3, 4, 5]), "list");
+            expectShape(collect({ a: 1 }).union([5]), "keyed");
+            expectShape(collect([1, 2]).union({ c: 3 }), "keyed");
+            // Integer keys keep a list only while they extend it as 0..n-1.
+            expectShape(collect([1, 2]).union({ 2: "z" }), "list");
+            expectShape(collect([1, 2]).union({ 5: "z" }), "keyed");
         });
     });
 
@@ -10096,6 +10255,16 @@ describe("Collection", () => {
             expect(result.keys().all()).toEqual(["a", "all"]);
             expect(result.values().all()).toEqual([1, operand.all]);
         });
+
+        it("keeps a record keyed, and a list a list while the operand's keys extend it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).replace([3, 4, 5]), "list");
+            expectShape(collect({ a: 1 }).replace([5]), "keyed");
+            expectShape(collect([1, 2]).replace({ c: 3 }), "keyed");
+            // Integer keys keep a list only while they extend it as 0..n-1.
+            expectShape(collect([1, 2]).replace({ 2: "z" }), "list");
+            expectShape(collect([1, 2]).replace({ 5: "z" }), "keyed");
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -10217,6 +10386,16 @@ describe("Collection", () => {
             expect(result.all()).toEqual({ a: 1, all: operand.all });
             expect(result.keys().all()).toEqual(["a", "all"]);
             expect(result.values().all()).toEqual([1, operand.all]);
+        });
+
+        it("keeps a record keyed, and a list a list while the operand's keys extend it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).replaceRecursive([3, 4, 5]), "list");
+            expectShape(collect({ a: 1 }).replaceRecursive([5]), "keyed");
+            expectShape(collect([1, 2]).replaceRecursive({ c: 3 }), "keyed");
+            // Integer keys keep a list only while they extend it as 0..n-1.
+            expectShape(collect([1, 2]).replaceRecursive({ 2: "z" }), "list");
+            expectShape(collect([1, 2]).replaceRecursive({ 5: "z" }), "keyed");
         });
     });
 
@@ -14831,6 +15010,17 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds a list of lists, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).zip(["a"]), "list");
+            expectShape(collect({ a: 1, b: 2 }).zip({ x: "p" }), "list");
+            collect({ a: 1, b: 2 })
+                .zip(["x"])
+                .each((row) => {
+                    expectShape(row, "list");
+                });
+        });
     });
 
     describe("pad", () => {
@@ -22350,7 +22540,7 @@ describe("Collection", () => {
             );
             const merged = collection.merge([6, 7]);
             expect(merged).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(merged.tag).toBe("my-tag");
+            expect(merged).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through diff", () => {

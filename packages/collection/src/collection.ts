@@ -285,48 +285,71 @@ type Unwrapped<TValue> = TValue extends {
 /** Anything PHP's getArrayableItems() accepts as a second collection. */
 type Operand = object | null | undefined;
 
-/** The values an operand hands over, and any for an operand typed any, so a comparator declared for them still fits. */
-type OperandValue<TOperand> =
+/**
+ * The values, keys and shape an operand hands over, in getRawItems()'s order; a collection's through toBase(), which a
+ * subclass still infers from. A plain object with a toArray, toJson or jsonSerialize member is typed like a class,
+ * though at runtime it is data. Null hands over nothing and names no shape, so a result takes the other side's.
+ */
+type OperandParts<TOperand> =
     // `0 extends 1 & TOperand` misses an any argument here, where TOperand has a constraint; this check does not.
-    unknown extends TOperand ? TOperand : RawValues<TOperand>;
+    unknown extends TOperand
+        ? [TOperand, string | number, CollectionShape]
+        : TOperand extends null | undefined
+          ? [never, never, never]
+          : TOperand extends {
+                  toBase(): Collection<
+                      infer TItemValue,
+                      infer TItemKey,
+                      infer TItemShape
+                  >;
+              }
+            ? [TItemValue, TItemKey, TItemShape]
+            : TOperand extends ReadonlyMap<infer TMapKey, infer TItemValue>
+              ? [
+                    TItemValue,
+                    MapArrayKey<TMapKey>,
+                    ItemKeyedShape<MapArrayKey<TMapKey>>,
+                ]
+              : TOperand extends readonly (infer TItemValue)[]
+                ? [TItemValue, number, "list"]
+                : TOperand extends { toArray(...args: never[]): infer TItems }
+                  ? CastParts<TItems>
+                  : TOperand extends Iterable<infer TItemValue>
+                    ? [TItemValue, number, "list"]
+                    : TOperand extends { toJson(...args: never[]): unknown }
+                      ? [unknown, string | number, "list" | "keyed"]
+                      : TOperand extends {
+                              jsonSerialize(...args: never[]): infer TItems;
+                          }
+                        ? CastParts<TItems>
+                        : [
+                              FieldValues<TOperand>,
+                              FieldKeys<TOperand>,
+                              FieldsShape<TOperand>,
+                          ];
+
+/** The values an operand hands over, and any for an operand typed any, so a comparator declared for them still fits. */
+type OperandValue<TOperand> = OperandParts<TOperand>[0];
+
+/** The keys an operand's values sit under, each the way PHP stores it. */
+type OperandKey<TOperand> = OperandParts<TOperand>[1];
+
+/** The shape an operand's items take: none for null, which holds no items. */
+type OperandShape<TOperand> = OperandParts<TOperand>[2];
+
+/** The values, keys and shape castToItems() reads: none from null, a list's, an object's own fields, else the value. */
+type CastParts<TItems> = TItems extends null | undefined
+    ? [never, never, "list"]
+    : TItems extends readonly (infer TItemValue)[]
+      ? [TItemValue, number, "list"]
+      : TItems extends object
+        ? [FieldValues<TItems>, FieldKeys<TItems>, FieldsShape<TItems>]
+        : [TItems, number, "list"];
 
 /**
- * The values an operand holds, read in getRawItems()'s order. Own fields are the non-function members, since
- * TypeScript cannot tell a field from a method, so a record of closures loses its function values.
- * A plain object is typed like a class by its toArray, toJson or jsonSerialize member, though at runtime it is data.
+ * The values of an object's own fields: its members that are neither functions nor keyed by a symbol. TypeScript
+ * cannot tell a field from a method, so a record of closures loses its function values.
  */
-type RawValues<TOperand> = TOperand extends null | undefined
-    ? never
-    : TOperand extends Collection<infer _TValue, infer _TKey, infer _TShape>
-      ? TOperand extends Iterable<infer TValue>
-          ? TValue
-          : never
-      : TOperand extends ReadonlyMap<unknown, infer TValue>
-        ? TValue
-        : TOperand extends readonly (infer TValue)[]
-          ? TValue
-          : TOperand extends { toArray(...args: never[]): infer TItems }
-            ? CastValues<TItems>
-            : TOperand extends Iterable<infer TValue>
-              ? TValue
-              : TOperand extends { toJson(...args: never[]): unknown }
-                ? unknown
-                : TOperand extends {
-                        jsonSerialize(...args: never[]): infer TItems;
-                    }
-                  ? CastValues<TItems>
-                  : FieldValues<TOperand>;
-
-/** The values castToItems() reads: none from null, a list's items, an object's own fields, else the value itself. */
-type CastValues<TItems> = TItems extends null | undefined
-    ? never
-    : TItems extends readonly (infer TValue)[]
-      ? TValue
-      : TItems extends object
-        ? FieldValues<TItems>
-        : TItems;
-
-/** The values of an object's own fields: its members that are neither functions nor keyed by a symbol. */
 type FieldValues<TItems> = {
     [TField in keyof TItems]-?: TField extends symbol
         ? never
@@ -334,6 +357,32 @@ type FieldValues<TItems> = {
           ? never
           : TItems[TField];
 }[keyof TItems];
+
+/** The keys of the fields FieldValues reads, each the way PHP stores it. */
+type FieldKeys<TItems> = {
+    [TField in keyof TItems]-?: TField extends symbol
+        ? never
+        : TItems[TField] extends (...args: never[]) => unknown
+          ? never
+          : PhpArrayKey<TField>;
+}[keyof TItems];
+
+/** The shape an object's fields give: a record that may lack a key when a field its type names is optional. */
+type FieldsShape<TItems> = [
+    {
+        [TField in keyof TItems]-?: TField extends symbol
+            ? never
+            : string extends TField
+              ? never
+              : number extends TField
+                ? never
+                : Record<never, never> extends Pick<TItems, TField>
+                  ? TField
+                  : never;
+    }[keyof TItems],
+] extends [never]
+    ? "keyed"
+    : "partial";
 
 /** A key looked up the way PHP's array_key_exists() looks one up, where null reads the "" key. */
 type LookupKey = PropertyKey | null | undefined;
@@ -648,6 +697,107 @@ type SpreadRow<TRow> = unknown extends TRow
       : TRow extends readonly unknown[] | { all: (...args: never[]) => unknown }
         ? TRow
         : [TRow];
+
+/** Whether a collection surely holds a string key: a keyed one holds every literal key its type names. */
+type HoldsStringKey<TKey, TShape> = [TShape] extends ["keyed"]
+    ? [NamingKeys<Extract<TKey, string>>] extends [never]
+        ? false
+        : true
+    : false;
+
+/** Whether an operand surely holds a string key whichever of its types it has, where null holds none. */
+type OperandHoldsStringKey<TOperand> = false extends (
+    TOperand extends unknown
+        ? HoldsStringKey<OperandKey<TOperand>, OperandShape<TOperand>>
+        : never
+)
+    ? false
+    : true;
+
+/** The literal keys some type of an operand may lack: a key it names that only a keyed type holds for sure. */
+type OperandUnsureKeys<
+    TOperand,
+    TKeys = NamingKeys<OperandKey<TOperand>>,
+> = TOperand extends unknown
+    ? Exclude<
+          TKeys,
+          [OperandShape<TOperand>] extends ["keyed"]
+              ? NamingKeys<OperandKey<TOperand>>
+              : never
+      >
+    : never;
+
+/** A record holding both sides' keys holds every literal key it names only while neither side may lack one. */
+type JoinShape<
+    TShape extends CollectionShape,
+    TOperand,
+> = "partial" extends TShape
+    ? "partial"
+    : [OperandUnsureKeys<TOperand>] extends [never]
+      ? "keyed"
+      : "partial";
+
+/**
+ * The shape merge() leaves. array_merge() renumbers integer keys, so only a string key makes a record, and one neither
+ * side surely holds may be absent, leaving a list.
+ */
+type MergedShape<TKey, TShape extends CollectionShape, TOperand> = [
+    Extract<TKey | OperandKey<TOperand>, string>,
+] extends [never]
+    ? "list"
+    : HoldsStringKey<TKey, TShape> extends true
+      ? JoinShape<TShape, TOperand>
+      : OperandHoldsStringKey<TOperand> extends true
+        ? JoinShape<TShape, TOperand>
+        : "list" | JoinShape<TShape, TOperand>;
+
+/**
+ * The shape union() or replace() leaves, keeping every key: a record stays one, and a list stays one while the
+ * operand's keys may extend it as 0..n-1, which a list's always do.
+ */
+type KeptKeysShape<
+    TShape extends CollectionShape,
+    TOperand,
+> = TShape extends "list"
+    ? [OperandShape<TOperand>] extends ["list"]
+        ? "list"
+        : OperandHoldsStringKey<TOperand> extends true
+          ? JoinShape<TShape, TOperand>
+          : "list" | JoinShape<TShape, TOperand>
+    : JoinShape<TShape, TOperand>;
+
+/**
+ * The values mergeRecursive() leaves: a string key both sides may hold keeps a list of both values, a list value
+ * joining with its items. A nested key both hold joins the same way, which the values' own types do not show.
+ */
+type MergedRecursiveValue<TValue, TKey, TOperand> =
+    | TValue
+    | OperandValue<TOperand>
+    | ([Extract<TKey, string> & Extract<OperandKey<TOperand>, string>] extends [
+          never,
+      ]
+          ? never
+          : Array<JoinedItem<TValue> | JoinedItem<OperandValue<TOperand>>>);
+
+/** What one value adds to the list array_merge_recursive() joins it into: a list its items, any other value itself. */
+type JoinedItem<TValue> = TValue extends readonly (infer TItem)[]
+    ? TItem
+    : TValue;
+
+/** The key array_combine() files a value under: its string cast, read back like an array key, so false gives "". */
+type CombinedKey<TValue> = unknown extends TValue
+    ? string | number
+    : TValue extends string
+      ? PhpArrayKey<TValue>
+      : TValue extends number
+        ? `${TValue}` extends `${bigint}`
+            ? TValue
+            : string | number
+        : TValue extends true
+          ? 1
+          : TValue extends false | null | undefined
+            ? ""
+            : string | number;
 
 /**
  * Create a collection from the given value.
@@ -1203,23 +1353,30 @@ export class Collection<
      * Cross join with the given lists, returning all possible permutations.
      * The collection's values are one dimension and each list's values another, whatever their keys.
      *
-     * @param items - The lists to cross join with
-     * @returns A new collection with the cross joined items
+     * @param lists - The lists to cross join with
+     * @returns A new collection listing each permutation: a row of one value from each list
      *
      * @example
      *
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      */
-    crossJoin<TOperands extends Operand[]>(...items: TOperands) {
+    crossJoin<const TLists extends readonly Operand[]>(
+        ...lists: TLists
+    ): Collection<
+        [TValue, ...{ [TIndex in keyof TLists]: OperandValue<TLists[TIndex]> }],
+        number,
+        "list"
+    >;
+    crossJoin(...lists: Operand[]): unknown {
         // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
         // is one dimension too, never obj.crossJoin's dimension per key.
         const results = dataCrossJoin(
             this.getItemValues(this.items),
-            ...items.map((item) => this.getRawItems(item)),
+            ...lists.map((list) => this.getRawItems(list)),
         );
 
-        return this.sameInstance(handOver(results));
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -1232,7 +1389,14 @@ export class Collection<
      *
      * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection([1, 3])
      */
-    diff<TOperand extends Operand>(items: TOperand) {
+    diff<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    diff<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diff(items: Operand): unknown {
         return this.sameInstance(
             handOver(dataDiff(this.items, this.getRawItems(items))),
         );
@@ -1251,9 +1415,18 @@ export class Collection<
      * new Collection({a: 'x', b: 'y'}).diffUsing(['y'], (a, b) => a === b); -> new Collection({a: 'x'})
      */
     diffUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         items: TOperand,
         callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
-    ) {
+    ): this;
+    diffUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): unknown {
         return this.sameInstance(
             handOver(
                 dataDiffUsing(
@@ -1285,7 +1458,14 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 3}); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({d: 4}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    diffAssoc<TOperand extends Operand>(items: TOperand) {
+    diffAssoc<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    diffAssoc<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffAssoc(items: Operand): unknown {
         return this.sameInstance(
             handOver(dataDiffAssoc(this.items, this.getRawItems(items))),
         );
@@ -1305,9 +1485,18 @@ export class Collection<
      * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
     diffAssocUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         items: TOperand,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
-    ) {
+    ): this;
+    diffAssocUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffAssocUsing(
+        items: Operand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): unknown {
         return this.sameInstance(
             handOver(
                 dataDiffAssocUsing(
@@ -1335,7 +1524,14 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
      * new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]); -> new Collection([7, 8])
      */
-    diffKeys<TOperand extends Operand>(items: TOperand) {
+    diffKeys<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    diffKeys<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffKeys(items: Operand): unknown {
         return this.sameInstance(
             handOver(dataDiffKeys(this.items, this.getRawItems(items))),
         );
@@ -1355,9 +1551,18 @@ export class Collection<
      * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
      */
     diffKeysUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         items: TOperand,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
-    ) {
+    ): this;
+    diffKeysUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffKeysUsing(
+        items: Operand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): unknown {
         return this.sameInstance(
             handOver(
                 dataDiffKeysUsing(
@@ -2213,18 +2418,20 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection([2, 4])
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
-    intersect<TOperand extends Operand>(items: TOperand) {
+    intersect<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    intersect<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersect(items: Operand): unknown {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
         return this.sameInstance(
-            handOver(
-                dataIntersect(
-                    this.items,
-                    this.getRawItems(items) as DataItems<TValue, TKey>,
-                ),
-            ),
+            handOver(dataIntersect(this.items, this.getRawItems(items))),
         );
     }
 
@@ -2241,9 +2448,18 @@ export class Collection<
      * new Collection(['apple', 'banana']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
      */
     intersectUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         items: TOperand,
         callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
-    ) {
+    ): this;
+    intersectUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): unknown {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
@@ -2252,7 +2468,7 @@ export class Collection<
             handOver(
                 dataIntersectUsing(
                     this.items,
-                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                    this.getRawItems(items),
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes `unknown` and rejects a typed callback (contravariance).
                     equalityTest(callback) as (
@@ -2276,18 +2492,20 @@ export class Collection<
      * new Collection({a: 'green', b: 'brown', c: 'blue'}).intersectAssoc({a: 'green', b: 'yellow', c: 'blue'}); -> new Collection({a: 'green', c: 'blue'})
      * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
      */
-    intersectAssoc<TOperand extends Operand>(items: TOperand) {
+    intersectAssoc<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    intersectAssoc<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectAssoc(items: Operand): unknown {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
         return this.sameInstance(
-            handOver(
-                dataIntersectAssoc(
-                    this.items,
-                    this.getRawItems(items) as DataItems<TValue, TKey>,
-                ),
-            ),
+            handOver(dataIntersectAssoc(this.items, this.getRawItems(items))),
         );
     }
 
@@ -2305,9 +2523,18 @@ export class Collection<
      * new Collection({a: 'x', b: 'y'}).intersectAssocUsing({A: 'X', B: 'y'}, strcasecmp); -> new Collection({b: 'y'})
      */
     intersectAssocUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         items: TOperand,
         callback: (keyA: TKey, keyB: TKey) => boolean | number,
-    ) {
+    ): this;
+    intersectAssocUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectAssocUsing(
+        items: Operand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): unknown {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
@@ -2316,7 +2543,7 @@ export class Collection<
             handOver(
                 dataIntersectAssocUsing(
                     this.items,
-                    this.getRawItems(items) as DataItems<TValue, TKey>,
+                    this.getRawItems(items),
                     // `this.items` is a union, so the call lands on obj's widest row, whose
                     // comparator takes a bare key and rejects a typed callback (contravariance).
                     equalityTest(callback) as (
@@ -2339,17 +2566,19 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).intersectByKeys({b: 2, d: 4}); -> new Collection({b: 2})
      * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2])
      */
-    intersectByKeys<TOperand extends Operand>(items: TOperand) {
+    intersectByKeys<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    intersectByKeys<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectByKeys(items: Operand): unknown {
         if (isNull(items)) {
             return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
         return this.sameInstance(
-            handOver(
-                dataIntersectByKeys(
-                    this.items,
-                    this.getRawItems(items) as DataItems<TValue, TKey>,
-                ),
-            ),
+            handOver(dataIntersectByKeys(this.items, this.getRawItems(items))),
         );
     }
 
@@ -2798,20 +3027,28 @@ export class Collection<
      * new Collection([1, 2]).merge({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({5: 'a'}).merge({5: 'b'}); -> new Collection(['a', 'b'])
      */
-    merge<TOperand extends Operand>(items: TOperand) {
+    merge<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        SplicedKey<TKey | OperandKey<TOperand>>,
+        MergedShape<TKey, TShape, TOperand>
+    >;
+    merge(items: Operand): unknown {
         const merged = renumberIntegerKeys<unknown>([
             ...this.entriesInOrder(),
             ...this.operandEntries(items),
         ]);
 
-        return this.sameInstance(inPhpOrder(merged));
+        return this.newInstance(inPhpOrder(merged));
     }
 
     /**
      * Recursively merge the collection with the given items.
      *
      * As `array_merge_recursive` does, integer keys append at every depth, and a string key both sides hold merges
-     * both values, each one that is not an array joining the other as one.
+     * both values, each one that is not an array joining the other as one. The result's value type shows the top
+     * level: a nested key both sides hold is joined too.
      *
      * @param items - The items to merge with
      * @returns A new collection with merged items, a list when every key is an integer
@@ -2825,11 +3062,16 @@ export class Collection<
      */
     mergeRecursive<TOperand extends Operand>(
         items: TOperand,
-    ): this | Collection<TValue | OperandValue<TOperand>, TKey> {
+    ): Collection<
+        MergedRecursiveValue<TValue, TKey, TOperand>,
+        SplicedKey<TKey | OperandKey<TOperand>>,
+        MergedShape<TKey, TShape, TOperand>
+    >;
+    mergeRecursive(items: Operand): unknown {
         // The receiver goes in first, so its own integer keys renumber as array_merge_recursive copies it.
         const receiver = mergeRecursively(new Map(), this.entriesInOrder());
 
-        return this.sameInstance(
+        return this.newInstance(
             inPhpOrder(mergeRecursively(receiver, this.operandEntries(items))),
         );
     }
@@ -2848,12 +3090,12 @@ export class Collection<
      * new Collection([1, 2]).multiply(2.5); -> new Collection([1, 2, 1, 2])
      * new Collection([1, 2]).multiply(0); -> new Collection([])
      */
-    multiply(multiplier: number) {
+    multiply(multiplier: number): Collection<TValue, number, "list"> {
         const times = phpIntArgument(
             multiplier,
             "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
         );
-        const newCollection = this.sameInstance();
+        const newCollection = this.newInstance<TValue, number, "list">();
         const values = this.getItemValues(this.items);
 
         for (let i = 0; i < times; i++) {
@@ -2869,13 +3111,20 @@ export class Collection<
      * collection's own keys.
      *
      * @param values - The values to combine with the keys from this collection
-     * @returns A new collection with the combined keys and values
+     * @returns A new collection with the combined keys and values; an empty collection gives an empty list
      *
      * @example
      *
      * new Collection([1, 2]).combine([3, 4]); -> new Collection({1: 3, 2: 4})
      */
-    combine<TOperand extends Operand>(values: TOperand) {
+    combine<TOperand extends Operand>(
+        values: TOperand,
+    ): Collection<
+        OperandValue<TOperand>,
+        CombinedKey<TValue>,
+        "list" | ItemKeyedShape<CombinedKey<TValue>>
+    >;
+    combine(values: Operand): unknown {
         const keys = this.orderedValues();
         const combined = dataCombine(
             keys,
@@ -2884,11 +3133,11 @@ export class Collection<
 
         // PHP's empty array is a list, where a Map holding no entries would build an empty record.
         if (keys.length === 0) {
-            return this.sameInstance(handOver([]));
+            return this.newInstance(handOver([]));
         }
 
         // A plain object re-sorts integer keys, so the combined pairs are laid out again in the order the keys come.
-        return this.sameInstance(
+        return this.newInstance(
             new Map(
                 keys.map((key) => {
                     const phpKey = toPhpKeyString(key);
@@ -2914,10 +3163,17 @@ export class Collection<
      * new Collection([1, 2]).union({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    union<TOperand extends Operand>(items: TOperand) {
+    union<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        TKey | OperandKey<TOperand>,
+        KeptKeysShape<TShape, TOperand>
+    >;
+    union(items: Operand): unknown {
         const operand = this.operandEntries(items);
 
-        return this.sameInstance(
+        return this.newInstance(
             this.inKeyOrder(dataUnion(this.items, new Map(operand)), operand),
         );
     }
@@ -3483,10 +3739,17 @@ export class Collection<
      * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
      * new Collection({a: 1}).replace(['x']); -> new Collection({a: 1, 0: 'x'})
      */
-    replace<TOperand extends Operand>(items: TOperand) {
+    replace<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        TKey | OperandKey<TOperand>,
+        KeptKeysShape<TShape, TOperand>
+    >;
+    replace(items: Operand): unknown {
         const operand = this.operandEntries(items);
 
-        return this.sameInstance(
+        return this.newInstance(
             this.inKeyOrder(dataReplace(this.items, new Map(operand)), operand),
         );
     }
@@ -3494,7 +3757,8 @@ export class Collection<
     /**
      * Recursively replace the collection items with the given items.
      *
-     * As in `replace`, a key the replacer adds comes after the rest.
+     * As in `replace`, a key the replacer adds comes after the rest. A nested array is replaced key by key, so it may
+     * mix both sides' values, which the result's value type, either side's value, does not show.
      *
      * @param items - The items to replace with; `null` replaces nothing
      * @returns A new collection with the recursively replaced items; object-backed once its keys aren't `0..n-1`
@@ -3506,10 +3770,17 @@ export class Collection<
      * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5, 3]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
-    replaceRecursive<TOperand extends Operand>(items: TOperand) {
+    replaceRecursive<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        TKey | OperandKey<TOperand>,
+        KeptKeysShape<TShape, TOperand>
+    >;
+    replaceRecursive(items: Operand): unknown {
         const operand = this.operandEntries(items);
 
-        return this.sameInstance(
+        return this.newInstance(
             this.inKeyOrder(
                 dataReplaceRecursive(this.items, new Map(operand)),
                 operand,
@@ -4718,8 +4989,8 @@ export class Collection<
      *
      * As `array_map` does, every shorter side, this collection's own values included, is padded with `null`.
      *
-     * @param list - The items to zip with, each an array, an object or another collection
-     * @returns A new collection with the zipped items
+     * @param lists - The items to zip with, each an array, an object or another collection
+     * @returns A new collection listing, for each position, a list of every side's value there
      *
      * @example
      *
@@ -4727,15 +4998,21 @@ export class Collection<
      * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b'], [null, 'c']])
      * new Collection({a: 1, b: 2}).zip({x: 'a'}); -> new Collection([[1, 'a'], [2, null]])
      */
-    zip<TOperands extends AtLeastOne<Operand>>(
-        ...list: TOperands
+    zip<const TLists extends AtLeastOne<Operand>>(
+        ...lists: TLists
     ): Collection<
-        Collection<TValue | OperandValue<TOperands[number]>, number>,
-        number
-    > {
+        Collection<
+            TValue | OperandValue<TLists[number]> | null,
+            number,
+            "list"
+        >,
+        number,
+        "list"
+    >;
+    zip(...lists: AtLeastOne<Operand>): unknown {
         const columns: unknown[][] = [
             this.getItemValues(this.items),
-            ...list.map((items) => {
+            ...lists.map((items) => {
                 const rawItems = this.getRawItems(items);
 
                 return isArray(rawItems) ? rawItems : Object.values(rawItems);
@@ -4743,7 +5020,7 @@ export class Collection<
         ];
         const length = Math.max(...columns.map((column) => column.length));
         const zipped = Array.from({ length }, (_, index) =>
-            this.sameInstance(
+            this.newInstance(
                 handOver(
                     columns.map((column) =>
                         index < column.length ? column[index] : null,
@@ -4752,10 +5029,7 @@ export class Collection<
             ),
         );
 
-        return this.sameInstance(handOver(zipped)) as unknown as Collection<
-            Collection<TValue | OperandValue<TOperands[number]>, number>,
-            number
-        >;
+        return this.newInstance(handOver(zipped));
     }
 
     /**
@@ -7684,7 +7958,7 @@ export class Collection<
     protected inKeyOrder(
         result: unknown,
         operand: Array<[PropertyKey, unknown]>,
-    ): unknown {
+    ): unknown[] | Map<PropertyKey, unknown> {
         if (isArray(result)) {
             return handOver(result);
         }
@@ -7734,7 +8008,7 @@ type CollectionClass<
 ) => Collection<TValue, TKey, TShape>;
 
 /** A rest parameter holding at least one argument, as a required PHP parameter read on with func_get_args(). */
-type AtLeastOne<TItem> = [TItem, ...TItem[]];
+type AtLeastOne<TItem> = readonly [TItem, ...TItem[]];
 
 /** An `@tolki/enum` definition, whose from() resolves a backing value to its case, as BackedEnum::from() does. */
 type EnumDefinition<TValue, TCase = unknown> = {
