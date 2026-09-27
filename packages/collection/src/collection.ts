@@ -903,6 +903,7 @@ export class Collection<
      * new Collection([null, null]).mode(); -> null
      */
     mode(key: PropertyKey | null = null): Array<string | number> | null {
+        // pluck() takes no symbol path, which would read nothing, so the cast narrows the symbol out of mode()'s key.
         const values = isNull(key)
             ? this.values()
             : this.values().pluck(key as PathKey);
