@@ -1,5 +1,6 @@
 import { collect, Collection } from "@tolki/collection";
 import * as Data from "@tolki/data";
+import type { PathKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
 import type { ItemsOf } from "../helpers";
@@ -19,6 +20,9 @@ declare const count: number;
 declare const name: string;
 declare const aOrB: "a" | "b";
 declare const someOfAB: ("a" | "b")[];
+declare const maybeName: string | null;
+declare const maybeIndex: number | undefined;
+declare const pathKey: PathKey;
 declare const users: Collection<number, `user-${number}`, "keyed">;
 declare const userKey: `user-${number}`;
 declare const lowered: Collection<number, Lowercase<string>, "keyed">;
@@ -127,6 +131,18 @@ describe("collection keyed access and mutation type tests", () => {
             expectTypeOf(people.pull(0)).toEqualTypeOf<Row | null>();
         });
 
+        it("answers every item or an item for a key that may be null", () => {
+            expectTypeOf(record.pull(maybeName)).toEqualTypeOf<
+                number | Record<"a" | "b" | "c", number> | null
+            >();
+            expectTypeOf(list.pull(pathKey)).toEqualTypeOf<
+                number | number[] | null
+            >();
+            expectTypeOf(list.pull(pathKey, 0)).toEqualTypeOf<
+                number | number[]
+            >();
+        });
+
         it("types a dot path's value like an item, as Laravel's PHPDoc does", () => {
             // Deferred: a dot path reads a value inside an item, and typing it needs a path type over the items
             expectTypeOf(people.pull("0.name")).toEqualTypeOf<Row | null>();
@@ -204,6 +220,24 @@ describe("collection keyed access and mutation type tests", () => {
             >();
             expectTypeOf(mapped.put(3, "d")).toEqualTypeOf<
                 Collection<string, number, "keyed">
+            >();
+        });
+
+        it("types a key that may be null as either an append or a write under the key", () => {
+            expectTypeOf(record.put(maybeName, 1)).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(list.put(maybeName, "s")).toEqualTypeOf<
+                Collection<string | number, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.put(maybeIndex, 1)).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.put(pathKey, 1)).toEqualTypeOf<
+                Collection<number, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(partial.put(maybeName, 1)).toEqualTypeOf<
+                Collection<number, string | number, "partial">
             >();
         });
 
@@ -532,6 +566,22 @@ describe("collection keyed access and mutation type tests", () => {
             >();
             expectTypeOf(mapped.prepend("z", "k")).toEqualTypeOf<
                 Collection<string, number | "k", "keyed">
+            >();
+        });
+
+        it("types a key that may be null as either the empty-string key or the key", () => {
+            // A string key may be a numeric one, which casts to an index: "0" keeps a list a list.
+            expectTypeOf(list.prepend("s", maybeName)).toEqualTypeOf<
+                Collection<string | number, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(list.prepend("s", maybeIndex)).toEqualTypeOf<
+                Collection<string | number, number | "", "list" | "keyed">
+            >();
+            expectTypeOf(record.prepend(0, maybeName)).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(partial.prepend(0, maybeIndex)).toEqualTypeOf<
+                Collection<number, "a" | "b" | "" | number, "partial">
             >();
         });
 

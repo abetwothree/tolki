@@ -2561,6 +2561,14 @@ export class Collection<
         TKey | MapArrayKey<TPrependKey>,
         WrittenShape<TShape, MapArrayKey<TPrependKey>>
     >;
+    prepend<TPrependValue, TPrependKey extends string | number>(
+        value: TPrependValue,
+        key: TPrependKey | null | undefined,
+    ): Collection<
+        TValue | TPrependValue,
+        TKey | "" | MapArrayKey<TPrependKey>,
+        WrittenShape<TShape, "" | MapArrayKey<TPrependKey>>
+    >;
     prepend(value: unknown, key?: string | number | null): unknown {
         const ordered = this.orderedEntries();
         // The item types widen at runtime; only the collection this returns carries the widened ones.
@@ -2726,6 +2734,10 @@ export class Collection<
         key: string | number,
         defaultValue: TPullDefault | (() => TPullDefault),
     ): TValue | TPullDefault;
+    pull<TPullDefault = null>(
+        key: PathKey,
+        defaultValue?: TPullDefault | (() => TPullDefault),
+    ): TValue | TPullDefault | CollectionItems<TValue, TKey, TShape>;
     pull(key: PathKey, defaultValue?: unknown): unknown {
         // Arr::get answers the whole array for a null key, and Arr::forget removes nothing for one.
         if (isNull(key) || isUndefined(key)) {
@@ -2788,6 +2800,16 @@ export class Collection<
         TValue | TPutValue,
         TKey | MapArrayKey<TPutKey>,
         WrittenShape<TShape, MapArrayKey<TPutKey>>
+    >;
+    // A null key appends under an integer key. Naming that key in WrittenShape, not writing `TShape |`, keeps a
+    // subclass's shape inferable where wrap() and unwrap() read it from the members.
+    put<TPutValue, TPutKey extends string | number | boolean>(
+        key: TPutKey | null | undefined,
+        value: TPutValue,
+    ): Collection<
+        TValue | TPutValue,
+        TKey | number | MapArrayKey<TPutKey>,
+        WrittenShape<TShape, number | MapArrayKey<TPutKey>>
     >;
     put(key: unknown, value: unknown): unknown {
         this.putKey(key, value);

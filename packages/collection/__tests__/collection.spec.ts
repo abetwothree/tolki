@@ -8368,6 +8368,14 @@ describe("Collection", () => {
             expectShape(outOfOrderKeys().prepend("z"), "keyed");
             expectShape(outOfOrderKeys().prepend("z", "k"), "keyed");
         });
+
+        it('makes a list keyed for a key that holds null and keeps it a list for one that holds "0", as its type declares', () => {
+            const keyOrNull = (key: string | null): string | null => key;
+
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).prepend(0, keyOrNull(null)), "keyed");
+            expectShape(collect([1, 2]).prepend(0, keyOrNull("0")), "list");
+        });
     });
 
     describe("push", () => {
@@ -9439,6 +9447,14 @@ describe("Collection", () => {
             expectShape(collect([1, 2]).put(5, 3), "keyed");
             expectShape(collect([1, 2]).put("x", 3), "keyed");
             expectShape(outOfOrderKeys().put(3, "d"), "keyed");
+        });
+
+        it("keeps a list a list for a key that holds null and makes it keyed for one that holds a string, as its type declares", () => {
+            const keyOrNull = (key: string | null): string | null => key;
+
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).put(keyOrNull(null), 3), "list");
+            expectShape(collect([1, 2]).put(keyOrNull("x"), 3), "keyed");
         });
     });
 
