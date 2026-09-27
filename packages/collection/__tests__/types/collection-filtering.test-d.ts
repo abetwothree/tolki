@@ -1463,6 +1463,15 @@ describe("collection filtering and subsets type tests", () => {
             >();
         });
 
+        it("types a record of unknown fields for a string's or a list's own members, which select() does not read", () => {
+            expectTypeOf(collect(["ab"]).select("length")).toEqualTypeOf<
+                Collection<Record<string, unknown>, number, "list">
+            >();
+            expectTypeOf(collect([[10, 20]]).select("length")).toEqualTypeOf<
+                Collection<Record<string, unknown>, number, "list">
+            >();
+        });
+
         it("compiles for a caller whose items are a type parameter", () => {
             function ids<TItem extends { id: number }>(
                 items: Collection<TItem>,

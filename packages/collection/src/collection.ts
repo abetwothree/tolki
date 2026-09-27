@@ -425,6 +425,16 @@ type NamedKeys<TKey, TKeys> =
 type IfNamed<TKey, TKeys> =
     NamedKeys<TKey, TKeys> extends false ? never : unknown;
 
+/**
+ * The fields select() reads from one item. Only an object item has fields: a primitive's or a list's own members are
+ * none, so such an item gives the widest row's record of unknown fields.
+ */
+type SelectedFields<TValue, TPick> = TValue extends readonly unknown[]
+    ? Record<string, unknown>
+    : TValue extends object
+      ? Pick<TValue, TPick & keyof TValue>
+      : Record<string, unknown>;
+
 /** Any class, abstract or not: `never[]` parameters let a constructor that takes typed parameters match. */
 type AbstractConstructor = abstract new (...args: never[]) => unknown;
 
@@ -2623,10 +2633,10 @@ export class Collection<
     select(keys: null | undefined, ...rest: PathKeys[]): this;
     select<const TPick extends keyof TValue & string>(
         ...keys: [TPick, ...TPick[]]
-    ): Collection<Pick<TValue, TPick>, TKey, TShape>;
+    ): Collection<SelectedFields<TValue, TPick>, TKey, TShape>;
     select<const TPicks extends readonly (keyof TValue & string)[]>(
         keys: TPicks,
-    ): Collection<Pick<TValue, TPicks[number]>, TKey, TShape>;
+    ): Collection<SelectedFields<TValue, TPicks[number]>, TKey, TShape>;
     select(
         keys: PathKeys | Collection<string, number, CollectionShape>,
         ...rest: PathKeys[]
