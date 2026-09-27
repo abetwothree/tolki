@@ -718,9 +718,11 @@ describe("collection predicate type tests", () => {
             >();
         });
 
-        it("rejects a call with no key", () => {
+        it("rejects a call with no key, and a callback over another item type", () => {
             // @ts-expect-error - PHP throws ArgumentCountError for firstWhere() with no key
             people.firstWhere();
+            // @ts-expect-error - a number list's callback takes a number
+            list.firstWhere((value: string) => value === "x");
         });
     });
 
