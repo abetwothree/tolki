@@ -12601,7 +12601,6 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             // docs/php-parity/task-21-chunk-while-by.json — array-backed chunks are reindexed,
             // so the numeric-key assertions from CollectionTest go through .toArray() on the chunk.
-            // Read chunks with get(n): first()/last() resolve to `unknown`, so calling a method on them fails ts:check.
             it("test chunk while on equal elements", () => {
                 // CollectionTest::testChunkWhileOnEqualElements
                 const data = collect([
