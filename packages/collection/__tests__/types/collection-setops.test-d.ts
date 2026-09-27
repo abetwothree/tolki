@@ -286,8 +286,9 @@ describe("collection set operation type tests", () => {
 
     describe("forget", () => {
         it("takes a collection of key names", () => {
+            // A collection's key names are not literal, so the keys they remove are unknown and the result partial.
             expectTypeOf(record.forget(collect(["c"]))).toEqualTypeOf<
-                Collection<number, "a" | "b", "keyed">
+                Collection<number, "a" | "b", "partial">
             >();
         });
 

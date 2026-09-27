@@ -108,6 +108,10 @@ const viewsOf = <
     values: collection.values().all(),
 });
 
+/** What a pop() or shift() with a count typed number answers, read through all() when it is a collection. */
+const takenItems = (taken: unknown): unknown =>
+    taken instanceof Collection ? taken.all() : taken;
+
 describe("Collection", () => {
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
@@ -3418,6 +3422,13 @@ describe("Collection", () => {
             expect(collection.keys().all()).toEqual([0, 1]);
             expect(collection.values().all()).toEqual(["a", "c"]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).forget(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).forget("a"), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).forget("z"), "keyed");
+        });
     });
 
     describe("get", () => {
@@ -4464,7 +4475,17 @@ describe("Collection", () => {
         });
 
         it("test has any if collection is empty", () => {
-            expect(collect().hasAny("key", "any", [0, 1], "test")).toBe(false);
+            const empty = collect();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-illegal-key"
+            expect(
+                Reflect.apply(empty.hasAny, empty, [
+                    "key",
+                    "any",
+                    [0, 1],
+                    "test",
+                ]),
+            ).toBe(false);
         });
 
         it("reads a null key as the empty-string key", () => {
@@ -5890,6 +5911,12 @@ describe("Collection", () => {
             const collection = collect(items);
             expect(collection.keys().count()).toBe(collection.values().count());
         });
+
+        it("lists a list's keys and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).keys(), "list");
+            expectShape(outOfOrderKeys().keys(), "list");
+        });
     });
 
     describe("last", () => {
@@ -6957,7 +6984,7 @@ describe("Collection", () => {
 
         // A push that throws turns an endless repeat into a plain failure, since a count must be refused first
         class Unrepeatable extends Collection<number, number> {
-            override push(): this {
+            override push(): never {
                 throw new Error("repeated before the count was checked");
             }
         }
@@ -8054,7 +8081,7 @@ describe("Collection", () => {
             for (const count of [NaN, Infinity, 1e19]) {
                 const everything = collect([1, 2, 3, 4]);
 
-                expect(everything.pop(count).all()).toEqual([4, 3, 2, 1]);
+                expect(takenItems(everything.pop(count))).toEqual([4, 3, 2, 1]);
                 expect(everything.all()).toEqual([]);
                 expect(everything.keys().all()).toEqual([]);
                 expect(everything.values().all()).toEqual([]);
@@ -8114,7 +8141,7 @@ describe("Collection", () => {
 
             const everything = outOfOrder();
 
-            expect(everything.pop(NaN).all()).toEqual(["b", "a", "c"]);
+            expect(takenItems(everything.pop(NaN))).toEqual(["b", "a", "c"]);
             expect(everything.keys().all()).toEqual([]);
             expect(everything.values().all()).toEqual([]);
         });
@@ -8227,6 +8254,13 @@ describe("Collection", () => {
             expect(fromArray.count()).toBe(2);
             expect(fromObject.count()).toBe(2);
         });
+
+        it("lists the items a count pops from a list or a keyed collection, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).pop(2), "list");
+            expectShape(outOfOrderKeys().pop(2), "list");
+            expectShape(outOfOrderKeys().pop(0), "list");
+        });
     });
 
     describe("prepend", () => {
@@ -8324,6 +8358,15 @@ describe("Collection", () => {
                 first: "a",
                 last: "c",
             });
+        });
+
+        it("keeps a list's shape without a key and makes it keyed with one, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).prepend(0), "list");
+            expectShape(collect([1, 2]).prepend(0, 0), "list");
+            expectShape(collect([1, 2]).prepend(0, "k"), "keyed");
+            expectShape(outOfOrderKeys().prepend("z"), "keyed");
+            expectShape(outOfOrderKeys().prepend("z", "k"), "keyed");
         });
     });
 
@@ -8513,11 +8556,9 @@ describe("Collection", () => {
                 ["-1", { "-1": "v", 0: 9 }],
                 ["5", { 5: "v", 6: 9 }],
             ])("classifies a %s key the way PHP does", (key, expected) => {
-                expect(
-                    new Collection({ [key]: "v" } as never)
-                        .push(9 as never)
-                        .all(),
-                ).toEqual(expected);
+                expect(new Collection({ [key]: "v" }).push(9).all()).toEqual(
+                    expected,
+                );
             });
 
             it("classifies keys the same way unshift does", () => {
@@ -8525,14 +8566,10 @@ describe("Collection", () => {
                 // (docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key").
                 for (const key of ["01", "1e2", ""]) {
                     const pushed = Object.keys(
-                        new Collection({ [key]: "v" } as never)
-                            .push(9 as never)
-                            .all(),
+                        new Collection({ [key]: "v" }).push(9).all(),
                     );
                     const unshifted = Object.keys(
-                        new Collection({ [key]: "v" } as never)
-                            .unshift(9 as never)
-                            .all(),
+                        new Collection({ [key]: "v" }).unshift(9).all(),
                     );
                     expect(pushed.includes(key)).toBe(unshifted.includes(key));
                 }
@@ -8545,14 +8582,20 @@ describe("Collection", () => {
                 const collection = new Collection({
                     "6000000000": "a",
                     "5000000000": "b",
-                } as never);
+                });
 
-                expect(collection.push("NEW" as never).all()).toEqual({
+                expect(collection.push("NEW").all()).toEqual({
                     "6000000000": "a",
                     "5000000000": "b",
                     "6000000001": "NEW",
                 });
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).push("x", true), "list");
+            expectShape(outOfOrderKeys().push(1), "keyed");
         });
     });
 
@@ -8803,6 +8846,12 @@ describe("Collection", () => {
                 new Collection({ "-1": "a", x: "b" }).unshift("z").all(),
             ).toEqual({ 0: "z", 1: "a", x: "b" });
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).unshift("x", true), "list");
+            expectShape(outOfOrderKeys().unshift(1), "keyed");
+        });
     });
 
     describe("concat", () => {
@@ -8824,9 +8873,8 @@ describe("Collection", () => {
                     "Laroe",
                 ];
 
-                let data = collect([4, 5, 6]);
-                data = data.concat(["a", "b", "c"]);
-                data = data.concat({
+                // Each concat widens the item type, so the results chain where PHP reassigns $data.
+                const data = collect([4, 5, 6]).concat(["a", "b", "c"]).concat({
                     who: "Jonny",
                     preposition: "from",
                     where: "Laroe",
@@ -8859,15 +8907,16 @@ describe("Collection", () => {
                     "Laroe",
                 ];
 
-                let firstCollection = collect([4, 5, 6]);
                 const secondCollection = collect(["a", "b", "c"]);
                 const thirdCollection = collect({
                     who: "Jonny",
                     preposition: "from",
                     where: "Laroe",
                 });
-                firstCollection = firstCollection.concat(secondCollection);
-                firstCollection = firstCollection.concat(thirdCollection);
+                // Each concat widens the item type, so the results chain where PHP reassigns $firstCollection.
+                const firstCollection = collect([4, 5, 6])
+                    .concat(secondCollection)
+                    .concat(thirdCollection);
                 const actual = firstCollection.concat(thirdCollection).all();
 
                 expect(actual).toEqual(expected);
@@ -8896,6 +8945,12 @@ describe("Collection", () => {
                     "b",
                 ]);
             }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).concat({ x: "y" }), "list");
+            expectShape(outOfOrderKeys().concat([1]), "keyed");
         });
     });
 
@@ -9370,11 +9425,20 @@ describe("Collection", () => {
             it.each(["constructor", "prototype", "__proto__"])(
                 "keeps a %s key as own data",
                 (key) => {
-                    expect(
-                        new Collection({}).put(key as never, 5 as never).all(),
-                    ).toEqual({ [key]: 5 });
+                    expect(new Collection({}).put(key, 5).all()).toEqual({
+                        [key]: 5,
+                    });
                 },
             );
+        });
+
+        it("keeps a list a list only for an index inside it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).put(null, 3), "list");
+            expectShape(collect([1, 2]).put(2, 3), "list");
+            expectShape(collect([1, 2]).put(5, 3), "keyed");
+            expectShape(collect([1, 2]).put("x", 3), "keyed");
+            expectShape(outOfOrderKeys().put(3, "d"), "keyed");
         });
     });
 
@@ -10324,14 +10388,14 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
             const list = collect([1, 2, 3, 4]);
 
-            expect(list.shift(2.5).all()).toEqual([1, 2]);
+            expect(list.shift(2.5)?.all()).toEqual([1, 2]);
             expect(list.all()).toEqual([3, 4]);
             expect(list.keys().all()).toEqual([0, 1]);
             expect(list.values().all()).toEqual([3, 4]);
 
             const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
 
-            expect(keyed.shift(2.5).all()).toEqual([1, 2]);
+            expect(keyed.shift(2.5)?.all()).toEqual([1, 2]);
             expect(keyed.all()).toEqual({ c: 3, d: 4 });
             expect(keyed.keys().all()).toEqual(["c", "d"]);
             expect(keyed.values().all()).toEqual([3, 4]);
@@ -10339,7 +10403,9 @@ describe("Collection", () => {
             for (const count of [NaN, Infinity, 1e19]) {
                 const everything = collect([1, 2, 3, 4]);
 
-                expect(everything.shift(count).all()).toEqual([1, 2, 3, 4]);
+                expect(takenItems(everything.shift(count))).toEqual([
+                    1, 2, 3, 4,
+                ]);
                 expect(everything.all()).toEqual([]);
                 expect(everything.keys().all()).toEqual([]);
                 expect(everything.values().all()).toEqual([]);
@@ -10347,7 +10413,7 @@ describe("Collection", () => {
 
             const emptied = collect({ a: 1, b: 2, c: 3, d: 4 });
 
-            expect(emptied.shift(NaN).all()).toEqual([1, 2, 3, 4]);
+            expect(takenItems(emptied.shift(NaN))).toEqual([1, 2, 3, 4]);
             // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
             expect(emptied.all()).toEqual({});
             expect(emptied.keys().all()).toEqual([]);
@@ -10376,7 +10442,7 @@ describe("Collection", () => {
 
             const one = collect([9]);
 
-            expect(one.shift(1.5).all()).toEqual([9]);
+            expect(one.shift(1.5)?.all()).toEqual([9]);
             expect(one.all()).toEqual([]);
             expect(collect([]).shift(1.5)).toBeNull();
         });
@@ -10393,7 +10459,7 @@ describe("Collection", () => {
                 );
             const partly = outOfOrder();
 
-            expect(partly.shift(2.5).all()).toEqual(["c", "a"]);
+            expect(partly.shift(2.5)?.all()).toEqual(["c", "a"]);
             expect(partly.all()).toEqual({ 0: "b" });
             expect(partly.keys().all()).toEqual([0]);
             expect(partly.values().all()).toEqual(["b"]);
@@ -10408,7 +10474,7 @@ describe("Collection", () => {
 
             const everything = outOfOrder();
 
-            expect(everything.shift(NaN).all()).toEqual(["c", "a", "b"]);
+            expect(takenItems(everything.shift(NaN))).toEqual(["c", "a", "b"]);
             expect(everything.keys().all()).toEqual([]);
             expect(everything.values().all()).toEqual([]);
         });
@@ -10417,7 +10483,7 @@ describe("Collection", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const c = collect({ x: "a", "-1": "b", "-2": "c", y: "d" });
 
-            expect(c.shift(2).all()).toEqual(["a", "b"]);
+            expect(c.shift(2)?.all()).toEqual(["a", "b"]);
             expect(c.all()).toEqual({ 0: "c", y: "d" });
         });
 
@@ -10436,10 +10502,10 @@ describe("Collection", () => {
                 // CollectionTest::testShiftReturnsAndRemovesFirstXItemsInCollection
                 const data = collect(["foo", "bar", "baz"]);
 
-                expect(data.shift(2).all()).toEqual(["foo", "bar"]);
+                expect(data.shift(2)?.all()).toEqual(["foo", "bar"]);
                 expect(data.first()).toBe("baz");
 
-                expect(collect(["foo", "bar", "baz"]).shift(6).all()).toEqual([
+                expect(collect(["foo", "bar", "baz"]).shift(6)?.all()).toEqual([
                     "foo",
                     "bar",
                     "baz",
@@ -10447,7 +10513,7 @@ describe("Collection", () => {
 
                 const data2 = collect(["foo", "bar", "baz"]);
 
-                expect(data2.shift(0).all()).toEqual([]);
+                expect(data2.shift(0)?.all()).toEqual([]);
                 expect(data2.all()).toEqual(["foo", "bar", "baz"]);
 
                 expect(() => {
@@ -10488,13 +10554,13 @@ describe("Collection", () => {
             // Test shift with objects - multiple items (count > 1)
             const objCollection2 = collect({ x: 10, y: 20, z: 30 });
             const shifted = objCollection2.shift(2);
-            expect(shifted.all()).toEqual([10, 20]);
+            expect(shifted?.all()).toEqual([10, 20]);
             expect(objCollection2.all()).toEqual({ z: 30 });
 
             // Test shift with objects - shift more than available
             const objCollection3 = collect({ p: 100, q: 200 });
             const shiftedAll = objCollection3.shift(5);
-            expect(shiftedAll.all()).toEqual([100, 200]);
+            expect(shiftedAll?.all()).toEqual([100, 200]);
             expect(objCollection3.count()).toBe(0);
 
             // JS-only: a stored undefined is an item, which shift hands back as it is
@@ -10506,7 +10572,7 @@ describe("Collection", () => {
         it("handles object with keys branch", () => {
             const c = collect({ a: 1, b: 2, c: 3 });
             const shifted = c.shift(2);
-            expect(shifted.all()).toEqual([1, 2]);
+            expect(shifted?.all()).toEqual([1, 2]);
             expect(c.all()).toEqual({ c: 3 });
         });
 
@@ -10516,7 +10582,7 @@ describe("Collection", () => {
             const c = collect({ a: 1 });
             // Request 3 items but only 1 exists - will try to shift from empty object
             const shifted = c.shift(3);
-            expect(shifted.all()).toEqual([1]); // Only got 1 item
+            expect(shifted?.all()).toEqual([1]); // Only got 1 item
             expect(c.all()).toEqual({}); // Object is now empty
         });
 
@@ -10547,6 +10613,22 @@ describe("Collection", () => {
             );
             expect(() => new Collection({ a: 1 }).shift(-1)).toThrow(
                 "Number of shifted items may not be less than zero.",
+            );
+        });
+
+        it("lists the items a count shifts from a list or a keyed collection, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).shift(2) ?? expect.unreachable(),
+                "list",
+            );
+            expectShape(
+                outOfOrderKeys().shift(2) ?? expect.unreachable(),
+                "list",
+            );
+            expectShape(
+                outOfOrderKeys().shift(0) ?? expect.unreachable(),
+                "list",
             );
         });
     });
@@ -13716,6 +13798,13 @@ describe("Collection", () => {
                 });
             }
         });
+
+        it("keeps a list's shape and a keyed one's for the items it removes, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).splice(1), "list");
+            expectShape(outOfOrderKeys().splice(1), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).splice(0, 1), "keyed");
+        });
     });
 
     describe("take", () => {
@@ -13958,6 +14047,15 @@ describe("Collection", () => {
                     last: "last-llewto",
                 });
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).transform(String), "list");
+            expectShape(
+                outOfOrderKeys().transform((value) => value.length),
+                "keyed",
+            );
         });
     });
 
@@ -14328,6 +14426,12 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.values().all()).toEqual([1, 2, 3]);
         });
+
+        it("lists a list's values and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).values(), "list");
+            expectShape(outOfOrderKeys().values(), "list");
+        });
     });
 
     describe("zip", () => {
@@ -14606,6 +14710,13 @@ describe("Collection", () => {
             const items = { a: 1, b: 2 };
             const c = collect(items);
             expect(c.pad(2, 0).all()).not.toBe(items);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).pad(4, "x"), "list");
+            expectShape(outOfOrderKeys().pad(5, 0), "keyed");
+            expectShape(collect({ a: 1 }).pad(3, 0), "keyed");
         });
     });
 
@@ -14939,6 +15050,12 @@ describe("Collection", () => {
                 "name",
                 "home",
             ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).add("x"), "list");
+            expectShape(outOfOrderKeys().add(1), "keyed");
         });
     });
 
@@ -20219,7 +20336,7 @@ describe("Collection", () => {
             const collection = collect(outOfOrder());
 
             // docs/php-parity/task-26-collection-order.json, "order-shift-two"
-            expect(collection.shift(2).all()).toEqual(["c", "a"]);
+            expect(collection.shift(2)?.all()).toEqual(["c", "a"]);
             expect(views(collection)).toEqual({
                 all: { 0: "b" },
                 values: ["b"],
@@ -20231,7 +20348,7 @@ describe("Collection", () => {
             const collection = collect(outOfOrder());
 
             // docs/php-parity/task-26-collection-order.json, "order-shift-past-the-end"
-            expect(collection.shift(5).all()).toEqual(["c", "a", "b"]);
+            expect(collection.shift(5)?.all()).toEqual(["c", "a", "b"]);
             expect(views(collection)).toEqual({
                 all: {},
                 values: [],
@@ -20782,7 +20899,8 @@ describe("Collection", () => {
         });
 
         it("offsetSet appends a new key last and updates an existing one in place", () => {
-            const added = collect(outOfOrder());
+            // offsetSet() takes the collection's own key type, so this one names the string key it will gain.
+            const added = new Collection<string, string | number>(outOfOrder());
             added.offsetSet("k", "z");
 
             // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key"
@@ -20841,7 +20959,12 @@ describe("Collection", () => {
         });
 
         it("offsetSet keeps a string key after the list's own keys", () => {
-            const collection = collect([1, 2]);
+            // offsetSet() takes the collection's own key type, so this one names the string key it will gain.
+            const collection = new Collection<
+                number,
+                string | number,
+                "list" | "keyed"
+            >([1, 2]);
             collection.offsetSet("x", 3);
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetSet-string-key-on-list"
@@ -21623,7 +21746,8 @@ describe("Collection", () => {
             const filtered = collection.filter((v) => v > 3);
             const values = filtered.values();
             expect(values).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(values.tag).toBe("my-tag");
+            // values() is typed as a base collection, since it may change the key type; the instance is the subclass.
+            expect(values).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through unique", () => {
@@ -21775,7 +21899,8 @@ describe("Collection", () => {
             );
             const padded = collection.pad(7, 0);
             expect(padded).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(padded.tag).toBe("my-tag");
+            // pad() is typed as a base collection, since it may widen the types; the instance is the subclass.
+            expect(padded).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type and extra state through groupBy, at every level", () => {
@@ -21960,7 +22085,7 @@ describe("Collection", () => {
 
             const twoFromArray = new Collection(nums());
             const twoFromObject = new Collection(numsObj());
-            agree(twoFromArray.shift(2).all(), twoFromObject.shift(2).all(), [
+            agree(twoFromArray.shift(2)?.all(), twoFromObject.shift(2)?.all(), [
                 ["0", 10],
                 ["1", 20],
             ]);
@@ -23856,14 +23981,18 @@ describe("Collection", () => {
                 const [listed, keys] = [list(), keyed()];
 
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-illegal-key"
-                expect(() => listed.put(key, 9)).toThrow(failure);
-                expect(() => keys.put(key, 9)).toThrow(failure);
-                expect(() => listed.offsetSet(key as PropertyKey, 9)).toThrow(
+                expect(() =>
+                    Reflect.apply(listed.put, listed, [key, 9]),
+                ).toThrow(failure);
+                expect(() => Reflect.apply(keys.put, keys, [key, 9])).toThrow(
                     failure,
                 );
-                expect(() => keys.offsetSet(key as PropertyKey, 9)).toThrow(
-                    failure,
-                );
+                expect(() =>
+                    Reflect.apply(listed.offsetSet, listed, [key, 9]),
+                ).toThrow(failure);
+                expect(() =>
+                    Reflect.apply(keys.offsetSet, keys, [key, 9]),
+                ).toThrow(failure);
                 expect([listed.all(), keys.all()]).toEqual([
                     ["a", "b"],
                     { a: 1, b: 2 },
@@ -23963,8 +24092,11 @@ describe("Collection", () => {
         it("throws array_key_exists()'s TypeError from pull()", () => {
             for (const [, key] of illegal) {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-illegal-key"
-                expect(() => list().pull(key as PathKey)).toThrow(keyExists);
-                expect(() => keyed().pull(key as PathKey)).toThrow(keyExists);
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.pull, collection, [key]),
+                    ).toThrow(keyExists);
+                }
             }
         });
     });

@@ -75,6 +75,7 @@ import type {
     PathKey,
     PathKeys,
     SortSpec,
+    UnionToIntersection,
 } from "@tolki/types";
 import {
     arrayKeyExistsError,
@@ -324,6 +325,75 @@ type FieldValues<TItems> = {
           ? never
           : TItems[TField];
 }[keyof TItems];
+
+/** A key looked up the way PHP's array_key_exists() looks one up, where null reads the "" key. */
+type LookupKey = PropertyKey | null | undefined;
+
+/**
+ * The shape a method that may drop keys leaves: a list reindexes and stays one, and a keyed result may lack keys.
+ * Each shape of a union maps on its own, since a collection that may be either shape may still be a list.
+ */
+type Removed<TShape extends CollectionShape> = TShape extends "list"
+    ? "list"
+    : "partial";
+
+/**
+ * The shape a keyed write leaves: a list stays one only while an integer key may land inside it, and a partial
+ * record stays partial, since the keys it lacked are still missing.
+ */
+type WrittenShape<
+    TShape extends CollectionShape,
+    TWrittenKey,
+> = TShape extends "list"
+    ? [TWrittenKey] extends [string]
+        ? "keyed"
+        : "list" | "keyed"
+    : TShape;
+
+/** A key forget() is sure to remove: one string or number literal, not a union of them nor a wide string or number. */
+type LoneKey<TKey> = [TKey] extends [UnionToIntersection<TKey>]
+    ? string extends TKey
+        ? never
+        : number extends TKey
+          ? never
+          : TKey
+    : never;
+
+/** Whether every key of a literal list is a lone key, so forget() is sure to remove each one. */
+type AllLoneKeys<TKeys extends readonly unknown[]> = TKeys extends readonly [
+    infer THead,
+    ...infer TRest,
+]
+    ? [LoneKey<THead>] extends [never]
+        ? false
+        : AllLoneKeys<TRest>
+    : true;
+
+/**
+ * The keys forget() is sure to remove, wrapped so that none is told apart from an unknown set: a lone key, or each key
+ * of a literal list of lone keys. Any other argument may remove any of its keys, or none, so it answers false.
+ */
+type SureKeys<TForgetKeys> = [TForgetKeys] extends [
+    infer TList extends readonly unknown[],
+]
+    ? number extends TList["length"]
+        ? false
+        : AllLoneKeys<TList> extends true
+          ? [TList[number]]
+          : false
+    : [LoneKey<TForgetKeys>] extends [never]
+      ? false
+      : [TForgetKeys];
+
+/** The key array_splice() leaves an entry under: an integer key is renumbered, a string key kept. */
+type SplicedKey<TKey extends PropertyKey> = TKey extends number ? number : TKey;
+
+/** What pop() or shift() answers for a count: the item for 1, a list of the items for another, either for a number. */
+type Taken<TValue, TCount extends number> = number extends TCount
+    ? TValue | Collection<TValue, number, "list"> | null
+    : TCount extends 1
+      ? TValue | null
+      : Collection<TValue, number, "list">;
 
 /**
  * Create a collection from the given value.
@@ -1254,9 +1324,10 @@ export class Collection<
      * Remove an item from the collection by key.
      *
      * Each key is unset literally, as offsetUnset does, so a dotted key never reaches a nested value.
+     * The receiver's variable keeps its declared type, removed keys included; the returned collection drops them.
      *
      * @param keys - The key or keys to remove, or a collection of keys
-     * @returns The collection instance after removing the specified keys
+     * @returns The collection instance after removing the specified keys, typed without the keys it names
      * @throws TypeError for an array, object or function key, once the keys before it are unset, as unset() refuses one
      *
      * @example
@@ -1269,9 +1340,18 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    forget<T extends PathKey, K extends PropertyKey = PropertyKey>(
-        keys: PathKeys | Collection<T, K, CollectionShape>,
-    ) {
+    forget<const TForgetKeys extends TKey | readonly TKey[]>(
+        keys: TForgetKeys,
+    ): SureKeys<TForgetKeys> extends [infer TRemoved]
+        ? Collection<TValue, Exclude<TKey, TRemoved>, TShape>
+        : Collection<TValue, TKey, Removed<TShape>>;
+    forget<
+        TForgetKey extends PathKey,
+        TKeysKey extends PropertyKey = PropertyKey,
+    >(
+        keys: PathKeys | Collection<TForgetKey, TKeysKey, CollectionShape>,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    forget(keys: unknown): unknown {
         const requested = Object.values(this.getRawItems(keys));
         // PHP unsets each key in turn, so the keys before one it cannot hold are gone when it throws.
         const illegal = requested.findIndex((key) => isIllegalOffset(key));
@@ -1320,8 +1400,13 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); -> 'default'
      * new Collection({a: {b: 1}}).get('a.b', 'default'); -> 'default'
      */
-    get<TGetDefault = null>(
-        key: PathKey,
+    get(key: LookupKey): TValue | null;
+    get<TGetDefault>(
+        key: LookupKey,
+        defaultValue: TGetDefault | (() => TGetDefault),
+    ): TValue | TGetDefault;
+    get<TGetDefault>(
+        key: LookupKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
     ): TValue | TGetDefault | null {
         const ownKey = this.existingKey(key);
@@ -1336,6 +1421,8 @@ export class Collection<
     /**
      * Get an item from the collection by key or add it to collection if it does not exist.
      *
+     * The receiver's variable keeps its declared type after a put, whatever value it holds.
+     *
      * @param key - The key to get or add
      * @param value - The value to add if the key does not exist, or a callback function that returns the value
      * @returns The value at the key or the newly added value
@@ -1348,7 +1435,7 @@ export class Collection<
      * new Collection([1, 2, 3]).getOrPut(3, () => 4); -> 4, collection is now [1, 2, 3, 4]
      */
     getOrPut<TGetOrPutValue>(
-        key: PathKey,
+        key: LookupKey,
         value: TGetOrPutValue | (() => TGetOrPutValue),
     ): TValue | TGetOrPutValue {
         const ownKey = this.existingKey(key);
@@ -1363,7 +1450,7 @@ export class Collection<
             value = value();
         }
 
-        this.offsetSet(key ?? null, value);
+        this.putKey(key, value);
 
         return value;
     }
@@ -1500,7 +1587,8 @@ export class Collection<
      *
      * Each key is looked up literally, as PHP's `array_key_exists` does, and a null key reads the `""` key.
      *
-     * @param keys - The keys to check for, as arguments or as one array given first, which ignores the rest
+     * @param key - The key to check for, or an array of keys, which ignores the keys after it
+     * @param keys - Further keys to check for
      * @returns True if all keys exist, false otherwise
      * @throws TypeError for an array, object or function key it reaches, as array_key_exists() refuses one
      *
@@ -1511,10 +1599,9 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
      * new Collection({a: {b: 1}}).has('a.b'); -> false
      */
-    has(...keys: PathKey[] | PathKeys[]): boolean {
-        const [key, ...rest] = keys;
+    has(key: LookupKey | readonly LookupKey[], ...keys: LookupKey[]): boolean {
         // PHP reads an array first argument as the whole key list, and any other call's arguments as its keys.
-        const list: readonly unknown[] = isArray(key) ? key : [key, ...rest];
+        const list: readonly unknown[] = isArray(key) ? key : [key, ...keys];
 
         return list.every((each) => !isUndefined(this.existingKey(each)));
     }
@@ -1524,7 +1611,8 @@ export class Collection<
      *
      * Each key is looked up literally, as PHP's `array_key_exists` does, and a null key reads the `""` key.
      *
-     * @param keys - The keys to check for, as arguments or as one array given first, which ignores the rest
+     * @param key - The key to check for, or an array of keys, which ignores the keys after it
+     * @param keys - Further keys to check for
      * @returns True if any key exists, false otherwise
      * @throws TypeError for an array, object or function key it reaches, as array_key_exists() refuses one
      *
@@ -1534,13 +1622,15 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['a', 'd']); -> true
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['d', 'e']); -> false
      */
-    hasAny(...keys: PathKey[] | PathKeys[]) {
+    hasAny(
+        key: LookupKey | readonly LookupKey[],
+        ...keys: LookupKey[]
+    ): boolean {
         if (this.isEmpty()) {
             return false;
         }
 
-        const [key, ...rest] = keys;
-        const list: readonly unknown[] = isArray(key) ? key : [key, ...rest];
+        const list: readonly unknown[] = isArray(key) ? key : [key, ...keys];
 
         return list.some((each) => !isUndefined(this.existingKey(each)));
     }
@@ -1919,19 +2009,19 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).keys(); -> new Collection(['a', 'b', 'c'])
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
-    keys(): Collection<TKey, number> {
+    keys(): Collection<TKey, number, "list"> {
         const ordered = this.orderedEntries();
 
         // If we have preserved order for numeric keys, use it
         if (ordered) {
-            return this.sameInstance(
+            return this.newInstance<TKey, number, "list">(
                 handOver(ordered.map(([key]) => key)),
-            ) as unknown as Collection<TKey, number>;
+            );
         }
 
-        return this.sameInstance(
-            handOver(dataKeys(this.items)),
-        ) as unknown as Collection<TKey, number>;
+        return this.newInstance<TKey, number, "list">(
+            handOver(dataKeys(this.items) as TKey[]),
+        );
     }
 
     /**
@@ -2369,23 +2459,24 @@ export class Collection<
     /**
      * Get and remove the last N items from the collection.
      *
+     * The receiver's variable keeps its declared type, removed keys included.
+     *
      * @param count - The number of items to pop; a fraction is dropped, and NAN pops every item
-     * @returns A new collection with the popped items
+     * @returns The last item, or null for an empty collection, for a count of 1; any other count gives a new
+     * collection of the popped items
      * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError
      *
      * @example
      *
+     * new Collection([1, 2, 3]).pop(); -> 3
      * new Collection([1, 2, 3]).pop(2); -> new Collection([3, 2])
      * new Collection({a: 1, b: 2, c: 3}).pop(2); -> new Collection([3, 2])
      */
     pop(): TValue | null;
-    pop(count: number): Collection<TValue[], number>;
-    pop(count: number = 1): TValue | null | Collection<TValue[], number> {
+    pop<TCount extends number>(count: TCount): Taken<TValue, TCount>;
+    pop(count: number = 1): unknown {
         if (count < 1) {
-            return this.sameInstance() as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">();
         }
 
         const ordered = this.orderedEntries();
@@ -2405,14 +2496,12 @@ export class Collection<
                 return removed[0] ?? null;
             }
 
-            return this.sameInstance(
-                handOver(removed),
-            ) as unknown as Collection<TValue[], number>;
+            return this.newInstance<TValue, number, "list">(handOver(removed));
         }
 
         if (count === 1) {
             if (isArray(this.items)) {
-                return (this.items as TValue[]).pop() ?? null;
+                return this.items.pop() ?? null;
             }
 
             // For objects, remove and return the last item
@@ -2430,21 +2519,18 @@ export class Collection<
         }
 
         if (this.isEmpty()) {
-            return this.sameInstance() as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">();
         }
 
         const poppedValues = dataPop(this.items, count) as TValue[];
 
-        return this.sameInstance(
-            handOver(poppedValues),
-        ) as unknown as Collection<TValue[], number>;
+        return this.newInstance<TValue, number, "list">(handOver(poppedValues));
     }
 
     /**
      * Push an item onto the beginning of the collection.
+     *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new item and key.
      *
      * @param value - The value to prepend
      * @param key - The key to prepend the value at, cast as PHP casts an array key (null files it under "");
@@ -2459,14 +2545,31 @@ export class Collection<
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
      */
-    prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
+    prepend<TPrependValue>(
+        value: TPrependValue,
+    ): Collection<TValue | TPrependValue, TKey | number, TShape>;
+    prepend<TPrependValue>(
+        value: TPrependValue,
+        key: null | undefined,
+    ): Collection<TValue | TPrependValue, TKey | "", WrittenShape<TShape, "">>;
+    prepend<TPrependValue, TPrependKey extends string | number>(
+        value: TPrependValue,
+        key: TPrependKey,
+    ): Collection<
+        TValue | TPrependValue,
+        TKey | MapArrayKey<TPrependKey>,
+        WrittenShape<TShape, MapArrayKey<TPrependKey>>
+    >;
+    prepend(value: unknown, key?: string | number | null): unknown {
         const ordered = this.orderedEntries();
+        // The item types widen at runtime; only the collection this returns carries the widened ones.
+        const item = value as TValue;
 
         if (arguments.length === 1) {
             if (ordered) {
-                this.unshiftOrdered(ordered, [value as unknown as TValue]);
+                this.unshiftOrdered(ordered, [item]);
             } else {
-                this.items = dataPrepend(this.items, value) as DataItems<
+                this.items = dataPrepend(this.items, item) as DataItems<
                     TValue,
                     TKey
                 >;
@@ -2479,7 +2582,7 @@ export class Collection<
         const ownKey = phpArrayKey(key ?? null);
         const prepended = ordered
             ? undefined
-            : (dataPrepend(this.items, value, key ?? null) as DataItems<
+            : (dataPrepend(this.items, item, key ?? null) as DataItems<
                   TValue,
                   TKey
               >);
@@ -2496,7 +2599,7 @@ export class Collection<
 
         this.setOrderedItems(
             [
-                [ownKey, value as unknown as TValue],
+                [ownKey, item],
                 ...this.entriesInOrder().filter(
                     ([existing]) => String(existing) !== String(ownKey),
                 ),
@@ -2510,6 +2613,8 @@ export class Collection<
     /**
      * Push one or more items onto the end of the collection.
      *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new items.
+     *
      * @param values - The values to push
      * @returns The collection instance for chaining
      *
@@ -2519,14 +2624,19 @@ export class Collection<
      * new Collection([1, 2]).push(3, 4, 5); -> new Collection([1, 2, 3, 4, 5])
      * new Collection({a: 1}).push(2); -> new Collection({a: 1, 0: 2})
      */
-    push<T>(...values: T[]) {
-        this.appendItems(values as unknown as TValue[]);
+    push<TPushValues extends unknown[]>(
+        ...values: TPushValues
+    ): Collection<TValue | TPushValues[number], TKey | number, TShape>;
+    push(...values: unknown[]): unknown {
+        this.appendItems(values);
 
         return this;
     }
 
     /**
      * Prepend one or more items to the beginning of the collection.
+     *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new items.
      *
      * @param values - The values to unshift
      * @returns The collection instance for chaining
@@ -2538,15 +2648,20 @@ export class Collection<
      * new Collection([4, 5, 6]).unshift(['a', 'b', 'c']); -> new Collection([['a', 'b', 'c'], 4, 5, 6])
      * new Collection({b: 2}).unshift({a: 1}); -> new Collection({0: {a: 1}, b: 2})
      */
-    unshift<T>(...values: T[]) {
+    unshift<TUnshiftValues extends unknown[]>(
+        ...values: TUnshiftValues
+    ): Collection<TValue | TUnshiftValues[number], TKey | number, TShape>;
+    unshift(...additions: unknown[]): unknown {
+        // The item types widen at runtime; only the collection this returns carries the widened ones.
+        const values = additions as TValue[];
         // Arrays stay on the built-in unshift, which keeps the undefined items Arr.unshift drops;
         // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
         const ordered = this.orderedEntries();
 
         if (isArray(this.items)) {
-            this.items.unshift(...(values as unknown as TValue[]));
+            this.items.unshift(...values);
         } else if (ordered) {
-            this.unshiftOrdered(ordered, values as unknown as TValue[]);
+            this.unshiftOrdered(ordered, values);
         } else {
             dataUnshift(this.items, ...values);
         }
@@ -2566,14 +2681,17 @@ export class Collection<
      * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
      * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
      */
-    concat<TOperand extends NonNullable<Operand>>(source: TOperand) {
+    concat<TOperand extends NonNullable<Operand>>(
+        source: TOperand,
+    ): Collection<TValue | OperandValue<TOperand>, TKey | number, TShape>;
+    concat(source: NonNullable<Operand>): unknown {
         // PHP's `new static($this)` copies the array, because an array is a value there.
         // A JS backing is a reference, so without a copy every `push` below would append
         // to this collection as well as to the result.
         const result = this.detachedCopy();
 
         result.appendItems(
-            this.operandEntries(source).map(([, value]) => value as TValue),
+            this.operandEntries(source).map(([, value]) => value),
         );
 
         return result;
@@ -2583,9 +2701,10 @@ export class Collection<
      * Get and remove an item from the collection.
      *
      * The key is read as `Arr::pull` reads it: a key the items hold first, even one with dots, then a dot path into
-     * the arrays, plain objects and collections they hold.
+     * the arrays, plain objects and collections they hold. Laravel's PHPDoc types a dot path's value like an item, and
+     * so does this; the receiver's variable keeps its declared type, removed keys included.
      *
-     * @param key - The key or dot path of the item to pull
+     * @param key - The key or dot path of the item to pull, or null for every item, which it leaves in place
      * @param defaultValue - The default value to return if the key does not exist, or a callback that returns it
      * @returns The value at the specified key, or the default value
      * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
@@ -2597,13 +2716,19 @@ export class Collection<
      * collection.pull('d', 0); -> 0
      * new Collection({a: {b: 1, c: 2}}).pull('a.b'); -> 1, collection is now {a: {c: 2}}
      */
+    pull(
+        key: null | undefined,
+        defaultValue?: unknown,
+    ): CollectionItems<TValue, TKey, TShape>;
+    pull(key: string | number): TValue | null;
     pull<TPullDefault>(
-        key: PathKey,
-        defaultValue?: TPullDefault | (() => TPullDefault),
-    ): TValue | TPullDefault | null {
+        key: string | number,
+        defaultValue: TPullDefault | (() => TPullDefault),
+    ): TValue | TPullDefault;
+    pull(key: PathKey, defaultValue?: unknown): unknown {
         // Arr::get answers the whole array for a null key, and Arr::forget removes nothing for one.
         if (isNull(key) || isUndefined(key)) {
-            return this.castToItems(this.items) as unknown as TValue;
+            return this.castToItems(this.items);
         }
 
         // Arr::exists checks a float key as its string form; the read and the unset that follow cast it to an integer.
@@ -2611,7 +2736,7 @@ export class Collection<
             const value = this.offsetGet(key);
             this.offsetUnset(key);
 
-            return value as TValue;
+            return value;
         }
 
         const [segment, ...path] = String(key).split(".");
@@ -2629,16 +2754,18 @@ export class Collection<
         );
 
         if (pulled !== item) {
-            this.putKey(itemKey, pulled as TValue);
+            this.putKey(itemKey, pulled);
         }
 
-        return value as TValue | TPullDefault | null;
+        return value;
     }
 
     /**
      * Put an item in the collection by key.
      *
-     * @param key - The key to set the value at
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new item and key.
+     *
+     * @param key - The key to set the value at, cast the way PHP casts an array key, or null to append
      * @param value - The value to set
      * @returns The collection instance for chaining
      * @throws TypeError for an array, object or function key, which no PHP array can hold
@@ -2649,8 +2776,20 @@ export class Collection<
      * new Collection({a: 1}).put('b', 2); -> new Collection({a: 1, b: 2})
      * new Collection([1, 2]).put(2, 3); -> new Collection([1, 2, 3])
      */
-    put<K, V>(key: K, value: V) {
-        this.offsetSet(key as TKey | null, value);
+    put<TPutValue>(
+        key: null | undefined,
+        value: TPutValue,
+    ): Collection<TValue | TPutValue, TKey | number, TShape>;
+    put<TPutValue, TPutKey extends string | number | boolean>(
+        key: TPutKey,
+        value: TPutValue,
+    ): Collection<
+        TValue | TPutValue,
+        TKey | MapArrayKey<TPutKey>,
+        WrittenShape<TShape, MapArrayKey<TPutKey>>
+    >;
+    put(key: unknown, value: unknown): unknown {
+        this.putKey(key, value);
 
         return this;
     }
@@ -2839,8 +2978,11 @@ export class Collection<
     /**
      * Get and remove the first N items from the collection.
      *
+     * Laravel checks for an empty collection before it reads the count, so one answers null whatever the count.
+     * The receiver's variable keeps its declared type, removed keys included.
+     *
      * @param count - The number of items to shift; a fraction is dropped, and NAN shifts every item
-     * @returns A new collection with the shifted items
+     * @returns The first item for a count of 1; any other count gives a new collection of the shifted items
      * @throws InvalidArgumentException when the count is negative, even for an empty collection
      * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError
      *
@@ -2849,13 +2991,14 @@ export class Collection<
      * new Collection([1, 2, 3]).shift(); -> 1
      * new Collection({a: 1, b: 2, c: 3}).shift(); -> 1
      * new Collection([]).shift(); -> null
+     * new Collection([]).shift(2); -> null
      * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
      * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection([1, 2])
      * new Collection([1, 2, 3]).shift(0); -> new Collection([])
      */
     shift(): TValue | null;
-    shift(count: number): Collection<TValue[], number>;
-    shift(count: number = 1): TValue | null | Collection<TValue[], number> {
+    shift<TCount extends number>(count: TCount): Taken<TValue, TCount> | null;
+    shift(count: number = 1): unknown {
         if (count < 0) {
             throw new InvalidArgumentException(
                 "Number of shifted items may not be less than zero.",
@@ -2867,10 +3010,7 @@ export class Collection<
         }
 
         if (count === 0) {
-            return this.sameInstance(handOver([])) as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">(handOver([]));
         }
 
         const ordered = this.orderedEntries();
@@ -2882,12 +3022,10 @@ export class Collection<
             this.setOrderedItems(ordered.slice(taken), true);
 
             if (count === 1) {
-                return removed[0] as TValue;
+                return removed[0];
             }
 
-            return this.sameInstance(
-                handOver(removed),
-            ) as unknown as Collection<TValue[], number>;
+            return this.newInstance<TValue, number, "list">(handOver(removed));
         }
 
         // Delegating keeps the object-backed branch on array_shift's
@@ -2895,12 +3033,12 @@ export class Collection<
         const shifted = dataShift(this.items, count);
 
         if (count === 1) {
-            return shifted as TValue;
+            return shifted;
         }
 
-        return this.sameInstance(
+        return this.newInstance<TValue, number, "list">(
             handOver(shifted as TValue[]),
-        ) as unknown as Collection<TValue[], number>;
+        );
     }
 
     /**
@@ -3624,6 +3762,8 @@ export class Collection<
     /**
      * Splice a portion of the underlying collection array.
      *
+     * The receiver's variable keeps its declared type, whatever the splice removes or inserts.
+     *
      * @param offset - The offset to start the splice; a fraction is dropped, as array_splice()'s int parameter drops it
      * @param length - The number of items to remove, a fraction dropped; null or none removes everything from the
      * offset on
@@ -3643,7 +3783,12 @@ export class Collection<
         offset: number,
         length?: number | null,
         replacement?: TOperand | TValue,
-    ) {
+    ): Collection<TValue, SplicedKey<TKey>, Removed<TShape>>;
+    splice(
+        offset: number,
+        length?: number | null,
+        replacement?: unknown,
+    ): unknown {
         // array_splice inserts the replacement's values in its own order, which a Map read as a record would lose.
         const values = isUndefined(replacement)
             ? []
@@ -3723,6 +3868,8 @@ export class Collection<
     /**
      * Transform each item in the collection using a callback.
      *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the callback's answers.
+     *
      * @param callback - The callback to transform each item
      * @returns The current collection with the transformed items
      *
@@ -3731,12 +3878,15 @@ export class Collection<
      * new Collection([1, 2, 3]).transform(x => x * 2); -> new Collection([2, 4, 6])
      * new Collection({a: 1, b: 2, c: 3}).transform((value, key) => value + key); -> new Collection({a: '1a', b: '2b', c: '3c'})
      */
-    transform<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
+    transform<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue, TKey, TShape>;
+    transform(callback: (value: TValue, key: TKey) => unknown): unknown {
         if (this.itemsWithOrder) {
             this.setOrderedItems(
                 this.itemsWithOrder.map(([key, value]) => [
                     key,
-                    callback(value, key) as unknown as TValue,
+                    callback(value, key) as TValue,
                 ]),
                 false,
             );
@@ -3872,17 +4022,19 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
      * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
-    values() {
+    values(): Collection<TValue, number, "list"> {
         // Use the ordered entries when available to preserve numeric key insertion order
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.sameInstance(
+            return this.newInstance<TValue, number, "list">(
                 handOver(ordered.map(([, value]) => value)),
             );
         }
 
-        return this.sameInstance(handOver(dataValues(this.items)));
+        return this.newInstance<TValue, number, "list">(
+            handOver(dataValues(this.items) as TValue[]),
+        );
     }
 
     /**
@@ -3948,7 +4100,11 @@ export class Collection<
      *
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
      */
-    pad<TPadValue>(size: number, value: TPadValue) {
+    pad<TPadValue>(
+        size: number,
+        value: TPadValue,
+    ): Collection<TValue | TPadValue, TKey | number, TShape>;
+    pad(size: number, value: unknown): unknown {
         const length = resolvePadLength(size);
         const ordered = this.orderedEntries();
 
@@ -4080,6 +4236,7 @@ export class Collection<
      * Add an item to the collection.
      *
      * The item lands where PHP's `$array[] =` puts it: past the highest integer key.
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new item.
      *
      * @param item - The item to add to the collection
      * @returns The current collection with the item added
@@ -4090,8 +4247,11 @@ export class Collection<
      * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '0': 3}
      * new Collection({5: 'a'}).add('z'); -> collection is now {5: 'a', 6: 'z'}
      */
-    add<T>(item: T) {
-        this.putKey(null, item as unknown as TValue);
+    add<TAddValue>(
+        item: TAddValue,
+    ): Collection<TValue | TAddValue, TKey | number, TShape>;
+    add(item: unknown): unknown {
+        this.putKey(null, item);
 
         return this;
     }
@@ -4113,7 +4273,7 @@ export class Collection<
     /**
      * Determine if an item exists at an offset.
      *
-     * @param offset - The offset to check for existence
+     * @param key - The offset to check for existence
      * @returns True if an item exists at the offset, false otherwise
      * @throws TypeError for an array, object or function key, as isset() refuses one
      *
@@ -4137,7 +4297,7 @@ export class Collection<
     /**
      * Get an item at a given offset.
      *
-     * @param offset - The offset to get the item from
+     * @param key - The offset to get the item from
      * @returns The item at the given offset, or undefined if not found
      * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
@@ -4148,7 +4308,7 @@ export class Collection<
      * new Collection({a: 1, b: 2}).offsetGet('a'); -> 1
      * new Collection({a: 1, b: 2}).offsetGet('c'); -> undefined
      */
-    offsetGet(key: PropertyKey) {
+    offsetGet(key: PropertyKey): TValue | undefined {
         if (isIllegalOffset(key)) {
             throw accessOffset(phpDebugType(key));
         }
@@ -4165,7 +4325,10 @@ export class Collection<
     /**
      * Set the item at a given offset.
      *
-     * @param offset - The offset to set the item at, or null to append
+     * It returns no collection to carry a wider type, so it takes the collection's own key and value; put() takes any.
+     * The receiver's variable keeps its declared type, though an index past a list's end makes the list keyed.
+     *
+     * @param key - The offset to set the item at, or null to append
      * @param value - The item to set at the given offset
      * @returns Void
      * @throws TypeError for an array, object or function key, which no PHP array can hold
@@ -4178,21 +4341,18 @@ export class Collection<
      *
      * const objCollection = new Collection({a: 1, b: 2});
      * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '0': 3}
-     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
+     * objCollection.offsetSet('b', 4); -> collection is now {a: 1, b: 4, '0': 3}
      */
-    offsetSet(key: PropertyKey | null, value: TValue | unknown) {
-        if (isIllegalOffset(key)) {
-            throw accessOffset(phpDebugType(key));
-        }
-
-        // A null or undefined offset appends, as PHP's `$items[] = $value` does.
-        this.putKey(key ?? null, value as TValue);
+    offsetSet(key: TKey | null | undefined, value: TValue): void {
+        this.putKey(key, value);
     }
 
     /**
      * Unset the item at a given offset.
      *
-     * @param offset - The offset to unset the item at
+     * The receiver's variable keeps its declared type, the removed key included.
+     *
+     * @param key - The offset to unset the item at
      * @returns Void
      * @throws TypeError for an array, object or function key, as unset() refuses one
      *
@@ -4204,7 +4364,7 @@ export class Collection<
      * const objCollection = new Collection({a: 1, b: 2, c: 3});
      * objCollection.offsetUnset('b'); -> collection is now {a: 1, c: 3}
      */
-    offsetUnset(key: PropertyKey) {
+    offsetUnset(key: PropertyKey): void {
         if (isIllegalOffset(key)) {
             throw unsetOffset(phpDebugType(key));
         }
@@ -5985,7 +6145,8 @@ export class Collection<
     /**
      * Create a new instance of the collection.
      *
-     * @param items - The new instance's items, which the method that built them hands over
+     * @param items - The new instance's items, which the method that built them hands over; a Map carries an order a
+     * record cannot, and none makes an empty collection
      * @returns A new instance of this collection's class, typed by the value, key and shape its caller names
      */
     protected newInstance<
@@ -5993,7 +6154,7 @@ export class Collection<
         TNewKey extends PropertyKey,
         TNewShape extends CollectionShape,
     >(
-        items: DataItems<TNewValue, TNewKey>,
+        items?: DataItems<TNewValue, TNewKey> | ReadonlyMap<TNewKey, TNewValue>,
     ): Collection<TNewValue, TNewKey, TNewShape> {
         const Static = this.constructor as CollectionClass<
             TNewValue,
@@ -6431,14 +6592,22 @@ export class Collection<
      *
      * @param key - The key to write, cast as PHP casts an array key, or null to append past the highest integer key
      * @param value - The value to store under the key
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      */
-    protected putKey(key: PropertyKey | null, value: TValue): void {
-        if (isNull(key)) {
+    protected putKey(key: unknown, value: unknown): void {
+        if (isIllegalOffset(key)) {
+            throw accessOffset(phpDebugType(key));
+        }
+
+        // A null or undefined offset appends, as PHP's `$items[] = $value` does.
+        if (isNull(key) || isUndefined(key)) {
             this.appendItems([value]);
 
             return;
         }
 
+        // The item types widen at runtime; only the collection a writer returns carries the widened ones.
+        const item = value as TValue;
         const phpKey = phpArrayKey(key);
 
         if (isArray(this.items)) {
@@ -6448,20 +6617,20 @@ export class Collection<
                 phpKey >= 0 &&
                 phpKey <= this.items.length
             ) {
-                this.items[phpKey] = value;
+                this.items[phpKey] = item;
 
                 return;
             }
 
             // Only the indexes the list owns carry over, so a hole gains no undefined item.
             const items = Object.fromEntries(Object.entries(this.items));
-            defineKey(items, phpKey, value);
+            defineKey(items, phpKey, item);
             this.items = items as Record<TKey, TValue>;
 
             return;
         }
 
-        defineKey(this.items as Record<string, TValue>, phpKey, value);
+        defineKey(this.items as Record<string, TValue>, phpKey, item);
 
         if (this.itemsWithOrder) {
             this.reorderAfterMutation(this.itemsWithOrder);
@@ -6471,12 +6640,15 @@ export class Collection<
     /**
      * Append values past the highest integer key, as PHP's `$items[] = $value` does for each in turn.
      *
-     * @param values - The values to append, in order
+     * @param additions - The values to append, in order
      */
-    protected appendItems(values: readonly TValue[]): void {
-        if (values.length === 0) {
+    protected appendItems(additions: readonly unknown[]): void {
+        if (additions.length === 0) {
             return;
         }
+
+        // The item types widen at runtime; only the collection a writer returns carries the widened ones.
+        const values = additions as readonly TValue[];
 
         if (isArray(this.items)) {
             for (const value of values) {
