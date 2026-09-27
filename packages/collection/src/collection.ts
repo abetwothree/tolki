@@ -340,8 +340,8 @@ type OperandKey<TOperand> = OperandParts<TOperand>[1];
 type OperandShape<TOperand> = OperandParts<TOperand>[2];
 
 /**
- * The values, keys and shape castToItems() reads: none from null, a list's, an object's own fields, else the value.
- * An answer typed unknown may be any of these, so its keys and shape are unknown too.
+ * What castToItems() reads, in OperandParts' form: none from null, a list's items, an object's own fields, else the
+ * value itself. An answer typed unknown may be any of these, so its keys and shape are unknown too.
  */
 type CastParts<TItems> = unknown extends TItems
     ? [TItems, string | number, "list" | "keyed", false]
