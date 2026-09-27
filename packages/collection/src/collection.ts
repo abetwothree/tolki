@@ -4423,6 +4423,11 @@ export class Collection<
     ): Collection<TTimesValue, number, "list">;
     static times<TTimesValue>(
         count: number,
+        callback: ((count: number) => TTimesValue) | null | undefined,
+        ...args: unknown[]
+    ): Collection<number | TTimesValue, number, "list">;
+    static times<TTimesValue>(
+        count: number,
         callback: ((count: number) => TTimesValue) | null = null,
         ...args: unknown[]
     ): unknown {

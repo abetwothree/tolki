@@ -54,6 +54,7 @@ declare const keyedOrNull: Collection<number, "a", "keyed"> | null;
 declare const mapOrNull: Map<string, number> | null;
 declare const maybeTagged: Tagged | null;
 declare const anything: unknown;
+declare const maybeCallback: ((count: number) => string) | null;
 
 describe("collection foundation type tests", () => {
     describe("collect", () => {
@@ -686,6 +687,12 @@ describe("collection foundation type tests", () => {
         it("lists what the callback answers", () => {
             expectTypeOf(Collection.times(3, String)).toEqualTypeOf<
                 Collection<string, number, "list">
+            >();
+        });
+
+        it("lists the counts or the callback's answers for a callback that may be null", () => {
+            expectTypeOf(Collection.times(3, maybeCallback)).toEqualTypeOf<
+                Collection<number | string, number, "list">
             >();
         });
 
