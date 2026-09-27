@@ -1228,6 +1228,19 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ 0: "a", 1: "c", k: "b" });
         });
+
+        it("joins lists into a list and records into a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([[1], [2]]).collapse(), "list");
+            expectShape(collect({ a: [1], b: [2] }).collapse(), "list");
+            expectShape(
+                collect([collect([1]), collect([2])]).collapse(),
+                "list",
+            );
+            expectShape(collect([{ a: 1 }, { b: 2 }]).collapse(), "keyed");
+            // An empty collection gives a list, whatever its items would hold.
+            expectShape(collect<{ a: number }>([]).collapse(), "list");
+        });
     });
 
     describe("collapseWithKeys", () => {
@@ -1398,6 +1411,18 @@ describe("Collection", () => {
                     (result as { isAdmin?: unknown }).isAdmin,
                 ).toBeUndefined();
             });
+        });
+
+        it("keeps lists a list and records a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([[1], [2]]).collapseWithKeys(), "list");
+            expectShape(collect({ a: [1], b: [2] }).collapseWithKeys(), "list");
+            expectShape(
+                collect([{ 0: "a" }, { 1: "b" }]).collapseWithKeys(),
+                "keyed",
+            );
+            // An empty collection gives a list, whatever its items would hold.
+            expectShape(collect<{ a: number }>([]).collapseWithKeys(), "list");
         });
     });
 
@@ -3354,6 +3379,12 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([[1], [2]]).flatten(), "list");
+            expectShape(collect({ a: [1], b: 2 }).flatten(1), "list");
+        });
     });
 
     describe("flip", () => {
@@ -3397,6 +3428,12 @@ describe("Collection", () => {
                 taylor: "string",
                 1: "integer",
             });
+        });
+
+        it("builds a keyed result, even under the keys 0..n-1, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([0, 1]).flip(), "keyed");
+            expectShape(collect({ a: "x" }).flip(), "keyed");
         });
     });
 
@@ -4205,6 +4242,25 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds keyed groups, each a list unless it keeps keys a list cannot hold, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const grouped = collect([{ id: 0 }, { id: 1 }]).groupBy("id");
+            const preserved = collect(["a", "b"]).groupBy(
+                (value) => value,
+                true,
+            );
+
+            expectShape(grouped, "keyed");
+            grouped.each((group) => expectShape(group, "list"));
+            // The group holding key 0 alone keeps a list's keys; the one holding key 1 alone cannot.
+            preserved.each((group, key) =>
+                expectShape(group, key === "a" ? "list" : "keyed"),
+            );
+            collect({ a: 1 })
+                .groupBy(() => "g", true)
+                .each((group) => expectShape(group, "keyed"));
+        });
     });
 
     describe("keyBy", () => {
@@ -4411,6 +4467,13 @@ describe("Collection", () => {
                 .keyBy(() => sym)
                 .all() as Record<symbol, unknown>;
             expect(result[sym]).toEqual({ v: 1 });
+        });
+
+        it("builds a keyed result, even under the keys 0..n-1, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ id: 0 }, { id: 1 }]).keyBy("id"), "keyed");
+            expectShape(collect({ a: { id: 1 } }).keyBy("id"), "keyed");
+            expectShape(collect<{ id: number }>([]).keyBy("id"), "keyed");
         });
     });
 
@@ -6288,6 +6351,23 @@ describe("Collection", () => {
                 expect(rows.pluck("n").all()).toEqual(["c", "a", "b"]);
             },
         );
+
+        it("lists the values without a key and keys them with one, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ id: 0, name: "a" }]).pluck("name"), "list");
+            expectShape(
+                collect({ x: { id: 0, name: "a" } }).pluck("name"),
+                "list",
+            );
+            expectShape(
+                collect([{ id: 0, name: "a" }]).pluck("name", "id"),
+                "keyed",
+            );
+            expectShape(
+                collect({ x: { id: 1, name: "a" } }).pluck("name", "id"),
+                "keyed",
+            );
+        });
     });
 
     describe("map", () => {
@@ -6335,6 +6415,18 @@ describe("Collection", () => {
                 expect(mapped.values().all()).toEqual(["c!2", "a!0", "b!1"]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).map((value) => value * 2),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).map((value) => value * 2),
+                "keyed",
+            );
+        });
     });
 
     describe("mapToDictionary", () => {
@@ -6436,6 +6528,21 @@ describe("Collection", () => {
             expect(dictionary.all()).toEqual({ "": [false, false] });
             expect(dictionary.keys().all()).toEqual([""]);
             expect(dictionary.values().all()).toEqual([[false, false]]);
+        });
+
+        it("builds a keyed dictionary of lists, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const dictionary = collect([1, 2]).mapToDictionary(
+                (value, key) => ({ [key]: value }),
+            );
+
+            expectShape(dictionary, "keyed");
+            expectShape(
+                collect({ a: 1 }).mapToDictionary((value, key) => ({
+                    [key]: value,
+                })),
+                "keyed",
+            );
         });
     });
 
@@ -6599,6 +6706,26 @@ describe("Collection", () => {
             }));
             expect(fromObject.all()).not.toBeInstanceOf(Map);
             expect(fromObject.all()).toEqual({ 1: 1, 2: 2 });
+        });
+
+        it("builds a keyed result from a list or a keyed collection, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).mapWithKeys((value, key) => ({ [key]: value })),
+                "keyed",
+            );
+            expectShape(
+                collect({ a: 1 }).mapWithKeys((value, key) => ({
+                    [key]: value,
+                })),
+                "keyed",
+            );
+            expectShape(
+                collect<number>([]).mapWithKeys((value) => ({
+                    [value]: value,
+                })),
+                "keyed",
+            );
         });
     });
 
@@ -14293,6 +14420,12 @@ describe("Collection", () => {
                 expect(dotted.values().all()).toEqual(["c", "a", "b"]);
             },
         );
+
+        it("always builds a keyed result, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect(["a", "b"]).dot(), "keyed");
+            expectShape(collect({ a: { b: 1 } }).dot(), "keyed");
+        });
     });
 
     describe("undot", () => {
@@ -14369,6 +14502,13 @@ describe("Collection", () => {
                 expect(undotted.values().all()).toEqual(["c", "a", "b"]);
             },
         );
+
+        it("keeps a list a list and expands a keyed one into a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect(["a", "b"]).undot(), "list");
+            expectShape(collect({ "a.b": 1 }).undot(), "keyed");
+            expectShape(collect({ "0.a": 1, "1.b": 2 }).undot(), "keyed");
+        });
     });
 
     describe("unique", () => {
@@ -15087,6 +15227,12 @@ describe("Collection", () => {
                 "": 2,
                 a: 1,
             });
+        });
+
+        it("builds a keyed result, even under the keys 0..n-1, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([0, 1, 1]).countBy(), "keyed");
+            expectShape(collect({ a: 1 }).countBy(), "keyed");
         });
     });
 
@@ -16126,6 +16272,18 @@ describe("Collection", () => {
                 expect(keys).toEqual([2, 0, 1]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).each(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).each(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("eachSpread", () => {
@@ -16255,6 +16413,18 @@ describe("Collection", () => {
                 seen.push(vals);
             });
             expect(seen).toEqual([]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([[1, 2]]).eachSpread(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ x: [1, 2] }).eachSpread(() => undefined),
+                "keyed",
+            );
         });
     });
 
@@ -16961,6 +17131,18 @@ describe("Collection", () => {
                 expect(mapped.values().all()).toEqual(["c12", "a20", "b31"]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([[1, 2]]).mapSpread((first, second) => first + second),
+                "list",
+            );
+            expectShape(
+                collect({ x: [1, 2] }).mapSpread((first) => first),
+                "keyed",
+            );
+        });
     });
 
     describe("mapToGroups", () => {
@@ -16998,6 +17180,22 @@ describe("Collection", () => {
                 });
                 expect(data.all()).toEqual([1, 2, 3, 2, 1]);
             });
+        });
+
+        it("builds keyed groups, each a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const groups = collect([1, 2, 3]).mapToGroups((value) => ({
+                [value % 2]: value,
+            }));
+
+            expectShape(groups, "keyed");
+            groups.each((group) => expectShape(group, "list"));
+            expectShape(
+                collect({ a: 1 }).mapToGroups((value, key) => ({
+                    [key]: value,
+                })),
+                "keyed",
+            );
         });
     });
 
@@ -17039,6 +17237,29 @@ describe("Collection", () => {
             expect(flattened.all()).toEqual([1, 10, 2, 20]);
             expect(flattened.keys().all()).toEqual([0, 1, 2, 3]);
             expect(flattened.values().all()).toEqual([1, 10, 2, 20]);
+        });
+
+        it("joins lists into a list and records into a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).flatMap((value) => [value, value]),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).flatMap((value) => [value]),
+                "list",
+            );
+            expectShape(
+                collect([1, 2]).flatMap((value) => ({ [`k${value}`]: value })),
+                "keyed",
+            );
+            // An empty collection gives a list, whatever its callback would return.
+            expectShape(
+                collect<number>([]).flatMap((value) => ({
+                    [`k${value}`]: value,
+                })),
+                "list",
+            );
         });
     });
 
@@ -17116,6 +17337,16 @@ describe("Collection", () => {
             expect(keyed.all()).toEqual({ x: ["first", "x"] });
             expect(keyed.keys().all()).toEqual(["x"]);
             expect(keyed.values().all()).toEqual([["first", "x"]]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            class Wrapper {
+                constructor(readonly value: number) {}
+            }
+
+            expectShape(collect([1, 2]).mapInto(Wrapper), "list");
+            expectShape(collect({ a: 1 }).mapInto(Wrapper), "keyed");
         });
     });
 
@@ -22030,7 +22261,9 @@ describe("Collection", () => {
             );
             const mapped = collection.map((v) => v * 2);
             expect(mapped).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(mapped.tag).toBe("my-tag");
+            expect(
+                (mapped as unknown as TestCollectionWithExtraState).tag,
+            ).toBe("my-tag");
             expect(mapped.all()).toEqual([2, 4, 6, 8, 10]);
         });
 
@@ -22185,7 +22418,9 @@ describe("Collection", () => {
             );
             const flat = nested.flatten();
             expect(flat).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(flat.tag).toBe("f-tag");
+            expect((flat as unknown as TestCollectionWithExtraState).tag).toBe(
+                "f-tag",
+            );
         });
 
         it("preserves subclass type through pad", () => {
@@ -24941,7 +25176,7 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
                 new Collection(JSON.parse('{"__proto__":{"k":"z"}}'))
                     .groupBy("k", true)
                     .get("z")
-                    .all(),
+                    ?.all(),
         ],
         [
             "groupBy (nested)",

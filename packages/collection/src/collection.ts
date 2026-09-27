@@ -63,21 +63,27 @@ import {
     resolvePluckPath,
 } from "@tolki/path";
 import type {
-    ArrayItems,
     CaseValue,
     DataItems,
     DataIterableItems,
+    FlattenItemReach,
+    FlattenReach,
     Jsonable,
     JsonSerializable,
     MapArrayKey,
     NonNullableArray,
+    NonObjectItems,
+    ObjectFlatValue,
     ObjectKey,
     ObjectValue,
     PathKey,
     PathKeys,
+    PhpArrayKey,
     PluckValue,
     SortSpec,
+    SpreadArgs,
     TruthyArray,
+    UndotObjectValue,
     UnionToIntersection,
 } from "@tolki/types";
 import {
@@ -479,6 +485,165 @@ type Taken<TValue, TCount extends number> = number extends TCount
       ? TValue | null
       : Collection<TValue, number, "list">;
 
+/** The members of a key type that each name one key: a literal, where a wide, patterned or branded one names many. */
+type NamingKeys<TKey> = TKey extends unknown
+    ? Record<never, never> extends Record<TKey & PropertyKey, unknown>
+        ? never
+        : TKey
+    : never;
+
+/**
+ * The shape of a keyed result whose keys come from the items. A literal key may be one no item gave, so the result
+ * may lack it; a wide key names none.
+ */
+type ItemKeyedShape<TKey> = [NamingKeys<TKey>] extends [never]
+    ? "keyed"
+    : "partial";
+
+/** The key flip() files a value under: array_flip() takes only a string or an integer. */
+type FlipKey<TValue> = unknown extends TValue
+    ? string | number
+    : PhpArrayKey<Extract<TValue, string | number>>;
+
+/** The key groupBy() files an item under: each member of a list the grouping gives, else the grouping itself. */
+type GroupKey<TGroupKey> = TGroupKey extends readonly (infer TMember)[]
+    ? MapArrayKey<TMember>
+    : MapArrayKey<TGroupKey>;
+
+/** The keys each group holds: the items' own when they are preserved, else a list's. */
+type GroupedKey<TKey, TPreserve> = TPreserve extends true ? TKey : number;
+
+/**
+ * The shape of each group: a list, or with the items' keys preserved, a record of some of them. A list's items stay a
+ * list only while their keys run 0..n-1.
+ */
+type GroupedShape<
+    TShape extends CollectionShape,
+    TPreserve,
+> = TPreserve extends true
+    ? TShape extends "list"
+        ? "list" | "partial"
+        : "partial"
+    : "list";
+
+/** Items collapse() and collapseWithKeys() skip, as Arr::collapse skips any object that is no array. */
+type SkippedItem =
+    | Exclude<NonObjectItems, readonly unknown[]>
+    | Date
+    | RegExp
+    | Promise<unknown>;
+
+/**
+ * The values one item hands collapse(): a list's or a collection's items, or an object's values; any other item none.
+ * A collection is read through toBase(), whose base-class return stays inferable from a subclass.
+ */
+type CollapseValue<TItem> = unknown extends TItem
+    ? unknown
+    : TItem extends readonly (infer TListValue)[]
+      ? TListValue
+      : TItem extends {
+              toBase(): Collection<
+                  infer TItemValue,
+                  infer _TItemKey,
+                  infer _TItemShape
+              >;
+          }
+        ? TItemValue
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? ObjectValue<TItem>
+            : never;
+
+/**
+ * Whether one item may make collapse()'s result a record: an object, which array_merge() merges key by key, or a
+ * collection holding a string key. A list's keys and a collection's integer keys are renumbered into a list.
+ */
+type MergesKeyed<TItem> = unknown extends TItem
+    ? true
+    : TItem extends readonly unknown[]
+      ? never
+      : TItem extends {
+              toBase(): Collection<
+                  infer _TItemValue,
+                  infer TItemKey,
+                  infer _TItemShape
+              >;
+          }
+        ? [Exclude<TItemKey, number>] extends [never]
+            ? never
+            : true
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? true
+            : never;
+
+/** The keys collapse() gives: a list's, unless an item may make the result a record. */
+type CollapseKey<TItem> = [MergesKeyed<TItem>] extends [never]
+    ? number
+    : string | number;
+
+/** The shape collapse() gives: a list, unless an item may make a record, and an empty collection still gives one. */
+type CollapseShape<TItem> = [MergesKeyed<TItem>] extends [never]
+    ? "list"
+    : "list" | "keyed";
+
+/** The keys one item hands collapseWithKeys(), which array_replace() keeps: a list's, a collection's or an object's. */
+type CollapseWithKeysKey<TItem> = unknown extends TItem
+    ? string | number
+    : TItem extends readonly unknown[]
+      ? number
+      : TItem extends {
+              toBase(): Collection<
+                  infer _TItemValue,
+                  infer TItemKey,
+                  infer _TItemShape
+              >;
+          }
+        ? TItemKey
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? ObjectKey<TItem>
+            : never;
+
+/** Whether one item may make collapseWithKeys()' result a record: any item but a list or a collection holding one. */
+type ReplacesKeyed<TItem> = unknown extends TItem
+    ? true
+    : TItem extends readonly unknown[]
+      ? never
+      : TItem extends {
+              toBase(): Collection<
+                  infer _TItemValue,
+                  infer _TItemKey,
+                  infer TItemShape
+              >;
+          }
+        ? [Exclude<TItemShape, "list">] extends [never]
+            ? never
+            : true
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? true
+            : never;
+
+/**
+ * The shape collapseWithKeys() gives: a list, unless an item may be a record, whose keys another item may lack, and an
+ * empty collection still gives a list.
+ */
+type CollapseWithKeysShape<TItem> = [ReplacesKeyed<TItem>] extends [never]
+    ? "list"
+    : "list" | "partial";
+
+/** A row as mapSpread() and eachSpread() hand it on: a list's or a collection's items spread, any other row whole. */
+type SpreadRow<TRow> = unknown extends TRow
+    ? TRow
+    : TRow extends readonly unknown[] | { all: (...args: never[]) => unknown }
+      ? TRow
+      : [TRow];
+
 /**
  * Create a collection from the given value.
  *
@@ -686,10 +851,12 @@ export class Collection<
      * new Collection([{a: {b: 1}}, {a: {b: 9}}, {a: {b: 5}}]).median(['a', 'b']); -> 5
      */
     median(key: PropertyKey | readonly PathKey[] | null = null): TValue | null {
-        // pluck() reads an array of segments as a path, though its declared key type lists none. One declared type
-        // lets reject() be called, which TypeScript refuses on a union of two collection types.
+        // median() answers what a key reads as an item, which pluck() types as unknown. One declared type lets
+        // reject() be called, which TypeScript refuses on a union of two collection types.
         const source: Collection<TValue, TKey, CollectionShape> = !isNull(key)
-            ? this.pluck(key as PropertyKey)
+            ? (this.pluck(
+                  key as PathKey | readonly PathKey[],
+              ) as unknown as Collection<TValue, TKey, CollectionShape>)
             : this;
         const values = source
             // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
@@ -731,7 +898,9 @@ export class Collection<
      * new Collection([null, null]).mode(); -> null
      */
     mode(key: PropertyKey | null = null): Array<string | number> | null {
-        const values = isNull(key) ? this.values() : this.values().pluck(key);
+        const values = isNull(key)
+            ? this.values()
+            : this.values().pluck(key as PathKey);
         const counts = new Map<string | number, number>();
 
         values.each((value) => {
@@ -770,28 +939,39 @@ export class Collection<
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
      * new Collection({a: [1, 2], b: [3]}).collapse(); -> new Collection([1, 2, 3])
      */
-    collapse() {
+    collapse(): Collection<
+        CollapseValue<TValue>,
+        CollapseKey<TValue>,
+        CollapseShape<TValue>
+    >;
+    collapse(): unknown {
         // Arr::collapse merges the items alone, so the receiver's own keys never shape the result.
         const items = this.orderedValues().map((item) =>
             item instanceof Collection ? item.renumberedItems() : item,
         );
 
-        return this.sameInstance(handOver(dataCollapse(items)));
+        return this.newInstance(handOver(dataCollapse(items)));
     }
 
     /**
      * Collapse the collection of items into a single array while preserving its keys.
      *
-     * @returns A new collection with collapsed items, a later item's key replacing an earlier one's
+     * @returns A new collection with collapsed items, a later item's key replacing an earlier one's: a list when every
+     * item is a list
      *
      * @example
      *
      * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
      */
-    collapseWithKeys() {
+    collapseWithKeys(): Collection<
+        CollapseValue<TValue>,
+        CollapseWithKeysKey<TValue>,
+        CollapseWithKeysShape<TValue>
+    >;
+    collapseWithKeys(): unknown {
         if (this.isEmpty()) {
-            return this.sameInstance();
+            return this.newInstance();
         }
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
@@ -812,7 +992,7 @@ export class Collection<
         const validResults = results.filter((item) => item !== null);
 
         if (validResults.length === 0) {
-            return this.sameInstance();
+            return this.newInstance();
         }
 
         // Check if all valid results are arrays
@@ -837,10 +1017,10 @@ export class Collection<
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
         if (allArrays) {
-            return this.sameInstance(handOver([...merged.values()]));
+            return this.newInstance(handOver([...merged.values()]));
         }
 
-        return this.sameInstance(merged);
+        return this.newInstance(merged);
     }
 
     /**
@@ -1450,7 +1630,8 @@ export class Collection<
      * are flattened too; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
-     * @returns A new collection with flattened items (always array-based)
+     * @returns A new collection with flattened items (always array-based); with a depth, an item may leave any value
+     * below it
      *
      * @example
      *
@@ -1459,9 +1640,13 @@ export class Collection<
      * new Collection({a: [1, 2], b: [3, 4]}).flatten(); -> new Collection([1, 2, 3, 4])
      * new Collection({a: [1, [2, 3]], b: [4]}).flatten(1); -> new Collection([1, [2, 3], 4])
      */
-    flatten(depth: number = Infinity) {
+    flatten(): Collection<ObjectFlatValue<TValue>, number, "list">;
+    flatten(
+        depth?: number,
+    ): Collection<FlattenItemReach<TValue>, number, "list">;
+    flatten(depth: number = Infinity): unknown {
         // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
-        return this.sameInstance(handOver(dataFlatten(this.items, depth)));
+        return this.newInstance(handOver(dataFlatten(this.items, depth)));
     }
 
     /**
@@ -1474,7 +1659,8 @@ export class Collection<
      * new Collection(['a', 'b', 'c']).flip(); -> new Collection({a: 0, b: 1, c: 2})
      * new Collection({name: 'taylor'}).flip(); -> new Collection({taylor: 'name'})
      */
-    flip() {
+    flip(): Collection<TKey, FlipKey<TValue>, ItemKeyedShape<FlipKey<TValue>>>;
+    flip(): unknown {
         const flipped = new Map<string | number, TKey>();
 
         for (const [key, value] of this.entriesInOrder()) {
@@ -1484,7 +1670,7 @@ export class Collection<
             }
         }
 
-        return this.sameInstance(flipped);
+        return this.newInstance(flipped);
     }
 
     /**
@@ -1630,39 +1816,101 @@ export class Collection<
      * @param preserveKeys - Whether to preserve the original keys in the grouped collections
      * @returns A new collection of the groups, each a collection of its items, at every level
      */
-    groupBy<TGroupKey extends PropertyKey = PropertyKey>(
+    groupBy<TGroupKey, TPreserve extends boolean = false>(
+        groupByValue: (value: TValue, key: TKey) => TGroupKey,
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            GroupedKey<TKey, TPreserve>,
+            GroupedShape<TShape, TPreserve>
+        >,
+        GroupKey<TGroupKey>,
+        ItemKeyedShape<GroupKey<TGroupKey>>
+    >;
+    groupBy<
+        const TPath extends string | number,
+        TPreserve extends boolean = false,
+    >(
+        groupByValue: TPath,
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            GroupedKey<TKey, TPreserve>,
+            GroupedShape<TShape, TPreserve>
+        >,
+        GroupKey<PluckValue<TValue, TPath>>,
+        ItemKeyedShape<GroupKey<PluckValue<TValue, TPath>>>
+    >;
+    groupBy<TPreserve extends boolean = false>(
+        groupByValue: readonly (
+            | PathKey
+            | ((value: TValue, key: TKey | number) => unknown)
+        )[],
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            unknown,
+            string | number | GroupedKey<TKey, TPreserve>,
+            CollectionShape
+        >,
+        string | number,
+        "keyed"
+    >;
+    groupBy(
         groupByValue:
-            | ((value: TValue, index: TKey) => unknown)
-            | Array<
-                  | TGroupKey
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly (
                   | PathKey
-                  | ((value: TValue, index: TKey) => unknown)
-              >
-            | TGroupKey
-            | PathKey,
+                  | ((value: TValue, key: TKey | number) => unknown)
+              )[],
+        preserveKeys?: boolean,
+    ): Collection<
+        Collection<unknown, PropertyKey, CollectionShape>,
+        string | number,
+        "keyed"
+    >;
+    groupBy(
+        groupByValue:
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly (
+                  | PathKey
+                  | ((value: TValue, key: TKey | number) => unknown)
+              )[],
         preserveKeys: boolean = false,
-    ) {
+    ): unknown {
         let nextGroups: Array<
-            TGroupKey | PathKey | ((value: TValue, index: TKey) => unknown)
+            PathKey | ((value: TValue, key: TKey | number) => unknown)
         > = [];
 
         // PHP shifts this level's grouping off the list, and an empty list shifts null, which groups by the values.
-        if (!isFunction(groupByValue) && isArray(groupByValue)) {
+        if (
+            !isFunction(groupByValue) &&
+            isArray<PathKey | ((value: TValue, key: TKey | number) => unknown)>(
+                groupByValue,
+            )
+        ) {
             [groupByValue = null, ...nextGroups] = groupByValue;
         }
 
-        groupByValue = this.valueRetriever(
+        const groupKeysOf = this.valueRetriever(
             groupByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         ) as (value: TValue, key: TKey) => unknown;
 
-        const groups = new Map<string | number, Collection<TValue, TKey>>();
+        const groups = new Map<
+            string | number,
+            Collection<TValue, TKey | number, CollectionShape>
+        >();
 
         // Determine if we should use objects for grouped collections
         // When preserving keys from an object collection, use objects
         const useObjects = preserveKeys && isObject(this.items);
 
         for (const [key, value] of this.entriesInOrder()) {
-            const rawGroupKeys = groupByValue(value, key);
+            const rawGroupKeys = groupKeysOf(value, key);
             let groupKeys: unknown[] = [rawGroupKeys];
 
             // PHP groups by each value of an array it gets back, which a plain object that is no enum case models.
@@ -1685,12 +1933,12 @@ export class Collection<
                 let group = groups.get(groupKey);
 
                 if (!group) {
-                    group = (useObjects
-                        ? this.sameInstance(handOver({}))
-                        : this.sameInstance()) as unknown as Collection<
+                    // An empty Map builds an empty record, as {} would, in a form the typed builder takes.
+                    group = this.newInstance<
                         TValue,
-                        TKey
-                    >;
+                        TKey | number,
+                        CollectionShape
+                    >(useObjects ? new Map() : undefined);
                     groups.set(groupKey, group);
                 }
 
@@ -1698,13 +1946,17 @@ export class Collection<
             }
         }
 
-        if (nextGroups.length > 0) {
-            for (const [groupKey, group] of groups) {
-                groups.set(groupKey, group.groupBy(nextGroups, preserveKeys));
-            }
+        if (nextGroups.length === 0) {
+            return this.newInstance(groups);
         }
 
-        return this.sameInstance(groups);
+        const nested = new Map<string | number, unknown>();
+
+        for (const [groupKey, group] of groups) {
+            nested.set(groupKey, group.groupBy(nextGroups, preserveKeys));
+        }
+
+        return this.newInstance(nested);
     }
 
     /**
@@ -1719,12 +1971,32 @@ export class Collection<
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(item => item.name); -> new Collection({'John': {id: 1, name: 'John'}, 'Jane': {id: 2, name: 'Jane'}})
      * new Collection([{user: {id: 7}}]).keyBy(['user', 'id']); -> new Collection({7: {user: {id: 7}}})
      */
+    keyBy<TNewKey>(
+        keyByValue: (value: TValue, key: TKey) => TNewKey,
+    ): Collection<
+        TValue,
+        MapArrayKey<TNewKey>,
+        ItemKeyedShape<MapArrayKey<TNewKey>>
+    >;
+    keyBy<const TPath extends string | number>(
+        keyByValue: TPath,
+    ): Collection<
+        TValue,
+        MapArrayKey<PluckValue<TValue, TPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TPath>>>
+    >;
     keyBy(
         keyByValue:
-            | ((value: TValue, index: TKey) => unknown)
-            | ArrayItems<PropertyKey>
-            | PathKey,
-    ) {
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly PathKey[],
+    ): Collection<TValue, string | number, "keyed">;
+    keyBy(
+        keyByValue:
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly PathKey[],
+    ): unknown {
         const keyByValueCallback = this.valueRetriever(
             keyByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
@@ -1747,7 +2019,7 @@ export class Collection<
             );
         }
 
-        return this.sameInstance(results);
+        return this.newInstance(results);
     }
 
     /**
@@ -2236,8 +2508,9 @@ export class Collection<
     /**
      * Get the values of a given key.
      *
-     * @param value - The key path to pluck
-     * @returns A new collection with plucked values
+     * @param value - The key path to pluck, or a callback reading each item's value
+     * @param key - The key path or callback giving each value's key, or null to list the values
+     * @returns A new collection with plucked values: a list without a key, else keyed by each item's key
      *
      * @example
      *
@@ -2245,12 +2518,67 @@ export class Collection<
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).pluck('name'); ->  Collection(['John', 'Jane'])
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
-    pluck<TPluckValue = TValue>(
-        value: string | PropertyKey | ((item: TValue) => TPluckValue),
-        key: PropertyKey | ((item: TValue) => unknown) | null = null,
-    ): Collection<TPluckValue, TKey> {
+    pluck<const TPath extends string | number>(
+        value: TPath,
+        key?: null | undefined,
+    ): Collection<PluckValue<TValue, TPath>, number, "list">;
+    pluck<
+        const TPath extends string | number,
+        const TKeyPath extends string | number,
+    >(
+        value: TPath,
+        key: TKeyPath,
+    ): Collection<
+        PluckValue<TValue, TPath>,
+        MapArrayKey<PluckValue<TValue, TKeyPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TKeyPath>>>
+    >;
+    pluck<const TPath extends string | number, TNewKey>(
+        value: TPath,
+        key: (item: TValue) => TNewKey,
+    ): Collection<
+        PluckValue<TValue, TPath>,
+        MapArrayKey<TNewKey>,
+        ItemKeyedShape<MapArrayKey<TNewKey>>
+    >;
+    pluck<TPluckValue>(
+        value: (item: TValue) => TPluckValue,
+        key?: null | undefined,
+    ): Collection<TPluckValue, number, "list">;
+    pluck<TPluckValue, const TKeyPath extends string | number>(
+        value: (item: TValue) => TPluckValue,
+        key: TKeyPath,
+    ): Collection<
+        TPluckValue,
+        MapArrayKey<PluckValue<TValue, TKeyPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TKeyPath>>>
+    >;
+    pluck<TPluckValue, TNewKey>(
+        value: (item: TValue) => TPluckValue,
+        key: (item: TValue) => TNewKey,
+    ): Collection<
+        TPluckValue,
+        MapArrayKey<TNewKey>,
+        ItemKeyedShape<MapArrayKey<TNewKey>>
+    >;
+    pluck(
+        value: PathKey | readonly PathKey[],
+        key?: null | undefined,
+    ): Collection<unknown, number, "list">;
+    pluck(
+        value: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+        key: string | number | readonly PathKey[] | ((item: TValue) => unknown),
+    ): Collection<unknown, string | number, "keyed">;
+    pluck(
+        value: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+        key?: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+    ): Collection<unknown, string | number, "list" | "keyed">;
+    pluck(
+        value: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+        key: PathKey | readonly PathKey[] | ((item: TValue) => unknown) = null,
+    ): unknown {
         if (isNull(key) || isUndefined(key)) {
-            return this.sameInstance(
+            return this.newInstance(
                 handOver(
                     dataPluck(
                         this.items,
@@ -2258,7 +2586,7 @@ export class Collection<
                         null,
                     ),
                 ),
-            ) as unknown as Collection<TPluckValue, TKey>;
+            );
         }
 
         const results = new Map<string | number, unknown>();
@@ -2278,10 +2606,7 @@ export class Collection<
             );
         }
 
-        return this.sameInstance(results) as unknown as Collection<
-            TPluckValue,
-            TKey
-        >;
+        return this.newInstance(results);
     }
 
     /**
@@ -2295,8 +2620,11 @@ export class Collection<
      * new Collection([1, 2, 3]).map(x => x * 2); -> new Collection([2, 4, 6])
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
-    map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
-        return this.sameInstance(
+    map<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue, TKey, TShape>;
+    map(callback: (value: TValue, key: TKey) => unknown): unknown {
+        return this.newInstance(
             handOver(
                 dataMap(this.items, (value, key) =>
                     callback(value as TValue, key as TKey),
@@ -2319,22 +2647,35 @@ export class Collection<
      * new Collection([{id: 1, name: 'A'}, {id: 2, name: 'B'}, {id: 3, name: 'A'}]).mapToDictionary(item => ({[item.name]: item.id})); -> new Collection({A: [1, 3], B: [2]})
      * new Collection([{id: 1, name: 'A'}]).mapToDictionary(item => [item.name, item.id]); -> new Collection({0: ['A']})
      */
+    mapToDictionary<TMapToDictionaryValue>(
+        callback: (
+            value: TValue,
+            key: TKey,
+        ) => readonly TMapToDictionaryValue[],
+    ): Collection<(TMapToDictionaryValue | false)[], 0 | "", "partial">;
     mapToDictionary<
         TMapToDictionaryValue,
-        TMapToDictionaryKey extends PropertyKey = PropertyKey,
+        TMapToDictionaryKey extends PropertyKey,
     >(
         callback: (
             value: TValue,
             key: TKey,
-        ) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
-    ) {
+        ) => Record<TMapToDictionaryKey, TMapToDictionaryValue> & object,
+    ): Collection<
+        TMapToDictionaryValue[],
+        PhpArrayKey<TMapToDictionaryKey>,
+        ItemKeyedShape<PhpArrayKey<TMapToDictionaryKey>>
+    >;
+    mapToDictionary(
+        callback: (value: TValue, key: TKey) => object,
+    ): Collection<unknown[], string | number, "keyed">;
+    mapToDictionary(callback: (value: TValue, key: TKey) => object): unknown {
         const dictionary = new Map<string | number, unknown[]>();
 
         for (const [key, value] of this.entriesInOrder()) {
             // PHP reads the pair with key() and reset(), which give null and false when there is none.
-            const [pairKey, pairValue] = Object.entries(
-                callback(value, key),
-            )[0] ?? [null, false];
+            const [pairKey, pairValue]: [string | null, unknown] =
+                Object.entries(callback(value, key))[0] ?? [null, false];
             const dictionaryKey = phpArrayKey(pairKey);
             const values = dictionary.get(dictionaryKey);
 
@@ -2345,7 +2686,7 @@ export class Collection<
             }
         }
 
-        return this.sameInstance(dictionary);
+        return this.newInstance(dictionary);
     }
 
     /**
@@ -2361,21 +2702,55 @@ export class Collection<
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapWithKeys(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
      * new Collection(['apple', 'banana']).mapWithKeys((item, index) => ({[index]: item.toUpperCase()})); -> new Collection({0: 'APPLE', 1: 'BANANA'})
      */
-    mapWithKeys<
-        TMapWithKeysValue,
-        TMapWithKeysKey extends PropertyKey = PropertyKey,
-    >(
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends PropertyKey>(
         callback: (
             value: TValue,
             key: TKey,
-        ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-    ) {
-        const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
+        ) => {
+            toBase(): Collection<
+                TMapWithKeysValue,
+                TMapWithKeysKey,
+                CollectionShape
+            >;
+        },
+    ): Collection<
+        TMapWithKeysValue,
+        PhpArrayKey<TMapWithKeysKey>,
+        ItemKeyedShape<PhpArrayKey<TMapWithKeysKey>>
+    >;
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey>(
+        callback: (
+            value: TValue,
+            key: TKey,
+        ) => ReadonlyMap<TMapWithKeysKey, TMapWithKeysValue>,
+    ): Collection<
+        TMapWithKeysValue,
+        MapArrayKey<TMapWithKeysKey>,
+        ItemKeyedShape<MapArrayKey<TMapWithKeysKey>>
+    >;
+    mapWithKeys<TMapWithKeysValue>(
+        callback: (value: TValue, key: TKey) => readonly TMapWithKeysValue[],
+    ): Collection<TMapWithKeysValue, number, "keyed">;
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends PropertyKey>(
+        callback: (
+            value: TValue,
+            key: TKey,
+        ) => Record<TMapWithKeysKey, TMapWithKeysValue> & object,
+    ): Collection<
+        TMapWithKeysValue,
+        PhpArrayKey<TMapWithKeysKey>,
+        ItemKeyedShape<PhpArrayKey<TMapWithKeysKey>>
+    >;
+    mapWithKeys(
+        callback: (value: TValue, key: TKey) => object,
+    ): Collection<unknown, string | number, "keyed">;
+    mapWithKeys(callback: (value: TValue, key: TKey) => object): unknown {
+        const map = new Map<PropertyKey, unknown>();
 
         for (const [key, value] of this.entriesInOrder()) {
             const result = callback(value, key);
             // PHP's foreach walks a collection by its items, never by its own fields; a Map stands for an array.
-            const pairs =
+            const pairs: Array<[unknown, unknown]> =
                 result instanceof Collection
                     ? result.entriesInOrder()
                     : isMap(result)
@@ -2383,14 +2758,11 @@ export class Collection<
                       : Object.entries(result);
 
             for (const [newKey, newValue] of pairs) {
-                map.set(
-                    newKey as TMapWithKeysKey,
-                    newValue as TMapWithKeysValue,
-                );
+                map.set(newKey as PropertyKey, newValue);
             }
         }
 
-        return this.sameInstance(map);
+        return this.newInstance(map);
     }
 
     /**
@@ -4171,29 +4543,38 @@ export class Collection<
      * Flatten a multi-dimensional associative array with dots.
      *
      * @param depth - Maximum depth to flatten. Defaults to Infinity.
-     * @returns A new collection with the flattened items
+     * @returns A new collection with the flattened items, keyed by their dot paths
      *
      * @example
      *
      * new Collection({a: {b: 1}, c: 2}).dot(); -> new Collection({'a.b': 1, c: 2})
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
-    dot(depth: number = Infinity) {
-        return this.sameInstance(handOver(dataDot(this.items, "", depth)));
+    dot(
+        depth?: number,
+    ): Collection<FlattenReach<TValue>, string | number, "keyed">;
+    dot(depth: number = Infinity): unknown {
+        return this.newInstance(handOver(dataDot(this.items, "", depth)));
     }
 
     /**
      * Convert a flatten "dot" notation array into an expanded array.
      *
-     * @returns A new collection with the expanded items
+     * @returns A new collection with the expanded items; a list, whose keys hold no dot, stays as it is
      *
      * @example
      *
      * new Collection({'a.b': 1, c: 2}).undot(); -> new Collection({a: {b: 1}, c: 2})
      * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
      */
-    undot() {
-        return this.sameInstance(handOver(dataUndot(this.items)));
+    undot(this: Collection<TValue, TKey, "list">): this;
+    undot(): Collection<
+        UndotObjectValue<TValue>,
+        string | number,
+        TShape extends "list" ? "list" : "keyed"
+    >;
+    undot(): unknown {
+        return this.newInstance(handOver(dataUndot(this.items)));
     }
 
     /**
@@ -4492,17 +4873,47 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy('id'); -> new Collection({ '1': 2, '2': 1 })
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy(item => item.id); -> new Collection({ '1': 2, '2': 1 })
      */
-    countBy<TCountByResult>(
+    countBy(
+        countByValue?: null | undefined,
+    ): Collection<
+        number,
+        MapArrayKey<TValue>,
+        ItemKeyedShape<MapArrayKey<TValue>>
+    >;
+    countBy<TCountKey>(
+        countByValue: (value: TValue, key: TKey) => TCountKey,
+    ): Collection<
+        number,
+        MapArrayKey<TCountKey>,
+        ItemKeyedShape<MapArrayKey<TCountKey>>
+    >;
+    countBy<const TPath extends string | number>(
+        countByValue: TPath,
+    ): Collection<
+        number,
+        MapArrayKey<PluckValue<TValue, TPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TPath>>>
+    >;
+    countBy<TCountKey>(
         countByValue:
-            | ((value: TValue, key: TKey) => TCountByResult)
-            | PathKey = null,
-    ) {
+            | ((value: TValue, key: TKey) => TCountKey)
+            | null
+            | undefined,
+    ): Collection<
+        number,
+        MapArrayKey<TValue | TCountKey>,
+        ItemKeyedShape<MapArrayKey<TValue | TCountKey>>
+    >;
+    countBy(
+        countByValue?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): Collection<number, string | number, "keyed">;
+    countBy(
+        countByValue: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): unknown {
         const results = new Map<string | number, number>();
 
         const callback = this.valueRetriever(
-            countByValue as
-                | PathKey
-                | ((...args: (TValue | TKey)[]) => TCountByResult),
+            countByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
         for (const [key, value] of this.entriesInOrder()) {
@@ -4515,7 +4926,7 @@ export class Collection<
             results.set(resultKey, (results.get(resultKey) ?? 0) + 1);
         }
 
-        return this.sameInstance(results);
+        return this.newInstance(results);
     }
 
     /**
@@ -5028,7 +5439,7 @@ export class Collection<
      * // Stop iterating when the callback returns false
      * new Collection([1, 2, 3]).each((value, key) => { console.log(key, value); if (value === 2) return false; });
      */
-    each(callback: (value: TValue, key: TKey) => unknown) {
+    each(callback: (value: TValue, key: TKey) => unknown): this {
         for (const [key, value] of Object.entries(this.items)) {
             if (callback(value as TValue, phpArrayKey(key) as TKey) === false) {
                 break;
@@ -5048,26 +5459,26 @@ export class Collection<
      *
      * new Collection([[1, 'a'], [2, 'b']]).eachSpread((n, s, k) => console.log(n, s, k)); -> logs "1 a 0", "2 b 1"
      */
-    eachSpread(callback: (...values: TValue[]) => unknown) {
+    eachSpread(
+        callback: (...args: SpreadArgs<SpreadRow<TValue>, TKey>) => unknown,
+    ): this {
+        // The row's own items reach the callback, which its declared tuple cannot check here.
+        const spread = callback as (...args: unknown[]) => unknown;
+
         return this.each((chunk, key) => {
             let values: unknown[];
 
             if (isArray(chunk)) {
-                values = chunk as unknown[];
+                values = chunk;
             } else if (chunk instanceof Collection) {
-                const all = (
-                    chunk as unknown as Collection<unknown, PropertyKey>
-                ).all();
-                values = isArray(all) ? (all as unknown[]) : [all as unknown];
+                const all = chunk.all();
+                values = isArray(all) ? all : [all];
             } else {
-                values = arrWrap(chunk as unknown);
+                values = arrWrap(chunk);
             }
 
             const loopKey = phpArrayKey(key);
-            return callback(
-                ...(values as TValue[]),
-                loopKey as unknown as TValue,
-            );
+            return spread(...values, loopKey);
         });
     }
 
@@ -5268,15 +5679,20 @@ export class Collection<
      * @returns A new collection with the results of the callback
      */
     mapSpread<TMapSpreadValue>(
-        callback: (...values: TValue[]) => TMapSpreadValue,
-    ) {
+        callback: (
+            ...args: SpreadArgs<SpreadRow<TValue>, TKey>
+        ) => TMapSpreadValue,
+    ): Collection<TMapSpreadValue, TKey, TShape> {
+        // The row's own items reach the callback, which its declared tuple cannot check here.
+        const spread = callback as (...args: unknown[]) => TMapSpreadValue;
+
         return this.map((chunk, key) => {
             const values =
                 chunk instanceof Collection
-                    ? (chunk.all() as TValue[])
-                    : (arrWrap(chunk) as TValue[]);
+                    ? (chunk.all() as unknown[])
+                    : arrWrap(chunk);
 
-            return callback(...values, key as unknown as TValue);
+            return spread(...values, key);
         });
     }
 
@@ -5289,31 +5705,43 @@ export class Collection<
      * a single key/value pair
      * @returns A new collection with the grouped items as collections
      */
-    mapToGroups<
-        TMapToGroupsValue,
-        TMapToGroupsKey extends PropertyKey = PropertyKey,
-    >(
+    mapToGroups<TMapToGroupsValue>(
+        callback: (value: TValue, key: TKey) => readonly TMapToGroupsValue[],
+    ): Collection<
+        Collection<TMapToGroupsValue | false, number, "list">,
+        0 | "",
+        "partial"
+    >;
+    mapToGroups<TMapToGroupsValue, TMapToGroupsKey extends PropertyKey>(
         callback: (
             value: TValue,
             key: TKey,
-        ) => Record<TMapToGroupsKey, TMapToGroupsValue>,
-    ) {
+        ) => Record<TMapToGroupsKey, TMapToGroupsValue> & object,
+    ): Collection<
+        Collection<TMapToGroupsValue, number, "list">,
+        PhpArrayKey<TMapToGroupsKey>,
+        ItemKeyedShape<PhpArrayKey<TMapToGroupsKey>>
+    >;
+    mapToGroups(
+        callback: (value: TValue, key: TKey) => object,
+    ): Collection<
+        Collection<unknown, number, "list">,
+        string | number,
+        "keyed"
+    >;
+    mapToGroups(callback: (value: TValue, key: TKey) => object): unknown {
         const dictionary = this.mapToDictionary(callback);
+        const groups = new Map<
+            string | number,
+            Collection<unknown, number, "list">
+        >();
 
         // map() reads the plain object, which re-sorts integer keys, so the groups follow the dictionary's order.
-        const entries = (dictionary.orderedEntries() ??
-            Object.entries(dictionary.all())) as Array<[PropertyKey, unknown]>;
+        for (const [key, group] of dictionary.entriesInOrder()) {
+            groups.set(key, this.newInstance<unknown, number, "list">(group));
+        }
 
-        return this.sameInstance(
-            new Map(
-                entries.map(([key, group]) => [
-                    key,
-                    this.sameInstance(
-                        group as DataItems<TMapToGroupsValue, TMapToGroupsKey>,
-                    ),
-                ]),
-            ),
-        );
+        return this.newInstance(groups);
     }
 
     /**
@@ -5322,14 +5750,13 @@ export class Collection<
      * @param callback - The callback to execute, receives the value and key as arguments, should return a collection or arrayable
      * @returns A new collection with the flattened results of the callback
      */
-    flatMap<TFlatMapValue, TFlatMapKey extends PropertyKey = PropertyKey>(
-        callback: (
-            value: TValue,
-            key: TKey,
-        ) =>
-            | Collection<TFlatMapValue, TFlatMapKey, CollectionShape>
-            | DataItems<TFlatMapValue, TFlatMapKey>,
-    ) {
+    flatMap<TFlatMapItems extends object>(
+        callback: (value: TValue, key: TKey) => TFlatMapItems,
+    ): Collection<
+        CollapseValue<TFlatMapItems>,
+        CollapseKey<TFlatMapItems>,
+        CollapseShape<TFlatMapItems>
+    > {
         return this.map(callback).collapse();
     }
 
@@ -5349,18 +5776,14 @@ export class Collection<
      */
     mapInto<TMapIntoValue>(
         className:
-            | (new (...args: unknown[]) => TMapIntoValue)
-            | EnumDefinition<TValue>,
-    ): Collection<TMapIntoValue, TKey> {
+            | (new (value: TValue, key: TKey) => TMapIntoValue)
+            | EnumDefinition<TValue, TMapIntoValue>,
+    ): Collection<TMapIntoValue, TKey, TShape> {
         if (isEnumDefinition(className)) {
-            return this.map((value) =>
-                className.from(value),
-            ) as unknown as Collection<TMapIntoValue, TKey>;
+            return this.map((value) => className.from(value));
         }
 
-        return this.map(
-            (value, key) => new className(value, key),
-        ) as unknown as Collection<TMapIntoValue, TKey>;
+        return this.map((value, key) => new className(value, key));
     }
 
     /**
@@ -5382,21 +5805,14 @@ export class Collection<
         return this.map((value: TValue) =>
             callbackValue(value as TValue | TKey),
         )
-            .reject((value: TValue) => isNull(value) || isUndefined(value))
-            .reduce(
-                ((carry: number | null, value: unknown) => {
-                    if (isNull(carry) || compareValues(value, carry) < 0) {
-                        return value as number;
-                    }
+            .reject((value) => isNull(value) || isUndefined(value))
+            .reduce((carry: number | null, value: unknown) => {
+                if (isNull(carry) || compareValues(value, carry) < 0) {
+                    return value as number;
+                }
 
-                    return carry;
-                }) as (
-                    carry: number | TValue | null,
-                    value: TValue,
-                    key: TKey,
-                ) => number | null,
-                null,
-            );
+                return carry;
+            }, null);
     }
 
     /**
@@ -6147,13 +6563,14 @@ export class Collection<
      *
      * @returns An array of the collection's items
      */
-    toArray() {
-        // A plain object is data, as a PHP array is, so only an object a class built is Arrayable.
+    toArray(): TValue[] | Record<TKey, TValue> {
+        // A plain object is data, as a PHP array is, so only an object a class built is Arrayable. An Arrayable item's
+        // array keeps the item's type, which operands read through toArray() rely on.
         return this.map((value) =>
             !isPlainObject(value) && toArrayable(value)
                 ? value.toArray()
                 : value,
-        ).all();
+        ).all() as TValue[] | Record<TKey, TValue>;
     }
 
     /**
@@ -7302,9 +7719,9 @@ type CollectionClass<
 type AtLeastOne<TItem> = [TItem, ...TItem[]];
 
 /** An `@tolki/enum` definition, whose from() resolves a backing value to its case, as BackedEnum::from() does. */
-type EnumDefinition<TValue> = {
+type EnumDefinition<TValue, TCase = unknown> = {
     // A method signature, so a definition typed for its own case values still takes the collection's values.
-    from(value: TValue): unknown;
+    from(value: TValue): TCase;
 };
 
 /** The values each of ensure()'s type names lets through: JavaScript's typeof names and get_debug_type()'s. */
