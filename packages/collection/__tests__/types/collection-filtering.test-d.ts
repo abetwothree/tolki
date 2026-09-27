@@ -1532,8 +1532,19 @@ describe("collection filtering and subsets type tests", () => {
                     Collection<number, number, "list">,
                 ]
             >();
-            expectTypeOf(list.partition((value) => value > 1)).toExtend<
-                Collection<Collection<number, number, "list">, number, "list">
+            expectTypeOf(list.partition((value) => value > 1)).toEqualTypeOf<
+                {
+                    all(): [
+                        Collection<number, number, "list">,
+                        Collection<number, number, "list">,
+                    ];
+                    readonly 0: Collection<number, number, "list">;
+                    readonly 1: Collection<number, number, "list">;
+                } & Collection<
+                    Collection<number, number, "list">,
+                    number,
+                    "list"
+                >
             >();
         });
 
