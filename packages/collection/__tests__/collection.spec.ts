@@ -108,9 +108,12 @@ const viewsOf = <
     values: collection.values().all(),
 });
 
-/** What a pop() or shift() with a count typed number answers, read through all() when it is a collection. */
-const takenItems = (taken: unknown): unknown =>
-    taken instanceof Collection ? taken.all() : taken;
+/** The items a pop() or shift() answers for a count typed number, which any count but 1 answers as a collection. */
+const takenItems = (taken: unknown): unknown => {
+    expect(taken).toBeInstanceOf(Collection);
+
+    return taken instanceof Collection ? taken.all() : taken;
+};
 
 describe("Collection", () => {
     describe("constructor", () => {
