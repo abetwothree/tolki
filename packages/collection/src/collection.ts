@@ -4273,7 +4273,13 @@ export class Collection<
                 entries.slice(start, start + size),
             );
 
-            groups.push(this.sameInstance(inPhpOrder(group)));
+            groups.push(
+                this.newInstance<
+                    TValue,
+                    SplicedKey<TKey>,
+                    SplitShape<TKey, TShape>
+                >(inPhpOrder(group)),
+            );
 
             start += size;
         }
