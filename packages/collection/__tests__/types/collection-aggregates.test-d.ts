@@ -1152,6 +1152,14 @@ describe("collection aggregate type tests", () => {
             expectTypeOf(
                 people.reduceInto(0, (total, row) => total + row.id),
             ).toEqualTypeOf<number>();
+            expectTypeOf(
+                tagged.reduceInto(0, (total, value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return total + value;
+                }),
+            ).toEqualTypeOf<number>();
         });
 
         it("types a generic or a Map-built collection's reduction", () => {
@@ -1224,6 +1232,14 @@ describe("collection aggregate type tests", () => {
             ).toEqualTypeOf<[number]>();
             expectTypeOf(
                 people.reduceSpread((ids, row) => [ids + row.id], 0),
+            ).toEqualTypeOf<[number]>();
+            expectTypeOf(
+                tagged.reduceSpread((total, value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<number>();
+
+                    return [total + value];
+                }, 0),
             ).toEqualTypeOf<[number]>();
         });
 
