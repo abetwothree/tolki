@@ -1,5 +1,4 @@
 import * as Arr from "@tolki/arr";
-import { collect } from "@tolki/collection";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
 import { describe, expectTypeOf, it } from "vitest";
@@ -27,6 +26,13 @@ const numberSet = new Set([7, 8]);
 /** A Collection-like item: a class instance whose items sit behind all(). */
 class ListBag {
     all(): number[] {
+        return [1, 2];
+    }
+}
+
+/** A Collection-like item whose all() may hand back a list or a record, as Collection's is declared. */
+class EitherBag {
+    all(): number[] | Record<number, number> {
         return [1, 2];
     }
 }
@@ -356,14 +362,14 @@ describe("data setops type tests", () => {
             expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf<number[]>();
         });
 
-        it("matches arr.collapse for a list of Collections, whose all() may hand back either shape", () => {
-            const collections = [collect([1, 2]), collect([3])];
+        it("matches arr.collapse for a list of Collection-likes whose all() may hand back either shape", () => {
+            const bags = [new EitherBag(), new EitherBag()];
 
-            expectTypeOf(Data.dataCollapse(collections)).toEqualTypeOf(
-                Arr.collapse(collections),
+            expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf(
+                Arr.collapse(bags),
             );
-            // A Collection declares all() as a list or a record until its shape decides it, so either may come back.
-            expectTypeOf(Data.dataCollapse(collections)).toEqualTypeOf<
+            // Collection declares all() as a list or a record until its shape decides it, so either may come back.
+            expectTypeOf(Data.dataCollapse(bags)).toEqualTypeOf<
                 number[] | Record<string | number, unknown>
             >();
         });
