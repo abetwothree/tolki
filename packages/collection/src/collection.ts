@@ -371,8 +371,9 @@ type AllLoneKeys<TKeys extends readonly unknown[]> = TKeys extends readonly [
     : true;
 
 /**
- * The keys forget() is sure to remove, wrapped so that none is told apart from an unknown set: a lone key, or each key
- * of a literal list of lone keys. Any other argument may remove any of its keys, or none, so it answers false.
+ * The keys forget() is sure to remove, wrapped in a tuple so that removing no key is told apart from an unknown set:
+ * a lone key, or each key of a literal list of lone keys. It answers false for any other argument, which may remove
+ * any of its keys, or none.
  */
 type SureKeys<TForgetKeys> = [TForgetKeys] extends [
     infer TList extends readonly unknown[],
@@ -1328,7 +1329,8 @@ export class Collection<
      * The receiver's variable keeps its declared type, removed keys included; the returned collection drops them.
      *
      * @param keys - The key or keys to remove, or a collection of keys
-     * @returns The collection instance after removing the specified keys, typed without the keys it names
+     * @returns The collection instance after removing the specified keys, typed without the literal keys it is sure
+     * to remove
      * @throws TypeError for an array, object or function key, once the keys before it are unset, as unset() refuses one
      *
      * @example
