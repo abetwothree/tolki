@@ -4480,7 +4480,7 @@ describe("Collection", () => {
         it("test has any if collection is empty", () => {
             const empty = collect();
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-illegal-key"
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-empty-reads-no-key"
             expect(
                 Reflect.apply(empty.hasAny, empty, [
                     "key",

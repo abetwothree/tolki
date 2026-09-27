@@ -405,6 +405,7 @@ probe('C32-B-hasAny-illegal-key', "hasAny([['a']]), hasAny([\$first, ['b']]) and
     $overBackings(fn (Collection $c) => $c->hasAny(['zz', ['b']])),
     collect([])->hasAny([['a']]),
 ]);
+probe('C32-B-hasAny-empty-reads-no-key', "collect()->hasAny('key', 'any', [0, 1], 'test')", fn () => collect()->hasAny('key', 'any', [0, 1], 'test'));
 probe('C32-B-forget-illegal-key', "forget([\$key]) over both backings for \$key = ['a'], new stdClass and fn () => 1, then forget([\$first, ['b']]) with \$first the backing's first key", fn () => [
     'keys' => array_map(fn ($key) => $overBackings(fn (Collection $c) => $c->forget([$key])->all()), $illegalKeys),
     'after-a-legal-key' => $overBackings(fn (Collection $c) => $c->forget([$c->keys()->first(), ['b']])->all()),

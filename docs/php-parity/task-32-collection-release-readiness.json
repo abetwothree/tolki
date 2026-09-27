@@ -2341,6 +2341,11 @@
             ]
         },
         {
+            "label": "C32-B-hasAny-empty-reads-no-key",
+            "php": "collect()->hasAny('key', 'any', [0, 1], 'test')",
+            "value": false
+        },
+        {
             "label": "C32-B-forget-illegal-key",
             "php": "forget([$key]) over both backings for $key = ['a'], new stdClass and fn () => 1, then forget([$first, ['b']]) with $first the backing's first key",
             "value": {
