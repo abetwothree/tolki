@@ -2,7 +2,7 @@ import * as Arr from "@tolki/arr";
 import { collect, Collection, type CollectionShape } from "@tolki/collection";
 import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
-import type { DataItems, PathKey } from "@tolki/types";
+import type { DataItems } from "@tolki/types";
 import {
     compareValues,
     InvalidArgumentException,
@@ -23989,9 +23989,6 @@ describe("Collection", () => {
         const keyExists = new TypeError(
             "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
         );
-        /** A key list holding what the signatures refuse, as PHP's array of keys may. */
-        const keysOf = (...keys: unknown[]) => keys as PathKey[];
-
         it("throws from put() and offsetSet() before writing anything", () => {
             for (const [type, key] of illegal) {
                 const failure = new TypeError(
@@ -24022,38 +24019,63 @@ describe("Collection", () => {
         it("throws array_key_exists()'s TypeError from get() and getOrPut()", () => {
             for (const [, key] of illegal) {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-illegal-key"
-                expect(() => list().get(key as PathKey)).toThrow(keyExists);
-                expect(() => keyed().get(key as PathKey)).toThrow(keyExists);
-                expect(() => list().getOrPut(key as PathKey, 9)).toThrow(
-                    keyExists,
-                );
-                expect(() => keyed().getOrPut(key as PathKey, 9)).toThrow(
-                    keyExists,
-                );
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.get, collection, [key]),
+                    ).toThrow(keyExists);
+                    expect(() =>
+                        Reflect.apply(collection.getOrPut, collection, [
+                            key,
+                            9,
+                        ]),
+                    ).toThrow(keyExists);
+                }
             }
         });
 
         it("throws array_key_exists()'s TypeError from has() once it reaches the key, as array_all() does", () => {
+            const [listed, keys] = [list(), keyed()];
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-illegal-key"
-            expect(() => list().has(keysOf(["a"]))).toThrow(keyExists);
-            expect(() => keyed().has(keysOf(["a"]))).toThrow(keyExists);
-            expect(() => list().has(keysOf(0, ["b"]))).toThrow(keyExists);
-            expect(() => keyed().has(keysOf("a", ["b"]))).toThrow(keyExists);
-            expect(list().has(keysOf("zz", ["b"]))).toBe(false);
-            expect(keyed().has(keysOf("zz", ["b"]))).toBe(false);
+            expect(() => Reflect.apply(listed.has, listed, [[["a"]]])).toThrow(
+                keyExists,
+            );
+            expect(() => Reflect.apply(keys.has, keys, [[["a"]]])).toThrow(
+                keyExists,
+            );
+            expect(() =>
+                Reflect.apply(listed.has, listed, [[0, ["b"]]]),
+            ).toThrow(keyExists);
+            expect(() => Reflect.apply(keys.has, keys, [["a", ["b"]]])).toThrow(
+                keyExists,
+            );
+            expect(Reflect.apply(listed.has, listed, [["zz", ["b"]]])).toBe(
+                false,
+            );
+            expect(Reflect.apply(keys.has, keys, [["zz", ["b"]]])).toBe(false);
         });
 
         it("throws array_key_exists()'s TypeError from hasAny() once it reaches the key, as array_any() does", () => {
+            const [listed, keys, empty] = [list(), keyed(), collect([])];
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-illegal-key"
-            expect(() => list().hasAny(keysOf(["a"]))).toThrow(keyExists);
-            expect(() => keyed().hasAny(keysOf(["a"]))).toThrow(keyExists);
-            expect(list().hasAny(keysOf(0, ["b"]))).toBe(true);
-            expect(keyed().hasAny(keysOf("a", ["b"]))).toBe(true);
-            expect(() => list().hasAny(keysOf("zz", ["b"]))).toThrow(keyExists);
-            expect(() => keyed().hasAny(keysOf("zz", ["b"]))).toThrow(
+            expect(() =>
+                Reflect.apply(listed.hasAny, listed, [[["a"]]]),
+            ).toThrow(keyExists);
+            expect(() => Reflect.apply(keys.hasAny, keys, [[["a"]]])).toThrow(
                 keyExists,
             );
-            expect(collect([]).hasAny(keysOf(["a"]))).toBe(false);
+            expect(Reflect.apply(listed.hasAny, listed, [[0, ["b"]]])).toBe(
+                true,
+            );
+            expect(Reflect.apply(keys.hasAny, keys, [["a", ["b"]]])).toBe(true);
+            expect(() =>
+                Reflect.apply(listed.hasAny, listed, [["zz", ["b"]]]),
+            ).toThrow(keyExists);
+            expect(() =>
+                Reflect.apply(keys.hasAny, keys, [["zz", ["b"]]]),
+            ).toThrow(keyExists);
+            expect(Reflect.apply(empty.hasAny, empty, [[["a"]]])).toBe(false);
         });
 
         it("throws from forget() after unsetting the keys before it, as PHP's loop does", () => {
@@ -24063,16 +24085,23 @@ describe("Collection", () => {
                 );
 
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-illegal-key"
-                expect(() => list().forget(keysOf(key))).toThrow(failure);
-                expect(() => keyed().forget(keysOf(key))).toThrow(failure);
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.forget, collection, [[key]]),
+                    ).toThrow(failure);
+                }
             }
 
             const [listed, keys] = [list(), keyed()];
 
-            expect(() => listed.forget(keysOf(0, ["b"]))).toThrow(
+            expect(() =>
+                Reflect.apply(listed.forget, listed, [[0, ["b"]]]),
+            ).toThrow(
                 new TypeError("Cannot unset offset of type array on array"),
             );
-            expect(() => keys.forget(keysOf("a", ["b"]))).toThrow(
+            expect(() =>
+                Reflect.apply(keys.forget, keys, [["a", ["b"]]]),
+            ).toThrow(
                 new TypeError("Cannot unset offset of type array on array"),
             );
             // PHP keeps the list's key 1; a list backing reindexes, as a JS array holds no sparse keys.
@@ -24084,21 +24113,25 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offset-illegal-key"
                 for (const collection of [list(), keyed()]) {
                     expect(() =>
-                        collection.offsetGet(key as PropertyKey),
+                        Reflect.apply(collection.offsetGet, collection, [key]),
                     ).toThrow(
                         new TypeError(
                             `Cannot access offset of type ${type} on array`,
                         ),
                     );
                     expect(() =>
-                        collection.offsetExists(key as PropertyKey),
+                        Reflect.apply(collection.offsetExists, collection, [
+                            key,
+                        ]),
                     ).toThrow(
                         new TypeError(
                             `Cannot access offset of type ${type} in isset or empty`,
                         ),
                     );
                     expect(() =>
-                        collection.offsetUnset(key as PropertyKey),
+                        Reflect.apply(collection.offsetUnset, collection, [
+                            key,
+                        ]),
                     ).toThrow(
                         new TypeError(
                             `Cannot unset offset of type ${type} on array`,
