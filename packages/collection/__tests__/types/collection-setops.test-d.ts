@@ -29,6 +29,8 @@ declare const optionalFields: { c?: string };
 declare const maybeCount: number | null;
 declare const serializable: JsonSerializable;
 declare const unknownArrayable: { toArray(): unknown };
+declare const anyObject: object;
+declare const objectArrayable: { toArray(): object };
 
 /** Operands declared apart, so a pin's data call is typed on its own, not by the answer it is checked against. */
 const two = [2];
@@ -80,6 +82,11 @@ function spaceship(first: number, second: number): number {
  */
 function equal(first: unknown, second: unknown): boolean {
     return first === second;
+}
+
+/** A class whose own fields all hold functions, which the runtime copies though no key type can name them. */
+class Handlers {
+    onClick = (): number => 1;
 }
 
 /** A generic subclass, whose methods call the family on a `this` typed by its own parameter. */
@@ -1661,8 +1668,31 @@ describe("collection set operation type tests", () => {
             expectTypeOf(list.merge(new ConvertsToJSON())).toEqualTypeOf<
                 Collection<number, number | "c", "keyed">
             >();
+            // A Date's type names no field, so it cannot rule out a string key, which would make a record.
             expectTypeOf(list.merge(new Date())).toEqualTypeOf<
-                Collection<number, number, "list">
+                Collection<number, number, "list" | "keyed">
+            >();
+        });
+
+        it("may make a record from an operand holding a string key its type does not name", () => {
+            // An object type names no field, and a field holding a function has no key a type can tell from a method's.
+            expectTypeOf(list.merge(anyObject)).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.merge({})).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.merge({ f: () => 1 })).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.merge(new Handlers())).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.merge(objectArrayable)).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.merge({ 5: "x", f: () => 1 })).toEqualTypeOf<
+                Collection<string | number, number, "list" | "keyed">
             >();
         });
 
@@ -1753,6 +1783,15 @@ describe("collection set operation type tests", () => {
             expectTypeOf(
                 collect({ 5: "x" }).mergeRecursive({ 5: "y" }),
             ).toEqualTypeOf<Collection<string, number, "list">>();
+        });
+
+        it("may make a record from an operand holding a string key its type does not name", () => {
+            expectTypeOf(list.mergeRecursive(anyObject)).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.mergeRecursive(new Handlers())).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
         });
 
         it("reads a toArray() or jsonSerialize() answer typed unknown as either shape, whose keys it cannot name", () => {
@@ -1881,6 +1920,15 @@ describe("collection set operation type tests", () => {
             >();
             expectTypeOf(list.union(unknownArrayable)).toEqualTypeOf<
                 Collection<unknown, string | number, "list" | "keyed">
+            >();
+        });
+
+        it("may make a record from an operand holding a string key its type does not name", () => {
+            expectTypeOf(list.union(anyObject)).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
+            >();
+            expectTypeOf(list.union(new Handlers())).toEqualTypeOf<
+                Collection<number, number, "list" | "keyed">
             >();
         });
 

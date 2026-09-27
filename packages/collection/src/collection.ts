@@ -286,16 +286,16 @@ type Unwrapped<TValue> = TValue extends {
 type Operand = object | null | undefined;
 
 /**
- * The values, keys and shape an operand hands over, in getRawItems()'s order; a collection's through toBase(), which a
- * subclass still infers from. A plain object with a toArray, toJson or jsonSerialize member is typed like a class,
- * though at runtime it is data. Null hands over nothing and names no shape, so a result takes the other side's.
+ * The values, keys and shape an operand hands over, and whether it may hide a string key, in getRawItems()'s order: a
+ * collection's through toBase(), which a subclass still infers from. A plain object with a toArray, toJson or
+ * jsonSerialize member is typed like a class, though it is data. Null names no shape, so a result takes the other's.
  */
 type OperandParts<TOperand> =
     // `0 extends 1 & TOperand` misses an any argument here, where TOperand has a constraint; this check does not.
     unknown extends TOperand
-        ? [TOperand, string | number, CollectionShape]
+        ? [TOperand, string | number, CollectionShape, false]
         : TOperand extends null | undefined
-          ? [never, never, never]
+          ? [never, never, never, false]
           : TOperand extends {
                   toBase(): Collection<
                       infer TItemValue,
@@ -303,21 +303,22 @@ type OperandParts<TOperand> =
                       infer TItemShape
                   >;
               }
-            ? [TItemValue, TItemKey, TItemShape]
+            ? [TItemValue, TItemKey, TItemShape, false]
             : TOperand extends ReadonlyMap<infer TMapKey, infer TItemValue>
               ? [
                     TItemValue,
                     MapArrayKey<TMapKey>,
                     ItemKeyedShape<MapArrayKey<TMapKey>>,
+                    false,
                 ]
               : TOperand extends readonly (infer TItemValue)[]
-                ? [TItemValue, number, "list"]
+                ? [TItemValue, number, "list", false]
                 : TOperand extends { toArray(...args: never[]): infer TItems }
                   ? CastParts<TItems>
                   : TOperand extends Iterable<infer TItemValue>
-                    ? [TItemValue, number, "list"]
+                    ? [TItemValue, number, "list", false]
                     : TOperand extends { toJson(...args: never[]): unknown }
-                      ? [unknown, string | number, "list" | "keyed"]
+                      ? [unknown, string | number, "list" | "keyed", false]
                       : TOperand extends {
                               jsonSerialize(...args: never[]): infer TItems;
                           }
@@ -326,6 +327,7 @@ type OperandParts<TOperand> =
                               FieldValues<TOperand>,
                               FieldKeys<TOperand>,
                               FieldsShape<TOperand>,
+                              HidesFieldKeys<TOperand>,
                           ];
 
 /** The values an operand hands over, and any for an operand typed any, so a comparator declared for them still fits. */
@@ -342,14 +344,19 @@ type OperandShape<TOperand> = OperandParts<TOperand>[2];
  * An answer typed unknown may be any of these, so its keys and shape are unknown too.
  */
 type CastParts<TItems> = unknown extends TItems
-    ? [TItems, string | number, "list" | "keyed"]
+    ? [TItems, string | number, "list" | "keyed", false]
     : TItems extends null | undefined
-      ? [never, never, "list"]
+      ? [never, never, "list", false]
       : TItems extends readonly (infer TItemValue)[]
-        ? [TItemValue, number, "list"]
+        ? [TItemValue, number, "list", false]
         : TItems extends object
-          ? [FieldValues<TItems>, FieldKeys<TItems>, FieldsShape<TItems>]
-          : [TItems, number, "list"];
+          ? [
+                FieldValues<TItems>,
+                FieldKeys<TItems>,
+                FieldsShape<TItems>,
+                HidesFieldKeys<TItems>,
+            ]
+          : [TItems, number, "list", false];
 
 /**
  * The values of an object's own fields: its members that are neither functions nor keyed by a symbol. TypeScript
@@ -388,6 +395,24 @@ type FieldsShape<TItems> = [
 ] extends [never]
     ? "keyed"
     : "partial";
+
+/**
+ * Whether an object may hold a string key its type does not name: it names no field, or a string-keyed member holds a
+ * function, which FieldKeys leaves out though the runtime copies a field that holds one.
+ */
+type HidesFieldKeys<TItems> = [FieldKeys<TItems>] extends [never]
+    ? true
+    : [
+            {
+                [TField in keyof TItems]-?: TField extends string
+                    ? TItems[TField] extends (...args: never[]) => unknown
+                        ? TField
+                        : never
+                    : never;
+            }[keyof TItems],
+        ] extends [never]
+      ? false
+      : true;
 
 /** A key looked up the way PHP's array_key_exists() looks one up, where null reads the "" key. */
 type LookupKey = PropertyKey | null | undefined;
@@ -719,6 +744,11 @@ type OperandHoldsStringKey<TOperand> = false extends (
     ? false
     : true;
 
+/** Whether an operand may hold a string key its type does not name, whichever of its types it has. */
+type OperandHidesKeys<TOperand> = true extends OperandParts<TOperand>[3]
+    ? true
+    : false;
+
 /** The literal keys some type of an operand may lack: a key it names that only a keyed type holds for sure. */
 type OperandUnsureKeys<
     TOperand,
@@ -743,13 +773,15 @@ type JoinShape<
       : "partial";
 
 /**
- * The shape merge() leaves. array_merge() renumbers integer keys, so only a string key makes a record, and one neither
- * side surely holds may be absent, leaving a list.
+ * The shape merge() leaves. array_merge() renumbers integer keys, so only a string key makes a record: one neither side
+ * surely holds may be absent, leaving a list, and one an operand's type cannot name may be present.
  */
 type MergedShape<TKey, TShape extends CollectionShape, TOperand> = [
     Extract<TKey | OperandKey<TOperand>, string>,
 ] extends [never]
-    ? "list"
+    ? OperandHidesKeys<TOperand> extends true
+        ? "list" | JoinShape<TShape, TOperand>
+        : "list"
     : HoldsStringKey<TKey, TShape> extends true
       ? JoinShape<TShape, TOperand>
       : OperandHoldsStringKey<TOperand> extends true
