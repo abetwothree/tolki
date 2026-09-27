@@ -834,6 +834,12 @@ probe('C32-C-doesntContainStrict-three-args', "(new Collection([['v' => 1]]))->d
     (new Collection([['v' => 1]]))->doesntContainStrict('v', '=', 1),
     (new Collection(['v']))->doesntContainStrict('v', '=', 1),
 ]);
+probe('C32-C-value-null-key', "(new Collection([['a' => 1]]))->value(null) / value(null, 'd') / value(null, fn () => 'lazy') / (new Collection([]))->value(null, 'd'): data_get() hands back its null target for a null key", fn () => [
+    (new Collection([['a' => 1]]))->value(null),
+    (new Collection([['a' => 1]]))->value(null, 'd'),
+    (new Collection([['a' => 1]]))->value(null, fn () => 'lazy'),
+    (new Collection([]))->value(null, 'd'),
+]);
 
 // ---- Family D ------------------------------------------------------------
 

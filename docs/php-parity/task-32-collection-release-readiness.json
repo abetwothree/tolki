@@ -5482,6 +5482,16 @@
             ]
         },
         {
+            "label": "C32-C-value-null-key",
+            "php": "(new Collection([['a' => 1]]))->value(null) / value(null, 'd') / value(null, fn () => 'lazy') / (new Collection([]))->value(null, 'd'): data_get() hands back its null target for a null key",
+            "value": [
+                null,
+                null,
+                null,
+                null
+            ]
+        },
+        {
             "label": "C32-D-reject-none-php-falsy",
             "php": "(new Collection([[], '0', 0.0, 'a', '', null, true]))->reject()->values()",
             "value": [
