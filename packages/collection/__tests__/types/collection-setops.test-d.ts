@@ -2094,16 +2094,24 @@ describe("collection set operation type tests", () => {
             >();
         });
 
-        it("differs from dataReplace, which types a list's result by the record it builds", () => {
-            // PHP's array_replace keeps a list's keys, 0..n-1 for a list operand; dataReplace names a record's.
-            const listReplaced = collect(numberList).replace(two);
+        it("agrees with dataReplace's items for a record", () => {
             const recordReplaced = collect(abc).replace(onlyA);
+            const dataReplaced = Data.dataReplace(abc, onlyA);
 
-            expectTypeOf<ItemsOf<typeof listReplaced>>().toEqualTypeOf<
-                number[]
+            expectTypeOf<ItemsOf<typeof recordReplaced>>().toEqualTypeOf<
+                typeof dataReplaced
             >();
             expectTypeOf<ItemsOf<typeof recordReplaced>>().toEqualTypeOf<
                 Record<"a" | "b" | "c", number>
+            >();
+        });
+
+        it("differs from dataReplace for a list, whose result dataReplace types by the record it builds", () => {
+            // PHP's array_replace keeps a list's keys, 0..n-1 for a list operand; dataReplace names a record's.
+            const listReplaced = collect(numberList).replace(two);
+
+            expectTypeOf<ItemsOf<typeof listReplaced>>().toEqualTypeOf<
+                number[]
             >();
         });
 
@@ -2207,16 +2215,24 @@ describe("collection set operation type tests", () => {
             >();
         });
 
-        it("differs from dataReplaceRecursive, which types a list's result by the record it builds", () => {
-            // array_replace_recursive keeps a list's keys, 0..n-1 for a list operand; the data helper names a record's.
-            const listReplaced = collect(numberList).replaceRecursive(two);
+        it("agrees with dataReplaceRecursive's items for a record", () => {
             const recordReplaced = collect(abc).replaceRecursive(onlyA);
+            const dataReplaced = Data.dataReplaceRecursive(abc, onlyA);
 
-            expectTypeOf<ItemsOf<typeof listReplaced>>().toEqualTypeOf<
-                number[]
+            expectTypeOf<ItemsOf<typeof recordReplaced>>().toEqualTypeOf<
+                typeof dataReplaced
             >();
             expectTypeOf<ItemsOf<typeof recordReplaced>>().toEqualTypeOf<
                 Record<"a" | "b" | "c", number>
+            >();
+        });
+
+        it("differs from dataReplaceRecursive for a list, whose result the data helper types by the record it builds", () => {
+            // array_replace_recursive keeps a list's keys, 0..n-1 for a list operand; the data helper names a record's.
+            const listReplaced = collect(numberList).replaceRecursive(two);
+
+            expectTypeOf<ItemsOf<typeof listReplaced>>().toEqualTypeOf<
+                number[]
             >();
         });
 
