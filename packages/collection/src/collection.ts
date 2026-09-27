@@ -6888,14 +6888,22 @@ export class Collection<
      * @returns The reduced value, or the initial value if the collection is empty
      */
     reduce<TReduce = TValue>(
-        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+        callback: (
+            carry: TReduce | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce | null,
     ): TReduce | null;
     reduce<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
     ): TReduce;
     reduce<TReduce>(
-        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+        callback: (
+            carry: TReduce | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce | null,
         initial: TReduce | null = null,
     ): unknown {
         // PHP's $initial defaults to null, so the first item reaches the callback too, unlike Array.prototype.reduce.
@@ -6983,14 +6991,22 @@ export class Collection<
      * @returns The reduced value, or the initial value if the collection is empty
      */
     reduceWithKeys<TReduce = TValue>(
-        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+        callback: (
+            carry: TReduce | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce | null,
     ): TReduce | null;
     reduceWithKeys<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
     ): TReduce;
     reduceWithKeys<TReduce>(
-        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+        callback: (
+            carry: TReduce | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce | null,
         initial: TReduce | null = null,
     ): unknown {
         return this.reduce<TReduce | null>(callback, initial);

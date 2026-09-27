@@ -1044,6 +1044,23 @@ describe("collection aggregate type tests", () => {
             ).toEqualTypeOf<number | null>();
         });
 
+        it("takes a reducer that hands back its carry, which may still be null", () => {
+            expectTypeOf(
+                list.reduce((carry, value) => (value > 1 ? value : carry)),
+            ).toEqualTypeOf<number | null>();
+            expectTypeOf(
+                generic.reduce((carry, value) => (value > 1 ? value : carry)),
+            ).toEqualTypeOf<number | null>();
+            expectTypeOf(list.reduce((carry) => carry)).toEqualTypeOf<
+                number | null
+            >();
+            expectTypeOf(
+                people.reduce((best, row) =>
+                    row.id > (best?.id ?? 0) ? row : best,
+                ),
+            ).toEqualTypeOf<Row | null>();
+        });
+
         it("reads a carry of another type from its annotation", () => {
             expectTypeOf(
                 people.reduce(
@@ -1311,6 +1328,22 @@ describe("collection aggregate type tests", () => {
             expectTypeOf(
                 tagged.reduceWithKeys((carry, value) => (carry ?? 0) + value),
             ).toEqualTypeOf<number | null>();
+        });
+
+        it("takes a reducer that hands back its carry, which may still be null", () => {
+            expectTypeOf(
+                list.reduceWithKeys((carry, value) =>
+                    value > 1 ? value : carry,
+                ),
+            ).toEqualTypeOf<number | null>();
+            expectTypeOf(
+                generic.reduceWithKeys((carry, value) =>
+                    value > 1 ? value : carry,
+                ),
+            ).toEqualTypeOf<number | null>();
+            expectTypeOf(list.reduceWithKeys((carry) => carry)).toEqualTypeOf<
+                number | null
+            >();
         });
 
         it("types the carry as the initial value's type", () => {
