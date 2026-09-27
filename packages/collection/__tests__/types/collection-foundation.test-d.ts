@@ -53,8 +53,36 @@ declare const pairOrNone: { a: number; b: number } | undefined;
 declare const keyedOrNull: Collection<number, "a", "keyed"> | null;
 declare const mapOrNull: Map<string, number> | null;
 declare const maybeTagged: Tagged | null;
+declare const taggedOrList: Tagged | number[];
 declare const anything: unknown;
 declare const maybeCallback: ((count: number) => string) | null;
+declare const keyedOrRecord:
+    | Collection<number, "a", "keyed">
+    | Record<string, number>;
+declare const setOrMap: Set<number> | Map<string, number>;
+declare const jsonOrNull: JsonText | null;
+declare const serializedOrNull: SerializesRecord | null;
+
+/** An iterable that is also a JsonSerializable, which the constructor reads by iterating. */
+class IterableRecord {
+    /**
+     * Iterate the values.
+     *
+     * @returns A generator yielding 1
+     */
+    *[Symbol.iterator](): Generator<number> {
+        yield 1;
+    }
+
+    /**
+     * Specify the data which should be serialized to JSON.
+     *
+     * @returns The record
+     */
+    jsonSerialize(): { from: string } {
+        return { from: "jsonSerialize" };
+    }
+}
 
 describe("collection foundation type tests", () => {
     describe("collect", () => {
@@ -243,6 +271,58 @@ describe("collection foundation type tests", () => {
             >();
         });
 
+        it("types each member of a union as it types that member alone", () => {
+            expectTypeOf(collect(keyedOrRecord)).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(collect(listOrCollection)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(collect(maybeTagged)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(collect(setOrMap)).toEqualTypeOf<
+                Collection<
+                    number,
+                    number | MapArrayKey<string>,
+                    "list" | "keyed"
+                >
+            >();
+            expectTypeOf(collect(jsonOrNull)).toEqualTypeOf<
+                Collection<unknown, string | number, "list" | "keyed">
+            >();
+            expectTypeOf(collect(serializedOrNull)).toEqualTypeOf<
+                Collection<string, "foo", "list" | "keyed">
+            >();
+        });
+
+        it("types a record that may be missing as a list or a keyed collection", () => {
+            expectTypeOf(collect(recordOrNull)).toEqualTypeOf<
+                Collection<number, string | number, "list" | "keyed">
+            >();
+        });
+
+        it("types a value of unknown type as unknown items in either shape", () => {
+            expectTypeOf(collect(anything)).toEqualTypeOf<
+                Collection<unknown, PropertyKey, CollectionShape>
+            >();
+        });
+
+        it("reads an iterable that is also a JsonSerializable by iterating it, as the runtime does", () => {
+            expectTypeOf(collect(new IterableRecord())).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("keeps a function or a class whole, in a one-item list, as the runtime does", () => {
+            expectTypeOf(collect(() => 1)).toEqualTypeOf<
+                Collection<() => 1, number, "list">
+            >();
+            expectTypeOf(collect(Point)).toEqualTypeOf<
+                Collection<typeof Point, number, "list">
+            >();
+        });
+
         it("holds the items dataFrom answers for the same list or record", () => {
             const list = collect(numberList);
             const record = collect(abc);
@@ -316,6 +396,24 @@ describe("collection foundation type tests", () => {
             >();
             expectTypeOf(Collection.make(new JsonText())).toEqualTypeOf<
                 Collection<unknown, string | number, "list" | "keyed">
+            >();
+        });
+
+        it("types each member of a union as it types that member alone", () => {
+            expectTypeOf(Collection.make(keyedOrRecord)).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(Collection.make(listOrCollection)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.make(recordOrNull)).toEqualTypeOf<
+                Collection<number, string | number, "list" | "keyed">
+            >();
+        });
+
+        it("types a value of unknown type as unknown items in either shape", () => {
+            expectTypeOf(Collection.make(anything)).toEqualTypeOf<
+                Collection<unknown, PropertyKey, CollectionShape>
             >();
         });
 
@@ -632,6 +730,9 @@ describe("collection foundation type tests", () => {
 
         it("answers the items of a value that is a list or a collection", () => {
             expectTypeOf(Collection.unwrap(listOrCollection)).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(Collection.unwrap(taggedOrList)).toEqualTypeOf<
                 number[]
             >();
         });

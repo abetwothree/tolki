@@ -169,19 +169,76 @@ type ItemsCollection<TItems> = Collection<
     TItems extends readonly unknown[] ? "list" : "keyed"
 >;
 
+/** The value, key and shape of an object's items: a list's under number keys, any other object's under its own. */
+type ItemsParts<TItems> = TItems extends readonly (infer TItemValue)[]
+    ? [TItemValue, number, "list"]
+    : [ObjectValue<TItems>, ObjectKey<TItems>, "keyed"];
+
+/**
+ * The value, key and shape the constructor gives one member of its input's type, in the order it reads them: a
+ * collection's or a Map's items, a list, none for null, the data an Arrayable, an iterable, a Jsonable or a
+ * JsonSerializable holds, an object's own fields, and a one-item list of anything else. A collection is read through
+ * toBase(), whose base-class return stays inferable from a subclass whatever the other members return.
+ */
+type CollectParts<TInput> = unknown extends TInput
+    ? [unknown, PropertyKey, CollectionShape]
+    : TInput extends null | undefined
+      ? [never, never, "list"]
+      : TInput extends {
+              toBase(): Collection<
+                  infer TItemValue,
+                  infer TItemKey,
+                  infer TItemShape
+              >;
+          }
+        ? [TItemValue, TItemKey, TItemShape]
+        : TInput extends ReadonlyMap<infer TMapKey, infer TItemValue>
+          ? [TItemValue, MapArrayKey<TMapKey>, "keyed"]
+          : TInput extends readonly (infer TItemValue)[]
+            ? [TItemValue, number, "list"]
+            : TInput extends
+                    | ((...args: never[]) => unknown)
+                    | (abstract new (...args: never[]) => unknown)
+              ? [TInput, number, "list"]
+              : TInput extends { toArray(): infer TItems extends object }
+                ? ItemsParts<TItems>
+                : TInput extends Iterable<infer TItemValue> & object
+                  ? [TItemValue, number, "list"]
+                  : TInput extends Jsonable
+                    ? [unknown, string | number, "list" | "keyed"]
+                    : TInput extends {
+                            jsonSerialize(): infer TItems extends object;
+                        }
+                      ? ItemsParts<TItems>
+                      : TInput extends JsonSerializable
+                        ? [unknown, string | number, "list" | "keyed"]
+                        : TInput extends object
+                          ? [ObjectValue<TInput>, ObjectKey<TInput>, "keyed"]
+                          : [TInput, number, "list"];
+
+/** The collection collect() and make() build from a value, typed member by member when its type is a union. */
+type CollectCollection<TInput> = Collection<
+    CollectParts<TInput>[0],
+    CollectParts<TInput>[1],
+    CollectParts<TInput>[2]
+>;
+
 /**
  * The value, key and shape wrap() gives one member of its input's type: a collection's own, the items of a list, a Map
- * or a record, none for null, and a one-item list of anything else. An input of unknown type may be any of them.
+ * or a record, none for null, and a one-item list of anything else. An input of unknown type may be any of them. A
+ * collection is read through toBase(), whose base-class return stays inferable from a subclass.
  */
 type WrapParts<TInput> = unknown extends TInput
     ? [unknown, PropertyKey, CollectionShape]
     : TInput extends null | undefined
       ? [never, never, "list"]
-      : TInput extends Collection<
-              infer TItemValue,
-              infer TItemKey,
-              infer TItemShape
-          >
+      : TInput extends {
+              toBase(): Collection<
+                  infer TItemValue,
+                  infer TItemKey,
+                  infer TItemShape
+              >;
+          }
         ? [TItemValue, TItemKey, TItemShape]
         : TInput extends readonly (infer TItemValue)[]
           ? [TItemValue, number, "list"]
@@ -211,15 +268,15 @@ type WrapCollection<TInput> = Collection<
     WrapParts<TInput>[2]
 >;
 
-/** What unwrap() hands back for a value: a collection's items, and anything else unchanged. */
-type Unwrapped<TValue> =
-    TValue extends Collection<
-        infer TItemValue,
-        infer TItemKey,
-        infer TItemShape
-    >
-        ? CollectionItems<TItemValue, TItemKey, TItemShape>
-        : TValue;
+/**
+ * What unwrap() hands back for a value: a collection's items, and anything else unchanged. A collection is read through
+ * toBase(), whose base-class return stays inferable from a subclass whatever the other members return.
+ */
+type Unwrapped<TValue> = TValue extends {
+    toBase(): Collection<infer TItemValue, infer TItemKey, infer TItemShape>;
+}
+    ? CollectionItems<TItemValue, TItemKey, TItemShape>
+    : TValue;
 
 /** Anything PHP's getArrayableItems() accepts as a second collection. */
 type Operand = object | null | undefined;
@@ -310,31 +367,10 @@ export function collect<TValue>(items: {
 export function collect<TItems extends object>(items: {
     toArray(): TItems;
 }): ItemsCollection<TItems>;
-export function collect<TValue>(
-    items: Iterable<TValue> & object,
-): Collection<TValue, number, "list">;
-export function collect(
-    items: Jsonable,
-): Collection<unknown, string | number, "list" | "keyed">;
-export function collect<TItems extends object>(items: {
-    jsonSerialize(): TItems;
-}): ItemsCollection<TItems>;
-export function collect(
-    items: JsonSerializable,
-): Collection<unknown, string | number, "list" | "keyed">;
 export function collect(
     items?: null | undefined,
 ): Collection<never, number, "list">;
-export function collect<TValue>(
-    items: readonly TValue[] | null | undefined,
-): Collection<TValue, number, "list">;
-export function collect(items: string): Collection<string, number, "list">;
-export function collect(items: number): Collection<number, number, "list">;
-export function collect(items: boolean): Collection<boolean, number, "list">;
-export function collect(items: symbol): Collection<symbol, number, "list">;
-export function collect<TItems extends object>(
-    items: TItems,
-): ItemsCollection<TItems>;
+export function collect<TInput>(items: TInput): CollectCollection<TInput>;
 export function collect(items?: unknown): unknown {
     return new (Collection as CollectionClass<unknown, PropertyKey>)(items);
 }
@@ -4238,50 +4274,14 @@ export class Collection<
         items: { toArray(): TItems },
         ...args: unknown[]
     ): ItemsCollection<TItems>;
-    static make<TMakeValue>(
-        items: Iterable<TMakeValue> & object,
-        ...args: unknown[]
-    ): Collection<TMakeValue, number, "list">;
-    static make(
-        items: Jsonable,
-        ...args: unknown[]
-    ): Collection<unknown, string | number, "list" | "keyed">;
-    static make<TItems extends object>(
-        items: { jsonSerialize(): TItems },
-        ...args: unknown[]
-    ): ItemsCollection<TItems>;
-    static make(
-        items: JsonSerializable,
-        ...args: unknown[]
-    ): Collection<unknown, string | number, "list" | "keyed">;
     static make(
         items?: null | undefined,
         ...args: unknown[]
     ): Collection<never, number, "list">;
-    static make<TMakeValue>(
-        items: readonly TMakeValue[] | null | undefined,
+    static make<TMakeInput>(
+        items: TMakeInput,
         ...args: unknown[]
-    ): Collection<TMakeValue, number, "list">;
-    static make(
-        items: string,
-        ...args: unknown[]
-    ): Collection<string, number, "list">;
-    static make(
-        items: number,
-        ...args: unknown[]
-    ): Collection<number, number, "list">;
-    static make(
-        items: boolean,
-        ...args: unknown[]
-    ): Collection<boolean, number, "list">;
-    static make(
-        items: symbol,
-        ...args: unknown[]
-    ): Collection<symbol, number, "list">;
-    static make<TItems extends object>(
-        items: TItems,
-        ...args: unknown[]
-    ): ItemsCollection<TItems>;
+    ): CollectCollection<TMakeInput>;
     static make(items?: unknown, ...args: unknown[]): unknown {
         return new (this as CollectionClass<unknown, PropertyKey>)(
             items,
