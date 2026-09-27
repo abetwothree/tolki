@@ -7143,7 +7143,7 @@ export class Collection<
     jsonSerialize(): unknown[] | CollectionItems<unknown, TKey, TShape>;
     jsonSerialize(): unknown {
         const entries = this.entriesInOrder().map(
-            ([key, value]) => [key, jsonSerializeItem(value)] as const,
+            ([key, value]): [TKey, unknown] => [key, jsonSerializeItem(value)],
         );
 
         // json_encode writes a list only for keys 0..n-1 in order, whichever backing holds them.

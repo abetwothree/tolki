@@ -13929,6 +13929,7 @@ describe("Collection", () => {
             // docs/php-parity/task-10-pluck-sort.json,
             // "Collection::sortBy — unrecognized direction sorts descending (default arm)"
             const data = collect([{ age: 2 }, { age: 10 }]);
+            // A direction the types rule out, which PHP's match() sends to its default arm.
             const sorted = data.sortBy([["age", "BOGUS" as unknown as "asc"]]);
             expect(sorted.values().pluck("age").all()).toEqual([10, 2]);
         });
@@ -22858,9 +22859,7 @@ describe("Collection", () => {
             );
             const keys = collection.keys();
             expect(keys).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((keys as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(keys).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through sort", () => {
@@ -22893,14 +22892,10 @@ describe("Collection", () => {
             );
             const chunks = collection.chunk(2);
             expect(chunks).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(
-                (chunks as unknown as TestCollectionWithExtraState).tag,
-            ).toBe("my-tag");
+            expect(chunks).toHaveProperty("tag", "my-tag");
             const first = chunks.first();
             expect(first).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((first as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(first).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through merge", () => {
@@ -22933,13 +22928,9 @@ describe("Collection", () => {
             );
             const [pass, fail] = collection.partition((v) => v > 3);
             expect(pass).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((pass as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(pass).toHaveProperty("tag", "my-tag");
             expect(fail).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((fail as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(fail).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through pluck", () => {
@@ -22950,9 +22941,7 @@ describe("Collection", () => {
             );
             const plucked = assoc.pluck("name");
             expect(plucked).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(
-                (plucked as unknown as TestCollectionWithExtraState).tag,
-            ).toBe("p-tag");
+            expect(plucked).toHaveProperty("tag", "p-tag");
         });
 
         it("preserves subclass type through reverse", () => {
@@ -24149,34 +24138,33 @@ describe("Collection", () => {
         /** The keys a method hands its callback over ["a", "b"] and over { 1: "a", x: "b" }, in order. */
         const keysSeen = (
             run: (
-                collection: Collection<string, PropertyKey>,
+                collection: Collection<string, PropertyKey, CollectionShape>,
                 note: (key: PropertyKey) => void,
             ) => void,
         ): PropertyKey[][] =>
-            [collect(["a", "b"]), collect({ 1: "a", x: "b" })].map(
-                (collection) => {
-                    const seen: PropertyKey[] = [];
+            [["a", "b"], { 1: "a", x: "b" }].map((items) => {
+                const seen: PropertyKey[] = [];
 
-                    run(
-                        collection as unknown as Collection<
-                            string,
-                            PropertyKey
-                        >,
-                        (key) => {
-                            seen.push(key);
-                        },
-                    );
+                run(
+                    new Collection<string, PropertyKey, CollectionShape>(items),
+                    (key) => {
+                        seen.push(key);
+                    },
+                );
 
-                    return seen;
-                },
-            );
+                return seen;
+            });
 
         it.each([
             [
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-callback-key-types"
                 "every",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.every((_value, key) => {
@@ -24190,7 +24178,11 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-mixed-keys"
                 "each",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.each((_value, key) => {
@@ -24202,7 +24194,11 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-callback-key-type"
                 "groupBy",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.groupBy((_value, key) => {
@@ -24216,7 +24212,11 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-key-type"
                 "countBy",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.countBy((_value, key) => {
@@ -24231,7 +24231,11 @@ describe("Collection", () => {
                 // and "C32-G-sortBy-callback-key-types-int-keys"
                 "sortBy",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.sortBy((value, key) => {
@@ -24245,7 +24249,11 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-list-key-type"
                 "reduceSpread",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.reduceSpread((carry, _value, key) => {
@@ -24259,7 +24267,11 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-callback-key-type"
                 "mapWithKeys",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.mapWithKeys((value, key) => {
@@ -24273,7 +24285,11 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-callback-key-type"
                 "keyBy",
                 (
-                    collection: Collection<string, PropertyKey>,
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
                     note: (key: PropertyKey) => void,
                 ) => {
                     collection.keyBy((value, key) => {
@@ -25226,12 +25242,15 @@ describe("Collection", () => {
     describe("callbacks and conditions are judged by PHP truthiness", () => {
         /** The items "a" and "b" (or "a" alone), as a list or keyed "x" and "y". */
         const items = (keyed: boolean, one = false) =>
-            (keyed
-                ? collect(one ? { x: "a" } : { x: "a", y: "b" })
-                : collect(one ? ["a"] : ["a", "b"])) as unknown as Collection<
-                string,
-                PropertyKey
-            >;
+            collect(
+                keyed
+                    ? one
+                        ? { x: "a" }
+                        : { x: "a", y: "b" }
+                    : one
+                      ? ["a"]
+                      : ["a", "b"],
+            );
 
         /** A result the way the probe's pairs() records it: a list's values, any other keys as [key, value] pairs. */
         const pairs = (result: unknown): unknown => {
