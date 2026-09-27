@@ -22261,9 +22261,7 @@ describe("Collection", () => {
             );
             const mapped = collection.map((v) => v * 2);
             expect(mapped).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(
-                (mapped as unknown as TestCollectionWithExtraState).tag,
-            ).toBe("my-tag");
+            expect(mapped).toHaveProperty("tag", "my-tag");
             expect(mapped.all()).toEqual([2, 4, 6, 8, 10]);
         });
 
@@ -22418,9 +22416,7 @@ describe("Collection", () => {
             );
             const flat = nested.flatten();
             expect(flat).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((flat as unknown as TestCollectionWithExtraState).tag).toBe(
-                "f-tag",
-            );
+            expect(flat).toHaveProperty("tag", "f-tag");
         });
 
         it("preserves subclass type through pad", () => {
