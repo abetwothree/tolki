@@ -95,6 +95,16 @@ class Bag<TItem> extends Collection<TItem> {
     }
 
     /**
+     * Key each item by the name the given callback gives it.
+     *
+     * @param callback - The naming callback
+     * @returns The items under their names
+     */
+    pairedBy(callback: (value: TItem) => string) {
+        return this.mapWithKeys((value) => ({ [callback(value)]: value }));
+    }
+
+    /**
      * Visit each item.
      *
      * @param callback - The visitor
@@ -122,6 +132,15 @@ class Bag<TItem> extends Collection<TItem> {
      */
     grouped(callback: (value: TItem) => number) {
         return this.groupBy(callback);
+    }
+
+    /**
+     * Read each item's name.
+     *
+     * @returns The names, read the way data_get() reads them
+     */
+    labels() {
+        return this.pluck("name");
     }
 
     /**
@@ -313,6 +332,15 @@ describe("collection mapping, keying and grouping type tests", () => {
             ).toEqualTypeOf<Collection<number, string | number, "keyed">>();
         });
 
+        it("types a subclass's result as a base collection, a generic subclass's too", () => {
+            expectTypeOf(
+                tagged.mapWithKeys((value) => ({ [value]: value })),
+            ).toEqualTypeOf<Collection<number, number, "keyed">>();
+            expectTypeOf(new Bag([1, 2]).pairedBy(String)).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+        });
+
         it("compiles for a caller whose items are a type parameter, and chains", () => {
             function byName<TItem extends { name: string }>(
                 items: Collection<TItem>,
@@ -407,6 +435,12 @@ describe("collection mapping, keying and grouping type tests", () => {
             expectTypeOf(
                 mapped.mapToDictionary((value, key) => ({ [value]: key })),
             ).toEqualTypeOf<Collection<number[], string | number, "keyed">>();
+        });
+
+        it("types a subclass's result as a base collection", () => {
+            expectTypeOf(
+                tagged.mapToDictionary((value) => ({ [value]: value })),
+            ).toEqualTypeOf<Collection<number[], number, "keyed">>();
         });
 
         it("compiles for a caller whose items are a type parameter, and chains", () => {
@@ -509,6 +543,14 @@ describe("collection mapping, keying and grouping type tests", () => {
                     string | number,
                     "keyed"
                 >
+            >();
+        });
+
+        it("types a subclass's result as a base collection", () => {
+            expectTypeOf(
+                tagged.mapToGroups((value) => ({ [value]: value })),
+            ).toEqualTypeOf<
+                Collection<Collection<number, number, "list">, number, "keyed">
             >();
         });
 
@@ -645,6 +687,12 @@ describe("collection mapping, keying and grouping type tests", () => {
                     return value;
                 }),
             ).toEqualTypeOf<Collection<string, number, "keyed">>();
+        });
+
+        it("types a subclass's result as a base collection", () => {
+            expectTypeOf(
+                tagged.mapSpread((value, key) => value + key),
+            ).toEqualTypeOf<Collection<number, number, "list">>();
         });
 
         it("compiles for a caller whose rows are a type parameter, and chains", () => {
@@ -803,6 +851,12 @@ describe("collection mapping, keying and grouping type tests", () => {
                     return [value];
                 }),
             ).toEqualTypeOf<Collection<string, number, "list">>();
+        });
+
+        it("types a subclass's result as a base collection", () => {
+            expectTypeOf(tagged.flatMap((value) => [value])).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
         });
 
         it("compiles for a caller whose items are a type parameter, and chains", () => {
@@ -1414,6 +1468,12 @@ describe("collection mapping, keying and grouping type tests", () => {
             >();
         });
 
+        it("types a generic subclass's result as a base collection", () => {
+            expectTypeOf(new Bag(rows).labels()).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+        });
+
         it("compiles for a caller whose items are a type parameter, and chains", () => {
             function names<TItem extends { name: string }>(
                 items: Collection<TItem>,
@@ -1575,6 +1635,12 @@ describe("collection mapping, keying and grouping type tests", () => {
             >();
         });
 
+        it("types a subclass's result as a base collection", () => {
+            expectTypeOf(tagged.collapse()).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+        });
+
         it("compiles for a caller whose items are a type parameter, and chains", () => {
             function joined<TItem>(items: Collection<TItem[]>) {
                 return items.collapse().filter(() => true);
@@ -1640,6 +1706,12 @@ describe("collection mapping, keying and grouping type tests", () => {
                 Collection<never, never, "list">
             >();
             expectTypeOf(mapped.collapseWithKeys()).toEqualTypeOf<
+                Collection<never, never, "list">
+            >();
+        });
+
+        it("types a subclass's result as a base collection", () => {
+            expectTypeOf(tagged.collapseWithKeys()).toEqualTypeOf<
                 Collection<never, never, "list">
             >();
         });
