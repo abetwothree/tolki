@@ -1195,6 +1195,34 @@ describe("collection filtering and subsets type tests", () => {
             >();
         });
 
+        it("keeps a chained call compiling for keys typed by a type parameter", () => {
+            function keptWhere<TItem, TItemKey extends string>(
+                items: Collection<TItem, TItemKey, "keyed">,
+                key: TItemKey,
+                callback: (value: TItem) => boolean,
+            ) {
+                return items.only(key).filter(callback);
+            }
+            function keptOf<
+                TItem,
+                TItemKey extends string,
+                TItemShape extends CollectionShape,
+            >(
+                items: Collection<TItem, TItemKey, TItemShape>,
+                keys: TItemKey[],
+                callback: (value: TItem) => boolean,
+            ) {
+                return items.only(keys).filter(callback);
+            }
+
+            expectTypeOf(
+                keptWhere(record, "a", (value) => value > 1),
+            ).toEqualTypeOf<Collection<number, "a" | "b" | "c", "partial">>();
+            expectTypeOf(
+                keptOf(record, ["a"], (value) => value > 1),
+            ).toEqualTypeOf<Collection<number, "a" | "b" | "c", "partial">>();
+        });
+
         it("agrees with dataOnly's items", () => {
             const listKept = list.only([0, 2]);
             const recordKept = record.only(["a"]);
@@ -1288,6 +1316,33 @@ describe("collection filtering and subsets type tests", () => {
             expectTypeOf(listOrKeyed.except(0)).toEqualTypeOf<
                 Collection<number, number, "list" | "partial">
             >();
+        });
+
+        it("keeps a chained call compiling for keys typed by a type parameter", () => {
+            function droppedWhere<TItem, TItemKey extends string>(
+                items: Collection<TItem, TItemKey, "keyed">,
+                key: TItemKey,
+            ) {
+                return items.except(key).where("id", 1);
+            }
+            function droppedOf<
+                TItem,
+                TItemKey extends string,
+                TItemShape extends CollectionShape,
+            >(
+                items: Collection<TItem, TItemKey, TItemShape>,
+                keys: TItemKey[],
+                callback: (value: TItem) => boolean,
+            ) {
+                return items.except(keys).filter(callback);
+            }
+
+            expectTypeOf(droppedWhere(keyedPeople, "ada")).toEqualTypeOf<
+                Collection<Row, "ada" | "grace", "partial">
+            >();
+            expectTypeOf(
+                droppedOf(record, ["a"], (value) => value > 1),
+            ).toEqualTypeOf<Collection<number, "a" | "b" | "c", "partial">>();
         });
 
         it("agrees with dataExcept's items", () => {

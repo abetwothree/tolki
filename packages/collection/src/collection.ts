@@ -418,6 +418,13 @@ type LiteralKeys<TKey> = [
 type NamedKeys<TKey, TKeys> =
     LiteralKeys<TKey> extends true ? SureKeys<TKeys> : false;
 
+/**
+ * Admits only() or except()'s literal rows for keys they surely name. It stays deferred for a key typed by a type
+ * parameter, so such a call reaches the widest row, whose collection type a chained overloaded call can still read.
+ */
+type IfNamed<TKey, TKeys> =
+    NamedKeys<TKey, TKeys> extends false ? never : unknown;
+
 /** Any class, abstract or not: `never[]` parameters let a constructor that takes typed parameters match. */
 type AbstractConstructor = abstract new (...args: never[]) => unknown;
 
@@ -1299,32 +1306,28 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    except(keys: null | undefined, ...rest: PathKey[]): this;
+    except(keys: null | undefined, ...rest: LookupKey[]): this;
     except<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
         this: Collection<TValue, TKey, "list">,
         keys:
-            | PathKey
-            | readonly PathKey[]
+            | LookupKey
+            | readonly LookupKey[]
             | Collection<TKeysValue, TKeysKey, CollectionShape>,
-        ...rest: PathKey[]
+        ...rest: LookupKey[]
     ): this;
     except<const TKeys extends readonly [TKey, ...TKey[]]>(
-        ...keys: TKeys
-    ): NamedKeys<TKey, TKeys> extends [infer TRemoved]
-        ? Collection<TValue, Exclude<TKey, TRemoved>, TShape>
-        : Collection<TValue, TKey, Removed<TShape>>;
+        ...keys: TKeys & IfNamed<TKey, TKeys>
+    ): Collection<TValue, Exclude<TKey, TKeys[number]>, TShape>;
     except<const TKeys extends readonly TKey[]>(
-        keys: TKeys,
-        ...rest: PathKey[]
-    ): NamedKeys<TKey, TKeys> extends [infer TRemoved]
-        ? Collection<TValue, Exclude<TKey, TRemoved>, TShape>
-        : Collection<TValue, TKey, Removed<TShape>>;
+        keys: TKeys & IfNamed<TKey, TKeys>,
+        ...rest: LookupKey[]
+    ): Collection<TValue, Exclude<TKey, TKeys[number]>, TShape>;
     except<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
         keys:
-            | PathKey
-            | readonly PathKey[]
+            | LookupKey
+            | readonly LookupKey[]
             | Collection<TKeysValue, TKeysKey, CollectionShape>,
-        ...rest: PathKey[]
+        ...rest: LookupKey[]
     ): Collection<TValue, TKey, Removed<TShape>>;
     except(...keys: unknown[]): unknown {
         const keysToExcept = this.keysArgument(keys);
@@ -2560,32 +2563,28 @@ export class Collection<
      * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
      * new Collection(['a', 'b', 'c', 'd']).only([3, 1]); -> new Collection(['b', 'd'])
      */
-    only(keys: null | undefined, ...rest: PathKey[]): this;
+    only(keys: null | undefined, ...rest: LookupKey[]): this;
     only<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
         this: Collection<TValue, TKey, "list">,
         keys:
-            | PathKey
-            | readonly PathKey[]
+            | LookupKey
+            | readonly LookupKey[]
             | Collection<TKeysValue, TKeysKey, CollectionShape>,
-        ...rest: PathKey[]
+        ...rest: LookupKey[]
     ): this;
     only<const TKeys extends readonly [TKey, ...TKey[]]>(
-        ...keys: TKeys
-    ): NamedKeys<TKey, TKeys> extends [infer TKept]
-        ? Collection<TValue, Extract<TKey, TKept>, TShape>
-        : Collection<TValue, TKey, Removed<TShape>>;
+        ...keys: TKeys & IfNamed<TKey, TKeys>
+    ): Collection<TValue, Extract<TKey, TKeys[number]>, TShape>;
     only<const TKeys extends readonly TKey[]>(
-        keys: TKeys,
-        ...rest: PathKey[]
-    ): NamedKeys<TKey, TKeys> extends [infer TKept]
-        ? Collection<TValue, Extract<TKey, TKept>, TShape>
-        : Collection<TValue, TKey, Removed<TShape>>;
+        keys: TKeys & IfNamed<TKey, TKeys>,
+        ...rest: LookupKey[]
+    ): Collection<TValue, Extract<TKey, TKeys[number]>, TShape>;
     only<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
         keys:
-            | PathKey
-            | readonly PathKey[]
+            | LookupKey
+            | readonly LookupKey[]
             | Collection<TKeysValue, TKeysKey, CollectionShape>,
-        ...rest: PathKey[]
+        ...rest: LookupKey[]
     ): Collection<TValue, TKey, Removed<TShape>>;
     only(...keys: unknown[]): unknown {
         const keysToKeep = this.keysArgument(keys);
