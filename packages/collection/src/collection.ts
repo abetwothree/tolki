@@ -2621,7 +2621,8 @@ export class Collection<
         keys: TPicks,
     ): Collection<Pick<TValue, TPicks[number]>, TKey, TShape>;
     select(
-        ...keys: PathKeys[] | Collection<string, number, CollectionShape>[]
+        keys: PathKeys | Collection<string, number, CollectionShape>,
+        ...rest: PathKeys[]
     ): Collection<Record<string, unknown>, TKey, TShape>;
     select(...keys: unknown[]): unknown {
         const keysToSelect = this.keysArgument(keys);

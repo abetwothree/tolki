@@ -1476,6 +1476,11 @@ describe("collection filtering and subsets type tests", () => {
             // @ts-expect-error - a collection of objects is not a list of keys
             data.select(collect([{ first: "Taylor" }]));
         });
+
+        it("requires the keys, as PHP's select($keys) does", () => {
+            // @ts-expect-error - PHP throws ArgumentCountError for a select() with no keys
+            people.select();
+        });
     });
 
     describe("partition", () => {
