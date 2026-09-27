@@ -808,6 +808,8 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
     contains(key: (value: TValue, key: TKey) => unknown): boolean;
+    // A generic caller's needle needs this row, through which items that may be functions take a mis-typed callback.
+    contains(key: TValue | null | undefined): boolean;
     contains<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -852,6 +854,7 @@ export class Collection<
      * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
     containsStrict(key: (value: TValue, key: TKey) => unknown): boolean;
+    containsStrict(key: TValue | null | undefined): boolean;
     containsStrict<TNeedle>(
         key: NonCallable<TNeedle>,
         value?: unknown,
@@ -906,6 +909,7 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
      */
     doesntContain(key: (value: TValue, key: TKey) => unknown): boolean;
+    doesntContain(key: TValue | null | undefined): boolean;
     doesntContain<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -940,6 +944,7 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
      */
     doesntContainStrict(key: (value: TValue, key: TKey) => unknown): boolean;
+    doesntContainStrict(key: TValue | null | undefined): boolean;
     doesntContainStrict<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,
@@ -4788,6 +4793,7 @@ export class Collection<
      * @see {@link Collection.contains}
      */
     some(key: (value: TValue, key: TKey) => unknown): boolean;
+    some(key: TValue | null | undefined): boolean;
     some<TNeedle>(
         key: NonCallable<TNeedle>,
         operator?: unknown,

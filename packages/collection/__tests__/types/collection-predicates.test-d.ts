@@ -26,6 +26,7 @@ declare const flag: boolean;
 declare const maybeCount: number | null;
 declare const ada: Row;
 declare const partial: Collection<number, "a" | "b", "partial">;
+declare const unknownItems: Collection<unknown>;
 
 describe("collection predicate type tests", () => {
     const list = collect(numberList);
@@ -89,6 +90,58 @@ describe("collection predicate type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
+        it("takes a needle whose type is a type parameter, as generic code hands one over", () => {
+            const has = <T>(collection: Collection<T>, needle: T): boolean =>
+                collection.contains(needle);
+            const hasObject = <T extends object>(
+                collection: Collection<T>,
+                needle: T,
+            ): boolean => collection.contains(needle);
+            const hasNumber = <T extends number>(
+                collection: Collection<T>,
+                needle: T,
+            ): boolean => collection.contains(needle);
+            const hasKeyed = <T, K extends PropertyKey>(
+                collection: Collection<T, K, "keyed">,
+                needle: T | null,
+            ): boolean => collection.contains(needle);
+
+            expectTypeOf(has(list, 2)).toEqualTypeOf<boolean>();
+            expectTypeOf(hasObject(people, ada)).toEqualTypeOf<boolean>();
+            expectTypeOf(hasNumber(list, 2)).toEqualTypeOf<boolean>();
+            expectTypeOf(hasKeyed(record, null)).toEqualTypeOf<boolean>();
+        });
+
+        it("takes an item of a generic subclass's type parameter in every member of the family", () => {
+            /** A subclass generic in its items, whose member hands the contains family one of them. */
+            class Bag<TItem> extends Collection<TItem> {
+                /**
+                 * Ask the contains family about an item.
+                 *
+                 * @param item - The item to look for
+                 * @returns What contains(), containsStrict(), doesntContain(), doesntContainStrict() and some() answer
+                 */
+                ask(item: TItem): boolean[] {
+                    return [
+                        this.contains(item),
+                        this.containsStrict(item),
+                        this.doesntContain(item),
+                        this.doesntContainStrict(item),
+                        this.some(item),
+                    ];
+                }
+            }
+
+            expectTypeOf(new Bag([1, 2]).ask(1)).toEqualTypeOf<boolean[]>();
+        });
+
+        it("takes a callback over another type where the items may be functions, a cost of the generic needle row", () => {
+            // The row a generic caller's needle needs takes any function when the items may be functions.
+            expectTypeOf(
+                unknownItems.contains((value: string) => value === "x"),
+            ).toEqualTypeOf<boolean>();
+        });
+
         it("rejects a callback over another item type, and a callback given an operator and a value", () => {
             // @ts-expect-error - a number list's callback takes a number
             list.contains((value: string) => value === "x");
@@ -149,6 +202,15 @@ describe("collection predicate type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
+        it("takes a needle whose type is a type parameter, as generic code hands one over", () => {
+            const has = <T>(
+                collection: Collection<T>,
+                needle: T | null,
+            ): boolean => collection.containsStrict(needle);
+
+            expectTypeOf(has(list, 2)).toEqualTypeOf<boolean>();
+        });
+
         it("rejects a callback over another item type, and a callback given a value", () => {
             // @ts-expect-error - a number list's callback takes a number
             list.containsStrict((value: string) => value === "x");
@@ -196,6 +258,15 @@ describe("collection predicate type tests", () => {
             expectTypeOf(
                 list.doesntContain(maybeCallback),
             ).toEqualTypeOf<boolean>();
+        });
+
+        it("takes a needle whose type is a type parameter, as generic code hands one over", () => {
+            const has = <T>(
+                collection: Collection<T>,
+                needle: T | null,
+            ): boolean => collection.doesntContain(needle);
+
+            expectTypeOf(has(list, 2)).toEqualTypeOf<boolean>();
         });
 
         it("rejects a callback over another item type, and a callback given an operator and a value", () => {
@@ -250,6 +321,15 @@ describe("collection predicate type tests", () => {
             ).toEqualTypeOf<boolean>();
         });
 
+        it("takes a needle whose type is a type parameter, as generic code hands one over", () => {
+            const has = <T>(
+                collection: Collection<T>,
+                needle: T | null,
+            ): boolean => collection.doesntContainStrict(needle);
+
+            expectTypeOf(has(list, 2)).toEqualTypeOf<boolean>();
+        });
+
         it("rejects a callback over another item type, and a callback given a value", () => {
             // @ts-expect-error - a number list's callback takes a number
             list.doesntContainStrict((value: string) => value === "x");
@@ -291,6 +371,15 @@ describe("collection predicate type tests", () => {
 
         it("takes a variable that may hold a callback or a value, as PHP takes either", () => {
             expectTypeOf(list.some(maybeCallback)).toEqualTypeOf<boolean>();
+        });
+
+        it("takes a needle whose type is a type parameter, as generic code hands one over", () => {
+            const has = <T>(
+                collection: Collection<T>,
+                needle: T | null,
+            ): boolean => collection.some(needle);
+
+            expectTypeOf(has(list, 2)).toEqualTypeOf<boolean>();
         });
 
         it("rejects a callback over another item type or given an operator and a value, and a call with no key", () => {
