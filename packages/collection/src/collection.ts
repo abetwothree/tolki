@@ -4742,6 +4742,7 @@ export class Collection<
      * Ensure that every item in the collection is of the expected type.
      *
      * A class named as a string matches only that class; pass the class itself to accept its subclasses too.
+     * Any other string may name a class, so a misspelt type name compiles, narrowing the values to objects.
      *
      * @param type - A class, a type name as PHP's get_debug_type() gives it ("int", "float", "string", "bool", "array",
      * "null" or a class's name) or as JavaScript's typeof does ("number", "boolean", "object", "undefined", …),
@@ -6757,7 +6758,10 @@ interface EnsureTypeMap {
     object: object;
     // A plain object stands in for a PHP array.
     array: unknown[] | Record<PropertyKey, unknown>;
-    function: (...args: never[]) => unknown;
+    // typeof calls a class a function too, and a class called without new throws.
+    function:
+        | ((...args: never[]) => unknown)
+        | (abstract new (...args: never[]) => unknown);
 }
 
 /** A type ensure() checks for: a type name, a class's name, or the class itself, which takes its subclasses too. */

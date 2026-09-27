@@ -901,7 +901,12 @@ describe("collection foundation type tests", () => {
                 Collection<object, number, "list">
             >();
             expectTypeOf(unknowns.ensure("function")).toEqualTypeOf<
-                Collection<(...args: never[]) => unknown, number, "list">
+                Collection<
+                    | ((...args: never[]) => unknown)
+                    | (abstract new (...args: never[]) => unknown),
+                    number,
+                    "list"
+                >
             >();
         });
 
