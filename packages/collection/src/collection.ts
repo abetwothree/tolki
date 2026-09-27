@@ -175,10 +175,8 @@ type ItemsParts<TItems> = TItems extends readonly (infer TItemValue)[]
     : [ObjectValue<TItems>, ObjectKey<TItems>, "keyed"];
 
 /**
- * The value, key and shape the constructor gives one member of its input's type, in the order it reads them: a
- * collection's or a Map's items, a list, none for null, the data an Arrayable, an iterable, a Jsonable or a
- * JsonSerializable holds, an object's own fields, and a one-item list of anything else. A collection is read through
- * toBase(), whose base-class return stays inferable from a subclass whatever the other members return.
+ * The value, key and shape the constructor gives one member of an input. The arms follow the order getRawItems() reads
+ * in, and a collection is read through toBase(), whose base-class return stays inferable from a subclass.
  */
 type CollectParts<TInput> = unknown extends TInput
     ? [unknown, PropertyKey, CollectionShape]
@@ -224,9 +222,8 @@ type CollectCollection<TInput> = Collection<
 >;
 
 /**
- * The value, key and shape wrap() gives one member of its input's type: a collection's own, the items of a list, a Map
- * or a record, none for null, and a one-item list of anything else. An input of unknown type may be any of them. A
- * collection is read through toBase(), whose base-class return stays inferable from a subclass.
+ * The value, key and shape wrap() gives one member of an input, so a union is typed member by member. A collection is
+ * read through toBase(), whose base-class return stays inferable from a subclass.
  */
 type WrapParts<TInput> = unknown extends TInput
     ? [unknown, PropertyKey, CollectionShape]
@@ -250,7 +247,7 @@ type WrapParts<TInput> = unknown extends TInput
                 ? [ObjectValue<TInput>, ObjectKey<TInput>, "keyed"]
                 : [TInput, number, "list"];
 
-/** An object wrap() keeps whole that TypeScript can tell from a record: a function, a class or a built-in. */
+/** Objects wrap() keeps whole whose types no plain object matches, so TypeScript can tell them from a record. */
 type WrappedWhole =
     | ((...args: never[]) => unknown)
     | (abstract new (...args: never[]) => unknown)
@@ -268,10 +265,7 @@ type WrapCollection<TInput> = Collection<
     WrapParts<TInput>[2]
 >;
 
-/**
- * What unwrap() hands back for a value: a collection's items, and anything else unchanged. A collection is read through
- * toBase(), whose base-class return stays inferable from a subclass whatever the other members return.
- */
+/** What unwrap() hands back; a collection is read through toBase(), whose return stays inferable from a subclass. */
 type Unwrapped<TValue> = TValue extends {
     toBase(): Collection<infer TItemValue, infer TItemKey, infer TItemShape>;
 }
