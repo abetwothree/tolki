@@ -7809,12 +7809,13 @@ describe("Collection", () => {
             expect(numbers.nth(1, 1.5).all()).toEqual([2, 3, 4, 5]);
 
             // Same row over [1..5], and "C32-G-nth-out-of-order-offset" over PHP's [2 => 'c', 0 => 'a', 1 => 'b']
-            for (const collection of [numbers, outOfOrderKeys()]) {
+            for (const nth of [
+                (offset: number) => numbers.nth(1, offset),
+                (offset: number) => outOfOrderKeys().nth(1, offset),
+            ]) {
                 for (const offset of [NaN, 1e19]) {
-                    expect(() => collection.nth(1, offset)).toThrowError(
-                        TypeError,
-                    );
-                    expect(() => collection.nth(1, offset)).toThrowError(
+                    expect(() => nth(offset)).toThrowError(TypeError);
+                    expect(() => nth(offset)).toThrowError(
                         "array_slice(): Argument #2 ($offset) must be of type int, float given",
                     );
                 }
@@ -7846,6 +7847,12 @@ describe("Collection", () => {
             // nth should use Object.entries branch
             expect(c.nth(2).all()).toEqual([1, 3, 5]);
             expect(c.nth(2, 1).all()).toEqual([2, 4]);
+        });
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).nth(2), "list");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).nth(2), "list");
         });
     });
 
@@ -10436,6 +10443,13 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).reverse(), "list");
+            expectShape(collect({ a: 1, b: 2 }).reverse(), "keyed");
+            expectShape(collect({ 5: "a", 6: "b" }).reverse(), "keyed");
+        });
     });
 
     describe("search", () => {
@@ -11083,6 +11097,12 @@ describe("Collection", () => {
             pinShuffled(outOfOrderKeys(), ["a", "b", "c"]);
             pinShuffled(collect({ x: 1, 5: 2 }), [1, 2]);
         });
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).shuffle(), "list");
+            expectShape(collect({ a: 1, b: 2 }).shuffle(), "list");
+        });
     });
 
     describe("sliding", () => {
@@ -11275,6 +11295,21 @@ describe("Collection", () => {
                 "range(): Argument #2 ($end) must be a finite number, NAN provided",
             );
         });
+
+        it("builds a list of windows, a list's lists and a keyed one's records, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listWindows = collect([1, 2, 3]).sliding(2);
+            const keyedWindows = collect({ a: 1, b: 2, c: 3 }).sliding(2);
+
+            expectShape(listWindows, "list");
+            expectShape(keyedWindows, "list");
+            listWindows.each((window) => {
+                expectShape(window, "list");
+            });
+            keyedWindows.each((window) => {
+                expectShape(window, "keyed");
+            });
+        });
     });
 
     describe("skip", () => {
@@ -11298,6 +11333,12 @@ describe("Collection", () => {
             expect(skipped.values().all()).toEqual([3]);
             // JS-only: a list is renumbered from 0, where PHP keeps the item's key 2
             expect(skipped.keys().all()).toEqual([0]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).skip(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).skip(1), "keyed");
         });
     });
 
@@ -11564,6 +11605,12 @@ describe("Collection", () => {
                     "array_slice(): Argument #3 ($length) must be of type ?int, float given",
                 );
             }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).slice(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).slice(0, 1), "keyed");
         });
     });
 
@@ -11859,6 +11906,31 @@ describe("Collection", () => {
                 { all: ["b"], keys: [0], values: ["b"] },
             ]);
         });
+
+        it("builds a list of groups, each a list unless it holds a string key, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listGroups = collect([1, 2, 3]).split(2);
+            const keyedGroups = collect({ a: 1, b: 2, c: 3 }).split(2);
+            const numberedGroups = collect({ 5: "a", 6: "b", 7: "c" }).split(2);
+            const mixedGroups = collect({ 5: "a", x: "b" }).split(2);
+
+            expectShape(listGroups, "list");
+            expectShape(keyedGroups, "list");
+            expectShape(numberedGroups, "list");
+            expectShape(mixedGroups, "list");
+            listGroups.each((group) => {
+                expectShape(group, "list");
+            });
+            keyedGroups.each((group) => {
+                expectShape(group, "keyed");
+            });
+            numberedGroups.each((group) => {
+                expectShape(group, "list");
+            });
+            mixedGroups.each((group, position) => {
+                expectShape(group, position === 0 ? "list" : "keyed");
+            });
+        });
     });
 
     describe("splitIn", () => {
@@ -11968,6 +12040,21 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds a list of groups, each a record keeping its keys, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listGroups = collect([1, 2, 3]).splitIn(2);
+            const keyedGroups = collect({ a: 1, b: 2, c: 3 }).splitIn(2);
+
+            expectShape(listGroups, "list");
+            expectShape(keyedGroups, "list");
+            listGroups.each((group) => {
+                expectShape(group, "keyed");
+            });
+            keyedGroups.each((group) => {
+                expectShape(group, "keyed");
+            });
+        });
     });
 
     describe("sole", () => {
@@ -12483,6 +12570,31 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds a list of chunks, records keeping their keys or lists without them, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listChunks = collect([1, 2, 3]).chunk(2);
+            const keyedChunks = collect({ a: 1, b: 2, c: 3 }).chunk(2);
+            const listLists = collect([1, 2, 3]).chunk(2, false);
+            const keyedLists = collect({ a: 1, b: 2, c: 3 }).chunk(2, false);
+
+            expectShape(listChunks, "list");
+            expectShape(keyedChunks, "list");
+            expectShape(listLists, "list");
+            expectShape(keyedLists, "list");
+            listChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+            keyedChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+            listLists.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+            keyedLists.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+        });
     });
 
     describe("chunkWhile", () => {
@@ -12596,6 +12708,25 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds a list of chunks, a list's lists and a keyed one's records, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listChunks = collect([1, 1, 2]).chunkWhile(
+                (value, _key, chunk) => chunk.last() === value,
+            );
+            const keyedChunks = collect({ a: 1, b: 1, c: 2 }).chunkWhile(
+                (value, _key, chunk) => chunk.last() === value,
+            );
+
+            expectShape(listChunks, "list");
+            expectShape(keyedChunks, "list");
+            listChunks.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+            keyedChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+        });
     });
 
     describe("chunkBy", () => {
@@ -12758,6 +12889,23 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("builds a list of chunks, a list's lists and a keyed one's records, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listChunks = collect([1, 1, 2]).chunkBy((value) => value);
+            const keyedChunks = collect({ a: 1, b: 1, c: 2 }).chunkBy(
+                (value) => value,
+            );
+
+            expectShape(listChunks, "list");
+            expectShape(keyedChunks, "list");
+            listChunks.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+            keyedChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+        });
     });
 
     describe("sort", () => {
@@ -12938,6 +13086,16 @@ describe("Collection", () => {
                 "10",
             ]);
         });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([3, 1, 2]).sort(), "list");
+            expectShape(collect({ a: 3, b: 1 }).sort(), "keyed");
+            expectShape(
+                collect({ 5: 3, 6: 1 }).sort((a, b) => a - b),
+                "keyed",
+            );
+        });
     });
 
     describe("sortDesc", () => {
@@ -12989,6 +13147,13 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 3, 2]).sortDesc(), "list");
+            expectShape(collect({ a: 1, b: 3 }).sortDesc(), "keyed");
+            expectShape(collect({ 5: 1, 6: 3 }).sortDesc(), "keyed");
+        });
     });
 
     describe("sortBy", () => {
@@ -13404,18 +13569,14 @@ describe("Collection", () => {
                 b: { n: 1 },
                 c: { n: 3 },
             });
-            expect(
-                collection
-                    .sortBy(null as never)
-                    .values()
-                    .all(),
-            ).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
-            expect(
-                collection
-                    .sortBy(null as never)
-                    .values()
-                    .all(),
-            ).toEqual(collection.sort().values().all());
+            expect(collection.sortBy(null).values().all()).toEqual([
+                { n: 1 },
+                { n: 2 },
+                { n: 3 },
+            ]);
+            expect(collection.sortBy(null).values().all()).toEqual(
+                collection.sort().values().all(),
+            );
         });
 
         // docs/php-parity/task-17-second-review.json,
@@ -13430,7 +13591,7 @@ describe("Collection", () => {
                     .sortBy([
                         ["a", "asc"],
                         ["b", "asc"],
-                    ] as never)
+                    ])
                     .values()
                     .all(),
             ).toEqual([
@@ -13451,13 +13612,45 @@ describe("Collection", () => {
                     .sortBy([
                         ["a", "asc"],
                         ["b", "asc"],
-                    ] as never)
+                    ])
                     .values()
                     .all(),
             ).toEqual([
                 { a: "1", b: 1 },
                 { a: 1, b: 2 },
             ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([3, 1, 2]).sortBy((value) => value),
+                "list",
+            );
+            expectShape(
+                collect({ a: 3, b: 1 }).sortBy((value) => value),
+                "keyed",
+            );
+            expectShape(
+                collect({ 5: 3, 6: 1 }).sortBy([(a, b) => a - b]),
+                "keyed",
+            );
+        });
+
+        it("keeps a list's shape and a keyed one's for sortByDesc() too, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 3, 2]).sortByDesc((value) => value),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 3 }).sortByDesc((value) => value),
+                "keyed",
+            );
+            expectShape(
+                collect({ 5: 1, 6: 3 }).sortByDesc([(a, b) => a - b]),
+                "keyed",
+            );
         });
     });
 
@@ -13774,13 +13967,13 @@ describe("Collection", () => {
 
             expect(
                 data
-                    .sortBy([[byAge]] as never)
+                    .sortBy([[byAge]])
                     .values()
                     .all(),
             ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
             expect(
                 data
-                    .sortBy([[byAge]] as never)
+                    .sortBy([[byAge]])
                     .values()
                     .all(),
             ).toEqual(data.sortBy([byAge]).values().all());
@@ -13849,6 +14042,13 @@ describe("Collection", () => {
             const data4 = collect({ a: 1 });
             expect(data4.sortKeys().all()).toEqual({ a: 1 });
         });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).sortKeys(true), "list");
+            expectShape(collect({ b: 2, a: 1 }).sortKeys(), "keyed");
+            expectShape(collect({ 6: "b", 5: "a" }).sortKeys(), "keyed");
+        });
     });
 
     describe("testSortKeysDesc", () => {
@@ -13862,6 +14062,13 @@ describe("Collection", () => {
                     a: "taylor",
                 });
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).sortKeysDesc(), "list");
+            expectShape(collect({ a: 1, b: 2 }).sortKeysDesc(), "keyed");
+            expectShape(collect({ 5: "a", 6: "b" }).sortKeysDesc(), "keyed");
         });
     });
 
@@ -13924,6 +14131,24 @@ describe("Collection", () => {
             expect(sorted.all()).toEqual({ a: 2, b: 3, c: 1 });
             expect(sorted.keys().all()).toEqual(["a", "b", "c"]);
             expect(sorted.values().all()).toEqual([2, 3, 1]);
+        });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).sortKeysUsing((a, b) => b - a),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).sortKeysUsing((a, b) =>
+                    b.localeCompare(a),
+                ),
+                "keyed",
+            );
+            expectShape(
+                collect({ 5: "a", 6: "b" }).sortKeysUsing((a, b) => b - a),
+                "keyed",
+            );
         });
     });
 
@@ -14291,6 +14516,12 @@ describe("Collection", () => {
                     "array_slice(): Argument #2 ($offset) must be of type int, float given",
                 );
             }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).take(-2), "list");
+            expectShape(collect({ a: 1, b: 2 }).take(1), "keyed");
         });
     });
 
@@ -17760,6 +17991,12 @@ describe("Collection", () => {
                 keys: ["b"],
                 values: [2],
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).forPage(2, 2), "list");
+            expectShape(collect({ a: 1, b: 2 }).forPage(1, 1), "keyed");
         });
     });
 

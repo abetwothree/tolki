@@ -554,7 +554,10 @@ type PartitionResult<TPart> = {
     readonly 1: TPart;
 } & Collection<TPart, number, "list">;
 
-/** The key array_splice() leaves an entry under: an integer key is renumbered, a string key kept. */
+/**
+ * The key an entry is left under where integer keys renumber: array_splice(), array_merge() and split() renumber them,
+ * and a reordering must, since a record cannot hold integer keys out of order. A string key is kept.
+ */
 type SplicedKey<TKey extends PropertyKey> = TKey extends number ? number : TKey;
 
 /** What pop() or shift() answers for a count: the item for 1, a list of the items for another, either for a number. */
@@ -835,6 +838,44 @@ type CombinedKey<TValue> = unknown extends TValue
           : TValue extends false | null | undefined
             ? ""
             : string | number;
+
+/**
+ * The shape of each chunk that keeps its keys. It is a record, since it keeps a list's positions, and one that may
+ * lack keys unless the collection is surely a list, whose number keys name none.
+ */
+type ChunkShape<TShape extends CollectionShape> = [TShape] extends ["list"]
+    ? "keyed"
+    : "partial";
+
+/**
+ * The shape of each group split() makes. It renumbers integer keys, so a group holding no string key is a list, and
+ * only a literal string key surely holds one.
+ */
+type SplitShape<TKey, TShape extends CollectionShape> = TShape extends "list"
+    ? "list"
+    : [Extract<TKey, string>] extends [never]
+      ? "list"
+      : [Exclude<TKey, NamingKeys<Extract<TKey, string>>>] extends [never]
+        ? "partial"
+        : "list" | "partial";
+
+/** A collection keyed by strings only: a reordering keeps its keys, so it keeps its own type too. */
+type StringKeyed<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+> = Collection<TValue, TKey & string, TShape>;
+
+/** One comparison sortBy() takes; SortSpec lacks PHP's comparator wrapped in a list, which Arr::wrap() reads alike. */
+type SortDescriptor<TValue> =
+    | SortSpec<TValue>
+    | readonly [(a: TValue, b: TValue) => number | boolean];
+
+/** What sortBy() and sortByDesc() take: a callback alone reads one item, while one inside the list compares two. */
+type SortByCallback<TValue, TKey> =
+    | readonly SortDescriptor<TValue>[]
+    | ((value: TValue, key: TKey) => unknown)
+    | PathKey;
 
 /**
  * Create a collection from the given value.
@@ -3220,7 +3261,7 @@ export class Collection<
      *
      * @param step - The step interval to take elements; a fraction is dropped, as PHP's `%` drops it
      * @param offset - The offset to start from, defaults to 0, read as slice() reads it
-     * @returns A new collection with every n-th element
+     * @returns A new list of every n-th element, whatever keys the items had
      * @throws InvalidArgumentException if step is less than 1
      * @throws Error when the step is NAN or infinite and there is an item to step over, as PHP's `%` divides by zero
      *
@@ -3228,7 +3269,13 @@ export class Collection<
      *
      * collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]])).nth(4).all() -> ["a", "e"]
      */
-    nth(step: number, offset: number = 0): Collection<TValue[], number> {
+    nth(
+        this: Collection<TValue, TKey, "list">,
+        step: number,
+        offset?: number,
+    ): this;
+    nth(step: number, offset?: number): Collection<TValue, number, "list">;
+    nth(step: number, offset: number = 0): unknown {
         if (step < 1) {
             throw new InvalidArgumentException(
                 "Step value must be at least 1.",
@@ -3243,9 +3290,9 @@ export class Collection<
             throw new Error("Modulo by zero");
         }
 
-        return this.sameInstance(
+        return this.newInstance<TValue, number, "list">(
             handOver(values.filter((_, position) => position % divisor === 0)),
-        ) as unknown as Collection<TValue[], number>;
+        );
     }
 
     /**
@@ -3828,14 +3875,17 @@ export class Collection<
     /**
      * Reverse the order of the collection items.
      *
-     * @returns A new collection with the items in reverse order
+     * @returns A new collection with the items in reverse order, integer keys renumbered over it and string keys kept
      *
      * @example
      *
      * new Collection([1, 2, 3]).reverse(); -> new Collection([3, 2, 1])
      * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
      */
-    reverse() {
+    reverse(this: Collection<TValue, TKey, "list">): this;
+    reverse(this: StringKeyed<TValue, TKey, TShape>): this;
+    reverse(): Collection<TValue, SplicedKey<TKey>, TShape>;
+    reverse(): unknown {
         return this.sameInstance(handOver(dataReverse(this.items)));
     }
 
@@ -3981,8 +4031,12 @@ export class Collection<
      * new Collection([1, 2, 3]).shuffle(); -> new Collection([3, 1, 2])
      * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection([2, 3, 1])
      */
-    shuffle() {
-        return this.sameInstance(handOver(dataShuffle(this.orderedValues())));
+    shuffle(this: Collection<TValue, TKey, "list">): this;
+    shuffle(): Collection<TValue, number, "list">;
+    shuffle(): unknown {
+        return this.newInstance<TValue, number, "list">(
+            handOver(dataShuffle(this.orderedValues())),
+        );
     }
 
     /**
@@ -3990,7 +4044,7 @@ export class Collection<
      *
      * @param size - The size of each chunk, defaults to 2 (must be at least 1)
      * @param step - The number of items to skip between chunks, defaults to 1 (must be at least 1)
-     * @returns A new collection with the sliding window chunks
+     * @returns A new list of the windows, each cut the way slice() cuts, so a keyed collection's windows keep its keys
      * @throws InvalidArgumentException if size or step is less than 1
      * @throws Error when size or step is NAN, as range() refuses the window count static::times() hands it
      *
@@ -4004,7 +4058,7 @@ export class Collection<
     sliding(
         size: number = 2,
         step: number = 1,
-    ): Collection<number, number> | Collection<unknown, PropertyKey> {
+    ): Collection<Collection<TValue, TKey, Removed<TShape>>, number, "list"> {
         if (size < 1) {
             throw new InvalidArgumentException(
                 "Size value must be at least 1.",
@@ -4020,16 +4074,17 @@ export class Collection<
         const chunks = Math.floor((this.count() - size) / step) + 1;
         // static::times() builds no window below 1 and hands range() the rest, which refuses NAN.
         const windowCount = chunks < 1 ? 0 : resolveRangeSize(1, chunks, 1);
-        const windows: this[] = [];
+        const windows: Array<Collection<TValue, TKey, Removed<TShape>>> = [];
 
         for (let window = 1; window <= windowCount; window++) {
             windows.push(this.slice((window - 1) * step, size));
         }
 
-        return this.sameInstance(handOver(windows)) as unknown as Collection<
-            unknown,
-            PropertyKey
-        >;
+        return this.newInstance<
+            Collection<TValue, TKey, Removed<TShape>>,
+            number,
+            "list"
+        >(handOver(windows));
     }
 
     /**
@@ -4043,7 +4098,9 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).skip(2); -> new Collection([3, 4])
      * new Collection({a: 1, b: 2, c: 3}).skip(1); -> new Collection({b: 2, c: 3})
      */
-    skip(count: number) {
+    skip(this: Collection<TValue, TKey, "list">, count: number): this;
+    skip(count: number): Collection<TValue, TKey, Removed<TShape>>;
+    skip(count: number): unknown {
         return this.slice(count);
     }
 
@@ -4113,7 +4170,16 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
      * new Collection([1, 2, 3, 4]).slice(-1.5); -> new Collection([4])
      */
-    slice(offset: number, length: number | null = null) {
+    slice(
+        this: Collection<TValue, TKey, "list">,
+        offset: number,
+        length?: number | null,
+    ): this;
+    slice(
+        offset: number,
+        length?: number | null,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    slice(offset: number, length: number | null = null): unknown {
         const start = phpIntArgument(
             offset,
             "array_slice(): Argument #2 ($offset) must be of type int, float given",
@@ -4142,7 +4208,8 @@ export class Collection<
      * Split a collection into a certain number of groups.
      *
      * @param numberOfGroups - The number of groups to split into
-     * @returns A new collection with the split groups, each group's integer keys renumbered from 0
+     * @returns A new collection with the split groups, each group's integer keys renumbered from 0, so a group holding
+     * only those is a list
      * @throws InvalidArgumentException if numberOfGroups is less than 1
      * @throws Error when numberOfGroups is NAN or infinite and there are items, as PHP's `%` divides by zero
      *
@@ -4154,17 +4221,22 @@ export class Collection<
      */
     split(
         numberOfGroups: number,
-    ): Collection<Collection<TValue, TKey>, number> {
+    ): Collection<
+        Collection<TValue, SplicedKey<TKey>, SplitShape<TKey, TShape>>,
+        number,
+        "list"
+    > {
         if (numberOfGroups < 1) {
             throw new InvalidArgumentException(
                 "Number of groups must be at least 1.",
             );
         }
 
-        const groups = this.sameInstance() as unknown as Collection<
-            Collection<TValue, TKey>,
-            number
-        >;
+        const groups = this.newInstance<
+            Collection<TValue, SplicedKey<TKey>, SplitShape<TKey, TShape>>,
+            number,
+            "list"
+        >();
 
         if (this.isEmpty()) {
             return groups;
@@ -4201,12 +4273,7 @@ export class Collection<
                 entries.slice(start, start + size),
             );
 
-            groups.push(
-                this.sameInstance(inPhpOrder(group)) as unknown as Collection<
-                    TValue,
-                    TKey
-                >,
-            );
+            groups.push(this.sameInstance(inPhpOrder(group)));
 
             start += size;
         }
@@ -4218,7 +4285,7 @@ export class Collection<
      * Split a collection into a certain number of groups, and fill the first groups completely.
      *
      * @param numberOfGroups - The number of groups to split into
-     * @returns A new collection with the split groups
+     * @returns A new collection with the split groups, each keeping its items' keys the way chunk() keeps them
      * @throws InvalidArgumentException if numberOfGroups is less than 1
      *
      * @example
@@ -4227,7 +4294,13 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3, d: 4}).splitIn(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
      * new Collection([1, 2]).splitIn(5); -> new Collection([ new Collection({0: 1}), new Collection({1: 2}) ])
      */
-    splitIn(numberOfGroups: number) {
+    splitIn(
+        numberOfGroups: number,
+    ): Collection<
+        Collection<TValue, TKey, ChunkShape<TShape>>,
+        number,
+        "list"
+    > {
         if (numberOfGroups < 1) {
             throw new InvalidArgumentException(
                 "Number of groups must be at least 1.",
@@ -4235,7 +4308,9 @@ export class Collection<
         }
 
         // PHP's (int) cast of the size makes NAN 0, which chunk() answers with no chunks.
-        return this.chunk(phpIntCast(Math.ceil(this.count() / numberOfGroups)));
+        return this.chunk<true>(
+            phpIntCast(Math.ceil(this.count() / numberOfGroups)),
+        );
     }
 
     /**
@@ -4340,7 +4415,8 @@ export class Collection<
      *
      * @param size - The size of each chunk; a fraction is dropped, as array_chunk()'s int parameter drops it
      * @param preserveKeys - Whether to preserve the original keys, defaults to true
-     * @returns A new collection with the chunked items, or an empty one for a size of 0 or below
+     * @returns A new collection with the chunked items, or an empty one for a size of 0 or below; each chunk is a
+     * record keeping its items' keys, or a list when they are not preserved
      * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_chunk() refuses it
      * @throws Error when the size drops to 0, as array_chunk() refuses it
      *
@@ -4350,15 +4426,21 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3, d: 4}).chunk(2, true); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
      * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection({0: 1, 1: 2, 2: 3}) ])
      */
-    chunk(
+    chunk<TPreserve extends boolean = true>(
         size: number,
-        preserveKeys: boolean = true,
-    ): Collection<Collection<TValue, TKey>, number> {
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            TPreserve extends false ? number : TKey,
+            TPreserve extends false ? "list" : ChunkShape<TShape>
+        >,
+        number,
+        "list"
+    >;
+    chunk(size: number, preserveKeys: boolean = true): unknown {
         if (size <= 0) {
-            return this.sameInstance(handOver([])) as unknown as Collection<
-                Collection<TValue, TKey>,
-                number
-            >;
+            return this.wrapChunks([]);
         }
 
         const length = phpIntArgument(
@@ -4399,7 +4481,7 @@ export class Collection<
      *      `LazyCollection::chunkWhile`.
      *
      * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
-     * @returns A collection of chunk collections
+     * @returns A collection of chunk collections: a list's chunks are lists, and a keyed collection's keep their keys
      *
      * @example
      *
@@ -4410,23 +4492,20 @@ export class Collection<
         callback: (
             value: TValue,
             key: TKey,
-            chunk: Collection<TValue, TKey>,
+            chunk: Collection<TValue, TKey, Removed<TShape>>,
         ) => unknown,
-    ): Collection<Collection<TValue, TKey>, number> {
+    ): Collection<Collection<TValue, TKey, Removed<TShape>>, number, "list"> {
         const chunked = dataChunkWhile(
             this.items as TValue[],
             (value, key, chunk) =>
                 callback(
                     value,
                     key as unknown as TKey,
-                    this.sameInstance(chunk) as unknown as Collection<
-                        TValue,
-                        TKey
-                    >,
+                    this.newInstance<TValue, TKey, Removed<TShape>>(chunk),
                 ),
         );
 
-        return this.wrapChunks(chunked);
+        return this.wrapChunks<TKey, Removed<TShape>>(chunked);
     }
 
     /**
@@ -4436,7 +4515,7 @@ export class Collection<
      *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
      *
      * @param key - A path into each item, or a callback receiving the value and its key
-     * @returns A collection of chunk collections
+     * @returns A collection of chunk collections: a list's chunks are lists, and a keyed collection's keep their keys
      *
      * @example
      *
@@ -4447,13 +4526,13 @@ export class Collection<
      */
     chunkBy(
         key: PathKey | ((value: TValue, key: TKey) => unknown),
-    ): Collection<Collection<TValue, TKey>, number> {
+    ): Collection<Collection<TValue, TKey, Removed<TShape>>, number, "list"> {
         const chunked = dataChunkBy(
             this.items as TValue[],
             key as PathKey | ((value: TValue, index: number) => unknown),
         );
 
-        return this.wrapChunks(chunked);
+        return this.wrapChunks<TKey, Removed<TShape>>(chunked);
     }
 
     /**
@@ -4473,7 +4552,20 @@ export class Collection<
      * new Collection([5, 3, 1, 2, 4]).sort((a, b) => b - a); -> new Collection([5, 4, 3, 2, 1])
      * new Collection({a: 3, b: 1, c: 2}).sort((x, y) => x - y); -> new Collection({b: 1, c: 2, a: 3})
      */
-    sort(callback: ((a: TValue, b: TValue) => number | boolean) | null = null) {
+    sort(
+        this: Collection<TValue, TKey, "list">,
+        callback?: ((a: TValue, b: TValue) => number | boolean) | null,
+    ): this;
+    sort(
+        this: StringKeyed<TValue, TKey, TShape>,
+        callback?: ((a: TValue, b: TValue) => number | boolean) | null,
+    ): this;
+    sort(
+        callback?: ((a: TValue, b: TValue) => number | boolean) | null,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sort(
+        callback: ((a: TValue, b: TValue) => number | boolean) | null = null,
+    ): unknown {
         if (!isFunction(callback)) {
             return this.sameInstance(
                 handOver(dataSort(this.items as TValue[])),
@@ -4490,14 +4582,17 @@ export class Collection<
     /**
      * Sort items in descending order.
      *
-     * @returns A new collection with the sorted items in descending order
+     * @returns A new collection with the sorted items in descending order, integer keys renumbered over it
      *
      * @example
      *
      * new Collection([1, 2, 3]).sortDesc(); -> new Collection([3, 2, 1])
      * new Collection({a: 1, b: 3, c: 2}).sortDesc(); -> new Collection({b: 3, c: 2, a: 1})
      */
-    sortDesc() {
+    sortDesc(this: Collection<TValue, TKey, "list">): this;
+    sortDesc(this: StringKeyed<TValue, TKey, TShape>): this;
+    sortDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortDesc(): unknown {
         return this.sameInstance(
             handOver(dataSortDesc(this.items as TValue[])),
         );
@@ -4509,7 +4604,8 @@ export class Collection<
      * Integer-like keys are renumbered over the sorted sequence, so `all()`
      * and `values()` always agree about order; see `sort` above.
      *
-     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
+     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or a
+     * list of paths, each alone or with its direction, and comparators of two items for multi-level sorting
      * @param descending - Ignored when `callback` is an array, as PHP ignores it; `sortByDesc` sorts those descending
      * @returns A new collection with the sorted items
      *
@@ -4517,41 +4613,40 @@ export class Collection<
      *
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortBy('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
      */
-    sortBy<TSortValue>(
-        callback:
-            | Array<
-                  | ((a: TValue, b: TValue) => TSortValue)
-                  | ((item: TValue, key: TKey) => TSortValue)
-                  | PathKey
-                  | [PathKey]
-                  | [
-                        PathKey,
-                        (
-                            | CaseValue<typeof SortDirection>
-                            | boolean
-                            | "asc"
-                            | "desc"
-                        ),
-                    ]
-              >
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey,
+    sortBy(
+        this: Collection<TValue, TKey, "list">,
+        callback: SortByCallback<TValue, TKey>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortBy(
+        this: StringKeyed<TValue, TKey, TShape>,
+        callback: SortByCallback<TValue, TKey>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortBy(
+        callback: SortByCallback<TValue, TKey>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortBy(
+        callback: SortByCallback<TValue, TKey>,
         descending: CaseValue<typeof SortDirection> | boolean = false,
-    ) {
+    ): unknown {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
-        if (isArray(callback) && !isFunction(callback)) {
+        if (
+            isArray<SortDescriptor<TValue>>(callback) &&
+            !isFunction(callback)
+        ) {
             return this.sortByMany(callback);
         }
 
         const callbackFn = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => TSortValue),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
         // Read in the order PHP holds the items, so a tie keeps it: the sort below is stable.
         const entries = this.entriesInOrder().map(
-            ([key, value]) =>
-                [key, value, callbackFn(value, key) as TSortValue] as const,
+            ([key, value]) => [key, value, callbackFn(value, key)] as const,
         );
 
         // Sort by the sort values
@@ -4569,8 +4664,9 @@ export class Collection<
     /**
      * Sort the collection in descending order using the given callback.
      *
-     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @returns A new collection with the sorted items in descending order
+     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or a
+     * list of paths, each alone or with its direction, and comparators of two items for multi-level sorting
+     * @returns A new collection with the sorted items in descending order, integer keys renumbered over it
      *
      * @example
      *
@@ -4578,27 +4674,22 @@ export class Collection<
      * new Collection([{id: 3}, {id: 1}, {id: 2}]).sortByDesc(item => item.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
      * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortByDesc(['id']); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
      */
-    sortByDesc<TSortValue>(
-        callback:
-            | Array<
-                  | ((a: TValue, b: TValue) => TSortValue)
-                  | ((item: TValue, key: TKey) => TSortValue)
-                  | PathKey
-                  | [PathKey]
-                  | [
-                        PathKey,
-                        (
-                            | CaseValue<typeof SortDirection>
-                            | boolean
-                            | "asc"
-                            | "desc"
-                        ),
-                    ]
-              >
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey,
-    ) {
-        if (isArray(callback) && !isFunction(callback)) {
+    sortByDesc(
+        this: Collection<TValue, TKey, "list">,
+        callback: SortByCallback<TValue, TKey>,
+    ): this;
+    sortByDesc(
+        this: StringKeyed<TValue, TKey, TShape>,
+        callback: SortByCallback<TValue, TKey>,
+    ): this;
+    sortByDesc(
+        callback: SortByCallback<TValue, TKey>,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortByDesc(callback: SortByCallback<TValue, TKey>): unknown {
+        if (
+            isArray<SortDescriptor<TValue>>(callback) &&
+            !isFunction(callback)
+        ) {
             // sortBy() ignores its flag for descriptors, so they are forced descending here, as PHP rewrites each one.
             return this.sortByMany(callback, true);
         }
@@ -4610,7 +4701,7 @@ export class Collection<
      * Sort the collection keys.
      *
      * @param descending - Whether to sort in descending order, defaults to false
-     * @returns A new collection with the items sorted by keys
+     * @returns A new collection with the items sorted by keys, integer keys renumbered over the new order
      *
      * @example
      *
@@ -4618,7 +4709,20 @@ export class Collection<
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(true); -> new Collection({c: 3, b: 2, a: 1})
      * new Collection({5: "e", 2: "b", 9: "z"}).sortKeys(); -> new Collection({0: "b", 1: "e", 2: "z"})
      */
-    sortKeys(descending: CaseValue<typeof SortDirection> | boolean = false) {
+    sortKeys(
+        this: Collection<TValue, TKey, "list">,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortKeys(
+        this: StringKeyed<TValue, TKey, TShape>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortKeys(
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortKeys(
+        descending: CaseValue<typeof SortDirection> | boolean = false,
+    ): unknown {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         const keys = Object.keys(this.items);
@@ -4658,14 +4762,17 @@ export class Collection<
     /**
      * Sort the collection keys in descending order.
      *
-     * @returns A new collection with the items sorted by keys in descending order
+     * @returns A new collection with the items sorted by keys in descending order, integer keys renumbered over it
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).sortKeysDesc(); -> new Collection({c: 3, b: 2, a: 1})
      * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysDesc(); -> new Collection({0: "z", 1: "e", 2: "b"})
      */
-    sortKeysDesc() {
+    sortKeysDesc(this: Collection<TValue, TKey, "list">): this;
+    sortKeysDesc(this: StringKeyed<TValue, TKey, TShape>): this;
+    sortKeysDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortKeysDesc(): unknown {
         return this.sortKeys(SortDirection.Descending);
     }
 
@@ -4674,14 +4781,26 @@ export class Collection<
      *
      * @param callback - A comparator answering below, at or above zero for two keys, read as uksort() reads it: cast to
      * an int, and a bool deprecated but still sorting
-     * @returns A new collection with the items sorted by keys using the callback
+     * @returns A new collection with the items sorted by keys using the callback, integer keys renumbered over the new
+     * order
      *
      * @example
      *
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => a.localeCompare(b)); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => b.localeCompare(a)); -> new Collection({c: 3, b: 2, a: 1})
      */
-    sortKeysUsing(callback: (a: TKey, b: TKey) => number | boolean) {
+    sortKeysUsing(
+        this: Collection<TValue, TKey, "list">,
+        callback: (a: TKey, b: TKey) => number | boolean,
+    ): this;
+    sortKeysUsing(
+        this: StringKeyed<TValue, TKey, TShape>,
+        callback: (a: TKey, b: TKey) => number | boolean,
+    ): this;
+    sortKeysUsing(
+        callback: (a: TKey, b: TKey) => number | boolean,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortKeysUsing(callback: (a: TKey, b: TKey) => number | boolean): unknown {
         const keys = Object.keys(this.items);
 
         keys.sort(
@@ -4774,7 +4893,9 @@ export class Collection<
      * new Collection({a: 1, b: 2, c: 3}).take(2); -> new Collection({a: 1, b: 2})
      * new Collection({a: 1, b: 2, c: 3}).take(-2); -> new Collection({b: 2, c: 3})
      */
-    take(limit: number) {
+    take(this: Collection<TValue, TKey, "list">, limit: number): this;
+    take(limit: number): Collection<TValue, TKey, Removed<TShape>>;
+    take(limit: number): unknown {
         if (limit < 0) {
             return this.slice(limit, Math.abs(limit));
         }
@@ -6190,7 +6311,16 @@ export class Collection<
      * @param perPage - The number of items per page
      * @returns A new collection with the items for the specified page
      */
-    forPage(page: number, perPage: number) {
+    forPage(
+        this: Collection<TValue, TKey, "list">,
+        page: number,
+        perPage: number,
+    ): this;
+    forPage(
+        page: number,
+        perPage: number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    forPage(page: number, perPage: number): unknown {
         const offset = Math.max(0, (page - 1) * perPage);
 
         return this.slice(offset, perPage);
@@ -7166,23 +7296,29 @@ export class Collection<
      * Wrap each plain chunk from `@tolki/data` in a collection, then wrap the list of them.
      *
      * @param chunked - The chunks as `dataChunk*` returned them
-     * @returns A collection of chunk collections
+     * @returns A list of chunk collections, each typed by the key and shape its caller names
      */
-    protected wrapChunks(
+    protected wrapChunks<
+        TChunkKey extends PropertyKey,
+        TChunkShape extends CollectionShape,
+    >(
         chunked: TValue[][] | Record<number, Record<PropertyKey, TValue>>,
-    ): Collection<Collection<TValue, TKey>, number> {
+    ): Collection<Collection<TValue, TChunkKey, TChunkShape>, number, "list"> {
         const chunks = isArray(chunked) ? chunked : Object.values(chunked);
 
-        return this.sameInstance(
+        return this.newInstance<
+            Collection<TValue, TChunkKey, TChunkShape>,
+            number,
+            "list"
+        >(
             handOver(
-                chunks.map(
-                    (chunk) =>
-                        this.sameInstance(
-                            handOver(chunk as DataItems<TValue, TKey>),
-                        ) as unknown as Collection<TValue, TKey>,
+                chunks.map((chunk) =>
+                    this.newInstance<TValue, TChunkKey, TChunkShape>(
+                        handOver(chunk),
+                    ),
                 ),
             ),
-        ) as unknown as Collection<Collection<TValue, TKey>, number>;
+        );
     }
 
     /** Conditionable Trait Methods */
@@ -7333,17 +7469,8 @@ export class Collection<
      * them; a comparator is never reversed
      * @returns A new collection with the sorted items
      */
-    protected sortByMany<TSortValue>(
-        comparisons: Array<
-            | ((a: TValue, b: TValue) => TSortValue)
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey
-            | [PathKey]
-            | [
-                  PathKey,
-                  CaseValue<typeof SortDirection> | boolean | "asc" | "desc",
-              ]
-        >,
+    protected sortByMany(
+        comparisons: readonly SortDescriptor<TValue>[],
         descending: CaseValue<typeof SortDirection> | boolean = false,
     ) {
         const isDescGlobal =
