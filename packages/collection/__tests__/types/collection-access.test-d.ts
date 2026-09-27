@@ -19,6 +19,22 @@ declare const count: number;
 declare const name: string;
 declare const aOrB: "a" | "b";
 declare const someOfAB: ("a" | "b")[];
+declare const users: Collection<number, `user-${number}`, "keyed">;
+declare const userKey: `user-${number}`;
+declare const lowered: Collection<number, Lowercase<string>, "keyed">;
+declare const loweredKey: Lowercase<string>;
+declare const byId: Collection<
+    number,
+    string & { readonly brand: "id" },
+    "keyed"
+>;
+declare const idKey: string & { readonly brand: "id" };
+declare const bySerial: Collection<
+    string,
+    number & { readonly brand: "serial" },
+    "keyed"
+>;
+declare const serialKey: number & { readonly brand: "serial" };
 
 describe("collection keyed access and mutation type tests", () => {
     const list = collect(numberList);
@@ -246,6 +262,28 @@ describe("collection keyed access and mutation type tests", () => {
             >();
             expectTypeOf(record.forget(someOfAB)).toEqualTypeOf<
                 Collection<number, "a" | "b" | "c", "partial">
+            >();
+        });
+
+        it("keeps every key a key pattern or a branded key may name, since only one of them goes", () => {
+            expectTypeOf(users.forget(userKey)).toEqualTypeOf<
+                Collection<number, `user-${number}`, "partial">
+            >();
+            expectTypeOf(users.forget([userKey])).toEqualTypeOf<
+                Collection<number, `user-${number}`, "partial">
+            >();
+            expectTypeOf(lowered.forget(loweredKey)).toEqualTypeOf<
+                Collection<number, Lowercase<string>, "partial">
+            >();
+            expectTypeOf(byId.forget(idKey)).toEqualTypeOf<
+                Collection<number, string & { readonly brand: "id" }, "partial">
+            >();
+            expectTypeOf(bySerial.forget(serialKey)).toEqualTypeOf<
+                Collection<
+                    string,
+                    number & { readonly brand: "serial" },
+                    "partial"
+                >
             >();
         });
 

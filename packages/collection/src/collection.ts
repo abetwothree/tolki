@@ -350,13 +350,14 @@ type WrittenShape<
         : "list" | "keyed"
     : TShape;
 
-/** A key forget() is sure to remove: one string or number literal, not a union of them nor a wide string or number. */
+/**
+ * A key forget() is sure to remove: one literal key. A union, a wide or patterned string, or a branded key may name
+ * many keys, and only a literal makes a record's key required, so that is what tells them apart.
+ */
 type LoneKey<TKey> = [TKey] extends [UnionToIntersection<TKey>]
-    ? string extends TKey
+    ? Record<never, never> extends Record<TKey & PropertyKey, unknown>
         ? never
-        : number extends TKey
-          ? never
-          : TKey
+        : TKey
     : never;
 
 /** Whether every key of a literal list is a lone key, so forget() is sure to remove each one. */
