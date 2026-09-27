@@ -18422,16 +18422,23 @@ describe("Collection", () => {
         it("throws PHP's TypeError for a value its + cannot add", () => {
             class stdClass {}
 
+            // Items that are no scalar are outside sum()'s types without a callback; PHP throws for them at runtime
+            const sumOf = (items: unknown[]) => () => {
+                const collection = collect(items);
+
+                return Reflect.apply(collection.sum, collection, []);
+            };
+
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-non-numeric-string"
             expect(() => collect([1, "a"]).sum()).toThrow(
                 new TypeError("Unsupported operand types: int + string"),
             );
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-array-items"
-            expect(() => collect([[1], [2]]).sum()).toThrow(
+            expect(sumOf([[1], [2]])).toThrow(
                 new TypeError("Unsupported operand types: int + array"),
             );
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-object-item"
-            expect(() => collect([new stdClass()]).sum()).toThrow(
+            expect(sumOf([new stdClass()])).toThrow(
                 new TypeError("Unsupported operand types: int + stdClass"),
             );
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-float-total-non-numeric-string"
@@ -18439,7 +18446,7 @@ describe("Collection", () => {
                 new TypeError("Unsupported operand types: float + string"),
             );
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-closure-item"
-            expect(() => collect([1, () => 1]).sum()).toThrow(
+            expect(sumOf([1, () => 1])).toThrow(
                 new TypeError("Unsupported operand types: int + Closure"),
             );
         });
@@ -18464,9 +18471,7 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom"]);
 
-                let emptyData = collect();
-
-                emptyData = emptyData.whenEmpty((col) => {
+                const emptyData = collect().whenEmpty((col) => {
                     return col.concat(["adam"]);
                 });
 
@@ -18500,6 +18505,18 @@ describe("Collection", () => {
                 collect().whenEmpty(() => "scalar"),
             ]).toEqual(["true", "scalar"]);
         });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).whenEmpty(() => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).whenEmpty(() => null),
+                "keyed",
+            );
+        });
     });
 
     describe("whenNotEmpty", () => {
@@ -18514,9 +18531,7 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
 
-                let emptyData = collect();
-
-                emptyData = emptyData.whenNotEmpty((col) => {
+                const emptyData = collect().whenNotEmpty((col) => {
                     return col.concat(["adam"]);
                 });
 
@@ -18548,6 +18563,18 @@ describe("Collection", () => {
                     (_collection, notEmpty) => JSON.stringify(notEmpty),
                 ),
             ).toBe("false");
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).whenNotEmpty(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).whenNotEmpty(() => undefined),
+                "keyed",
+            );
         });
     });
 
@@ -18645,6 +18672,26 @@ describe("Collection", () => {
                 collect([1]).unless([], () => "called"),
             ]).toEqual(["called", "called"]);
         });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).unless(false, () => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unless(false, () => undefined),
+                "keyed",
+            );
+            expectShape(
+                collect([1, 2]).unless(true, () => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unless(true, () => null),
+                "keyed",
+            );
+        });
     });
 
     describe("unlessEmpty", () => {
@@ -18684,6 +18731,18 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
         });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).unlessEmpty(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unlessEmpty(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("unlessNotEmpty", () => {
@@ -18722,6 +18781,18 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom", "taylor"]);
             });
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).unlessNotEmpty(() => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unlessNotEmpty(() => null),
+                "keyed",
+            );
         });
     });
 
@@ -19694,6 +19765,22 @@ describe("Collection", () => {
                 ).toBe(6);
             });
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).pipe((collection) => collection),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).pipe((collection) => collection),
+                "keyed",
+            );
+            expectShape(
+                collect({ a: 1 }).pipe((collection) => collection.values()),
+                "list",
+            );
+        });
     });
 
     describe("pipeInto", () => {
@@ -19741,7 +19828,7 @@ describe("Collection", () => {
                 collect(["a"]).pipeThrough([
                     (data) => data.push("b"),
                     (data) => data.implode(""),
-                    (value) => String(value).toUpperCase(),
+                    (value) => value.toUpperCase(),
                 ]),
             ).toBe("AB");
         });
@@ -19751,6 +19838,24 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-pipeThrough-empty-returns-receiver"
             expect(c.pipeThrough([])).toBe(c);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).pipeThrough([]), "list");
+            expectShape(collect({ a: 1 }).pipeThrough([]), "keyed");
+            expectShape(
+                collect([1, 2]).pipeThrough([
+                    (collection) => collection.filter(() => true),
+                ]),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).pipeThrough([
+                    (collection) => collection.filter(() => true),
+                ]),
+                "keyed",
+            );
         });
     });
 
@@ -19777,15 +19882,16 @@ describe("Collection", () => {
                 // CollectionTest::testReduce
                 const data = collect([1, 2, 3]);
 
+                // The carry starts as PHP's null, which its + reads as 0
                 expect(
                     data.reduce((carry, element) => {
-                        return carry + element;
+                        return (carry ?? 0) + element;
                     }),
                 ).toBe(6);
 
                 expect(
                     data.reduce((carry, element, key) => {
-                        return carry + element + key;
+                        return (carry ?? 0) + element + key;
                     }),
                 ).toBe(9);
 
@@ -19818,13 +19924,10 @@ describe("Collection", () => {
         });
 
         it("hands a lone item to the callback with a null carry", () => {
-            let pair: unknown = "not called";
-
-            collect([5]).reduce((carry, value) => {
-                pair = [carry, value];
-
-                return value;
-            });
+            // The carry's type is fixed before the callback's return is read, so the pair's type is named
+            const pair = collect([5]).reduce<[unknown, number]>(
+                (carry, value) => [carry, value],
+            );
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-no-initial-single"
             expect(pair).toEqual([null, 5]);
@@ -19845,13 +19948,13 @@ describe("Collection", () => {
                 // docs/php-parity/task-24-data-release-readiness.json, "reduce-empty-no-initial"
                 expect(
                     collect([] as number[]).reduce(
-                        (carry, value) => carry + value,
+                        (carry, value) => (carry ?? 0) + value,
                     ),
                 ).toBeNull();
 
                 expect(
                     collect({} as Record<string, number>).reduce(
-                        (carry, value) => carry + value,
+                        (carry, value) => (carry ?? 0) + value,
                     ),
                 ).toBeNull();
             });
@@ -20316,6 +20419,18 @@ describe("Collection", () => {
                 expect(fromTap).toEqual([1]);
                 expect(data.all()).toEqual([1, 2, 3]);
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).tap(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).tap(() => undefined),
+                "keyed",
+            );
         });
     });
 
@@ -21161,6 +21276,26 @@ describe("Collection", () => {
                 ),
                 collect([1]).when("strlen", (_collection, value) => value),
             ]).toEqual([20, "strlen"]);
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).when(true, () => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).when(true, () => undefined),
+                "keyed",
+            );
+            expectShape(
+                collect([1, 2]).when(false, () => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).when(false, () => null),
+                "keyed",
+            );
         });
     });
 

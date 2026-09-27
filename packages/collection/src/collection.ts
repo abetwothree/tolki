@@ -885,6 +885,12 @@ type SortByCallback<TValue, TKey> =
     | PathKey;
 
 /**
+ * An item PHP's `+` may add: a scalar or null. It throws for an array or an object, so sum() and avg() read those only
+ * through a callback or a key.
+ */
+type PhpNumeric = number | string | boolean | null | undefined;
+
+/**
  * Create a collection from the given value.
  *
  * @param items - A collection, a list, a Map, an Arrayable, an iterable, a Jsonable, a JsonSerializable or a record;
@@ -1081,7 +1087,8 @@ export class Collection<
      * Get the median of a given key.
      *
      * @param  key - The key or path of segments to calculate the median for, or null for the values themselves
-     * @returns The median value or null if the collection is empty
+     * @returns The middle value itself for an odd count, the average of the middle two for an even one, or null when
+     * no value that is not null remains
      *
      * @example
      *
@@ -1090,21 +1097,23 @@ export class Collection<
      * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
      * new Collection([{a: {b: 1}}, {a: {b: 9}}, {a: {b: 5}}]).median(['a', 'b']); -> 5
      */
-    median(key: PropertyKey | readonly PathKey[] | null = null): TValue | null {
-        // median() answers what a key reads as an item, which pluck() types as unknown. One declared type lets
-        // reject() be called, which TypeScript refuses on a union of two collection types.
-        const source: Collection<TValue, TKey, CollectionShape> = !isNull(key)
-            ? (this.pluck(
-                  key as PathKey | readonly PathKey[],
-              ) as unknown as Collection<TValue, TKey, CollectionShape>)
-            : this;
-        const values = source
-            // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
-            .reject((item) => isNull(item) || isUndefined(item))
-            .sort()
-            .values();
+    median(key?: null | undefined): NonNullable<TValue> | number | null;
+    median<TPath extends string | number>(
+        key: TPath,
+    ): PluckValue<TValue, TPath> | number | null;
+    median<TPath extends string | number = never>(
+        key: TPath | null | undefined,
+    ): NonNullable<TValue> | PluckValue<TValue, TPath> | number | null;
+    median(key?: PathKey | readonly PathKey[]): unknown;
+    median(key: PathKey | readonly PathKey[] = null): unknown {
+        // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
+        const absent = (item: unknown) => isNull(item) || isUndefined(item);
+        // Each branch keeps its own collection type, since TypeScript calls no overloaded method on a union of two.
+        const values: readonly unknown[] = isNull(key)
+            ? this.reject(absent).sort().values().orderedValues()
+            : this.pluck(key).reject(absent).sort().values().orderedValues();
 
-        const count = values.count();
+        const count = values.length;
 
         if (count === 0) {
             return null;
@@ -1113,12 +1122,13 @@ export class Collection<
         const middle = Math.floor(count / 2);
 
         if (count % 2) {
-            return values.get(middle);
+            return values[middle];
         }
 
-        return this.sameInstance(
-            handOver([values.get(middle - 1), values.get(middle)]),
-        ).average() as TValue;
+        // The middle values' type is unknown, so the identity stands in for average()'s missing callback.
+        return this.newInstance<unknown, number, "list">(
+            handOver([values[middle - 1], values[middle]]),
+        ).average(this.identity());
     }
 
     /**
@@ -1126,7 +1136,7 @@ export class Collection<
      *
      * Null items are skipped, and each value is counted under the key PHP would store it as.
      *
-     * @param key - The key to calculate the mode for, or null for the values themselves
+     * @param key - The key or path of segments to calculate the mode for, or null for the values themselves
      * @returns The most frequent values in the order first seen, or null when no non-null value remains
      *
      * @example
@@ -1137,11 +1147,10 @@ export class Collection<
      * new Collection([{foo: 5}, {foo: null}, {foo: null}]).mode('foo'); -> [5]
      * new Collection([null, null]).mode(); -> null
      */
-    mode(key: PropertyKey | null = null): Array<string | number> | null {
-        // pluck() takes no symbol path, which would read nothing, so the cast narrows the symbol out of mode()'s key.
-        const values = isNull(key)
-            ? this.values()
-            : this.values().pluck(key as PathKey);
+    mode(
+        key: PathKey | readonly PathKey[] = null,
+    ): Array<string | number> | null {
+        const values = isNull(key) ? this.values() : this.values().pluck(key);
         const counts = new Map<string | number, number>();
 
         values.each((value) => {
@@ -2457,10 +2466,10 @@ export class Collection<
      * new Collection([{name: 'John'}, {name: 'Jane'}]).implode('name', ', '); -> 'John, Jane'
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
      */
-    implode<TReturnValue>(
-        value: ((item: TValue, key: TKey) => TReturnValue) | PropertyKey | null,
+    implode(
+        value: ((value: TValue, key: TKey) => unknown) | PathKey,
         glue: string | null = null,
-    ) {
+    ): string {
         const joinItems = (items: unknown[], separator: string | null) =>
             items.map(phpStringCast).join(separator ?? "");
 
@@ -2731,7 +2740,7 @@ export class Collection<
      *
      * @param glue - The string to join all but the last item with
      * @param finalGlue - The string to join the last item with, defaults to an empty string
-     * @returns A string of joined items
+     * @returns A string of joined items, or the lone item itself when a final glue is given
      * @throws Error for an item that is an object without its own toString, or a closure, which PHP cannot cast
      *
      * @example
@@ -2741,7 +2750,8 @@ export class Collection<
      * new Collection([1, 2, 3]).join(' + ', ' = '); -> '1 + 2 = 3'
      * new Collection(['apple']).join(', ', ' and '); -> 'apple'
      */
-    join(glue: string, finalGlue: string = "") {
+    join(glue: string, finalGlue?: string): TValue | string;
+    join(glue: string, finalGlue: string = ""): unknown {
         if (finalGlue === "") {
             return this.implode(glue);
         }
@@ -5794,7 +5804,8 @@ export class Collection<
     /**
      * Get the average value of a given key.
      *
-     * @param callback - The key or callback to determine the value to average, or null to average the items directly
+     * @param callback - The key or callback to determine the value to average, or null to average the items directly,
+     * which PHP's `+` must then be able to add
      * @returns The average of the values that are not null, or null when none is
      * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      *
@@ -5806,11 +5817,18 @@ export class Collection<
      * new Collection(['1', '2', 3]).avg(); -> 2
      * new Collection([]).avg(); -> null
      */
-    avg<TReturn>(
-        callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null,
-    ) {
+    avg(
+        callback: ((value: TValue, key: TKey) => unknown) | string | number,
+    ): number | null;
+    avg(
+        this: Collection<TValue & PhpNumeric, TKey, TShape>,
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): number | null;
+    avg(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): number | null {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => TReturn),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
         const [total, count] = this.reduce<[number, number]>(
@@ -5832,16 +5850,25 @@ export class Collection<
     /**
      * Alias for the "avg" method.
      *
-     * @param callback - The key or callback to determine the value to average, or null to average the items directly
+     * @param callback - The key or callback to determine the value to average, or null to average the items directly,
+     * which PHP's `+` must then be able to add
      * @returns The average of the values that are not null, or null when none is
      * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      *
      * @see {@link Collection.avg}
      */
-    average<TReturn>(
-        callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null,
-    ) {
-        return this.avg(callback);
+    average(
+        callback: ((value: TValue, key: TKey) => unknown) | string | number,
+    ): number | null;
+    average(
+        this: Collection<TValue & PhpNumeric, TKey, TShape>,
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): number | null;
+    average(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): number | null {
+        // A generic `this` cannot show its items are ones PHP's + adds, so the identity stands in for no callback.
+        return this.avg(callback ?? this.identity());
     }
 
     /**
@@ -6252,26 +6279,33 @@ export class Collection<
     /**
      * Get the min value of a given key.
      *
-     * @param callback - The key or callback to determine the value to min, or null to min the items directly
+     * @param callback - The key or callback to determine the value to min, which receives the value alone, or null to
+     * min the items directly
      * @returns The smallest value that is not null, compared as PHP's `<` compares them, or null when none is
      */
-    min(
-        callback:
-            | ((value: TValue, key: TKey) => number | null | undefined)
-            | PathKey = null,
-    ) {
-        const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
-        );
+    min(callback?: null | undefined): NonNullable<TValue> | null;
+    min<TMinResult>(
+        callback: (value: TValue) => TMinResult,
+    ): NonNullable<TMinResult> | null;
+    min<TPath extends string | number>(
+        key: TPath,
+    ): PluckValue<TValue, TPath> | null;
+    min<TMinResult>(
+        callback: ((value: TValue) => TMinResult) | null | undefined,
+    ): NonNullable<TValue | TMinResult> | null;
+    min<TPath extends string | number>(
+        key: TPath | null | undefined,
+    ): NonNullable<TValue> | PluckValue<TValue, TPath> | null;
+    min(callback?: ((value: TValue) => unknown) | PathKey): unknown;
+    min(callback: ((value: TValue) => unknown) | PathKey = null): unknown {
+        const callbackValue = this.valueRetriever(callback);
 
         // undefined stands for PHP's null, so it is skipped with it.
-        return this.map((value: TValue) =>
-            callbackValue(value as TValue | TKey),
-        )
+        return this.map((value) => callbackValue(value))
             .reject((value) => isNull(value) || isUndefined(value))
-            .reduce((carry: number | null, value: unknown) => {
+            .reduce<unknown>((carry, value) => {
                 if (isNull(carry) || compareValues(value, carry) < 0) {
-                    return value as number;
+                    return value;
                 }
 
                 return carry;
@@ -6281,40 +6315,41 @@ export class Collection<
     /**
      * Get the max value of a given key.
      *
-     * @param callback - The key or callback to determine the value to max, or null to max the items directly
+     * @param callback - The key or callback to determine the value to max, which receives the value alone, or null to
+     * max the items directly
      * @returns The largest value of an item that is not null, compared as PHP's `>` compares them, or null when none is
      */
-    max(
-        callback:
-            | ((value: TValue, key: TKey) => number | null | undefined)
-            | PathKey = null,
-    ) {
-        const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
-        );
+    max(callback?: null | undefined): NonNullable<TValue> | null;
+    max<TMaxResult>(
+        callback: (value: TValue) => TMaxResult,
+    ): NonNullable<TMaxResult> | null;
+    max<TPath extends string | number>(
+        key: TPath,
+    ): PluckValue<TValue, TPath> | null;
+    max<TMaxResult>(
+        callback: ((value: TValue) => TMaxResult) | null | undefined,
+    ): NonNullable<TValue | TMaxResult> | null;
+    max<TPath extends string | number>(
+        key: TPath | null | undefined,
+    ): NonNullable<TValue> | PluckValue<TValue, TPath> | null;
+    max(callback?: ((value: TValue) => unknown) | PathKey): unknown;
+    max(callback: ((value: TValue) => unknown) | PathKey = null): unknown {
+        const callbackValue = this.valueRetriever(callback);
 
         // undefined stands for PHP's null, so it is skipped with it.
         return this.reject(
             (value: TValue) => isNull(value) || isUndefined(value),
-        ).reduce(
-            ((carry: number | null, item: TValue) => {
-                // A callback's undefined is PHP's null too: the next value replaces it, and it answers when none does.
-                const value = (callbackValue(item as TValue | TKey) ??
-                    null) as number;
+        ).reduce<unknown>((carry, item) => {
+            // A callback's undefined is PHP's null too: the next value replaces it, and it answers when none does.
+            const value = callbackValue(item) ?? null;
 
-                // PHP compiles $value > $result as $result < $value, which differs where <=> answers 1 both ways.
-                if (isNull(carry) || compareValues(carry, value) < 0) {
-                    return value;
-                }
+            // PHP compiles $value > $result as $result < $value, which differs where <=> answers 1 both ways.
+            if (isNull(carry) || compareValues(carry, value) < 0) {
+                return value;
+            }
 
-                return carry;
-            }) as (
-                carry: number | TValue | null,
-                value: TValue,
-                key: TKey,
-            ) => number | null,
-            null,
-        );
+            return carry;
+        }, null);
     }
 
     /**
@@ -6410,7 +6445,7 @@ export class Collection<
     percentage(
         callback: (value: TValue, key: TKey) => unknown,
         precision: number = 2,
-    ) {
+    ): number | null {
         // PHP reads the precision as an int on the way in, so one it refuses throws before the items are looked at.
         const places = phpIntArgument(
             precision,
@@ -6430,19 +6465,27 @@ export class Collection<
     /**
      * Get the sum of the given values.
      *
-     * @param callback - The key or callback to determine the value to sum, or null to sum the items directly
+     * @param callback - The key or callback to determine the value to sum, or null to sum the items directly, which
+     * PHP's `+` must then be able to add
      * @returns The sum of the values, each added as PHP's `+` adds it
      * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      */
-    sum<TReturnType = number>(
-        callback: ((value: TValue, key: TKey) => TReturnType) | PathKey = null,
+    sum(
+        callback: ((value: TValue, key: TKey) => unknown) | string | number,
+    ): number;
+    sum(
+        this: Collection<TValue & PhpNumeric, TKey, TShape>,
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): number;
+    sum(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
     ): number {
         const callbackValue = isNull(callback)
             ? this.identity()
             : this.valueRetriever(
                   callback as
                       | PathKey
-                      | ((...args: (TValue | TKey)[]) => TReturnType),
+                      | ((...args: (TValue | TKey)[]) => unknown),
               );
 
         return this.reduce(
@@ -6456,14 +6499,14 @@ export class Collection<
      *
      * @param callback - The callback to execute if the collection is empty, receiving it and true
      * @param defaultValue - The callback to execute if the collection is not empty, receiving it and false
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     whenEmpty<TWhenEmptyReturnType>(
-        callback: (instance: this, value: boolean) => TWhenEmptyReturnType,
+        callback: (collection: this, value: boolean) => TWhenEmptyReturnType,
         defaultValue:
-            | ((instance: this, value: boolean) => TWhenEmptyReturnType)
+            | ((collection: this, value: boolean) => TWhenEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TWhenEmptyReturnType, null | undefined | void> {
         return this.when(this.isEmpty(), callback, defaultValue);
     }
 
@@ -6472,14 +6515,14 @@ export class Collection<
      *
      * @param callback - The callback to execute if the collection is not empty, receiving it and true
      * @param defaultValue - The callback to execute if the collection is empty, receiving it and false
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     whenNotEmpty<TWhenNotEmptyReturnType>(
-        callback: (instance: this, value: boolean) => TWhenNotEmptyReturnType,
+        callback: (collection: this, value: boolean) => TWhenNotEmptyReturnType,
         defaultValue:
-            | ((instance: this, value: boolean) => TWhenNotEmptyReturnType)
+            | ((collection: this, value: boolean) => TWhenNotEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TWhenNotEmptyReturnType, null | undefined | void> {
         return this.when(this.isNotEmpty(), callback, defaultValue);
     }
 
@@ -6488,14 +6531,14 @@ export class Collection<
      *
      * @param callback - The callback to execute unless the collection is empty, receiving it and true
      * @param defaultValue - The callback to execute if the collection is empty, receiving it and false
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     unlessEmpty<TUnlessEmptyReturnType>(
-        callback: (instance: this, value: boolean) => TUnlessEmptyReturnType,
+        callback: (collection: this, value: boolean) => TUnlessEmptyReturnType,
         defaultValue:
-            | ((instance: this, value: boolean) => TUnlessEmptyReturnType)
+            | ((collection: this, value: boolean) => TUnlessEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TUnlessEmptyReturnType, null | undefined | void> {
         return this.whenNotEmpty(callback, defaultValue);
     }
 
@@ -6504,14 +6547,17 @@ export class Collection<
      *
      * @param callback - The callback to execute unless the collection is not empty, receiving it and true
      * @param defaultValue - The callback to execute if the collection is not empty, receiving it and false
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     unlessNotEmpty<TUnlessNotEmptyReturnType>(
-        callback: (instance: this, value: boolean) => TUnlessNotEmptyReturnType,
+        callback: (
+            collection: this,
+            value: boolean,
+        ) => TUnlessNotEmptyReturnType,
         defaultValue:
-            | ((instance: this, value: boolean) => TUnlessNotEmptyReturnType)
+            | ((collection: this, value: boolean) => TUnlessNotEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TUnlessNotEmptyReturnType, null | undefined | void> {
         return this.whenEmpty(callback, defaultValue);
     }
 
@@ -6784,7 +6830,9 @@ export class Collection<
      * @param callback - The callback to execute, receives the current instance as an argument
      * @returns The result of the callback
      */
-    pipe<TPipeReturnType>(callback: (instance: this) => TPipeReturnType) {
+    pipe<TPipeReturnType>(
+        callback: (collection: this) => TPipeReturnType,
+    ): TPipeReturnType {
         return callback(this);
     }
 
@@ -6795,23 +6843,39 @@ export class Collection<
      * @returns A new instance of the given class, instantiated with the current collection
      */
     pipeInto<TPipeIntoValue>(
-        className: new (instance: this) => TPipeIntoValue,
-    ) {
+        className: new (collection: this) => TPipeIntoValue,
+    ): TPipeIntoValue {
         return new className(this);
     }
 
     /**
      * Pass the collection through a series of callable pipes and return the result.
      *
-     * @param callbacks - An array of callbacks to execute, each receives the current instance as an argument
-     * @returns The result of the final callback in the series
+     * @param callbacks - The callbacks to execute in turn: the first receives the collection, and each one after it
+     * what the one before it returned
+     * @returns The result of the final callback in the series, or the collection itself when there is none
      */
-    pipeThrough(callbacks: Array<(instance: this) => unknown>) {
-        return this.sameInstance(callbacks).reduce<this>(
+    pipeThrough(callbacks: readonly []): this;
+    pipeThrough<TFirst>(callbacks: readonly [(carry: this) => TFirst]): TFirst;
+    pipeThrough<TFirst, TSecond>(
+        callbacks: readonly [
+            (carry: this) => TFirst,
+            (carry: TFirst) => TSecond,
+        ],
+    ): TSecond;
+    pipeThrough<TFirst, TSecond, TThird>(
+        callbacks: readonly [
+            (carry: this) => TFirst,
+            (carry: TFirst) => TSecond,
+            (carry: TSecond) => TThird,
+        ],
+    ): TThird;
+    pipeThrough(callbacks: ReadonlyArray<(carry: never) => unknown>): unknown;
+    pipeThrough(callbacks: ReadonlyArray<(carry: never) => unknown>): unknown {
+        // Each callback takes what the one before it returned, which only the rows above can type.
+        return this.sameInstance(callbacks).reduce<unknown>(
             (carry, callback) =>
-                (callback as (instance: this) => unknown)(
-                    carry as this,
-                ) as this,
+                (callback as unknown as (carry: unknown) => unknown)(carry),
             this,
         );
     }
@@ -6823,23 +6887,19 @@ export class Collection<
      * @param initial - The carry the first item is reduced into, null when none is given
      * @returns The reduced value, or the initial value if the collection is empty
      */
-    reduce(
-        callback: (carry: TValue, value: TValue, key: TKey) => TValue,
-    ): TValue | null;
+    reduce<TReduce = TValue>(
+        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+    ): TReduce | null;
     reduce<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
     ): TReduce;
-    reduce<TReduce = TValue>(
-        callback: (
-            carry: TValue | TReduce,
-            value: TValue,
-            key: TKey,
-        ) => TReduce,
-        initial?: TReduce,
-    ) {
+    reduce<TReduce>(
+        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+        initial: TReduce | null = null,
+    ): unknown {
         // PHP's $initial defaults to null, so the first item reaches the callback too, unlike Array.prototype.reduce.
-        let result = (isUndefined(initial) ? null : initial) as TReduce;
+        let result = initial;
 
         for (const [key, value] of this.entriesInOrder()) {
             result = callback(result, value, key);
@@ -6889,7 +6949,7 @@ export class Collection<
      * under the name of the class it was called on, which a minified build may rename
      */
     reduceSpread<TSpread extends unknown[]>(
-        callback: (...args: [...TSpread, TValue, PropertyKey]) => [...TSpread],
+        callback: (...args: [...TSpread, TValue, TKey]) => [...TSpread],
         ...initial: [...TSpread]
     ): [...TSpread] {
         let result = initial as unknown[];
@@ -6918,37 +6978,22 @@ export class Collection<
     /**
      * Reduce an associative collection to a single value.
      *
-     * @param initial - The initial value to start the reduction with
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
+     * @param initial - The carry the first item is reduced into, null when none is given
      * @returns The reduced value, or the initial value if the collection is empty
      */
+    reduceWithKeys<TReduce = TValue>(
+        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+    ): TReduce | null;
     reduceWithKeys<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
     ): TReduce;
-    reduceWithKeys(
-        callback: (
-            carry: TValue | null,
-            value: TValue,
-            key: TKey,
-        ) => TValue | null,
-    ): TValue | null;
-    reduceWithKeys<TReduce = TValue | null>(
-        callback: (
-            carry: TReduce | TValue | null,
-            value: TValue,
-            key: TKey,
-        ) => TReduce,
-        initial?: TReduce | null,
-    ) {
-        return this.reduce(
-            callback as unknown as (
-                carry: TValue | TReduce,
-                value: TValue,
-                key: TKey,
-            ) => TReduce,
-            (isUndefined(initial) ? null : initial) as TReduce,
-        );
+    reduceWithKeys<TReduce>(
+        callback: (carry: TReduce | null, value: TValue, key: TKey) => TReduce,
+        initial: TReduce | null = null,
+    ): unknown {
+        return this.reduce<TReduce | null>(callback, initial);
     }
 
     /**
@@ -6996,7 +7041,7 @@ export class Collection<
      * @param callback - The callback to execute, receives the current instance as an argument
      * @returns The current instance
      */
-    tap(callback: (instance: this) => unknown) {
+    tap(callback: (collection: this) => unknown): this {
         callback(this);
 
         return this;
@@ -7342,7 +7387,7 @@ export class Collection<
      * @param value - The value to evaluate or a closure that returns the value
      * @param callback - The callback to execute if the value is truthy
      * @param defaultCallback - The callback to execute if the value is falsy
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      * @throws Error `Value of type null is not callable` when the value is truthy and the callback null, as PHP's does
      *
      * @example
@@ -7351,30 +7396,29 @@ export class Collection<
      * new Collection([1, 2, 3]).when(false, coll => coll.map(x => x * 2)); -> new Collection([1, 2, 3])
      */
     when<TWhenParameter, TWhenReturnType>(
-        value: ((instance: this) => TWhenParameter) | TWhenParameter | null,
-        callback: (instance: this, value: TWhenParameter) => TWhenReturnType,
+        value: ((collection: this) => TWhenParameter) | TWhenParameter,
+        callback: (collection: this, value: TWhenParameter) => TWhenReturnType,
+        defaultCallback?:
+            | ((collection: this, value: TWhenParameter) => TWhenReturnType)
+            | null,
+    ): this | Exclude<TWhenReturnType, null | undefined | void>;
+    when(
+        value: unknown,
+        callback: (collection: this, value: unknown) => unknown,
         defaultCallback:
-            | ((instance: this, value: TWhenParameter) => TWhenReturnType)
+            | ((collection: this, value: unknown) => unknown)
             | null = null,
-    ) {
-        const resolvedValue = isFunction(value)
-            ? (value as (instance: this) => TWhenParameter)(this)
-            : (value as TWhenParameter);
+    ): unknown {
+        const resolvedValue = isFunction(value) ? value(this) : value;
 
         if (!isPhpFalsy(resolvedValue)) {
             if (!isFunction(callback)) {
                 throw notCallableValue(callback);
             }
 
-            return (callback(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+            return callback(this, resolvedValue) ?? this;
         } else if (defaultCallback) {
-            return (defaultCallback(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+            return defaultCallback(this, resolvedValue) ?? this;
         }
 
         return this;
@@ -7386,7 +7430,7 @@ export class Collection<
      * @param value - The value to evaluate or a closure that returns the value
      * @param callback - The callback to execute if the value is falsy
      * @param defaultCallback - The callback to execute if the value is truthy
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      * @throws Error `Value of type null is not callable` when the value is falsy and the callback null, as PHP's does
      *
      * @example
@@ -7395,33 +7439,32 @@ export class Collection<
      * new Collection([1, 2, 3]).unless(true, coll => coll.map(x => x * 2)); -> new Collection([1, 2, 3])
      */
     unless<TUnlessParameter, TUnlessReturnType>(
-        value: ((instance: this) => TUnlessParameter) | TUnlessParameter | null,
+        value: ((collection: this) => TUnlessParameter) | TUnlessParameter,
         callback: (
-            instance: this,
+            collection: this,
             value: TUnlessParameter,
         ) => TUnlessReturnType,
+        defaultCallback?:
+            | ((collection: this, value: TUnlessParameter) => TUnlessReturnType)
+            | null,
+    ): this | Exclude<TUnlessReturnType, null | undefined | void>;
+    unless(
+        value: unknown,
+        callback: (collection: this, value: unknown) => unknown,
         defaultCallback:
-            | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
+            | ((collection: this, value: unknown) => unknown)
             | null = null,
-    ) {
-        const resolvedValue = (
-            isFunction(value) ? value(this) : value
-        ) as TUnlessParameter;
+    ): unknown {
+        const resolvedValue = isFunction(value) ? value(this) : value;
 
         if (isPhpFalsy(resolvedValue)) {
             if (!isFunction(callback)) {
                 throw notCallableValue(callback);
             }
 
-            return (callback(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+            return callback(this, resolvedValue) ?? this;
         } else if (defaultCallback) {
-            return (defaultCallback(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+            return defaultCallback(this, resolvedValue) ?? this;
         }
 
         return this;
