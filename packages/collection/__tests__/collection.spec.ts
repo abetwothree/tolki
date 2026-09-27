@@ -2677,6 +2677,13 @@ describe("Collection", () => {
                 duplicates.values().all(),
             ]).toEqual([[1], ["a"]]);
         });
+
+        it("keeps the duplicates' own keys, so a list's result is keyed, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 1]).duplicates(), "keyed");
+            expectShape(collect([1, 2]).duplicates(), "keyed");
+            expectShape(collect({ a: 1, b: 1 }).duplicates(), "keyed");
+        });
     });
 
     describe("duplicatesStrict", () => {
@@ -2736,6 +2743,12 @@ describe("Collection", () => {
                     .duplicatesStrict()
                     .all(),
             ).toEqual({});
+        });
+
+        it("keeps the duplicates' own keys, so a list's result is keyed, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 1]).duplicatesStrict(), "keyed");
+            expectShape(collect({ a: 1, b: 1 }).duplicatesStrict(), "keyed");
         });
     });
 
@@ -2835,12 +2848,14 @@ describe("Collection", () => {
                 const pair = collect({ a: 1, b: 2 });
 
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
-                expect(() => pair.except("a", ["b"])).toThrow(failure);
                 expect(() =>
-                    pair.except("a", collect(["b"]) as unknown as string),
+                    Reflect.apply(pair.except, pair, ["a", ["b"]]),
                 ).toThrow(failure);
                 expect(() =>
-                    collect([]).except([["b"]] as unknown as string[]),
+                    Reflect.apply(pair.except, pair, ["a", collect(["b"])]),
+                ).toThrow(failure);
+                expect(() =>
+                    Reflect.apply(collect([]).except, collect([]), [[["b"]]]),
                 ).toThrow(failure);
             });
         });
@@ -2886,6 +2901,13 @@ describe("Collection", () => {
             // keys 0 and 2 name these items; a list renumbers them, as every removal from a list does
             expect(except.all()).toEqual(["a", "c"]);
             expect(except.keys().all()).toEqual([0, 1]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).except(0), "list");
+            expectShape(collect({ a: 1, b: 2 }).except("a"), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).except(["a", "b"]), "keyed");
         });
     });
 
@@ -3042,6 +3064,24 @@ describe("Collection", () => {
                 ]);
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).filter((value) => value > 1),
+                "list",
+            );
+            expectShape(collect([0, 1]).filter(), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).filter((value) => value > 1),
+                "keyed",
+            );
+            expectShape(collect({ a: 0, b: 2 }).filter(), "keyed");
+            expectShape(
+                collect({ a: 1 }).filter(() => false),
+                "keyed",
+            );
+        });
     });
 
     describe("first", () => {
@@ -7632,6 +7672,7 @@ describe("Collection", () => {
 
             it("skips a later key array_flip cannot store: a null, an array or a collection", () => {
                 const odd = collect({ a: 1, b: 2 });
+                const pairList = collect(["x", "y"]);
 
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
                 expect(
@@ -7639,11 +7680,17 @@ describe("Collection", () => {
                 ).toEqual({
                     a: 2,
                 });
-                expect(odd.only("a", ["b"]).all()).toEqual({ a: 1 });
                 expect(
-                    odd.only("a", collect(["b"]) as unknown as string).all(),
+                    Reflect.apply(odd.only, odd, ["a", ["b"]]).all(),
+                ).toEqual({
+                    a: 1,
+                });
+                expect(
+                    Reflect.apply(odd.only, odd, ["a", collect(["b"])]).all(),
                 ).toEqual({ a: 1 });
-                expect(collect(["x", "y"]).only(0, [1]).all()).toEqual(["x"]);
+                expect(
+                    Reflect.apply(pairList.only, pairList, [0, [1]]).all(),
+                ).toEqual(["x"]);
             });
 
             it("skips a later undefined key, as it skips null", () => {
@@ -7695,6 +7742,13 @@ describe("Collection", () => {
                 { a: 1, b: 2 },
             ]);
             expect(collection.keys().all()).toEqual(["a"]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).only(0, 2), "list");
+            expectShape(collect({ a: 1, b: 2 }).only("a"), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).only([]), "keyed");
         });
     });
 
@@ -8070,6 +8124,12 @@ describe("Collection", () => {
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-keyed-collection-arg"
                 expect(selected.all()).toEqual([{ first: "T", email: "e" }]);
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ a: 1, b: 2 }]).select("a"), "list");
+            expectShape(collect({ x: { a: 1, b: 2 } }).select("a"), "keyed");
         });
     });
 
@@ -11017,6 +11077,12 @@ describe("Collection", () => {
                 ["a", "b"],
             ]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).skipUntil(2), "list");
+            expectShape(collect({ a: 1, b: 2 }).skipUntil(2), "keyed");
+        });
     });
 
     describe("skipWhile", () => {
@@ -11091,6 +11157,12 @@ describe("Collection", () => {
                 [0, 1],
                 ["a", "b"],
             ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).skipWhile(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).skipWhile(1), "keyed");
         });
     });
 
@@ -14000,6 +14072,12 @@ describe("Collection", () => {
                 ["c"],
             ]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).takeUntil(2), "list");
+            expectShape(collect({ a: 1, b: 2 }).takeUntil(2), "keyed");
+        });
     });
 
     describe("takeWhile", () => {
@@ -14070,6 +14148,12 @@ describe("Collection", () => {
                 [2],
                 ["c"],
             ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).takeWhile(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).takeWhile(1), "keyed");
         });
     });
 
@@ -14426,6 +14510,12 @@ describe("Collection", () => {
                 "0",
                 "",
             ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 1, 2]).unique(), "list");
+            expectShape(collect({ a: 1, b: 1 }).unique(), "keyed");
         });
     });
 
@@ -17483,6 +17573,25 @@ describe("Collection", () => {
                 [1],
             ]);
         });
+
+        it("lists the two halves, each keeping its receiver's shape, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const [passed, failed] = collect([1, 2]).partition(
+                (value) => value > 1,
+            );
+            const [kept, rest] = collect({ a: 1, b: 2 }).partition(
+                (value) => value > 1,
+            );
+
+            expectShape(
+                collect([1, 2]).partition((value) => value > 1),
+                "list",
+            );
+            expectShape(passed, "list");
+            expectShape(failed, "list");
+            expectShape(kept, "keyed");
+            expectShape(rest, "keyed");
+        });
     });
 
     describe("percentage", () => {
@@ -18202,6 +18311,15 @@ describe("Collection", () => {
             // [0, 1, 2, 3, 5] name these rows; a list renumbers them, as every removal from a list does
             expect(kept.pluck("v").all()).toEqual([0, "", false, null, []]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ v: 1 }, { v: 2 }]).where("v", 1), "list");
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).where("v", 1),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNull", () => {
@@ -18236,6 +18354,12 @@ describe("Collection", () => {
             expect(kept.all()).toEqual({ a: null, c: null });
             expect(kept.keys().all()).toEqual(["a", "c"]);
             expect(kept.values().all()).toEqual([null, null]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, null]).whereNull(), "list");
+            expectShape(collect({ a: 1, b: null }).whereNull(), "keyed");
         });
     });
 
@@ -18287,6 +18411,12 @@ describe("Collection", () => {
             // names this row; a list renumbers it, as every removal from a list does
             expect(kept.all()).toEqual([{ a: { b: 0 } }]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, null]).whereNotNull(), "list");
+            expectShape(collect({ a: 1, b: null }).whereNotNull(), "keyed");
+        });
     });
 
     describe("whereStrict", () => {
@@ -18310,6 +18440,18 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-strict-array-by-value"
             expect(kept.all()).toEqual([{ v: [1, 2] }]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: "1" }]).whereStrict("v", 1),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: "1" } }).whereStrict("v", 1),
+                "keyed",
+            );
         });
     });
 
@@ -18442,6 +18584,18 @@ describe("Collection", () => {
             // keys 0 and 2 name these rows; a list renumbers them, as every removal from a list does
             expect(filtered.pluck("v").all()).toEqual([1, 3]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereIn("v", [2]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereIn("v", [2]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereInStrict", () => {
@@ -18483,6 +18637,18 @@ describe("Collection", () => {
             // 0, 3 and 4 name these rows; a list renumbers them, as every removal from a list does
             expect(filtered.pluck("v").all()).toEqual([1, "2", null]);
             expect(filtered.keys().all()).toEqual([0, 1, 2]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereInStrict("v", [2]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereInStrict("v", [2]),
+                "keyed",
+            );
         });
     });
 
@@ -18557,6 +18723,18 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([1, 2, 3]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 5 }]).whereBetween("v", [2, 6]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 5 } }).whereBetween("v", [2, 6]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNotBetween", () => {
@@ -18630,6 +18808,21 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([0, 4]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 5 }]).whereNotBetween("v", [2, 6]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 5 } }).whereNotBetween(
+                    "v",
+                    [2, 6],
+                ),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNotIn", () => {
@@ -18695,6 +18888,18 @@ describe("Collection", () => {
                 expect(filtered.keys().all()).toEqual(kept.map((_, i) => i));
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereNotIn("v", [1]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereNotIn("v", [1]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNotInStrict", () => {
@@ -18727,6 +18932,21 @@ describe("Collection", () => {
             // names this row; a list renumbers it, as every removal from a list does
             expect(filtered.all()).toEqual([{ v: ["1", "2"] }]);
             expect(filtered.keys().all()).toEqual([0]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereNotInStrict("v", [1]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereNotInStrict(
+                    "v",
+                    [1],
+                ),
+                "keyed",
+            );
         });
     });
 
@@ -18789,6 +19009,18 @@ describe("Collection", () => {
             expect(kept.count()).toBe(2);
             expect(kept.first()).toBeInstanceOf(StdClass);
             expect(kept.last()).toBeInstanceOf(SplStack);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([new Date(0), "x"]).whereInstanceOf(Date),
+                "list",
+            );
+            expectShape(
+                collect({ a: "x", b: new Date(0) }).whereInstanceOf(Date),
+                "keyed",
+            );
         });
     });
 
@@ -19396,6 +19628,15 @@ describe("Collection", () => {
                 );
             },
         );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).reject(1), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).reject((value) => value > 1),
+                "keyed",
+            );
+        });
     });
 
     describe("tap", () => {
@@ -19476,6 +19717,12 @@ describe("Collection", () => {
             expect(collect([1, "1", 1, true]).unique(null, true).all()).toEqual(
                 [1, "1", true],
             );
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, "1", 1]).uniqueStrict(), "list");
+            expectShape(collect({ a: 1, b: 1 }).uniqueStrict(), "keyed");
         });
     });
 
@@ -21718,7 +21965,7 @@ describe("Collection", () => {
             constructor(
                 items?:
                     | TValue[]
-                    | Record<TKey, TValue>
+                    | NoInfer<Record<TKey, TValue>>
                     | Collection<TValue, TKey>,
                 tag: string = "",
             ) {
@@ -22694,16 +22941,16 @@ describe("Collection", () => {
     describe("item paths read like data_get", () => {
         /** The rows as a list, or keyed "x", "y" and "z" in order. */
         const backed = (keyed: boolean, rows: unknown[]) =>
-            keyed
-                ? collect(
-                      Object.fromEntries(
+            new Collection<unknown, PropertyKey, "list" | "keyed">(
+                keyed
+                    ? Object.fromEntries(
                           rows.map((row, index) => [
                               ["x", "y", "z"][index],
                               row,
                           ]),
-                      ),
-                  )
-                : collect(rows);
+                      )
+                    : rows,
+            );
 
         /** Three Collection rows, "k" => b, a, b and "v" => 1, 2, 3, as a list or keyed "x", "y" and "z". */
         const collectionRows = (keyed: boolean) =>

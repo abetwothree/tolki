@@ -70,12 +70,14 @@ import type {
     Jsonable,
     JsonSerializable,
     MapArrayKey,
+    NonNullableArray,
     ObjectKey,
     ObjectValue,
     PathKey,
     PathKeys,
     PluckValue,
     SortSpec,
+    TruthyArray,
     UnionToIntersection,
 } from "@tolki/types";
 import {
@@ -364,7 +366,7 @@ type WrittenShape<
     : TShape;
 
 /**
- * A key forget() is sure to remove: one literal key. A union, a wide or patterned string, or a branded key may name
+ * A key an argument surely names: one literal key. A union, a wide or patterned string, or a branded key may name
  * many keys, and only a literal makes a record's key required, so that is what tells them apart.
  */
 type LoneKey<TKey> = [TKey] extends [UnionToIntersection<TKey>]
@@ -373,7 +375,7 @@ type LoneKey<TKey> = [TKey] extends [UnionToIntersection<TKey>]
         : TKey
     : never;
 
-/** Whether every key of a literal list is a lone key, so forget() is sure to remove each one. */
+/** Whether every key of a literal list is a lone key, so the list surely names each one. */
 type AllLoneKeys<TKeys extends readonly unknown[]> = TKeys extends readonly [
     infer THead,
     ...infer TRest,
@@ -384,21 +386,64 @@ type AllLoneKeys<TKeys extends readonly unknown[]> = TKeys extends readonly [
     : true;
 
 /**
- * The keys forget() is sure to remove, wrapped in a tuple so that removing no key is told apart from an unknown set:
- * a lone key, or each key of a literal list of lone keys. It answers false for any other argument, which may remove
+ * The keys an argument surely names, wrapped in a tuple so that naming no key is told apart from an unknown set:
+ * a lone key, or each key of a literal list of lone keys. It answers false for any other argument, which may name
  * any of its keys, or none.
  */
-type SureKeys<TForgetKeys> = [TForgetKeys] extends [
-    infer TList extends readonly unknown[],
-]
+type SureKeys<TKeys> = [TKeys] extends [infer TList extends readonly unknown[]]
     ? number extends TList["length"]
         ? false
         : AllLoneKeys<TList> extends true
           ? [TList[number]]
           : false
-    : [LoneKey<TForgetKeys>] extends [never]
+    : [LoneKey<TKeys>] extends [never]
       ? false
-      : [TForgetKeys];
+      : [TKeys];
+
+/** Whether every member of a key type is a literal; a wide, patterned or branded member leaves no key required. */
+type LiteralKeys<TKey> = [
+    TKey extends unknown
+        ? Record<never, never> extends Record<TKey & PropertyKey, unknown>
+            ? TKey
+            : never
+        : never,
+] extends [never]
+    ? true
+    : false;
+
+/**
+ * The keys only() or except() surely names: none unless the collection's keys and the argument's are all literals,
+ * since a wide key on either side may name keys the other side's type cannot list.
+ */
+type NamedKeys<TKey, TKeys> =
+    LiteralKeys<TKey> extends true ? SureKeys<TKeys> : false;
+
+/** Any class, abstract or not: `never[]` parameters let a constructor that takes typed parameters match. */
+type AbstractConstructor = abstract new (...args: never[]) => unknown;
+
+/**
+ * The items whereInstanceOf() keeps. One class keeps the item types that are its instances, so a union keeps its own
+ * member types; the class's instances stand in when no item type is one.
+ */
+type InstancesOf<TValue, TType> = TType extends AbstractConstructor
+    ? [Extract<TValue, InstanceType<TType>>] extends [never]
+        ? InstanceType<TType>
+        : Extract<TValue, InstanceType<TType>>
+    : TType extends readonly AbstractConstructor[]
+      ? InstanceType<TType[number]>
+      : TType extends Readonly<Record<PropertyKey, AbstractConstructor>>
+        ? InstanceType<TType[keyof TType]>
+        : never;
+
+/**
+ * What partition() answers: a list of exactly two halves, each also read by index the way PHP's $partition[0] reads
+ * it. The pair comes first, so all() answers it rather than the collection's own items type.
+ */
+type PartitionResult<TPart> = {
+    all(): [TPart, TPart];
+    readonly 0: TPart;
+    readonly 1: TPart;
+} & Collection<TPart, number, "list">;
 
 /** The key array_splice() leaves an entry under: an integer key is renumbered, a string key kept. */
 type SplicedKey<TKey extends PropertyKey> = TKey extends number ? number : TKey;
@@ -472,30 +517,6 @@ function sortedIntoItems<TValue>(
     }
 
     return items;
-}
-
-/**
- * A Collection whose items are always array-backed, ensuring all() returns TValue[].
- * Used as the return type for methods like partition() that always produce arrays.
- */
-export interface ArrayCollection<
-    TValue,
-    TKey extends PropertyKey,
-> extends Collection<TValue, TKey> {
-    all(): TValue[];
-}
-
-/**
- * A Collection containing exactly two elements, used for partition().
- * Extends ArrayCollection and adds tuple-like indexing for better type inference.
- */
-export interface TupleCollection<T1, T2> extends ArrayCollection<
-    T1 | T2,
-    number
-> {
-    all(): [T1, T2];
-    0: T1;
-    1: T2;
 }
 
 /**
@@ -641,8 +662,12 @@ export class Collection<
      * new Collection([{a: {b: 1}}, {a: {b: 9}}, {a: {b: 5}}]).median(['a', 'b']); -> 5
      */
     median(key: PropertyKey | readonly PathKey[] | null = null): TValue | null {
-        // pluck() reads an array of segments as a path, though its declared key type lists none.
-        const values = (!isNull(key) ? this.pluck(key as PropertyKey) : this)
+        // pluck() reads an array of segments as a path, though its declared key type lists none. One declared type
+        // lets reject() be called, which TypeScript refuses on a union of two collection types.
+        const source: Collection<TValue, TKey, CollectionShape> = !isNull(key)
+            ? this.pluck(key as PropertyKey)
+            : this;
+        const values = source
             // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
             .reject((item) => isNull(item) || isUndefined(item))
             .sort()
@@ -1155,10 +1180,30 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}, {id: 2}]).duplicates('id'); -> new Collection({2: 2})
      * new Collection([1, '1', 2, '2', 2]).duplicates(null, true); -> new Collection({4: 2})
      */
+    duplicates(
+        callback?: null | undefined,
+        strict?: boolean,
+    ): Collection<TValue, TKey, "partial">;
+    duplicates<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+        strict?: boolean,
+    ): Collection<TMapValue, TKey, "partial">;
+    duplicates<const TPath extends string>(
+        callback: TPath,
+        strict?: boolean,
+    ): Collection<PluckValue<TValue, TPath>, TKey, "partial">;
+    duplicates<TMapValue>(
+        callback: ((value: TValue, key: TKey) => TMapValue) | null | undefined,
+        strict?: boolean,
+    ): Collection<TValue | TMapValue, TKey, "partial">;
+    duplicates(
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+        strict?: boolean,
+    ): Collection<unknown, TKey, "partial">;
     duplicates<TMapValue>(
         callback: ((value: TValue, key: TKey) => TMapValue) | PathKey = null,
         strict: boolean = false,
-    ) {
+    ): unknown {
         const items = this.map(
             this.valueRetriever(
                 callback as
@@ -1194,7 +1239,9 @@ export class Collection<
         }
 
         // Laravel preserves keys for both arrays and objects
-        return this.sameInstance(handOver(duplicatesItems));
+        return this.newInstance<TMapValue, TKey, "partial">(
+            handOver(duplicatesItems),
+        );
     }
 
     /**
@@ -1203,9 +1250,24 @@ export class Collection<
      * @param callback - The callback function to determine the value to check for duplicates, or a string key, or null to use the values themselves
      * @returns A new collection with the duplicate items
      */
+    duplicatesStrict(
+        callback?: null | undefined,
+    ): Collection<TValue, TKey, "partial">;
     duplicatesStrict<TMapValue>(
-        callback: ((value: TValue) => TMapValue) | string | null = null,
-    ) {
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue, TKey, "partial">;
+    duplicatesStrict<const TPath extends string>(
+        callback: TPath,
+    ): Collection<PluckValue<TValue, TPath>, TKey, "partial">;
+    duplicatesStrict<TMapValue>(
+        callback: ((value: TValue, key: TKey) => TMapValue) | null | undefined,
+    ): Collection<TValue | TMapValue, TKey, "partial">;
+    duplicatesStrict(
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): Collection<unknown, TKey, "partial">;
+    duplicatesStrict(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): unknown {
         return this.duplicates(callback, true);
     }
 
@@ -1237,15 +1299,34 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    except<TExceptValue extends PathKey, TExceptKey extends PropertyKey>(
-        ...keys: (
+    except(keys: null | undefined, ...rest: PathKey[]): this;
+    except<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        this: Collection<TValue, TKey, "list">,
+        keys:
             | PathKey
-            | PathKey[]
-            | Collection<TExceptValue, TExceptKey, CollectionShape>
-            | null
-            | undefined
-        )[]
-    ) {
+            | readonly PathKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: PathKey[]
+    ): this;
+    except<const TKeys extends readonly [TKey, ...TKey[]]>(
+        ...keys: TKeys
+    ): NamedKeys<TKey, TKeys> extends [infer TRemoved]
+        ? Collection<TValue, Exclude<TKey, TRemoved>, TShape>
+        : Collection<TValue, TKey, Removed<TShape>>;
+    except<const TKeys extends readonly TKey[]>(
+        keys: TKeys,
+        ...rest: PathKey[]
+    ): NamedKeys<TKey, TKeys> extends [infer TRemoved]
+        ? Collection<TValue, Exclude<TKey, TRemoved>, TShape>
+        : Collection<TValue, TKey, Removed<TShape>>;
+    except<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        keys:
+            | PathKey
+            | readonly PathKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: PathKey[]
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    except(...keys: unknown[]): unknown {
         const keysToExcept = this.keysArgument(keys);
 
         if (isNull(keysToExcept)) {
@@ -1268,7 +1349,22 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).filter(x => x > 2); -> new Collection([3, 4])
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
-    filter(callback: ((value: TValue, key: TKey) => unknown) | null = null) {
+    filter<TNarrow extends TValue>(
+        callback: (value: TValue, key: TKey) => value is TNarrow,
+    ): Collection<TNarrow, TKey, Removed<TShape>>;
+    filter(
+        callback?: null | undefined,
+    ): Collection<TruthyArray<TValue[]>[number], TKey, Removed<TShape>>;
+    filter(
+        this: Collection<TValue, TKey, "list">,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): this;
+    filter(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    filter(
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
+    ): unknown {
         if (isNull(callback)) {
             return this.sameInstance(handOver(dataFilter(this.items)));
         }
@@ -2464,9 +2560,34 @@ export class Collection<
      * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
      * new Collection(['a', 'b', 'c', 'd']).only([3, 1]); -> new Collection(['b', 'd'])
      */
-    only<T extends PathKey, K extends PropertyKey>(
-        ...keys: PathKey[] | PathKeys[] | Collection<T, K, CollectionShape>[]
-    ) {
+    only(keys: null | undefined, ...rest: PathKey[]): this;
+    only<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        this: Collection<TValue, TKey, "list">,
+        keys:
+            | PathKey
+            | readonly PathKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: PathKey[]
+    ): this;
+    only<const TKeys extends readonly [TKey, ...TKey[]]>(
+        ...keys: TKeys
+    ): NamedKeys<TKey, TKeys> extends [infer TKept]
+        ? Collection<TValue, Extract<TKey, TKept>, TShape>
+        : Collection<TValue, TKey, Removed<TShape>>;
+    only<const TKeys extends readonly TKey[]>(
+        keys: TKeys,
+        ...rest: PathKey[]
+    ): NamedKeys<TKey, TKeys> extends [infer TKept]
+        ? Collection<TValue, Extract<TKey, TKept>, TShape>
+        : Collection<TValue, TKey, Removed<TShape>>;
+    only<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        keys:
+            | PathKey
+            | readonly PathKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: PathKey[]
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    only(...keys: unknown[]): unknown {
         const keysToKeep = this.keysArgument(keys);
 
         if (isNull(keysToKeep)) {
@@ -2493,12 +2614,17 @@ export class Collection<
      * new Collection([{id: 1, details: {age: 30}}]).select(['id', 'details.age']); -> new Collection([{id: 1}])
      * new Collection([[10, 20, 30]]).select([0, 2]); -> new Collection([{0: 10, 2: 30}])
      */
+    select(keys: null | undefined, ...rest: PathKeys[]): this;
+    select<const TPick extends keyof TValue & string>(
+        ...keys: [TPick, ...TPick[]]
+    ): Collection<Pick<TValue, TPick>, TKey, TShape>;
+    select<const TPicks extends readonly (keyof TValue & string)[]>(
+        keys: TPicks,
+    ): Collection<Pick<TValue, TPicks[number]>, TKey, TShape>;
     select(
-        ...keys:
-            | PathKey[]
-            | PathKeys[]
-            | Collection<string, number, CollectionShape>[]
-    ) {
+        ...keys: PathKeys[] | Collection<string, number, CollectionShape>[]
+    ): Collection<Record<string, unknown>, TKey, TShape>;
+    select(...keys: unknown[]): unknown {
         const keysToSelect = this.keysArgument(keys);
 
         if (isNull(keysToSelect)) {
@@ -3217,7 +3343,16 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).skipUntil(3); -> new Collection([3, 4])
      * new Collection({a: 1, b: 2, c: 3}).skipUntil((value) => value >= 2); -> new Collection({b: 2, c: 3})
      */
-    skipUntil(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+    skipUntil(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    skipUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    skipUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
         return this.sameInstance(handOver(dataSkipUntil(this.items, value)));
     }
 
@@ -3233,7 +3368,16 @@ export class Collection<
      * new Collection([1, 1, 2, 1]).skipWhile(1); -> new Collection([2, 1])
      * new Collection({a: 1, b: 2, c: 3}).skipWhile((value) => value < 3); -> new Collection({c: 3})
      */
-    skipWhile(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+    skipWhile(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    skipWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    skipWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
         return this.sameInstance(handOver(dataSkipWhile(this.items, value)));
     }
 
@@ -3934,7 +4078,16 @@ export class Collection<
      * new Collection([1, 2, 3, 4]).takeUntil(3); -> new Collection([1, 2])
      * new Collection({a: 1, b: 2, c: 3}).takeUntil((value, key) => key === 'c'); -> new Collection({a: 1, b: 2})
      */
-    takeUntil(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+    takeUntil(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    takeUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    takeUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
         return this.sameInstance(handOver(dataTakeUntil(this.items, value)));
     }
 
@@ -3950,7 +4103,16 @@ export class Collection<
      * new Collection([1, 1, 2, 2, 3, 3]).takeWhile(1); -> new Collection([1, 1])
      * new Collection({a: 1, b: 2, c: 3}).takeWhile((value) => value < 3); -> new Collection({a: 1, b: 2})
      */
-    takeWhile(value: TValue | ((value: TValue, key: TKey) => unknown)) {
+    takeWhile(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    takeWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    takeWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
         return this.sameInstance(handOver(dataTakeWhile(this.items, value)));
     }
 
@@ -4032,9 +4194,18 @@ export class Collection<
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).unique(item => item.id); -> new Collection([{id: 1}, {id: 2}])
      */
     unique(
-        key: ((item: TValue, key: TKey) => unknown) | PathKey = null,
+        this: Collection<TValue, TKey, "list">,
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+        strict?: boolean,
+    ): this;
+    unique(
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+        strict?: boolean,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    unique(
+        key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
         strict: boolean = false,
-    ) {
+    ): unknown {
         if (isNull(key) && strict === false) {
             // For non-strict mode without a key, we need to do loose comparison
             // We can't use Set because it uses SameValueZero (strict comparison)
@@ -5269,20 +5440,20 @@ export class Collection<
      * @param key - The key or callback to determine the partitioning, or null to partition the items directly
      * @param operator - The operator to use for comparison, if key is not a callback or null
      * @param value - The value to compare against, if key is not a callback or null
-     * @returns A TupleCollection with two collections: the first with items that pass the truth test, the second with items that fail
+     * @returns A list of two collections, also read by index: the items that pass the truth test, then the rest
      */
     partition(
-        key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
-    ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>>;
+    ): PartitionResult<Collection<TValue, TKey, Removed<TShape>>>;
     partition(
         ...args: [
-            key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+            key: ((value: TValue, key: TKey) => unknown) | PathKey,
             operator?: unknown,
             value?: unknown,
         ]
-    ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>> {
+    ): unknown {
         const callback: (value: TValue, key: TKey) => unknown =
             args.length === 1
                 ? this.valueRetriever(
@@ -5296,14 +5467,18 @@ export class Collection<
             callback(item as TValue, key as TKey),
         );
 
-        const halves = this.sameInstance(
+        const halves = this.newInstance<
+            Collection<TValue, TKey, Removed<TShape>>,
+            number,
+            "list"
+        >(
             handOver([
-                this.sameInstance(
+                this.newInstance<TValue, TKey, Removed<TShape>>(
                     handOver(passed as DataItems<TValue, TKey>),
-                ) as unknown as Collection<TValue, TKey>,
-                this.sameInstance(
+                ),
+                this.newInstance<TValue, TKey, Removed<TShape>>(
                     handOver(failed as DataItems<TValue, TKey>),
-                ) as unknown as Collection<TValue, TKey>,
+                ),
             ]),
         );
 
@@ -5314,13 +5489,7 @@ export class Collection<
             });
         }
 
-        return halves as unknown as Collection<
-            Collection<TValue, TKey>,
-            number
-        > as TupleCollection<
-            Collection<TValue, TKey>,
-            Collection<TValue, TKey>
-        >;
+        return halves;
     }
 
     /**
@@ -5450,17 +5619,23 @@ export class Collection<
      * @returns A new collection with the items that match the given key value pair
      */
     where(
-        key: ((value: TValue, index: TKey) => unknown) | PathKey,
+        this: Collection<TValue, TKey, "list">,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
     ): this;
     where(
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
+        operator?: unknown,
+        value?: unknown,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    where(
         ...args: [
-            key: ((value: TValue, index: TKey) => unknown) | PathKey,
+            key: ((value: TValue, key: TKey) => unknown) | PathKey,
             operator?: unknown,
             value?: unknown,
         ]
-    ): this {
+    ): unknown {
         return this.filter(this.operatorForWhereArgs(args));
     }
 
@@ -5470,7 +5645,9 @@ export class Collection<
      * @param key - The key to check for null values, or null to check the items directly
      * @returns A new collection with the items where the value for the given key is null
      */
-    whereNull(key: PathKey = null) {
+    whereNull(this: Collection<TValue, TKey, "list">, key?: PathKey): this;
+    whereNull(key?: PathKey): Collection<TValue, TKey, Removed<TShape>>;
+    whereNull(key: PathKey = null): unknown {
         return this.whereStrict(key, null);
     }
 
@@ -5480,7 +5657,12 @@ export class Collection<
      * @param key - The key to check for non-null values, or null to check the items directly
      * @returns A new collection with the items where the value for the given key is not null
      */
-    whereNotNull(key: PathKey = null) {
+    whereNotNull(
+        key?: null | undefined,
+    ): Collection<NonNullableArray<TValue[]>[number], TKey, Removed<TShape>>;
+    whereNotNull(this: Collection<TValue, TKey, "list">, key: PathKey): this;
+    whereNotNull(key: PathKey): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotNull(key: PathKey = null): unknown {
         return this.where(key, "!==", null);
     }
 
@@ -5491,7 +5673,16 @@ export class Collection<
      * @param value - The value to compare against
      * @returns A new collection with the items that match the given key value pair using strict comparison
      */
-    whereStrict(key: PathKey, value: unknown) {
+    whereStrict(
+        this: Collection<TValue, TKey, "list">,
+        key: PathKey,
+        value: unknown,
+    ): this;
+    whereStrict(
+        key: PathKey,
+        value: unknown,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereStrict(key: PathKey, value: unknown): unknown {
         return this.where(key, "===", value);
     }
 
@@ -5504,10 +5695,17 @@ export class Collection<
      * @returns A new collection with the items that match any of the given values for the specified key
      */
     whereIn<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
         values: TOperand,
-        strict: boolean = false,
-    ) {
+        strict?: boolean,
+    ): this;
+    whereIn<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+        strict?: boolean,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereIn(key: PathKey, values: Operand, strict: boolean = false): unknown {
         const isIn = inArrayTest(
             Object.values(this.getRawItems(values)),
             strict,
@@ -5523,7 +5721,16 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that match any of the given values for the specified key using strict comparison
      */
-    whereInStrict<TOperand extends Operand>(key: PathKey, values: TOperand) {
+    whereInStrict<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        key: PathKey,
+        values: TOperand,
+    ): this;
+    whereInStrict<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereInStrict(key: PathKey, values: Operand): unknown {
         return this.whereIn(key, values, true);
     }
 
@@ -5535,9 +5742,15 @@ export class Collection<
      * @returns A new collection with the items that have the value for the specified key between the given values
      */
     whereBetween<TOperand extends NonNullable<Operand>>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
         values: TOperand,
-    ) {
+    ): this;
+    whereBetween<TOperand extends NonNullable<Operand>>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereBetween(key: PathKey, values: NonNullable<Operand>): unknown {
         const valueSet = this.getRawItems(values);
         const valuesArray = Object.values(valueSet);
 
@@ -5556,9 +5769,15 @@ export class Collection<
      * @returns A new collection with the items that have the value for the specified key not between the given values
      */
     whereNotBetween<TOperand extends NonNullable<Operand>>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
         values: TOperand,
-    ) {
+    ): this;
+    whereNotBetween<TOperand extends NonNullable<Operand>>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotBetween(key: PathKey, values: NonNullable<Operand>): unknown {
         return this.filter((item: TValue) => {
             const retrieved = itemValue(item, key);
             const valueSet = this.getRawItems(values);
@@ -5581,10 +5800,21 @@ export class Collection<
      * @returns A new collection with the items that do not match any of the given values for the specified key
      */
     whereNotIn<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
         values: TOperand,
+        strict?: boolean,
+    ): this;
+    whereNotIn<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+        strict?: boolean,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotIn(
+        key: PathKey,
+        values: Operand,
         strict: boolean = false,
-    ) {
+    ): unknown {
         const isIn = inArrayTest(
             Object.values(this.getRawItems(values)),
             strict,
@@ -5600,7 +5830,16 @@ export class Collection<
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that do not match any of the given values for the specified key using strict comparison
      */
-    whereNotInStrict<TOperand extends Operand>(key: PathKey, values: TOperand) {
+    whereNotInStrict<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        key: PathKey,
+        values: TOperand,
+    ): this;
+    whereNotInStrict<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotInStrict(key: PathKey, values: Operand): unknown {
         return this.whereNotIn(key, values, true);
     }
 
@@ -5610,12 +5849,20 @@ export class Collection<
      * @param type - The expected type(s) for the items, can be a constructor, array of constructors, or object with constructors as values
      * @returns A new collection with the items that match the given type(s)
      */
-    whereInstanceOf<TWhereInstanceOf>(
+    whereInstanceOf<
+        TType extends
+            | AbstractConstructor
+            | readonly AbstractConstructor[]
+            | Readonly<Record<PropertyKey, AbstractConstructor>>,
+    >(
+        type: TType,
+    ): Collection<InstancesOf<TValue, TType>, TKey, Removed<TShape>>;
+    whereInstanceOf(
         type:
-            | (new (...args: unknown[]) => TWhereInstanceOf)
-            | Array<new (...args: never[]) => unknown>
+            | (new (...args: never[]) => unknown)
+            | (new (...args: never[]) => unknown)[]
             | Record<PropertyKey, new (...args: never[]) => unknown>,
-    ) {
+    ): unknown {
         return this.filter((item: TValue) => {
             if (isArray(type) || isObject(type)) {
                 const types = isArray(type) ? type : Object.values(type);
@@ -5806,11 +6053,22 @@ export class Collection<
      * @returns A new collection with the items that do not pass the truth test
      */
     reject(
-        callback:
-            | ((value: TValue, key: TKey) => unknown)
-            | boolean
-            | TValue = true,
-    ) {
+        this: Collection<TValue, TKey, "list">,
+        callback: (value: TValue, key: TKey) => unknown,
+    ): this;
+    reject(
+        callback: (value: TValue, key: TKey) => unknown,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    reject(this: Collection<TValue, TKey, "list">, value?: TValue | null): this;
+    reject(value?: TValue | null): Collection<TValue, TKey, Removed<TShape>>;
+    reject<TRejectValue>(
+        this: Collection<TValue, TKey, "list">,
+        value: NeedleOrCallback<TRejectValue, TValue, TKey>,
+    ): this;
+    reject<TRejectValue>(
+        value: NeedleOrCallback<TRejectValue, TValue, TKey>,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    reject(callback: unknown = true): unknown {
         const useAsCallable = this.useAsCallable(callback);
 
         return this.filter((value: TValue, key: TKey) => {
@@ -5846,8 +6104,15 @@ export class Collection<
      * @returns A new collection with only unique items, determined using strict comparison
      */
     uniqueStrict(
+        this: Collection<TValue, TKey, "list">,
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): this;
+    uniqueStrict(
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    uniqueStrict(
         key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
-    ) {
+    ): unknown {
         return this.unique(key, true);
     }
 
@@ -6096,7 +6361,9 @@ export class Collection<
      * @returns The items that pass the filter, or this collection itself when the filter equals null
      * @throws TypeError for a filter that is neither callable nor equal to null, as filter()'s `?callable` rejects it
      */
-    protected filterUnlessNull(args: readonly unknown[]): this {
+    protected filterUnlessNull(
+        args: readonly unknown[],
+    ): Collection<TValue, TKey, CollectionShape> {
         const filter =
             args.length > 1 ? this.operatorForWhereArgs(args) : args[0];
 

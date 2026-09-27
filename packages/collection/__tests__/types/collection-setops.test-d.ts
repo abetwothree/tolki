@@ -260,8 +260,9 @@ describe("collection set operation type tests", () => {
 
     describe("only", () => {
         it("takes a collection of key names", () => {
+            // A collection's key names are not literal, so the keys it keeps are unknown and the result partial.
             expectTypeOf(record.only(collect(["a", "b"]))).toEqualTypeOf<
-                Collection<number, "a" | "b", "keyed">
+                Collection<number, "a" | "b", "partial">
             >();
         });
 
@@ -273,8 +274,9 @@ describe("collection set operation type tests", () => {
 
     describe("except", () => {
         it("takes a collection of key names", () => {
+            // A collection's key names are not literal, so the keys they remove are unknown and the result partial.
             expectTypeOf(record.except(collect(["c"]))).toEqualTypeOf<
-                Collection<number, "a" | "b", "keyed">
+                Collection<number, "a" | "b", "partial">
             >();
         });
 
