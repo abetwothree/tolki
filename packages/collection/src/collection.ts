@@ -169,6 +169,16 @@ type ItemsCollection<TItems> = Collection<
     TItems extends readonly unknown[] ? "list" : "keyed"
 >;
 
+/** What unwrap() hands back for a value: a collection's items, and anything else unchanged. */
+type Unwrapped<TValue> =
+    TValue extends Collection<
+        infer TItemValue,
+        infer TItemKey,
+        infer TItemShape
+    >
+        ? CollectionItems<TItemValue, TItemKey, TItemShape>
+        : TValue;
+
 /** Anything PHP's getArrayableItems() accepts as a second collection. */
 type Operand = object | null | undefined;
 
@@ -329,7 +339,6 @@ export interface TupleCollection<T1, T2> extends ArrayCollection<
     all(): [T1, T2];
     0: T1;
     1: T2;
-    [Symbol.iterator](): IterableIterator<T1 | T2>;
 }
 
 /**
@@ -404,7 +413,7 @@ export class Collection<
      *
      * @returns The iterator getIterator() returns, over the collection's values
      */
-    [Symbol.iterator](): Iterator<TValue> {
+    [Symbol.iterator](): ArrayIterator<TValue> {
         return this.getIterator();
     }
 
@@ -431,7 +440,7 @@ export class Collection<
         to: number,
         step: number = 1,
         ...args: unknown[]
-    ): Collection<number, number> {
+    ): Collection<number, number, "list"> {
         const size = resolveRangeSize(from, to, step);
         const stride = Math.abs(step);
         const descending = to < from;
@@ -3896,7 +3905,7 @@ export class Collection<
      * iteratorObj.next(); -> {value: 2, done: false}
      * iteratorObj.next(); -> {value: undefined, done: true}
      */
-    getIterator() {
+    getIterator(): ArrayIterator<TValue> {
         // PHP's ArrayIterator holds a copy of the items, so an item pushed mid-loop is never visited.
         return Object.values(this.items)[Symbol.iterator]();
     }
@@ -3929,6 +3938,9 @@ export class Collection<
      * c + ''; -> '[1,2,3]'
      * `${c}`; -> '[1,2,3]'
      */
+    [Symbol.toPrimitive](hint: "number"): number;
+    [Symbol.toPrimitive](hint: "string" | "default"): string;
+    [Symbol.toPrimitive](hint: string): number | string;
     [Symbol.toPrimitive](hint: string): number | string {
         if (hint === "number") {
             return this.count();
@@ -4022,8 +4034,8 @@ export class Collection<
      * class Users extends Collection {}
      * Users.make([1, 2]).toBase(); -> new Collection([1, 2])
      */
-    toBase() {
-        return new Collection<TValue, TKey>(this);
+    toBase(): Collection<TValue, TKey, TShape> {
+        return new Collection<TValue, TKey, TShape>(this);
     }
 
     /**
@@ -4250,15 +4262,40 @@ export class Collection<
      * Collection.wrap(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.wrap(123); -> new Collection([123])
      * Collection.wrap(null); -> new Collection([])
+     *
+     * @remarks A class instance is typed by its fields, like collect() types one, though wrap() keeps the instance
+     * whole in a one-item list: TypeScript cannot tell it from a plain object, whose entries wrap() takes.
      */
-    static wrap<TWrapValue, TWrapKey extends PropertyKey = PropertyKey>(
-        value:
-            | TWrapValue
-            | DataItems<TWrapValue, TWrapKey>
-            | Collection<TWrapValue, TWrapKey, CollectionShape>,
+    static wrap<
+        TWrapValue,
+        TWrapKey extends PropertyKey,
+        TWrapShape extends CollectionShape,
+    >(
+        value: Collection<TWrapValue, TWrapKey, TWrapShape>,
         ...args: unknown[]
-    ) {
-        const Static = this as CollectionClass<TWrapValue, TWrapKey>;
+    ): Collection<TWrapValue, TWrapKey, TWrapShape>;
+    static wrap<TWrapValue>(
+        value: readonly TWrapValue[],
+        ...args: unknown[]
+    ): Collection<TWrapValue, number, "list">;
+    static wrap<TWrapValue, TMapKey>(
+        value: ReadonlyMap<TMapKey, TWrapValue>,
+        ...args: unknown[]
+    ): Collection<TWrapValue, MapArrayKey<TMapKey>, "keyed">;
+    static wrap(
+        value: null | undefined,
+        ...args: unknown[]
+    ): Collection<never, number, "list">;
+    static wrap<TItems extends object>(
+        value: TItems,
+        ...args: unknown[]
+    ): ItemsCollection<TItems>;
+    static wrap<TWrapValue>(
+        value: TWrapValue | readonly TWrapValue[] | null | undefined,
+        ...args: unknown[]
+    ): Collection<TWrapValue, number, "list">;
+    static wrap(value: unknown, ...args: unknown[]): unknown {
+        const Static = this as CollectionClass<unknown, PropertyKey>;
 
         // Arr::wrap leaves an array as it is and makes null empty; a plain object and a Map stand in for arrays.
         if (
@@ -4286,11 +4323,15 @@ export class Collection<
      * Collection.unwrap([1, 2, 3]); -> [1, 2, 3]
      * Collection.unwrap({a: 1, b: 2}); -> {a: 1, b: 2}
      */
-    static unwrap<TUnwrapValue, TUnwrapKey extends PropertyKey = PropertyKey>(
-        value:
-            | Collection<TUnwrapValue, TUnwrapKey, CollectionShape>
-            | DataItems<TUnwrapValue, TUnwrapKey>,
-    ) {
+    static unwrap<
+        TUnwrapValue,
+        TUnwrapKey extends PropertyKey,
+        TUnwrapShape extends CollectionShape,
+    >(
+        value: Collection<TUnwrapValue, TUnwrapKey, TUnwrapShape>,
+    ): CollectionItems<TUnwrapValue, TUnwrapKey, TUnwrapShape>;
+    static unwrap<TUnwrapValue>(value: TUnwrapValue): Unwrapped<TUnwrapValue>;
+    static unwrap(value: unknown): unknown {
         if (value instanceof Collection) {
             return value.all();
         }
@@ -4307,9 +4348,12 @@ export class Collection<
      * @example
      *
      * Collection.empty(); -> new Collection([])
+     * Collection.empty<string>(); -> new Collection([]), typed to hold strings
      */
-    static empty(...args: unknown[]) {
-        return new (this as unknown as CollectionClass<never, never>)(
+    static empty<TEmptyValue = never>(
+        ...args: unknown[]
+    ): Collection<TEmptyValue, number, "list"> {
+        return new (this as CollectionClass<TEmptyValue, number, "list">)(
             handOver([]),
             ...args,
         );
@@ -4329,11 +4373,21 @@ export class Collection<
      * Collection.times(3); -> new Collection([1, 2, 3])
      * Collection.times(0); -> new Collection()
      */
+    static times(
+        count: number,
+        callback?: null | undefined,
+        ...args: unknown[]
+    ): Collection<number, number, "list">;
+    static times<TTimesValue>(
+        count: number,
+        callback: (count: number) => TTimesValue,
+        ...args: unknown[]
+    ): Collection<TTimesValue, number, "list">;
     static times<TTimesValue>(
         count: number,
         callback: ((count: number) => TTimesValue) | null = null,
         ...args: unknown[]
-    ) {
+    ): unknown {
         if (count < 1) {
             return new (this as CollectionClass<unknown, PropertyKey>)(
                 handOver([]),
@@ -4362,17 +4416,22 @@ export class Collection<
      * Collection.fromJson('{"a":1,"b":2}'); -> new Collection({a: 1, b: 2})
      * Collection.fromJson('[1,2,3]'); -> new Collection([1, 2, 3])
      * Collection.fromJson('{bad'); -> new Collection([])
+     * Collection.fromJson<number>('[1,2]'); -> new Collection([1, 2]), typed to hold numbers
      */
-    static fromJson(
+    static fromJson<
+        TJsonValue = unknown,
+        TJsonKey extends PropertyKey = PropertyKey,
+    >(
         json: string,
         _depth: number = 512,
         _flags: number = 0,
         ...args: unknown[]
-    ) {
-        return new (this as CollectionClass<unknown, PropertyKey>)(
-            decodeJson(json),
-            ...args,
-        );
+    ): Collection<TJsonValue, TJsonKey, CollectionShape> {
+        return new (this as CollectionClass<
+            TJsonValue,
+            TJsonKey,
+            CollectionShape
+        >)(decodeJson(json), ...args);
     }
 
     /**
@@ -4644,7 +4703,7 @@ export class Collection<
      * @param type - A class, a type name as PHP's get_debug_type() gives it ("int", "float", "string", "bool", "array",
      * "null" or a class's name) or as JavaScript's typeof does ("number", "boolean", "object", "undefined", …),
      * or a list or record of them
-     * @returns The current collection instance if all items are of the expected type
+     * @returns The current collection instance, typed to hold the expected type, when every item is of it
      * @throws UnexpectedValueException naming the first item that is none of the types, and its position
      *
      * @example
@@ -4660,18 +4719,15 @@ export class Collection<
      * new Collection([1.5, 2]).ensure('number'); -> collection is valid
      * new Collection([{}, new Date()]).ensure('object'); -> collection is valid
      */
-    ensure<TEnsureOfType>(
+    ensure<const TSpec extends EnsureSpec>(
+        type: TSpec | readonly TSpec[] | Readonly<Record<string, TSpec>>,
+    ): Collection<EnsuredType<TSpec>, TKey, TShape>;
+    ensure(
         type:
-            | TEnsureOfType
-            | Array<TEnsureOfType>
-            | Record<PropertyKey, TEnsureOfType>
-            | "string"
-            | "number"
-            | "symbol"
-            | "boolean"
-            | "undefined"
-            | "null",
-    ) {
+            | EnsureSpec
+            | readonly EnsureSpec[]
+            | Readonly<Record<string, EnsureSpec>>,
+    ): unknown {
         const allowedTypes: unknown[] = isArray(type)
             ? type
             : isObject(type)
@@ -5489,8 +5545,8 @@ export class Collection<
      *
      * @returns A new base collection holding a copy of the current items
      */
-    collect() {
-        return new Collection<TValue, TKey>(this);
+    collect(): Collection<TValue, TKey, TShape> {
+        return new Collection<TValue, TKey, TShape>(this);
     }
 
     /**
@@ -6641,6 +6697,43 @@ type EnumDefinition<TValue> = {
     // A method signature, so a definition typed for its own case values still takes the collection's values.
     from(value: TValue): unknown;
 };
+
+/** The values each of ensure()'s type names lets through: JavaScript's typeof names and get_debug_type()'s. */
+interface EnsureTypeMap {
+    string: string;
+    number: number;
+    int: number;
+    float: number;
+    boolean: boolean;
+    bool: boolean;
+    symbol: symbol;
+    bigint: bigint;
+    undefined: undefined;
+    // undefined stands in for PHP's null.
+    null: null | undefined;
+    object: object;
+    // A plain object stands in for a PHP array.
+    array: unknown[] | Record<PropertyKey, unknown>;
+    function: (...args: never[]) => unknown;
+}
+
+/** A type ensure() checks for: a type name, a class's name, or the class itself, which takes its subclasses too. */
+type EnsureSpec =
+    | keyof EnsureTypeMap
+    | (string & {})
+    | (abstract new (...args: never[]) => unknown);
+
+/**
+ * The values ensure() lets through for a type: a name's values, a class's instances, and objects for any other name,
+ * which only a class's name can match. A string that may be one of the names narrows nothing.
+ */
+type EnsuredType<TSpec> = TSpec extends keyof EnsureTypeMap
+    ? EnsureTypeMap[TSpec]
+    : TSpec extends abstract new (...args: never[]) => infer TInstance
+      ? TInstance
+      : [Extract<keyof EnsureTypeMap, TSpec>] extends [never]
+        ? object
+        : unknown;
 
 /** Items a builder created for a new instance; the constructor adopts them instead of copying. */
 const owned = new WeakSet<object>();

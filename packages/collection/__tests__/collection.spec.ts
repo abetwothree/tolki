@@ -787,6 +787,11 @@ describe("Collection", () => {
                 ),
             );
         });
+
+        it("builds the list its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.range(1, 3), "list");
+        });
     });
 
     describe("all", () => {
@@ -14963,6 +14968,12 @@ describe("Collection", () => {
                 [1, 2, 3],
             ]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).toBase(), "list");
+            expectShape(outOfOrderKeys().toBase(), "keyed");
+        });
     });
 
     describe("offsetExists", () => {
@@ -15320,6 +15331,12 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-false"
             expect(Collection.wrap(false).all()).toEqual([false]);
         });
+
+        it("takes a list's shape or a record's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.wrap([1, 2]), "list");
+            expectShape(Collection.wrap({ a: 1 }), "keyed");
+        });
     });
 
     describe("unwrap", () => {
@@ -15372,6 +15389,11 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-empty-extra-argument-is-ignored"
             expect(collection.all()).toEqual([]);
+        });
+
+        it("builds the list its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.empty(), "list");
         });
     });
 
@@ -15427,6 +15449,14 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-fractional-count"
             expect(Collection.times(2.7).all()).toEqual([1, 2]);
         });
+
+        it("builds the list its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                Collection.times(2, (count) => count * 2),
+                "list",
+            );
+        });
     });
 
     describe("fromJson", () => {
@@ -15469,6 +15499,12 @@ describe("Collection", () => {
                 expect(collection.keys().all()).toEqual([2, 1]);
             },
         );
+
+        it("builds a list or a record, the shapes its type leaves open", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.fromJson("[1, 2]"), "list");
+            expectShape(Collection.fromJson('{"a": 1}'), "keyed");
+        });
     });
 
     describe("avg", () => {
@@ -15731,6 +15767,18 @@ describe("Collection", () => {
 
                 // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-dump-returns-same-instance"
                 expect(collection.dump()).toBe(collection);
+            } finally {
+                log.mockRestore();
+            }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            try {
+                // JS-only: the type declares the shape, which the backing all() hands out must match
+                expectShape(collect([1, 2]).dump(), "list");
+                expectShape(outOfOrderKeys().dump(), "keyed");
             } finally {
                 log.mockRestore();
             }
@@ -16568,6 +16616,12 @@ describe("Collection", () => {
                     "Collection should only include [string] items, but 'bigint' found at position 0.",
                 ),
             );
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).ensure("int"), "list");
+            expectShape(outOfOrderKeys().ensure("string"), "keyed");
         });
     });
 
@@ -19299,6 +19353,12 @@ describe("Collection", () => {
             expect(result.constructor).toBe(Collection);
             expect(result.all()).toEqual([1]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).collect(), "list");
+            expectShape(outOfOrderKeys().collect(), "keyed");
+        });
     });
 
     describe("toArray", () => {
@@ -19869,6 +19929,12 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-leaves-toJson"
             expect(collection.toJson()).toBe('["<b>"]');
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).escapeWhenCastingToString(), "list");
+            expectShape(outOfOrderKeys().escapeWhenCastingToString(), "keyed");
         });
     });
 

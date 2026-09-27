@@ -1,5 +1,6 @@
 import type * as Exported from "@tolki/collection";
-import { collect, Collection } from "@tolki/collection";
+import { collect, Collection, type CollectionShape } from "@tolki/collection";
+import * as Data from "@tolki/data";
 import type { Arrayable, MapArrayKey } from "@tolki/types";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -33,6 +34,14 @@ import {
     unionItems,
     User,
 } from "./fixtures";
+
+declare const partial: Collection<number, "a", "partial">;
+declare const unknowns: Collection<unknown, number, "list">;
+declare const unknownRecord: Collection<unknown, "a" | "b", "keyed">;
+declare const typeName: string;
+declare const oneOrMany: number | number[];
+declare const oneOrManyOrNone: string | string[] | null;
+declare const listOrCollection: number[] | Collection<number, number, "list">;
 
 describe("collection foundation type tests", () => {
     describe("collect", () => {
@@ -220,6 +229,27 @@ describe("collection foundation type tests", () => {
                 Collection<string | (() => number), "name" | "greet", "keyed">
             >();
         });
+
+        it("holds the items dataFrom answers for the same list or record", () => {
+            const list = collect(numberList);
+            const record = collect(abc);
+
+            expectTypeOf<ItemsOf<typeof list>>().toEqualTypeOf(
+                Data.dataFrom(numberList),
+            );
+            expectTypeOf<ItemsOf<typeof record>>().toEqualTypeOf(
+                Data.dataFrom(abc),
+            );
+        });
+
+        it("holds a Map's items under the keys PHP stores", () => {
+            const map = collect(mapBuilt);
+
+            // Not pinned to dataFrom, which types a Map as Record<string, unknown> and so loses its keys and values.
+            expectTypeOf<ItemsOf<typeof map>>().toEqualTypeOf<
+                Record<number, string>
+            >();
+        });
     });
 
     describe("make", () => {
@@ -381,6 +411,586 @@ describe("collection foundation type tests", () => {
             expectTypeOf(new Forwarding(new ArrayableNumbers())).toExtend<
                 Collection<number, number>
             >();
+        });
+    });
+
+    describe("wrap", () => {
+        it("wraps a scalar in a list of its type", () => {
+            expectTypeOf(Collection.wrap(1)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap("foo")).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(false)).toEqualTypeOf<
+                Collection<boolean, number, "list">
+            >();
+        });
+
+        it("takes a list's items", () => {
+            expectTypeOf(Collection.wrap(numberList)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(readonlyNumbers)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(maybeNumbers)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("lists the values of a value that is one item or a list of them", () => {
+            expectTypeOf(Collection.wrap(oneOrMany)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(oneOrManyOrNone)).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+        });
+
+        it("keys a record by its literal keys", () => {
+            expectTypeOf(Collection.wrap({ a: 1 })).toEqualTypeOf<
+                Collection<number, "a", "keyed">
+            >();
+            expectTypeOf(Collection.wrap(settings)).toEqualTypeOf<
+                Collection<number, "a" | "b", "keyed">
+            >();
+        });
+
+        it("keys a Map by the keys PHP stores", () => {
+            expectTypeOf(Collection.wrap(mapBuilt)).toEqualTypeOf<
+                Collection<string, number, "keyed">
+            >();
+        });
+
+        it("keeps another collection's types", () => {
+            expectTypeOf(Collection.wrap(listCollection)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(numberKeyedCollection)).toEqualTypeOf<
+                Collection<string, number, "keyed">
+            >();
+            expectTypeOf(Collection.wrap(generic)).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(Collection.wrap(partial)).toEqualTypeOf<
+                Collection<number, "a", "partial">
+            >();
+        });
+
+        it("types a subclass instance by the collection it extends", () => {
+            expectTypeOf(Collection.wrap(new Tagged([1]))).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("builds an empty list from null or undefined", () => {
+            expectTypeOf(Collection.wrap(null)).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+            expectTypeOf(Collection.wrap(undefined)).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+        });
+
+        it("takes a value that may be a list or a record", () => {
+            expectTypeOf(Collection.wrap(listOrRecord)).toEqualTypeOf<
+                Collection<number, number | "a" | "b", "list" | "keyed">
+            >();
+        });
+
+        it("types a class instance as the record of its fields, though the runtime wraps it as one item", () => {
+            // TypeScript cannot tell a class instance from the plain object wrap() takes as a record.
+            expectTypeOf(Collection.wrap(new Point())).toEqualTypeOf<
+                Collection<number, "x" | "y", "keyed">
+            >();
+        });
+
+        it("takes the arguments a subclass's constructor adds, and types the base collection", () => {
+            expectTypeOf(Tagged.wrap([1], "tag")).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+    });
+
+    describe("unwrap", () => {
+        it("answers a collection's items in its shape", () => {
+            expectTypeOf(Collection.unwrap(listCollection)).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(Collection.unwrap(collect(abc))).toEqualTypeOf<
+                Record<"a" | "b" | "c", number>
+            >();
+            expectTypeOf(Collection.unwrap(collect(mapBuilt))).toEqualTypeOf<
+                Record<number, string>
+            >();
+            expectTypeOf(Collection.unwrap(generic)).toEqualTypeOf<
+                Record<string | number, number>
+            >();
+            expectTypeOf(Collection.unwrap(partial)).toEqualTypeOf<
+                Partial<Record<"a", number>>
+            >();
+        });
+
+        it("answers a subclass's items by the collection it extends", () => {
+            expectTypeOf(Collection.unwrap(new Tagged([1]))).toEqualTypeOf<
+                number[]
+            >();
+        });
+
+        it("answers the items of a value that is a list or a collection", () => {
+            expectTypeOf(Collection.unwrap(listOrCollection)).toEqualTypeOf<
+                number[]
+            >();
+        });
+
+        it("hands back anything else as it is", () => {
+            expectTypeOf(Collection.unwrap(numberList)).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(Collection.unwrap(abc)).toEqualTypeOf<{
+                a: number;
+                b: number;
+                c: number;
+            }>();
+            expectTypeOf(Collection.unwrap("foo")).toEqualTypeOf<string>();
+        });
+    });
+
+    describe("empty", () => {
+        it("builds an empty list", () => {
+            expectTypeOf(Collection.empty()).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+        });
+
+        it("takes the value type the list is to hold", () => {
+            expectTypeOf(Collection.empty<string>()).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+        });
+
+        it("takes the arguments a subclass's constructor adds, and types the base collection", () => {
+            expectTypeOf(Tagged.empty("tag")).toEqualTypeOf<
+                Collection<never, number, "list">
+            >();
+        });
+
+        it("takes no key type, since an empty collection is a list", () => {
+            // @ts-expect-error - a list's keys are always numbers
+            Collection.empty<string, "a">();
+        });
+    });
+
+    describe("times", () => {
+        it("lists the counts when no callback is given", () => {
+            expectTypeOf(Collection.times(3)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.times(3, null)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("lists what the callback answers", () => {
+            expectTypeOf(Collection.times(3, String)).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+        });
+
+        it("hands the callback the count", () => {
+            Collection.times(2, (count) => {
+                expectTypeOf(count).toEqualTypeOf<number>();
+
+                return count;
+            });
+        });
+
+        it("takes the arguments a subclass's constructor adds, and types the base collection", () => {
+            expectTypeOf(
+                Tagged.times(2, (count) => count * 2, "tag"),
+            ).toEqualTypeOf<Collection<number, number, "list">>();
+        });
+
+        it("rejects a callback that is not a function", () => {
+            // @ts-expect-error - the port calls the callback itself; a function's name is not callable in JavaScript
+            Collection.times(3, "strtoupper");
+        });
+    });
+
+    describe("range", () => {
+        it("lists the numbers from one end to the other", () => {
+            expectTypeOf(Collection.range(1, 5)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(Collection.range(10, 1, 3)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("takes the arguments a subclass's constructor adds, and types the base collection", () => {
+            expectTypeOf(Tagged.range(1, 3, 1, "tag")).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("rejects bounds that are not numbers", () => {
+            // @ts-expect-error - PHP's PHPDoc takes int bounds, and a letter range is not ported
+            Collection.range("a", "e");
+        });
+    });
+
+    describe("fromJson", () => {
+        it("types the decoded items as unknown, in either shape", () => {
+            expectTypeOf(Collection.fromJson("[1]")).toEqualTypeOf<
+                Collection<unknown, PropertyKey, CollectionShape>
+            >();
+        });
+
+        it("takes the value and key types the caller knows the JSON holds", () => {
+            expectTypeOf(
+                Collection.fromJson<{ id: number }>("[]"),
+            ).toEqualTypeOf<
+                Collection<{ id: number }, PropertyKey, CollectionShape>
+            >();
+            expectTypeOf(
+                Collection.fromJson<string, "a">('{"a":"b"}'),
+            ).toEqualTypeOf<Collection<string, "a", CollectionShape>>();
+        });
+
+        it("takes json_decode's depth and flags, and the arguments a subclass's constructor adds", () => {
+            expectTypeOf(Tagged.fromJson("[1]", 512, 0, "tag")).toEqualTypeOf<
+                Collection<unknown, PropertyKey, CollectionShape>
+            >();
+        });
+
+        it("rejects anything but JSON text", () => {
+            // @ts-expect-error - json_decode decodes a string
+            Collection.fromJson({ a: 1 });
+        });
+    });
+
+    describe("getIterator", () => {
+        it("iterates the values", () => {
+            expectTypeOf(listCollection.getIterator()).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+            expectTypeOf(collect(abc).getIterator()).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+            expectTypeOf(collect(mapBuilt).getIterator()).toEqualTypeOf<
+                ArrayIterator<string>
+            >();
+            expectTypeOf(generic.getIterator()).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+        });
+    });
+
+    describe("Symbol.iterator", () => {
+        it("hands out getIterator()'s iterator", () => {
+            expectTypeOf(listCollection[Symbol.iterator]()).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+            expectTypeOf(collect(abc)[Symbol.iterator]()).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+            expectTypeOf(collect(mapBuilt)[Symbol.iterator]()).toEqualTypeOf<
+                ArrayIterator<string>
+            >();
+            expectTypeOf(generic[Symbol.iterator]()).toEqualTypeOf<
+                ArrayIterator<number>
+            >();
+        });
+
+        it("types each value for...of reads", () => {
+            for (const value of collect([1])) {
+                expectTypeOf(value).toEqualTypeOf<number>();
+            }
+
+            for (const value of collect(abc)) {
+                expectTypeOf(value).toEqualTypeOf<number>();
+            }
+
+            for (const value of collect(mapBuilt)) {
+                expectTypeOf(value).toEqualTypeOf<string>();
+            }
+
+            for (const value of generic) {
+                expectTypeOf(value).toEqualTypeOf<number>();
+            }
+        });
+
+        it("spreads the values into a list", () => {
+            expectTypeOf([...collect(abc)]).toEqualTypeOf<number[]>();
+        });
+    });
+
+    describe("toBase", () => {
+        it("keeps a list's or a record's types", () => {
+            expectTypeOf(listCollection.toBase()).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(collect(abc).toBase()).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "keyed">
+            >();
+        });
+
+        it("keeps a keyed shape whose keys are numbers", () => {
+            expectTypeOf(collect(mapBuilt).toBase()).toEqualTypeOf<
+                Collection<string, number, "keyed">
+            >();
+        });
+
+        it("keeps a generic or a partial collection's types", () => {
+            expectTypeOf(generic.toBase()).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(partial.toBase()).toEqualTypeOf<
+                Collection<number, "a", "partial">
+            >();
+        });
+
+        it("types a subclass's result as the base collection, which it is", () => {
+            expectTypeOf(new Tagged([1]).toBase()).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+    });
+
+    describe("dump", () => {
+        it("returns the collection it dumped", () => {
+            expectTypeOf(listCollection.dump()).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(collect(abc).dump("one", 2)).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "keyed">
+            >();
+            expectTypeOf(collect(mapBuilt).dump()).toEqualTypeOf<
+                Collection<string, number, "keyed">
+            >();
+            expectTypeOf(generic.dump()).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+        });
+
+        it("keeps a subclass's own type", () => {
+            expectTypeOf(new Tagged([1]).dump()).toEqualTypeOf<Tagged>();
+        });
+    });
+
+    describe("ensure", () => {
+        it("narrows the values to the type a JavaScript type name stands for", () => {
+            expectTypeOf(unknowns.ensure("number")).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("string")).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("boolean")).toEqualTypeOf<
+                Collection<boolean, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("symbol")).toEqualTypeOf<
+                Collection<symbol, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("bigint")).toEqualTypeOf<
+                Collection<bigint, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("undefined")).toEqualTypeOf<
+                Collection<undefined, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("object")).toEqualTypeOf<
+                Collection<object, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("function")).toEqualTypeOf<
+                Collection<(...args: never[]) => unknown, number, "list">
+            >();
+        });
+
+        it("narrows the values to the type a PHP type name stands for", () => {
+            // CollectionTest passes get_debug_type()'s names, which Laravel's PHPDoc lists and the port reads.
+            expectTypeOf(unknowns.ensure("int")).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("float")).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure("bool")).toEqualTypeOf<
+                Collection<boolean, number, "list">
+            >();
+        });
+
+        it("reads a plain object as an array and undefined as null, as the runtime does", () => {
+            expectTypeOf(unknowns.ensure("array")).toEqualTypeOf<
+                Collection<
+                    unknown[] | Record<PropertyKey, unknown>,
+                    number,
+                    "list"
+                >
+            >();
+            expectTypeOf(unknowns.ensure("null")).toEqualTypeOf<
+                Collection<null | undefined, number, "list">
+            >();
+        });
+
+        it("narrows the values to a class's instances", () => {
+            expectTypeOf(unknowns.ensure(Date)).toEqualTypeOf<
+                Collection<Date, number, "list">
+            >();
+        });
+
+        it("narrows the values to objects for a class named as a string", () => {
+            expectTypeOf(unknowns.ensure("Child")).toEqualTypeOf<
+                Collection<object, number, "list">
+            >();
+        });
+
+        it("narrows nothing for a name only known to be a string", () => {
+            expectTypeOf(unknowns.ensure(typeName)).toEqualTypeOf<
+                Collection<unknown, number, "list">
+            >();
+        });
+
+        it("narrows the values to any of a list's or a record's types", () => {
+            expectTypeOf(unknowns.ensure(["number", "string"])).toEqualTypeOf<
+                Collection<string | number, number, "list">
+            >();
+            expectTypeOf(unknowns.ensure([Date, "null"])).toEqualTypeOf<
+                Collection<Date | null | undefined, number, "list">
+            >();
+            expectTypeOf(
+                unknowns.ensure({ a: "number", b: "string" }),
+            ).toEqualTypeOf<Collection<string | number, number, "list">>();
+        });
+
+        it("keeps a keyed collection's keys and shape", () => {
+            expectTypeOf(unknownRecord.ensure("number")).toEqualTypeOf<
+                Collection<number, "a" | "b", "keyed">
+            >();
+            expectTypeOf(collect(mapBuilt).ensure("string")).toEqualTypeOf<
+                Collection<string, number, "keyed">
+            >();
+            expectTypeOf(generic.ensure("int")).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(partial.ensure("int")).toEqualTypeOf<
+                Collection<number, "a", "partial">
+            >();
+        });
+
+        it("types a subclass's result as the base collection", () => {
+            expectTypeOf(new Tagged([1]).ensure("int")).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+
+        it("rejects what is neither a type name nor a class", () => {
+            // @ts-expect-error - a number names no type
+            unknowns.ensure(42);
+        });
+    });
+
+    describe("collect method", () => {
+        it("keeps a list's or a record's types", () => {
+            expectTypeOf(listCollection.collect()).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(collect(abc).collect()).toEqualTypeOf<
+                Collection<number, "a" | "b" | "c", "keyed">
+            >();
+        });
+
+        it("keeps a keyed shape whose keys are numbers", () => {
+            expectTypeOf(collect(mapBuilt).collect()).toEqualTypeOf<
+                Collection<string, number, "keyed">
+            >();
+        });
+
+        it("keeps a generic or a partial collection's types", () => {
+            expectTypeOf(generic.collect()).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+            expectTypeOf(partial.collect()).toEqualTypeOf<
+                Collection<number, "a", "partial">
+            >();
+        });
+
+        it("types a subclass's result as the base collection, which PHP's collect() returns", () => {
+            expectTypeOf(new Tagged([1]).collect()).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+        });
+    });
+
+    describe("toJSON", () => {
+        it("answers unknown, whatever the items", () => {
+            expectTypeOf(listCollection.toJSON()).toEqualTypeOf<unknown>();
+            expectTypeOf(collect(mapBuilt).toJSON()).toEqualTypeOf<unknown>();
+            expectTypeOf(generic.toJSON()).toEqualTypeOf<unknown>();
+        });
+    });
+
+    describe("Symbol.toPrimitive", () => {
+        it("answers the count for the number hint", () => {
+            expectTypeOf(
+                listCollection[Symbol.toPrimitive]("number"),
+            ).toEqualTypeOf<number>();
+        });
+
+        it("answers the JSON text for the string and default hints", () => {
+            expectTypeOf(
+                listCollection[Symbol.toPrimitive]("string"),
+            ).toEqualTypeOf<string>();
+            expectTypeOf(
+                collect(mapBuilt)[Symbol.toPrimitive]("default"),
+            ).toEqualTypeOf<string>();
+        });
+
+        it("answers either for a hint only known to be a string", () => {
+            expectTypeOf(generic[Symbol.toPrimitive](typeName)).toEqualTypeOf<
+                number | string
+            >();
+        });
+    });
+
+    describe("escapeWhenCastingToString", () => {
+        it("returns the collection it configured", () => {
+            expectTypeOf(
+                listCollection.escapeWhenCastingToString(),
+            ).toEqualTypeOf<Collection<number, number, "list">>();
+            expectTypeOf(
+                collect(abc).escapeWhenCastingToString(false),
+            ).toEqualTypeOf<Collection<number, "a" | "b" | "c", "keyed">>();
+            expectTypeOf(
+                collect(mapBuilt).escapeWhenCastingToString(),
+            ).toEqualTypeOf<Collection<string, number, "keyed">>();
+            expectTypeOf(generic.escapeWhenCastingToString()).toEqualTypeOf<
+                Collection<number, string | number, "keyed">
+            >();
+        });
+
+        it("keeps a subclass's own type", () => {
+            expectTypeOf(
+                new Tagged([1]).escapeWhenCastingToString(),
+            ).toEqualTypeOf<Tagged>();
+        });
+
+        it("rejects a flag that is not a boolean", () => {
+            // @ts-expect-error - PHP's PHPDoc takes a bool
+            listCollection.escapeWhenCastingToString("yes");
+        });
+    });
+
+    describe("item access", () => {
+        it("types no item as a property of the collection", () => {
+            // @ts-expect-error - items are read with get(), offsetGet() or all(), never as properties
+            void collect({ a: 1 }).a;
+        });
+
+        it("declares no index signature, which with length would make a collection ArrayLike", () => {
+            expectTypeOf<
+                0 extends keyof Collection<number> ? true : false
+            >().toEqualTypeOf<false>();
         });
     });
 
