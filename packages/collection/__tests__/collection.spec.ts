@@ -18422,7 +18422,7 @@ describe("Collection", () => {
         it("throws PHP's TypeError for a value its + cannot add", () => {
             class stdClass {}
 
-            // Items that are no scalar are outside sum()'s types without a callback; PHP throws for them at runtime
+            // Items that are not scalars are outside sum()'s types without a callback; PHP throws for them at runtime
             const sumOf = (items: unknown[]) => () => {
                 const collection = collect(items);
 
