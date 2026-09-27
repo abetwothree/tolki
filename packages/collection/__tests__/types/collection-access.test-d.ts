@@ -416,6 +416,11 @@ describe("collection keyed access and mutation type tests", () => {
                 string | undefined
             >();
         });
+
+        it("rejects an object key, which no PHP array can hold", () => {
+            // @ts-expect-error - PHP cannot read an object offset
+            list.offsetGet({});
+        });
     });
 
     describe("offsetSet", () => {
@@ -631,6 +636,11 @@ describe("collection keyed access and mutation type tests", () => {
                 Collection<number, number, "list">
             >();
         });
+
+        it("rejects a count that is no number", () => {
+            // @ts-expect-error - PHP's PHPDoc takes an int count
+            list.pop("2");
+        });
     });
 
     describe("shift", () => {
@@ -677,6 +687,11 @@ describe("collection keyed access and mutation type tests", () => {
                 number,
                 "list"
             > | null>();
+        });
+
+        it("rejects a count that is no number", () => {
+            // @ts-expect-error - PHP's PHPDoc takes an int count
+            list.shift("2");
         });
     });
 
@@ -749,6 +764,11 @@ describe("collection keyed access and mutation type tests", () => {
                 Collection<number, string | number, "keyed">
             >();
         });
+
+        it("rejects a size that is no number", () => {
+            // @ts-expect-error - PHP's PHPDoc takes an int size
+            list.pad("5", 0);
+        });
     });
 
     describe("transform", () => {
@@ -802,6 +822,11 @@ describe("collection keyed access and mutation type tests", () => {
                     return `${key}`;
                 }),
             ).toEqualTypeOf<Collection<string, string | number, "keyed">>();
+        });
+
+        it("rejects a null callback, which PHP's callable parameter refuses", () => {
+            // @ts-expect-error - PHP's callable parameter refuses null
+            list.transform(null);
         });
     });
 
