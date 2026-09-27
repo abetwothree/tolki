@@ -594,6 +594,27 @@ describe("collection mapping, keying and grouping type tests", () => {
             ).toEqualTypeOf<Collection<boolean, number, "list">>();
         });
 
+        it("hands a null row on as no items, so only its key follows, as Arr::wrap(null) is empty", () => {
+            collect([null]).mapSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<[number]>();
+
+                return args;
+            });
+            // Rows of differing lengths spread in the open form, where each argument may be an item or the key.
+            collect([5, null]).mapSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<number[]>();
+
+                return args;
+            });
+            collect([5, undefined]).mapSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<
+                    [number | undefined, number]
+                >();
+
+                return args;
+            });
+        });
+
         it("keeps a keyed receiver's keys and shape", () => {
             expectTypeOf(
                 collect({ x: [1, "a"] as [number, string] }).mapSpread(
@@ -885,6 +906,20 @@ describe("collection mapping, keying and grouping type tests", () => {
             });
             collect([collect([1, 2])]).eachSpread((first) => {
                 expectTypeOf(first).toEqualTypeOf<number>();
+            });
+        });
+
+        it("hands a null row on as no items, so only its key follows, as Arr::wrap(null) is empty", () => {
+            collect([null]).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<[number]>();
+            });
+            collect([5, null]).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<number[]>();
+            });
+            collect([5, undefined]).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<
+                    [number | undefined, number]
+                >();
             });
         });
 

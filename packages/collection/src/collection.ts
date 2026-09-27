@@ -637,12 +637,17 @@ type CollapseWithKeysShape<TItem> = [ReplacesKeyed<TItem>] extends [never]
     ? "list"
     : "list" | "partial";
 
-/** A row as mapSpread() and eachSpread() hand it on: a list's or a collection's items spread, any other row whole. */
+/**
+ * A row as mapSpread() and eachSpread() hand it on: a list's or a collection's items spread, a null row gives none, as
+ * Arr::wrap(null) is empty, and any other row goes whole.
+ */
 type SpreadRow<TRow> = unknown extends TRow
     ? TRow
-    : TRow extends readonly unknown[] | { all: (...args: never[]) => unknown }
-      ? TRow
-      : [TRow];
+    : TRow extends null
+      ? []
+      : TRow extends readonly unknown[] | { all: (...args: never[]) => unknown }
+        ? TRow
+        : [TRow];
 
 /**
  * Create a collection from the given value.
