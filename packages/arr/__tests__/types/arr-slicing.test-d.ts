@@ -44,8 +44,12 @@ describe("arr slicing type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.slice(unknownArray, 0)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.slice(unknownArray, 0);
+            expectTypeOf(Arr.slice(unknownArray as unknown[], 0)).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 

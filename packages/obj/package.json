@@ -29,12 +29,14 @@
         "utilities"
     ],
     "dependencies": {
-        "@tolki/arr": "workspace:^",
         "@tolki/enum": "workspace:^",
         "@tolki/path": "workspace:^",
         "@tolki/str": "workspace:^",
         "@tolki/types": "workspace:^",
         "@tolki/utils": "workspace:^"
+    },
+    "devDependencies": {
+        "@tolki/arr": "workspace:^"
     },
     "sideEffects": false,
     "packageManager": "pnpm@10.12.1",

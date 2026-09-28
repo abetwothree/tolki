@@ -189,6 +189,12 @@ describe("Str tests", () => {
 
             expect(Str.camel("foo1_bar")).toBe("foo1Bar");
             expect(Str.camel("1 foo bar")).toBe("1FooBar");
+
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "camel-multibyte-first-space",
+            // "camel-multibyte-first-snake" and "camel-multibyte-first-kebab"
+            expect(Str.camel("Über uns")).toBe("überUns");
+            expect(Str.camel("émile_zola")).toBe("émileZola");
+            expect(Str.camel("Élan-vital")).toBe("élanVital");
         });
     });
 
@@ -2022,8 +2028,42 @@ describe("Str tests", () => {
                     "9",
                 ]),
             ).toBe(true);
+        });
 
-            expect(Str.password(32, false, false, false, false)).toBe("");
+        it("returns exactly the requested length when it is below the pool count", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-length-below-pool-count"
+            expect(
+                [1, 2, 3].map((length) => Str.password(length).length),
+            ).toEqual([1, 2, 3]);
+            // With two pools and a length of two, each pool gives exactly one character.
+            expect(Str.password(2, true, true, false, false)).toMatch(
+                /^(?=.*[a-zA-Z])(?=.*\d).{2}$/,
+            );
+        });
+
+        it("returns an empty string for a zero or negative length", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-zero-length" and "password-negative-length"
+            expect(Str.password(0)).toBe("");
+            expect(Str.password(-2)).toBe("");
+        });
+
+        it("throws when every character pool is turned off", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-no-pools" and "password-no-pools-zero-length":
+            // PHP throws an InvalidArgumentException, which this port raises as an Error with the same message.
+            expect(() =>
+                Str.password(32, false, false, false, false),
+            ).toThrowError("At least one character pool must be enabled.");
+            expect(() =>
+                Str.password(0, false, false, false, false),
+            ).toThrowError("At least one character pool must be enabled.");
+        });
+
+        it("draws only from the pools that are turned on", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-numbers-only" and "password-spaces-only"
+            expect(Str.password(5, false, true, false, false)).toMatch(
+                /^\d{5}$/,
+            );
+            expect(Str.password(3, false, false, false, true)).toBe("   ");
         });
     });
 

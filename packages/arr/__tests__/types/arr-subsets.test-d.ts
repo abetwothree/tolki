@@ -11,6 +11,21 @@ import {
     unknownArray,
 } from "./fixtures";
 
+/** An interface-typed row: no implicit index signature, so a `Record` constraint rejects it. */
+interface InterfaceRow {
+    id: number;
+    name: string;
+}
+
+/** A list of interface-typed rows, the shape the row constraint used to reject. */
+const interfaceRows: InterfaceRow[] = [
+    { id: 1, name: "Ada" },
+    { id: 2, name: "Grace" },
+];
+
+declare const scalarUnion: string | number;
+declare const nullableString: string | null;
+
 describe("arr subsets type tests", () => {
     describe("only", () => {
         it("preserves string element type", () => {
@@ -45,10 +60,12 @@ describe("arr subsets type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.only(unknownArray, [0])).toEqualTypeOf<
-                unknown[]
-            >();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.only(unknownArray, [0]);
+            expectTypeOf(
+                Arr.only(unknownArray as unknown[], [0]),
+            ).toEqualTypeOf<unknown[]>();
         });
 
         it("resolves to never[] for an empty array", () => {
@@ -112,8 +129,12 @@ describe("arr subsets type tests", () => {
             expectTypeOf(Arr.keys([])).toEqualTypeOf<number[]>();
         });
 
-        it("returns number[] for unknown data", () => {
-            expectTypeOf(Arr.keys(unknownArray)).toEqualTypeOf<number[]>();
+        it("rejects unknown data and returns number[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.keys(unknownArray);
+            expectTypeOf(Arr.keys(unknownArray as unknown[])).toEqualTypeOf<
+                number[]
+            >();
         });
     });
 
@@ -136,8 +157,12 @@ describe("arr subsets type tests", () => {
             expectTypeOf(Arr.values(readonlyStrings)).toEqualTypeOf<string[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.values(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.values(unknownArray);
+            expectTypeOf(Arr.values(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -173,6 +198,22 @@ describe("arr subsets type tests", () => {
             expectTypeOf(Arr.wrap(numberGrid)).toEqualTypeOf<number[][]>();
         });
 
+        it("distributes over a union rather than holding it in one tuple", () => {
+            // `[TValue]` once answered `[string | number]`, a tuple wrap can never
+            // build — it holds exactly one member, so the answer is a union of one-tuples.
+            expectTypeOf(Arr.wrap(scalarUnion)).toEqualTypeOf<
+                [string] | [number]
+            >();
+        });
+
+        it("distributes a nullable union member into its own one-tuple", () => {
+            // The fallback row distributes; it does not re-run the dedicated null and array
+            // rows per member, so a null member is still tupled rather than dropped.
+            expectTypeOf(Arr.wrap(nullableString)).toEqualTypeOf<
+                [string] | [null]
+            >();
+        });
+
         it("passes a readonly array through unchanged, rather than wrapping it as a single value", () => {
             // The readonly overload must sit above the scalar overload (which
             // would otherwise match any readonly array as a single value to
@@ -202,8 +243,12 @@ describe("arr subsets type tests", () => {
             ).toEqualTypeOf<number[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.flatten(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.flatten(unknownArray);
+            expectTypeOf(Arr.flatten(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -228,8 +273,12 @@ describe("arr subsets type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.reverse(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.reverse(unknownArray);
+            expectTypeOf(Arr.reverse(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -254,8 +303,12 @@ describe("arr subsets type tests", () => {
             >();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.shuffle(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.shuffle(unknownArray);
+            expectTypeOf(Arr.shuffle(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 
@@ -338,6 +391,63 @@ describe("arr subsets type tests", () => {
                 expectTypeOf(index).toEqualTypeOf<number>();
                 return value > 1;
             });
+        });
+    });
+
+    // pluck, select and keyBy once constrained their row type on
+    // `Record<string, unknown>`, which an interface does not satisfy — it has no
+    // implicit index signature — so interface-typed rows widened or failed outright.
+    describe("interface-typed rows", () => {
+        it("keys an interface-typed row list by its own row type", () => {
+            expectTypeOf(Arr.keyBy(interfaceRows, "id")).toEqualTypeOf<
+                Record<string, InterfaceRow>
+            >();
+        });
+
+        it("keys an interface-typed row list with a callback", () => {
+            expectTypeOf(
+                Arr.keyBy(interfaceRows, (row) => row.name),
+            ).toEqualTypeOf<Record<string, InterfaceRow>>();
+        });
+
+        it("plucks a literal path off interface-typed rows", () => {
+            expectTypeOf(Arr.pluck(interfaceRows, "name")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("plucks a closure off interface-typed rows", () => {
+            expectTypeOf(
+                Arr.pluck(interfaceRows, (row) => row.name),
+            ).toEqualTypeOf<string[]>();
+        });
+
+        it("plucks a keyed record off interface-typed rows", () => {
+            expectTypeOf(Arr.pluck(interfaceRows, "name", "id")).toEqualTypeOf<
+                Record<string | number, string>
+            >();
+        });
+
+        it("selects a literal key off interface-typed rows", () => {
+            expectTypeOf(Arr.select(interfaceRows, "name")).toEqualTypeOf<
+                Pick<InterfaceRow, "name">[]
+            >();
+        });
+
+        it("selects a literal key list off interface-typed rows", () => {
+            expectTypeOf(
+                Arr.select(interfaceRows, ["id", "name"]),
+            ).toEqualTypeOf<Pick<InterfaceRow, "id" | "name">[]>();
+        });
+
+        it("still turns away a backing the compiler has not narrowed", () => {
+            // Negative control: widening the row constraint must not widen the data row.
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.keyBy(unknownArray, "id");
+            // @ts-expect-error - same for pluck
+            Arr.pluck(unknownArray, "name");
+            // @ts-expect-error - and for select
+            Arr.select(unknownArray, "name");
         });
     });
 });

@@ -16,7 +16,7 @@ $mixed = [['item' => '1'], ['item' => '10'], ['item' => 5], ['item' => 20]];
 probe('sortByMany orders mixed numeric strings and ints numerically', 'collect($mixed)->sortBy(["item"])->pluck("item")', fn () => collect($mixed)->sortBy(['item'])->pluck('item')->all());
 probe('sortByMany forced descending over the same mixed items', 'collect($mixed)->sortByDesc(["item"])->values()->pluck("item")', fn () => collect($mixed)->sortByDesc(['item'])->values()->pluck('item')->all());
 
-// Collection.php:1633-1644 — Arr::wrap($comparison) then is_callable($prop), so a
+// Collection.php:1646-1657 — Arr::wrap($comparison) then is_callable($prop), so a
 // comparator nested in a one-element descriptor runs as a comparator
 $rows = [['age' => 3], ['age' => 1], ['age' => 2]];
 $byAge = fn ($a, $b) => $a['age'] <=> $b['age'];

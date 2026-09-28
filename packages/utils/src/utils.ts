@@ -1,5 +1,6 @@
 export * from "./cast";
 export * from "./equality";
+export * from "./exceptions";
 export * from "./guards";
 export * from "./keys";
 export * from "./range";

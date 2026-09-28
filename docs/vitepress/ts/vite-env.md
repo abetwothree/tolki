@@ -1,27 +1,20 @@
 # Vite Env
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) reads the `VITE_`-prefixed variables from your project's `.env` file and generates a `vite-env.d.ts` declaration file that augments Vite's own `ImportMetaEnv` interface — so `import.meta.env.VITE_APP_NAME` is fully typed on the frontend without hand-maintaining a separate declaration file.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) reads the `VITE_` variables from your project's `.env` file and generates a `vite-env.d.ts` declaration file. The file augments Vite's own `ImportMetaEnv` interface, so `import.meta.env.VITE_APP_NAME` is typed on the frontend without a declaration file you maintain by hand.
 
-As mentioned in [Installation & Usage](./index.md), this is the simplest generator in the package: no `@tolki/ts` runtime, no attributes, no per-item filtering — just a source file scan and a template render.
-
-## How the Declaration File Is Generated
-
-1. **Resolve the source file** — `vite_env.source_file` if configured; otherwise `.env` if it exists; otherwise `.env.example`.
-2. **Parse `VITE_`-prefixed variables** — read the source file line by line, skip blank lines and `#` comments, extract the variable name before the `=` on each remaining line, and keep only names starting with `VITE_`.
-3. **Sort and deduplicate** the variable names.
-4. **Render `vite-env.d.ts`** from the variable list. If no `VITE_`-prefixed variables were found (or the source file doesn't exist), nothing is generated — the writer returns an empty string and no file is written.
+The feature is on by default. It needs no `@tolki/ts` runtime, no attributes, and no per-class configuration.
 
 ## Anatomy of the Generated File
 
-Given a `.env` file containing:
+Given a `.env` file that contains these variables:
 
-```env
+```dotenv
 APP_NAME=MyApp
 DB_CONNECTION=mysql
 VITE_APP_NAME="${APP_NAME}"
 ```
 
-The package generates `vite-env.d.ts`:
+The package generates this `vite-env.d.ts`:
 
 ```typescript
 /// <reference types="vite/client" />
@@ -35,20 +28,27 @@ interface ImportMeta {
 }
 ```
 
-- Only `VITE_APP_NAME` is included — `APP_NAME` and `DB_CONNECTION` are skipped since they don't start with `VITE_`, matching [Vite's own convention](https://vite.dev/guide/env-and-mode.html#env-files) for which environment variables get exposed to client-side code.
-- `/// <reference types="vite/client" />` pulls in Vite's own ambient types so the `ImportMetaEnv`/`ImportMeta` declarations here merge with (rather than replace) Vite's base declarations.
-- Every variable is typed as `string` — regardless of the value written in the `.env` file (`true`, `123`, etc.), since Vite always provides raw strings at runtime via `import.meta.env`.
+The output follows three rules:
+
+- **Only `VITE_` variables**: `APP_NAME` and `DB_CONNECTION` are skipped. This matches [Vite's own convention](https://vite.dev/guide/env-and-mode.html#env-files) for which environment variables reach client-side code.
+- **Merged with Vite's types**: `/// <reference types="vite/client" />` pulls in Vite's own ambient types, so these `ImportMetaEnv` and `ImportMeta` declarations merge with Vite's base declarations instead of replacing them.
+- **Always `string`**: every variable is typed as `string`, whatever its value in `.env` (`true`, `123`, and so on), because Vite exposes `.env` values in `import.meta.env` as strings.
+
+If the source file doesn't exist, or it has no `VITE_` variables, no file is written.
 
 ## Source File Resolution
 
-The source file is resolved with this priority:
+The package reads the first source file it finds, in this order:
 
-1. **`vite_env.source_file`**, if explicitly configured — an absolute path, or a path relative to the project root.
+1. **`vite_env.source_file`**, if you set it. It can be an absolute path, or a path relative to the project root.
 2. **`.env`**, if it exists at the project root.
-3. **`.env.example`**, as the final fallback — useful in CI or a fresh clone where `.env` (gitignored) may not exist yet, but `.env.example` (committed) does.
+3. **`.env.example`**, as the fallback. This helps in CI or a fresh clone, where the gitignored `.env` may not exist yet but the committed `.env.example` does.
+
+This example reads a production env file instead:
 
 ```php
 // config/ts-publish.php
+
 'vite_env' => [
     'source_file' => '.env.production',
 ],
@@ -56,26 +56,31 @@ The source file is resolved with this priority:
 
 ## Parsing Rules
 
-- Lines are processed one at a time; leading/trailing whitespace is trimmed before checking.
-- Blank lines and lines starting with `#` (comments) are skipped.
-- A line without an `=` is skipped — there's nothing to extract a variable name from.
-- The variable name is everything before the first `=` on the line; values, quotes, and inline comments after the value are not parsed or validated, only the name matters.
-- Only names starting with `VITE_` are kept; everything else (`APP_NAME`, `DB_CONNECTION`, etc.) is silently ignored.
-- The final list is sorted alphabetically and deduplicated before being passed to the template.
+The package reads variable names only, one line at a time, with these rules:
+
+- Each line is trimmed before it's checked.
+- Blank lines and lines that start with `#` are skipped.
+- A line with no `=` is skipped, because there's no name to read.
+- The name is everything before the first `=`. Values, quotes, and inline comments aren't read or validated.
+- Only names that start with `VITE_` are kept. Everything else, such as `APP_NAME` and `DB_CONNECTION`, is ignored.
+- The names are sorted alphabetically, and duplicates are removed.
+
+::: warning `export` Prefixes
+A line written as `export VITE_APP_NAME=MyApp` is skipped, because its name doesn't start with `VITE_`. Remove the `export` prefix to include the variable.
+:::
 
 ## Output Location
 
-The output directory is resolved with this priority:
+The file goes to `vite_env.output_directory` if you set it, and to the global `output_directory` otherwise. `vite_env.filename` sets the filename, which defaults to `vite-env.d.ts`.
 
-1. `vite_env.output_directory`, if set.
-2. The global `output_directory`.
-
-The filename is controlled by `vite_env.filename` (default `vite-env.d.ts`).
+The [Vite plugin](./vite-plugin.md) doesn't watch your `.env` file. After you add or remove a `VITE_` variable, run `php artisan ts:publish` to update the declarations.
 
 ## No Filtering, Attributes, or Per-Item Config
 
-Like [Broadcast Channels](./broadcast-channels.md#no-per-channel-attributes), Vite Env is a single-output feature with no per-class collection — there's no `included`/`excluded`/`additional_directories` config, and no `#[TsExclude]` support, since there's no PHP class to reflect on. To exclude a specific variable, simply don't prefix it with `VITE_` (Vite itself won't expose it to client code either), or disable the feature entirely with `vite_env.enabled = false`.
+Vite Env has no PHP classes to publish, so it has no `included`, `excluded`, or `additional_directories` settings and doesn't support `#[TsExclude]`. The same is true of [Broadcast Channels](./broadcast-channels.md#no-per-channel-attributes).
+
+To leave a variable out, don't prefix it with `VITE_`. Vite won't expose it to client code either. To turn off the feature, set `vite_env.enabled` to `false`.
 
 ## Configuration Reference
 
-The full list of `vite_env.*` config keys lives in the [Configuration Reference](./configuration-reference.md).
+The [Configuration Reference](./configuration-reference.md#vite-env-vite-env) lists every `vite_env.*` key.

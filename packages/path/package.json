@@ -13,7 +13,6 @@
     },
     "keywords": [],
     "dependencies": {
-        "@tolki/arr": "workspace:^",
         "@tolki/utils": "workspace:^",
         "@tolki/types": "workspace:^"
     },

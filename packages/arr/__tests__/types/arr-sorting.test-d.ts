@@ -84,8 +84,12 @@ describe("arr sorting type tests", () => {
             expectTypeOf(Arr.sort(readonlyNumbers)).toEqualTypeOf<number[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.sort(unknownArray)).toEqualTypeOf<unknown[]>();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.sort(unknownArray);
+            expectTypeOf(Arr.sort(unknownArray as unknown[])).toEqualTypeOf<
+                unknown[]
+            >();
         });
     });
 

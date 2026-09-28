@@ -58,4 +58,36 @@ describe("collection type tests", () => {
             >();
         });
     });
+
+    describe("firstOrFail / reduce", () => {
+        it("answers the item type for firstOrFail, never a nullable one", () => {
+            // It throws instead of returning a default, so neither the Symbol sentinel it
+            // seeds first() with nor first()'s own `| null` belongs in the declared return.
+            expectTypeOf(
+                collect([1, 2, 3]).firstOrFail(),
+            ).toEqualTypeOf<number>();
+            expectTypeOf(
+                collect({ a: "x" }).firstOrFail(),
+            ).toEqualTypeOf<string>();
+        });
+
+        it("answers a nullable item type for reduce without an initial value", () => {
+            // An empty backing hands back $initial, which defaults to null
+            // (packages/collection/stubs/EnumeratesValues.php, reduce()).
+            expectTypeOf(
+                collect([1, 2, 3]).reduce((carry, value) => carry + value),
+            ).toEqualTypeOf<number | null>();
+        });
+    });
+
+    describe("mode", () => {
+        it("answers the PHP array keys the values were counted under, or null", () => {
+            expectTypeOf(collect([1, 2, 2]).mode()).toEqualTypeOf<Array<
+                string | number
+            > | null>();
+            expectTypeOf(
+                collect([{ foo: "a" }, { foo: null }]).mode("foo"),
+            ).toEqualTypeOf<Array<string | number> | null>();
+        });
+    });
 });

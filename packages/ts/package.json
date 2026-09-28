@@ -106,6 +106,7 @@
     "tolki": {
         "docs": [
             "ts/index.md",
+            "ts/publishing.md",
             "ts/enums.md",
             "ts/models.md",
             "ts/model-metadata.md",

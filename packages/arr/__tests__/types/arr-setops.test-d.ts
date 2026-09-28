@@ -38,10 +38,12 @@ describe("arr set operation type tests", () => {
             ).toEqualTypeOf<number[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
-            expectTypeOf(Arr.diff(unknownArray, unknownArray)).toEqualTypeOf<
-                unknown[]
-            >();
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.diff(unknownArray, unknownArray);
+            expectTypeOf(
+                Arr.diff(unknownArray as unknown[], unknownArray),
+            ).toEqualTypeOf<unknown[]>();
         });
 
         it("returns number[] for an empty data array against a typed other array", () => {
@@ -133,9 +135,11 @@ describe("arr set operation type tests", () => {
             ).toEqualTypeOf<number[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.intersectAssoc(unknownArray, unknownArray);
             expectTypeOf(
-                Arr.intersectAssoc(unknownArray, unknownArray),
+                Arr.intersectAssoc(unknownArray as unknown[], unknownArray),
             ).toEqualTypeOf<unknown[]>();
         });
     });
@@ -151,6 +155,21 @@ describe("arr set operation type tests", () => {
             Arr.intersectAssocUsing([1, 2], [1, 2], (keyA, keyB) => {
                 expectTypeOf(keyA).toEqualTypeOf<number>();
                 expectTypeOf(keyB).toEqualTypeOf<number>();
+                return keyA === keyB;
+            });
+        });
+
+        it("keeps a nullish operand's key a number", () => {
+            Arr.intersectAssocUsing([1, 2], null, (keyA, keyB) => {
+                expectTypeOf(keyB).toEqualTypeOf<number>();
+                return keyA === keyB;
+            });
+        });
+
+        it("types a keyed operand's key as number | string", () => {
+            Arr.intersectAssocUsing([1, 2], { a: 1 }, (keyA, keyB) => {
+                expectTypeOf(keyA).toEqualTypeOf<number>();
+                expectTypeOf(keyB).toEqualTypeOf<number | string>();
                 return keyA === keyB;
             });
         });
@@ -197,9 +216,11 @@ describe("arr set operation type tests", () => {
             ).toEqualTypeOf<number[]>();
         });
 
-        it("falls back to unknown[] for unknown data", () => {
+        it("rejects unknown data and returns unknown[] once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.intersectByKeys(unknownArray, unknownArray);
             expectTypeOf(
-                Arr.intersectByKeys(unknownArray, unknownArray),
+                Arr.intersectByKeys(unknownArray as unknown[], unknownArray),
             ).toEqualTypeOf<unknown[]>();
         });
     });

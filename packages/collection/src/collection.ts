@@ -8,7 +8,6 @@ import {
     dataCollapse,
     dataCombine,
     dataContains,
-    dataCount,
     dataCrossJoin,
     dataDiff,
     dataDiffAssoc,
@@ -18,6 +17,7 @@ import {
     dataExcept,
     dataFilter,
     dataFirst,
+    dataFlatten,
     dataFlip,
     dataForget,
     dataGet,
@@ -52,6 +52,7 @@ import {
     dataSplice,
     dataUndot,
     dataUnion,
+    dataUnshift,
     dataValues,
 } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
@@ -68,7 +69,6 @@ import {
     compareValues,
     createSortSpecComparator,
     defineKey,
-    entriesKeyValue,
     isArray,
     isBoolean,
     isFunction,
@@ -77,13 +77,21 @@ import {
     isNull,
     isNumber,
     isObject,
+    isPlainObject,
     isString,
+    isSymbol,
     isTruthy,
     isUndefined,
     isUnsafeKey,
+    ItemNotFoundException,
     looseEqual,
+    MultipleItemsFoundException,
     objectToString,
+    operatorMatch,
+    phpArrayKey,
     reindexIntegerKeys,
+    renumberPhpIntegerKeys,
+    resolveSliceRange,
     strictEqual,
     toArrayable,
     toJsonable,
@@ -194,8 +202,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Insertion order for a Map-built collection whose keys are numeric, which
      * a plain object cannot hold (ECMA-262 `OrdinaryOwnPropertyKeys`). Only
-     * `getRawItems` writes it; the sort family renumbers keys instead, so
-     * `all()` and `values()` can no longer disagree about a sorted order.
+     * `adoptRawItems` and the reorder helpers write it; the sort family
+     * renumbers keys instead, so `all()` and `values()` cannot disagree.
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
@@ -234,7 +242,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null
             | undefined,
     ) {
-        this.items = this.getRawItems(items);
+        this.items = this.adoptRawItems(items);
 
         // Return a proxy that intercepts property access
         // return this.createProxy();
@@ -348,49 +356,46 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the mode of a given key.
      *
+     * Null items are skipped, and each value is counted under the key PHP would store it as.
+     *
      * @param key - The key to calculate the mode for, or null for the values themselves
-     * @returns An array of the most frequently occurring values, or null if the collection is empty
+     * @returns The most frequent values in the order first seen, or null when no non-null value remains
      *
      * @example
      *
      * new Collection([1, 2, 2, 3, 3, 3]).mode(); -> [3]
      * new Collection([1, 1, 2, 2, 3, 3]).mode(); -> [1, 2, 3]
      * new Collection([{value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}, {value: 3}]).mode('value'); -> [3]
-     * new Collection([{value: 1}, {value: 1}, {value: 2}, {value: 2}, {value: 3}, {value: 3}]).mode('value'); -> [1, 2, 3]
+     * new Collection([{foo: 5}, {foo: null}, {foo: null}]).mode('foo'); -> [5]
+     * new Collection([null, null]).mode(); -> null
      */
-    mode(key: PropertyKey | null = null): number[] | null {
-        if (this.isEmpty()) {
+    mode(key: PropertyKey | null = null): Array<string | number> | null {
+        const values = isNull(key) ? this.values() : this.values().pluck(key);
+        const counts = new Map<string | number, number>();
+
+        values.each((value) => {
+            // JS-only: undefined stands in for a value PHP does not have, so it is skipped with null.
+            if (isNull(value) || isUndefined(value)) {
+                return;
+            }
+
+            const countKey = phpArrayKey(value);
+
+            counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
+        });
+
+        if (counts.size === 0) {
             return null;
         }
 
-        const keyList = !isNull(key) ? this.pluck(key) : this;
+        const highestCount = [...counts.values()].reduce(
+            (highest, count) => Math.max(highest, count),
+            0,
+        );
 
-        const counts = this.newInstance({}) as unknown as Collection<
-            number,
-            PropertyKey
-        >;
-
-        keyList.each((keyValue) => {
-            counts.set(
-                keyValue as PathKey,
-                ((counts.get(keyValue as PathKey) ?? 0) as number) + 1,
-            );
-        });
-
-        const highestCount = counts.max();
-
-        // PHP sorts the filtered counts again before reading their keys, but
-        // every remaining value equals $highestValue so asort cannot move
-        // one; here that sort would renumber the keys mode() is after.
-        return (
-            counts
-                .filter((value) => value === highestCount)
-                .keys()
-                .all() as PropertyKey[]
-        ).map((key: PropertyKey) => {
-            const num = Number(key);
-            return !isNaN(num) && String(num) === String(key) ? num : key;
-        }) as number[];
+        return [...counts]
+            .filter(([, count]) => count === highestCount)
+            .map(([countKey]) => countKey);
     }
 
     /**
@@ -511,14 +516,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Determine if an item exists in the collection using strict comparison.
+     * Given a value, each item's `key` path is compared with it the way PHP's `===` compares, even a `null` value.
      *
-     * @param key - The value to search for
+     * @param key - The value to search for, or the path to compare when `value` is given
+     * @param value - The value the path must strictly equal
      * @returns True if the item exists using strict comparison, false otherwise
      *
      * @example
      *
      * new Collection([1, 2, 3]).containsStrict(2); -> true
      * new Collection([1, 2, 3]).containsStrict('2'); -> false
+     * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
+     * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
     containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
     containsStrict(key: unknown, value?: unknown): boolean;
@@ -526,24 +535,34 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: ((value: TValue, index: TKey) => unknown) | unknown,
         value?: unknown,
     ): boolean {
-        if (!isNull(value) && !isUndefined(value)) {
+        // PHP takes the two-argument form whenever a second argument is passed, a null one included.
+        if (!isUndefined(value)) {
             return this.contains((item) => {
-                return (
+                return strictEqual(
                     dataGet(
                         item as DataItems<unknown, PropertyKey>,
                         key as PathKey,
-                    ) === value
+                    ),
+                    value,
                 );
             });
         }
 
         if (isFunction(key)) {
-            return !isNull(
-                this.first(key as (value: TValue, index: TKey) => boolean),
+            // `array_any` counts a match holding null, so only an absent item may equal the placeholder.
+            const placeholder = Symbol("containsStrict");
+
+            return (
+                this.first<typeof placeholder>(
+                    key as (value: TValue, index: TKey) => boolean,
+                    placeholder,
+                ) !== placeholder
             );
         }
 
-        return dataContains(this.items, (value: unknown) => value === key);
+        // Routes through dataContains's strict flag rather than `===`, so an array or plain
+        // object key matches by value, the way PHP's `in_array($key, $items, true)` does.
+        return dataContains(this.items, key as TValue, true);
     }
 
     /**
@@ -602,6 +621,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Cross join with the given lists, returning all possible permutations.
+     * The collection's values are one dimension and each list's values another, whatever their keys.
      *
      * @param items - The lists to cross join with
      * @returns A new collection with the cross joined items
@@ -609,17 +629,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
-     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([{a: 1, c: 3}, {a: 1, d: 4}, {b: 2, c: 3}, {b: 2, d: 4}])
+     * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      */
     crossJoin(
         // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
         // Collection<unknown, PropertyKey> breaks when passing typed collections.
         ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
     ) {
+        // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
+        // is one dimension too, never obj.crossJoin's dimension per key.
         const results = dataCrossJoin(
-            this.items,
+            this.getItemValues(this.items),
             ...items.map((item) => this.getRawItems(item)),
-        ) as DataItems<TValue, TKey>[];
+        );
 
         return this.newInstance(results);
     }
@@ -642,9 +664,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | null
             | undefined,
     ) {
-        return this.newInstance(
-            dataDiff<TValue, TKey>(this.items, this.getRawItems(items)),
-        );
+        return this.newInstance(dataDiff(this.items, this.getRawItems(items)));
     }
 
     /**
@@ -711,7 +731,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         items: DataItems<unknown, PropertyKey> | Collection<any, any>,
     ) {
         return this.newInstance(
-            dataDiffAssoc<TValue, TKey>(this.items, this.getRawItems(items)),
+            dataDiffAssoc(this.items, this.getRawItems(items)),
         );
     }
 
@@ -734,10 +754,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return this.newInstance(
-            dataDiffAssocUsing<TValue, TKey>(
+            dataDiffAssocUsing(
                 this.items,
                 this.getRawItems(items),
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes a bare key and rejects a typed callback (contravariance).
+                callback as (
+                    keyA: string | number,
+                    keyB: string | number,
+                ) => boolean,
             ),
         );
     }
@@ -794,10 +819,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (keyA: TKey, keyB: TKey) => boolean,
     ) {
         return this.newInstance(
-            dataDiffKeysUsing<TValue, TKey>(
+            dataDiffKeysUsing(
                 this.items,
                 this.getRawItems(items),
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes a bare key and rejects a typed callback (contravariance).
+                callback as (
+                    keyA: string | number,
+                    keyB: string | number,
+                ) => boolean,
             ),
         );
     }
@@ -947,7 +977,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
     filter(callback: ((value: TValue, key: TKey) => boolean) | null = null) {
-        return this.newInstance(dataFilter(this.items, callback));
+        if (isNull(callback)) {
+            return this.newInstance(dataFilter(this.items));
+        }
+
+        // `Items` is a union, so the delegates hand the callback their own widest
+        // value type; the collection's own generics are the narrower truth here.
+        return this.newInstance(
+            dataFilter(this.items, (value, key) =>
+                callback(value as TValue, key as TKey),
+            ),
+        );
     }
 
     /**
@@ -968,19 +1008,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
     first<TFirstDefault>(
         callback: ((value: TValue, key: TKey) => boolean) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
-    ) {
-        return dataFirst<TValue, TKey, TFirstDefault>(
+    ): TValue | TFirstDefault | null {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.firstOrdered(ordered, callback, defaultValue);
+        }
+
+        // The auto-forwarding chain ends here: `this.items` is the `DataItems` union, which
+        // always picks obj's widest row, so the delegate answers `unknown`. Restating the
+        // class's own generics is the only way to keep them; widening `items` is Part B work.
+        return dataFirst(
             this.items,
-            callback,
+            // The same union makes obj's row take an `unknown`-valued callback, which
+            // rejects a typed one (contravariance).
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
             defaultValue,
-        );
+        ) as TValue | TFirstDefault | null;
     }
 
     /**
      * Flatten a multi-dimensional collection into a single level.
      *
      * Laravel's flatten always returns an array-based collection, iterating over
-     * values and recursively flattening nested arrays.
+     * values and recursively flattening nested arrays. A nested collection's items
+     * are flattened too; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
      * @returns A new collection with flattened items (always array-based)
@@ -993,42 +1047,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: [1, [2, 3]], b: [4]}).flatten(1); -> new Collection([1, [2, 3], 4])
      */
     flatten(depth: number = Infinity) {
-        const result: unknown[] = [];
-
-        const flattenRecursive = (items: unknown, currentDepth: number) => {
-            // Get the values to iterate over
-            const values = isArray(items)
-                ? items
-                : Object.values(items as Record<PropertyKey, unknown>);
-
-            for (let item of values) {
-                // Convert Collection instances to their items
-                if (item instanceof Collection) {
-                    item = item.all();
-                }
-
-                // If item is not an array/object, add it directly
-                if (!isArray(item) && !isObject(item)) {
-                    result.push(item);
-                } else if (currentDepth === 1) {
-                    // Arr.php:373 spends the last level of depth on the
-                    // container's own values, so depth 1 still unwraps once.
-                    const itemValues = isArray(item)
-                        ? item
-                        : Object.values(item);
-                    for (const value of itemValues) {
-                        result.push(value);
-                    }
-                } else {
-                    // Recursively flatten
-                    flattenRecursive(item, currentDepth - 1);
-                }
-            }
-        };
-
-        flattenRecursive(this.items, depth);
-
-        return this.newInstance(result as DataItems<TValue, TKey>);
+        // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
+        return this.newInstance(dataFlatten(this.items, depth));
     }
 
     /**
@@ -1064,7 +1084,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
         keys: PathKeys | Collection<T, K>,
     ) {
         keys = this.getRawItems(keys) as PathKey[];
-        this.items = dataForget(this.items, keys);
+        this.items = dataForget(this.items as TValue[], keys);
+
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
 
         return this;
     }
@@ -1082,13 +1106,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).set(1, 4); -> new Collection([1, 4, 3])
      */
     set<K extends PathKey, T>(key: K, value: T) {
-        this.items = dataSet(this.items, key, value);
+        this.items = dataSet(this.items, key, value) as DataItems<TValue, TKey>;
 
         return this;
     }
 
     /**
      * Get an item from the collection by key.
+     *
+     * Diverges from PHP, whose `Collection::get` is a literal `array_key_exists`: this
+     * resolves a dot path, so `get('a.b')` reads a nested value where PHP answers the
+     * default. `has` and `getOrPut` carry the same extension; the policy is not settled.
      *
      * @param key - The key to get
      * @param defaultValue - The default value to return if key doesn't exist
@@ -1103,7 +1131,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         key: PathKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
     ): TValue | TGetDefault | null {
-        return dataGet(this.items, key, defaultValue);
+        // `?? null` only pins the delegate's TDefault: both delegates already read an
+        // omitted default as null, so the value handed back is unchanged.
+        return dataGet(this.items as TValue[], key, defaultValue ?? null);
     }
 
     /**
@@ -1314,7 +1344,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Key an array or object by a field or using a callback, array, or key/index
+     * Key an array or object by a field or using a callback, array, or key/index.
+     * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
+     * and a float truncated toward zero.
      *
      * @param keyByValue - The key to key by, or a callback function
      * @returns A new collection with keyed items
@@ -1368,13 +1400,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 resolvedKey = resolvedKey.join(".");
             }
 
-            // Key null/undefined results under an empty string key,
-            // mirroring PHP's (string) null cast in Laravel
-            if (isNull(resolvedKey) || isUndefined(resolvedKey)) {
-                resolvedKey = "";
-            }
-
-            defineKey(results, resolvedKey as PropertyKey, value as TValue);
+            defineKey(
+                results,
+                isSymbol(resolvedKey) ? resolvedKey : phpArrayKey(resolvedKey),
+                value as TValue,
+            );
         }
 
         return this.newInstance(results);
@@ -1535,20 +1565,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return String(item);
         };
 
-        const joinItems = (
-            items: Array<unknown> | Record<string, unknown>,
-            separator: string | null,
-        ) => {
-            const values = isArray(items) ? items : Object.values(items);
-            const stringValues = values.map(convertToString);
+        const joinItems = (items: unknown[], separator: string | null) => {
+            const stringValues = items.map(convertToString);
 
             return stringValues.join(separator ?? "");
         };
 
         if (isFunction(value)) {
-            const items = this.map(value).all();
+            const ordered = this.orderedEntries();
 
-            return joinItems(items, glue);
+            // `map` answers from the plain object, which re-sorts integer keys ascending;
+            // implode is positional, so a Map-built backing is read through its own pairs.
+            return joinItems(
+                ordered
+                    ? ordered.map(([key, item]) => value(item, key))
+                    : Object.values(this.map(value).all()),
+                glue,
+            );
         }
 
         const first = this.first();
@@ -1563,15 +1596,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 isArray(first) ||
                 (isObject(first) && first.constructor === Object)
             ) {
-                const items = this.pluck(value).all();
+                // With no key argument `pluck` answers a list in iteration order, so
+                // plucking the ORDERED values keeps PHP's order. The cast re-narrows what
+                // isFunction left: its constraint takes unknown[], so it subtracts nothing.
+                const items = dataPluck(
+                    this.orderedValues(),
+                    value as PropertyKey as string,
+                    null,
+                );
 
-                return joinItems(items, glue);
+                return joinItems(items as unknown[], glue);
             }
         }
 
         // When dealing with simple values (strings, numbers, etc.),
         // the value parameter becomes the glue
-        return joinItems(this.all(), value as string | null);
+        return joinItems(this.orderedValues(), value as string | null);
     }
 
     /**
@@ -1621,10 +1661,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataIntersect<TValue, TKey>(
+            dataIntersect(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes `unknown` and rejects a typed callback (contravariance).
+                callback as (a: unknown, b: unknown) => boolean,
             ),
         );
     }
@@ -1649,7 +1691,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataIntersectAssoc<TValue, TKey>(
+            dataIntersectAssoc(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
@@ -1678,10 +1720,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return this.newInstance(
-            dataIntersectAssocUsing<TValue, TKey>(
+            dataIntersectAssocUsing(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
-                callback,
+                // `this.items` is a union, so the call lands on obj's widest row, whose
+                // comparator takes a bare key and rejects a typed callback (contravariance).
+                callback as (
+                    keyA: string | number,
+                    keyB: string | number,
+                ) => boolean,
             ),
         );
     }
@@ -1704,7 +1751,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(isArray(this.items) ? [] : {});
         }
         return this.newInstance(
-            dataIntersectByKeys<TValue, TKey>(
+            dataIntersectByKeys(
                 this.items,
                 this.getRawItems(items) as DataItems<TValue, TKey>,
             ),
@@ -1798,7 +1845,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.last();
         }
 
-        const collection = this.newInstance(this.items);
+        // PHP's `new static($this->items)` copies the array, because an array is a value
+        // there. A JS backing is a reference, so without a copy `pop` below would delete
+        // this collection's last entry — a read-only call silently losing an item.
+        const collection = this.detachedCopy();
 
         const finalItem = collection.pop();
 
@@ -1816,16 +1866,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
     keys(): Collection<TKey, number> {
+        const ordered = this.orderedEntries();
+
         // If we have preserved order for numeric keys, use it
-        if (this.itemsWithOrder) {
+        if (ordered) {
             return this.newInstance(
-                this.itemsWithOrder.map(([key]) => key),
+                ordered.map(([key]) => key),
             ) as unknown as Collection<TKey, number>;
         }
 
-        return this.newInstance(
-            dataKeys(this.items) as TKey[],
-        ) as unknown as Collection<TKey, number>;
+        return this.newInstance(dataKeys(this.items)) as unknown as Collection<
+            TKey,
+            number
+        >;
     }
 
     /**
@@ -1845,7 +1898,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback?: ((value: TValue, key: TKey) => boolean) | null,
         defaultValue?: D | (() => D),
     ): TValue | D | null {
-        const result = dataLast(this.items, callback, defaultValue);
+        const ordered = this.orderedEntries();
+
+        // array_reverse then reset: `last` is `first` over the entries read backwards.
+        if (ordered) {
+            return this.firstOrdered(
+                [...ordered].reverse(),
+                callback,
+                defaultValue,
+            );
+        }
+
+        // Same as `first`: the `DataItems` union picks obj's widest row, so both the
+        // `unknown`-valued callback and the restated return type are forced here.
+        const result = dataLast(
+            this.items,
+            callback as
+                | ((value: unknown, key: string | number) => boolean)
+                | null,
+            defaultValue,
+        ) as TValue | D | null | undefined;
+
         return result === undefined ? null : result;
     }
 
@@ -1862,21 +1935,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
     pluck<TPluckValue = TValue>(
-        value:
-            | string
-            | PropertyKey
-            | ((item: TValue, key: TKey) => TPluckValue),
-        key:
-            | PropertyKey
-            | ((item: TValue, key: TKey) => string | number)
-            | null = null,
+        value: string | PropertyKey | ((item: TValue) => TPluckValue),
+        key: PropertyKey | ((item: TValue) => string | number) | null = null,
     ): Collection<TPluckValue, TKey> {
         return this.newInstance(
             dataPluck(
                 this.items,
-                value as string | ((item: TValue, key: TKey) => TValue),
-                key,
-            ) as DataItems<TPluckValue, TKey>,
+                value as string | ((item: unknown) => unknown),
+                key as string | ((item: unknown) => string | number) | null,
+            ),
         ) as unknown as Collection<TPluckValue, TKey>;
     }
 
@@ -1892,7 +1959,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
     map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
-        return this.newInstance(dataMap(this.items, callback));
+        return this.newInstance(
+            dataMap(this.items, (value, key) =>
+                callback(value as TValue, key as TKey),
+            ),
+        );
     }
 
     /**
@@ -1949,7 +2020,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         for (const [key, value] of Object.entries(
             this.items as Record<TKey, TValue>,
         )) {
-            const loopKey = entriesKeyValue(key);
+            const loopKey = phpArrayKey(key);
 
             const mapped = callback(value as TValue, loopKey as TKey);
 
@@ -1998,16 +2069,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
             key: TKey,
         ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
     ) {
-        const entries: Array<[TKey, TValue]> = this.itemsWithOrder
-            ? this.itemsWithOrder
-            : isArray(this.items)
-              ? Object.entries(this.items).map(
-                    ([key, value]) =>
-                        [entriesKeyValue(key), value] as [TKey, TValue],
-                )
-              : (Object.entries(this.items) as unknown as Array<
-                    [TKey, TValue]
-                >);
+        const entries: Array<[TKey, TValue]> =
+            this.orderedEntries() ??
+            (isArray(this.items)
+                ? Object.entries(this.items).map(
+                      ([key, value]) =>
+                          [phpArrayKey(key), value] as unknown as [
+                              TKey,
+                              TValue,
+                          ],
+                  )
+                : (Object.entries(this.items) as unknown as Array<
+                      [TKey, TValue]
+                  >));
 
         const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
 
@@ -2222,13 +2296,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * operator: this collection's own keys win, the argument only fills
      * keys it doesn't already have.
      *
-     * @param items - The items to union with. Must share this collection's backing — `dataUnion` throws otherwise.
-     * @returns A new collection with the union of items
+     * @param items - The items to union with: a list or an object, whatever this collection's backing.
+     * @returns A new collection with the union of items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
      * new Collection([1, 2, 3]).union([3, 4, 5]); -> new Collection([1, 2, 3])
      * new Collection([1, 2]).union([3, 4, 5]); -> new Collection([1, 2, 5])
+     * new Collection([1, 2]).union({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
     union<T, K extends PropertyKey>(
@@ -2262,9 +2337,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         let position = 0;
 
-        // Use itemsWithOrder when available to preserve numeric key insertion order
-        const entries = this.itemsWithOrder
-            ? this.itemsWithOrder.slice(offset)
+        // Use the ordered entries when available to preserve numeric key insertion order
+        const ordered = this.orderedEntries();
+        const entries = ordered
+            ? ordered.slice(offset)
             : Object.entries(this.slice(offset).all() as Record<TKey, TValue>);
 
         for (const [, value] of entries) {
@@ -2302,7 +2378,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(this.items);
         }
 
-        const keysParam = keys.flatMap((key) =>
+        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
+        // that flatMap cannot infer an element type from; the cast below names it anyway.
+        const keysParam = keys.flatMap((key): unknown[] =>
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
@@ -2330,13 +2408,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this.newInstance(this.items);
         }
 
-        const keysParam = keys.flatMap((key) =>
+        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
+        // that flatMap cannot infer an element type from; the cast below names it anyway.
+        const keysParam = keys.flatMap((key): unknown[] =>
             arrWrap(this.getRawItems(key)),
         ) as PathKey[];
 
-        return this.newInstance(
-            dataSelect<TValue, TKey>(this.items, keysParam),
-        );
+        return this.newInstance(dataSelect(this.items, keysParam));
     }
 
     /**
@@ -2355,6 +2433,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     pop(count: number = 1): TValue | null | Collection<TValue[], number> {
         if (count < 1) {
             return this.newInstance() as unknown as Collection<
+                TValue[],
+                number
+            >;
+        }
+
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            const kept = ordered.slice(0, Math.max(ordered.length - count, 0));
+            const removed = ordered
+                .slice(kept.length)
+                .map(([, value]) => value)
+                .reverse();
+
+            // array_pop takes the last entry written, not the highest key, and renumbers nothing.
+            this.setOrderedItems(kept, false);
+
+            if (count === 1) {
+                return removed[0] ?? null;
+            }
+
+            return this.newInstance(removed) as unknown as Collection<
                 TValue[],
                 number
             >;
@@ -2386,7 +2486,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
-        const poppedValues = dataPop(this.items, count) as TValue[];
+        const poppedValues = dataPop(this.items, count);
 
         return this.newInstance(poppedValues) as unknown as Collection<
             TValue[],
@@ -2398,17 +2498,42 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Push an item onto the beginning of the collection.
      *
      * @param value - The value to prepend
-     * @param key - The key to prepend the value at, or null to append
+     * @param key - The key to prepend the value at, cast as PHP casts an array key (null files it under "");
+     *   a list backing given any key but 0 becomes object-backed, as PHP's keyed array does
      * @returns The collection instance for chaining
      *
      * @example
      *
      * new Collection([2, 3]).prepend(1); -> new Collection([1, 2, 3])
+     * new Collection([2, 3]).prepend(1, 'a'); -> new Collection({a: 1, 0: 2, 1: 3})
      * new Collection({b: 2, c: 3}).prepend(1, 'a'); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
      */
     prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            if (arguments.length > 1) {
+                // `[$key => $value] + $array`: the new pair leads, and wins its key outright.
+                const ownKey = phpArrayKey(key ?? null);
+
+                this.setOrderedItems(
+                    [
+                        [ownKey, value as unknown as TValue],
+                        ...ordered.filter(
+                            ([existing]) => String(existing) !== String(ownKey),
+                        ),
+                    ],
+                    false,
+                );
+            } else {
+                this.unshiftOrdered(ordered, [value as unknown as TValue]);
+            }
+
+            return this;
+        }
+
         if (arguments.length > 1) {
             this.items = dataPrepend(
                 this.items,
@@ -2441,16 +2566,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 (this.items as TValue[]).push(value as unknown as TValue);
             }
         } else {
-            // For objects, add with numeric keys
-            const keys = Object.keys(this.items);
-            let nextIndex = 0;
-
-            // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
-            for (const key of keys) {
-                if (isIntegerLikeKey(key) && Number(key) >= nextIndex) {
-                    nextIndex = Number(key) + 1;
-                }
-            }
+            let nextIndex = this.nextAppendKey();
 
             for (const value of values) {
                 defineKey(
@@ -2459,6 +2575,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                     value as unknown as TValue,
                 );
                 nextIndex++;
+            }
+
+            if (this.itemsWithOrder) {
+                this.reorderAfterMutation(this.itemsWithOrder);
             }
         }
 
@@ -2476,38 +2596,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([2, 3]).unshift(1); -> new Collection([1, 2, 3])
      * new Collection([3, 4]).unshift(1, 2); -> new Collection([1, 2, 3, 4])
      * new Collection([4, 5, 6]).unshift(['a', 'b', 'c']); -> new Collection([['a', 'b', 'c'], 4, 5, 6])
+     * new Collection({b: 2}).unshift({a: 1}); -> new Collection({0: {a: 1}, b: 2})
      */
     unshift<T>(...values: T[]) {
+        // Arrays stay on the built-in unshift, which keeps the undefined items Arr.unshift drops;
+        // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
+        const ordered = this.orderedEntries();
+
         if (isArray(this.items)) {
-            // For arrays, use built-in unshift
-            (this.items as TValue[]).unshift(
-                ...(values as unknown as TValue[]),
-            );
+            this.items.unshift(...(values as unknown as TValue[]));
+        } else if (ordered) {
+            this.unshiftOrdered(ordered, values as unknown as TValue[]);
         } else {
-            // For objects, we need to rebuild the entire object with new numeric indices
-            const oldItems = { ...this.items };
-            const newItems: Record<PropertyKey, T> = {};
-
-            // Add new values with numeric indices starting at 0
-            let index = 0;
-            for (const value of values) {
-                newItems[index] = value;
-                index++;
-            }
-
-            // Add old items, renumbering numeric keys and keeping string keys
-            for (const [key, value] of Object.entries(oldItems)) {
-                if (isIntegerLikeKey(key)) {
-                    // Renumber numeric keys
-                    newItems[index] = value as T;
-                    index++;
-                } else {
-                    // Keep string keys as-is
-                    defineKey(newItems as Record<string, T>, key, value as T);
-                }
-            }
-
-            this.items = newItems as unknown as DataItems<TValue, TKey>;
+            dataUnshift(this.items, ...values);
         }
 
         return this;
@@ -2531,7 +2632,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | Record<TConcatKey, TConcatValue>
             | Collection<TConcatValue, TConcatKey>,
     ) {
-        const result = this.newInstance(this.items);
+        // PHP's `new static($this)` copies the array, because an array is a value there.
+        // A JS backing is a reference, so without a copy every `push` below would append
+        // to this collection as well as to the result.
+        const result = this.detachedCopy();
         const items = this.getRawItems(source);
 
         for (const [, value] of Object.entries(items)) {
@@ -2695,18 +2799,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isFunction(count)) {
             const countValue = count(this) as number;
             return this.newInstance(
-                dataRandom(this.items, countValue, preserveKeys) as DataItems<
-                    TValue,
-                    TKey
-                >,
+                dataRandom(this.items, countValue, preserveKeys),
             );
         }
 
         return this.newInstance(
-            dataRandom(this.items, count as number, preserveKeys) as DataItems<
-                TValue,
-                TKey
-            >,
+            dataRandom(this.items, count as number, preserveKeys),
         );
     }
 
@@ -2718,11 +2816,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * `getRawItems` (which always returns `[]`) so it dispatches on `this.items`'s shape.
      *
      * @param items - The items to replace with
-     * @returns A new collection with the replaced items
+     * @returns A new collection with the replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
-     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5])
+     * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5, 3])
+     * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
      */
     replace<T, K extends PropertyKey>(
         items: T[] | Record<K, T> | Collection<T, K> | null,
@@ -2744,12 +2843,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * reason as `replace` above.
      *
      * @param items - The items to replace with
-     * @returns A new collection with the recursively replaced items
+     * @returns A new collection with the recursively replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
-     * new Collection({a: {b: 1}}).replaceRecursive({a: {c: 2}}); -> new Collection({a: {c: 2}})
-     * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5]])
+     * new Collection({a: {b: 1}}).replaceRecursive({a: {c: 2}}); -> new Collection({a: {b: 1, c: 2}})
+     * new Collection(['a']).replaceRecursive({3: 'x'}); -> new Collection({0: 'a', 3: 'x'})
+     * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5, 3]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
     replaceRecursive<T, K extends PropertyKey>(
@@ -2784,7 +2884,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The key of the found item, or false if not found
+     * @returns The key of the found item, or false if not found. A list backing answers its
+     * index, which `TKey` need not cover, so the index is part of the answer
      *
      * @example
      *
@@ -2796,7 +2897,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     search(
         value: TValue | ((item: TValue, key: TKey) => boolean),
         strict: boolean = false,
-    ): TKey | false {
+    ): TKey | number | false {
         return dataSearch(this.items, value, strict);
     }
 
@@ -2879,6 +2980,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
             >;
         }
 
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            const removed = ordered.slice(0, count).map(([, value]) => value);
+
+            this.setOrderedItems(ordered.slice(count), true);
+
+            if (count === 1) {
+                return removed[0] as TValue;
+            }
+
+            return this.newInstance(removed) as unknown as Collection<
+                TValue[],
+                number
+            >;
+        }
+
         // Delegating keeps the object-backed branch on array_shift's
         // key renumbering, which the inline version here never did.
         const shifted = dataShift(this.items, count);
@@ -2901,7 +3019,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([1, 2, 3]).shuffle(); -> new Collection([3, 1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({b: 2, c: 3, a: 1})
+     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({0: 2, 1: 3, 2: 1})
      */
     shuffle() {
         return this.newInstance(dataShuffle(this.items));
@@ -2968,6 +3086,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
      */
     slice(offset: number, length: number | null = null) {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            const { start, end } = resolveSliceRange(
+                ordered.length,
+                offset,
+                length,
+            );
+
+            // array_slice($items, $offset, $length, true): positional, and keys survive.
+            return this.newInstance(new Map(ordered.slice(start, end)));
+        }
+
         return this.newInstance(dataSlice(this.items, offset, length));
     }
 
@@ -3055,6 +3186,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param operator - The operator to use for comparison, or null if key is a callback or null
      * @param value - The value to compare against, or null if key is a callback or null
      * @returns The single item in the collection
+     * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
      *
      * @example
      *
@@ -3084,16 +3216,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        const items = this.unless(isNull(filter)).filter(filter);
+        // Laravel's `unless(...)` hands back a HigherOrderWhenProxy that SKIPS the
+        // forwarded filter; this port's `unless` returns the collection, so calling
+        // `filter(null)` would drop every falsy item before the count.
+        const items = isNull(filter) ? this : this.filter(filter);
 
         const count = items.count();
 
         if (count === 0) {
-            throw new Error("No items found in the collection.");
+            throw new ItemNotFoundException();
         }
 
         if (count > 1) {
-            throw new Error("Multiple items found in the collection.");
+            throw new MultipleItemsFoundException(count);
         }
 
         return items.first();
@@ -3106,13 +3241,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param operator - The operator to use for comparison, or null if key is a callback
      * @param value - The value to compare against, or null if key is a callback
      * @returns The first matching item in the collection
+     * @throws ItemNotFoundException if no item matches.
      *
      * @example
      *
      * new Collection([1, 2, 3]).firstOrFail(); -> 1
      * new Collection([{id: 1}, {id: 2}]).firstOrFail('id', '==', 2); -> {id: 2}
      * new Collection([{id: 1}, {id: 2}]).firstOrFail(item => item.id === 1); -> {id: 1}
-     * new Collection([]).firstOrFail(); -> Error: No items found in the collection.
+     * new Collection([]).firstOrFail(); -> throws ItemNotFoundException
      */
     firstOrFail(
         key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
@@ -3136,12 +3272,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        const placeholder = null;
+        // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
+        // equal it and a stored null stays a found item (Collection.php:1515).
+        const placeholder = Symbol("firstOrFail");
 
-        const item = this.first(filter, placeholder);
+        // `first` answers `| null` only for its no-default form; this call always hands
+        // one over, so the placeholder is the single stand-in for an absent item.
+        const item = this.first<typeof placeholder>(filter, placeholder) as
+            | TValue
+            | typeof placeholder;
 
         if (item === placeholder) {
-            throw new Error("No items found in the collection.");
+            throw new ItemNotFoundException();
         }
 
         return item;
@@ -3186,7 +3328,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback's third argument is the chunk built so far, as a collection, so `chunk.last()` works
      * exactly as it does in Laravel.
      *
-     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1541`, which delegates to
+     * @see Collection::chunkWhile — `packages/collection/stubs/Collection.php:1554`, which delegates to
      *      `LazyCollection::chunkWhile`.
      *
      * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
@@ -3223,7 +3365,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Chunk the collection into chunks by comparing adjacent values using the given key or callback.
      *
-     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:937`.
+     * @see EnumeratesValues::chunkBy — `packages/collection/stubs/EnumeratesValues.php:939`.
      *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
      *
      * @param key - A path into each item, or a callback receiving the value and its key
@@ -3267,7 +3409,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(dataSort(this.items, callback));
+        return this.newInstance(dataSort(this.items as TValue[], callback));
     }
 
     /**
@@ -3288,7 +3430,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | string
             | null = null,
     ) {
-        return this.newInstance(dataSortDesc(this.items, callback));
+        return this.newInstance(dataSortDesc(this.items as TValue[], callback));
     }
 
     /**
@@ -3298,7 +3440,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * and `values()` always agree about order; see `sort` above.
      *
      * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Ignored when `callback` is an array (Collection.php:1588); use `sortByDesc`/`sortByMany`.
+     * @param descending - Ignored when `callback` is an array (Collection.php:1601); use `sortByDesc`/`sortByMany`.
      * @returns A new collection with the sorted items
      *
      * @example
@@ -3329,7 +3471,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         if (isArray(callback) && !isFunction(callback)) {
-            // PHP's sortBy (Collection.php:1588) discards $descending
+            // PHP's sortBy (Collection.php:1601) discards $descending
             // entirely for the array form; not passed through here either.
             // Use sortByDesc/sortByMany's forceDescending to force it.
             return this.sortByMany(callback);
@@ -3464,7 +3606,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         if (isArray(callback) && !isFunction(callback)) {
             // sortBy's array branch discards its own `descending` argument,
             // so forcing every descriptor descending goes through
-            // sortByMany's forceDescending param (Collection.php:1687).
+            // sortByMany's forceDescending param (Collection.php:1700).
             return this.sortByMany(callback, true);
         }
 
@@ -3585,15 +3727,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
             | DataItems<TReplace, TKeyReplace>
             | Collection<TReplace, TKeyReplace>,
     ) {
-        return this.newInstance(
-            dataSplice(
-                this.items,
+        const replacementItems =
+            replacement !== undefined
+                ? [this.getRawItems(replacement)]
+                : ([] as []);
+
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.spliceOrdered(
+                ordered,
                 offset,
                 length,
-                ...(replacement !== undefined
-                    ? [this.getRawItems(replacement)]
-                    : []),
-            ),
+                replacementItems.flatMap(
+                    (source) => Object.values(source) as TValue[],
+                ),
+            );
+        }
+
+        return this.newInstance(
+            dataSplice(this.items, offset, length, ...replacementItems),
         );
     }
 
@@ -3630,6 +3783,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).transform((value, key) => value + key); -> new Collection({a: '1a', b: '2b', c: '3c'})
      */
     transform<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
+        if (this.itemsWithOrder) {
+            this.setOrderedItems(
+                this.itemsWithOrder.map(([key, value]) => [
+                    key,
+                    callback(value, key) as unknown as TValue,
+                ]),
+                false,
+            );
+
+            return this;
+        }
+
         this.items = this.map(callback).all() as DataItems<TValue, TKey>;
 
         return this;
@@ -3713,7 +3878,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return this.newInstance(
                 dataFilter(this.items, (value, key) => {
-                    const result = callback(value, key as TKey);
+                    const result = callback(value as TValue, key as TKey);
 
                     // Check if we've seen this result using strict comparison
                     for (const seenValue of seen) {
@@ -3732,7 +3897,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return this.newInstance(
                 dataFilter(this.items, (value, key) => {
-                    const result = callback(value, key as TKey);
+                    const result = callback(value as TValue, key as TKey);
 
                     // Check if we've seen this result using loose comparison
                     for (const seenValue of seen) {
@@ -3759,14 +3924,14 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
     values() {
-        // Use itemsWithOrder when available to preserve numeric key insertion order
-        if (this.itemsWithOrder) {
-            return this.newInstance(
-                this.itemsWithOrder.map(([, value]) => value),
-            );
+        // Use the ordered entries when available to preserve numeric key insertion order
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.newInstance(ordered.map(([, value]) => value));
         }
 
-        return this.newInstance(dataValues(this.items) as DataItems<TValue>);
+        return this.newInstance(dataValues(this.items));
     }
 
     /**
@@ -3843,6 +4008,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
      */
     pad<TPadValue>(size: number, value: TPadValue) {
+        const ordered = this.orderedEntries();
+
+        if (ordered) {
+            return this.newInstance(this.padOrdered(ordered, size, value));
+        }
+
         return this.newInstance(dataPad(this.items, size, value));
     }
 
@@ -3968,13 +4139,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Add an item to the collection.
      *
+     * A null key appends where PHP's `$array[] =` does: past the highest integer key.
+     *
      * @param item - The item to add to the collection
+     * @param key - The key to add the item under, or null to append
      * @returns The current collection with the item added
      *
      * @example
      *
      * new Collection([1, 2]).add(3); -> collection is now [1, 2, 3]
-     * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '2': 3}
+     * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '0': 3}
+     * new Collection({5: 'a'}).add('z'); -> collection is now {5: 'a', 6: 'z'}
      * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
      */
     add<T, K extends PropertyKey>(item: T, key: K | null = null) {
@@ -3994,22 +4169,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return this;
         }
 
-        if (!isNull(key)) {
-            defineKey(
-                this.items as Record<string, TValue>,
-                key,
-                item as unknown as TValue,
-            );
-
-            return this;
-        }
-
-        const lengthKey = Object.keys(this.items).length;
         defineKey(
             this.items as Record<string, TValue>,
-            lengthKey,
+            isNull(key) ? this.nextAppendKey() : key,
             item as unknown as TValue,
         );
+
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
 
         return this;
     }
@@ -4070,8 +4238,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * collection.offsetSet(1, 4); -> collection is now [1, 4, 3]
      *
      * const objCollection = new Collection({a: 1, b: 2});
-     * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '2': 3}
-     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '2': 3, c: 4}
+     * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '0': 3}
+     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
      */
     offsetSet(key: TKey | null, value: TValue | unknown) {
         this.add(value, key);
@@ -4098,6 +4266,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         delete (this.items as Record<TKey, TValue>)[key];
+
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
     }
 
     /** Enumerates Values Methods */
@@ -4354,7 +4526,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     each(callback: (value: TValue, key: TKey) => unknown) {
         for (const [key, value] of Object.entries(this.items)) {
-            let loopKey = entriesKeyValue(key) as unknown;
+            let loopKey = phpArrayKey(key) as unknown;
             if (isObject(value)) {
                 loopKey = String(loopKey);
             }
@@ -4387,7 +4559,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 values = arrWrap(chunk as unknown);
             }
 
-            const loopKey = entriesKeyValue(key as unknown as PropertyKey);
+            const loopKey = phpArrayKey(key);
             return callback(
                 ...(values as TValue[]),
                 loopKey as unknown as TValue,
@@ -5130,7 +5302,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     reduce(
         callback: (carry: TValue, value: TValue, key: TKey) => TValue,
-    ): TValue;
+    ): TValue | null;
     reduce<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
@@ -5146,13 +5318,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const entries = Object.entries(this.items);
 
         if (entries.length === 0) {
-            if (isUndefined(initial)) {
-                throw new TypeError(
-                    "Reduce of empty collection with no initial value",
-                );
-            }
-
-            return initial as TReduce;
+            // PHP's reduce never throws: an empty backing hands back $initial,
+            // which defaults to null (EnumeratesValues.php:845).
+            return isUndefined(initial) ? null : (initial as TReduce);
         }
 
         let result: TReduce;
@@ -5173,7 +5341,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             result = callback(
                 result,
                 value as TValue,
-                entriesKeyValue(key) as TKey,
+                phpArrayKey(key) as TKey,
             );
         }
 
@@ -5202,7 +5370,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             const returned = callback(
                 result,
                 value as TValue,
-                entriesKeyValue(key) as TKey,
+                phpArrayKey(key) as TKey,
             ) as TReduce | undefined;
 
             if (!isUndefined(returned)) {
@@ -5489,81 +5657,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 ? item
                 : dataGet(item!, key as PathKey);
 
-            const strings = dataFilter([retrieved, value], function (value) {
-                if (isString(value)) {
-                    return true;
-                }
-
-                if (
-                    isObject(value) &&
-                    isFunction((value as { toString: unknown }).toString)
-                ) {
-                    return true;
-                }
-
-                return false;
-            });
-
-            if (
-                dataCount(strings) < 2 &&
-                dataCount(dataFilter([retrieved, value], isObject)) === 1
-            ) {
-                return ["!=", "<>", "!=="].includes(operator!);
-            }
-
-            switch (operator) {
-                default:
-                case "=":
-                case "==":
-                    return looseEqual(retrieved, value);
-                case "!=":
-                case "<>":
-                    return !looseEqual(retrieved, value);
-                case "<":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) <
-                            (value as number | string)
-                    );
-                case ">":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) >
-                            (value as number | string)
-                    );
-                case "<=":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) <=
-                            (value as number | string)
-                    );
-                case ">=":
-                    return (
-                        !isNull(retrieved) &&
-                        !isNull(value) &&
-                        (retrieved as number | string) >=
-                            (value as number | string)
-                    );
-                case "===":
-                    return retrieved === value;
-                case "!==":
-                    return retrieved !== value;
-                case "<=>":
-                    return (
-                        (!isNull(retrieved) && !isNull(value)
-                            ? (retrieved as number | string) <
-                              (value as number | string)
-                                ? -1
-                                : (retrieved as number | string) >
-                                    (value as number | string)
-                                  ? 1
-                                  : 0
-                            : 0) !== 0
-                    );
-            }
+            // The switch this used to inline IS operatorMatch, which `contains`'s
+            // key/operator/value form in arr and obj already runs; sharing it is what
+            // keeps the three in step. An absent operator is PHP's `default:` arm.
+            return operatorMatch(retrieved, operator ?? "=", value);
         };
     }
 
@@ -5808,7 +5905,344 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Results array of items from Collection or Arrayable.
+     * Write an ordered entry list back over both views of the backing.
+     *
+     * @param ordered - The entries in the order PHP keeps them
+     * @param renumber - Whether integer-like keys renumber, as array_shift and array_splice do
+     */
+    protected setOrderedItems(
+        ordered: Array<[PropertyKey, TValue]>,
+        renumber: boolean,
+    ): void {
+        const entries = ordered.map(
+            ([key, value]) => [String(key), value] as [string, TValue],
+        );
+
+        const written = renumber
+            ? renumberPhpIntegerKeys<TValue>(entries)
+            : entries;
+
+        const items = {} as Record<TKey, TValue>;
+
+        for (const [key, value] of written) {
+            defineKey(items as Record<string, TValue>, key, value);
+        }
+
+        this.items = items;
+        this.itemsWithOrder = written.map(([key, value]) => [
+            phpArrayKey(key) as TKey,
+            value,
+        ]);
+    }
+
+    /**
+     * Reconcile an insertion order against what the backing actually holds now.
+     *
+     * @param previous - The order the backing carried before
+     * @returns The entries the backing holds, in that order
+     */
+    protected orderedFrom(
+        previous: Array<[TKey, TValue]>,
+    ): Array<[TKey, TValue]> {
+        const items = this.items as Record<string, TValue>;
+        const ordered: Array<[TKey, TValue]> = [];
+        const placed = new Set<string>();
+
+        for (const [key] of previous) {
+            const ownKey = String(key);
+
+            if (Object.hasOwn(items, ownKey)) {
+                ordered.push([key, items[ownKey] as TValue]);
+                placed.add(ownKey);
+            }
+        }
+
+        // A key the mutation added lands last, where PHP's append puts it.
+        for (const [key, value] of Object.entries(items)) {
+            if (!placed.has(key)) {
+                ordered.push([phpArrayKey(key) as TKey, value]);
+            }
+        }
+
+        return ordered;
+    }
+
+    /**
+     * Rebuild the insertion order after a mutation that wrote the backing in place.
+     *
+     * @param previous - The order the backing carried before the mutation
+     */
+    protected reorderAfterMutation(previous: Array<[TKey, TValue]>): void {
+        this.itemsWithOrder = this.orderedFrom(previous);
+    }
+
+    /**
+     * The first entry of an ordered list that passes the test, as PHP's `first` does.
+     *
+     * @param ordered - The entries to walk, in the order they answer
+     * @param callback - The test each entry must pass, or null for the leading entry
+     * @param defaultValue - What to answer when nothing passes, resolved if it is a thunk
+     * @returns The matching value, or the resolved default
+     */
+    protected firstOrdered<TFirstDefault>(
+        ordered: Array<[TKey, TValue]>,
+        callback?: ((value: TValue, key: TKey) => boolean) | null,
+        defaultValue?: TFirstDefault | (() => TFirstDefault),
+    ): TValue | TFirstDefault | null {
+        const match = callback
+            ? ordered.find(([key, value]) => callback(value, key))
+            : ordered[0];
+
+        // An empty backing defers to dataFirst, so the thunk-or-value default resolves in one place.
+        return match ? match[1] : dataFirst([], null, defaultValue);
+    }
+
+    /**
+     * The entries this collection holds, in the order PHP keeps them.
+     *
+     * Reconciled on every read, so a writer that does not rebuild the view cannot make a
+     * reader answer with an entry the backing has dropped or miss one it has gained.
+     *
+     * @returns The ordered entries, or undefined when the backing object already holds the order
+     */
+    protected orderedEntries(): Array<[TKey, TValue]> | undefined {
+        return this.itemsWithOrder && this.orderedFrom(this.itemsWithOrder);
+    }
+
+    /**
+     * The values this collection holds, in the order PHP keeps them.
+     *
+     * @returns The values in insertion order, which `all()` cannot express for integer keys
+     */
+    protected orderedValues(): TValue[] {
+        const ordered = this.orderedEntries();
+
+        return ordered
+            ? ordered.map(([, value]) => value)
+            : this.getItemValues(this.items);
+    }
+
+    /**
+     * A copy of this collection that shares no backing with it.
+     *
+     * PHP gets this for free: `new static($this->items)` copies the array, because an array
+     * is a value. A JS backing is a reference, so a method that builds a working copy and
+     * then writes to it has to detach here or it writes through to the receiver.
+     *
+     * @returns A new instance holding the same entries, in the same order, over its own backing
+     */
+    protected detachedCopy(): this {
+        const ordered = this.orderedEntries();
+
+        // A Map is the only input the constructor adopts an order from, so an ordered
+        // backing has to be handed back as one or the copy loses the order on the way in.
+        if (ordered) {
+            return this.newInstance(new Map(ordered));
+        }
+
+        return this.newInstance(
+            isArray(this.items) ? [...this.items] : { ...this.items },
+        );
+    }
+
+    /**
+     * Splice a backing that carries its own insertion order, as array_splice does.
+     *
+     * @param ordered - The backing's entries, in insertion order
+     * @param offset - Where to start, counting back from the end when negative
+     * @param length - How many entries to remove, leaving that many at the end when negative
+     * @param replacement - The values to insert, whose own keys array_splice discards
+     * @returns A new collection of the removed entries
+     */
+    protected spliceOrdered(
+        ordered: Array<[TKey, TValue]>,
+        offset: number,
+        length: number | undefined,
+        replacement: TValue[],
+    ) {
+        const entries: Array<[PropertyKey, TValue]> = [...ordered];
+        const size = entries.length;
+        const start =
+            offset < 0 ? Math.max(size + offset, 0) : Math.min(offset, size);
+        const count = isUndefined(length)
+            ? size - start
+            : length < 0
+              ? Math.max(size + length - start, 0)
+              : length;
+
+        const removed = entries.splice(
+            start,
+            count,
+            ...replacement.map(
+                (value, index) => [index, value] as [PropertyKey, TValue],
+            ),
+        );
+
+        this.setOrderedItems(entries, true);
+
+        // Both halves renumber their integer keys; a Map is the only backing that can carry the order.
+        return this.newInstance(
+            new Map(
+                renumberPhpIntegerKeys<TValue>(
+                    removed.map(([key, value]) => [String(key), value]),
+                ),
+            ),
+        );
+    }
+
+    /**
+     * Pad a backing that carries its own insertion order, as array_pad does.
+     *
+     * @param ordered - The backing's entries, in insertion order
+     * @param size - The size to pad to, padding at the beginning when negative
+     * @param value - The value to pad with
+     * @returns The padded entries, in the order PHP keeps them
+     */
+    protected padOrdered<TPadValue>(
+        ordered: Array<[TKey, TValue]>,
+        size: number,
+        value: TPadValue,
+    ): Map<PropertyKey, TValue | TPadValue> {
+        const padCount = Math.abs(size) - ordered.length;
+
+        // array_pad hands back the array untouched, keys and all, when it is already long enough.
+        if (padCount <= 0) {
+            return new Map<PropertyKey, TValue | TPadValue>(ordered);
+        }
+
+        const padding = Array.from(
+            { length: padCount },
+            (_, index): [PropertyKey, TValue | TPadValue] => [index, value],
+        );
+
+        const entries: Array<[PropertyKey, TValue | TPadValue]> =
+            size > 0 ? [...ordered, ...padding] : [...padding, ...ordered];
+
+        return new Map<PropertyKey, TValue | TPadValue>(
+            renumberPhpIntegerKeys<TValue | TPadValue>(
+                entries.map(([key, entryValue]) => [String(key), entryValue]),
+            ),
+        );
+    }
+
+    /**
+     * Prepend values to a backing that carries its own insertion order.
+     *
+     * @param ordered - The backing's entries, in insertion order
+     * @param values - The values to prepend
+     */
+    protected unshiftOrdered(
+        ordered: Array<[TKey, TValue]>,
+        values: TValue[],
+    ): void {
+        // A plain object re-sorts integer keys ascending, so delegating to dataUnshift would
+        // renumber the object's order, not the Map's that PHP keeps: [2 => c, 0 => a] unshifted
+        // gives [0 => x, 1 => c, 2 => a]. Renumber the ordered pairs, then rebuild both views.
+        this.setOrderedItems(
+            [
+                ...values.map(
+                    (value, index) => [index, value] as [PropertyKey, TValue],
+                ),
+                ...ordered,
+            ],
+            true,
+        );
+    }
+
+    /**
+     * The key PHP's `$array[] =` writes next: one past the highest integer key an
+     * object backing holds, or 0 when it holds none.
+     *
+     * @returns The next free integer key
+     */
+    protected nextAppendKey(): number {
+        let next = 0;
+
+        // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
+        // `isIntegerLikeKey` rejects a negative one, so an all-negative backing appends at 0 where
+        // PHP 8.3+ counts on from the highest — a divergence, never an overwrite.
+        for (const key of Object.keys(this.items)) {
+            if (isIntegerLikeKey(key) && Number(key) >= next) {
+                next = Number(key) + 1;
+            }
+        }
+
+        return next;
+    }
+
+    /**
+     * Read a Map's entries as the pairs a PHP array would hold, casting a
+     * numeric-looking key to a number the way PHP's array key cast does.
+     *
+     * @param items - The Map to read
+     * @returns The entries in the Map's own insertion order
+     */
+    protected mapEntries(
+        items: ReadonlyMap<unknown, unknown>,
+    ): Array<[TKey, TValue]> {
+        return [...items.entries()].map(([key, value]) => {
+            // PHP has no symbol key to cast, and Number(symbol) throws rather than answering NaN.
+            if (isSymbol(key)) {
+                return [key as TKey, value as TValue];
+            }
+
+            const numKey = Number(key);
+            const numeric =
+                !Number.isNaN(numKey) && String(numKey) === String(key);
+
+            return [(numeric ? numKey : key) as TKey, value as TValue];
+        });
+    }
+
+    /**
+     * The insertion order a backing carries that a plain object cannot hold.
+     *
+     * @param items - The items this collection is being built from
+     * @returns The ordered pairs, or undefined when the backing object already holds the order
+     */
+    protected adoptedOrder(items: unknown): Array<[TKey, TValue]> | undefined {
+        if (items instanceof Collection) {
+            return items.itemsWithOrder
+                ? ([...items.itemsWithOrder] as Array<[TKey, TValue]>)
+                : undefined;
+        }
+
+        if (!isMap(items)) {
+            return undefined;
+        }
+
+        const pairs = this.mapEntries(items);
+
+        // Only an integer key can disagree with a plain object's ascending order, and a symbol
+        // key has no PHP order to keep — so neither an all-string nor a symbol-bearing Map
+        // earns an ordered view, which is also how a symbol stays out of `itemsWithOrder`.
+        return pairs.some(([key]) => isNumber(key)) &&
+            !pairs.some(([key]) => isSymbol(key))
+            ? pairs
+            : undefined;
+    }
+
+    /**
+     * Read items INTO this collection, adopting the order a plain object cannot hold.
+     *
+     * This is the ONLY writer of `itemsWithOrder` at construction time; `getRawItems`
+     * stays pure so reading an operand can never overwrite the receiver's own order.
+     *
+     * @param items - The items this collection is being built from
+     * @returns The items preserving their original structure
+     */
+    protected adoptRawItems(items: unknown): DataItems<TValue, TKey> {
+        const ordered = this.adoptedOrder(items);
+
+        if (ordered) {
+            this.itemsWithOrder = ordered;
+        }
+
+        return this.getRawItems(items);
+    }
+
+    /**
+     * Results array of items from Collection or Arrayable, without touching this collection.
      *
      * @param items - The items to convert to an array or record
      * @returns The items preserving their original structure
@@ -5820,46 +6254,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // If it's already a Collection, get its items
         if (items instanceof Collection) {
-            // Also preserve the itemsWithOrder if it exists
-            if (items.itemsWithOrder) {
-                this.itemsWithOrder = [...items.itemsWithOrder];
-            }
             return items.all();
         }
 
-        // If it's a Map, convert to object and preserve insertion order
+        // If it's a Map, convert to an object; `adoptedOrder` keeps the order a caller owns
         if (isMap(items)) {
             const obj = {} as Record<TKey, TValue>;
-            const orderedPairs: Array<[TKey, TValue]> = [];
-            let hasNumericKeys = false;
 
-            for (const [key, value] of items.entries()) {
-                // Convert numeric string keys to numbers
-                let finalKey: TKey = key as TKey;
-                const numKey = Number(key);
-                if (!Number.isNaN(numKey) && String(numKey) === String(key)) {
-                    hasNumericKeys = true;
-                    finalKey = numKey as TKey;
-                }
-
-                defineKey(
-                    obj as Record<string, TValue>,
-                    finalKey,
-                    value as TValue,
-                );
-                orderedPairs.push([finalKey, value as TValue]);
-            }
-
-            // Store ordered pairs only if we have numeric keys (to preserve insertion order)
-            if (hasNumericKeys) {
-                this.itemsWithOrder = orderedPairs;
+            for (const [key, value] of this.mapEntries(items)) {
+                defineKey(obj as Record<string, TValue>, key, value);
             }
 
             return obj;
         }
 
-        // If it has a toArray method, use it
-        if (toArrayable(items)) {
+        // PHP asks `instanceof Arrayable`, which no plain array of data carries: a plain object
+        // whose `toArray` is merely a member is cast with `(array)` and keeps every key.
+        if (!isPlainObject(items) && toArrayable(items)) {
             return items.toArray() as DataItems<TValue, TKey>;
         }
 

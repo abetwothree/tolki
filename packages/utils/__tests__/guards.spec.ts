@@ -32,6 +32,26 @@ describe("Utils", () => {
         });
     });
 
+    describe("isPlainObject", () => {
+        it("returns true for an object literal and a null-prototype object", () => {
+            // JS-only: a prototype check; PHP has no plain-object type to compare against.
+            expect(Utils.isPlainObject({ a: 1 })).toBe(true);
+            expect(Utils.isPlainObject(Object.create(null))).toBe(true);
+        });
+
+        it("returns false for arrays, class instances, built-ins and non-objects", () => {
+            // JS-only: a prototype check; PHP has no plain-object type to compare against.
+            class Point {}
+
+            expect(Utils.isPlainObject([1, 2])).toBe(false);
+            expect(Utils.isPlainObject(new Point())).toBe(false);
+            expect(Utils.isPlainObject(new Date())).toBe(false);
+            expect(Utils.isPlainObject(new Map())).toBe(false);
+            expect(Utils.isPlainObject(null)).toBe(false);
+            expect(Utils.isPlainObject("a")).toBe(false);
+        });
+    });
+
     describe("isObjectAny", () => {
         it("returns true for types that return typeof as 'object'", () => {
             expect(Utils.isObjectAny({})).toBe(true);
@@ -633,6 +653,34 @@ describe("Utils", () => {
         expect(Utils.isAccessibleData({})).toBe(false);
         expect(Utils.isAccessibleData(null)).toBe(false);
         expect(Utils.isAccessibleData(undefined)).toBe(false);
+    });
+
+    it("isPhpAccessible", () => {
+        // Shapes that carry array entries
+        expect(Utils.isPhpAccessible([1, 2, 3])).toBe(true);
+        expect(Utils.isPhpAccessible([])).toBe(true);
+        expect(Utils.isPhpAccessible({ a: 1 })).toBe(true);
+        expect(Utils.isPhpAccessible(Object.create(null))).toBe(true);
+        expect(Utils.isPhpAccessible(new Map([["a", 1]]))).toBe(true);
+
+        // docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime":
+        // PHP's Arr::accessible rejects a DateTime, which is not ArrayAccess.
+        expect(Utils.isPhpAccessible(new Date())).toBe(false);
+        expect(Utils.isPhpAccessible(new Set([1]))).toBe(false);
+        expect(Utils.isPhpAccessible(new WeakMap())).toBe(false);
+        expect(Utils.isPhpAccessible(/a/)).toBe(false);
+
+        class Point {
+            x = 1;
+        }
+
+        expect(Utils.isPhpAccessible(new Point())).toBe(false);
+
+        // Non-objects
+        expect(Utils.isPhpAccessible("hello")).toBe(false);
+        expect(Utils.isPhpAccessible(123)).toBe(false);
+        expect(Utils.isPhpAccessible(null)).toBe(false);
+        expect(Utils.isPhpAccessible(undefined)).toBe(false);
     });
 
     describe("phpValueMatch", () => {

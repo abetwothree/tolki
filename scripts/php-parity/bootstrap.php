@@ -50,7 +50,7 @@ function frameworkPath(): string
  *
  * `Arr.php:14` and `Collection.php:12` both `use SortDirection;` from the
  * GLOBAL namespace, and `Collection::sortByMany` matches on
- * `SortDirection::Ascending` / `::Descending` (Collection.php:1638-1640) —
+ * `SortDirection::Ascending` / `::Descending` (Collection.php:1651-1653) —
  * but no such enum exists in the framework checkout (v13.25.0), in `vendor/`,
  * or in PHP 8.5 itself. Without this shim every `sortDesc` and multi-key
  * `sort` probe dies with `Error: Class "SortDirection" not found`.

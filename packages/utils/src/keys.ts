@@ -1,4 +1,16 @@
-import { isInteger, isPrototypeObject, isString } from "./guards";
+import {
+    isBoolean,
+    isFunction,
+    isInteger,
+    isMap,
+    isNull,
+    isNumber,
+    isPrototypeObject,
+    isString,
+    isSymbol,
+    isTruthyObject,
+    isUndefined,
+} from "./guards";
 
 /**
  * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`
@@ -10,6 +22,11 @@ const PHP_INT_BOUND = 2 ** 63;
 
 /**
  * Figures out if the entry key should be a number or a string.
+ *
+ * @deprecated Use `phpArrayKey` instead. This conversion is `Number()`/`parseFloat`, which is
+ * looser than PHP's: it turns `"01"` into `1`, `"1.5"` into `1.5` and `"0x10"` into `16`, keys
+ * PHP would all keep as strings. `phpArrayKey` converts only a canonical integer string, so a
+ * key handed to a callback is the key PHP stores. Kept because it is a published export.
  *
  * @param value - The entry key value (number, string, or symbol)
  * @returns The entry key as a number if it can be converted, otherwise returns the original value
@@ -72,6 +89,102 @@ export function isIntegerLikeKey(key: string): boolean {
 }
 
 /**
+ * The key PHP stores for an array key: a canonical decimal integer string
+ * becomes a number and any other string stays the same string; `null` becomes
+ * `""`, a boolean `0` or `1`, and a float is truncated toward zero (INF and NAN become `0`).
+ *
+ * @param key - The key, as `Object.keys` reports it or as a value used as an array offset
+ * @returns The key PHP would report
+ *
+ * @example
+ * phpArrayKey("10"); -> 10
+ * phpArrayKey("01"); -> "01"
+ * phpArrayKey(true); -> 1
+ * phpArrayKey(1.5); -> 1
+ */
+export function phpArrayKey(key: unknown): string | number {
+    if (isString(key)) {
+        if (/^(0|-?[1-9]\d*)$/.test(key)) {
+            const value = Number(key);
+
+            // PHP holds up to 2^63 - 1; past 2^53 a JS number would silently change the key.
+            if (Number.isSafeInteger(value)) {
+                return value;
+            }
+        }
+
+        return key;
+    }
+
+    if (isNull(key) || isUndefined(key)) {
+        return "";
+    }
+
+    if (isBoolean(key)) {
+        return key ? 1 : 0;
+    }
+
+    if (isNumber(key) || Number.isNaN(key)) {
+        // PHP wraps a float past its int range into 64 bits; digits a JS number can't hold stay a string.
+        const integer = Number.isFinite(key)
+            ? BigInt.asIntN(64, BigInt(Math.trunc(key as number)))
+            : 0n;
+
+        return Number.isSafeInteger(Number(integer))
+            ? Number(integer)
+            : String(integer);
+    }
+
+    return String(key);
+}
+
+/**
+ * Get the entries of a plain object or a Map, each keyed by the string PHP stores for its key.
+ *
+ * A Map keeps its insertion order, which a plain object cannot hold for integer keys. Keys PHP
+ * stores as one (`1` and `"1"`) fold into the first one's place with the last one's value.
+ *
+ * @param data - The plain object or Map to read.
+ * @returns The `[key, value]` pairs in iteration order.
+ *
+ * @example
+ * keyedEntries({ b: 1, a: 2 }); -> [["b", 1], ["a", 2]]
+ * keyedEntries(new Map([[2, "c"], [0, "a"]])); -> [["2", "c"], ["0", "a"]]
+ * keyedEntries(new Map([[1, "a"], ["1", "b"]])); -> [["1", "b"]]
+ */
+export function keyedEntries<TValue = unknown>(
+    data: object,
+): [string, TValue][] {
+    if (!isMap<unknown, TValue>(data)) {
+        return Object.entries(data) as [string, TValue][];
+    }
+
+    // Map.set keeps a repeated key in its first place with its last value, as PHP does. PHP throws for an
+    // object or closure key and has no symbols, so each of those keeps its own entry rather than merging.
+    const byKey = new Map<unknown, [string, TValue]>();
+
+    for (const [key, value] of data) {
+        const phpKey = isPhpStorableKey(key)
+            ? String(phpArrayKey(key))
+            : undefined;
+
+        byKey.set(phpKey ?? key, [phpKey ?? String(key), value]);
+    }
+
+    return [...byKey.values()];
+}
+
+/**
+ * Determine whether PHP can store the given key as an array key, casting it if need be.
+ *
+ * @param key - The Map key to test.
+ * @returns True unless the key is an object, a function or a symbol.
+ */
+function isPhpStorableKey(key: unknown): boolean {
+    return !isTruthyObject(key) && !isFunction(key) && !isSymbol(key);
+}
+
+/**
  * Renumber the integer-like keys in `entries` to a fresh 0-based sequence, in
  * the order they appear; string keys pass through unchanged.
  *
@@ -95,6 +208,25 @@ export function reindexIntegerKeys<TValue>(
 
         return [key, value] as [string, TValue];
     });
+}
+
+/**
+ * Renumber every key PHP stores as an integer to a fresh 0-based sequence, in order, as `array_shift`,
+ * `array_splice` and `array_unshift` do. Unlike `reindexIntegerKeys`, a negative key such as "-1" counts too.
+ *
+ * @param entries - The entries to renumber, in their intended order
+ * @returns The same entries with every integer key renumbered from 0
+ */
+export function renumberPhpIntegerKeys<TValue>(
+    entries: [string, TValue][],
+): [string, TValue][] {
+    let nextIndex = 0;
+
+    return entries.map(([key, value]) =>
+        isNumber(phpArrayKey(key))
+            ? [String(nextIndex++), value]
+            : [key, value],
+    );
 }
 
 /**

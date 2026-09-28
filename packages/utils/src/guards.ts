@@ -29,6 +29,32 @@ export function isObject<T, K extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * Check if a value is a plain object: one whose prototype is `Object.prototype`
+ * or `null`, the shape this port models a PHP array with.
+ *
+ * @param value - The value to check
+ * @returns True if the value is a plain object
+ *
+ * @example
+ *
+ * isPlainObject({ a: 1 }); -> true
+ * isPlainObject(Object.create(null)); -> true
+ * isPlainObject(new Date()); -> false
+ * isPlainObject([1, 2]); -> false
+ */
+export function isPlainObject(
+    value: unknown,
+): value is Record<PropertyKey, unknown> {
+    if (!isObject(value)) {
+        return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
+}
+
+/**
  * Check if a value is any object (including arrays, null).
  *
  * @param value - The value to check
@@ -621,6 +647,31 @@ export function isFiniteNumber(value: unknown): value is number {
  */
 export function isAccessibleData(data: unknown): boolean {
     return Array.isArray(data);
+}
+
+/**
+ * Check whether a value is one PHP's `Arr::accessible` would walk: a value that
+ * carries array entries rather than object state.
+ *
+ * An array and a plain object both model a PHP array; a `Map` is the JavaScript
+ * shape for a PHP array with non-string keys. A `Date`, a `Set`, a class instance
+ * or any other exotic object keeps its state somewhere other than its own
+ * enumerable keys, so walking it reads nothing — PHP rejects a `DateTime` the
+ * same way, because it does not implement `ArrayAccess`.
+ *
+ * @param value - The value to check
+ * @returns True if the value's own entries are its data
+ *
+ * @example
+ *
+ * isPhpAccessible({ a: 1 }); -> true
+ * isPhpAccessible([1, 2]); -> true
+ * isPhpAccessible(new Map()); -> true
+ * isPhpAccessible(new Date()); -> false
+ * isPhpAccessible(new Set()); -> false
+ */
+export function isPhpAccessible(value: unknown): value is object {
+    return isArray(value) || isPlainObject(value) || isMap(value);
 }
 
 /**

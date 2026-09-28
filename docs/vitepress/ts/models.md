@@ -1,18 +1,33 @@
 # Models
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) converts Eloquent models into TypeScript interfaces for their columns, mutators, and relations — resolved via a reflection + database-schema waterfall so the generated types stay accurate without you hand-maintaining them.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) turns your Eloquent models into TypeScript interfaces for their columns, accessors and relations. The types come from your database schema, casts and docblocks, so you don't keep a second copy of each model up to date by hand.
 
-As mentioned in [Installation & Usage](./index.md), models don't need the `@tolki/ts` runtime package at all (unlike [enums](./enums.md) and [routes](./routing.md)) — the output is plain TypeScript interfaces, with one exception: enum-typed columns optionally pull the `AsEnum<>` type from `@tolki/ts` itself, via a single `import { type AsEnum } from '@tolki/ts';` line in each model that has one (see [Enum-Typed Columns](#enum-typed-columns-modelresource)).
+Model interfaces are plain TypeScript, so they don't need the `@tolki/ts` runtime that [enums](./enums.md) and [routes](./routing.md) use. The one exception is a model with enum-typed columns: its file imports the `AsEnum` type with `import { type AsEnum } from '@tolki/ts';` for its [enum-resolved interfaces](#enum-typed-columns-model-resource).
 
 ## How Models Are Generated
 
-- One `.ts` file is generated per model, at a modular, namespace-derived path (e.g. `App\Models\User` → `app/models/user.ts`).
-- Barrel `index.ts` files re-export everything (`export * from './user'`) per namespace directory, the same as [enums](./enums.md#how-enums-are-generated).
-- Optionally, a runtime companion `{model}_meta.ts` is published beside the interface, exporting `{Model}ModelMetadata` (the morph class by default). It is a separate, opt-in phase — see [Model Metadata](./model-metadata.md).
-- Each column's type is resolved through a waterfall: an explicit [`#[TsCasts]`](#tscasts) override first, then the model's cast (`casts()` method or `$casts` property, including a [`#[TsType]`](#tstype) on a custom cast class), then the raw database column type — see the [Type Mapping Reference](#type-mapping-reference) for the full default table.
-- Mutators (new-style `Attribute` accessors and old-style `getXAttribute()` methods) and relations are inspected the same way, and split into their own interfaces by default — see [Model Templates](#model-templates).
+The `ts:publish` command publishes each model as follows:
+
+- **One file per model**: `App\Models\User` is written to `app/models/user.ts`, following the model's namespace. Each namespace directory also gets an `index.ts` barrel that re-exports its files (`export * from './user'`), the same as [enums](./enums.md#how-enums-are-generated).
+- **Split interfaces**: columns, accessors and relations go into separate interfaces by default. See [Model Templates](#model-templates).
+- **Column types**: a column's type comes from the first source that applies. In order, those are a [`#[TsCasts]`](#tscasts) entry, an accessor with the column's name, the model's cast in `casts()` or `$casts`, and the database column type. A custom cast class can set its own type with [`#[TsType]`](#tstype). When the result is still vague, such as `unknown[]`, a class-level `@property` tag refines it. The [Type Mapping Reference](#type-mapping-reference) lists the default types.
+- **Accessors**: new-style `Attribute` accessors and old-style `get{Name}Attribute()` methods that aren't columns publish as mutators, typed from their return types, their docblocks or what their getters return.
+- **Relations**: each relation publishes, plus a `_count` and an `_exists` property for it.
+- **Metadata companions**: an opt-in feature writes a runtime `{model}_meta.ts` file beside the interface. See [Model Metadata](./model-metadata.md).
+
+::: warning Missing Tables
+When a model has no attributes at all and its table doesn't exist, `ts:publish` prints a warning after its summary:
+
+```text
+App\Models\User: Table [users] does not exist on connection [mysql], so its columns are not published. Run the migrations, then publish again.
+```
+
+The interface is still published, with no columns, so the warning is how you tell a missing migration from a model that has no columns. A table that exists but lacks some columns isn't reported, and `--quiet` hides the warning.
+:::
 
 ## Anatomy of a Generated Model
+
+For a `User` model with enum-cast columns, accessors and relations, the published file looks like this:
 
 ```typescript
 import { type AsEnum } from "@tolki/ts";
@@ -93,21 +108,24 @@ export interface UserAllResource
   extends UserResource, UserMutators, UserRelations {}
 ```
 
-- `User` holds the raw columns — enum columns (`role`, `membership_level`) are typed with the plain `{Enum}Type` union, matching how Eloquent serializes a `BackedEnum` to JSON.
-- `UserResource` is the enum-_resolved_ variant — see [Enum-Typed Columns](#enum-typed-columns-modelresource).
-- `settings` shows an inline object type — the result of a [`#[TsCasts]`](#tscasts) override.
-- `UserMutators` holds accessor-based properties (new-style `Attribute` or old-style `getXAttribute()`), each with its PHPDoc description carried over as a JSDoc comment — see [PHPDoc Descriptions](#phpdoc-descriptions).
-- `UserRelations` includes every relation plus a generated `_count` and `_exists` property per relation (mirroring Laravel's [`withCount`](https://laravel.com/docs/eloquent-relationships#counting-related-models) / `withExists`) — including polymorphic relations and framework-provided ones (`notifications`, imported from a generated `illuminate/notifications` namespace).
-- `UserAll` / `UserAllResource` are convenience interfaces combining all three — only generated when there's more than one non-empty interface to combine.
+Each interface holds one part of the model:
+
+- **`User`**: the columns. The enum columns `role` and `membership_level` use the enum's `{Enum}Type` union, which is how Eloquent serializes a backed enum to JSON. `settings` is an inline object type from a [`#[TsCasts]`](#tscasts) override.
+- **`UserResource`**: the same columns, with each enum column typed as a resolved enum instance. See [Enum-Typed Columns](#enum-typed-columns-model-resource).
+- **`UserMutators`**: the accessors, new-style `Attribute` or old-style `getXAttribute()`. Each accessor's PHPDoc description becomes a JSDoc comment. See [PHPDoc Descriptions](#phpdoc-descriptions).
+- **`UserRelations`**: every relation, including polymorphic ones and framework relations such as `notifications`, which is imported from a generated `illuminate/notifications` directory. Each relation also gets a `_count` and an `_exists` property, matching Laravel's [`withCount`](https://laravel.com/docs/eloquent-relationships#counting-related-models) and `withExists`.
+- **`UserAll` and `UserAllResource`**: the interfaces combined. `UserAll` is generated when the model has accessors or relations. `UserAllResource` is generated whenever the model has an enum-typed property, even with no accessors or relations.
 
 ## Model Templates
 
-By default, a model is split into up to four interfaces (`{Model}`, `{Model}Mutators`, `{Model}Relations`, `{Model}All`) so a given page only needs to import what it actually uses. Switch to a single combined interface with the `model-full` template:
+By default, a model is split into up to four interfaces (`{Model}`, `{Model}Mutators`, `{Model}Relations` and `{Model}All`), so a page imports only the parts it uses. The `model-full` template puts everything in one interface instead:
 
-| Template                          | Description                                                                                                                            |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `laravel-ts-publish::model-split` | **(Default)** Separate interfaces for properties, mutators, and relations, plus an `All` interface combining them.                     |
-| `laravel-ts-publish::model-full`  | Combines properties, mutators, and relations into one interface (grouped with `// Columns` / `// Mutators` / `// Relations` comments). |
+| Template                          | Description                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `laravel-ts-publish::model-split` | **(Default)** Separate interfaces for columns, mutators and relations, plus an `All` interface that combines them. |
+| `laravel-ts-publish::model-full`  | One interface, with `// Columns`, `// Mutators` and `// Relations` comments between the groups.                    |
+
+Set the template in your config:
 
 ```php
 // config/ts-publish.php
@@ -117,18 +135,18 @@ By default, a model is split into up to four interfaces (`{Model}`, `{Model}Muta
 ```
 
 ::: tip
-Any mutator listed in the model's `$appends` array is always included in the properties interface (even in the split template), since Laravel always includes appended attributes when serializing a model to JSON.
+An accessor listed in the model's `$appends` array publishes in the main `{Model}` interface in both templates, because Laravel includes appended attributes every time it serializes the model to JSON.
 :::
 
-Publish the views (`php artisan vendor:publish --tag="laravel-ts-publish-views"`) if you want to customize either template's structure, then point `models.template` at your published/custom view.
+To change a template's structure, see [Publishing and Editing Templates](./customizing-the-pipeline.md#publishing-and-editing-templates).
 
-### Choosing between interfaces in a form
+### Choosing Between Interfaces in a Form
 
-The split template lets you compose only the pieces a page needs. For example, an Inertia form that needs the full `User` shape plus just one relation flag:
+The split template lets you compose only the pieces a page needs. This Inertia form uses the full `User` shape plus one relation flag:
 
 ```typescript
 import { useForm } from "@inertiajs/vue3";
-import type { User, UserRelations } from "@js/types/data/models";
+import type { User, UserRelations } from "@js/types/data/app/models";
 
 interface UserForm extends User, Pick<UserRelations, "profile_exists"> {
   profile: UserRelations["profile"] | null;
@@ -136,64 +154,61 @@ interface UserForm extends User, Pick<UserRelations, "profile_exists"> {
 
 const form = useForm<UserForm>({ ...user });
 form.profile; // Profile | null
-form.posts; // TS error — `posts` isn't part of UserForm
+form.posts; // TS error: `posts` isn't part of UserForm
 ```
 
-With `model-full`, the equivalent requires `Omit`-ing every relation property you don't need instead of only picking what you want:
+With `model-full`, you `Omit` every relation property you don't need, instead of picking the ones you do:
 
 ```typescript
-import type { User } from "@js/types/data/models";
+import type { User } from "@js/types/data/app/models";
 
 interface UserForm extends Omit<
   User,
-  | "admin"
-  | "profile"
-  | "posts"
-  | "profile_count"
-  | "posts_count"
-  | "posts_exists"
+  "profile" | "posts" | "profile_count" | "posts_count" | "posts_exists"
 > {
   profile: User["profile"] | null;
 }
 ```
 
-Additionally, when using the `model-full` template, since all relations are included, it creates deeply dependent types where errors in a relation 2, 3 or more levels deep can propagate and cause TypeScript to raise errors. It can be good way to make sure all your models have proper TypeScript types for forms and other contexts where you only need a subset of the model's relations, but it can be a bit annoying to track down and fix.
+Because `model-full` includes every relation, each model also depends on the full interface of every model it relates to. A type error two or three relations deep then surfaces in every model that reaches it. That can help you find models whose types are incomplete, but those errors take longer to trace and fix.
 
 ## Nullable Relations
 
-Singular relations are automatically typed with `| null` based on the relation type and, where relevant, whether the underlying foreign key column is nullable:
+Singular relations get `| null` from their relation type. For `BelongsTo` and `MorphTo`, the package also checks whether the foreign key columns are nullable:
 
-| Relation Type                                          | Strategy   | Behavior                                                                 |
-| ------------------------------------------------------ | ---------- | ------------------------------------------------------------------------ |
-| `HasOne`                                               | `nullable` | Always add `null` — the related record may not exist.                    |
-| `MorphOne`                                             | `nullable` | Always add `null`.                                                       |
-| `HasOneThrough`                                        | `nullable` | Always add `null`.                                                       |
-| `BelongsTo`                                            | `fk`       | Add `null` only when the foreign key column is nullable in the database. |
-| `MorphTo`                                              | `morph`    | Add `null` when either the morph type or morph id column is nullable.    |
-| `HasMany`, `BelongsToMany`, `MorphMany`, `MorphToMany` | `never`    | Never nullable (returns an empty array, not null).                       |
+| Relation Type                                                            | Strategy   | Behavior                                                                       |
+| ------------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------------------ |
+| `HasOne`, `MorphOne`, `HasOneThrough`                                    | `nullable` | Always nullable, because the related record may not exist.                     |
+| `BelongsTo`                                                              | `fk`       | Nullable only when the foreign key column is nullable in the database.         |
+| `MorphTo`                                                                | `morph`    | Nullable when either the morph type column or the morph id column is nullable. |
+| `HasMany`, `HasManyThrough`, `BelongsToMany`, `MorphMany`, `MorphToMany` | `never`    | Never nullable. An empty relation serializes as an empty array, not `null`.    |
+
+For example, the `User` and `Post` relations publish like this:
 
 ```typescript
 export interface UserRelations {
-  profile: Profile | null; // HasOne — always nullable
-  posts: Post[]; // HasMany — never nullable
+  profile: Profile | null; // HasOne: always nullable
+  posts: Post[]; // HasMany: never nullable
 }
 
 export interface PostRelations {
-  author: User; // BelongsTo — user_id is NOT NULL
-  category_rel: Category | null; // BelongsTo — category_id is nullable
+  author: User; // BelongsTo: user_id is NOT NULL
+  category_rel: Category | null; // BelongsTo: category_id is nullable
 }
 ```
 
-### Disabling or overriding the strategy
+### Disabling or Overriding the Strategy
+
+Set `models.nullable_relations` to `false` to keep every singular relation non-nullable:
 
 ```php
 // config/ts-publish.php
 'models' => [
-    'nullable_relations' => false, // keep all singular relations non-nullable
+    'nullable_relations' => false,
 ],
 ```
 
-Override the strategy per relation type (including custom third-party relation classes) via `models.relation_nullability_map` — keys are FQCNs, values are `'nullable'`, `'never'`, `'fk'`, or `'morph'`:
+To change the strategy for one relation type, map its class to `'nullable'`, `'never'`, `'fk'` or `'morph'` in `models.relation_nullability_map`. This works for custom and third-party relation classes too:
 
 ```php
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -209,21 +224,73 @@ use SomePackage\Relations\BelongsToTenant;
 ],
 ```
 
-See `AbeTwoThree\LaravelTsPublish\RelationMap` for the full default map.
+The table above is the default map. A relation class that isn't in the map is always nullable, so map a custom relation class to give it a stricter strategy.
+
+## What Gets Published: Hidden Attributes, Write-Only Accessors
+
+Not every attribute Eloquent knows about reaches the generated interface. Hidden attributes and write-only accessors follow their own rules.
+
+### Hidden Attributes
+
+`$hidden` attributes publish by default. Set `models.exclude_hidden` to `true` to leave them out, which matches what Laravel's `toArray()` and `toJson()` return:
+
+```php
+// config/ts-publish.php
+'models' => [
+    'exclude_hidden' => true,
+],
+```
+
+With the setting on, hidden columns such as `password` and `remember_token` also drop out of resource interfaces. That applies to any resource that takes the model's properties implicitly, through whole-model delegation or `except()`. A resource's `only(['password'])` still keeps a hidden column it names. See [`exclude_hidden` and Attribute Filters](./api-resources.md#exclude-hidden-and-attribute-filters) on the API Resources page for the full rule.
+
+The default is off, so upgrading the package never drops a property your frontend already reads. Turn it on once you've confirmed the frontend doesn't need those columns. The package can't see a runtime `makeVisible()` call, so a hidden column stays out of the model's interface even on requests that reveal it. If the frontend needs a hidden column, remove it from `$hidden`.
+
+### Write-Only Accessors
+
+A write-only accessor has a setter and no getter: `Attribute::set(...)`, or `Attribute::make(set: ...)`. Its type comes from the first of these that applies:
+
+1. The `Get` type of its `@return Attribute<Get, Set>` docblock, when that type is specific and isn't `never`.
+2. The database type of a column with the same name.
+3. Nothing. The accessor is left out of the interface instead of publishing as `unknown`, unless a class-level `@property` tag types it.
+
+`Attribute<never, string>`, or `Attribute<?never, string>`, is the usual way to document an accessor with no getter. Its `never` records that there is no getter, not what reading the attribute returns, so a column behind it publishes its database type: `subject: string`, not `subject: never`.
+
+Step 2 uses the column's database type and skips its cast. Laravel reports a column that has a mutator as cast by that mutator, so an enum, `integer` or `boolean` cast on the column isn't applied. An old-style `set{Name}Attribute()` method behaves the same way. To publish a more specific type, give the accessor a specific `Get` type, such as `Attribute<Role|null, string>`, which publishes `RoleType | null`, or add a `#[TsCasts]` entry.
+
+In this `Order` model, one write-only accessor documents its `Get` type and one documents nothing:
+
+```php
+class Order extends Model
+{
+    /** @return Attribute<?string, string> */
+    protected function trackingCode(): Attribute
+    {
+        return Attribute::make(set: fn (string $value): string => strtoupper($value));
+    }
+
+    // No getter, no docblock generic, no backing column: left out of OrderMutators.
+    protected function searchIndex(): Attribute
+    {
+        return Attribute::make(set: fn (string $value): string => strtolower($value));
+    }
+}
+```
+
+`trackingCode` publishes as `tracking_code: string | null` in `OrderMutators`, and `searchIndex` doesn't appear. A write-only accessor on a real column, such as one that normalizes a value on save, publishes as that column in the main `{Model}` interface, not as a mutator.
 
 ## Model Attributes
 
-All attributes live under the `AbeTwoThree\LaravelTsPublish\Attributes` namespace.
+All attributes live in the `AbeTwoThree\LaravelTsPublish\Attributes` namespace.
 
-| Attribute      | Target                                              | Description                                                        |
-| -------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
-| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override/add TypeScript types for columns, mutators, or relations. |
-| `#[TsType]`    | Custom cast class                                   | Set the TypeScript type used wherever this cast class is applied.  |
-| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude an entire model, or a specific accessor/relation.          |
+| Attribute      | Target                                              | Description                                                          |
+| -------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| `#[TsCasts]`   | `casts()` method, `$casts` property, or model class | Override or add TypeScript types for columns, mutators or relations. |
+| `#[TsType]`    | Custom cast class                                   | Set the TypeScript type used wherever this cast class is applied.    |
+| `#[TsExclude]` | Model class, accessor method, or relation method    | Exclude a whole model, or one accessor or relation.                  |
 
 ### `#[TsCasts]`
 
-Takes an array mapping property names to either a raw TypeScript type string, or an array — `['type' => ..., 'import' => ...]` for a type that needs importing from your own files, and `['type' => ..., 'optional' => true]` to mark the property optional (a `?` in the generated interface):
+`#[TsCasts]` takes an array that maps property names to a TypeScript type. A value is either a type string, or an array: `['type' => ..., 'import' => ...]` for a type you import from your own files, and `['type' => ..., 'optional' => true]` to mark the property optional with a `?`:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
@@ -246,6 +313,8 @@ class User extends Model
 }
 ```
 
+The published interface uses those types and imports `ProductDimensions`:
+
 ```typescript
 import type { ProductDimensions } from "@js/types/product";
 
@@ -256,17 +325,15 @@ export interface User {
 }
 ```
 
-`#[TsCasts]` can be placed on the `casts()` method, the `$casts` property, or the model class itself — all three accept the same array shape.
+You can put `#[TsCasts]` on the `casts()` method, on the `$casts` property, or on the model class. All three take the same array.
 
 ::: tip
-Prefer placing `#[TsCasts]` on `casts()` / `$casts` so the TypeScript override sits next to the actual PHP cast. Since it can also override mutator and relation types, place it on the class itself when you need to override those instead.
-
-However, when extending models from the `vendor` directory, it can be useful to place `#[TsCasts]` on the class itself to override types for relations or mutators without modifying the original vendor cast definitions.
+Put `#[TsCasts]` on `casts()` or `$casts`, so the TypeScript type sits next to the PHP cast. Put it on the class when you override a mutator or a relation. It's also the right place for a model you extend from the `vendor` directory, since you can override its relation and mutator types without touching the vendor's casts.
 :::
 
 ### `#[TsType]`
 
-For a **custom cast class** used across multiple models/properties, put `#[TsType]` on the cast class once instead of repeating `#[TsCasts]` everywhere it's used:
+For a custom cast class you use on several models, put `#[TsType]` on the cast class once, instead of repeating `#[TsCasts]` everywhere you use it:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsType;
@@ -286,6 +353,8 @@ class Product extends Model
 }
 ```
 
+Every column that uses the cast publishes with that type:
+
 ```typescript
 import type { ProductDimensions } from "@js/types/product";
 
@@ -294,32 +363,94 @@ export interface Product {
 }
 ```
 
-`#[TsType]` also accepts a plain string (`#[TsType('{width: number, height: number}')]`) when the type doesn't need an import.
+`#[TsType]` also takes a plain string, such as `#[TsType('{width: number, height: number}')]`, when the type needs no import. Without `#[TsType]`, a custom cast publishes the return type of its `get()` method, or `unknown` when `get()` declares none.
 
 ## Laravel 13 Model Attributes
 
-Laravel 13 shipped a set of native class attributes across Eloquent models (`Illuminate\Database\Eloquent\Attributes`) and API resources (`Illuminate\Http\Resources\Attributes`) that replace older property-based conventions (`#[Table]` instead of `protected $table`, and so on). These are **not** attributes from this package — no `use AbeTwoThree\LaravelTsPublish\Attributes\...` needed — and most of them are honored automatically, with no configuration and no code change on your end, because Laravel resolves them into the model's ordinary instance state before this package ever reads the model:
+Laravel 13 added native class attributes for Eloquent models (`Illuminate\Database\Eloquent\Attributes`) and API resources (`Illuminate\Http\Resources\Attributes`). They replace property-based conventions, such as `#[Table]` in place of `protected $table`. These are Laravel's attributes, not this package's, so you don't import anything from `AbeTwoThree\LaravelTsPublish\Attributes` to use them. The package honors the ones that change a model's serialized shape, with no configuration:
 
-| Attribute                                                                                                                                                                                                                                                                                          | Honored? | Notes                                                                                                                                                                                                                                                              |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `#[Table('...')]`                                                                                                                                                                                                                                                                                  | Yes      | Changes which table columns are read from, same as `protected $table`.                                                                                                                                                                                             |
-| `#[Hidden(['col'])]`                                                                                                                                                                                                                                                                               | Yes      | Feeds the same `hidden` flag `protected $hidden` does — see [What gets published: hidden attributes](#what-gets-published-hidden-attributes-write-only-accessors).                                                                                                 |
-| `#[Visible(['col'])]`                                                                                                                                                                                                                                                                              | Yes      | An **allowlist** — every column _not_ listed becomes hidden, same as `protected $visible`. List every column meant to stay published, or most of the model will disappear from the generated interface.                                                            |
-| `#[Appends(['accessor'])]`                                                                                                                                                                                                                                                                         | Yes      | Adds accessors to the published set, same as `protected $appends`.                                                                                                                                                                                                 |
-| `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects which database connection's schema the columns are read from, same as `protected $connection`.                                                                                                                                                             |
-| `#[Collects(SomeResource::class)]`                                                                                                                                                                                                                                                                 | Yes      | Which resource a collection collects — see [API Resources](./api-resources.md).                                                                                                                                                                                    |
-| `#[UseResource(...)]` / `#[UseResourceCollection(...)]`                                                                                                                                                                                                                                            | Yes      | Associates a model with its resource — see [API Resources](./api-resources.md). Available since Laravel 12.29, not just 13.                                                                                                                                        |
-| `#[PreserveKeys]`                                                                                                                                                                                                                                                                                  | Yes      | Types the collection's `data` as `Record<string, R>` instead of `R[]` — the keyed JSON object Laravel serializes. `public $preserveKeys = true;` also opts in — see [API Resources § Key-Preserving Collections](./api-resources.md#key-preserving-collections).   |
-| `#[RouteKey('slug')]`                                                                                                                                                                                                                                                                              | Yes      | A model-bound route argument now generates `_routeKey` from the attribute's key even when the model carries only `#[RouteKey]` and overrides none of `getRouteKeyName()`/`getKeyName()`/`$primaryKey` — see [Routing § Model Binding](./routing.md#model-binding). |
-| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These affect querying, events, mass assignment, or factories — not the serialized shape — so there's nothing for the TypeScript generator to do either way.                                                                                                        |
+| Attribute                                                                                                                                                                                                                                                                                          | Honored? | Notes                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[Table('...')]`                                                                                                                                                                                                                                                                                  | Yes      | Selects the table whose columns are published, the same as `protected $table`.                                                                                                                                                                                         |
+| `#[Hidden(['col'])]`                                                                                                                                                                                                                                                                               | Yes      | Marks columns hidden, the same as `protected $hidden`. See [Hidden Attributes](#hidden-attributes).                                                                                                                                                                    |
+| `#[Visible(['col'])]`                                                                                                                                                                                                                                                                              | Yes      | An allowlist, the same as `protected $visible`: every column it doesn't list becomes hidden. With `models.exclude_hidden` on, list every column you want published, or most of the model disappears from the interface.                                                |
+| `#[Appends(['accessor'])]`                                                                                                                                                                                                                                                                         | Yes      | Adds accessors to the published set, the same as `protected $appends`.                                                                                                                                                                                                 |
+| `#[Connection('name')]`                                                                                                                                                                                                                                                                            | Yes      | Selects the database connection whose schema the columns come from, the same as `protected $connection`.                                                                                                                                                               |
+| `#[Collects(SomeResource::class)]`                                                                                                                                                                                                                                                                 | Yes      | Sets the resource a collection collects. See [Resource Collections](./api-resources.md#resource-collections).                                                                                                                                                          |
+| `#[UseResource(...)]`, `#[UseResourceCollection(...)]`                                                                                                                                                                                                                                             | Yes      | Link a model to its resource. See [How the Backing Model Is Resolved](./api-resources.md#how-the-backing-model-is-resolved). Available since Laravel 12.29.                                                                                                            |
+| `#[PreserveKeys]`                                                                                                                                                                                                                                                                                  | Yes      | Types the collection's `data` as `Record<string, R>` instead of `R[]`, the keyed JSON object Laravel returns. `public $preserveKeys = true;` does the same. See [Key-Preserving Collections](./api-resources.md#key-preserving-collections) on the API Resources page. |
+| `#[RouteKey('slug')]`                                                                                                                                                                                                                                                                              | Yes      | A model-bound route argument types `_routeKey` from the attribute's key, even when the model overrides none of `getRouteKeyName()`, `getKeyName()` or `$primaryKey`. See [Model Binding](./routing.md#model-binding) on the Routing page.                              |
+| Everything else (`#[DateFormat]`, `#[WithoutTimestamps]`, `#[WithoutIncrementing]`, `#[Fillable]`, `#[Guarded]`, `#[Unguarded]`, `#[Scope]`, `#[ScopedBy]`, `#[ObservedBy]`, `#[Boot]`, `#[Initialize]`, `#[Touches]`, `#[CollectedBy]`, `#[UseEloquentBuilder]`, `#[UseFactory]`, `#[UsePolicy]`) | N/A      | These change querying, events, mass assignment or factories, not the serialized shape, so they don't affect the published types.                                                                                                                                       |
 
-Most of these attribute classes (`#[Table]`, `#[Hidden]`, `#[Visible]`, `#[Appends]`, `#[Connection]`, `#[Collects]`, `#[PreserveKeys]`) require Laravel 13; `#[UseResource]`/`#[UseResourceCollection]` only require 12.29+. On an older floor, using one isn't a hard error — a `use` import of a nonexistent class doesn't fail until something actually resolves it, and nothing in this package or in Laravel itself does for a class-level attribute on a model that floor doesn't know about. The model loads and instantiates normally; the attribute is just silently ignored, which is a more dangerous failure mode than an error, since nothing tells you `#[Table]` didn't take effect. Stay on the version each attribute actually needs if you rely on it.
+::: warning Older Laravel Versions
+`#[Table]`, `#[Hidden]`, `#[Visible]`, `#[Appends]`, `#[Connection]`, `#[Collects]` and `#[PreserveKeys]` require Laravel 13. `#[RouteKey]` requires Laravel 13.21. `#[UseResource]` and `#[UseResourceCollection]` require Laravel 12.29. On an older version, using one isn't an error: the model loads normally and the attribute is ignored. Nothing tells you that `#[Table]` didn't take effect, so run a Laravel version that supports each attribute you rely on.
+:::
 
 ## Typing Attributes Without #[TsCasts]
 
-### Typing `array` casts with `@property`
+Most columns and accessors type themselves. When one publishes `unknown` or `unknown[]`, reach for these annotations before `#[TsCasts]`, in this order:
 
-A column cast to `'array'` (or any other cast the accessor → cast → DB waterfall can't type more precisely) generates as `unknown[]`. Rather than reaching for `#[TsCasts]`, add a class-level `@property`/`@property-read` docblock tag naming the real shape — the same convention PHPStan/Larastan already read — and it wins wherever the resolved type would otherwise stay vague:
+1. A parameterized `Attribute<>`, `@return` or `@phpstan-return` docblock on the accessor, generics included, such as `Attribute<Collection<int, LineItem>, never>`.
+2. A class-level `@property` or `@property-read` tag, including one that uses a `@phpstan-type` or `@phpstan-import-type` alias.
+3. A `@return MorphTo<A|B, $this>` generic on a `morphTo()` relation.
+
+PHPStan and Larastan read all of them, so the annotation that fixes your TypeScript is also checked by static analysis, and the package reads them with no configuration. `#[TsCasts]` is still the right tool when a shape's keys are built at runtime, or when the type belongs to the frontend and needs its own import. The [Annotation Checklist](#annotation-checklist) lists each case by symptom.
+
+### Accessor Getter Bodies
+
+When an accessor's getter has no specific return type, and its `@return Attribute<Get, Set>` docblock is missing or vague, the package reads what the getter returns. An accessor that would otherwise publish `unknown[]` publishes the shape it builds:
+
+```php
+class Release extends Model
+{
+    protected function versionData(): Attribute
+    {
+        return Attribute::get(fn () => ['major' => $this->major, 'minor' => $this->minor]);
+    }
+
+    protected function tagList(): Attribute
+    {
+        return Attribute::get(fn (): array => collect(explode(',', $this->tags_csv))
+            ->map(fn ($tag) => ['name' => $tag])
+            ->values()
+            ->all());
+    }
+
+    protected function emptyList(): Attribute
+    {
+        return Attribute::get(fn (): array => []);
+    }
+}
+```
+
+The first two accessors publish the shapes their getters return. The empty list keeps the `unknown[]` of its `: array` signature, because an empty `[]` says nothing about its elements:
+
+```typescript
+export interface ReleaseMutators {
+  version_data: { major: number; minor: number };
+  tag_list: { name: string }[];
+  empty_list: unknown[];
+  // …
+}
+```
+
+The package reads `Attribute::make()`, `Attribute::get()`, `new Attribute(get: ...)` and old-style `get{Name}Attribute()` bodies. An accessor declared in a trait is read against the model that uses the trait. A method the getter calls is read the same way: `channelOptions()` returns `static::channelLabels()`, whose signature is a bare `: array`, and still publishes `{ "1": string; "2": string }`. A getter that returns an untyped property is typed from the property's default value, so `channels()`, which returns `protected $allowedChannels`, publishes `string[]`.
+
+A specific return type or `Attribute<Get, Set>` generic is always read first, so the getter body never overrides an accurate annotation. When the getter can't be typed, the accessor keeps the type from its signature or docblock, or publishes `unknown` if it has neither. That happens when the getter:
+
+- Returns an empty `[]` literal, like `empty_list` above
+- Builds its keys in a loop, such as `$totals['k'.$index] = $index`
+- Calls something whose return type can't be determined
+- Reads another accessor that reads it back, in which case both publish `unknown`
+- Can only be typed as `null`, because one side of a `??` or a ternary couldn't be typed
+- Names two different classes or enums that share a short name, such as `$this->status ?? $this->author?->status` when each `status` is a different `Status` enum
+- Returns an API resource
+
+The `null` case keeps a getter from publishing a type that's plainly wrong: `fn ($value, array $attributes) => $attributes['title'] ?? null` publishes `unknown`, not `null`, because its real value is the title.
+
+### Typing `array` Casts With `@property`
+
+A column cast to `'array'`, or to any cast with no more specific type, publishes as `unknown[]`. Instead of `#[TsCasts]`, add a class-level `@property` or `@property-read` tag with the real shape. It's the same tag PHPStan and Larastan read:
 
 ```php
 /**
@@ -329,15 +460,17 @@ A column cast to `'array'` (or any other cast the accessor → cast → DB water
 class Message extends Model { ... }
 ```
 
-`$to` and `$headers` now generate as `string[] | null` and `Record<string, string> | null` instead of `unknown[] | null` — and it types the same property for PHPStan/Larastan too. The tag only takes effect when the waterfall's own result is vague, so it never overrides a type already resolved specifically (an accessor's return type, an enum cast, a custom `CastsAttributes` class, etc.), and a subclass's own tag wins over one declared on a parent.
+`$to` and `$headers` publish as `string[] | null` and `Record<string, string> | null` instead of `unknown[] | null`, and PHPStan and Larastan type the same properties.
 
-A refinement that's still partly vague is accepted as long as it's more structured than a bare untyped array/collection/object — `@property array<string, mixed>|null $settings` refines a plain `'array'` cast to `Record<string, unknown> | null` even though `Record<string, unknown>` itself still names `unknown`, because it beats the `unknown[]` it replaces. A refinement that's exactly as vague as the original (`unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` Collection fallback) is still rejected.
+A tag applies only when the column's own type is vague. It never overrides a specific type, such as an accessor's return type, an enum cast or a custom `CastsAttributes` class. A subclass's tag wins over its parent's. `@property-write` tags are ignored, because they describe the setter.
 
-The `@property` walk also covers every **trait** used by the class or its parents (recursively), so a trait supplying an accessor can carry its own class-level tag — including the non-standard `@property string[] labels` form some packages use without the `$` sigil.
+A tag that is still partly vague is used when it's more specific than the type it replaces. `@property array<string, mixed>|null $settings` turns a plain `'array'` cast into `Record<string, unknown> | null`: the type still names `unknown`, but it beats `unknown[] | null`. A tag that is exactly as vague as the original is ignored: `unknown`, `unknown[]`, `object`, or the `unknown[] | Record<string, unknown>` of a bare collection.
 
-### Typing json columns with `@phpstan-type` aliases
+The package also reads `@property` tags on the traits the model and its parents use, and on the traits those traits use. A trait that supplies an accessor can document it that way. The `$`-less form some packages use, `@property string[] labels`, works as long as nothing follows the property name.
 
-For a shape complex enough to deserve a name, define it once as a `@phpstan-type` on the DTO that owns it, then pull it into the model with `@phpstan-import-type`:
+### Typing JSON Columns With `@phpstan-type` Aliases
+
+For a shape that deserves a name, define it once as a `@phpstan-type` on the DTO that owns it, then import it into the model with `@phpstan-import-type`:
 
 ```php
 /** @phpstan-type PresetConfig array{filters?: array<string, mixed>, sorts?: list<string>} */
@@ -350,11 +483,108 @@ final readonly class PresetDto { ... }
 class Preset extends Model { ... }
 ```
 
-`$config` generates as `{ filters?: Record<string, unknown>; sorts?: string[] } | null` — the alias expands inline (no import of `PresetDto` itself is emitted, since only its shape is used), optional keys keep their `?`, and PHPStan validates the same alias. `@phpstan-import-type ... as Alias` and `@psalm-type`/`@psalm-import-type` are both recognized, an alias may reference another imported alias, and a cyclical import degrades to `unknown` rather than hanging the publish run. This is the preferred path over `#[TsCasts]` for a shape that's already worth documenting for static analysis.
+`$config` publishes as `{ filters?: Record<string, unknown>; sorts?: string[] } | null`. The alias expands inline, so `PresetDto` isn't imported, optional keys keep their `?`, and PHPStan checks the same alias. The package also reads `@phpstan-import-type ... as Alias`, `@psalm-type` and `@psalm-import-type`. An alias can use another imported alias, and an import cycle publishes `unknown` instead of stalling the run. For a shape that's already worth documenting for static analysis, prefer an alias over `#[TsCasts]`.
 
-### Typing castable-with-arguments casts
+### Nullable and Intersection Docblock Types
 
-Laravel's built-in `Castable` classes carry their configuration after a colon — `AsEnumCollection::of(DayOfWeek::class)` and `AsCollection::of(...)`/`::using(...)` all build a `"ClassName:arg1,arg2"` cast string. These are resolved without any extra config:
+A nullable alias keeps its `| null`. Here it's written with a trailing `|null`:
+
+```php
+/**
+ * @phpstan-import-type GridConfig from GridConfigDto
+ * @phpstan-import-type GridPreset from GridConfigDto
+ *
+ * @property GridConfig|null $grid_config
+ * @property GridPreset|null $grid_preset
+ */
+class Team extends Model { ... }
+```
+
+Both aliases expand, and both keep `| null`:
+
+```typescript
+export interface Team {
+  grid_config: {
+    filters?: Record<string, unknown>;
+    sorts?: string[];
+    columns?: string[];
+  } | null;
+  grid_preset: { name: string; locked?: boolean } | null;
+  // …
+}
+```
+
+A leading `?` works the same way, on a generic and on an alias, so `@property ?GridPreset $grid_preset` also keeps its `| null`. The same goes for an accessor's `@return` docblock:
+
+```php
+/** @return Attribute<?array<int, int>, never> */
+protected function stateIds(): Attribute
+
+/** @return Attribute<?FlagValue, never> */   // FlagValue is a @phpstan-type alias
+protected function flagDefault(): Attribute
+```
+
+Each type publishes with `| null`:
+
+```typescript
+export interface OrderMutators {
+  state_ids: number[] | null;
+  flag_default: boolean | number | string | null;
+  // …
+}
+```
+
+A docblock intersection resolves each member and joins them with `&`:
+
+```php
+/** @return Attribute<Collection<int, User&object{pivot: TaskAssignment}>, never> */
+protected function assignedUsers(): Attribute
+```
+
+`User` keeps its import, but `pivot` publishes as `unknown`:
+
+```typescript
+export interface ProjectMutators {
+  assigned_users: (User & { pivot: unknown })[];
+  // …
+}
+```
+
+A class named inside an `object{...}` shape always publishes as `unknown`, which is why `TaskAssignment` is lost here. A member that can't be resolved is dropped from the intersection, instead of turning the whole type into `unknown`, since `A & B` is assignable to `A`.
+
+### Trait `@template` Bindings
+
+A generic trait's `@template` parameter is bound by the `@use` tag on the class that uses the trait, so one trait can give many models a correctly typed accessor:
+
+```php
+/** @template TChild of Model */
+trait AggregatesChildren
+{
+    /** @return Attribute<EloquentCollection<int, TChild>, never> */
+    protected function childItems(): Attribute { ... }
+}
+
+class Project extends Model
+{
+    /** @use AggregatesChildren<Comment> */
+    use AggregatesChildren;
+}
+```
+
+`TChild` becomes `Comment` for this model:
+
+```typescript
+export interface ProjectMutators {
+  child_items: Comment[];
+  // …
+}
+```
+
+PHPStan reads the `@use` tag for the same purpose, so static analysis checks the binding too.
+
+### Typing Castable-With-Arguments Casts
+
+Laravel's built-in `Castable` classes carry their configuration after a colon in the cast string. `AsEnumCollection::of(DayOfWeek::class)`, `AsCollection::of(...)` and `AsCollection::using(...)` all build a `"ClassName:arg1,arg2"` cast string. The package types these with no extra configuration:
 
 ```php
 protected function casts(): array
@@ -366,19 +596,15 @@ protected function casts(): array
 }
 ```
 
-- **`AsEnumCollection::of($enum)`** generates as the enum's TypeScript type suffixed `[]` — `DayOfWeekType[]` — with the enum's import wired exactly like a scalar enum-typed column.
-- **`AsCollection::of($map)` / `::using($collection, $map)`** resolves the mapped class's element shape and appends `[]`. An `Arrayable` DTO with a documented `toArray()` shape inlines as an object array (`{ label: string; config: Record<string, unknown> }[]`); a mapped enum resolves the same way `AsEnumCollection` does. Without a resolvable map (or a bare `AsCollection`/`AsCollection::class`), it stays `unknown[]` — the same fallback as today.
-- **Any other `Castable`/`CastsAttributes` class carrying arguments** — a custom cast, `AsEncryptedCollection`, etc. — resolves as if the arguments weren't there, i.e. exactly like the bare class.
+Each cast publishes the mapped class's type as a list:
 
-::: tip
-Before reaching for `#[TsCasts]`, prefer — in this order — a parameterized `Attribute<>`/`@return`/`@phpstan-return` docblock on an accessor (generics included, e.g. `Attribute<Collection<int, LineItem>, never>`), a class-level `@property`/`@property-read` tag (including a `@phpstan-type`/`@phpstan-import-type` alias, as above), or a `@return MorphTo<A|B, $this>` generic on a `morphTo()` relation. All of these are read by PHPStan/Larastan too, so they're checked by static analysis in a way a package-specific attribute isn't — and every one is honored by the generator with no extra configuration. See the [annotation checklist](#annotation-checklist) below for the full symptom-first list.
+- **`AsEnumCollection::of($enum)`**: the enum's type with `[]`, such as `DayOfWeekType[]`. The enum is imported the same way as for an enum-cast column.
+- **`AsCollection::of($map)` and `AsCollection::using($collection, $map)`**: the mapped class's shape with `[]`. An `Arrayable` DTO with a documented `toArray()` shape inlines as an object array, such as `{ label: string; config: Record<string, unknown> }[]`, and a mapped enum publishes the same way as `AsEnumCollection`. When the mapped class has no shape the package can read, or the cast is a bare `AsCollection`, the column stays `unknown[]`.
+- **Any other `Castable` or `CastsAttributes` class with arguments**: a custom cast or `AsEncryptedCollection`, for example, publishes as if the arguments weren't there.
 
-`#[TsCasts]` is still the right tool when a shape is genuinely dynamic (keys built at runtime) or the type is owned by the frontend and needs its own import.
-:::
+### Typing `morphTo` Relations
 
-### Typing `morphTo` relations
-
-A `morphTo()` relation's target union is normally inferred in reverse — by scanning every other model for a `morphOne`/`morphMany` pointing back at it — which can only ever find a union, never narrow one. A `@return MorphTo<A|B, $this>` docblock generic on the relation method overrides that scan and types the relation directly, PHPStan-checked, no `#[TsCasts]` needed:
+By default, a `morphTo()` relation is typed as the union of every published model that declares a `morphOne()` or `morphMany()` pointing back at it. A relation that returns a custom subclass of `MorphOne` or `MorphMany` counts too. That lookup can only ever build the full union, never narrow it. To type the relation directly, add a `@return MorphTo<A|B, $this>` docblock to the relation method. PHPStan checks the same docblock, and you don't need `#[TsCasts]`:
 
 ```php
 class Activity extends Model
@@ -391,19 +617,65 @@ class Activity extends Model
 }
 ```
 
-`causer` generates as `User | null` even though no other model declares a reverse relation pointing at `Activity`. The second generic argument (`$this`, Laravel's own convention for the child) carries no target information and is ignored. A generic naming the base `Model` class (`MorphTo<Model, $this>`) isn't narrowing — it's the common, useless case (`@phpstan-return MorphTo<Model, $this>` is what Larastan itself expects when a relation's targets aren't known upfront) — so it falls through to the reverse scan exactly as if no generic were present, rather than emitting a `Model` token nothing can import. Two differently-named `morphTo` relations on the same model resolve independently either way, since both the docblock generic and the reverse scan are read per relation, not per model.
+`causer` publishes as `User | null`, even though no model declares a relation pointing back at `Activity`. With neither a docblock nor an inverse relation, a `morphTo()` publishes as `unknown`.
 
-### DTO-typed accessors and casts
+The second generic argument, `$this`, is Laravel's convention for the child model and is ignored. A generic that names the base `Model` class or an abstract class is ignored too, and the relation falls back to the union of its inverse relations. That covers `@phpstan-return MorphTo<Model, $this>`, which is what Larastan expects when a relation's targets aren't known up front, and which would otherwise publish a `Model` type that nothing can import. Each `morphTo()` relation resolves on its own, so two differently named `morphTo` relations on one model get separate types.
 
-An `Arrayable` DTO whose `toArray()` carries no `@return array{...}` shape now infers its shape from its own typed public properties — promoted constructor properties included — instead of falling back to `unknown[]`:
+#### Parents Found Through a Subclass or a Custom Pivot
+
+The union also picks up two kinds of parent that need no docblock.
+
+A parent can point its relation at a subclass of the model that declares the `morphTo()`. `Venue::reviews()` returns `morphMany(VenueReview::class, 'reviewable')`, where `VenueReview extends Review` and only `Review` declares `reviewable()`, so `Venue` joins `Review`'s union:
+
+```typescript
+export interface ReviewRelations {
+  reviewable: Artist | Venue;
+  // …
+}
+
+export interface VenueReviewRelations {
+  reviewable: Venue;
+  // …
+}
+```
+
+A subclass never inherits a sibling's parents, so `VenueReview::reviewable` stays `Venue`, and `Artist` never appears there. The union only grows upward. A parent declared against the base `Review` is never added to a subclass, because a row written through that relation stores `Review`'s morph value, not the subclass's.
+
+The second kind is a `morphToMany(...)->using(Pivot::class)` whose custom pivot declares its own `morphTo()`. The pivot row's morph column names the parent directly, so the pivot's relation resolves like any other:
 
 ```php
-final readonly class OrderTypeCapabilities implements Arrayable
+class Venue extends Model
+{
+    /** Labels attached via the custom Labelable pivot, which itself carries the morphTo back */
+    public function labels(): MorphToMany
+    {
+        return $this->morphToMany(Label::class, 'labelable')->using(Labelable::class);
+    }
+}
+```
+
+With `Artist` declaring the same relation, the pivot's `labelable` covers both parents:
+
+```typescript
+export interface LabelableRelations {
+  labelable: Artist | Venue;
+  // …
+}
+```
+
+A `morphToMany()` without `->using()` adds no parent, and neither does `morphedByMany()`. That's the inverse side of the relation, so counting it would record the wrong parent.
+
+### DTO-Typed Accessors and Casts
+
+An `Arrayable` DTO whose `toArray()` has no `@return array{...}` shape publishes the shape of its typed public properties, promoted constructor properties included, instead of `unknown[]`:
+
+```php
+final readonly class ShippingOptions implements Arrayable
 {
     public function __construct(
-        public string $typeName,
-        public bool $tracksSteelDetails,
-        public ?string $warehouseDocsKey = null,
+        public string $carrier,
+        public bool $insured,
+        public ?string $trackingUrl = null,
     ) {}
 
     /** @return array<string, bool|string|null> */
@@ -414,54 +686,36 @@ final readonly class OrderTypeCapabilities implements Arrayable
 }
 ```
 
-generates as `{ typeName: string; tracksSteelDetails: boolean; warehouseDocsKey: string | null }`. Nullable properties keep their `| null`; private, protected, and static properties are excluded, since they aren't part of `(array) $this`; and a property typed as a class with no import channel (a Model, for example) degrades to `unknown` the same way an unimportable docblock shape value does. Optionality is a separate axis from nullability: a property that is neither promoted nor given a declaration default generates as an **optional** key. Add a class-body `public string $summary;` to the DTO above, assigned in the constructor, and it generates as `summary?: string` — an unassigned typed property is absent from `(array) $this` entirely, and reflection can't tell a constructor that always assigns it from one that never does. Promote the property — or, on a DTO that isn't `readonly`, give it a declaration default — to keep the key required. Reach for a `@return array{...}` docblock instead only when the properties alone don't tell the whole story — it still wins whenever present.
+An accessor or cast that returns this DTO publishes as `{ carrier: string; insured: boolean; trackingUrl: string | null }`. Nullable properties keep their `| null`. Private, protected and static properties are left out, because `(array) $this` doesn't include them. A property typed as a class or an enum, such as a model, publishes as `unknown`, because the inline shape can't import it.
 
-This is `Arrayable`-only. A `JsonSerializable` DTO's `jsonSerialize()` still only resolves from a `@return array{...}` docblock and otherwise falls through to later resolution steps (e.g. its class basename), rather than inferring from properties — `(array) $this` is a real contract tying `toArray()` to a DTO's own properties, but `jsonSerialize()` can return anything, so inferring its shape from properties could produce a confidently wrong type.
+Optional is separate from nullable. A property that is neither promoted nor given a default value publishes as an optional key. Add `public string $summary;` to the class body above, assigned in the constructor, and it publishes as `summary?: string`. PHP leaves an unassigned typed property out of `(array) $this`, and the package can't tell whether the constructor always assigns it. To keep the key required, promote the property, or give it a default value on a DTO that isn't `readonly`. A `@return array{...}` docblock on `toArray()` always wins, so add one when the properties don't tell the whole story.
 
-### What gets published: hidden attributes, write-only accessors
+This only applies to `Arrayable`. A `JsonSerializable` DTO is typed from a `@return array{...}` docblock on `jsonSerialize()` and never from its properties, because `jsonSerialize()` can return anything. Without the docblock, the DTO isn't inlined, and the property publishes by other rules, such as the DTO's class name.
 
-Not every attribute Eloquent knows about ends up in the generated interface:
+### Annotation Checklist
 
-- **`$hidden` attributes are published by default.** Setting `ts-publish.models.exclude_hidden` to `true` excludes them instead, matching Laravel's own `toArray()`/`toJson()` serialization — the rule that would then keep a `password` or `remember_token` column out of the model's own interface, and out of any resource property set that derives from the model implicitly (whole-model delegation, `except()` — see [API Resources § `exclude_hidden` and attribute filters](./api-resources.md#exclude-hidden-and-attribute-filters) for the full, deliberately asymmetric rule, since a resource's `only(['password'])` keeps a hidden column it named explicitly). The default is permissive (`false`, hidden attributes shown) so upgrading the package never silently drops a property a consuming app already relies on; opt in once you've confirmed the frontend doesn't need those columns. When the setting is enabled, an app that still needs a hidden column client-side should either drop it from `$hidden` or call `makeVisible()` before returning the model — the generator has no way to see a runtime `makeVisible()` call, so a hidden column drops from the model's own published interface regardless of any particular request.
-- **Write-only mutators** — `Attribute::make(set: ...)` with no `get:` — resolve in this order: (1) the method's own `@return Attribute<Get, Set>` docblock, when the `Get` type is present and isn't itself vague; (2) a same-named database column, if one exists; (3) otherwise the mutator is omitted from the interface entirely, rather than emitted as `unknown`.
+This table indexes the annotations above by symptom, plus two cases from [API Resources](./api-resources.md). None of them needs `#[TsCasts]`, and PHPStan and Larastan read them all, so the annotation that fixes the TypeScript type is also checked by static analysis:
 
-```php
-class Order extends Model
-{
-    /** @return Attribute<?string, string> */
-    protected function trackingCode(): Attribute
-    {
-        return Attribute::make(set: fn (string $value): string => strtoupper($value));
-    }
+| Still publishing `unknown`?                                                                                     | Add this                                                                                                                                              | Result                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Attribute<Collection, never>` publishes `unknown[]`, and the getter builds the value in a loop                 | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>`, or `array{...}` for a fixed shape                                            | The element type (`LineItem[]`), imported automatically. Keys built in a loop can't be read from the getter body, so the generic is the fix                                                                                |
+| A bare `'array'` or `'collection'` cast with no shape anywhere else                                             | A class-level `@property` or `@property-read` tag, such as `@property array<string, mixed>\|null $settings`                                           | `Record<string, unknown> \| null`, or the tag's more specific type, instead of `unknown[] \| null`. See [Typing `array` Casts With `@property`](#typing-array-casts-with-property)                                         |
+| A JSON shape you want to name once and reuse                                                                    | `@phpstan-type Name array{...}` on the class that owns it, then `@phpstan-import-type Name from ThatClass` and `@property Name $prop` on the model    | The shape, expanded inline and checked by PHPStan, with no import of the DTO. See [Typing JSON Columns With `@phpstan-type` Aliases](#typing-json-columns-with-phpstan-type-aliases)                                       |
+| An `AsEnumCollection` or `AsCollection` cast with no argument publishes `unknown[]`                             | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                  | The element's type, an enum or a DTO shape, as a list. See [Typing Castable-With-Arguments Casts](#typing-castable-with-arguments-casts)                                                                                   |
+| A `morphTo()` publishes `unknown` because no model declares the matching `morphOne()` or `morphMany()`          | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                 | The union, with every member imported. See [Typing `morphTo` Relations](#typing-morphto-relations)                                                                                                                         |
+| A `morphTo()` whose parents point at a subclass, or reach it through a `->using()` pivot                        | Nothing. The union includes both automatically                                                                                                        | The parent union. See [Parents Found Through a Subclass or a Custom Pivot](#parents-found-through-a-subclass-or-a-custom-pivot)                                                                                            |
+| An `Arrayable` DTO accessor or cast publishes `unknown[]`                                                       | Nothing. Typed public properties, promoted constructor properties included, are read automatically when `toArray()` has no `@return array{...}` shape | The DTO's property shape instead of `unknown[]`. See [DTO-Typed Accessors and Casts](#dto-typed-accessors-and-casts)                                                                                                       |
+| `$this->relation->only([...])` or `->except([...])` loses the related model's `#[TsCasts]` or `@property` types | Nothing. This is automatic when the relation resolves to a single model and every filtered key is a database column                                   | `Pick<Model, 'a' \| 'b'>`, which reuses the model's own interface. `except()` picks every other column. See [Relation Filters](./api-resources.md#relation-filters) on the API Resources page                              |
+| An accessor or relation is missing from an inlined `$this->relation->except([...])`                             | Name it: switch that key to `only([...])`, or give it its own entry in `toArray()`                                                                    | The key comes back. An inlined `except()` expands to database columns only, which matches what `Model::except()` returns at runtime. See [Relation Filters](./api-resources.md#relation-filters) on the API Resources page |
+| An accessor publishes `unknown[]` from a vague `Attribute<array, never>` or a bare `: array` getter             | Nothing. The getter body is read when the signature and the docblock are both vague                                                                   | The shape the getter returns. See [Accessor Getter Bodies](#accessor-getter-bodies)                                                                                                                                        |
+| A query-selected attribute (`selectRaw('… as rank')`) has no column, cast or accessor behind it                 | A class-level `@property` or `@property-read` tag naming it                                                                                           | The tag's type wherever a resource or another published type reads the attribute. The tag doesn't add the attribute to the model's own interface, which lists only what the schema and casts declare                       |
+| A nullable docblock generic (`?Alias`, `Attribute<?array<int, int>, never>`) publishes `unknown`                | Nothing. A leading `?` is read as `\| null`                                                                                                           | The type with `\| null`. See [Nullable and Intersection Docblock Types](#nullable-and-intersection-docblock-types)                                                                                                         |
 
-    // No getter, no docblock generic, no backing column — omitted from OrderMutators entirely.
-    protected function searchIndex(): Attribute
-    {
-        return Attribute::make(set: fn (string $value): string => strtolower($value));
-    }
-}
-```
-
-`trackingCode` generates as `tracking_code: string | null` in `OrderMutators`; `searchIndex` doesn't appear there at all. A write-only mutator backed by a real column (e.g. one that normalizes a value on save) resolves through the normal column waterfall instead, and is published as a column rather than a mutator.
-
-### Annotation checklist
-
-A symptom-first index of the annotations above (plus one from [API Resources](./api-resources.md) on the API Resources page) — none of these need `#[TsCasts]`, and every one is read by PHPStan/Larastan too, so the annotation that unlocks the TypeScript type is also checked by static analysis:
-
-| Still generating `unknown`?                                                                                          | Add this                                                                                                                                                                | Unlocks                                                                                                                                                                                                       |
-| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Attribute<Collection, never>` / `Attribute<array, never>` resolving to `unknown[]`                                  | Parameterize the generic: `Attribute<Collection<int, LineItem>, never>` / `Attribute<array<int, string>, never>` (or `array{...}` for a fixed shape)                    | The real element type (`LineItem[]` / `string[]`), imported automatically                                                                                                                                     |
-| A bare `'array'`/`'collection'` cast with no shape anywhere else                                                     | A class-level `@property`/`@property-read` tag, e.g. `@property array<string, mixed>\|null $settings`                                                                   | `Record<string, unknown> \| null` (or more specific, if the tag is) instead of `unknown[] \| null` — see [Typing `array` casts with `@property`](#typing-array-casts-with-property)                           |
-| A JSON shape worth naming once and reusing                                                                           | `@phpstan-type Name array{...}` on the class that owns it, `@phpstan-import-type Name from ThatClass` + `@property Name $prop` on the model                             | A named, PHPStan-checked object shape expanded inline, no import of the DTO itself — see [Typing json columns with `@phpstan-type` aliases](#typing-json-columns-with-phpstan-type-aliases)                   |
-| `AsEnumCollection`/`AsCollection` cast with no argument, resolving to `unknown[]`                                    | Pass the mapped class: `AsEnumCollection::of(Status::class)`, `AsCollection::of(LineItemDto::class)`                                                                    | The mapped element's real type (enum or DTO shape), suffixed `[]` — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts)                                                         |
-| `morphTo()` typed `unknown \| null` even though the app knows the possible targets                                   | `@return MorphTo<A\|B, $this>` on the relation method                                                                                                                   | The narrowed union, every member imported — see [Typing `morphTo` relations](#typing-morphto-relations)                                                                                                       |
-| An `Arrayable` DTO accessor/cast generating `unknown[]`                                                              | Nothing extra — typed public properties (promoted constructor properties included) are read automatically once `toArray()` has no `@return array{...}` shape of its own | A property-derived object shape instead of `unknown[]` — see [DTO-typed accessors and casts](#dto-typed-accessors-and-casts)                                                                                  |
-| `$this->relation->only([...])`/`->except([...])` losing the related model's own `#[TsCasts]`/`@property` refinements | Nothing extra — automatic whenever the relation resolves to a single model and every filtered key is a real database column                                             | `Pick<Model, 'a' \| 'b'>` referencing the model's own generated interface — `except()` picks the complement, every other column — see [API Resources § Relation Filters](./api-resources.md#relation-filters) |
-| An accessor or relation missing from an inlined `$this->relation->except([...])`                                     | Name it explicitly — switch that key to `only([...])`, or give it its own entry in `toArray()`                                                                          | The key back. An inlined `except()` expands to database columns only, matching what `Model::except()` returns at runtime — see [API Resources § Relation Filters](./api-resources.md#relation-filters)        |
+If a property still publishes `unknown`, open an issue on the [package's GitHub issue tracker](https://github.com/abetwothree/laravel-ts-publish/issues) with the PHP and the generated TypeScript.
 
 ## PHPDoc Descriptions
 
-Doc blocks are read automatically and converted to JSDoc comments:
+The package reads doc blocks and turns their descriptions into JSDoc comments:
 
 | Location    | Source                                        | JSDoc Placement                          |
 | ----------- | --------------------------------------------- | ---------------------------------------- |
@@ -470,7 +724,7 @@ Doc blocks are read automatically and converted to JSDoc comments:
 | Mutators    | Doc block above the mutator's accessor method | Above the mutator property               |
 | Relations   | Doc block above the relation method           | Above the relation property              |
 
-For columns and mutators, the new-style accessor (`protected function name(): Attribute`) is checked before the old-style one (`public function getNameAttribute()`). `@`-prefixed lines (`@param`, `@return`, `@phpstan-type`, ...) are stripped — only the prose description carries over.
+For columns and mutators, the package checks the new-style accessor (`protected function name(): Attribute`) before the old-style one (`public function getNameAttribute()`). Tag lines such as `@param`, `@return` and `@phpstan-type` are removed, so only the prose description carries over. These doc blocks become the JSDoc comments in the [Anatomy of a Generated Model](#anatomy-of-a-generated-model) example:
 
 ```php
 /** Application user account */
@@ -490,14 +744,43 @@ class User extends Model
 }
 ```
 
+## Enum-Typed Columns (`{Model}Resource`)
+
+A column or accessor typed as a backed or unit enum publishes in two ways:
+
+- **The main interface**: `User` uses the enum's `{Enum}Type` union, which is how Laravel serializes the enum when it converts a model to JSON.
+- **A parallel `Resource` interface**: `{Model}Resource` types the same property as [`AsEnum<typeof Enum>`](./enums.md#type-reference), and the split template adds `{Model}MutatorsResource` for accessors and `{Model}AllResource`. `AsEnum` is the shape you get once the raw value is a full enum instance, either from `Status.from(user.status)` or from an API resource that serialized the enum with [`EnumResource`](./enum-api-resource.md).
+
+A property is rewritten only when its type is a single enum or a list of one, either optionally `| null`. A list becomes `AsEnum<typeof Enum>[]`. A shape, or a union with other types, keeps its own type.
+
+This helper resolves the raw `role` value into the type `UserResource` declares:
+
+```typescript
+import { Role } from "@js/types/data/app/enums";
+import type { User, UserResource } from "@js/types/data/app/models";
+
+function displayRole(user: User) {
+  const resolved: UserResource["role"] = user.role
+    ? Role.from(user.role)
+    : null;
+  // resolved?.name, resolved?.value, etc.: a full enum instance, not only the raw value
+}
+```
+
+::: warning
+The `Resource` interfaces, and the `AsEnum` import, are generated only when `enums.use_tolki_package` is `true`, which is the default. Set it to `false` and enum columns use `{Enum}Type` everywhere.
+:::
+
 ## Timestamps as Date Objects
 
-Timestamp columns (`date`, `datetime`, `timestamp`, and their immutable variants) map to `string` by default:
+Date and timestamp columns (`date`, `datetime`, `timestamp` and their immutable variants) publish as `string` by default. Set `timestamps_as_date` to `true` to publish them as `Date`:
 
 ```php
 // config/ts-publish.php
 'timestamps_as_date' => true,
 ```
+
+The setting changes every date column:
 
 | Config Value      | Generated Type       |
 | ----------------- | -------------------- |
@@ -506,7 +789,7 @@ Timestamp columns (`date`, `datetime`, `timestamp`, and their immutable variants
 
 ## Custom TypeScript Type Mappings
 
-The default PHP-to-TypeScript mapping is intentionally broad. Override or extend it with `custom_ts_mappings` (keys are matched case-insensitively):
+To change how a type publishes everywhere, add it to `custom_ts_mappings`. Keys are matched case-insensitively, and your entries take precedence over the built-in map:
 
 ```php
 // config/ts-publish.php
@@ -518,35 +801,12 @@ The default PHP-to-TypeScript mapping is intentionally broad. Override or extend
 ```
 
 ::: tip
-Custom mappings are merged with the built-in map and take precedence. For a _per-property_ override instead of a global one, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype) instead.
+To change one property instead of every column of a type, use [`#[TsCasts]`](#tscasts) or [`#[TsType]`](#tstype).
 :::
 
-::: warning A bare `tinyint` is now `number`
-Only the display-width-1 form stays boolean. `tinyint(1)` is what Laravel's `boolean()` emits on
-MySQL and SQLite, so genuine boolean columns are unaffected — but a column declared with
-`tinyInteger()` was previously typed [`boolean`](#booleans) and is now [`number`](#numbers).
+## Type Mapping Reference
 
-Previously, a sized native type never matched the map at all and fell through to a substring scan,
-which matched `int` inside `tinyint(1)` before reaching `tinyint`. That is why some genuinely boolean
-columns were also mistyped before this change.
-
-**What to do:** anywhere you compared a `tinyInteger()` column with `===  true` or used it directly in
-a conditional, compare against the number instead. TypeScript will point at every site.
-:::
-
-::: warning The `As*ArrayObject` casts gained an array arm
-`AsArrayObject`, `AsEncryptedArrayObject` and `AsEnumArrayObject` now emit
-[`unknown[] | Record<string, unknown>`](#arrays-objects) rather than `Record<string, unknown>` alone.
-
-An `ArrayObject` hydrated from a list serializes as a JSON **array**, so the old type rejected a
-payload the API genuinely returns.
-
-**What to do:** narrow before treating the value as an object. `Object.keys(x.meta)` no longer
-compiles on its own; guard with `Array.isArray(x.meta)` first, or use
-[`#[TsCasts]`](#tscasts) to pin the property to whichever half your column actually produces.
-:::
-
-### Type Mapping Reference
+The package maps database column types and casts to these TypeScript types by default.
 
 <div class="collection-method-list" markdown="1">
 
@@ -554,23 +814,23 @@ compiles on its own; guard with `Array.isArray(x.meta)` first, or use
 
 </div>
 
-#### Numbers
+### Numbers
 
 `bigint`, `decimal`, `double`, `double precision`, `float`, `integer`, `int`, `numeric`, `number`, `mediumint`, `smallint`, `year`, `real`, `money`, `smallmoney`, `serial`, `bigserial`, `smallserial` → **`number`**
 
-A bare `tinyint` (MySQL/SQL Server `tinyInteger()`) is also **`number`** — only the display-width-1 form (`tinyint(1)`, Laravel's `boolean()` column on MySQL/SQLite) means boolean; see [Booleans](#booleans).
+A bare `tinyint`, as created by `tinyInteger()` on MySQL and SQL Server, is also **`number`**. Only `tinyint(1)`, the type Laravel's `boolean()` column has on MySQL and SQLite, means boolean. See [Booleans](#booleans).
 
-#### Booleans
+### Booleans
 
 `bool`, `boolean`, `bit`, `tinyint(1)` → **`boolean`**
 
-#### Strings
+### Strings
 
 `char`, `character`, `enum`, `longtext`, `mediumtext`, `string`, `text`, `varchar`, `encrypted`, `uuid`, `guid`, `hashed`, `time`, `timetz`, `timestamptz`, `numeric-string` → **`string`**
 
-Sized, binary, and legacy DB native types resolve the same way: `tinytext`, `binary`, `varbinary`, `blob`, `bytea`, `tinyblob`, `mediumblob`, `longblob`, `nvarchar`, `nchar`, `ntext`, `xml`, `interval`, `uniqueidentifier`, `datetimeoffset` → **`string`**. `set(…)` also resolves to `string`, not an array — MySQL returns a matched `SET` as a comma-joined string. So do Postgres/MySQL's network and full-text types: `inet`, `cidr`, `macaddr`, `macaddr8`, `tsvector`.
+Sized, binary and legacy database types publish the same way: `tinytext`, `binary`, `varbinary`, `blob`, `bytea`, `tinyblob`, `mediumblob`, `longblob`, `nvarchar`, `nchar`, `ntext`, `xml`, `interval`, `uniqueidentifier` and `datetimeoffset` → **`string`**. `set(…)` is also a `string`, not an array, because MySQL returns a matched `SET` as a comma-separated string. So are the Postgres and MySQL network and full-text types: `inet`, `cidr`, `macaddr`, `macaddr8` and `tsvector`.
 
-#### Arrays & Objects
+### Arrays & Objects
 
 | Cast                                                               | TypeScript Type                        |
 | ------------------------------------------------------------------ | -------------------------------------- |
@@ -582,11 +842,11 @@ Sized, binary, and legacy DB native types resolve the same way: `tinytext`, `bin
 | `Illuminate\Support\Collection`                                    | `unknown[] \| Record<string, unknown>` |
 | `Illuminate\Database\Eloquent\Casts\AsFluent`                      | `object`                               |
 
-The three `As*ArrayObject` casts hydrate an `ArrayObject`, whose `jsonSerialize()` returns the underlying array verbatim — a list payload serializes as a JSON array, not an object, so the type admits both shapes rather than claiming `Record<string, unknown>` alone.
+The three `As*ArrayObject` casts hold an `ArrayObject`, which serializes a list as a JSON array and anything else as an object, so the type allows both shapes. Check `Array.isArray()` on the value before you treat it as an object, or pin its shape with [`#[TsCasts]`](#tscasts).
 
-The `unknown[]` collection row above is the **bare** form. `AsEnumCollection::of(...)` and `AsCollection::of(...)` / `::using(...)` carry their mapped class in the cast string and resolve to that element's real type instead — see [Typing castable-with-arguments casts](#typing-castable-with-arguments-casts).
+The `unknown[]` collection row is the bare form. `AsEnumCollection::of(...)`, `AsCollection::of(...)` and `AsCollection::using(...)` publish the mapped element's type instead. See [Typing Castable-With-Arguments Casts](#typing-castable-with-arguments-casts).
 
-A parameterized docblock generic (`@return`, `@property`, `Attribute<>`) narrows further, based on its declared key type. The container and the key type are resolved independently, so every container behaves identically for a given key type:
+A parameterized docblock generic in `@return`, `@property` or `Attribute<>` publishes a more specific type, based on its key type. Every container behaves the same way for a given key type:
 
 | Key type             | Emitted                    | Containers                                            |
 | -------------------- | -------------------------- | ----------------------------------------------------- |
@@ -594,15 +854,15 @@ A parameterized docblock generic (`@return`, `@property`, `Attribute<>`) narrows
 | `string`             | `Record<string, X>`        | `array<…>`, `iterable<…>`, `Collection<…>`            |
 | `array-key`, `mixed` | `X[] \| Record<string, X>` | `array<…>`, `iterable<…>`, `Collection<…>`            |
 
-(`list<X>` has no key-type slot at all — a `list<X>` docblock generic always resolves to the first row, `X[]`.) A container with **no generic at all** — a bare `Collection`, unparameterized — doesn't reach this table: it resolves through the [Arrays & Objects](#arrays-objects) table above, via `TypeScriptMap`, not through the docblock generic resolver.
+`list<X>` has no key type, so it always publishes as `X[]`. A container with no generic at all, such as a bare `Collection`, uses the [Arrays & Objects](#arrays-objects) table above instead.
 
-A collection _chain_ on a relation (`->sortBy()`, `->pluck($value, $key)`, `->take()`, …) is analyzed separately from its declared type: it keeps the `X[] | Record<string, X>` union unless the chain provably ends with sequential, 0-indexed keys — e.g. a trailing `->values()`, or `->take()` anchored at the front of an already-sequential collection — in which case it narrows to `X[]`.
+A collection chain on a relation, such as `->sortBy()`, `->pluck($value, $key)` or `->take()`, publishes as `X[] | Record<string, X>` whatever its declared type, because those methods can leave the keys out of order. It narrows to `X[]` when the chain ends with keys that count up from 0. A trailing `->values()` does that, and so does a `->take()` from the front of a collection whose keys are already sequential.
 
-#### Dates & Times
+### Dates & Times
 
-`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, `datetime2`, `smalldatetime`, and `Carbon`/`CarbonImmutable`/`Illuminate\Support\Carbon` casts all resolve through [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)`/`timestamp($precision)` actually emit once a precision is given — the same logical column as bare `datetime`, so it follows the same toggle; `smalldatetime` is kept consistent with it.
+`date`, `immutable_date`, `datetime`, `immutable_datetime`, `immutable_custom_datetime`, `timestamp`, `datetime2`, `smalldatetime`, and `Carbon`, `CarbonImmutable` or `Illuminate\Support\Carbon` casts all follow [`timestamps_as_date`](#timestamps-as-date-objects) → **`string`** (default) or **`Date`**. `datetime2` is what SQL Server's `dateTime($precision)` and `timestamp($precision)` create when you give a precision. It's the same kind of column as a bare `datetime`, so it follows the same setting, and `smalldatetime` does too.
 
-#### Other
+### Other
 
 | Cast                                | TypeScript Type               |
 | ----------------------------------- | ----------------------------- |
@@ -617,40 +877,11 @@ A collection _chain_ on a relation (`->sortBy()`, `->pluck($value, $key)`, `->ta
 | `geometry`, `geography`             | `unknown`                     |
 | `vector`                            | `number[]`                    |
 
-A spatial column's serialized shape depends entirely on how the app reads it — raw WKB is a binary
-string, `ST_AsGeoJSON()` is an object — so `unknown` is the honest type rather than a guess. `vector`
-is a pgvector/MySQL 9 column, which both serialize as a JSON array of floats.
-
-MySQL's `geometry(subtype: '...')` writes the subtype itself as the column's native type instead of
-`geometry` — `point`, `linestring`, `polygon`, `geometrycollection`, `multipoint`, `multilinestring`,
-and `multipolygon` all resolve to **`unknown`** too, for the same reason as `geometry` above.
-
-## Enum-Typed Columns (`{Model}Resource`)
-
-A column, mutator, or relation typed to a `BackedEnum` or `UnitEnum` gets two representations:
-
-- The base interface (`User`) types it as the plain `{Enum}Type` union — matching how Laravel serializes a `BackedEnum` when a model is cast to JSON.
-- A parallel `{Model}Resource` / `{Model}MutatorsResource` / `{Model}AllResource` interface types the same property with [`AsEnum<typeof Enum>`](./enums.md#type-reference) instead — the shape you get once you've resolved the raw value to a full enum instance (e.g. `Status.from(user.status)`, or a Laravel API Resource that already serialized the enum via [`EnumResource`](./enum-api-resource.md)).
-
-```typescript
-import { Role } from "@data/enums";
-import type { User, UserResource } from "@data/models";
-
-function displayRole(user: User) {
-  const resolved: UserResource["role"] = user.role
-    ? Role.from(user.role)
-    : null;
-  // resolved?.label, resolved?.value, etc. — full enum instance, not just the raw value
-}
-```
-
-::: warning
-The `{Model}Resource` variants (and the `AsEnum` import) are only generated when `enums.use_tolki_package` is `true` (the default). Set it to `false` and enum columns are typed with `{Enum}Type` only, everywhere.
-:::
+A spatial column's JSON shape depends on how your app reads it. Raw WKB is a binary string, and `ST_AsGeoJSON()` returns an object, so the package publishes `unknown` instead of guessing. MySQL's `geometry(subtype: '...')` reports the subtype as the column type, so `point`, `linestring`, `polygon`, `geometrycollection`, `multipoint`, `multilinestring` and `multipolygon` all publish as **`unknown`** for the same reason. A `vector` column comes from pgvector or MySQL 9, which both serialize it as a JSON array of floats.
 
 ## Filtering & Excluding Models
 
-Same include/exclude pattern used by enums and resources:
+Models use the same include and exclude settings as enums and resources:
 
 ```php
 // config/ts-publish.php
@@ -661,7 +892,9 @@ Same include/exclude pattern used by enums and resources:
 ],
 ```
 
-`#[TsExclude]` on the model class excludes the whole model; on an accessor or relation method, it excludes just that property:
+A relation that points at a model outside `included`, or at an `excluded` model, is left out of the relations interface, and a `morphTo()` union drops those models too.
+
+`#[TsExclude]` on the model class excludes the whole model. On an accessor or relation method, it excludes only that property:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsExclude;
@@ -682,13 +915,13 @@ class User extends Model
 }
 ```
 
-See [Excluding Content](./excluding-content.md) for the full attribute behavior shared across models, enums, resources, and routes.
+See [Excluding Content](./excluding-content.md) for how `#[TsExclude]` works across models, enums, resources and routes.
 
-The [model metadata](./model-metadata.md) phase inherits these three settings unless the matching `model_metadata.*` key is set.
+The [model metadata](./model-metadata.md#filtering-excluding) feature inherits these three settings unless you set the matching `model_metadata.*` key.
 
 ## Casing
 
-`models.relationship_case` (`'snake'` (default), `'camel'`, or `'pascal'`) controls the casing of relation names. The `_count` and `_exists` suffixes are appended literally to the cased name:
+`models.relationship_case` sets the casing of relation names: `'snake'` (default), `'camel'` or `'pascal'`. The `_count` and `_exists` suffixes are added to the cased name as they are:
 
 | Config Value | Relation (`hasMany(Post::class)`) | Count               | Exists               |
 | ------------ | --------------------------------- | ------------------- | -------------------- |
@@ -698,4 +931,4 @@ The [model metadata](./model-metadata.md) phase inherits these three settings un
 
 ## Configuration Reference
 
-The full list of `models.*` config keys — including pipeline class overrides for advanced customization — lives in the [Configuration Reference](./configuration-reference.md).
+The [Configuration Reference](./configuration-reference.md) lists every `models.*` config key, including the pipeline class overrides for advanced customization.
