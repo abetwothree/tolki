@@ -1018,7 +1018,7 @@ const result = pluralPascal("HelloWorld");
 
 `password`, `random`, `ulid`, `uuid`, and `uuid7` (along with their `createXUsing`/`createXNormally` testing helpers) generate a new value on every call, so a live playground would just show a different, unverifiable result each time you touch it — there's no live example for these.
 
-Generate a random, secure password.
+Generate a random, secure password. It is 32 characters long by default and mixes letters, numbers and symbols; the other arguments turn letters, numbers, symbols and spaces on or off.
 
 ```javascript
 import { password } from "@tolki/str";
@@ -1026,7 +1026,13 @@ import { password } from "@tolki/str";
 const result = password();
 
 // result is a random, secure password
+
+const pin = password(6, false, true, false, false);
+
+// pin is six random digits
 ```
+
+The password includes at least one character from each set you turn on, if it is long enough to hold one of each. Turning every set off throws an `Error`.
 
 #### plural
 
@@ -1828,8 +1834,8 @@ const result2 = wordWrap("😀😀😀😀", 2, "\n", true);
 ```
 
 ' },
-{ name: 'cutLongWords', type: 'boolean', default: false },
-]"
+    { name: 'cutLongWords', type: 'boolean', default: false },
+  ]"
 />
 
 #### words
