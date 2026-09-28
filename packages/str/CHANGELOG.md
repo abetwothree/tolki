@@ -1,5 +1,20 @@
 # @tolki/str
 
+## 1.6.0
+
+### Minor Changes
+
+- f13dbea: `password()` now matches Laravel's latest behavior in two edge cases.
+  - Asking for a password shorter than the number of character sets in use now returns exactly the length you asked for. For example, `password(1)` returns one character instead of three.
+  - Turning every character set off, as in `password(32, false, false, false, false)`, now throws an `Error` with the message "At least one character pool must be enabled." instead of quietly returning an empty string.
+
+### Patch Changes
+
+- Updated dependencies [6032c51]
+- Updated dependencies [4fecd5b]
+  - @tolki/num@2.2.3
+  - @tolki/utils@1.4.0
+
 ## 1.5.0
 
 ### Minor Changes
