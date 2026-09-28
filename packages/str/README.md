@@ -1834,8 +1834,8 @@ const result2 = wordWrap("😀😀😀😀", 2, "\n", true);
 ```
 
 ' },
-    { name: 'cutLongWords', type: 'boolean', default: false },
-  ]"
+{ name: 'cutLongWords', type: 'boolean', default: false },
+]"
 />
 
 #### words
