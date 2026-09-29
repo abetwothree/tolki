@@ -12718,6 +12718,59 @@ describe("Collection", () => {
             ]);
         });
 
+        it("hands the callback the chunk it builds, and yields a copy of it", () => {
+            const kept: Array<Collection<number>> = [];
+            const chunks = collect([1, 2, 3]).chunkWhile(
+                (_value, _key, chunk) => {
+                    kept.push(chunk);
+
+                    return true;
+                },
+            );
+            const [first] = kept;
+
+            first?.push(99);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunkWhile-kept-chunk"
+            expect({
+                chunks: chunks.map((chunk) => chunk.all()).all(),
+                kept: kept.map((chunk) => chunk.all()),
+            }).toEqual({
+                chunks: [[1, 2, 3]],
+                kept: [
+                    [1, 2, 3, 99],
+                    [1, 2, 3, 99],
+                ],
+            });
+        });
+
+        it("copies each item at most once, however long a chunk runs", () => {
+            let copied = 0;
+
+            class Counted extends Collection<number> {
+                constructor(items?: readonly number[]) {
+                    super(items);
+
+                    // A collection that holds another array than the one it was built from has copied it.
+                    if (this.items !== items) {
+                        copied += this.count();
+                    }
+                }
+            }
+
+            const run = new Counted(
+                Array.from({ length: 100 }, (_, index) => index),
+            );
+
+            copied = 0;
+
+            const chunks = run.chunkWhile(() => true);
+
+            // JS-only: a bound on the work, so a chunk the callback sees grow costs its length, not its length squared.
+            expect(chunks.count()).toBe(1);
+            expect(copied).toBeLessThanOrEqual(100);
+        });
+
         it("returns an empty collection for an empty collection", () => {
             const data = collect([]).chunkWhile(() => true);
 

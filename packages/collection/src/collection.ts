@@ -4550,11 +4550,15 @@ export class Collection<
                 callback(
                     value,
                     key as unknown as TKey,
-                    this.newInstance<TValue, TKey, Removed<TShape>>(chunk),
+                    // PHP hands the callback the chunk it is building; a copy per call would cost a long chunk its
+                    // length squared.
+                    this.newInstance<TValue, TKey, Removed<TShape>>(
+                        handOver(chunk),
+                    ),
                 ),
         );
 
-        return this.wrapChunks<TKey, Removed<TShape>>(chunked);
+        return this.wrapChunks<TKey, Removed<TShape>>(chunked, true);
     }
 
     /**
@@ -7400,6 +7404,8 @@ export class Collection<
      * Wrap each plain chunk from `@tolki/data` in a collection, then wrap the list of them.
      *
      * @param chunked - The chunks as `dataChunk*` returned them
+     * @param shared - Whether a callback was handed the chunks, which it may still hold, so each is copied, as PHP
+     * yields a copy of the chunk it built
      * @returns A list of chunk collections, each typed by the key and shape its caller names
      */
     protected wrapChunks<
@@ -7407,6 +7413,7 @@ export class Collection<
         TChunkShape extends CollectionShape,
     >(
         chunked: TValue[][] | Record<number, Record<PropertyKey, TValue>>,
+        shared: boolean = false,
     ): Collection<Collection<TValue, TChunkKey, TChunkShape>, number, "list"> {
         const chunks = isArray(chunked) ? chunked : Object.values(chunked);
 
@@ -7418,7 +7425,7 @@ export class Collection<
             handOver(
                 chunks.map((chunk) =>
                     this.newInstance<TValue, TChunkKey, TChunkShape>(
-                        handOver(chunk),
+                        shared ? chunk : handOver(chunk),
                     ),
                 ),
             ),
