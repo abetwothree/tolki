@@ -16783,30 +16783,131 @@ describe("Collection", () => {
             ]);
         });
 
-        it("passes plain objects as single arg and index last", () => {
-            const obj1 = { x: 1 };
-            const obj2 = { y: 2 };
-            const c = collect([obj1, obj2]);
-            const args: unknown[] = [];
-            c.eachSpread((value, key) => {
-                args.push([value, key]);
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-null-row"
+            const seen: unknown[] = [];
+
+            collect([null, [1]]).eachSpread((...args) => {
+                seen.push(args);
             });
-            expect(args).toEqual([
-                [obj1, 0],
-                [obj2, 1],
+            collect({ x: null }).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([[0], [1, 1], ["x"]]);
+        });
+
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-int-keyed-row"
+            const seen: unknown[] = [];
+
+            collect([{ 5: "a", 7: "b" }, {}]).eachSpread((...args) => {
+                seen.push(args);
+            });
+            collect({ x: { 5: "a", 7: "b" } }).eachSpread((...args) => {
+                seen.push(args);
+            });
+            collect([
+                new Map([
+                    [5, "a"],
+                    [7, "b"],
+                ]),
+            ]).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([
+                ["a", "b", 0],
+                [1],
+                ["a", "b", "x"],
+                ["a", "b", 0],
             ]);
         });
 
-        it("handles nested Collection of objects", () => {
-            const c = collect([collect({ a: 1 }), collect({ b: 2 })]);
-            const args: unknown[] = [];
-            c.eachSpread((value, key) => {
-                args.push([value, key]);
+        it("spreads the values of a Collection row holding a record, as PHP unpacks its integer keys", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-eachSpread-int-keyed-collection-row"
+            const seen: unknown[] = [];
+
+            collect([collect({ 5: "a", 7: "b" })]).eachSpread((...args) => {
+                seen.push(args);
             });
-            expect(args).toEqual([
-                [{ a: 1 }, 0],
-                [{ b: 2 }, 1],
+            collect({ x: collect({ 5: "a", 7: "b" }) }).eachSpread(
+                (...args) => {
+                    seen.push(args);
+                },
+            );
+
+            expect(seen).toEqual([
+                ["a", "b", 0],
+                ["a", "b", "x"],
             ]);
+        });
+
+        it("reads a Collection-like row's items through all()", () => {
+            // CollectionTest::testEachSpread, whose Collection rows a class instance with all() stands for here
+            const seen: unknown[] = [];
+            const row = new (class {
+                all() {
+                    return [1, "a"];
+                }
+            })();
+
+            collect([row]).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([[1, "a", 0]]);
+        });
+
+        it("spreads a string-keyed plain object row's values, on a list and on a keyed collection", () => {
+            // JS-only: PHP throws "Cannot use positional argument after named argument during unpacking", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-string-keyed-row"
+            const seen: unknown[] = [];
+
+            collect([{ x: 1 }, { y: 2 }]).eachSpread((...args) => {
+                seen.push(args);
+            });
+            collect({ p: { a: 1, b: 2 } }).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([
+                [1, 0],
+                [2, 1],
+                [1, 2, "p"],
+            ]);
+        });
+
+        it("spreads a string-keyed Collection row's values", () => {
+            // JS-only: PHP throws "Cannot use positional argument after named argument during unpacking", per
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-eachSpread-string-keyed-collection-row"
+            const seen: unknown[] = [];
+
+            collect([collect({ a: 1 }), collect({ b: 2 })]).eachSpread(
+                (...args) => {
+                    seen.push(args);
+                },
+            );
+
+            expect(seen).toEqual([
+                [1, 0],
+                [2, 1],
+            ]);
+        });
+
+        it("passes any other object row whole", () => {
+            // JS-only: PHP throws "Cannot use object of type DateTime as array", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-object-row"
+            const date = new Date(0);
+            const seen: unknown[] = [];
+
+            collect([date]).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([[date, 0]]);
         });
 
         it("uses object keys when collection has string keys", () => {

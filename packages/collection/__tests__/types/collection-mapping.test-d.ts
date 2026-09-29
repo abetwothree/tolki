@@ -1022,12 +1022,28 @@ describe("collection mapping, keying and grouping type tests", () => {
             ).toEqualTypeOf<Tagged>();
         });
 
-        it("hands an object row whole and spreads a collection row's items", () => {
-            collect([{ a: 1 }]).eachSpread((row) => {
-                expectTypeOf(row).toEqualTypeOf<{ a: number }>();
+        it("spreads a plain object, a Map or a collection row's items, as mapSpread does", () => {
+            collect([{ a: 1 }]).eachSpread((value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+            });
+            collect({ x: { a: 1, b: 2 } }).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<(number | "x")[]>();
+            });
+            collect([new Map([["a", 1]])]).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<number[]>();
             });
             collect([collect([1, 2])]).eachSpread((first) => {
                 expectTypeOf(first).toEqualTypeOf<number>();
+            });
+            collect([collect({ a: 1, b: 2 })]).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<number[]>();
+            });
+        });
+
+        it("hands a Date row whole, then its key", () => {
+            collect([new Date(0)]).eachSpread((...args) => {
+                expectTypeOf(args).toEqualTypeOf<[Date, number]>();
             });
         });
 

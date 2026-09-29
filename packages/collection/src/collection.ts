@@ -1,4 +1,3 @@
-import { wrap as arrWrap } from "@tolki/arr";
 import {
     dataAfter,
     dataBefore,
@@ -737,15 +736,6 @@ type ReplacesKeyed<TItem> = unknown extends TItem
 type CollapseWithKeysShape<TItem> = [ReplacesKeyed<TItem>] extends [never]
     ? "list"
     : "list" | "partial";
-
-/** A row as eachSpread() hands it on, keeping a plain object or a Map row whole where mapSpread() spreads it. */
-type SpreadRow<TRow> = unknown extends TRow
-    ? TRow
-    : TRow extends null
-      ? []
-      : TRow extends readonly unknown[] | { all: (...args: never[]) => unknown }
-        ? TRow
-        : [TRow];
 
 /** Whether a collection surely holds a string key: a keyed one holds every literal key its type names. */
 type HoldsStringKey<TKey, TShape> = [TShape] extends ["keyed"]
@@ -5965,34 +5955,23 @@ export class Collection<
     /**
      * Execute a callback over each nested chunk of items.
      *
-     * @param callback - The callback to execute, receiving a chunk's values and then its key; false stops the loop
+     * @param callback - The callback to execute, receiving a row's items, or a plain object's or a Map's values, and
+     * then its key; false stops the loop
      * @returns The current collection instance
      *
      * @example
      *
      * new Collection([[1, 'a'], [2, 'b']]).eachSpread((n, s, k) => console.log(n, s, k)); -> logs "1 a 0", "2 b 1"
      */
-    eachSpread(
-        callback: (...args: SpreadArgs<SpreadRow<TValue>, TKey>) => unknown,
-    ): this {
+    eachSpread(callback: (...args: SpreadArgs<TValue, TKey>) => unknown): this {
         // The row's own items reach the callback, which its declared tuple cannot check here.
         const spread = callback as (...args: unknown[]) => unknown;
 
-        return this.each((chunk, key) => {
-            let values: unknown[];
-
-            if (isArray(chunk)) {
-                values = chunk;
-            } else if (chunk instanceof Collection) {
-                const all = chunk.all();
-                values = isArray(all) ? all : [all];
-            } else {
-                values = arrWrap(chunk);
-            }
-
-            const loopKey = phpArrayKey(key);
-            return spread(...values, loopKey);
-        });
+        // A one-row record hands dataMapSpread() the row and its key, so each row reads as mapSpread() reads it.
+        return this.each(
+            (chunk, key) =>
+                Object.values(dataMapSpread({ [key]: chunk }, spread))[0],
+        );
     }
 
     /**
