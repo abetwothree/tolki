@@ -4038,7 +4038,7 @@ export function string<TValue, TDefault = null>(
  *
  * toCssClasses(['font-bold', 'mt-4']); -> 'font-bold mt-4'
  * toCssClasses(Object.assign(['font-bold', 'mt-4'], { 'ml-2': true, 'mr-2': false })); -> 'font-bold mt-4 ml-2'
- * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
+ * toCssClasses(Object.assign([], { 'font-bold': true, 'text-red': false })); -> 'font-bold'
  */
 // Overload: typed array → CSS class string
 export function toCssClasses<TValue>(data: ArrayItems<TValue>): string;
@@ -4095,7 +4095,8 @@ export function toCssClasses(
  * @example
  *
  * toCssStyles(['font-weight: bold', 'margin-top: 4px']); -> 'font-weight: bold; margin-top: 4px;'
- * toCssStyles(['font-weight: bold', { 'margin-left: 2px': true, 'margin-right: 2px': false }]); -> 'font-weight: bold; margin-left: 2px;'
+ * toCssStyles(Object.assign(['font-weight: bold'], { 'margin-left: 2px': true, 'margin-right: 2px': false }));
+ * -> 'font-weight: bold; margin-left: 2px;'
  */
 // Overload: typed array → CSS style string
 export function toCssStyles<TValue>(data: ArrayItems<TValue>): string;
