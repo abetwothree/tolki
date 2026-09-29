@@ -281,6 +281,18 @@ function functionName<PossibleGeneric>(paramName: PossibleGeneric): ReturnType {
 }
 ```
 
+## Changesets
+
+A changeset becomes the published changelog, so write it for someone who knows a little programming but not this code base.
+
+- Start with a brief description of what changed: one or two sentences.
+- If more is needed, add the highlights as short bullet points, one line each where possible.
+- Put breaking changes first, each starting with **Breaking:**, and say what a user has to change.
+- Name the functions and types a user can call or import. Leave out internal helpers and how the code changed: no deep dives, code walkthroughs, long examples or PHP internals.
+- Keep it a flat list with no headings, because the changelog nests each entry inside a list item.
+- Only published packages get changesets. The private ones are in `.changeset/config.json`'s `ignore` list.
+- `@tolki/utils` is an internal package so never bumps as a major release no matter if changes are breaking.
+
 ## Structure and description of packages
 
 Look at the package-docs.md file at the root for more details on the long term this monorepo is going for.
