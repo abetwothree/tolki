@@ -6735,10 +6735,10 @@ export class Collection<
         values: TOperand,
     ): Collection<TValue, TKey, Removed<TShape>>;
     whereNotBetween(key: PathKey, values: NonNullable<Operand>): unknown {
+        const valuesArray = Object.values(this.getRawItems(values));
+
         return this.filter((item: TValue) => {
             const retrieved = itemValue(item, key);
-            const valueSet = this.getRawItems(values);
-            const valuesArray = Object.values(valueSet);
 
             return (
                 compareValues(retrieved, valuesArray[0]) < 0 ||

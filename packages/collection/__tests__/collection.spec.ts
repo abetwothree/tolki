@@ -19886,6 +19886,31 @@ describe("Collection", () => {
             ).toEqual([0, 4]);
         });
 
+        it("reads its bounds once, however many items it filters", () => {
+            let lengthReads = 0;
+            const bounds = new Proxy([2, 4], {
+                get(target, key, receiver) {
+                    if (key === "length") {
+                        lengthReads += 1;
+                    }
+
+                    return Reflect.get(target, key, receiver);
+                },
+            });
+            const kept = collect([
+                { v: 1 },
+                { v: 2 },
+                { v: 3 },
+                { v: "3" },
+                { v: 4 },
+            ]).whereNotBetween("v", bounds);
+
+            // CollectionTest::testWhereNotBetween
+            expect(kept.values().all()).toEqual([{ v: 1 }]);
+            // JS-only: a bound on the work, so the bounds are read once, not once per item.
+            expect(lengthReads).toBe(1);
+        });
+
         it("keeps a list's shape and a keyed one's, as its type declares", () => {
             // JS-only: the type declares the shape, which the backing all() hands out must match
             expectShape(
