@@ -9,3 +9,5 @@ Add `SpreadArgs<TRow, TKey>`, the arguments a `mapSpread` or `eachSpread` callba
 Widen `SortSpec<TValue>`'s comparator to answer `number | boolean`. PHP 8 deprecates a comparator that answers a bool but still sorts by one, and the sort helpers in `@tolki/arr`, `@tolki/obj` and `@tolki/collection` now read such an answer as PHP's `usort()` does, so the type admits it. Every value that satisfied `SortSpec` before still does. The other direction is breaking: code that _receives_ a `SortSpec` — a parameter or field of its own declared with the type — and reads its comparator's answer as a `number` must narrow it first, since the answer may now be a bool.
 
 Deprecate `ProxyTarget` and `PropertyName`: nothing in the @tolki packages reads them now that `@tolki/collection` has dropped its unused item proxy, and the next major release removes them.
+
+Document `DataIterableItems` as it is used: `@tolki/collection`'s constructor takes it in the row a subclass's own constructor forwards through, where its docblock said no package source referenced it; the type itself is unchanged.
