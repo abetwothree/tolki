@@ -12116,6 +12116,49 @@ describe("Obj", () => {
             });
         });
 
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-int-keyed-row", "keyed"
+            expect(
+                Obj.mapSpread({ x: { 5: "a", 7: "b" } }, (...args) => args),
+            ).toEqual({ x: ["a", "b", "x"] });
+            expect(
+                Obj.mapSpread(
+                    {
+                        x: new Map([
+                            [5, "a"],
+                            [7, "b"],
+                        ]),
+                    },
+                    (...args) => args,
+                ),
+            ).toEqual({ x: ["a", "b", "x"] });
+        });
+
+        it("spreads the values of the record a Collection-like row holds", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-int-keyed-collection-row", "keyed"
+            expect(
+                Obj.mapSpread(
+                    { x: collectionLike({ 5: "a", 7: "b" }) },
+                    (...args) => args,
+                ),
+            ).toEqual({ x: ["a", "b", "x"] });
+        });
+
+        it("passes any other object row whole, never its own fields", () => {
+            // JS-only: PHP throws "Cannot use object of type DateTime as array", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-object-row"
+            const date = new Date(0);
+            const point = new (class {
+                x = 1;
+                y = 2;
+            })();
+
+            expect(
+                Obj.mapSpread({ d: date, p: point }, (...args) => args),
+            ).toEqual({ d: [date, "d"], p: [point, "p"] });
+        });
+
         it("spreads a Map's rows in its insertion order", () => {
             const seen: unknown[] = [];
             const result = Obj.mapSpread(

@@ -3659,7 +3659,7 @@ export function mapWithKeys<
 }
 
 /**
- * Run a map over each row, spreading a list row (or an object row's values) as arguments, followed by the key.
+ * Run a map over each row, spreading a list row's items (or a plain object's or a Map's values), then the key.
  *
  * A Map is walked in its insertion order, so the callback sees its rows in PHP's order.
  *
@@ -3722,15 +3722,9 @@ export function mapSpread<
                 ? item["all"]()
                 : item;
 
-        // Arr::mapSpread spreads a list row and its key append turns a null row into an empty one; a plain-object row
-        // spreads its values and a scalar passes whole, which PHP rejects but is kept as JS leniency.
-        const args = isNull(row)
-            ? []
-            : isArray(row)
-              ? row
-              : isObject(row)
-                ? Object.values(row)
-                : [row];
+        // PHP appends the key to the row: a null row becomes an array and a plain object or a Map stands for one, so
+        // wrap() holds each as its values; any other row, which PHP rejects, stays whole as JS leniency.
+        const args = isArray(row) ? row : values(wrap(row));
 
         defineKey(
             result as Record<string, TMapSpreadValue>,

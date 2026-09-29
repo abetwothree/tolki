@@ -285,6 +285,19 @@ describe("obj mapping type tests", () => {
             });
         });
 
+        it("spreads a Map row's values and passes a Date row whole", () => {
+            Obj.mapSpread({ x: new Map([["a", 1]]) }, (...args) => {
+                expectTypeOf(args).toEqualTypeOf<(number | "x")[]>();
+
+                return args;
+            });
+            Obj.mapSpread({ x: new Date(0) }, (...args) => {
+                expectTypeOf(args).toEqualTypeOf<[Date, "x"]>();
+
+                return args;
+            });
+        });
+
         it("types every argument as unknown for unknown row values", () => {
             const rows: Record<string, unknown> = { a: [1, 2, 3] };
 

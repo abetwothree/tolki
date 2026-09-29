@@ -5369,12 +5369,54 @@ describe("Arr", () => {
             expect(items).toEqual([1, "a"]);
         });
 
-        it("passes a plain object row whole, never unwrapping its all member", () => {
+        it("spreads a plain object row's values, never unwrapping its all member", () => {
             // JS-only: PHP throws on a string-keyed row (task-32-collection-release-readiness.json,
-            // "C32-E-mapSpread-string-keyed-row"); the lenient spread hands any non-list row over whole.
-            const row = { all: () => [9], b: 2 };
+            // "C32-E-mapSpread-string-keyed-row"); the lenient spread passes a plain object row's values.
+            const all = () => [9];
 
-            expect(Arr.mapSpread([row], (...args) => args)).toEqual([[row, 0]]);
+            expect(Arr.mapSpread([{ all, b: 2 }], (...args) => args)).toEqual([
+                [all, 2, 0],
+            ]);
+        });
+
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-int-keyed-row", "list"
+            expect(
+                Arr.mapSpread([{ 5: "a", 7: "b" }, {}], (...args) => args),
+            ).toEqual([["a", "b", 0], [1]]);
+            expect(
+                Arr.mapSpread(
+                    [
+                        new Map([
+                            [5, "a"],
+                            [7, "b"],
+                        ]),
+                        new Map(),
+                    ],
+                    (...args) => args,
+                ),
+            ).toEqual([["a", "b", 0], [1]]);
+        });
+
+        it("spreads the values of the record a Collection-like row holds", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-int-keyed-collection-row", "list"
+            expect(
+                Arr.mapSpread(
+                    [collectionLike({ 5: "a", 7: "b" })],
+                    (...args) => args,
+                ),
+            ).toEqual([["a", "b", 0]]);
+        });
+
+        it("passes any other object row whole", () => {
+            // JS-only: PHP throws "Cannot use object of type DateTime as array", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-object-row"
+            const date = new Date(0);
+
+            expect(Arr.mapSpread([date], (...args) => args)).toEqual([
+                [date, 0],
+            ]);
         });
 
         it("hands a null row's key alone, as appending the key makes the row an array", () => {

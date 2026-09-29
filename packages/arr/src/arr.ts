@@ -6,6 +6,8 @@ import {
     replaceRecursive as objReplaceRecursive,
     select as objSelect,
     union as objUnion,
+    values as objValues,
+    wrap as objWrap,
 } from "@tolki/obj";
 import {
     dotFlatten,
@@ -2734,8 +2736,11 @@ export function mapSpread<TMapReturn>(
                 ? row["all"]()
                 : row;
 
-        // PHP's key append turns a null row into an array, so the key follows alone, as Arr::wrap(null) is empty.
-        result.push(callback(...wrap(chunk), i));
+        // PHP appends the key to the row: a null row becomes an array and a plain object or a Map stands for one, so
+        // obj's wrap() holds each as its values; any other row, which PHP rejects, stays whole as JS leniency.
+        const items = isArray(chunk) ? chunk : objValues(objWrap(chunk));
+
+        result.push(callback(...items, i));
     }
 
     return result;

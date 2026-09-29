@@ -552,6 +552,19 @@ describe("object helper types", () => {
             >();
         });
 
+        it("spreads a Map row's values, as a Map stands for a PHP array", () => {
+            expectTypeOf<SpreadArgs<Map<string, number>, "k">>().toEqualTypeOf<
+                (number | "k")[]
+            >();
+        });
+
+        it("passes a Set, Date, RegExp or Promise row whole, as none stands for a PHP array", () => {
+            expectTypeOf<SpreadArgs<Date, 0>>().toEqualTypeOf<[Date, 0]>();
+            expectTypeOf<SpreadArgs<Set<number>, 0>>().toEqualTypeOf<
+                [Set<number>, 0]
+            >();
+        });
+
         it("passes a scalar or function row whole", () => {
             expectTypeOf<SpreadArgs<string, 0>>().toEqualTypeOf<[string, 0]>();
             expectTypeOf<SpreadArgs<() => void, 1>>().toEqualTypeOf<
