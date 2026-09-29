@@ -205,9 +205,6 @@ importers:
 
   packages/collection:
     dependencies:
-      "@tolki/arr":
-        specifier: workspace:^
-        version: link:../arr
       "@tolki/data":
         specifier: workspace:^
         version: link:../data
@@ -223,6 +220,10 @@ importers:
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
+    devDependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
 
   packages/data:
     dependencies:
