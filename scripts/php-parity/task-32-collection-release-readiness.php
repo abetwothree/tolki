@@ -1267,6 +1267,8 @@ class C32E_Accessor { public function __construct(protected array $attributes) {
     public function __isset($k) { return $k === 'some'; } }
 /** Each entry as [key, gettype(key), value]; nested Collections become ['Collection' => entries], preserving order. */
 function c32e_pairs($items): array { $out = []; foreach ($items as $k => $v) { $out[] = [$k, gettype($k), $v instanceof Collection ? ['Collection' => c32e_pairs($v)] : $v]; } return $out; }
+/** Every argument list eachSpread() hands its callback, in the order it calls it. */
+function c32e_each_spread_args(Collection $c): array { $seen = []; $c->eachSpread(function (...$a) use (&$seen) { $seen[] = $a; }); return $seen; }
 
 probe('C32-E-mapWithKeys-overwriting-keys', "collect([['id'=>1,'name'=>'A'],['id'=>2,'name'=>'B'],['id'=>1,'name'=>'C']])->mapWithKeys(fn (\$i) => [\$i['id'] => \$i['name']])", fn () => c32e_pairs((new Collection([['id' => 1, 'name' => 'A'], ['id' => 2, 'name' => 'B'], ['id' => 1, 'name' => 'C']]))->mapWithKeys(fn ($i) => [$i['id'] => $i['name']])));
 probe('C32-E-mapWithKeys-multiple-rows-order', "collect(rows 1..3)->mapWithKeys(fn (\$i) => [\$i['id'] => \$i['name'], \$i['name'] => \$i['id']])->keys()", fn () => (new Collection([['id' => 1, 'name' => 'A'], ['id' => 2, 'name' => 'B'], ['id' => 3, 'name' => 'C']]))->mapWithKeys(fn ($i) => [$i['id'] => $i['name'], $i['name'] => $i['id']])->keys()->all());
@@ -1346,6 +1348,12 @@ probe('C32-E-mapSpread-int-keyed-row', "collect([[5 => 'a', 7 => 'b'], []]) and 
 probe('C32-E-mapSpread-int-keyed-collection-row', "collect([new Collection([5 => 'a', 7 => 'b'])]) and collect(['x' => ...]), each ->mapSpread(fn (...\$a) => \$a)", fn () => ['list' => (new Collection([new Collection([5 => 'a', 7 => 'b'])]))->mapSpread(fn (...$a) => $a)->all(), 'keyed' => (new Collection(['x' => new Collection([5 => 'a', 7 => 'b'])]))->mapSpread(fn (...$a) => $a)->all()]);
 probe('C32-E-mapSpread-string-keyed-collection-row', "collect([new Collection(['a' => 1, 'b' => 2])])->mapSpread(fn (...\$a) => \$a)", fn () => (new Collection([new Collection(['a' => 1, 'b' => 2])]))->mapSpread(fn (...$a) => $a)->all());
 probe('C32-E-mapSpread-object-row', "collect([new DateTime('@0')])->mapSpread(fn (...\$a) => \$a)", fn () => (new Collection([new DateTime('@0')]))->mapSpread(fn (...$a) => $a)->all());
+probe('C32-E-eachSpread-null-row', "collect([null, [1]]) and collect(['x' => null]), each ->eachSpread(fn (...\$a) => ...): every \$a", fn () => ['list' => c32e_each_spread_args(new Collection([null, [1]])), 'keyed' => c32e_each_spread_args(new Collection(['x' => null]))]);
+probe('C32-E-eachSpread-int-keyed-row', "collect([[5 => 'a', 7 => 'b'], []]) and collect(['x' => [5 => 'a', 7 => 'b']]), each ->eachSpread(fn (...\$a) => ...): every \$a", fn () => ['list' => c32e_each_spread_args(new Collection([[5 => 'a', 7 => 'b'], []])), 'keyed' => c32e_each_spread_args(new Collection(['x' => [5 => 'a', 7 => 'b']]))]);
+probe('C32-E-eachSpread-int-keyed-collection-row', "collect([new Collection([5 => 'a', 7 => 'b'])]) and collect(['x' => ...]), each ->eachSpread(fn (...\$a) => ...): every \$a", fn () => ['list' => c32e_each_spread_args(new Collection([new Collection([5 => 'a', 7 => 'b'])])), 'keyed' => c32e_each_spread_args(new Collection(['x' => new Collection([5 => 'a', 7 => 'b'])]))]);
+probe('C32-E-eachSpread-string-keyed-row', "collect([['a' => 1, 'b' => 2]])->eachSpread(fn (...\$a) => null)", fn () => c32e_each_spread_args(new Collection([['a' => 1, 'b' => 2]])));
+probe('C32-E-eachSpread-string-keyed-collection-row', "collect([new Collection(['a' => 1, 'b' => 2])])->eachSpread(fn (...\$a) => null)", fn () => c32e_each_spread_args(new Collection([new Collection(['a' => 1, 'b' => 2])])));
+probe('C32-E-eachSpread-object-row', "collect([new DateTime('@0')])->eachSpread(fn (...\$a) => null)", fn () => c32e_each_spread_args(new Collection([new DateTime('@0')])));
 
 // Collection rows are ArrayAccess, so data_get reads through them.
 probe('C32-E-groupBy-collection-rows', "c32c_rows(list | keyed)->groupBy('k'): each group's 'v' values", fn () => array_map(fn (bool $keyed) => c32c_rows($keyed)->groupBy('k')->map(fn (Collection $group) => $group->pluck('v')->all())->all(), ['list' => false, 'keyed' => true]));
