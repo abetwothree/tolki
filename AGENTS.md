@@ -143,7 +143,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
 - Use `pnpm` as package manager
 - Use `prettier` for formatting
 - Use `oxlint` and `eslint` for linting
-- Do place line numbers on tests as the lines change often and they become outdated quickly
+- Do not place line numbers on tests as the lines change often and they become outdated quickly
 - Use `===` and `!==` instead of `==` and `!=`
 - Do not use `any` for types. Use the most specific type possible.
 - Use `unknown` for types that are not known or cannot be narrowed down.
@@ -169,6 +169,7 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isNumber(variable)` - checks if the variable is a number
   - `isInteger(variable)` - checks if the variable is an integer
   - `isFloat(variable)` - checks if the variable is a float
+  - `isPhpInt(variable)` - checks if the variable is a number PHP holds as an int: an integer within PHP's 64-bit range, and never `-0` (`1e19` and `-0` are floats in PHP)
   - `isBoolean(variable)` - checks if the variable is a boolean
   - `isFunction(variable)` - checks if the variable is a function
   - `isNull(variable)` - checks if the variable is null
@@ -190,13 +191,29 @@ When using generics in parameter types, make sure to use the correct syntax for 
   - `isAccessibleData(variable)` - checks if the variable is an array or object whose values can be walked
   - `typeOf(variable)` - returns the JavaScript `typeof` name of the variable, not PHP's, except that an array reports as `"array"`; `null` reports as `"object"`
   - `phpTypeName(variable)` - returns the type name the way PHP's `gettype()` would; use this in parity-facing messages
+  - `phpDebugType(variable)` - returns the type name the way PHP's `get_debug_type()` would: `int`, `float`, `array` for an array or a plain object, `Closure` for a function, or an object's class name; use it in a message that names what it was given, as Laravel's `ensure()` does
   - `strictEqual(value1, value2)` - checks if two values are strictly equal the way that PHP does it with `===`
   - `isUnsafeKey(key)` - checks if a key could cause prototype pollution (`__proto__`, `constructor`, `prototype`)
   - `isPhpArrayKey(value)` - checks if a value is one PHP would accept as an array key
   - `phpArrayKey(key)` - casts a key the way PHP casts an array key (`"10"` becomes `10`, `"01"` stays a string, `true` becomes `1`); use it rather than `entriesKeyValue` wherever a key must follow PHP
+  - `isIllegalOffset(value)` - checks if a value is a key no PHP array can hold (an array, an object or a function), which PHP throws a `TypeError` for wherever it reads or writes one
+  - `isEnumCase(value)` - checks if a value is an `@tolki/enum` case: a plain object with its own string `name` and its own string or number `value`
+  - `hasOwnToString(value)` - checks if a value is an object with its own `toString`, the JavaScript reading of a PHP `Stringable`; a `Date` never counts
   - `defineKey(target, key, value)` - defines an own enumerable key without going through a setter
   - `looseEqual(value1, value2)` - checks if two values are loosely equal the way that PHP does it with `==`
   - `entriesKeyValue(variable)` - converts a key of an array or object to number if it should be a number, otherwise, returns the key as is. This is useful when iterating over arrays or objects and getting the keys from `Object.entries()` or similar methods.
+- Where a Laravel method follows a PHP rule, use the `@tolki/utils` helper that ports the rule rather than deriving it again:
+  - `phpComputedKey(value, options)` - casts a key a method computed the way Laravel stores it (`true` becomes `1`, a float truncates), reading an `@tolki/enum` case or a `Stringable` object first when the options ask, and throwing PHP's `TypeError` for any other object
+  - `arrayKeyExistsError()` - builds the `TypeError` Laravel's `array_key_exists` calls throw for a key `isIllegalOffset` flags
+  - `phpIntArgument(value, message)` - reads a number passed where PHP declares an int parameter: drops its fraction, and throws `TypeError(message)` for `NAN`, an infinity or a number outside PHP's int range
+  - `phpIntCast(value)` - casts a number as PHP's `(int)` cast does, as PHP also reads a comparator's answer and the operands of `%`: drops its fraction, turns `NAN` and the infinities into `0`, and keeps the low 64 bits past PHP's int range
+  - `phpStringCast(value)` - casts a value as PHP's `(string)` cast does, as `implode()` casts each piece: an array is `"Array"`, `true` is `"1"`, and an object without its own `toString` throws
+  - `resolveTakeCount(count, size)` - returns how many items Laravel's `shift()` and `pop()` take for a count
+  - `resolvePadLength(size)` - returns the length `array_pad()` pads to, read as PHP reads its int parameter
+  - `resolveSpliceRange(size, offset, length)` - returns the `SpliceRange` (`{ start, count }`) that `array_splice()` resolves an offset and a length to
+  - `resolveRangeSize(start, end, step)` - returns how many items PHP's `range()` makes room for, and throws what `range()` throws for a range it refuses
+  - `phpSortComparator(compare)` - wraps a comparator for `Array.prototype.sort` so its answers are read as PHP's `usort()` reads them: a fraction below 1 ties, and a bool still sorts
+  - `InvalidArgumentException`, `UnexpectedValueException`, `ItemNotFoundException` and `MultipleItemsFoundException` - the exceptions Laravel's collections and `Arr` throw; throw each where Laravel throws it, so a caller can tell them apart with `instanceof`
 - For better code coverage results, use full return statements with curly braces, even for single statements, no implicit returns:
 
 ```JavaScript
@@ -315,12 +332,16 @@ More detailed description of the packages to be implemented:
 
 - Collection class and helpers to work the same way as Laravel Collections. However, PHP has associative arrays and JS does not, so the Collection class should be able to handle both array-like collections (with numeric keys) and object-like collections (with string keys) but it should not try to mimic associative arrays exactly.
 - Functions should be in the same order as in the Laravel `Collection.php` stub for easier reference
-- The Items type describes the data structure that the Collection can hold. It can be either an array of values (TValue[]) or a record/object with keys of type TKey and values of type TValue (Record<TKey, TValue>).
+- The items a Collection holds are a list (`TValue[]`) or a record keyed by `TKey` (`Record<TKey, TValue>`, or `Partial<Record<TKey, TValue>>` once a method may have dropped keys). `TShape` says which (`"list"`, `"keyed"` or `"partial"`): `all()` and `toArray()` are typed by it, and every method declares the shape of the collection it returns.
 - Keep public methods at the top of the class in the same order as in the Laravel stub for easier reference
 - Use the `@tolki/data` package to handle operations that can work on both arrays and objects. This package will smartly call the appropriate helper from `@tolki/arr` or `@tolki/obj` as needed because the Collection class can hold either arrays or objects.
 - Any functions that are public but there is no equivalent in the `@tolki/arr` or `@tolki/obj` packages should be implemented in those packages as well for consistency and reusability and then called from the Collection class. The `@tolki/data` package should also be updated to handle the new function for both arrays and objects. Then finally the Collection class can call the function from `@tolki/data` to handle both arrays and objects.
+  - That applies to a method whose Laravel body calls `Arr::`. A method built on PHP's array functions (`array_merge`, `array_map`, `implode`, …) or on the collection's own methods stays in `Collection`, as `groupBy`, `countBy`, `merge`, `mergeRecursive`, `zip`, `multiply`, `sum`, `avg`, `median`, `percentage` and `implode` do.
 - Private and protected methods should be at the bottom of the class
-- `Collection<TValue, TKey>`: `TValue` is **one item's** type and `TKey` its key (`Collection<number>` holds numbers; `Collection<number[]>` holds arrays).
+- `Collection<TValue, TKey, TShape>`: `TValue` is **one item's** type, `TKey` its key, and `TShape` whether the backing is a list or keyed (`Collection<number>` holds numbers; `Collection<number[]>` holds arrays).
+- Each method with a `@tolki/data` counterpart is pinned against it in the type tests where the two answers are the same type, and every Collection-returning method has an `expectShape` pin.
+- A runtime test that must pass a deliberately wrong type calls through `Reflect.apply` instead of using `@ts-expect-error`.
+- A JS-only extension is dropped where PHP rejects the call and a PHP-valid alternative exists; any other is kept, and its tests say why in a `// JS-only:` comment.
 - Stubs
   - The main stub is `packages/collection/stubs/Collection.php` which contains the `Collection` class and its methods to implement in JS in `packages/collection/src/collection.ts`.
   - The other stubs in `packages/collection/stubs/` are helper classes used by the `Collection` class. The methods from these helper classes should be integrated into the `Collection` class as needed.
