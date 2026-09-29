@@ -6175,7 +6175,7 @@ export class Collection<
      *
      * @example
      *
-     * new Collection([[1, 'a'], [2, 'b']]).mapSpread((n, s, k) => n + s + k); -> new Collection(['1a0', '2b1'])
+     * new Collection([[1, 'a'], [2, 'b']]).mapSpread((n, s, k) => `${n}${s}${k}`); -> new Collection(['1a0', '2b1'])
      */
     mapSpread<TMapSpreadValue>(
         callback: (...args: SpreadArgs<TValue, TKey>) => TMapSpreadValue,

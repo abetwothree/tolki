@@ -707,9 +707,9 @@ export type CollapsedObject<T> = [
     : Record<string | number, unknown>;
 
 /**
- * One row's items, read as `mapSpread` reads it: a plain object or a Map stands for a PHP array, whose values spread,
- * and PHP's key append makes a null row an empty one. A type cannot tell a class instance from a plain object, so it
- * spreads one's values where the runtime passes it whole; an unknown or keyless object row may hold any.
+ * One row's items, as `mapSpread` reads it: a plain object or a Map stands for a PHP array, whose values spread, and
+ * a null row gives none; an unknown or keyless object row may hold any. A type cannot tell a class instance from a
+ * plain object, so an instance's fields spread and a plain object's `all` member unwraps, both unlike the runtime.
  */
 type SpreadRowItems<V> = unknown extends V
     ? unknown[]

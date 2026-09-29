@@ -2663,7 +2663,7 @@ export function mapWithKeys<
 }
 
 /**
- * Run a map over each nested chunk of items, spreading array elements as individual arguments.
+ * Run a map over each row, spreading a list row's items (or a plain object's or a Map's values), then the index.
  *
  * @param data - The array to map over.
  * @param callback - The function to call with spread arguments from each chunk.
