@@ -1,833 +1,16 @@
 # API Resources
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can generate TypeScript interfaces from your Laravel [API Resources](https://laravel.com/docs/eloquent-resources) (`JsonResource` classes). It statically analyzes the `toArray()` method to extract property names, types, and optionality — producing a TypeScript interface that matches the shape of your API responses, without running the application.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates a TypeScript interface for each of your Laravel [API resources](https://laravel.com/docs/eloquent-resources), the `JsonResource` classes that shape your API's JSON. It reads each resource's `toArray()` method without calling it, and publishes the name, type, and optionality of every property the method returns.
 
-As mentioned in [Installation & Usage](./index.md), resources only need the `@tolki/ts` runtime package when they use `EnumResource::make()`, which generates `AsEnum<typeof Enum>` — backed by the runtime's `AsEnum` utility type (see [Enums](./enums.md)).
+Use it when your frontend reads JSON from API resources. Each publish regenerates the interface from `toArray()`, so you don't maintain a second, hand-written type.
 
-By default, the package looks for resources in the `app/Http/Resources` directory. See [Filtering & Excluding](#filtering--excluding) to customize this.
+By default, the package looks for resources in the `app/Http/Resources` directory. To change that, see [Filtering & Excluding](#filtering-excluding).
 
-## How the Backing Model Is Resolved
-
-The analyzer resolves property types by inspecting the backing Eloquent model's database schema and cast definitions. The backing model is determined from, in priority order:
-
-1. The `#[TsResource(model:)]` attribute
-2. The resource's own `@mixin` / `@extends` PHPDoc tag (resolved via use statements)
-3. The nearest ancestor's `@mixin` / `@extends` — climbs the parent chain until one resolves
-4. A typed `$resource` property
-5. Convention-based guess — reverses Laravel's naming convention (`App\Http\Resources\UserResource` → `App\Models\User`)
-6. `#[UseResource]` attribute scan — checks all collected models for a `#[UseResource(ResourceClass::class)]` attribute pointing to this resource (Laravel 12+ only)
-
-Most resources only need `@mixin` or the naming convention. The `#[TsResource(model:)]` attribute is useful when the resource name doesn't match the model, and `#[UseResource]` handles cases where the resource lives outside the standard `Http\Resources` namespace.
-
-Step 3 is what lets a subclass inherit its parent's model without repeating the docblock — see [Inheriting a Parent `toArray()`](#inheriting-a-parent-toarray). It applies to every resource missing its own tag, not only to body-less ones.
-
-## Supported `toArray()` Patterns
-
-The analyzer recognizes the following patterns inside `toArray()`:
-
-### Direct Property Access
-
-```php
-'id' => $this->id,
-'name' => $this->name,
-'status' => $this->status,       // Enum cast → generates enum type
-```
-
-Types are resolved from the model's database columns and cast definitions.
-
-### Local Variables
-
-A variable assigned once from a model property and returned directly carries that type into the generated interface — you don't need to inline the property access:
-
-```php
-public function toArray(Request $request): array
-{
-    $slug = $this->slug;
-
-    return [
-        'slug' => $slug,   // string — same as returning `$this->slug` directly
-    ];
-}
-```
-
-This still works even if the same name is reused as a closure or arrow-function parameter elsewhere in the method. The parameter only shadows the variable for its own closure body — it no longer degrades the outer property to `unknown`:
-
-```php
-public function toArray(Request $request): array
-{
-    $member = $this->slug;
-
-    return [
-        'outer_member' => $member, // string
-        'mapped_members' => $this->members->map(fn ($member) => $member), // User[] — this $member is the map's own element
-    ];
-}
-```
-
-If you see a property come out as `unknown` when it looks like it should resolve, check whether the backing variable is reassigned more than once, or reassigned inside a conditional branch — the analyzer can't tell which write is live at return time, so it deliberately falls back to `unknown` rather than guessing.
-
-### Conditional Methods
-
-All conditional methods produce **optional** properties (with `?` in TypeScript) by default. Every one of
-them, though, accepts a trailing default argument — and passing it explicitly makes the property
-**required**, because the key can no longer be missing. `whenNotNull()`/`whenNull()`'s default argument is
-covered just below the table; the rest of the family is covered right after that.
-
-| Method                                          | Description                                    | Generated Type            |
-| ----------------------------------------------- | ---------------------------------------------- | ------------------------- |
-| `$this->when(cond, value)`                      | Include when condition is true                 | Inferred from value       |
-| `$this->unless(cond, value)`                    | Include when condition is false                | Inferred from value       |
-| `$this->whenHas('attr')`                        | Include when attribute is present              | From model column type    |
-| `$this->whenAppended('attr')`                   | Include when accessor has been appended        | From model column type    |
-| `$this->whenNotNull($this->attr)`               | Include when not null                          | From model column type    |
-| `$this->whenNull($this->attr)`                  | Include when null                              | `null`                    |
-| `$this->whenLoaded('relation')`                 | Include when relation is loaded                | From model relation type  |
-| `$this->whenCounted('relation')`                | Include when count is loaded                   | `number`                  |
-| `$this->whenAggregated('rel', 'col', 'fn')`     | Include when aggregate is loaded               | `number`                  |
-| `$this->whenExistsLoaded('relation')`           | Include when existence flag is loaded          | `boolean`                 |
-| `$this->whenPivotLoaded('table')`               | Include when pivot is loaded                   | `unknown`                 |
-| `$this->whenPivotLoadedAs('accessor', 'table')` | Include when pivot (custom accessor) is loaded | `unknown`                 |
-| `$this->transform($value, $callback)`           | Transform `$value` via `$callback` when filled | Inferred from `$callback` |
-
-See [Nullable Relations](#nullable-relations) for `whenLoaded` nullability handling.
-
-#### `unless()` is `when()` with the condition negated
-
-`unless($condition, $value, $default)` runs `$value` when `$condition` is **false** — everything else about
-how it's typed is identical to `when()`, including the default-argument rule covered below:
-
-```php
-'status' => $this->unless($this->is_draft, $this->status),          // optional
-'status' => $this->unless($this->is_draft, $this->status, 'draft'), // required
-```
-
-#### `whenNotNull()` / `whenNull()` and their optional second argument
-
-`whenNotNull($value, $default)` and `whenNull($value, $default)` read their arguments positionally — the
-second argument is Laravel's fallback value, never a callback bound to the first argument. `whenNotNull()`'s guard
-proves the value non-null on the success arm, so its `null` possibility is removed from the generated type:
-
-```php
-'line_2' => $this->whenNotNull($this->line_2), // string | null column
-```
-
-generates `line_2?: string`, not `line_2?: string | null`.
-
-Passing a second argument changes both `optional` and the type: Laravel never omits the key once a default
-is supplied, so the property becomes **required**, and its type becomes the union of the value and default
-arms:
-
-```php
-'discount' => $this->whenNotNull($this->discount_percent, 0), // discount_percent: number | null
-```
-
-generates `discount: number` (required) — the default's type merges with, and here fully overlaps, the
-value's own type. A default of a different type (e.g. a string fallback for a numeric column) produces a
-union of both, still required.
-
-#### The rest of the conditional family and their default argument
-
-The same rule applies to every other conditional method: pass a default and the property stops being
-optional, because it can no longer be missing.
-
-```php
-'status' => $this->when($this->is_published, $this->status),          // optional
-'status' => $this->when($this->is_published, $this->status, 'draft'), // required
-```
-
-The type widens too, whenever the generator can resolve the default: its type is unioned in alongside the
-value's, so the property covers both arms rather than only the one the value expression named.
-
-```php
-'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
-'discount' => $this->when($this->has_discount, $this->discount_percent, 'n/a'), // discount: number | string
-'reviews'  => $this->whenCounted('reviews', null, 'n/a'),                       // reviews: number | string
-'address'  => $this->whenHas('full_address', $this->full_address, 0),           // address: string | number
-```
-
-An explicit `null` still counts as a default — Laravel distinguishes an omitted argument from a passed-in
-one, not a `null` value from a non-null one — so
-`$this->whenLoaded('user', fn ($user) => $user, null)` is required, and typed `User | null` rather than a
-bare `User` you could dereference on the not-loaded path.
-
-The property is required either way — passing a default means the key is always there. Only the _type_
-depends on what the generator could resolve, and two cases can't be widened:
-
-- **The default's own type can't be resolved** (an unanalyzable expression or closure). There is nothing to
-  union in, so the value's type stands alone.
-- **The value's type can't be resolved** — `whenPivotLoaded()` and `whenPivotLoadedAs()`, whose pivot
-  payload the generator never inspects. The property stays `unknown`, since `unknown` already admits the
-  default.
-
-A closure default that declares a required parameter goes a step further than merely unresolvable: Laravel
-invokes every conditional default via `value($default)`, calling it with zero arguments, so a closure
-requiring a parameter would throw if it ever ran. The generator treats that arm as unreachable and never
-lets it widen the type:
-
-```php
-'notes' => $this->whenNotNull($this->notes, fn ($notes) => strlen($notes)), // notes: string, not string | number
-```
-
-A parameter with its own default (`fn ($notes = '') => strlen($notes)`) still runs cleanly with zero
-arguments, so that arm keeps widening the type as usual.
-
-#### An explicit `null` in the value slot
-
-`whenHas()`, `whenAppended()`, and `whenExistsLoaded()` hand their value argument to Laravel's `value()`
-helper, which passes a plain `null` straight back instead of returning the attribute. So a literal `null`
-there collapses the value arm: the default still unions in as usual, but the attribute's own type never
-reaches the property at all.
-
-```php
-'address'  => $this->whenHas('full_address', null, 0),         // address: number | null
-'appended' => $this->whenAppended('full_address', null, 0),    // appended: number | null
-'exists'   => $this->whenExistsLoaded('user', null, 'absent'), // exists: string | null
-```
-
-Omitting the value argument is a different thing entirely: `whenHas('phone')` still types the column, and
-`whenExistsLoaded('user')` is still `boolean`. The arm collapses only when Laravel actually receives a `null` in that slot — a literal `null`, or a named `default:` that skips past it (`whenHas('phone', default: 0)` is `number | null`), since PHP fills the skipped slot with `null` and Laravel counts it as passed.
-
-`whenCounted()` and `whenAggregated()` substitute the `value()` helper themselves when their value argument
-is `null`, so the count still comes through — which is why `whenCounted('reviews', null, 'n/a')` above stays
-`number | string`.
-
-### Enum Properties with `EnumResource`
-
-Use `EnumResource::make()` to expose enum-cast properties as rich enum objects:
-
-```php
-'status' => EnumResource::make($this->status),
-'currency' => EnumResource::make($this->currency),
-```
-
-When `enums.use_tolki_package` is enabled (the default), these generate `AsEnum<typeof EnumName>` types with automatic imports. When disabled, they generate the enum's `Type` alias (e.g., `StatusType`).
-
-`EnumResource::collection()` does the same for a list-shaped value, producing `AsEnum<typeof EnumName>[]`.
-
-Wrapping only one arm of a ternary keeps both arms. Wrap on one side, read the property directly on the other, and the two shapes come through as a union with the import each one needs — including nested inside an inline array:
-
-```php
-'audit' => [
-    'status' => $request->boolean('wrap')
-        ? EnumResource::collection($this->status_history)
-        : $this->status_history,
-],
-```
-
-```typescript
-import { type AsEnum } from "@tolki/ts";
-
-import { Status } from "../../enums";
-import type { StatusType } from "../../enums";
-
-export interface TeamStatusAuditResource {
-  audit: { status: AsEnum<typeof Status>[] | StatusType[] };
-}
-```
-
-### Nested Resources
-
-Reference other resources using `::make()`, `::collection()`, or `new`:
-
-```php
-// Single nested resource (optional when inside whenLoaded)
-'author' => UserResource::make($this->whenLoaded('user')),
-
-// Using new instead of ::make() — works identically
-'author' => new UserResource($this->whenLoaded('user')),
-
-// Collection of nested resources
-'tags' => TagResource::collection($this->whenLoaded('tags')),
-
-// Non-conditional nested resource
-'owner' => UserResource::make($this->user),
-```
-
-Both `SomeResource::make(...)` and `new SomeResource(...)` are fully supported and behave identically — the analyzer resolves the resource type, tracks the FQCN for imports, and detects conditional arguments for optionality.
-
-Self-referencing resources are also supported:
-
-```php
-'parent' => CategoryResource::make($this->whenLoaded('parent')),
-'children' => CategoryResource::collection($this->whenLoaded('children')),
-```
-
-### `toResource()` and `toResourceCollection()`
-
-Laravel's `Model::toResource()` and `Collection::toResourceCollection()` are resolved too, three ways:
-
-```php
-// 1. Explicit class argument
-'owner' => $this->owner->toResource(UserResource::class),
-
-// 2. #[UseResource] / #[UseResourceCollection] on the model
-'owner' => $this->owner->toResource(),
-
-// 3. Laravel's naming convention — tries {Model}Resource, then bare {Model}
-'owner_guessed' => $this->whenLoaded('owner', fn ($m) => $m->toResource()),
-'attachment' => $this->whenLoaded('attachment', fn ($m) => $m->toResource()),
-```
-
-Only the third route _invents_ a class name, and it is accepted only when this package will actually emit that resource. If the guessed class is third-party, carries [`#[TsExclude]`](./excluding-content.md), or lives outside the scanned directories, the property falls back to `unknown` rather than referencing a module that is never written:
-
-```typescript
-owner_guessed?: UserResource; // guessed UserResource is published
-attachment?: unknown; // AttachmentResource exists, but is #[TsExclude]d
-```
-
-> [!NOTE]
-> This gate applies to the naming-convention guess only. A resource you named explicitly — as a class argument, via `#[UseResource]`/`#[UseResourceCollection]`, or through a collection's `#[Collects]`/`$collects` — is a declaration rather than a guess and is always honored, even if this package doesn't publish it. Previously a guessed-but-unpublished resource produced an import of a file that did not exist, which surfaced as a `TS2307 Cannot find module` in the consuming app.
-
-### Merge Operations
-
-Use `merge`, `mergeWhen`, and `mergeUnless` to spread additional properties into the response:
-
-```php
-// Unconditional merge — properties are required (not optional)
-$this->merge([
-    'full_name' => $this->first_name . ' ' . $this->last_name,
-    'total_display' => $this->total,
-]),
-
-// Conditional merge — properties are optional
-$this->mergeWhen($this->is_featured, [
-    'weight' => $this->weight,
-    'dimensions' => $this->dimensions,
-]),
-```
-
-Both `merge` and `mergeWhen` also accept closures and arrow functions instead of array literals:
-
-```php
-// merge with closure
-$this->merge(fn () => [
-    'currency_label' => $this->currency,
-]),
-
-// mergeWhen with closure
-$this->mergeWhen($this->paid_at !== null, fn () => [
-    'shipped_at' => $this->shipped_at,
-    'tracking' => $this->tracking_number,
-]),
-```
-
-| Method                            | Optionality    | Description                              |
-| --------------------------------- | -------------- | ---------------------------------------- |
-| `$this->merge([...])`             | Required       | Properties are always present            |
-| `$this->mergeWhen(cond, [...])`   | Optional (`?`) | Properties included conditionally        |
-| `$this->mergeUnless(cond, [...])` | Optional (`?`) | Properties included when `cond` is false |
-
-### Closure & Arrow Function Values
-
-The analyzer resolves closures and arrow functions used as value arguments. Simple closures that return a single expression are analyzed recursively:
-
-```php
-// Arrow function — return expression analyzed directly
-'status' => $this->when(true, fn () => $this->status),
-
-// Arrow function returning a nested resource
-'user' => $this->when(true, fn () => UserResource::make($this->user)),
-
-// Full closure — first return statement is analyzed
-'notes' => $this->when(true, function () {
-    return $this->notes;
-}),
-```
-
-This works anywhere a value expression is expected — including `when`, `whenLoaded`, `whenNotNull`, `merge`, and `mergeWhen`.
-
-### Parent `toArray()` Spread
-
-Extend a parent resource using `...parent::toArray($request)`. Parent properties appear first, and the child can override any key:
-
-```php
-class PostResource extends JsonResource
-{
-    public function toArray(Request $request): array
-    {
-        return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'status' => EnumResource::make($this->status),
-        ];
-    }
-}
-
-class ApiPostResource extends PostResource
-{
-    public function toArray(Request $request): array
-    {
-        return [
-            ...parent::toArray($request),
-            'status' => $this->status,       // Overrides parent's EnumResource type
-        ];
-    }
-}
-```
-
-The child `ApiPostResource` inherits all parent properties (`id`, `title`, `status`), with `status` overridden to use the plain enum value instead of `EnumResource::make()`.
-
-If the parent itself extends `JsonResource` (the base class), the spread automatically delegates to the model's database attributes — see [JsonResource Base Delegation](#jsonresource-base-delegation).
-
-Writing the spread out by hand remains the idiomatic form, and both spellings — `...parent::toArray($request)` inside an array literal, and a bare `return parent::toArray($request);` — are fully supported. A child that declares **no** `toArray()` at all now inherits the parent's as well; see [Inheriting a Parent `toArray()`](#inheriting-a-parent-toarray).
-
-### Inheriting a Parent `toArray()`
-
-A resource that extends another resource and declares no `toArray()` of its own inherits the parent's shape:
-
-```php
-/**
- * @mixin Order
- */
-class OrderResource extends JsonResource
-{
-    public function toArray(Request $request): array
-    {
-        return [
-            'id' => $this->id,
-            'status' => EnumResource::make($this->status),
-        ];
-    }
-}
-
-// No toArray(), no @mixin — both are inherited from OrderResource
-class BodylessOrderResource extends OrderResource {}
-```
-
-```typescript
-export interface BodylessOrderResource {
-  id: number;
-  status: AsEnum<typeof OrderStatus>;
-}
-```
-
-The lookup walks up the parent chain and stops at the nearest ancestor that actually declares a `toArray()` body, so multi-level inheritance works too. The backing model is inherited alongside it — a resource with no `@mixin`/`@extends` of its own falls back to the nearest ancestor that has one (step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved)). Without that, the inherited shape would resolve no model and every column would degrade to `unknown`.
-
-If **no** class in the chain declares a `toArray()`, nothing changes: the resource still falls back to [JsonResource Base Delegation](#jsonresource-base-delegation), or to `#[TsExtends]`-only output when no model resolves either. Body-less `ResourceCollection` subclasses are likewise unaffected and still resolve their element type through `$collects` or the naming convention.
-
-> [!NOTE]
-> Previously, a child resource with no `toArray()` of its own produced an empty interface whenever no model could be resolved for it either. If you added a pass-through `toArray()` purely to work around that, you can now delete it.
-
-### Trait Method Spread
-
-Spread trait method return values into `toArray()` with `...$this->traitMethod()`. The analyzer reads `@return array{key: type}` PHPDoc annotations to resolve property types:
-
-```php
-trait IncludesMorphValue
-{
-    /**
-     * @return array{morphValue: string}
-     */
-    protected function includeMorphValue(): array
-    {
-        return ['morphValue' => $this->resource->getMorphClass()];
-    }
-}
-
-class PostResource extends JsonResource
-{
-    use IncludesMorphValue;
-
-    public function toArray(Request $request): array
-    {
-        return [
-            ...$this->includeMorphValue(),
-            'id' => $this->id,
-            'title' => $this->title,
-        ];
-    }
-}
-```
-
-Generates:
-
-```typescript
-export interface Post {
-  morphValue: string; // From trait PHPDoc
-  id: number;
-  title: string;
-}
-```
-
-Multiline `@return` shapes are also supported:
-
-```php
-/**
- * @return array{
- *     firstName: string,
- *     lastName: string,
- *     isActive: bool,
- * }
- */
-protected function includeProfile(): array
-{
-    // ...
-}
-```
-
-Another option for defining the return types of a trait method is to use the `#[TsCasts]` attribute on the trait method itself with the same syntax as the `#[TsCasts]` attribute for models:
-
-```php
-use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
-
-trait IncludesExtras
-{
-    #[TsCasts([
-        'location' => ['type' => 'GeoPoint', 'import' => '@/types/geo'],
-        'flag' => ['type' => 'string | null', 'optional' => true],
-        'extra' => 'Record<string, unknown>',
-    ])]
-    protected function includeCastedExtras(): array
-    {
-        return [
-            'location' => strtoupper('x'),
-            'flag' => strtolower('y'),
-        ];
-    }
-}
-```
-
-> [!TIP]
-> Trait spreads also flow through parent inheritance. If a parent resource spreads a trait method and a child extends it with `...parent::toArray($request)`, the child inherits the trait-contributed properties.
-
-> [!NOTE]
-> When a trait method has no `@return array{...}` PHPDoc or `#[TsCasts]` attribute, its properties will be typed as `unknown`.
-
-### Model `toArray()` Spread
-
-Spreading a **model's** own `toArray()` inside an array literal — alongside the literal's other keys — intersects the model's generated interface with those keys instead of collapsing to `unknown[]`:
-
-```php
-'members' => $this->whenLoaded('members', fn ($members) => $members->map(
-    fn (User $member) => [...$member->toArray(), 'flag' => true]
-)),
-```
-
-```typescript
-members?: (Omit<User, "flag"> & { flag: boolean })[];
-```
-
-The `Omit<>` is not cosmetic. PHP lets the later assignment win, so `'flag'` overwrites anything the spread contributed; TypeScript's `&` would instead intersect both and collapse a conflicting key to `never`. Subtracting the overridden keys from the earlier arm is what makes the emitted type mean what the PHP means. Several spreads in one literal are each `Omit<>`'d against every key a later arm or an explicit sibling key will overwrite, in source order.
-
-> [!NOTE]
-> The arm emits a **reference** to the `{Model}` interface rather than a re-derived shape, which is the honest floor rather than an exact match for `toArray()`'s runtime output. `Model::toArray()` is `attributesToArray()` merged with `relationsToArray()`, and bare `{Model}` covers only the first of those two — so two gaps, one in each direction:
->
-> - **Relations are missing.** A relation loaded on the model before the spread is in the JSON payload but not in the type. That isn't knowable statically, and under the [`model-split` template](./models.md#model-templates) relations live in `{Model}Relations`, which the arm doesn't reference.
-> - **`$hidden` columns are extra.** They're stripped at runtime but remain in `{Model}` unless [`models.exclude_hidden`](./models.md#what-gets-published-hidden-attributes-write-only-accessors) is enabled.
->
-> `$appends` are **not** a gap: an appended accessor is part of `attributesToArray()` at runtime and is generated into bare `{Model}` alongside the columns, so the two agree. (`{Model}Mutators` holds the accessors a model did _not_ append.)
->
-> Spreading a **resource** (`...UserResource::make($m)->resolve($request)`) works the same way and has neither gap, since the resource interface is the response shape.
-
-### Bare Method-Call Return
-
-`toArray()` doesn't have to spread a method's return value into an array literal — returning the method call directly is supported too:
-
-```php
-public function toArray(Request $request): array
-{
-    return $this->data();          // now supported
-    // return [...$this->data()];  // already supported
-}
-```
-
-This resolves transitively: if `data()` itself returns another method call, the analyzer keeps following the chain until it reaches an array literal (or an `only()`/`except()` filter — see [Attribute Filters](#attribute-filters-only--except) below):
-
-```php
-class TeamResource extends JsonResource
-{
-    public function toArray(Request $request): array
-    {
-        return $this->data();
-    }
-
-    protected function data(): array
-    {
-        return $this->nested();
-    }
-
-    protected function nested(): array
-    {
-        return [
-            'id' => $this->id,
-            'slug' => $this->slug,
-        ];
-    }
-}
-```
-
-Generates:
-
-```typescript
-export interface TeamResource {
-  id: number;
-  slug: string;
-}
-```
-
-The chain can pass through a trait and parent-declared methods the same way a `...$this->method()` spread does — see [Trait Method Spread](#trait-method-spread) above.
-
-### JsonResource Base Delegation
-
-Resources that have **no `toArray()` method** or whose `toArray()` simply returns `parent::toArray($request)` automatically generate properties from the backing model's database schema:
-
-```php
-/**
- * @mixin User
- */
-class UserResource extends JsonResource
-{
-    // No toArray() — properties auto-generated from User model
-}
-```
-
-You can also spread the base properties and add computed keys:
-
-```php
-/**
- * @mixin User
- */
-class UserResource extends JsonResource
-{
-    public function toArray(Request $request): array
-    {
-        return [
-            ...parent::toArray($request),
-            'full_name' => strtoupper($this->name),
-        ];
-    }
-}
-```
-
-The model is resolved from `#[TsResource(model:)]`, `@mixin` PHPDoc, or use statements. When no model can be detected, the resource produces an empty interface.
-
-### Attribute Filters (`only` / `except`)
-
-Resources that use `$this->only([...])` or `$this->except([...])` to filter model attributes are supported — both as a direct return value and as a spread:
-
-```php
-// As the return value
-public function toArray(Request $request): array
-{
-    return $this->only(['id', 'name', 'email']);
-}
-
-// As a spread in a return array
-public function toArray(Request $request): array
-{
-    return [
-        ...$this->except(['password', 'remember_token']),
-        'role' => EnumResource::make($this->role),
-    ];
-}
-```
-
-Both methods delegate to the backing model's full database schema and filter by the listed keys. Properties retain their original types from the model.
-
-> [!NOTE]
-> Currently only `only` and `except` are supported as attribute filter methods. Other collection-style methods are not analyzed. If you find you need additional methods, open an issue, or better yet, submit a PR with the added functionality! See [`FiltersModelAttributes`](https://github.com/abetwothree/laravel-ts-publish/blob/main/src/Analyzers/Concerns/FiltersModelAttributes.php).
-
-### Relation Filters
-
-The same two methods work on a **related** model — `$this->author->only([...])`, `$this->post?->except([...])` — and are typed one of two ways.
-
-Two conditions have to hold for that reference form, not one: the relation must resolve to a **single** model, _and_ every filtered key must be a real database column. When both hold, the property references the related model's own generated interface with `Pick<>` — `only()` picks the keys you named, `except()` picks their **complement**, every other column on the model:
-
-```php
-'author' => $this->author->only(['id', 'name']),
-'post' => $this->post?->except(['created_at', 'updated_at']),
-```
-
-```typescript
-author: Pick<User, "id" | "name">;
-post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
-```
-
-That is the preferred shape: it keeps the model's own `#[TsCasts]` and `@property` refinements authoritative instead of re-deriving them into a detached inline object. Both branches emit `Pick<>`, never `Omit<>` — naming the surviving columns instead of the excluded ones keeps the reference accurate regardless of how many other members (mutators, relations, counts) the model's generated interface happens to carry beyond its columns.
-
-> [!TIP]
-> `except()`'s complement is always your model's columns minus the named keys — so this reference form is exactly as wide as `only()` naming every other column by hand, and no wider. If your model gains a column, an existing `except([...])` picks it up automatically; nothing needs regenerating by hand.
-
-When the reference can't be used — a filter key that isn't a column, or an accessor typed as a union of two or more models — the shape is expanded inline instead, and the two methods deliberately produce **different** property sets:
-
-- **`only([...])`** expands exactly the keys you named. `HasAttributes::only()` calls `getAttribute()` per key, which resolves accessors and relations alike, so naming either one works: `$this->author->only(['name', 'initials', 'posts'])` emits `{ name: string; initials: string; posts: Post[] }`.
-- **`except([...])`** expands the related model's **database columns** minus the named keys — never an accessor, never a relation. `HasAttributes::except()` iterates `getAttributes()`, which holds stored column values only; a get-only `Attribute` accessor is never merged back into it, and relations live in a separate bag entirely.
-
-An accessor that union-types two or more models — `@return Attribute<Image|User|null, never>` — never reaches the reference form at all, so every arm is expanded inline even when every key you named is a real column.
-
-> [!NOTE]
-> The split mirrors Eloquent rather than inventing a rule. `HasAttributes::except()` iterates `getAttributes()`, the raw stored-attribute bag, and reads `getAttribute()` only for keys already in it, so a get-only `Attribute` accessor is never merged back in and relations live in a separate bag entirely. `HasAttributes::only()` iterates the names _you_ passed and calls `getAttribute()` on each, which does resolve accessors and relations. Typing the two the same way would promise members the JSON payload never carries.
-
-So for `'author' => $this->author?->except(['id', 'name'])`, where `User` declares the accessors
-`initials`/`is_premium` and the relations `profile`/`posts`, the emitted type is columns only:
-
-```typescript
-author: { email: string; phone: string | null } | null;
-```
-
-Naming a relation or an accessor in the exclusion list is a no-op, since that key was never in the
-set being subtracted from. Reach for `only([...])` when you want one, or give it its own entry in
-`toArray()`.
-
-::: details Upgrading from an earlier version
-`except()`'s reference form used to name the excluded keys with `Omit<>` — `Omit<Post, "created_at" | "updated_at">` — rather than picking the survivors. That was accurate under the default model template, but re-widened under a template where the model's bare interface carries mutators, relations, counts, and exists alongside its columns, since `Omit<>` only ever subtracts from whatever `keyof Model` happens to be:
-
-```typescript
-// Before: Omit<> — width depends on the model template
-post: Omit<Post, "created_at" | "updated_at"> | null;
-
-// After: Pick<> of the complement — the same columns regardless of template
-post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
-```
-
-No action needed — the two forms carry the same columns under the default template, and the picked
-member list is now visible directly in the type instead of needing to be worked out from what the
-model interface excludes.
-:::
-
-::: details Upgrading from an earlier version
-`except()` used to expand to every attribute **and** every relation on the related model, minus the
-excluded keys, which is a shape `Model::except()` never returns at runtime. Accessors and relations
-that appeared in an `except()`-filtered type are gone:
-
-```typescript
-// Before: every attribute and every relation, minus the named keys
-author: {
-  email: string;
-  phone: string | null;
-  initials: string; // accessor
-  is_premium: boolean; // accessor
-  profile: Profile | null; // relation
-  posts: Post[]; // relation
-} | null;
-
-// After: database columns only
-author: { email: string; phone: string | null } | null;
-```
-
-If you relied on one of those arriving through an `except()`-filtered relation, name it explicitly.
-Switch the property to `only([...])`, or add the key as its own entry in `toArray()`. TypeScript
-will point at every site that reads a now-missing key.
-:::
-
-### `exclude_hidden` and attribute filters
-
-`ts-publish.models.exclude_hidden` (see [Models § What gets published](./models.md#what-gets-published-hidden-attributes-write-only-accessors)) governs resources too, not just the model's own interface:
-
-```php
-$this->only(['password'])   // kept: you named it
-$this->except(['id'])       // password dropped: the set is derived
-```
-
-That split isn't arbitrary — it mirrors what `Model::only()` versus `toArray()`/`except()` already do at runtime. `Model::only()` resolves each key through `getAttribute()`, which returns a `$hidden` attribute regardless of visibility; `toArray()` and `Model::except()` both go through `getArrayableItems()`, which strips `$hidden` attributes before your excluded keys are even considered. This package's analyzer follows the same split:
-
-| Pattern                                                                                 | Property set                               | A `$hidden` column, with `exclude_hidden` enabled |
-| --------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
-| `'password' => $this->password`                                                         | the property you wrote by hand             | **kept** — you named it                           |
-| `$this->only(['id', 'password'])`                                                       | exactly the keys you named                 | **kept** — you named it                           |
-| `$this->relation->only(['id', 'password'])`                                             | exactly the keys you named                 | **kept** — you named it                           |
-| `$this->whenHas('password')`                                                            | the attribute you named                    | **kept** — you named it                           |
-| `$this->except(['id'])`                                                                 | every model attribute minus the named keys | **dropped** — the set is derived                  |
-| `$this->relation->except(['id'])`                                                       | every database column minus the named keys | **dropped** — the set is derived                  |
-| `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` at all | every model attribute                      | **dropped** — the set is derived                  |
-
-`'password' => $this->password` is worth calling out on its own: it's the plainest, most common way to expose a column, and it behaves exactly like a named `only()` key — a `$hidden` column you access directly is never silently dropped.
-
-If you want a `$hidden` column published through one of the derived paths, name it explicitly — switch that property to `only([...])`, access it directly as `$this->column`, or drop it from the model's `$hidden` array entirely if it no longer needs to be hidden.
-
-### Resource Collections
-
-`ResourceCollection` subclasses are supported. The analyzer resolves `$this->collection` to the singular resource type as an array:
-
-```php
-use Illuminate\Http\Resources\Json\ResourceCollection;
-
-class UserCollection extends ResourceCollection
-{
-    public function toArray(Request $request): array
-    {
-        return [
-            'data' => $this->collection,
-            'has_admin' => true,
-        ];
-    }
-}
-```
-
-Generates:
-
-```typescript
-import type { UserResource } from "./";
-
-export interface UserCollection {
-  data: UserResource[];
-  has_admin: unknown;
-}
-```
-
-The singular resource is resolved from:
-
-1. **Explicit `$collects` property** — if defined on the collection class
-2. **Naming convention** — `UserCollection` → `UserResource` (strips "Collection", appends "Resource")
-
-```php
-class OrderCollection extends ResourceCollection
-{
-    // Explicit: use OrderResource as the singular resource
-    public $collects = OrderResource::class;
-
-    public function toArray(Request $request): array
-    {
-        return [
-            'data' => $this->collection,
-        ];
-    }
-}
-```
-
-When the singular resource cannot be resolved (e.g., `MiscCollection` with no matching `MiscResource`), `$this->collection` falls back to `unknown`.
-
-#### Key-Preserving Collections
-
-A `ResourceCollection` normally serializes as a JSON array, so the generated type is `R[]`. Laravel
-supports opting a collection out of that and keeping its original keys instead, which makes the
-payload a JSON object — two ways to opt in, both recognized:
-
-```php
-use Illuminate\Http\Resources\Attributes\PreserveKeys;
-use Illuminate\Http\Resources\Json\ResourceCollection;
-
-#[PreserveKeys] // Laravel 13+
-class TeamCollection extends ResourceCollection
-{
-    public $collects = TeamResource::class;
-}
-```
-
-```php
-use Illuminate\Http\Resources\Json\ResourceCollection;
-
-class TeamCollection extends ResourceCollection
-{
-    public $preserveKeys = true; // works on every supported Laravel version
-
-    public $collects = TeamResource::class;
-}
-```
-
-Either form generates:
-
-```typescript
-export interface TeamCollection {
-  data: Record<string, TeamResource>;
-}
-```
-
-Larger support for `ResourceCollection` features (e.g., pagination metadata, `additional()` method, etc.) may be added in a future release.
+Resources need the `@tolki/ts` runtime package only when they use `EnumResource::make()`, which publishes that package's `AsEnum<typeof Enum>` type. See [Installing `@tolki/ts`](./index.md#installing-tolki-ts) and [Enums](./enums.md).
 
 ## Anatomy of a Generated Resource
 
-Given this resource:
+This resource reads columns, an enum, relations, and counts from its `User` model:
 
 ```php
 /**
@@ -856,7 +39,7 @@ class UserResource extends JsonResource
 }
 ```
 
-The package generates the following TypeScript interface:
+The package generates this interface:
 
 ```typescript
 import { type AsEnum } from "@tolki/ts";
@@ -868,7 +51,7 @@ import type { PostResource } from ".";
 /**
  * User account resource.
  *
- * @see Workbench\App\Http\Resources\UserResource
+ * @see App\Http\Resources\UserResource
  */
 export interface UserResource {
   id: number;
@@ -884,18 +67,18 @@ export interface UserResource {
 }
 ```
 
-Notice how:
+The output shows how each kind of value is typed:
 
-- Direct properties (`id`, `name`, `email`) are **required**
-- `whenLoaded`, `whenHas`, `whenNotNull`, and `whenCounted` properties are **optional** (`?`)
-- `EnumResource::make()` generates `AsEnum<typeof Role>` with the proper import, and `| null` since the underlying column is nullable
-- `PostResource::collection()` is typed as `PostResource[]`, imported from the same directory's barrel
-- Bare `whenLoaded('profile')` resolves to the model relation type (`Profile | null`)
-- PHPDoc class descriptions are preserved as JSDoc comments, alongside an auto-added `@see` back-reference to the PHP class
+- Direct properties, such as `id`, `name`, and `email`, are required.
+- `whenLoaded()`, `whenHas()`, `whenNotNull()`, and `whenCounted()` make their properties optional (`?`).
+- `EnumResource::make()` publishes `AsEnum<typeof Role>` and imports it. It adds `| null` because the `role` column is nullable.
+- `PostResource::collection()` publishes `PostResource[]`, imported from the barrel file in the same directory.
+- A bare `whenLoaded('profile')` publishes the model's relation type, `Profile | null`.
+- The class docblock becomes a JSDoc comment, with a `@see` tag that points back to the PHP class.
 
 ### Classes Sharing a Name Across Namespaces
 
-When two classes in different namespaces share a class name — `App\Models\User` and `Crm\Models\User` — the generated file imports both under distinct aliases, and each occurrence of the name inside a property's type resolves to its own alias, in source order:
+When two classes in different namespaces share a name, such as `App\Models\User` and `Crm\Models\User`, the generated file imports each one under its own alias. Every occurrence of the name inside a property's type uses the alias of the class it refers to, in source order:
 
 ```typescript
 import type { User as CrmUser } from "../../../crm/models";
@@ -910,22 +93,1335 @@ export interface WarehouseResource {
 }
 ```
 
-> [!NOTE]
-> Previously, a property naming the same class name more times than it had **distinct** classes could alias an arm to the wrong class, or leave the final occurrence as a bare `User` that matched no import — a `TS2304 Cannot find name`. Both are fixed; the interleaved case above (`Crm`, `App`, `Crm`) is the shape that pins it.
+## How the Backing Model Is Resolved
+
+The package types most properties from the resource's backing Eloquent model, using its database columns, casts, accessors, and relations. It looks for that model in this order:
+
+1. The `#[TsResource(model: User::class)]` attribute.
+2. A `@mixin` or `@extends` tag in the resource's own docblock. The class name resolves through the file's `use` imports.
+3. The nearest parent class whose docblock has a `@mixin` or `@extends` tag.
+4. A `$resource` property redeclared with a `@var` type, such as `/** @var User */ public $resource;`.
+5. Laravel's naming convention in reverse, so `App\Http\Resources\UserResource` maps to `App\Models\User`.
+6. A model whose `#[UseResource(UserResource::class)]` attribute names the resource. This attribute needs Laravel 12.29 or later.
+
+Most resources need only a `@mixin` tag or the naming convention. Use `#[TsResource(model:)]` when the resource name doesn't match the model, and `#[UseResource]` when the resource lives outside an `Http\Resources` namespace.
+
+Step 3 lets a subclass use its parent's model without repeating the docblock, whether or not the subclass declares its own `toArray()`. See [Inheriting a Parent `toArray()`](#inheriting-a-parent-toarray).
+
+If no model resolves, a property read from the model, such as `$this->id`, publishes `unknown`.
+
+## Supported `toArray()` Patterns
+
+These sections cover the Laravel resource features you use in `toArray()`. Each one shows the PHP you write and the TypeScript it produces.
+
+### Direct Property Access
+
+A property read from the model takes its type from the database column and its cast:
+
+```php
+'id' => $this->id,
+'name' => $this->name,
+'status' => $this->status, // an enum cast
+```
+
+The three properties publish these types:
+
+```typescript
+id: number;
+name: string;
+status: StatusType;
+```
+
+`$this->resource->name` reads the same attribute, so it publishes the same type. A property you declare on the resource class itself, such as a promoted constructor parameter, takes its type from that declaration. It wins over a model attribute with the same name, as it does in PHP.
+
+### Conditional Methods
+
+Laravel's conditional methods publish optional properties (`?`), because the key can be missing from the response. Passing a default argument makes the property required, because the key is then always present. See [Passing a Default Argument](#passing-a-default-argument).
+
+| Method                                                    | Includes the key when                       | Published type                        |
+| --------------------------------------------------------- | ------------------------------------------- | ------------------------------------- |
+| `$this->when($condition, $value)`                         | `$condition` is true                        | `$value`'s type                       |
+| `$this->unless($condition, $value)`                       | `$condition` is false                       | `$value`'s type                       |
+| `$this->whenHas('attribute', $value)`                     | The attribute is present                    | `$value`'s type, else the attribute's |
+| `$this->whenAppended('attribute', $value)`                | The accessor is appended                    | `$value`'s type, else the accessor's  |
+| `$this->whenNotNull($value)`                              | `$value` isn't `null`                       | `$value`'s type without `null`        |
+| `$this->whenNull($value)`                                 | `$value` is `null`                          | `null`                                |
+| `$this->whenLoaded('relation')`                           | The relation is loaded                      | The relation's type                   |
+| `$this->whenCounted('relation')`                          | The count is loaded                         | `number`                              |
+| `$this->whenAggregated('relation', 'column', 'function')` | The aggregate is loaded                     | `number`                              |
+| `$this->whenExistsLoaded('relation', $value)`             | The existence flag is loaded                | `$value`'s type, else `boolean`       |
+| `$this->whenPivotLoaded('table')`                         | The pivot is loaded                         | `unknown`                             |
+| `$this->whenPivotLoadedAs('accessor', 'table')`           | The pivot is loaded under a custom accessor | `unknown`                             |
+| `$this->transform($value, $callback)`                     | `$value` is filled                          | `$callback`'s return type             |
+
+To see when `whenLoaded()` adds `| null`, read [Nullable Relations](#nullable-relations).
+
+#### `unless()` Is `when()` With the Condition Negated
+
+`unless($condition, $value, $default)` includes `$value` when `$condition` is false. It publishes exactly what `when()` would, including with a default argument:
+
+```php
+'status' => $this->unless($this->is_draft, $this->status),          // optional
+'status' => $this->unless($this->is_draft, $this->status, 'draft'), // required
+```
+
+#### Passing a Default Argument
+
+Every conditional method accepts a trailing default argument. When you pass one, Laravel always includes the key, so the property is required. The default's type joins the value's type:
+
+```php
+'discount' => $this->when($this->has_discount, $this->discount_percent),        // discount?: number
+'discount' => $this->when($this->has_discount, $this->discount_percent, 'n/a'), // discount: number | string
+'reviews'  => $this->whenCounted('reviews', null, 'n/a'),                       // reviews: number | string
+'address'  => $this->whenHas('full_address', $this->full_address, 0),           // address: string | number
+```
+
+For `whenNotNull()` and `whenNull()`, the second argument is that default value, not a callback. `whenNotNull()` includes the key only when its value isn't `null`, so it removes `null` from the type:
+
+```php
+'line_2'   => $this->whenNotNull($this->line_2),              // line_2?: string, from a string | null column
+'discount' => $this->whenNotNull($this->discount_percent, 0), // discount: number
+```
+
+A default of the value's own type makes the property required without widening it. A default of another type, such as a string fallback for a number column, publishes a union of both.
+
+An explicit `null` counts as a default, because Laravel checks whether you passed the argument, not what it holds. So `$this->whenLoaded('user', fn ($user) => $user, null)` is required, and it publishes `User | null` instead of `User`.
+
+A default always makes the property required, but two cases leave its type as it was:
+
+- **A default the package can't type**: the value's type stands alone. This covers an expression or closure the package can't read.
+- **A value the package can't type**: `whenPivotLoaded()` and `whenPivotLoadedAs()` publish `unknown`, which already covers any default.
+
+Laravel calls a default closure with no arguments, except in `transform()`. A closure default that requires a parameter would throw if it ran, so the package leaves it out of the type:
+
+```php
+'notes' => $this->whenNotNull($this->notes, fn ($notes) => strlen($notes)), // notes: string
+```
+
+A closure whose parameter has its own default, such as `fn ($notes = '') => strlen($notes)`, runs without arguments, and the parameter holds its default's type. Its return type joins the union as usual, and the property publishes `string | number`.
+
+`transform()` calls its default with the blank value, so a one-parameter default runs, and its parameter holds the value's full type, `null` included. `$this->transform($this->rating, fn ($r) => 'x', fn ($r) => $r)` publishes `string | number | null`.
+
+#### Closure Parameters
+
+When you pass a closure as the value, its first parameter holds whatever Laravel calls it with:
+
+| Method                                                            | The closure's first parameter holds                                                        |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `whenLoaded()`                                                    | The loaded relation: a model, a list of models, or the models a `morphTo` can hold         |
+| `whenHas()`                                                       | The attribute's value                                                                      |
+| `whenExistsLoaded()`                                              | The relation's `{relation}_exists` flag, a `boolean`                                       |
+| `whenCounted()`, and `whenAggregated()` with the `count` function | The count, a `number`                                                                      |
+| `transform()`                                                     | The value you pass as its first argument                                                   |
+| `when()`, `unless()`, `whenAppended()`                            | No value, since Laravel passes none. A parameter with a default holds that default's type. |
+
+The closure's return type becomes the property's type:
+
+```php
+'author_name' => $this->whenLoaded('author', fn ($author) => $author->name),     // author_name?: string
+'has_comments' => $this->whenExistsLoaded('comments', fn ($exists) => $exists), // has_comments?: boolean
+```
+
+#### `whenHas()`, `whenAppended()`, and `whenExistsLoaded()` Type From the Value You Pass
+
+All three return Laravel's `value($value, ...)`, so the property takes the type of the value you pass, not of the attribute you name. `whenHas()` and `whenExistsLoaded()` pass the attribute to the closure's first parameter, and `whenAppended()` passes nothing:
+
+```php
+return [
+    'has_title' => $this->whenHas('title', fn ($title): bool => $title !== ''),
+    'title_length' => $this->whenHas('title', fn ($title) => strlen($title)),
+    'appended_label' => $this->whenAppended('title_display', fn () => 'label'),
+    'comments_flag' => $this->whenExistsLoaded('comments', fn ($exists) => $exists ? 'yes' : 'no'),
+    'title_unresolvable' => $this->whenHas('title', fn ($title) => json_decode($title)),
+];
+```
+
+The resource publishes these properties:
+
+```typescript
+export interface PostResource {
+  has_title?: boolean;
+  title_length?: number;
+  appended_label?: string;
+  comments_flag?: string;
+  title_unresolvable?: string;
+  // …
+}
+```
+
+When the package can't type the value, the attribute's own type stands instead of `unknown`. `json_decode()` returns `mixed`, so `title_unresolvable` keeps the `title` column's `string`. Without a value argument, `whenHas('phone')` types from its column, and `whenExistsLoaded('user')` publishes `boolean`.
+
+#### An Explicit `null` in the Value Slot
+
+Laravel's `value()` helper returns a plain `null` unchanged. So a literal `null` as the value of `whenHas()`, `whenAppended()`, or `whenExistsLoaded()` publishes `null`, and the attribute's type never reaches the property. A default still joins the type:
+
+```php
+'address'  => $this->whenHas('full_address', null, 0),         // address: number | null
+'appended' => $this->whenAppended('full_address', null, 0),    // appended: number | null
+'exists'   => $this->whenExistsLoaded('user', null, 'absent'), // exists: string | null
+```
+
+This happens only when Laravel receives a `null` in that slot: a literal `null`, or a named `default:` argument that skips the value, since PHP fills the skipped argument with `null`. So `whenHas('phone', default: 0)` publishes `number | null`. Leaving both arguments out is different: `whenHas('phone')` still types from the column, and `whenExistsLoaded('user')` is still `boolean`.
+
+`whenCounted()` and `whenAggregated()` treat a `null` value as no value, so the count still comes through. That's why `whenCounted('reviews', null, 'n/a')` publishes `number | string`.
+
+### Nested Resources
+
+Reference another resource with `::make()`, `::collection()`, or `new`. The property takes that resource's interface, and the package imports it:
+
+```php
+// Optional, because whenLoaded() is conditional
+'author' => UserResource::make($this->whenLoaded('user')),
+
+// new works the same as ::make()
+'author' => new UserResource($this->whenLoaded('user')),
+
+// A list of resources
+'tags' => TagResource::collection($this->whenLoaded('tags')),
+
+// Required, because the argument isn't conditional
+'owner' => UserResource::make($this->user),
+```
+
+The `author`, `tags`, and `owner` properties publish:
+
+```typescript
+author?: UserResource;
+tags?: TagResource[];
+owner: UserResource;
+```
+
+A resource can reference itself:
+
+```php
+'parent' => CategoryResource::make($this->whenLoaded('parent')),
+'children' => CategoryResource::collection($this->whenLoaded('children')),
+```
+
+Calling `resolve()` on a nested resource, as in `new UserResource($this->author)->resolve($request)`, publishes the same interface.
+
+### `toResource()` and `toResourceCollection()`
+
+Laravel's `Model::toResource()` and `Collection::toResourceCollection()` find their resource three ways, and the package follows each one:
+
+```php
+// 1. An explicit class argument
+'owner' => $this->owner->toResource(UserResource::class),
+
+// 2. #[UseResource] or #[UseResourceCollection] on the model
+'owner' => $this->owner->toResource(),
+
+// 3. Laravel's naming convention: {Model}Resource, then {Model}
+'owner_guessed' => $this->whenLoaded('owner', fn ($m) => $m->toResource()),
+'attachment' => $this->whenLoaded('attachment', fn ($m) => $m->toResource()),
+```
+
+The naming convention is the only route that guesses a class name, and the package accepts the guess only when it publishes that resource. If the guessed class comes from another package, has `#[TsExclude]`, or sits outside the scanned directories, the property publishes `unknown` instead of importing a file that doesn't exist:
+
+```typescript
+owner_guessed?: UserResource; // the guessed UserResource is published
+attachment?: unknown; // AttachmentResource exists, but has #[TsExclude]
+```
+
+A resource you name yourself is always used, even when this package doesn't publish it. That covers a class argument, `#[UseResource]` or `#[UseResourceCollection]`, and a collection's `#[Collects]` or `$collects`. When no resource matches at all, the property publishes `unknown`.
+
+### Enum Properties With `EnumResource`
+
+Wrap an enum-cast property in `EnumResource::make()` to send the enum as an object instead of its bare value:
+
+```php
+'status' => EnumResource::make($this->status),
+'currency' => EnumResource::make($this->currency),
+```
+
+See [Response Shape](./enum-api-resource.md#response-shape) on the Enum API Resource page for what the object holds. With `enums.use_tolki_package` enabled, which is the default, these publish `AsEnum<typeof Status>` and `AsEnum<typeof Currency>`, and the package imports each enum. With it disabled, they publish the enum's type alias, such as `StatusType`.
+
+`EnumResource::collection()` does the same for a list, and publishes `AsEnum<typeof Status>[]`.
+
+A ternary that wraps only one of its arms keeps both shapes. The property publishes a union, with the import each side needs, even inside an inline array:
+
+```php
+'audit' => [
+    'status' => $request->boolean('wrap')
+        ? EnumResource::collection($this->status_history)
+        : $this->status_history,
+],
+```
+
+The ternary publishes both arms:
+
+```typescript
+import { type AsEnum } from "@tolki/ts";
+
+import { Status } from "../../enums";
+import type { StatusType } from "../../enums";
+
+export interface TeamResource {
+  audit: { status: AsEnum<typeof Status>[] | StatusType[] };
+}
+```
+
+### Merge Operations
+
+Use `merge()`, `mergeWhen()`, and `mergeUnless()` to add properties to the response:
+
+```php
+// Unconditional: the properties are required
+$this->merge([
+    'full_name' => $this->first_name . ' ' . $this->last_name,
+    'total_display' => $this->total,
+]),
+
+// Conditional: the properties are optional
+$this->mergeWhen($this->is_featured, [
+    'weight' => $this->weight,
+    'dimensions' => $this->dimensions,
+]),
+```
+
+`merge()` and `mergeWhen()` also accept a closure or an arrow function instead of an array:
+
+```php
+$this->merge(fn () => [
+    'currency_label' => $this->currency,
+]),
+
+$this->mergeWhen($this->paid_at !== null, fn () => [
+    'shipped_at' => $this->shipped_at,
+    'tracking' => $this->tracking_number,
+]),
+```
+
+Each method decides whether its properties are required:
+
+| Method                                  | Merged properties                                   |
+| --------------------------------------- | --------------------------------------------------- |
+| `$this->merge([...])`                   | Required                                            |
+| `$this->mergeWhen($condition, [...])`   | Optional (`?`), included when `$condition` is true  |
+| `$this->mergeUnless($condition, [...])` | Optional (`?`), included when `$condition` is false |
+
+::: warning
+A `return []` inside a `merge()` closure doesn't make its keys optional, so they publish as required even though the response can leave them out. To publish them as optional, move the closure's body into a method and spread it, as [Return Branches and `@return` Shapes](#return-branches-and-return-shapes) describes. You can also mark each key `'optional' => true` with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+:::
+
+### Closure & Arrow Function Values
+
+A closure or an arrow function in value position is typed from what it returns:
+
+```php
+// An arrow function: its expression is the value
+'status' => $this->when(true, fn () => $this->status),
+
+// An arrow function that returns a nested resource
+'user' => $this->when(true, fn () => UserResource::make($this->user)),
+
+// A full closure: the types of all its return statements are unioned
+'notes' => $this->when(true, function () {
+    return $this->notes;
+}),
+```
+
+This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`.
+
+## Method Calls, Variables, and Collections
+
+Values you compute in `toArray()` get types too: method calls, property reads on other objects, local variables, and collection chains.
+
+### Method Return Types
+
+A method call takes its type from the called method's signature: its native return type, or its `@return` docblock when the native type is missing or vague. This works for calls on enum casts, date casts, models, Eloquent collections, value objects, and services resolved from the container:
+
+```php
+public function toArray(Request $request): array
+{
+    $record = $this->resource;
+
+    return [
+        'priority_label' => $this->priority->label(),                                 // enum cast
+        'published_date' => $this->published_at->setTimezone('UTC')->toDateString(),  // date cast
+        'from_label' => Priority::from(1)->label(),                                   // enum constructor
+        'record_class' => $record::className(),                                       // static call on a variable's class
+        'author_fresh' => $this->author->fresh(),                                     // model
+        'comment_ids' => $this->comments->modelKeys(),                                // Eloquent collection
+    ];
+}
+```
+
+Each call publishes its method's return type:
+
+```typescript
+export interface PostResource {
+  priority_label: string;
+  published_date: string;
+  from_label: string;
+  record_class: string;
+  author_fresh: User | null;
+  comment_ids: number[];
+  // …
+}
+```
+
+A property read works the same way. Once `$post` holds a `Post`, `$post?->author?->name` publishes `string | null`. A value object's public property takes its declared type, so `$this->stats?->views` publishes `number | null`. A `?->` adds `| null` to the result once, however many steps use it.
+
+Some of Laravel's own methods declare loose types, so the package reads the model instead. `getKey()` publishes the model's key type, `number` or `string`, and `modelKeys()` publishes a list of it. That's why `comment_ids` above is `number[]`.
+
+#### Methods Declared as a Bare `array`
+
+A method declared `: array` with no `@return` docblock says nothing about its keys. For these methods, the array the body returns sets the type:
+
+```php
+final class PriceQuoteService
+{
+    public const int TIER_BASIC = 1;
+
+    public const int TIER_PRO = 2;
+
+    public function quote(): array
+    {
+        return ['unit' => '1.00', 'minimum' => 10, 'discounted' => ['unit' => '0.90']];
+    }
+
+    public static function tierLabels(): array
+    {
+        return [self::TIER_BASIC => 'Basic', self::TIER_PRO => 'Pro'];
+    }
+}
+
+// in toArray():
+'quote' => resolve(PriceQuoteService::class)->quote(),
+'tiers' => PriceQuoteService::tierLabels(),
+```
+
+Both properties publish the shape of the returned array:
+
+```typescript
+export interface QuoteResource {
+  quote: { unit: string; minimum: number; discounted: { unit: string } };
+  tiers: { "1": string; "2": string };
+}
+```
+
+Integer keys, written literally or as a constant such as `self::TIER_BASIC`, publish quoted, because JSON encodes such an array as an object. Resources drop integer keys from their own arrays and methods, so this applies only to classes that aren't resources.
+
+A `?array` declaration keeps its `null`, so the method publishes the shape `| null`. An `array|false` declaration keeps its `false` the same way.
+
+In these cases, the package can't use the method body, and the property publishes `unknown`:
+
+- The method can return something other than an array literal, apart from a `null`, boolean, string, or number literal its declaration allows. Returning another method call, a generator, or a bare `return;` all count.
+- A value in the array is an enum or a model. A method body can't supply the import these need. Give the method a native return type, or a `@return array{...}` docblock, to type it.
+
+A model's own `toArray()`, called as a value, also publishes `unknown`, because the relations it includes depend on what's loaded at runtime. Spread it instead, as [Model `toArray()` Spread](#model-toarray-spread) shows.
+
+An `only()` or `except()` call is the exception to the enum-and-model rule. Its result names no class, so the rest of the shape survives:
+
+- A literal key list publishes its inline shape, with any enum- or model-typed member left `unknown`.
+- A runtime key list publishes `Record<string, unknown>`.
+- A to-many relation publishes `unknown[]`.
+
+The same applies when the method reads an accessor whose getter calls `only()` or `except()`. A model that overrides `only()` or `except()` with a declared return type publishes that type instead. A model return, such as `: static`, becomes an object with the model's columns and appended accessors, narrowed to the literal keys. An enum or other class return leaves the value `unknown`.
+
+This `Comment` method shows each case:
+
+```php
+// On Comment, read from a resource as 'summary' => $this->relationSummary()
+public function relationSummary(): array
+{
+    return [
+        'id' => $this->id,
+        'author' => $this->user->only(['id', 'name']),
+        'author_role' => $this->user?->only(['id', 'role']),
+        'replies' => $this->replies->only([1, 2]),
+    ];
+}
+```
+
+The `role` column is an enum, so it's left `unknown`, and the to-many `replies` publishes `unknown[]`:
+
+```typescript
+summary: { id: number; author: { id: number; name: string }; author_role: { id: number; role: unknown } | null; replies: unknown[] };
+```
+
+### Local Variables and Narrowing
+
+A variable you assign once keeps the type of its value, so you don't need to inline the expression. Assign it in a statement at the top level of the method or of a closure body:
+
+```php
+public function toArray(Request $request): array
+{
+    $slug = $this->slug;
+
+    return [
+        'slug' => $slug, // string, as if you returned $this->slug
+    ];
+}
+```
+
+A closure or arrow-function parameter with the same name doesn't affect the outer variable. Inside its own closure, the parameter holds its own value:
+
+```php
+public function toArray(Request $request): array
+{
+    $member = $this->slug;
+
+    return [
+        'outer_member' => $member, // string
+        'mapped_members' => $this->members->map(fn ($member) => $member), // User[], since this $member is the map's element
+    ];
+}
+```
+
+A variable you write more than once publishes `unknown`, because the package can't tell which value reaches the response. That includes a second assignment inside an `if` or a loop, a `foreach` that assigns it, and changes through `.=`, `++`, or a reference. A variable assigned only inside an `if`, a loop, or another block also publishes `unknown`. Variables assigned inside a closure body follow the same rules within that closure.
+
+To type a variable the package can't read, annotate its assignment. See [Typing a Variable With `@var`](#typing-a-variable-with-var).
+
+#### Narrowing With `instanceof`
+
+An early-exit `instanceof` guard narrows a variable for every statement after it. Here `attachable` is a `morphTo`, so `$parent` can hold several models until the guard proves it holds a `Post`:
+
+```php
+$record = $this->attachable;
+
+return [
+    'parent' => $this->whenLoaded('attachable', function () {
+        $parent = $this->attachable;
+
+        if (! $parent || ! $parent instanceof Post) {
+            return null;
+        }
+
+        return [
+            'title' => $parent->title,
+            'class' => $parent::className(),
+            'morph' => $parent->getMorphClass(),
+        ];
+    }),
+    'record_title' => $record instanceof Post ? $record->title : null,
+];
+```
+
+In both properties, the reads resolve against `Post`:
+
+```typescript
+export interface AttachmentResource {
+  parent?: { title: string; class: string; morph: string } | null;
+  record_title: string | null;
+}
+```
+
+A guard narrows a variable only when all of these hold:
+
+- The `if` sits at the top level of the method or closure body.
+- The `if` has no `else` or `elseif`, and its body ends with `return` or `throw`.
+- The condition is a negated test such as `! $parent instanceof Post`, alone or in an `||` chain. A chain joined with `&&` narrows nothing.
+- The test reads a local variable or a closure parameter, not a property such as `$this->author`.
+- Nothing writes the variable after the guard. A write before the guard doesn't matter, since the guard tests the value it leaves.
+
+The guard narrows only the reads after it. A read in the guard's own body, or in a `return` placed before the guard, still sees every class the variable can hold. A positive test, such as `if ($parent instanceof Post) { ... }`, narrows nothing, not even inside its own body.
+
+Narrowing applies to reads through the variable, such as `$parent->title`. The variable's own value, as in `'parent' => $parent`, keeps its full union type.
+
+An `instanceof` ternary on a variable narrows its true arm the same way, as `record_title` above shows, and so does an `||` chain of tests on that variable. A negated test, such as `! $post instanceof Post ? null : $post->title`, narrows the false arm instead.
+
+A ternary that tests `$this->resource` against one model narrows the backing model for its proven arm, so a relation that only a subclass declares resolves there. On a `Team` resource, `$this->resource instanceof SubscribedTeam ? $this->resource->subscriber?->name : null` publishes `string | null`.
+
+A variable assigned from an `instanceof` ternary keeps the narrowing for every read through it. The test can be an `||` chain of `instanceof` checks. Here `imageable` is a `morphTo` whose possible models include one with a string key:
+
+```php
+$either = $this->imageable instanceof Post || $this->imageable instanceof User ? $this->imageable : null;
+
+return [
+    'either_id' => $either?->getKey(),          // number | null
+    'open_id' => $this->imageable?->getKey(),   // number | string | null
+];
+```
+
+The same holds when the proven arm reads through the tested variable or `$this->resource`:
+
+```php
+$subscriber = $this->resource instanceof SubscribedTeam ? $this->resource->subscriber : null;
+
+return [
+    'subscriber_name' => $subscriber?->name, // string | null
+];
+```
+
+These forms don't narrow:
+
+- **The ternary's own value**: `'either' => $either` publishes the whole union. Only reads through the variable narrow.
+- **A read inside the arm when the test is on a property**: `$this->imageable instanceof Post ? $this->imageable->getKey() : null` stays `number | string | null`. Assign the ternary to a variable, and read through that variable instead.
+- **A test on a different spelling of the arm's value**: a variable bound to a ternary that tests `$this->resource->imageable` against a `$this->imageable` arm isn't narrowed.
+- **Mixed conditions**: a test joined with `&&`, or an `||` chain that mixes negated and plain tests.
+- **The arm the test doesn't prove**: `$this->resource instanceof SubscribedTeam ? null : $this->resource->subscriber` publishes `unknown`, since `Team` has no `subscriber` relation.
+
+#### Typing a Variable With `@var`
+
+When the package can't type a variable's value, an inline `@var` on its assignment types it. This resource wraps a `CartTotals` value object instead of a model:
+
+```php
+/** @var CartTotals $totals */
+$totals = $this->resource;
+
+return [
+    'subtotal' => $totals->subtotal, // number, from CartTotals' declared property
+    'totals' => $totals,             // { subtotal: number; chargeable: boolean; count: number; hasExtras: boolean }
+];
+```
+
+It also restores a value the package would otherwise drop. Without the annotation, `$picked` below publishes `null`, because the package leaves out a ternary arm it can't type:
+
+```php
+/** @var string|null $picked */
+$picked = $this->id > 0 ? json_decode('"x"') : null; // string | null
+```
+
+The annotation follows these rules:
+
+- **Placement**: it sits on a `$x = ...;` statement at the top level of the method or closure body. It names the variable, as in `/** @var CartTotals $totals */`, or names none, as in `/** @var CartTotals */`.
+- **Span**: it types the reads after that statement, up to the next statement that writes the variable. A loop that writes the variable ends the span where the loop starts. So an annotation also types a variable you reassign, until its next write.
+- **Precedence**: it applies only where the package's own reading of the value is `unknown`, or is only the `null` left after an arm it can't type was dropped. Any other reading stands, whatever the annotation says: `/** @var int $n */ $n = $this->title;` still publishes `string`. To override a type the package got wrong, use [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+
+A conditional value stays optional, so `/** @var User $reviewer */ $reviewer = $this->whenLoaded('reviewer');` publishes `reviewer?: User`. When `$x` is a closure parameter or a `foreach` variable bound to a model, `$x->prop` and `$x->m()` keep reading that model, even after an annotated reassignment.
+
+The annotation's type counts only when it's built from these forms, and when every part of it resolves:
+
+- Scalars: `int`, `string`, `bool`, `float`, `null`, `true`, and `false`
+- A class, interface, or enum that the file imports or writes in full
+- Unions of these, such as `Comment|User|null`, and `?` before a scalar or a class
+- `list<X>`, `array<int, X>`, and `array<string, X>`
+- `array{...}` shapes with plain identifier keys
+- `Collection<K, X>`, for both Laravel's support collection and its Eloquent collection
+
+Any other type is ignored. Write `array{a: int}|null` instead of `?array{a: int}`, and `list<int>` instead of `int[]`. A union that names a class both alone and inside a list, such as `list<User>|User`, is ignored too, and so is a model inside a shape.
+
+### Collection Pipelines
+
+A chain of collection methods keeps its element type to the end, whether it starts at a relation or at `collect()`:
+
+```php
+return [
+    'comment_ids' => $this->comments->map(fn ($comment) => $comment->id)->values()->all(),
+    'title_words' => collect(explode(' ', $this->title))->map(fn ($word) => ['word' => $word])->values()->all(),
+    'author_name' => data_get($this->author, 'name'),
+    'author_name_or_guest' => data_get($this->author, 'name', 'guest'),
+    'doubled' => $this->comments->concat($this->comments)->values(),
+];
+```
+
+Each chain publishes its element type:
+
+```typescript
+export interface PostResource {
+  comment_ids: number[];
+  title_words: { word: string }[];
+  author_name: string | null;
+  author_name_or_guest: string | null;
+  doubled: Comment[];
+  // …
+}
+```
+
+These helpers and methods publish as follows:
+
+- **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. `values()` restores sequential keys and removes that arm.
+- **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`.
+- **`data_get()`**: `data_get($target, 'a.b')` publishes what `$target?->a?->b` would. A default joins the type instead of removing `null`, because `data_get()` returns the default only when the key is missing, not when its value is `null`.
+- **Typed `map()` parameters**: a model type hint on a `map()` parameter types every read through it, chained and nullsafe reads included, when you call `map()` on a variable such as a local or a `whenLoaded()` parameter. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`. A relation chain such as `$this->comments->map(...)` uses the relation's model the same way. On a `collect(...)` root, or on a `map()` called straight on a method's result, such as `$this->resource->getRelation('comments')->map(...)`, the parameter holds no model, so reads through it publish `unknown`.
+
+`concat($other)` keeps the type only when `$other` is exactly the same collection type. Concatenating `Comment[]` and `Tag[]` publishes `unknown`, since the result is a different collection, not a longer one. A `data_get()` key with a `*` segment also publishes `unknown`.
+
+## Spreads and Inheritance
+
+A resource can build its array from its parent class, its traits, and its own helper methods. Each one adds its properties to the interface.
+
+### Parent `toArray()` Spread
+
+Extend a parent resource with `...parent::toArray($request)`. The parent's properties come first, and the child can override any key:
+
+```php
+class PostResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'status' => EnumResource::make($this->status),
+        ];
+    }
+}
+
+class ApiPostResource extends PostResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            ...parent::toArray($request),
+            'status' => $this->status, // overrides the parent's EnumResource type
+        ];
+    }
+}
+```
+
+`ApiPostResource` gets `id`, `title`, and `status` from `PostResource`, and its own `status` replaces the `EnumResource` type with the plain enum.
+
+When the parent is `JsonResource` itself, the spread publishes the model's properties. See [JsonResource Base Delegation](#jsonresource-base-delegation).
+
+Both spellings work: `...parent::toArray($request)` inside an array literal, and a bare `return parent::toArray($request);`. A child that declares no `toArray()` at all inherits the parent's. See [Inheriting a Parent `toArray()`](#inheriting-a-parent-toarray).
+
+### Inheriting a Parent `toArray()`
+
+A resource that extends another resource and declares no `toArray()` of its own publishes its parent's shape:
+
+```php
+/**
+ * @mixin Order
+ */
+class OrderResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'status' => EnumResource::make($this->status),
+        ];
+    }
+}
+
+// No toArray() and no @mixin: both come from OrderResource
+class BodylessOrderResource extends OrderResource {}
+```
+
+The child publishes the parent's properties:
+
+```typescript
+export interface BodylessOrderResource {
+  id: number;
+  status: AsEnum<typeof OrderStatus>;
+}
+```
+
+The nearest class up the parent chain that declares a `toArray()` provides the shape, so inheritance several levels deep works. The backing model comes from the parent chain too: a resource with no `@mixin` or `@extends` tag of its own uses the nearest ancestor's, as step 3 of [How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes. That keeps the inherited properties typed from their columns.
+
+If no class in the chain declares a `toArray()`, the resource publishes the model's properties, as [JsonResource Base Delegation](#jsonresource-base-delegation) describes. With no model either, the interface is empty, apart from any types `#[TsExtends]` adds. A `ResourceCollection` subclass with no `toArray()` still finds its element type as [Resource Collections](#resource-collections) describes.
+
+### JsonResource Base Delegation
+
+A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, accessors, and relations:
+
+```php
+/**
+ * @mixin User
+ */
+class UserResource extends JsonResource
+{
+    // No toArray(): the properties come from the User model
+}
+```
+
+You can also spread the base properties and add your own keys:
+
+```php
+/**
+ * @mixin User
+ */
+class UserResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            ...parent::toArray($request),
+            'full_name' => strtoupper($this->name),
+        ];
+    }
+}
+```
+
+[How the Backing Model Is Resolved](#how-the-backing-model-is-resolved) describes how the package finds the model. When no model resolves, the resource publishes an empty interface.
+
+### Trait Method Spread
+
+Spread a trait method's return into `toArray()` with `...$this->method()`. Its body publishes the same types it would in `toArray()`, and its `@return array{...}` docblock types the keys the body can't:
+
+```php
+trait IncludesMorphValue
+{
+    /**
+     * @return array{morphValue: string}
+     */
+    protected function includeMorphValue(): array
+    {
+        return ['morphValue' => $this->resource->getMorphClass()];
+    }
+}
+
+class PostResource extends JsonResource
+{
+    use IncludesMorphValue;
+
+    public function toArray(Request $request): array
+    {
+        return [
+            ...$this->includeMorphValue(),
+            'id' => $this->id,
+            'title' => $this->title,
+        ];
+    }
+}
+```
+
+The trait's keys come first:
+
+```typescript
+export interface PostResource {
+  morphValue: string;
+  id: number;
+  title: string;
+}
+```
+
+Multi-line `@return` shapes work too:
+
+```php
+/**
+ * @return array{
+ *     firstName: string,
+ *     lastName: string,
+ *     isActive: bool,
+ * }
+ */
+protected function includeProfile(): array
+{
+    // ...
+}
+```
+
+You can also put `#[TsCasts]` on the trait method, with the same syntax as on a resource class. It overrides types, marks keys optional, adds imports, and appends keys the method doesn't return:
+
+```php
+use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
+
+trait IncludesExtras
+{
+    #[TsCasts([
+        'location' => ['type' => 'GeoPoint', 'import' => '@/types/geo'],
+        'flag' => ['type' => 'string | null', 'optional' => true],
+        'extra' => 'Record<string, unknown>',
+    ])]
+    protected function includeCastedExtras(): array
+    {
+        return [
+            'location' => strtoupper('x'),
+            'flag' => strtolower('y'),
+        ];
+    }
+}
+```
+
+A key the body can't type, and that neither the `@return` docblock nor `#[TsCasts]` covers, publishes `unknown`.
+
+::: tip
+Trait spreads carry through inheritance. When a parent resource spreads a trait method and a child spreads `...parent::toArray($request)`, the child gets the keys the trait contributed.
+:::
+
+### Bare Method-Call Return
+
+`toArray()` can return a method call directly, instead of spreading it into an array:
+
+```php
+public function toArray(Request $request): array
+{
+    return $this->data(); // the same as return [...$this->data()];
+}
+```
+
+A chain of several calls works too, as long as it ends at an array literal, or at an `only()` or `except()` filter as described in [Attribute Filters](#attribute-filters-only-except):
+
+```php
+class TeamResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return $this->data();
+    }
+
+    protected function data(): array
+    {
+        return $this->nested();
+    }
+
+    protected function nested(): array
+    {
+        return [
+            'id' => $this->id,
+            'slug' => $this->slug,
+        ];
+    }
+}
+```
+
+The resource publishes the innermost array:
+
+```typescript
+export interface TeamResource {
+  id: number;
+  slug: string;
+}
+```
+
+The chain can pass through trait and parent methods, as a `...$this->method()` spread can. See [Trait Method Spread](#trait-method-spread).
+
+### Return Branches and `@return` Shapes
+
+Every `return` in a spread method counts, not only the first. A branch that returns `[]` leaves its keys out, so the keys the other branches return become optional. The method's own `@return` types what its body can't:
+
+```php
+trait GathersPermissions
+{
+    /**
+     * @return array{permissions?: array<string, bool>, links?: array{self: string, related: array<string, array{name: string}>}}
+     */
+    public function gatherPermissions(): array
+    {
+        if (! $this->resource instanceof Model) {
+            return [];
+        }
+
+        return ['permissions' => $this->opaque(), 'links' => $this->opaque()];
+    }
+
+    /** @return array<string, string> */
+    public function gatherLabels(): array
+    {
+        $data = [];
+        $data['main_label'] = $this->opaque();
+
+        if ($this->resource->exists) {
+            $data['extra_label'] = $this->opaque();
+        }
+
+        return $data;
+    }
+
+    /** Untyped, so only the docblocks above can type what it returns. */
+    protected function opaque()
+    {
+        return $this->resource->getAttribute('title');
+    }
+}
+```
+
+A resource that spreads both methods publishes:
+
+```typescript
+export interface PostPermissionsResource {
+  permissions?: Record<string, boolean>;
+  links?: { self: string; related: Record<string, { name: string }> };
+  main_label: string;
+  extra_label?: string;
+  // …
+}
+```
+
+Both forms of `@return` count:
+
+- **An `array{...}` shape**: each key gets its own type, and a key written `key?:` also becomes optional. A string or number literal type, such as `'draft'|'live'` or `1|2|3`, publishes as written.
+- **`array<string, V>`**: `V` types every key the body left `unknown`.
+
+`toArray()`'s own `@return array{...}` fills keys the same way.
+
+The body always wins. The docblock fills only a key the body left `unknown`, or an [interpolated key's](#interpolated-keys) value that the body left `unknown | undefined`, so a stale `@return` can't overwrite a type the package already knows.
+
+A shape value that names a PHP class or enum is skipped, because a docblock can't carry its import. Type that key with `#[TsCasts]` and an `import` instead. A name that isn't a PHP class, such as a type you declare only in TypeScript, publishes as written in a spread method's `@return`. In `toArray()`'s own `@return`, the key stays `unknown`, so type it with `#[TsCasts]`.
+
+The branches count only while every `return` in the method is an array literal, `[]`, or a variable the method builds. Otherwise, only the method's first `return` counts.
+
+### Interpolated Keys
+
+A key built from literal text around a variable can't become a fixed property name, because it changes on each pass of the loop. Both the interpolated and the concatenated spelling publish a template-literal index signature. These methods belong to the same resource as the ones above:
+
+```php
+/** @return array<string, string> */
+public function gatherChannelLabels(): array
+{
+    $data = ['primary_label' => 'Primary'];
+
+    foreach (['email', 'sms'] as $name) {
+        $data["{$name}_label"] = 'Channel';
+    }
+
+    return $data;
+}
+
+/** @return array<string, string> */
+public function gatherRegionLabels(): array
+{
+    $data = [];
+
+    foreach (['east', 'west'] as $name) {
+        $data[$name.'_region'] = 'Region';
+    }
+
+    return $data;
+}
+```
+
+Each loop key becomes an index signature:
+
+```typescript
+export interface PostPermissionsResource {
+  primary_label: string;
+  [key: `${string}_label`]: string | undefined;
+  [key: `${string}_region`]: string | undefined;
+  // …
+}
+```
+
+The value type carries `| undefined` instead of the signature carrying a `?`, because `[key: T]?:` isn't valid TypeScript, and a key that matches the pattern may be absent.
+
+When the body can't type the value, the method's `@return array<string, V>` does, as it does for a named key. A third method on the same resource, `gatherOpaqueTags()`, declares `@return array<string, string>` and assigns `$data["{$name}_tag"] = $this->opaque()`:
+
+```typescript
+[key: `${string}_tag`]: string | undefined;
+```
+
+A backslash in the literal text is doubled, because TypeScript reads a single one as an escape. `$data["{$name}\\unit"]`, whose keys end in `\unit`, publishes ``[key: `${string}\\unit`]``.
+
+TypeScript checks an index signature against every named key its pattern matches, and against every signature whose pattern contains its own. So each named key the pattern matches, `#[TsCasts]` keys included, joins the signature's value type, and so does another signature with the same pattern. Beside `price_tag: number`, the `_tag` signature publishes `string | number | undefined`.
+
+A signature keeps only the value its body gives it, which is `unknown | undefined` when only the docblock typed it, in these cases:
+
+- **A key that can't join**: a key the pattern matches, or one of the signature's own entries, can't join the union when any of these holds:
+  - its type has a top-level `unknown`, or is a template literal type
+  - its type names a class, or any type other than a primitive, `Record`, or `Date`
+  - its type holds a string literal with a backslash
+  - it brings a class import, unless the import comes from `#[TsCasts]`
+- **An overlapping pattern**: another signature's pattern may overlap its own. A plain `[key: string]` or `[key: number]` signature always counts as overlapping.
+- **An extends clause**: the interface extends a type, through `#[TsExtends]` or a `ts_extends` config entry, whose keys the package can't see.
+
+A signature needs both a literal part and a variable part. A fully literal key publishes as a named property, and a fully dynamic key, such as `$data[$name]`, isn't published. A key whose literal text contains a backtick isn't published either.
+
+A value the body typed itself stands, even beside a key it can't take in, an overlapping pattern, or an extends clause. So ``[key: `${string}_tag`]: string | undefined`` beside `main_tag: PostResource` still fails `tsc` with TS2411, and a pattern contained in another one can fail with TS2413. Type the key, or rename it out of the pattern.
+
+### Model `toArray()` Spread
+
+Spreading a model's own `toArray()` into an array literal with other keys intersects the model's interface with those keys, instead of publishing `unknown[]`:
+
+```php
+'members' => $this->whenLoaded('members', fn ($members) => $members->map(
+    fn (User $member) => [...$member->toArray(), 'flag' => true]
+)),
+```
+
+The spread and the extra key become an intersection:
+
+```typescript
+members?: (Omit<User, "flag"> & { flag: boolean })[];
+```
+
+The `Omit<>` matters. In PHP the later key wins, so `'flag'` replaces whatever the spread contributed. TypeScript's `&` would instead intersect both, and turn a conflicting key into `never`. When one literal holds several spreads, each spread's `Omit<>` removes every key that a later spread or an explicit key overwrites, in source order.
+
+At the top level of `toArray()`, a spread with no key flattens into the resource's own properties instead. `...$this->user->toArray()` adds the user's properties to the interface, and `...PostResource::make($this->post)->resolve()` adds the post resource's. A collection's `...$this->tags->toArray()` adds a `[key: number]` index signature.
+
+::: info
+The intersection references the `{Model}` interface instead of copying its shape. That comes close to what `toArray()` returns at runtime, with two differences:
+
+- **Relations are missing**: a relation loaded before the spread is in the JSON but not in the type, since the package can't know what's loaded. Under the [`model-split` template](./models.md#model-templates), relations live in `{Model}Relations`, which the spread doesn't reference.
+- **`$hidden` columns are extra**: Laravel strips them at runtime, but they stay in `{Model}` unless [`models.exclude_hidden`](./models.md#what-gets-published-hidden-attributes-write-only-accessors) is enabled.
+
+Appended accessors aren't a difference: `toArray()` includes them, and they're part of `{Model}`. `{Model}Mutators` holds only the accessors a model doesn't append.
+
+Spreading a resource, as in `...UserResource::make($m)->resolve($request)`, works the same way without either difference, because the resource interface is the response shape.
+:::
+
+## Attribute Filters (`only` / `except`)
+
+`$this->only([...])` and `$this->except([...])` filter the backing model's attributes. Both work as the return value and as a spread:
+
+```php
+// As the return value
+public function toArray(Request $request): array
+{
+    return $this->only(['id', 'name', 'email']);
+}
+
+// As a spread in the returned array
+public function toArray(Request $request): array
+{
+    return [
+        ...$this->except(['password', 'remember_token']),
+        'role' => EnumResource::make($this->role),
+    ];
+}
+```
+
+The two methods build different property sets:
+
+- **`only([...])`**: exactly the keys you name, each typed from the model, including accessors and relations. A key the model types outside its schema, such as a `withCount()` count (`comments_count: number`) or an `@property` tag, is kept. A key that the model doesn't define and nothing can type is dropped.
+- **`except([...])`**: the model's columns, accessors, and relations, minus the keys you name.
+
+A model that declares its own typed `only()` or `except()` publishes that method's return instead, such as the model itself for `: static`.
+
+`$this->resource->only([...])` and `$this->resource->except([...])` are the same calls, so they publish the same types, spread or not. The same holds for every relation filter below: `$this->resource->author->only([...])` publishes what `$this->author->only([...])` does.
+
+::: tip
+`only()` and `except()` are the only attribute filters the package reads. If you need another method, [open an issue](https://github.com/abetwothree/laravel-ts-publish/issues) or send a pull request.
+:::
+
+### Relation Filters
+
+`only()` and `except()` work on a related model too, as in `$this->author->only([...])` or `$this->post?->except([...])`. A to-many relation and a collection member filter differently, as [To-Many Relations and Collection Members](#to-many-relations-and-collection-members) describes.
+
+When the relation holds a single model and every key you name is one of its database columns, the property references the related model's interface with `Pick<>`. `only()` picks the keys you name, and `except()` picks every other column:
+
+```php
+'author' => $this->author->only(['id', 'name']),
+'post' => $this->post?->except(['created_at', 'updated_at']),
+```
+
+Both properties reference the model's interface:
+
+```typescript
+author: Pick<User, "id" | "name">;
+post: Pick<Post, "id" | "title" | "content" | "user_id"> | null;
+```
+
+This keeps the model's own `#[TsCasts]` and `@property` types. Both methods publish `Pick<>`, never `Omit<>`, so the type names exactly the columns it holds, whatever mutators, relations, or counts the model's interface also carries.
+
+::: tip
+`except()` picks your model's columns minus the named keys. When the model gains a column, an existing `except([...])` includes it without any change to your resource.
+:::
+
+When a key isn't a column, the package writes the shape inline, and the two methods differ the way they do in Eloquent:
+
+- **`only([...])`**: expands exactly the keys you name. Eloquent's `only()` calls `getAttribute()` for each key, which reads accessors and relations too. So `$this->author->only(['name', 'initials', 'posts'])` publishes `{ name: string; initials: string; posts: Post[] }`.
+- **`except([...])`**: expands the related model's database columns minus the named keys, never an accessor or a relation. Eloquent's `except()` reads only the stored attributes, and a model keeps its relations apart from those.
+
+So for `'author' => $this->author?->except(['id', 'name'])`, where `User` has the accessors `initials` and `is_premium` and the relations `profile` and `posts`, the type holds columns only:
+
+```typescript
+author: { email: string; phone: string | null } | null;
+```
+
+Naming a relation or an accessor in `except()` changes nothing, since that key was never in the set. To publish one, switch to `only([...])`, or give the key its own entry in `toArray()`.
+
+An accessor typed as a union of models, such as `@return Attribute<Contact|User|null, never>`, is filtered one model at a time. Each model gets its own `Pick<>` when every key is one of its columns, and an inline shape otherwise. When `Contact` has no `phone` column, `$this->last_active_by?->only(['id', 'phone'])` publishes `{ id: number } | Pick<User, "id" | "phone"> | null`.
+
+#### To-Many Relations and Collection Members
+
+On a to-many relation, `only()` and `except()` select models, not attributes. Eloquent's collection `only()` and `except()` keep the models whose primary key you list and return them whole, so the property publishes the relation's own type, whatever the key list holds:
+
+```php
+'replies' => $this->comments->only([1, 2]),
+'kept' => $this->comments?->except($request->input('ids')),
+```
+
+Both keep the relation's type:
+
+```typescript
+replies: Comment[];
+kept: Comment[] | null;
+```
+
+An accessor that returns an Eloquent collection of models filters the same way. It publishes a list of those models, such as `Comment[]`, whatever key type the accessor declares.
+
+A member holding a support `Collection` selects entries by key: `only()` keeps the listed keys, and `except()` drops them. Its filter publishes `Record<string, unknown>`, whatever the collection holds. This covers these members:
+
+- A column cast with `'collection'`, `'encrypted:collection'`, `AsCollection`, or `AsEncryptedCollection`
+- An accessor, cast getter, or method that returns a `Collection`
+
+These members publish `unknown` instead:
+
+- An `AsEnumCollection` column
+- A collection-cast column read through anything other than `$this` or `$this->resource`, such as a relation's column in `$this->author->options->only([...])`, or a local variable that holds the model
+- A collection class that overrides `only()` or `except()`, such as:
+  - a class you pass to `AsCollection::using()`
+  - a returned subclass that overrides them
+  - a cast that builds an Eloquent collection
+  - a method that returns an Eloquent collection
+
+A single relation filtered by a runtime key list, such as `$this->author->only($request->input('fields'))`, names nothing to pick, so it publishes `Record<string, unknown>`.
+
+### Attribute Filters on Any Model
+
+`only([...])` and `except([...])` work on any value that holds a model, not only a relation. The same types come from a bare `$this->only([...])`, which the resource forwards to its model, from a `whenLoaded()` closure parameter, and from a local variable that holds a model:
+
+```php
+return [
+    ...$this->only(['id', 'comments_count']),
+    'summary' => $this->when(true, fn () => $this->only(['id', 'title'])),
+    'category' => $this->whenLoaded('category', fn ($category) => $category->only(['id', 'name'])),
+    'dynamic' => $this->only($request->input('fields')),
+];
+```
+
+Each filter publishes a `Pick<>` or a record:
+
+```typescript
+export interface PostResource {
+  id: number;
+  comments_count: number;
+  summary?: Pick<Post, "id" | "title">;
+  category?: Pick<Category, "id" | "name">;
+  dynamic: Record<string, unknown>;
+  // …
+}
+```
+
+The `Pick<>` reference needs a literal key list. `$this->only($request->input('fields'))` has none, so it publishes `Record<string, unknown>` instead of guessing which keys arrive.
+
+### `exclude_hidden` and Attribute Filters
+
+The `ts-publish.models.exclude_hidden` setting, described in [Models](./models.md#what-gets-published-hidden-attributes-write-only-accessors), applies to resources as well as to model interfaces. A `$hidden` column you name is kept, and a derived property set leaves it out, as Laravel's `toArray()` does:
+
+```php
+$this->only(['password'])   // kept: you named it
+$this->except(['id'])       // password dropped: the property set is derived
+```
+
+With `exclude_hidden` enabled, each pattern treats a `$hidden` column this way:
+
+| Pattern                                                                          | Property set                                     | A `$hidden` column                  |
+| -------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| `'password' => $this->password`                                                  | The property you wrote                           | Kept, because you named it          |
+| `$this->only(['id', 'password'])`                                                | Exactly the keys you named                       | Kept, because you named it          |
+| `$this->relation->only(['id', 'password'])`                                      | Exactly the keys you named                       | Kept, because you named it          |
+| `$this->whenHas('password')`                                                     | The attribute you named                          | Kept, because you named it          |
+| `$this->except(['id'])`                                                          | The model's properties minus the named keys      | Dropped, because the set is derived |
+| `$this->relation->except(['id'])`                                                | The related model's columns minus the named keys | Dropped, because the set is derived |
+| `parent::toArray($request)`, `[...parent::toArray($request)]`, or no `toArray()` | The model's properties                           | Dropped, because the set is derived |
+
+Reading a column directly, as in `'password' => $this->password`, is the most common way to expose one, and it behaves like a named `only()` key: a `$hidden` column you read yourself is never dropped.
+
+To publish a `$hidden` column through a derived set, name it. Switch the property to `only([...])`, read it as `$this->column`, or remove it from the model's `$hidden` array if it no longer needs hiding.
+
+## Resource Collections
+
+`ResourceCollection` subclasses publish an interface too. `$this->collection` becomes a list of the singular resource:
+
+```php
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+class UserCollection extends ResourceCollection
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'data' => $this->collection,
+            'has_admin' => true,
+        ];
+    }
+}
+```
+
+The collection's interface imports the singular resource:
+
+```typescript
+import type { UserResource } from ".";
+
+export interface UserCollection {
+  data: UserResource[];
+  has_admin: boolean;
+}
+```
+
+The singular resource comes from the first of these that applies:
+
+1. The `#[Collects(UserResource::class)]` attribute on the collection. This attribute needs Laravel 13.
+2. The `$collects` property.
+3. Laravel's naming convention: `UserCollection` collects `UserResource`, or else `User` from the same namespace, when the package publishes that resource.
+
+The `$collects` property works on every supported Laravel version:
+
+```php
+class OrderCollection extends ResourceCollection
+{
+    public $collects = OrderResource::class;
+
+    public function toArray(Request $request): array
+    {
+        return [
+            'data' => $this->collection,
+        ];
+    }
+}
+```
+
+On Laravel 12, use the `$collects` property or the naming convention. The `#[Collects]` attribute doesn't exist there, so the package can't find the resource of a collection that relies on it.
+
+When no singular resource matches, such as for a `MiscCollection` with no `MiscResource`, `$this->collection` publishes `unknown`.
+
+A collection with no `toArray()` publishes Laravel's default shape, `{ data: R[] }`. With `public static $wrap = null;`, the collection is the list itself, so the package publishes a type alias instead of an interface:
+
+```php
+#[Collects(PostResource::class)]
+class PostFlatCollection extends ResourceCollection
+{
+    public static $wrap = null;
+}
+```
+
+The unwrapped collection becomes an alias:
+
+```typescript
+export type PostFlatCollection = PostResource[];
+```
+
+### Key-Preserving Collections
+
+A `ResourceCollection` normally serializes as a JSON array, so the generated type is `R[]`. Laravel can keep the collection's original keys instead, which makes the payload a JSON object. The package reads both ways to opt in:
+
+```php
+use Illuminate\Http\Resources\Attributes\PreserveKeys;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+#[PreserveKeys] // Laravel 13+
+class TeamCollection extends ResourceCollection
+{
+    public $collects = TeamResource::class;
+}
+```
+
+The property form works on every supported Laravel version:
+
+```php
+use Illuminate\Http\Resources\Json\ResourceCollection;
+
+class TeamCollection extends ResourceCollection
+{
+    public $preserveKeys = true;
+
+    public $collects = TeamResource::class;
+}
+```
+
+Either form generates:
+
+```typescript
+export interface TeamCollection {
+  data: Record<string, TeamResource>;
+}
+```
+
+With `public static $wrap = null;` as well, the collection publishes the alias `export type TeamCollection = Record<string, TeamResource>;`.
+
+### Paginated Collections
+
+A collection's interface covers what its `toArray()` returns. The `links` and `meta` keys Laravel adds to a paginated response, and any data you add with `additional()`, aren't part of it. An Inertia page prop that passes a paginator to a resource collection gets its pagination members from the page prop's type instead. See [Paginating Inline in the Render Call](./inertia.md#paginating-inline-in-the-render-call) on the Inertia page.
 
 ## Resource Attributes
 
-Three attributes are available for configuring resource TypeScript generation. See [Excluding Content](./excluding-content.md) for the full `#[TsExclude]` reference.
+Four attributes configure how a resource is published:
 
-| Attribute       | Target                   | Description                                                                  |
-| --------------- | ------------------------ | ---------------------------------------------------------------------------- |
-| `#[TsResource]` | Resource class           | Override the interface name, specify the backing model, or add a description |
-| `#[TsCasts]`    | Resource class or method | Override or add property types with custom TypeScript types                  |
-| `#[TsExclude]`  | Resource class           | Exclude the entire resource from the TypeScript output.                      |
+| Attribute       | Target                                              | Use it to                                                                                                           |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `#[TsResource]` | Resource class                                      | Set the interface name, the backing model, or a description                                                         |
+| `#[TsCasts]`    | Resource class, `toArray()`, or a method it spreads | Override property types, or add properties                                                                          |
+| `#[TsExtends]`  | Resource class                                      | Extend the interface with your own TypeScript types, as [Extending Interfaces](./extending-interfaces.md) describes |
+| `#[TsExclude]`  | Resource class                                      | Leave the resource out of the output, as [Excluding Content](./excluding-content.md) describes                      |
 
-### `#[TsResource]` — Configure Resource Generation
+### Configuring Resource Generation With `#[TsResource]`
 
-Use this attribute to override the generated interface name, explicitly specify the backing model, or add a description:
+Use `#[TsResource]` to set the generated interface's name, the backing model, or a description:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsResource;
@@ -938,18 +1434,32 @@ class UserResource extends JsonResource
 }
 ```
 
-| Parameter     | Type            | Default       | Description                                   |
-| ------------- | --------------- | ------------- | --------------------------------------------- |
-| `name`        | `?string`       | Class name    | Override the TypeScript interface name        |
-| `model`       | `?class-string` | Auto-detected | Explicitly specify the backing Eloquent model |
-| `description` | `string`        | `''`          | Added as a JSDoc comment above the interface  |
+The attribute takes three optional parameters:
 
-> [!TIP]
-> When `name` is set, it also affects the output filename. For example, `#[TsResource(name: 'Address')]` generates `address.ts` instead of `address-resource.ts`.
+| Parameter     | Type            | Default                | Description                         |
+| ------------- | --------------- | ---------------------- | ----------------------------------- |
+| `name`        | `?string`       | Class name             | The TypeScript interface name       |
+| `model`       | `?class-string` | Resolved automatically | The backing Eloquent model          |
+| `description` | `string`        | `''`                   | A JSDoc comment above the interface |
 
-### `#[TsCasts]` — Override Property Types
+::: tip
+`name` also sets the output file's name. For example, `#[TsResource(name: 'Address')]` generates `address.ts` instead of `address-resource.ts`.
+:::
 
-Use this attribute to override inferred types or add virtual properties with custom TypeScript types:
+### Overriding Property Types With `#[TsCasts]`
+
+::: tip Before You Add `#[TsCasts]`
+The package already types these shapes without an override:
+
+- A method call on an enum, a date, a model, or a service, and a property read on any of those or on a value object. See [Method Return Types](#method-return-types).
+- A value behind a local variable, a closure-local variable, or an `instanceof` guard. See [Local Variables and Narrowing](#local-variables-and-narrowing).
+- A collection chain, `data_get()`, and `only([...])` on any model. See [Collection Pipelines](#collection-pipelines) and [Attribute Filters on Any Model](#attribute-filters-on-any-model).
+- A key that only some branches return, or one that a spread method's `@return` describes. See [Return Branches and `@return` Shapes](#return-branches-and-return-shapes).
+
+`#[TsCasts]` is the right tool when the frontend owns the type and it needs its own import, or when a shape is dynamic.
+:::
+
+Use `#[TsCasts]` to override a property's type, or to add a property that `toArray()` doesn't return:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsCasts;
@@ -965,17 +1475,15 @@ class CommentResource extends JsonResource
 }
 ```
 
-Each entry can be:
+Each entry takes one of these forms:
 
-| Format                | Example                                             | Description                            |
-| --------------------- | --------------------------------------------------- | -------------------------------------- |
-| Plain string          | `'Record<string, unknown>'`                         | Override the type only                 |
-| Array with `import`   | `['type' => 'GeoPoint', 'import' => '@/types/geo']` | Custom type with an import statement   |
-| Array with `optional` | `['type' => 'string', 'optional' => true]`          | Override the type and mark as optional |
+| Form                     | Example                                             | Effect                                             |
+| ------------------------ | --------------------------------------------------- | -------------------------------------------------- |
+| A string                 | `'Record<string, unknown>'`                         | Overrides the type                                 |
+| An array with `import`   | `['type' => 'GeoPoint', 'import' => '@/types/geo']` | Uses a custom type and imports it                  |
+| An array with `optional` | `['type' => 'string', 'optional' => true]`          | Overrides the type and marks the property optional |
 
-Properties defined in `#[TsCasts]` that don't exist in `toArray()` are appended to the generated interface. Properties that do exist have their types overridden.
-
-Generated TypeScript with the `coordinates` example:
+An entry for a key that `toArray()` returns overrides that key's type. An entry for any other key adds a property to the interface. With the `coordinates` entry above, the resource generates:
 
 ```typescript
 import type { GeoPoint } from "@/types/geo";
@@ -992,27 +1500,20 @@ export interface CommentResource {
 }
 ```
 
-#### On Trait Methods
+You can put `#[TsCasts]` on the resource class, on `toArray()` itself, or on a trait or helper method that `toArray()` spreads. On a method, it works the same way as on the class. See [Trait Method Spread](#trait-method-spread).
 
-`#[TsCasts]` can also be applied to **trait methods** that are spread into `toArray()`. This lets you control types for trait-contributed properties without modifying the resource class — see [Trait Method Spread](#trait-method-spread) above.
-
-The attribute works identically to the class-level version — overriding types, marking properties optional, adding imports, and appending new properties.
-
-> [!NOTE]
-> `#[TsCasts]` replaces the former `#[TsResourceCasts]` attribute, which was removed. If you were using `TsResourceCasts`, replace it with `TsCasts` — the syntax is identical.
+The backing model's own `#[TsCasts]` applies here too. An entry on the model retypes the resource property with the same name, including its `optional` flag. For example, an `Address` model entry `'latitude' => ['type' => 'number | null', 'optional' => true]` makes a resource's `'latitude' => $this->whenNotNull($this->latitude)` publish `latitude?: number | null`. The resource's own entries take precedence, and a model entry never adds a property.
 
 ## Nullable Relations
 
-When `whenLoaded('relation')` resolves a relation type, the package determines whether it should include `| null` based on the relation kind and the database schema.
+When `whenLoaded('relation')` publishes a relation's type, the package decides whether to add `| null` from the relation type and your database schema. The `models.nullable_relations` setting controls this, and it's enabled by default. Each relation type has a strategy:
 
-This is controlled by the `nullable_relations` config option (enabled by default). The strategy for each relation type is:
-
-| Relation Type                         | Strategy   | Description                                          |
-| ------------------------------------- | ---------- | ---------------------------------------------------- |
-| `HasOne`, `MorphOne`, `HasOneThrough` | `nullable` | Always nullable — the related record may not exist   |
-| `BelongsTo`                           | `fk`       | Checks the foreign key column's DB-level nullability |
-| `MorphTo`                             | `morph`    | Checks both the morph type and FK column nullability |
-| `HasMany`, `BelongsToMany`, etc.      | `never`    | Collection relations — typed as arrays, never null   |
+| Relation type                                           | Strategy   | Result                                                           |
+| ------------------------------------------------------- | ---------- | ---------------------------------------------------------------- |
+| `HasOne`, `MorphOne`, `HasOneThrough`                   | `nullable` | Always nullable, since the related record may not exist          |
+| `BelongsTo`                                             | `fk`       | Nullable when the foreign key column is nullable in the database |
+| `MorphTo`                                               | `morph`    | Nullable when the morph type or ID column is nullable            |
+| `HasMany`, `BelongsToMany`, and other to-many relations | `never`    | A list, never `null`                                             |
 
 For example, a `BelongsTo` relation with a nullable foreign key:
 
@@ -1020,12 +1521,16 @@ For example, a `BelongsTo` relation with a nullable foreign key:
 // Migration: $table->foreignId('user_id')->nullable();
 
 // Resource:
-'user' => UserResource::make($this->whenLoaded('user')),
+'user' => $this->whenLoaded('user'),
 ```
 
-Generates `user?: UserResource | null` — optional (from `whenLoaded`) and nullable (from the nullable FK).
+The property publishes `user?: User | null`: optional because of `whenLoaded()`, and nullable because of the foreign key.
 
-You can disable nullable relation detection globally:
+::: warning
+The `| null` belongs to the relation's own type. When you wrap the relation in a resource, as in `UserResource::make($this->whenLoaded('user'))`, the property publishes `user?: UserResource` without `| null`, even though Laravel sends `null` when the related record is missing. Add `| null` with [`#[TsCasts]`](#overriding-property-types-with-tscasts) if your frontend needs it.
+:::
+
+To turn off nullable relation detection everywhere:
 
 ```php
 // config/ts-publish.php
@@ -1034,7 +1539,7 @@ You can disable nullable relation detection globally:
 ],
 ```
 
-Or override the strategy for specific relation types using `models.relation_nullability_map`:
+To change the strategy for a relation type, use `models.relation_nullability_map`:
 
 ```php
 // config/ts-publish.php
@@ -1045,43 +1550,45 @@ Or override the strategy for specific relation types using `models.relation_null
 ],
 ```
 
-Valid strategies are `'nullable'`, `'never'`, `'fk'`, and `'morph'`.
+The valid strategies are `'nullable'`, `'never'`, `'fk'`, and `'morph'`.
 
-> [!NOTE]
-> This is the same `models.*` nullability configuration used by [Models](./models.md) — resources and models share one nullability-detection strategy since resources ultimately resolve relation types from the same backing model.
+::: info
+Resources and models share these `models.*` settings, because a resource takes its relation types from its backing model. See [Nullable Relations](./models.md#nullable-relations) on the Models page.
+:::
 
 ## Filtering & Excluding
 
-You can customize which resources are discovered using the same include/exclude pattern as [enums](./enums.md) and [models](./models.md):
+Choose which resources are published with the same include and exclude settings that [enums](./enums.md#filtering-excluding-enums) and [models](./models.md#filtering-excluding-models) use:
 
 ```php
 // config/ts-publish.php
 
 'resources' => [
-    // Only publish these specific resources (leave empty to include all)
+    // Publish only these resources (leave empty to publish all)
     'included' => [
         App\Http\Resources\UserResource::class,
         App\Http\Resources\PostResource::class,
     ],
 
-    // Exclude specific resources from publishing
+    // Leave these resources out
     'excluded' => [
         App\Http\Resources\InternalResource::class,
     ],
 
-    // Search additional directories for resources
+    // Search these directories for resources too
     'additional_directories' => [
         'modules/Blog/Http/Resources',
     ],
 ],
 ```
 
-> [!TIP]
-> Like models and enums, include and exclude settings accept both fully-qualified class names and directory paths.
+::: tip
+As with models and enums, `included` and `excluded` accept both class names and directory paths.
+:::
 
-`#[TsExclude]` also works at the class level — see [Resource Attributes](#resource-attributes) above and [Excluding Content](./excluding-content.md).
+`#[TsExclude]` on a resource class also leaves it out. See [Resource Attributes](#resource-attributes) and [Excluding Content](./excluding-content.md).
 
-You can disable resource publishing entirely in the config file:
+To turn off resource publishing entirely, set `enabled` to `false`:
 
 ```php
 // config/ts-publish.php
@@ -1091,14 +1598,14 @@ You can disable resource publishing entirely in the config file:
 ],
 ```
 
-Or publish only resources for a single run using the command flag:
+To publish only resources for a single run, pass the `--only-resources` flag:
 
 ```bash
 php artisan ts:publish --only-resources
 ```
 
-The `--only-resources` flag cannot be combined with any other `--only-*` flag (`--only-enums`, `--only-models`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`).
+`--only-resources` fails when you combine it with another `--only-*` flag, such as `--only-enums` or `--only-models`. `--only-functional` is the exception: it overrides every other `--only-*` flag, and it skips resources.
 
 ## Configuration Reference
 
-The full list of `resources.*` config keys lives in the [Configuration Reference](./configuration-reference.md).
+The [Configuration Reference](./configuration-reference.md) lists every `resources.*` config key.

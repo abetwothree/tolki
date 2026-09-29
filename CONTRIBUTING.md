@@ -59,6 +59,10 @@ pnpm ts:check      # Run TypeScript type checking
 pnpm build         # Build all packages
 ```
 
+A package's `.d.ts` files must import other `@tolki/*` packages by name. The root `tsconfig.json` maps `@tolki/*` to `packages/*/src/index.ts` for development, and `vite-plugin-dts` would rewrite those imports into relative paths that break once the package is installed from npm. The shared `dts()` config in `vite.config.ts` sets `aliasesExclude: [/^@tolki\//]` to keep the package names.
+
+`scripts/__tests__/dts-specifiers.test.ts` fails when a built `.d.ts` file reaches into another package through a relative path. It reads whatever is already in `dist/`, and `dist/` is gitignored, so it can be stale. Delete `dist/` and rebuild the packages before you trust a pass or a failure.
+
 ## Making Changes
 
 1. Create a new branch from `master` for your changes.

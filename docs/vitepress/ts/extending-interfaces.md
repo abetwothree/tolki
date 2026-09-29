@@ -1,18 +1,20 @@
 # Extending Interfaces
 
-The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can add a TypeScript `extends` clause to any generated model, resource, form request, or broadcast event interface, so it can extend a hand-written interface for properties this package can't infer, or share common fields across many classes without duplication.
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) can add an `extends` clause to a generated model, resource, form request, or broadcast event interface. Use it to pull in a hand-written interface for properties the package can't infer, or to share common fields across many classes without repeating them. All four features support it the same way.
 
-As mentioned in [Installation & Usage](./index.md), this works alongside every other feature — [models](./models.md), [API resources](./api-resources.md), [form requests](./form-requests.md), and [broadcast events](./broadcast-events.md) all support it identically, since they share the same underlying mechanism.
+There are two ways to add an `extends` clause, and they combine when you use both:
 
-There are two ways to add an `extends` clause, and both apply together when present:
-
-1. The **`#[TsExtends]` attribute** — scoped to one class (and inherited by anything that extends or uses it).
-2. The **`ts_extends.*` config array** — applied globally to every generated interface of that type.
+- **The `#[TsExtends]` attribute**: applies to one class, and to any class that extends it or uses the trait it's on.
+- **The `ts_extends.*` config arrays**: apply to every generated interface of one feature, such as every model.
 
 ## `#[TsExtends]` Attribute
 
+The attribute takes the clause, an optional import path, and an optional list of names to import:
+
 ```php
-use AbeTwoThree\LaravelTsPublish\Attributes\TsExtends;
+namespace AbeTwoThree\LaravelTsPublish\Attributes;
+
+use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 class TsExtends
@@ -25,21 +27,25 @@ class TsExtends
 }
 ```
 
-| Parameter | Type            | Default  | Description                                                                                                          |
-| --------- | --------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
-| `extends` | `string`        | required | The raw TypeScript extends clause — a plain interface name, or a generic wrapper like `Pick<X, "a"\|"b">`.           |
-| `import`  | `?string`       | `null`   | The import path for the type(s) used in `extends`. Omit when the type is a global/ambient type that needs no import. |
-| `types`   | `?list<string>` | `null`   | Explicit list of identifiers to import from `import`. When `null`, they're auto-extracted from `extends`.            |
+Each parameter controls one part of the clause:
 
-`#[TsExtends]` is **repeatable** — stack as many as you need on the same class — and can be placed on:
+| Parameter | Type            | Default  | Description                                                                                                                                            |
+| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `extends` | `string`        | required | The TypeScript for the `extends` clause: an interface name, or a generic such as `Pick<X, "a" \| "b">`.                                                |
+| `import`  | `?string`       | `null`   | The path to import the clause's types from. Leave it out for a global type that needs no import.                                                       |
+| `types`   | `?list<string>` | `null`   | The names to import from `import`. When it's `null`, the package reads the names from `extends`, which works only when `extends` has no generic in it. |
 
-- A model, resource, form request, or broadcast event class directly.
-- Any **parent class** in its inheritance chain.
-- Any **trait** used by the class or any of its parent classes.
+`#[TsExtends]` is repeatable, so you can stack as many as you need. You can put it on any of these:
 
-Every `#[TsExtends]` attribute reachable from a class — its own, its traits', and (recursively) its parent classes' and their traits' — is combined into that class's single generated `extends` clause.
+- A model, resource, form request, or broadcast event class.
+- Any parent class in the class's inheritance chain.
+- Any trait the class or one of its parent classes uses.
+
+The package combines every `#[TsExtends]` it can reach from a class into that class's one `extends` clause. The class's own attributes come first, then those on its traits and parent classes, nearest first.
 
 ## Multiple Attributes & Named Arguments
+
+This model stacks two attributes, and uses named arguments for `import` and `types`:
 
 ```php
 use AbeTwoThree\LaravelTsPublish\Attributes\TsExtends;
@@ -52,7 +58,7 @@ class Warehouse extends Model
 }
 ```
 
-Generates:
+This generates:
 
 ```typescript
 import type { Auditable } from "@/types/audit";
@@ -60,34 +66,39 @@ import type { HasTimestamps } from "@/types/common";
 
 export interface Warehouse
   extends HasTimestamps, Pick<Auditable, "created_by" | "updated_by"> {
-  // ... columns, mutators, relations
+  // ... columns
 }
 ```
 
-Notice that `types` is only needed for the `Pick<Auditable, ...>` entry — `HasTimestamps` has no `types` array because when `types` is omitted (`null`), the package auto-extracts the identifier(s) to import directly from the `extends` string. You only need `types` when the extends string wraps the imported type in a generic like `Pick<>`/`Omit<>`/`Partial<>`, where auto-extraction can't reliably isolate the type name.
+On a model, the clause goes on the main interface, which holds the columns. The model's `WarehouseAll` interface extends that one, so it gets the clause too.
 
-An entry with no `import` at all (just `extends`) is treated as an ambient/global type that's already available without an import — useful for a type declared in your own global `.d.ts` file.
+`HasTimestamps` needs no `types` array. When `types` is `null`, the package reads the names to import from the `extends` string itself. Without `types`, the package can't pick the names out of a generic clause, such as `Pick<>`, `Omit<>`, or `Partial<>`, so the import comes out missing or broken. Always list them in `types`.
 
-## Inheriting from Parent Classes & Traits
+An entry with no `import` is treated as a global type that's already available, such as one declared in your own global `.d.ts` file.
 
-`#[TsExtends]` attributes on a parent class or a trait are inherited by anything that extends or uses them. Here's a real fixture combining **three separate sources** — the resource's own attribute, a parent class's two attributes, and a trait's two attributes — into one generated `extends` clause:
+## Inheriting From Parent Classes & Traits
+
+`#[TsExtends]` on a parent class or a trait applies to every class that extends or uses it. This example combines three sources into one `extends` clause: a trait, a parent class, and the resource itself.
+
+The trait has two attributes:
 
 ```php
-// The trait
 #[TsExtends('ExtendableInterface')]
 #[TsExtends('Omit<Timestamps, "created_at" | "updated_at">', '@/types/util', ['Timestamps'])]
 trait ExtendsInterfaces {}
 ```
 
+The parent class has two more:
+
 ```php
-// The parent class
 #[TsExtends('ResourceRoutes', '@/types/resources')]
 #[TsExtends('Pick<Routable, "store" | "update">', '@/types/routing', ['Routable'])]
 class RoutableResource extends JsonResource {}
 ```
 
+The resource extends `RoutableResource`, uses the `ExtendsInterfaces` trait, and adds its own attribute:
+
 ```php
-// The resource itself — extends RoutableResource, uses ExtendsInterfaces, and adds its own attribute
 #[TsExtends('BaseResource', import: '@/types/base')]
 class WarehouseResource extends RoutableResource
 {
@@ -100,7 +111,7 @@ class WarehouseResource extends RoutableResource
 }
 ```
 
-All five `#[TsExtends]` attributes — one on `WarehouseResource` itself, two on the `ExtendsInterfaces` trait, and two on the `RoutableResource` parent — are combined into a single `extends` clause:
+All five attributes end up in one `extends` clause: the resource's own first, then the trait's, then the parent class's:
 
 ```typescript
 import type { BaseResource } from "@/types/base";
@@ -121,12 +132,14 @@ export interface WarehouseResource
 
 ## Deduplication
 
-When the same `#[TsExtends]` attribute is reachable through more than one path — for example, a trait used by both a parent class and its child — it's only added to the `extends` clause **once**:
+When a class can reach the same `#[TsExtends]` more than one way, the clause lists it once. A trait that both a parent class and its child use is the common case:
 
 ```php
 #[TsExtends('SharedInterface', '@/types/shared')]
 trait SharedExtendsInterface {}
 ```
+
+A parent resource and its child both use the trait:
 
 ```php
 class BaseSharedResource extends JsonResource
@@ -140,7 +153,7 @@ class ChildSharedResource extends BaseSharedResource
 }
 ```
 
-Even though `ChildSharedResource` reaches `SharedExtendsInterface` through two paths — its own `use` statement and inheriting it again from `BaseSharedResource` — `SharedInterface` only appears once in the generated interface:
+`ChildSharedResource` reaches `SharedExtendsInterface` through its own `use` statement and again through `BaseSharedResource`. `SharedInterface` still appears once in the generated interface:
 
 ```typescript
 import type { SharedInterface } from "@/types/shared";
@@ -150,7 +163,7 @@ export interface ChildSharedResource extends SharedInterface {}
 
 ## Global Config: `ts_extends.*`
 
-To extend a shared interface across _every_ generated interface of a given type, without adding `#[TsExtends]` to each class individually, use the `ts_extends` config array. It has one key per supported type — `models`, `resources`, `form_requests`, and `broadcast_events`:
+To extend a shared interface on every generated interface of one feature, use the `ts_extends` config array instead of adding `#[TsExtends]` to each class. It has one key per feature: `models`, `resources`, `form_requests`, and `broadcast_events`.
 
 ```php
 // config/ts-publish.php
@@ -173,9 +186,12 @@ To extend a shared interface across _every_ generated interface of a given type,
 ],
 ```
 
-Each entry can be a plain string (a simple, import-free extends clause) or an array with `extends`, `import`, and optionally `types` keys — the same shape as the `#[TsExtends]` attribute's parameters.
+Each entry is a string or an array:
 
-Config-level entries combine with `#[TsExtends]` attributes on that same generated interface, and are deduplicated the same way. Take the real `broadcast_events` config entry above — `['extends' => 'HasTimestamps', 'import' => '@/types/common']` — alongside this real event, which uses a trait carrying the _identical_ attribute:
+- **A string**: an `extends` clause with no import, for a global type.
+- **An array**: `extends`, `import`, and optionally `types` keys, which work like the attribute's parameters.
+
+Config entries combine with the `#[TsExtends]` attributes on the same interface. They come after the attributes in the clause, and a duplicate is removed the same way. Take the `broadcast_events` entry above, `['extends' => 'HasTimestamps', 'import' => '@/types/common']`, and an event that uses a trait with the same attribute:
 
 ```php
 class UserNotification implements ShouldBroadcast
@@ -190,7 +206,7 @@ class UserNotification implements ShouldBroadcast
 }
 ```
 
-Since the config entry and the trait's attribute resolve to the exact same `(extends, import)` pair, they're deduplicated into a single `extends HasTimestamps` — not a duplicate:
+The config entry and the trait's attribute have the same `extends` and `import`, so the clause lists `HasTimestamps` once:
 
 ```typescript
 import type { HasTimestamps } from "@/types/common";
@@ -204,14 +220,16 @@ export interface UserNotification extends HasTimestamps {
 
 ## Naming Conflicts & Aliasing
 
-Occasionally, two different `#[TsExtends]` entries (from any combination of attributes, traits, parent classes, or config) use the **same type name** but import it from **different paths**. Rather than silently colliding, **every** occurrence of that name is aliased — each one prefixed with the PascalCase form of its own import path's last segment — and each affected extends clause is rewritten to use its alias:
+Two entries can use the same type name from different import paths, from any mix of attributes, traits, parent classes, and config. The package then aliases every use of that name. Each alias is the PascalCase form of the last segment of its own import path, followed by the type name, and each affected clause uses its alias:
 
 ```php
-// Both entries reference a type named "Routable", but from different import paths
+// Both entries name a type "Routable", from different import paths.
 #[TsExtends('Routable', '@/types/routing')]
 #[TsExtends('Routable', '@/types/legacy-routing')]
 class Example { /* ... */ }
 ```
+
+This generates:
 
 ```typescript
 import type { Routable as LegacyRoutingRoutable } from "@/types/legacy-routing";
@@ -220,13 +238,15 @@ import type { Routable as RoutingRoutable } from "@/types/routing";
 export interface Example extends RoutingRoutable, LegacyRoutingRoutable {}
 ```
 
-The deduplication and conflict-resolution rules, in order:
+The package applies these rules in order:
 
-1. Identical `(extends, import)` pairs from any source (attribute, trait, parent class, or config) are kept once.
-2. The same type name imported from the same path — across different extends clauses — produces a single import statement.
-3. The same type name imported from two _different_ paths gets **every** occurrence aliased (each with the prefix derived from its own import path), and every affected extends clause — even inside a generic like `Pick<>` — rewritten to reference its alias.
+1. Identical `extends` and `import` pairs from any source, whether attribute, trait, parent class, or config, are kept once.
+2. The same type name from the same path, across different `extends` clauses, gets one import statement.
+3. The same type name from two different paths is aliased everywhere it appears, each with the prefix from its own import path. Every clause that uses it is rewritten to the alias, even inside a generic such as `Pick<>`.
 
 ## Configuration Reference
+
+Each `ts_extends` key applies to one feature's interfaces:
 
 | Config Key                    | Type    | Default | Description                                               |
 | ----------------------------- | ------- | ------- | --------------------------------------------------------- |

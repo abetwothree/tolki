@@ -1,29 +1,36 @@
 # Installation & Usage
 
-The [`@tolki/ts`](https://www.npmjs.com/package/@tolki/ts) package provides a variety of enum manipulation utilities inspired by PHP's enum utilities like [from](https://www.php.net/manual/en/backedenum.from.php), [tryFrom](https://www.php.net/manual/en/backedenum.tryfrom.php), and [cases](https://www.php.net/manual/en/unitenum.cases.php).
+The [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish) generates TypeScript from your Laravel app. It covers model and API resource interfaces, enums, routes, form requests, broadcast channels and events, Inertia page props, and Vite environment variables. Its npm companion, [`@tolki/ts`](https://www.npmjs.com/package/@tolki/ts), gives the published enums and routes their runtime behavior.
 
-It also includes utilities to create functional routing objects that work the same way as Laravel Wayfinder's route definitions do.
+Published enums get PHP-style helpers such as [`from`](https://www.php.net/manual/en/backedenum.from.php), [`tryFrom`](https://www.php.net/manual/en/backedenum.tryfrom.php), and [`cases`](https://www.php.net/manual/en/unitenum.cases.php). Published routes become functional objects that work the same way as Laravel Wayfinder's route definitions.
 
-This package is meant to be used with the [Laravel TypeScript Publisher](https://github.com/abetwothree/laravel-ts-publish), which transforms PHP enums & routes into functional TypeScript objects.
+This page installs both packages and sets up your project. To run the publish command and control what it writes, see [Publishing Types](./publishing.md).
 
 ## Installing the Laravel Package
 
-Install the PHP package via Composer:
+The package requires PHP 8.4 or later and Laravel 12 or 13. Install it with Composer:
 
 ```bash
 composer require abetwothree/laravel-ts-publish
 ```
 
-Optionally, you may publish the config and view files with:
+Publish the config file to customize any setting:
 
 ```bash
 php artisan vendor:publish --tag="ts-publish-config"
+```
+
+Optionally, publish the Blade views that render each generated file:
+
+```bash
 php artisan vendor:publish --tag="laravel-ts-publish-views"
 ```
 
+If you're upgrading from an earlier version, follow the [Upgrade Guide](./upgrade-guide.md).
+
 ## Installing `@tolki/ts`
 
-You can install this package via npm, yarn, or pnpm:
+Install the npm package with npm, yarn, or pnpm:
 
 ::: code-group
 
@@ -41,36 +48,32 @@ pnpm add @tolki/ts
 
 :::
 
-If you don't want your enums to depend on `@tolki/ts` at runtime, set `enums.use_tolki_package` to `false` in the published configuration file. See the full [Enums documentation](./enums.md) for what changes when it's disabled.
-
-Keep in mind that the `@tolki/ts` npm package is required for routing utilities to function correctly at runtime.
+Published routes need `@tolki/ts` at runtime. Published enums use it too, unless you set `enums.use_tolki_package` to `false` in the config file, which removes their runtime dependency on it. See [Disabling Metadata or the `@tolki/ts` Wrapper](./enums.md#disabling-metadata-or-the-tolki-ts-wrapper) for what changes when it's off.
 
 ## Recommended Directory Structure
 
-By default, generated files are written to `resources/js/types/data`. It's recommended to gitignore this directory — the files are generated on demand (locally, in CI, or before a production build), so committing them just adds noise and merge conflicts:
-
-**Configuration:**
+Generated files go to `resources/js/types/data` by default. The `output_directory` config key sets the location:
 
 ```php
 // config/ts-publish.php
 
-'output_directory' => resource_path('/js/types/data'),
+'output_directory' => resource_path('/js/types/data/'),
 ```
 
-**Git Ignore:**
+Add the directory to `.gitignore`. Because `ts:publish` regenerates the files locally, in CI, or before a production build, committing them only adds noise and merge conflicts:
 
 ```gitignore
 # Ignore published TypeScript files
 /resources/js/types/data/
 ```
 
-If you use [ESLint](https://eslint.org/) or [Oxlint](https://oxc.rs/), add the published directory to your linter's ignore list too.
+If you use [ESLint](https://eslint.org/) or [Oxlint](https://oxc.rs/), add the directory to your linter's ignore list too.
 
 ## Importing the Published Files
 
-Create an import alias for the published files in `tsconfig.json` and `vite.config.ts` to avoid long relative paths and make it clear these are generated files:
+Create an import alias for the published directory in both `tsconfig.json` and `vite.config.ts`. The alias avoids long relative paths and makes it clear that the imports are generated files.
 
-**tsconfig.json:**
+Add the path to `tsconfig.json`:
 
 ```json
 {
@@ -83,7 +86,7 @@ Create an import alias for the published files in `tsconfig.json` and `vite.conf
 }
 ```
 
-**vite.config.ts:**
+Add the matching alias to `vite.config.ts`:
 
 ```typescript
 import { defineConfig } from "vite";
@@ -98,18 +101,28 @@ export default defineConfig({
 });
 ```
 
-Output is always organized into namespace-derived directory trees — a single-namespace app (just `App\Models`, `App\Enums`, etc.) produces one `app/` directory tree, so a default installation's imports look like:
+The output is always organized into directory trees that follow your PHP namespaces. An app with a single root namespace, such as `App\Models` and `App\Enums`, gets one `app/` tree, so a default installation's imports look like this:
 
 ```typescript
 import { Status } from "@data/app/enums";
 import type { User } from "@data/app/models";
 ```
 
-See [Modular Publishing](./modular-publishing.md) for the full namespace-to-path algorithm on larger, multi-namespace applications.
+For apps with more than one root namespace, [Modular Publishing](./modular-publishing.md) shows how each namespace maps to a path.
 
-## Automatic Publishing with the Vite Plugin
+## Publishing Your Types
 
-Add the Vite plugin to automatically watch for changes to your collected PHP files and re-run `ts:publish` during development and before a production build:
+Run the publish command to generate the files:
+
+```bash
+php artisan ts:publish
+```
+
+[Publishing Types](./publishing.md) covers preview mode, republishing a single class, filtering classes, and publishing only some features.
+
+## Automatic Publishing With the Vite Plugin
+
+The Vite plugin from `@tolki/ts` republishes for you. During `vite dev`, it watches the PHP files the package collected and republishes when one of them changes. During `vite build`, it publishes once before bundling. Add it to `vite.config.ts`:
 
 ```typescript
 import { defineConfig } from "vite";
@@ -120,7 +133,9 @@ export default defineConfig({
 });
 ```
 
-If you're using Laravel Sail and Vite runs on your host machine, point the plugin at the Sail binary instead of a bare `sail` alias (which isn't available to Vite's non-interactive shell):
+On `vite build`, the plugin appends `--only-functional` by default. That flag skips model and resource interfaces, which are erased at compile time.
+
+If you use Laravel Sail and Vite runs on your host machine, point the plugin at the Sail binary. The plugin runs its command in a non-interactive shell, where shell aliases such as `sail` usually aren't available:
 
 ```typescript
 laravelTsPublish({
@@ -128,11 +143,11 @@ laravelTsPublish({
 });
 ```
 
-For the full default behavior (single-file republishing during `vite dev`, the `--only-functional` flag on `vite build`, manifest handling, and every configuration option), see the full [Vite Plugin documentation](./vite-plugin.md).
+See [Single-File Republishing](./vite-plugin.md#single-file-republishing) for how the plugin republishes one file during `vite dev`, and [Plugin Options](./vite-plugin.md#plugin-options) for every option.
 
 ## Automatic Publishing on Composer Update
 
-Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed and CI environments stay in sync automatically:
+Add `ts:publish` to the `post-update-cmd` script in `composer.json` to republish types after every `composer update`:
 
 ```json
 {
@@ -142,22 +157,14 @@ Add `ts:publish` to the `post-update-cmd` hook in `composer.json` so deployed an
 }
 ```
 
-## Publishing Only Some Output
-
-Every phase has an `enabled` key in `config/ts-publish.php` (`enums`, `models`, `model_metadata`, `resources`, `routes`, `form_requests`, `broadcast_channels`, `broadcast_events`), and one `--only-*` flag per phase limits a single run: `--only-enums`, `--only-models`, `--only-model-metadata`, `--only-resources`, `--only-routes`, `--only-form-requests`, `--only-broadcast-channels`, `--only-broadcast-events`. The flags cannot be combined. `--only-functional` skips model and resource interfaces, publishes every other enabled phase, and wins over any other `--only-*` flag.
-
-A flag that requests a phase disabled in config prompts for an override in an interactive shell and respects the config silently otherwise (CI, queued jobs, the post-migration hook). Barrel `index.ts` files are rebuilt for every phase a run publishes; a phase that is enabled but skipped by a flag keeps its existing exports — see [Modular Publishing](./modular-publishing.md#barrel-files).
+Composer runs `post-update-cmd` only for `composer update`, or for a `composer install` without a lock file. To also publish on a `composer install` from a lock file, such as in CI, add the same command to `post-install-cmd`.
 
 ## Analyzer API
 
-The same static analysis engine that powers `ts:publish` is also callable directly — hand `AstEngine::analyze()` a class and a method name and get back an `AnalysisResult`: the typed properties, the `import type` lines those types need, and the value imports an `AsEnum<typeof X>` wrapper needs, without running the full publish pipeline or writing anything to disk. `analyze()` and `AnalysisResult` are the engine's entire public surface — every other method on `AstEngine`, and every other class in the engine, is `@internal`. See the full [Analyzer API documentation](./analyzer-api.md).
+`AstEngine::analyze()` gives you the TypeScript types the package infers for the array a class method returns, without publishing or writing anything. Pass a class and a method name, and you get back an `AnalysisResult` with the typed properties and the imports those types need.
+
+`analyze()` and `AnalysisResult` are the only supported API. Other `AstEngine` methods and other classes in the analyzer are internal and can change without notice. See [Analyzer API](./analyzer-api.md) for the full reference.
 
 ## Pre-Command Hook
 
-If you need to run custom logic right before `ts:publish` executes — dynamically configuring directories, swapping pipeline classes, or reacting to feature flags — register a closure with `LaravelTsPublish::callCommandUsing()` in a service provider's `boot()` method. See the full [Pre-Command Hook documentation](./pre-command-hook.md) for worked examples.
-
-## Development Workflow
-
-During development, run `vite dev` and the plugin will automatically watch for changes in your collected PHP files and call the publish command to keep your TypeScript files up to date.
-
-Run `vite build` to build your assets for production. The plugin calls the publish command before bundling, with `--only-functional` appended by default so it skips model and resource interfaces, which are erased at compile time.
+To run your own code right before `ts:publish`, register a closure with `LaravelTsPublish::callCommandUsing()` in a service provider's `boot()` method. Common uses are configuring directories, swapping pipeline classes, and reacting to feature flags. See [Pre-Command Hook](./pre-command-hook.md) for worked examples.
