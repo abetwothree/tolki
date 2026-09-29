@@ -4037,7 +4037,7 @@ export function string<TValue, TDefault = null>(
  * @example
  *
  * toCssClasses(['font-bold', 'mt-4']); -> 'font-bold mt-4'
- * toCssClasses(['font-bold', 'mt-4', { 'ml-2': true, 'mr-2': false }]); -> 'font-bold mt-4 ml-2'
+ * toCssClasses(Object.assign(['font-bold', 'mt-4'], { 'ml-2': true, 'mr-2': false })); -> 'font-bold mt-4 ml-2'
  * toCssClasses({ 'font-bold': true, 'text-red': false }); -> 'font-bold'
  */
 // Overload: typed array → CSS class string
