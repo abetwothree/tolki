@@ -339,6 +339,7 @@ More detailed description of the packages to be implemented:
   - That applies to a method whose Laravel body calls `Arr::`. A method built on PHP's array functions (`array_merge`, `array_map`, `implode`, …) or on the collection's own methods stays in `Collection`, as `groupBy`, `countBy`, `merge`, `mergeRecursive`, `zip`, `multiply`, `sum`, `avg`, `median`, `percentage` and `implode` do.
 - Private and protected methods should be at the bottom of the class
 - `Collection<TValue, TKey, TShape>`: `TValue` is **one item's** type, `TKey` its key, and `TShape` whether the backing is a list or keyed (`Collection<number>` holds numbers; `Collection<number[]>` holds arrays).
+- Write each signature in the class's own generics, from Laravel's PHPDoc (`static<TKey, TMapValue>` becomes `Collection<TMapValue, TKey, …>`), because return types cannot be forwarded from `@tolki/data` through a class.
 - Each method with a `@tolki/data` counterpart is pinned against it in the type tests where the two answers are the same type, and every Collection-returning method has an `expectShape` pin.
 - A runtime test that must pass a deliberately wrong type calls through `Reflect.apply` instead of using `@ts-expect-error`.
 - A JS-only extension is dropped where PHP rejects the call and a PHP-valid alternative exists; any other is kept, and its tests say why in a `// JS-only:` comment.
