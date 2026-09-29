@@ -16220,6 +16220,12 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-make-collection-copies"
             expect([a.all(), b.all()]).toEqual([[1], [1, 2]]);
         });
+
+        it("makes a list from a list and a keyed collection from a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.make([1, 2]), "list");
+            expectShape(Collection.make({ a: 1, b: 2 }), "keyed");
+        });
     });
 
     describe("wrap", () => {
