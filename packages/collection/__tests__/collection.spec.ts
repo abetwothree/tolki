@@ -11277,6 +11277,73 @@ describe("Collection", () => {
             expect(collect([1, 2, 3]).sliding(5).all()).toEqual([]);
         });
 
+        it("cuts a Map-built collection's windows in the order it holds its items", () => {
+            const windows = outOfOrderKeys().sliding();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-out-of-order-keys"
+            expect(windows.map((window) => viewsOf(window)).all()).toEqual([
+                { all: { 0: "a", 2: "c" }, keys: [2, 0], values: ["c", "a"] },
+                { all: { 0: "a", 1: "b" }, keys: [0, 1], values: ["a", "b"] },
+            ]);
+        });
+
+        it("reads each entry a bounded number of times, however many windows it cuts", () => {
+            const reads = new Map<PropertyKey, number>();
+            const read = (key: PropertyKey) => {
+                reads.set(key, (reads.get(key) ?? 0) + 1);
+            };
+
+            class Watched extends Collection<number, string | number> {
+                /**
+                 * Count each read of an entry the backing answers from here on.
+                 *
+                 * @returns This collection
+                 */
+                watched(): this {
+                    this.items = new Proxy(this.items, {
+                        has(target, key) {
+                            read(key);
+
+                            return Reflect.has(target, key);
+                        },
+                        getOwnPropertyDescriptor(target, key) {
+                            read(key);
+
+                            return Reflect.getOwnPropertyDescriptor(
+                                target,
+                                key,
+                            );
+                        },
+                    });
+
+                    return this;
+                }
+            }
+
+            const entries = Array.from(
+                { length: 50 },
+                (_, index): [number, number] => [49 - index, index],
+            );
+            const receivers = [
+                new Watched(entries.map(([, value]) => value)),
+                new Watched(
+                    Object.fromEntries(
+                        entries.map(([key, value]) => [`k${key}`, value]),
+                    ),
+                ),
+                new Watched(new Map(entries)),
+            ];
+            const mostReads = receivers.map((receiver) => {
+                reads.clear();
+                receiver.watched().sliding(2);
+
+                return Math.max(...reads.values());
+            });
+
+            // JS-only: a bound on the work, so each window costs the entries it holds, not a reading of them all.
+            expect(Math.max(...mostReads)).toBeLessThanOrEqual(3);
+        });
+
         it("counts the windows with a fractional size or step, and slices each as slice() does", () => {
             const numbers = collect([1, 2, 3, 4, 5]);
             const windows = (size: number, step?: number) =>

@@ -4118,9 +4118,10 @@ export class Collection<
         // static::times() builds no window below 1 and hands range() the rest, which refuses NAN.
         const windowCount = chunks < 1 ? 0 : resolveRangeSize(1, chunks, 1);
         const windows: Array<Collection<TValue, TKey, Removed<TShape>>> = [];
+        const cut = this.sliceCutter();
 
         for (let window = 1; window <= windowCount; window++) {
-            windows.push(this.slice((window - 1) * step, size));
+            windows.push(cut(...sliceArguments((window - 1) * step, size)));
         }
 
         return this.newInstance<
@@ -4223,16 +4224,7 @@ export class Collection<
         length?: number | null,
     ): Collection<TValue, TKey, Removed<TShape>>;
     slice(offset: number, length: number | null = null): unknown {
-        const start = phpIntArgument(
-            offset,
-            "array_slice(): Argument #2 ($offset) must be of type int, float given",
-        );
-        const count = isNull(length)
-            ? null
-            : phpIntArgument(
-                  length,
-                  "array_slice(): Argument #3 ($length) must be of type ?int, float given",
-              );
+        const [start, count] = sliceArguments(offset, length);
         const ordered = this.orderedEntries();
 
         if (ordered) {
@@ -7432,6 +7424,56 @@ export class Collection<
         );
     }
 
+    /**
+     * Cut slices as slice() cuts them, from one reading of the entries.
+     *
+     * slice() reads every entry to cut one slice, so a caller that cuts many reads them here once instead.
+     *
+     * @returns A function that takes an offset and a length as sliceArguments() reads them, and returns what slice()
+     * returns for them
+     */
+    protected sliceCutter(): (
+        start: number,
+        count: number | null,
+    ) => Collection<TValue, TKey, Removed<TShape>> {
+        const ordered = this.orderedEntries();
+        const items = this.items;
+
+        if (ordered) {
+            return (start, count) => {
+                const range = resolveSliceRange(ordered.length, start, count);
+
+                return this.newInstance<TValue, TKey, Removed<TShape>>(
+                    new Map(ordered.slice(range.start, range.end)),
+                );
+            };
+        }
+
+        if (isArray(items)) {
+            return (start, count) => {
+                const range = resolveSliceRange(items.length, start, count);
+
+                return this.newInstance<TValue, TKey, Removed<TShape>>(
+                    handOver(items.slice(range.start, range.end)),
+                );
+            };
+        }
+
+        const entries: Array<[string, TValue]> = Object.entries(items);
+
+        return (start, count) => {
+            const range = resolveSliceRange(entries.length, start, count);
+
+            return this.newInstance<TValue, TKey, Removed<TShape>>(
+                handOver(
+                    Object.fromEntries(
+                        entries.slice(range.start, range.end),
+                    ) as Record<TKey, TValue>,
+                ),
+            );
+        };
+    }
+
     /** Conditionable Trait Methods */
 
     /**
@@ -8421,6 +8463,32 @@ function renumberIntegerKeys<TValue>(
     }
 
     return renumbered;
+}
+
+/**
+ * Read slice()'s offset and length as array_slice() reads its int parameters.
+ *
+ * @param offset - The offset to start at
+ * @param length - The length to take, or null to run to the end
+ * @returns The offset and the length, each without its fraction
+ * @throws TypeError for NAN, an infinity or a number outside PHP's int range, as array_slice() refuses one
+ */
+function sliceArguments(
+    offset: number,
+    length: number | null,
+): [number, number | null] {
+    return [
+        phpIntArgument(
+            offset,
+            "array_slice(): Argument #2 ($offset) must be of type int, float given",
+        ),
+        isNull(length)
+            ? null
+            : phpIntArgument(
+                  length,
+                  "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+              ),
+    ];
 }
 
 /**
