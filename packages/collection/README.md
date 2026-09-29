@@ -45,7 +45,7 @@ The full documentation for the collection utilities can be found at [https://tol
 - `eachSpread()` and `mapSpread()` hand the callback a scalar row whole, where PHP throws.
 - `eachSpread()` and `mapSpread()` spread a string-keyed row (a plain object, a `Map` or a collection) by its values, where PHP throws `Cannot use positional argument after named argument during unpacking`.
 - `ensure()` also takes JavaScript's `typeof` names (`'number'`, `'object'`, …) beside PHP's `get_debug_type()` names and classes.
-- A `Map` is accepted wherever PHP takes an array. `undefined` reads as `null` through a path, in loose comparisons and in truthiness (`whereNull('a')` matches `{ a: undefined }`), but an `undefined` item compared strictly is not `null`: keyless `whereNull()` and `containsStrict(null)` skip it.
+- A `Map` is accepted wherever PHP takes an array. `undefined` reads as `null` through a path, in the loose comparisons of `contains()`, `search()` and `where()`, and in truthiness (`whereNull('a')` matches `{ a: undefined }`), but an `undefined` item compared strictly, or by the string cast of `diff()` and `intersect()`, is not `null`: keyless `whereNull()` and `containsStrict(null)` skip it, and `diff([null])` keeps it.
 
 ### Not portable
 
@@ -70,8 +70,8 @@ The full documentation for the collection utilities can be found at [https://tol
 - On a wide item type (`Collection<unknown>`, or `object`, `{}` or `Function` items), a mis-typed `contains()` or `every()` callback such as `(v: string) => …` compiles; a narrower item type rejects it.
 - A misspelt `ensure()` type name compiles, since any string may name a class: `ensure('interger')` narrows the items to `object`, and the runtime throws for the items it rejects.
 - `Collection.wrap()` of a class instance, an `Error` or a typed array is typed as keyed by its members, as a plain object is, though the runtime wraps it as one item.
-- A plain object with an `all()` member is typed as Collection-like by `flatten()`, `mapSpread()` and `eachSpread()`, and the operand methods (`merge()`, `concat()`, `union()`, `replace()`, `zip()`, `crossJoin()`, `combine()`) type none of its function-valued members, while the runtime treats every plain object as data: `collect([1]).merge({ all: () => ['s'] })` is typed as holding numbers alone but keeps the function under the key `'all'`.
-- A plain object with a `toArray()` member is typed as an Arrayable by `collect()` and by `toArray()`'s item conversion (`collect([{ toArray: () => [9] }]).toArray()` is typed `number[][]`), though at runtime it is data and comes back unchanged.
+- A plain object with an `all()` member is typed as Collection-like by `flatten()`, `mapSpread()` and `eachSpread()`, and the operand methods (`merge()`, `mergeRecursive()`, `concat()`, `union()`, `replace()`, `replaceRecursive()`, `zip()`, `crossJoin()`, `combine()`, `diffUsing()`, `intersectUsing()`) type none of its function-valued members, while the runtime treats every plain object as data: `collect([1]).merge({ all: () => ['s'] })` is typed as holding numbers alone but keeps the function under the key `'all'`.
+- A plain object with a `toArray()` member is typed as an Arrayable by `collect()` and by `toArray()`'s item conversion (`collect([{ toArray: () => [9] }]).toArray()` is typed `number[][]`), though at runtime it is data and comes back unchanged. The operand methods likewise type a plain object with a `toArray()`, `toJson()` or `jsonSerialize()` member as the items that member would hand over: `collect([1]).merge({ toArray: () => ['s'] })` is typed `Collection<string | number, number, "list">`, while the runtime keeps the function under the key `'toArray'`.
 - A `symbol` key compiles in `put()` and `prepend()` on a collection typed with `PropertyKey` keys, such as `Collection.fromJson('{}')`, and the runtime stores it under its string form, `'Symbol(s)'`.
 
 <!-- AUTO-GENERATED-DOCS:START -->
