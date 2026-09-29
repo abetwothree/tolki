@@ -17535,6 +17535,88 @@ describe("Collection", () => {
             });
         });
 
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-null-row"
+            expect(
+                collect([null, [1]])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([[0], [1, 1]]);
+            expect(
+                collect({ x: null })
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual({ x: ["x"] });
+        });
+
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-int-keyed-row", "list"
+            expect(
+                collect([{ 5: "a", 7: "b" }, {}])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([["a", "b", 0], [1]]);
+            expect(
+                collect([
+                    new Map([
+                        [5, "a"],
+                        [7, "b"],
+                    ]),
+                ])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([["a", "b", 0]]);
+        });
+
+        it("spreads the values of a Collection row holding a record, as PHP unpacks its integer keys", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-int-keyed-collection-row"
+            expect(
+                collect([collect({ 5: "a", 7: "b" })])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([["a", "b", 0]]);
+            expect(
+                collect({ x: collect({ 5: "a", 7: "b" }) })
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual({ x: ["a", "b", "x"] });
+        });
+
+        it("spreads a string-keyed Collection row's values", () => {
+            // JS-only: PHP throws "Cannot use positional argument after named argument during unpacking", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-string-keyed-collection-row"
+            expect(
+                collect([collect({ a: 1, b: 2 })])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([[1, 2, 0]]);
+        });
+
+        it("spreads a plain object row's values, never calling its all member", () => {
+            // JS-only: PHP throws on a string-keyed row, per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-string-keyed-row"
+            const all = () => [1, 2];
+
+            expect(
+                collect([{ all }])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([[all, 0]]);
+        });
+
+        it("spreads a plain object row's values on a keyed collection, as on a list", () => {
+            // JS-only: PHP throws "Unknown named parameter $name" on a string-keyed row, per
+            // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-assoc-rows"
+            const result = collect({ x: { a: 1, b: 2 } }).mapSpread(
+                (...args) => args,
+            );
+
+            expect(result.all()).toEqual({ x: [1, 2, "x"] });
+            expect(result.keys().all()).toEqual(["x"]);
+            expect(result.values().all()).toEqual([[1, 2, "x"]]);
+        });
+
         it.fails(
             "keeps a Map-built collection's keys in the order it holds them",
             () => {

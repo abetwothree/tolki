@@ -28,6 +28,7 @@ import {
     dataKeys,
     dataLast,
     dataMap,
+    dataMapSpread,
     dataOnly,
     dataPad,
     dataPartition,
@@ -737,10 +738,7 @@ type CollapseWithKeysShape<TItem> = [ReplacesKeyed<TItem>] extends [never]
     ? "list"
     : "list" | "partial";
 
-/**
- * A row as mapSpread() and eachSpread() hand it on: a list's or a collection's items spread, a null row gives none, as
- * Arr::wrap(null) is empty, and any other row goes whole.
- */
+/** A row as eachSpread() hands it on, keeping a plain object or a Map row whole where mapSpread() spreads it. */
 type SpreadRow<TRow> = unknown extends TRow
     ? TRow
     : TRow extends null
@@ -6192,25 +6190,23 @@ export class Collection<
     /**
      * Run a map over each nested chunk of items.
      *
-     * @param callback - The callback to execute, receives the value(s) as arguments, with the key as the last argument
+     * @param callback - The callback to execute, receiving a row's items, or a plain object's or a Map's values, and
+     * then its key
      * @returns A new collection with the results of the callback
+     *
+     * @example
+     *
+     * new Collection([[1, 'a'], [2, 'b']]).mapSpread((n, s, k) => n + s + k); -> new Collection(['1a0', '2b1'])
      */
     mapSpread<TMapSpreadValue>(
-        callback: (
-            ...args: SpreadArgs<SpreadRow<TValue>, TKey>
-        ) => TMapSpreadValue,
+        callback: (...args: SpreadArgs<TValue, TKey>) => TMapSpreadValue,
     ): Collection<TMapSpreadValue, TKey, TShape> {
         // The row's own items reach the callback, which its declared tuple cannot check here.
         const spread = callback as (...args: unknown[]) => TMapSpreadValue;
 
-        return this.map((chunk, key) => {
-            const values =
-                chunk instanceof Collection
-                    ? (chunk.all() as unknown[])
-                    : arrWrap(chunk);
-
-            return spread(...values, key);
-        });
+        return this.newInstance<TMapSpreadValue, TKey, TShape>(
+            handOver(dataMapSpread(this.items, spread)),
+        );
     }
 
     /**
