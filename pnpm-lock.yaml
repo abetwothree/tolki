@@ -224,6 +224,9 @@ importers:
       "@tolki/arr":
         specifier: workspace:^
         version: link:../arr
+      "@tolki/str":
+        specifier: workspace:^
+        version: link:../str
 
   packages/data:
     dependencies:
