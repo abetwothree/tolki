@@ -5376,6 +5376,14 @@ describe("Arr", () => {
 
             expect(Arr.mapSpread([row], (...args) => args)).toEqual([[row, 0]]);
         });
+
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-null-row", "list"
+            expect(Arr.mapSpread([null, [1]], (...args) => args)).toEqual([
+                [0],
+                [1, 1],
+            ]);
+        });
     });
 
     describe("query", () => {

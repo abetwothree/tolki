@@ -3722,13 +3722,15 @@ export function mapSpread<
                 ? item["all"]()
                 : item;
 
-        // Arr::mapSpread spreads a list row; a plain-object row spreads its values and a scalar
-        // passes whole, which PHP rejects but is kept as JS leniency.
-        const args = isArray(row)
-            ? row
-            : isObject(row)
-              ? Object.values(row)
-              : [row];
+        // Arr::mapSpread spreads a list row and its key append turns a null row into an empty one; a plain-object row
+        // spreads its values and a scalar passes whole, which PHP rejects but is kept as JS leniency.
+        const args = isNull(row)
+            ? []
+            : isArray(row)
+              ? row
+              : isObject(row)
+                ? Object.values(row)
+                : [row];
 
         defineKey(
             result as Record<string, TMapSpreadValue>,

@@ -12109,6 +12109,13 @@ describe("Obj", () => {
             ).toEqual({ x: [all, 2, "x"] });
         });
 
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-null-row", "keyed"
+            expect(Obj.mapSpread({ x: null }, (...args) => args)).toEqual({
+                x: ["x"],
+            });
+        });
+
         it("spreads a Map's rows in its insertion order", () => {
             const seen: unknown[] = [];
             const result = Obj.mapSpread(

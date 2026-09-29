@@ -277,6 +277,14 @@ describe("obj mapping type tests", () => {
             });
         });
 
+        it("hands a null row on as no items, so only its key follows", () => {
+            Obj.mapSpread({ x: null }, (...args) => {
+                expectTypeOf(args).toEqualTypeOf<["x"]>();
+
+                return args;
+            });
+        });
+
         it("types every argument as unknown for unknown row values", () => {
             const rows: Record<string, unknown> = { a: [1, 2, 3] };
 

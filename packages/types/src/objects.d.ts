@@ -707,22 +707,24 @@ export type CollapsedObject<T> = [
     : Record<string | number, unknown>;
 
 /**
- * The items a spread callback receives from one row: a list row's own items, a Collection-like row's items read
- * through `all()`, an object row's values, and any other row whole. An unknown or keyless object row may hold any.
+ * The items a spread callback receives from one row, as `mapSpread` reads it. PHP appends the key to the row before
+ * unpacking it, which turns a null row into an empty array. An unknown or keyless object row may hold any.
  */
 type SpreadRowItems<V> = unknown extends V
     ? unknown[]
-    : V extends readonly unknown[]
-      ? V
-      : V extends (...args: never[]) => unknown
-        ? [V]
-        : V extends { all: (...args: never[]) => infer R }
-          ? SpreadRowItems<R>
-          : V extends object
-            ? [keyof V] extends [never]
-                ? unknown[]
-                : ObjectValue<V>[]
-            : [V];
+    : V extends null
+      ? []
+      : V extends readonly unknown[]
+        ? V
+        : V extends (...args: never[]) => unknown
+          ? [V]
+          : V extends { all: (...args: never[]) => infer R }
+            ? SpreadRowItems<R>
+            : V extends object
+              ? [keyof V] extends [never]
+                  ? unknown[]
+                  : ObjectValue<V>[]
+              : [V];
 
 /** Rows of one fixed length zip into one tuple; rows of differing or open length give `false`. */
 type SpreadZip<

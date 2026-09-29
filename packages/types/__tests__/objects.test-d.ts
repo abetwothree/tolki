@@ -545,6 +545,13 @@ describe("object helper types", () => {
             >().toEqualTypeOf<(boolean | "k")[]>();
         });
 
+        it("hands a null row on as no items, so only its key follows", () => {
+            expectTypeOf<SpreadArgs<null, "k">>().toEqualTypeOf<["k"]>();
+            expectTypeOf<SpreadArgs<number[] | null, 0>>().toEqualTypeOf<
+                number[]
+            >();
+        });
+
         it("passes a scalar or function row whole", () => {
             expectTypeOf<SpreadArgs<string, 0>>().toEqualTypeOf<[string, 0]>();
             expectTypeOf<SpreadArgs<() => void, 1>>().toEqualTypeOf<

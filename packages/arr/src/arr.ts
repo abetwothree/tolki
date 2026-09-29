@@ -2734,13 +2734,8 @@ export function mapSpread<TMapReturn>(
                 ? row["all"]()
                 : row;
 
-        if (isArray(chunk)) {
-            // Spread the chunk elements and append the index
-            result.push(callback(...chunk, i));
-        } else {
-            // If chunk is not an array, pass it as single argument with index
-            result.push(callback(chunk, i));
-        }
+        // PHP's key append turns a null row into an array, so the key follows alone, as Arr::wrap(null) is empty.
+        result.push(callback(...wrap(chunk), i));
     }
 
     return result;
