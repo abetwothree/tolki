@@ -1166,5 +1166,50 @@ describe("collection keyed access and mutation type tests", () => {
                 Record<string, unknown>
             >();
         });
+
+        it("compiles each keyed write in a subclass generic in its key, whose member calls it on itself", () => {
+            /** A subclass generic in its items, keys and shape, whose member writes and forgets its own keys. */
+            class KeyBag<
+                TItem,
+                TItemKey extends PropertyKey,
+                TItemShape extends CollectionShape,
+            > extends Collection<TItem, TItemKey, TItemShape> {
+                /**
+                 * Call each keyed write on this bag with one of its keys, and with a key that may be null.
+                 *
+                 * @param key - One of the bag's keys
+                 * @param maybeKey - One of the bag's keys, or null
+                 * @param item - One of the bag's items
+                 * @returns Each method's answer, by name
+                 */
+                called(
+                    key: TItemKey,
+                    maybeKey: TItemKey | null,
+                    item: TItem,
+                ): Record<string, unknown> {
+                    return {
+                        put: this.put(key, item).filter(() => true),
+                        putMaybe: this.put(maybeKey, item).filter(() => true),
+                        prepend: this.prepend(item, key).filter(() => true),
+                        prependMaybe: this.prepend(item, maybeKey).filter(
+                            () => true,
+                        ),
+                        forget: this.forget(key).filter(() => true),
+                        forgetList: this.forget([key]).filter(() => true),
+                        forgetMaybe: this.forget(maybeKey).filter(() => true),
+                        // pull() reads a dot path, which a key that may be a symbol cannot name, so it takes a path.
+                        pull: this.pull(0),
+                    };
+                }
+            }
+
+            expectTypeOf(
+                new KeyBag<number, "a" | "b", "keyed">({ a: 1, b: 2 }).called(
+                    "a",
+                    null,
+                    1,
+                ),
+            ).toEqualTypeOf<Record<string, unknown>>();
+        });
     });
 });
