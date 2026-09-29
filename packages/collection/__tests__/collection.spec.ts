@@ -16845,7 +16845,9 @@ describe("Collection", () => {
         });
 
         it("reads a Collection-like row's items through all()", () => {
-            // CollectionTest::testEachSpread, whose Collection rows a class instance with all() stands for here
+            // JS-only: JS has no ArrayAccess, so a class instance with all() stands for a Collection; PHP rejects any
+            // object that is not ArrayAccess, per docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-eachSpread-object-row"
             const seen: unknown[] = [];
             const row = new (class {
                 all() {
@@ -17643,11 +17645,12 @@ describe("Collection", () => {
                     .mapSpread((...args) => args)
                     .all(),
             ).toEqual([[0], [1, 1]]);
-            expect(
-                collect({ x: null })
-                    .mapSpread((...args) => args)
-                    .all(),
-            ).toEqual({ x: ["x"] });
+
+            const keyed = collect({ x: null }).mapSpread((...args) => args);
+
+            expect(keyed.all()).toEqual({ x: ["x"] });
+            expect(keyed.keys().all()).toEqual(["x"]);
+            expect(keyed.values().all()).toEqual([["x"]]);
         });
 
         it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
@@ -17677,11 +17680,14 @@ describe("Collection", () => {
                     .mapSpread((...args) => args)
                     .all(),
             ).toEqual([["a", "b", 0]]);
-            expect(
-                collect({ x: collect({ 5: "a", 7: "b" }) })
-                    .mapSpread((...args) => args)
-                    .all(),
-            ).toEqual({ x: ["a", "b", "x"] });
+
+            const keyed = collect({ x: collect({ 5: "a", 7: "b" }) }).mapSpread(
+                (...args) => args,
+            );
+
+            expect(keyed.all()).toEqual({ x: ["a", "b", "x"] });
+            expect(keyed.keys().all()).toEqual(["x"]);
+            expect(keyed.values().all()).toEqual([["a", "b", "x"]]);
         });
 
         it("spreads a string-keyed Collection row's values", () => {
