@@ -12606,6 +12606,65 @@
             }
         },
         {
+            "label": "C32-G-chunkWhile-kept-chunk",
+            "php": "each $chunk (new Collection([1, 2, 3]))->chunkWhile() hands its callback, kept, then $kept[0]->push(99): the chunks, and what each kept chunk holds",
+            "value": {
+                "chunks": [
+                    [
+                        1,
+                        2,
+                        3
+                    ]
+                ],
+                "kept": [
+                    [
+                        1,
+                        2,
+                        3,
+                        99
+                    ],
+                    [
+                        1,
+                        2,
+                        3,
+                        99
+                    ]
+                ]
+            }
+        },
+        {
+            "label": "C32-G-sliding-out-of-order-keys",
+            "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->sliding()",
+            "value": [
+                [
+                    0,
+                    [
+                        [
+                            2,
+                            "c"
+                        ],
+                        [
+                            0,
+                            "a"
+                        ]
+                    ]
+                ],
+                [
+                    1,
+                    [
+                        [
+                            0,
+                            "a"
+                        ],
+                        [
+                            1,
+                            "b"
+                        ]
+                    ]
+                ]
+            ]
+        },
+        {
             "label": "C32-H-sum-numeric-strings",
             "php": "(new Collection(['1', '2', '3']))->sum()",
             "value": 6
@@ -13035,6 +13094,22 @@
                 "Collection::join": true,
                 "Arr::join": true
             }
+        },
+        {
+            "label": "C32-H-join-tostring-objects-are-plucked",
+            "php": "[join(','), join(', ', ' and ')] of [new C32HToString('a'), new C32HToString('b')]",
+            "value": [
+                "",
+                " and S:b"
+            ]
+        },
+        {
+            "label": "C32-H-join-stringable-items-are-joined",
+            "php": "[join(','), join(', ', ' and ')] of [new Stringable('a'), new Stringable('b')]",
+            "value": [
+                "a,b",
+                "a and b"
+            ]
         },
         {
             "label": "C32-H-reduce-no-initial-trace",

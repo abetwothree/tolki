@@ -1915,6 +1915,18 @@ probe('C32-G-shuffle-list', "(new Collection(\$items))->shuffle() over ['a' => 1
 
     return [array_is_list($shuffled), count($shuffled), $values];
 }, ['keyed' => ['a' => 1, 'b' => 2, 'c' => 3], 'out-of-order' => [2 => 'c', 0 => 'a', 1 => 'b'], 'mixed' => ['x' => 1, 5 => 2]]));
+probe('C32-G-chunkWhile-kept-chunk', "each \$chunk (new Collection([1, 2, 3]))->chunkWhile() hands its callback, kept, then \$kept[0]->push(99): the chunks, and what each kept chunk holds", function () {
+    $kept = [];
+    $chunks = (new Collection([1, 2, 3]))->chunkWhile(function ($value, $key, $chunk) use (&$kept) {
+        $kept[] = $chunk;
+
+        return true;
+    });
+    $kept[0]->push(99);
+
+    return ['chunks' => $chunks->map(fn (Collection $chunk) => $chunk->all())->all(), 'kept' => array_map(fn (Collection $chunk) => $chunk->all(), $kept)];
+});
+probe('C32-G-sliding-out-of-order-keys', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->sliding()", fn () => $pairs((new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->sliding()));
 
 // ---- Family H ------------------------------------------------------------
 
@@ -2030,6 +2042,14 @@ probe('C32-H-join-lone-object-item', "whether (new Collection([new stdClass]))->
         'Arr::join' => Arr::join([$object], ', ', ' and ') === $object,
     ];
 });
+probe('C32-H-join-tostring-objects-are-plucked', "[join(','), join(', ', ' and ')] of [new C32HToString('a'), new C32HToString('b')]", fn () => [
+    (new Collection([new C32HToString('a'), new C32HToString('b')]))->join(','),
+    (new Collection([new C32HToString('a'), new C32HToString('b')]))->join(', ', ' and '),
+]);
+probe('C32-H-join-stringable-items-are-joined', "[join(','), join(', ', ' and ')] of [new Stringable('a'), new Stringable('b')]", fn () => [
+    (new Collection([new Stringable('a'), new Stringable('b')]))->join(','),
+    (new Collection([new Stringable('a'), new Stringable('b')]))->join(', ', ' and '),
+]);
 
 // reduce without an initial value: $initial = null, every item reaches the callback
 probe('C32-H-reduce-no-initial-trace', "carries/values/keys seen by (new Collection([10, 20, 30]))->reduce(fn (\$c, \$v, \$k) => \$v)", function () { $seen = []; (new Collection([10, 20, 30]))->reduce(function ($c, $v, $k) use (&$seen) { $seen[] = [$c, $v, $k]; return $v; }); return $seen; });
