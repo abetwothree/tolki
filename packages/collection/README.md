@@ -22,6 +22,7 @@ The full documentation for the collection utilities can be found at [https://tol
 - `duplicates()` and `chunk()` keep PHP's positional keys, because the keys are the answer, and so do `groupBy(key, true)` and `random(n, true)`, which ask for them.
 - A keyed collection keeps its object backing even when its keys run `0..n-1`: `collect({ 0: 'a', 1: 'b' })`'s `all()` and `toArray()` are `{ 0: 'a', 1: 'b' }`, where PHP's `all()` is the list `['a', 'b']`. `values()` gives the list, and `jsonSerialize()` answers it and `toJson()` writes `["a","b"]`, as PHP's do.
 - A keyed collection lists its integer keys in ascending order, as a plain object does. Where PHP keeps integer keys out of sequence (`[2 => 'c', 0 => 'a']`), the methods that walk or rebuild such a collection can answer differently from Laravel. Keys built from a `Map`, and items appended after a string key, keep PHP's order wherever the class already tracks it.
+- The sort family (`sort()`, `sortDesc()`, `sortBy()`, `sortByDesc()`, `sortKeys()`, `sortKeysDesc()`, `sortKeysUsing()`) and `reverse()` renumber integer keys from 0 in the new order and keep string keys, where PHP keeps every key: `collect([3, 1, 2]).sort()` has the keys `0, 1, 2` and writes `[1,2,3]`, where PHP's has `1, 2, 0` and writes `{"1":1,"2":2,"0":3}`.
 - PHP remembers the highest integer key a collection has held, so after `forget()` removes that key the next append still counts on from it: `collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')` stores `'x'` under `7`, where this port uses `6`.
 
 ### Values
@@ -29,7 +30,7 @@ The full documentation for the collection utilities can be found at [https://tol
 - `all()` hands back the collection's own items, not a copy, so writing to them writes to the collection. `toArray()` and `collect()` return copies.
 - Truthiness is PHP's, not JavaScript's: `'0'`, `[]`, `{}` and an empty `Map` or `Set` are falsy, while `NaN`, `'0.0'` and any other object are truthy. So `reject(false)` rejects `null` and `{}` too but keeps `'0.0'`, a callback answering `NaN` counts as true, and an ArrayAccess-style item whose `offsetExists()` answers `'0'` or `[]` reads as absent.
 - `unique()` and `duplicates()` keep the first of each loosely equal run in one walk, where PHP's `array_unique()` sorts first. The two differ only where `==` is not transitive across mixed types: `collect(['abc', '0', false, '']).unique()` keeps `''`, which PHP drops.
-- `toJson()` writes `/` and non-ASCII characters as they are, where PHP's `json_encode()` escapes them (`\/`, `é`); both decode to the same value.
+- `toJson()` writes `/` and non-ASCII characters as they are, where PHP's `json_encode()` escapes them (`\/`, `\u00e9`); both decode to the same value.
 
 ### JavaScript-only additions
 
@@ -40,19 +41,20 @@ The full documentation for the collection utilities can be found at [https://tol
 - `whereBetween()` and `whereNotBetween()` accept a collection of bounds, from which PHP 8.5 reads none, with a deprecation, so its `whereBetween()` keeps no item and its `whereNotBetween()` every one.
 - `keyBy()`, `groupBy()` and `countBy()` read an `@tolki/enum` case as its value, as PHP's `enum_value()` does.
 - `eachSpread()` and `mapSpread()` hand the callback a scalar row whole, where PHP throws.
+- `eachSpread()` and `mapSpread()` spread a string-keyed row (a plain object, a `Map` or a collection) by its values, where PHP throws `Cannot use positional argument after named argument during unpacking`.
 - `ensure()` also takes JavaScript's `typeof` names (`'number'`, `'object'`, …) beside PHP's `get_debug_type()` names and classes.
-- A `Map` is accepted wherever PHP takes an array, and `undefined` is read as `null`.
+- A `Map` is accepted wherever PHP takes an array. `undefined` reads as `null` through a path, in loose comparisons and in truthiness (`whereNull('a')` matches `{ a: undefined }`), but an `undefined` item compared strictly is not `null`: keyless `whereNull()` and `containsStrict(null)` skip it.
 
 ### Not portable
 
-- Higher-order proxies (`$c->map->name`, and the one-argument `when()` and `unless()`), `Macroable` (`macro()`, `proxy()`), `lazy()` and `LazyCollection`, `dd()`, `getCachingIterator()`, and PHP's sort flags: every sort takes only a direction.
+- Higher-order proxies (`$c->map->name`, `proxy()`, and the one-argument `when()` and `unless()`), `Macroable` (`macro()`), `lazy()` and `LazyCollection`, `dd()`, `getCachingIterator()`, and PHP's sort flags: every sort takes only a direction.
 - `fromJson()` takes `depth` and `flags` for PHP's signature and ignores them. A `WeakMap` cannot be iterated, so it makes an empty collection. An `@tolki/enum` case is a plain object, so `collect()` reads it as a record of its fields, where PHP wraps an enum case as one item.
 - Paths read only an object's own fields, so a class getter, which PHP would read as an accessor, reads as absent.
 
 ### TypeScript limits
 
 - In-place writes cannot narrow the variable they are called on: `c.put('x', 1)` returns the widened type while `c` keeps its declared one, and `c` still names the keys `forget()`, `pull()` or `offsetUnset()` removed.
-- There is deliberately no index signature, so `c.a` and `c[0]` do not compile; read items as shown under Reading items.
+- There is deliberately no index signature, so `c.a` is a compile error and `c[0]` is untyped (an error under `noImplicitAny`); read items as shown under Reading items.
 - A subclass's static factory is typed as the base class: `Sub.make([1])` is a `Collection<number>` to TypeScript, though it returns a `Sub`.
 - PHP's `int` and `float` are both `number`, so `ensure('int')` and `ensure('float')` narrow to the same type.
 - `new Collection(x)` types only what the class's own type parameters can say, since a constructor cannot declare its own: a `Map<string, V>` stays keyed by `string` (PHP stores a numeric string key as an integer), a record with integer keys gets the list shape (`new Collection({ 1: 'a' })`), a Jsonable is typed by its own members and a JsonSerializable answering a scalar by that scalar's, and a list-or-record union takes its key type's default shape. `collect()` and `make()` type all of these exactly.
@@ -66,7 +68,7 @@ The full documentation for the collection utilities can be found at [https://tol
 - On a wide item type (`Collection<unknown>`, or `object`, `{}` or `Function` items), a mis-typed `contains()` or `every()` callback such as `(v: string) => …` compiles; a narrower item type rejects it.
 - A misspelt `ensure()` type name compiles, since any string may name a class: `ensure('interger')` narrows the items to `object`, and the runtime throws for the items it rejects.
 - `Collection.wrap()` of a class instance, an `Error` or a typed array is typed as keyed by its members, as a plain object is, though the runtime wraps it as one item.
-- A plain object with an `all()` member is typed as Collection-like by `flatten()`, `mapSpread()` and `eachSpread()`, though the runtime treats every plain object as data.
+- A plain object with an `all()` member is typed as Collection-like by `flatten()`, `mapSpread()` and `eachSpread()`, and the operand methods (`merge()`, `concat()`, `union()`, `replace()`, `zip()`, `crossJoin()`, `combine()`) type none of its function-valued members, while the runtime treats every plain object as data: `collect([1]).merge({ all: () => ['s'] })` is typed as holding numbers alone but keeps the function under the key `'all'`.
 - A plain object with a `toArray()` member is typed as an Arrayable by `collect()` and by `toArray()`'s item conversion (`collect([{ toArray: () => [9] }]).toArray()` is typed `number[][]`), though at runtime it is data and comes back unchanged.
 - A `symbol` key compiles in `put()` and `prepend()` on a collection typed with `PropertyKey` keys, such as `Collection.fromJson('{}')`, and the runtime stores it under its string form, `'Symbol(s)'`.
 
