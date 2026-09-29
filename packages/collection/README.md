@@ -23,6 +23,7 @@ The full documentation for the collection utilities can be found at [https://tol
 - A keyed collection keeps its object backing even when its keys run `0..n-1`: `collect({ 0: 'a', 1: 'b' })`'s `all()` and `toArray()` are `{ 0: 'a', 1: 'b' }`, where PHP's `all()` is the list `['a', 'b']`. `values()` gives the list, and `jsonSerialize()` answers it and `toJson()` writes `["a","b"]`, as PHP's do.
 - A keyed collection lists its integer keys in ascending order, as a plain object does. Where PHP keeps integer keys out of sequence (`[2 => 'c', 0 => 'a']`), the methods that walk or rebuild such a collection can answer differently from Laravel. Keys built from a `Map`, and items appended after a string key, keep PHP's order wherever the class already tracks it.
 - The sort family (`sort()`, `sortDesc()`, `sortBy()`, `sortByDesc()`, `sortKeys()`, `sortKeysDesc()`, `sortKeysUsing()`) and `reverse()` renumber integer keys from 0 in the new order and keep string keys, where PHP keeps every key: `collect([3, 1, 2]).sort()` has the keys `0, 1, 2` and writes `[1,2,3]`, where PHP's has `1, 2, 0` and writes `{"1":1,"2":2,"0":3}`.
+- On a collection mixing integer and string keys, the sort family and `reverse()` list the integer keys first, as a plain object does, so a new order that puts a string key before an integer one is lost: `collect({ 0: 1, x: 2 }).reverse()` keeps the values `[1, 2]` and `collect({ 0: 3, x: 1 }).sort()` the values `[3, 1]`, where PHP's have the keys `['x', 0]` and the values `[2, 1]` and `[1, 3]`.
 - PHP remembers the highest integer key a collection has held, so after `forget()` removes that key the next append still counts on from it: `collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')` stores `'x'` under `7`, where this port uses `6`.
 
 ### Values
@@ -30,6 +31,7 @@ The full documentation for the collection utilities can be found at [https://tol
 - `all()` hands back the collection's own items, not a copy, so writing to them writes to the collection. `toArray()` and `collect()` return copies.
 - Truthiness is PHP's, not JavaScript's: `'0'`, `[]`, `{}` and an empty `Map` or `Set` are falsy, while `NaN`, `'0.0'` and any other object are truthy. So `reject(false)` rejects `null` and `{}` too but keeps `'0.0'`, a callback answering `NaN` counts as true, and an ArrayAccess-style item whose `offsetExists()` answers `'0'` or `[]` reads as absent.
 - `unique()` and `duplicates()` keep the first of each loosely equal run in one walk, where PHP's `array_unique()` sorts first. The two differ only where `==` is not transitive across mixed types: `collect(['abc', '0', false, '']).unique()` keeps `''`, which PHP drops.
+- `diff()`, `diffAssoc()`, `intersect()` and `intersectAssoc()` match an array or object item by identity, where PHP compares string casts: every array casts to `"Array"`, so `collect([[1], [2]]).diff([[1]])` keeps both items where PHP's keeps none, and an object casts through its `__toString()`, or throws without one.
 - `toJson()` writes `/` and non-ASCII characters as they are, where PHP's `json_encode()` escapes them (`\/`, `\u00e9`); both decode to the same value.
 
 ### JavaScript-only additions
