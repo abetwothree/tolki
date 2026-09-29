@@ -1079,7 +1079,10 @@ export class Collection<
     /**
      * Get all of the items in the collection.
      *
-     * @returns The underlying items in the collection
+     * This is Laravel's `$c->all()`, but it hands back the items themselves where PHP copies them, so a write to them
+     * writes to the collection; toArray() answers a copy.
+     *
+     * @returns The collection's own items: an array for a list, else a record
      *
      * @example
      *
@@ -1806,7 +1809,8 @@ export class Collection<
     /**
      * Get all items except for those with the specified keys.
      *
-     * @param keys - The keys to exclude, can be: a single key, an array of keys, a Collection, null, or multiple key arguments
+     * @param keys - The key or keys to exclude: one key, a list or a Collection of keys, or null to keep every item
+     * @param rest - Further keys to exclude, when each key is passed as its own argument
      * @returns A new collection without the specified keys
      *
      * @example
@@ -2056,8 +2060,8 @@ export class Collection<
     /**
      * Get an item from the collection by key.
      *
-     * The key is looked up literally, as PHP's `array_key_exists` does: a dotted key never reads a nested value,
-     * and a null key reads the `""` key.
+     * This is Laravel's `$c->get('a', $default)`. The key is looked up literally, as PHP's `array_key_exists` does:
+     * a dotted key never reads a nested value, and a null key reads the `""` key.
      *
      * @param key - The key to get
      * @param defaultValue - The default value to return if key doesn't exist, or a callback that returns it
@@ -3327,6 +3331,7 @@ export class Collection<
      * Get the items with the specified keys.
      *
      * @param keys - The key or keys to retrieve
+     * @param rest - Further keys to retrieve, when each key is passed as its own argument
      * @returns A new collection with only the specified keys
      *
      * @example
@@ -3379,6 +3384,7 @@ export class Collection<
      * indexed collection of key paths.
      *
      * @param keys - The key or keys to select from each item
+     * @param rest - Further keys to select, when each key is passed as its own argument
      * @returns A new collection with only the selected values
      *
      * @example
@@ -3637,13 +3643,13 @@ export class Collection<
      * Push all of the given items onto the collection.
      *
      * @param source - The items to concatenate
-     * @returns A new collection with the concatenated items
+     * @returns A new collection with each given value appended under the next integer key, as push() appends it
      *
      * @example
      *
      * new Collection([1, 2]).concat([3, 4]); -> new Collection([1, 2, 3, 4])
-     * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
-     * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
+     * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, 0: 3, 1: 4})
+     * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, 3])
      */
     concat<TOperand extends NonNullable<Operand>>(
         source: TOperand,
@@ -3670,7 +3676,7 @@ export class Collection<
      *
      * @param key - The key or dot path of the item to pull, or null for every item, which it leaves in place
      * @param defaultValue - The default value to return if the key does not exist, or a callback that returns it
-     * @returns The value at the specified key, or the default value
+     * @returns The value at the specified key, or the default value; every item for a null key
      * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
@@ -3776,6 +3782,8 @@ export class Collection<
     /**
      * Get one or a specified number of items randomly from the collection.
      *
+     * The examples show one possible draw.
+     *
      * @param count - The number of items to retrieve, a fraction truncated, a callback that answers it, or null for
      * a single item
      * @param preserveKeys - Whether to preserve the original keys, defaults to false
@@ -3788,6 +3796,7 @@ export class Collection<
      *
      * new Collection([1, 2, 3]).random(); -> 2
      * new Collection([1, 2, 3]).random(2); -> new Collection([1, 3])
+     * new Collection({a: 1, b: 2, c: 3}).random(2); -> new Collection([1, 3])
      * new Collection({a: 1, b: 2, c: 3}).random(2, true); -> new Collection({a: 1, c: 3})
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
      * new Collection([]).random(); -> throws InvalidArgumentException (no items available)
@@ -3946,7 +3955,8 @@ export class Collection<
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The item before the found item, or null if not found or no previous item
+     * @returns The item before the found item, or null when none is found or it is first. The found key is looked up
+     * again loosely, as PHP does, so an earlier key equal to it, as `1` is to `'01'`, stands in for it
      *
      * @example
      *
@@ -3955,6 +3965,7 @@ export class Collection<
      * new Collection([1, 2, 3]).before(x => x > 2); -> 2
      * new Collection([1, 2, 3]).before(1); -> null
      * new Collection([1, 2, 3]).before(4); -> null
+     * new Collection({1: 'b', '01': 'a'}).before('a'); -> null
      */
     before(
         value: TValue | ((item: TValue, key: TKey) => unknown),
@@ -3968,7 +3979,9 @@ export class Collection<
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The item after the found item, or null if not found or is last item
+     * @returns The item after the found item, or null when none is found or it is last. The found key is looked up
+     * again loosely, as PHP does, so an earlier key equal to it, as `1` is to `'01'`, stands in for it, and the answer
+     * can be the found item itself
      *
      * @example
      *
@@ -3977,6 +3990,7 @@ export class Collection<
      * new Collection([1, 2, 3]).after(x => x > 1); -> 3
      * new Collection([1, 2, 3]).after(3); -> null
      * new Collection([1, 2, 3]).after(4); -> null
+     * new Collection({1: 'b', '01': 'a'}).after('a'); -> 'a'
      */
     after(
         value: TValue | ((item: TValue, key: TKey) => unknown),
@@ -4054,6 +4068,8 @@ export class Collection<
     /**
      * Shuffle the items in the collection.
      *
+     * The examples show one possible order.
+     *
      * @returns A new collection with the items shuffled, as a list whatever keys they had
      *
      * @example
@@ -4080,10 +4096,14 @@ export class Collection<
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).sliding(); -> new Collection([ [1, 2], [2, 3], [3, 4] ])
-     * new Collection([1, 2, 3, 4]).sliding(3); -> new Collection([ [1, 2, 3], [2, 3, 4] ])
-     * new Collection([1, 2, 3, 4]).sliding(2, 2); -> new Collection([ [1, 2], [3, 4] ])
-     * new Collection({a: 1, b: 2, c: 3}).sliding(); -> new Collection([ {a: 1, b: 2}, {b: 2, c: 3} ])
+     * new Collection([1, 2, 3, 4]).sliding();
+     * -> new Collection([new Collection([1, 2]), new Collection([2, 3]), new Collection([3, 4])])
+     * new Collection([1, 2, 3, 4]).sliding(3);
+     * -> new Collection([new Collection([1, 2, 3]), new Collection([2, 3, 4])])
+     * new Collection([1, 2, 3, 4]).sliding(2, 2);
+     * -> new Collection([new Collection([1, 2]), new Collection([3, 4])])
+     * new Collection({a: 1, b: 2, c: 3}).sliding();
+     * -> new Collection([new Collection({a: 1, b: 2}), new Collection({b: 2, c: 3})])
      */
     sliding(
         size: number = 2,
@@ -5048,7 +5068,7 @@ export class Collection<
      * @example
      *
      * new Collection({'a.b': 1, c: 2}).undot(); -> new Collection({a: {b: 1}, c: 2})
-     * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
+     * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection({0: {a: 1}, 1: {b: {c: 2}}})
      */
     undot(this: Collection<TValue, TKey, "list">): this;
     undot(): Collection<
@@ -5160,7 +5180,7 @@ export class Collection<
      *
      * @example
      *
-     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
+     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection([1, 2, 3])
      * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
     values(): Collection<TValue, number, "list"> {
@@ -5184,13 +5204,16 @@ export class Collection<
      * As `array_map` does, every shorter side, this collection's own values included, is padded with `null`.
      *
      * @param lists - The items to zip with, each an array, an object or another collection
-     * @returns A new collection listing, for each position, a list of every side's value there
+     * @returns A new collection listing, for each position, a collection of every side's value there
      *
      * @example
      *
-     * new Collection([1, 2, 3]).zip(['a', 'b', 'c']); -> new Collection([[1, 'a'], [2, 'b'], [3, 'c']])
-     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b'], [null, 'c']])
-     * new Collection({a: 1, b: 2}).zip({x: 'a'}); -> new Collection([[1, 'a'], [2, null]])
+     * new Collection([1, 2, 3]).zip(['a', 'b', 'c']);
+     * -> new Collection([new Collection([1, 'a']), new Collection([2, 'b']), new Collection([3, 'c'])])
+     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c']));
+     * -> new Collection([new Collection([1, 'a']), new Collection([2, 'b']), new Collection([null, 'c'])])
+     * new Collection({a: 1, b: 2}).zip({x: 'a'});
+     * -> new Collection([new Collection([1, 'a']), new Collection([2, null])])
      */
     zip<const TLists extends AtLeastOne<Operand>>(
         ...lists: TLists
@@ -5229,9 +5252,8 @@ export class Collection<
     /**
      * Pad collection to the specified length with a value.
      *
-     * For an object-backed collection, pad slots are numbered `0, 1, 2, ...`
-     * regardless of direction — a genuine, unfixable JS/PHP divergence (see
-     * `pad`'s JSDoc in `@tolki/obj`).
+     * As `array_pad` does, a collection that grows renumbers its integer keys from 0 in order, pad slots included, and
+     * keeps its string keys.
      *
      * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning; a fraction is
      * dropped, as array_pad()'s int parameter drops it
@@ -5243,6 +5265,7 @@ export class Collection<
      * @example
      *
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
+     * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({0: 0, 1: 0, a: 1, b: 2})
      */
     pad<TPadValue>(
         size: number,
@@ -5479,6 +5502,8 @@ export class Collection<
 
     /**
      * Get an item at a given offset.
+     *
+     * This is Laravel's `$c['a']`, called by name, since a collection's items are not its properties (`c.a`, `c[0]`).
      *
      * @param key - The offset to get the item from
      * @returns The item at the given offset, or undefined if not found
@@ -6283,6 +6308,7 @@ export class Collection<
      *
      * @param callback - The key or callback to determine the value to min, which receives the value alone, or null to
      * min the items directly
+     * @param key - The key or path of segments to read each item's value at, in place of a callback
      * @returns The smallest value that is not null, compared as PHP's `<` compares them, or null when none is
      */
     min(callback?: null | undefined): NonNullable<TValue> | null;
@@ -6319,6 +6345,7 @@ export class Collection<
      *
      * @param callback - The key or callback to determine the value to max, which receives the value alone, or null to
      * max the items directly
+     * @param key - The key or path of segments to read each item's value at, in place of a callback
      * @returns The largest value of an item that is not null, compared as PHP's `>` compares them, or null when none is
      */
     max(callback?: null | undefined): NonNullable<TValue> | null;
@@ -7017,8 +7044,15 @@ export class Collection<
     /**
      * Create a collection of all elements that do not pass a given truth test.
      *
-     * @param callback - The callback to execute, receives the value and key as arguments, or a value to compare against, defaults to true
+     * @param callback - The truth test, which receives the value and key; an item it answers truthy for is rejected
+     * @param value - A value to reject each item loosely equal to, as PHP's `!=` keeps the rest; true, the default,
+     * rejects every truthy item
      * @returns A new collection with the items that do not pass the truth test
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3, 4]).reject(value => value > 2); -> new Collection([1, 2])
+     * new Collection([null, 0, '', 'a', [], true, false]).reject(false); -> new Collection(['a', true])
      */
     reject(
         this: Collection<TValue, TKey, "list">,
@@ -7096,7 +7130,13 @@ export class Collection<
     /**
      * Get the collection of items as a plain array.
      *
-     * @returns An array of the collection's items
+     * @returns A copy of the items, each Arrayable one converted by its toArray(): an array for a list, else a record
+     *
+     * @example
+     *
+     * new Collection([1, 2]).toArray(); -> [1, 2]
+     * new Collection({a: 1, b: 2}).toArray(); -> {a: 1, b: 2}
+     * new Collection([new Collection({a: 1})]).toArray(); -> [{a: 1}]
      */
     toArray(): CollectionItems<ToArrayValue<TValue>, TKey, TShape>;
     toArray(): unknown {
@@ -7113,6 +7153,11 @@ export class Collection<
      *
      * @returns The items, each converted to a JSON-serializable form: a list when the keys are 0..n-1 in order or
      * there are none, else a record
+     *
+     * @example
+     *
+     * new Collection([1, 2]).jsonSerialize(); -> [1, 2]
+     * new Collection({a: 1, b: 2}).jsonSerialize(); -> {a: 1, b: 2}
      */
     jsonSerialize(): unknown[] | CollectionItems<unknown, TKey, TShape>;
     jsonSerialize(): unknown {
@@ -7492,6 +7537,9 @@ export class Collection<
 
     /**
      * Get the values from items, whether it's an array or object
+     *
+     * @param items - The list or record to read
+     * @returns Its values, as a list
      */
     protected getItemValues(items: DataItems<TValue, TKey>): TValue[] {
         return isArray(items) ? items : Object.values(items);

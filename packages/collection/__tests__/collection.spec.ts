@@ -16845,8 +16845,8 @@ describe("Collection", () => {
         });
 
         it("reads a Collection-like row's items through all()", () => {
-            // JS-only: JS has no ArrayAccess, so a class instance with all() stands for a Collection; PHP rejects any
-            // object that is not ArrayAccess, per docs/php-parity/task-32-collection-release-readiness.json,
+            // JS-only: the port reads any non-plain object with all() as a Collection; PHP rejects any object that is
+            // not ArrayAccess, per docs/php-parity/task-32-collection-release-readiness.json,
             // "C32-E-eachSpread-object-row"
             const seen: unknown[] = [];
             const row = new (class {
