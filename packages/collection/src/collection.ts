@@ -2461,8 +2461,11 @@ export class Collection<
     /**
      * Concatenate values of a given key as a string.
      *
+     * When the first item is an array or an object, each item is plucked by the key, as PHP plucks any object but its
+     * own fluent Stringable; an `@tolki/str` Stringable, that class's port, is joined as it is.
+     *
      * @param value - The key to pluck values from, or a callback function to generate values; the glue when the
-     * items are neither arrays nor objects
+     * first item is neither an array nor an object, or is an `@tolki/str` Stringable
      * @param glue - The string to join values with, defaults to an empty string
      * @returns A string of concatenated values
      * @throws Error for a piece that is an object without its own toString, or a closure, which PHP cannot cast
@@ -2473,6 +2476,8 @@ export class Collection<
      * new Collection(['apple', 'banana', 'cherry']).implode(', '); -> 'apple, banana, cherry'
      * new Collection([{name: 'John'}, {name: 'Jane'}]).implode('name', ', '); -> 'John, Jane'
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
+     * new Collection([new Stringable('a'), new Stringable('b')]).implode(', '); -> 'a, b'
+     * new Collection([new Date(0), new Date(1)]).implode(', '); -> ''
      */
     implode(
         value: ((value: TValue, key: TKey) => unknown) | PathKey,
@@ -2746,6 +2751,9 @@ export class Collection<
     /**
      * Join all items from the collection using a string. The final items can use a separate glue string.
      *
+     * The items go through implode(), all but the last when a final glue is given, so when the first is an array, or
+     * an object other than an `@tolki/str` Stringable, each is plucked by the glue as a key, as PHP's are.
+     *
      * @param glue - The string to join all but the last item with
      * @param finalGlue - The string to join the last item with, defaults to an empty string
      * @returns A string of joined items, or the lone item itself when a final glue is given
@@ -2757,6 +2765,8 @@ export class Collection<
      * new Collection(['apple', 'banana', 'cherry']).join(', ', ' and '); -> 'apple, banana and cherry'
      * new Collection([1, 2, 3]).join(' + ', ' = '); -> '1 + 2 = 3'
      * new Collection(['apple']).join(', ', ' and '); -> 'apple'
+     * new Collection([new Stringable('a'), new Stringable('b')]).join(', ', ' and '); -> 'a and b'
+     * new Collection([new Date(0), new Date(1)]).join(', '); -> ''
      */
     join(glue: string, finalGlue?: string): TValue | string;
     join(glue: string, finalGlue: string = ""): unknown {
@@ -8927,15 +8937,16 @@ function looseKey(value: unknown): string | number | undefined {
  * Determine whether implode() joins an item as it is, as PHP's does an Illuminate\Support\Stringable, over plucking it.
  *
  * @param item - The collection's first item, an object
- * @returns True for an object with its own toString, as hasOwnToString() reads one, so never a Date, unless it is a
- * collection, whose toString is its JSON
+ * @returns True for an `@tolki/str` Stringable, the port of Illuminate\Support\Stringable; any other object is plucked
  */
-function joinsAsString(item: unknown): boolean {
-    // JS-only: any object with its own toString is exempt; @tolki/str is not a dependency
+function joinsAsString(item: Record<PropertyKey, unknown>): boolean {
+    // Laravel's unqualified Stringable there is its own fluent string class, which @tolki/str ports. That package is
+    // no dependency here, so its Stringable is known by a toString and fluent members no other class carries.
     return (
         hasOwnToString(item) &&
-        // PHP plucks a collection, which is no Illuminate\Support\Stringable.
-        !(item instanceof Collection)
+        ["afterLast", "beforeLast", "squish"].every((member) =>
+            isFunction(item[member]),
+        )
     );
 }
 

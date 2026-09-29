@@ -4834,7 +4834,7 @@ describe("Collection", () => {
             ]).toEqual(["foo,bar", "foo,bar"]);
         });
 
-        it("joins an object with its own toString as it is, where PHP plucks it", () => {
+        it("plucks from an object with its own toString, as PHP plucks from any object but its own Stringable", () => {
             class Label {
                 v: string;
 
@@ -4848,10 +4848,16 @@ describe("Collection", () => {
             }
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-tostring-objects-are-plucked"
-            // JS-only: any object with its own toString is exempt; @tolki/str is not a dependency
             expect(collect([new Label("a"), new Label("b")]).implode(",")).toBe(
-                "S:a,S:b",
+                "",
             );
+            // CollectionTest::testImplode
+            expect(
+                collect([
+                    new Stringable("taylor"),
+                    new Stringable("dayle"),
+                ]).implode(","),
+            ).toBe("taylor,dayle");
         });
 
         it("plucks from Date items, as PHP plucks from DateTime ones, which have no __toString", () => {
@@ -6110,6 +6116,34 @@ describe("Collection", () => {
 
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
             expect(collect([point]).join(", ", " and ")).toBe(point);
+        });
+
+        it("plucks from objects with their own toString by the glue, as implode() does, but joins a Stringable", () => {
+            class Label {
+                v: string;
+
+                constructor(v: string) {
+                    this.v = v;
+                }
+
+                toString(): string {
+                    return `S:${this.v}`;
+                }
+            }
+
+            const labels = collect([new Label("a"), new Label("b")]);
+            const strings = collect([new Stringable("a"), new Stringable("b")]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-tostring-objects-are-plucked"
+            expect([labels.join(","), labels.join(", ", " and ")]).toEqual([
+                "",
+                " and S:b",
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-stringable-items-are-joined"
+            expect([strings.join(","), strings.join(", ", " and ")]).toEqual([
+                "a,b",
+                "a and b",
+            ]);
         });
 
         it("casts its last item as PHP's . does, and the rest as implode() does", () => {
