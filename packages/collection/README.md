@@ -20,7 +20,8 @@ The full documentation for the collection utilities can be found at [https://tol
 
 - A list stays a list, since a JavaScript array cannot hold sparse keys: where PHP would leave a gap in a list's integer keys, the collection renumbers them, so `collect([1, 2, 3]).filter((v) => v !== 2).all()` is `[1, 3]`, where PHP keeps the keys `0` and `2`. A keyed write such as `put(5, 'x')` keeps PHP's keys, and the list becomes keyed.
 - `duplicates()` and `chunk()` keep PHP's positional keys, because the keys are the answer, and so do `groupBy(key, true)` and `random(n, true)`, which ask for them.
-- A keyed collection lists its integer keys in ascending order, as a plain object does. Where PHP keeps integer keys out of sequence (`[2 => 'c', 0 => 'a']`), the methods that walk or rebuild such a collection can answer differently from Laravel: 62 known cases, each pinned as an expected-failure test. Keys built from a `Map`, and items appended after a string key, keep PHP's order wherever the class already tracks it.
+- A keyed collection keeps its object backing even when its keys run `0..n-1`: `collect({ 0: 'a', 1: 'b' })`'s `all()` and `toArray()` are `{ 0: 'a', 1: 'b' }`, where PHP's `all()` is the list `['a', 'b']`. `values()` gives the list, and `jsonSerialize()` answers it and `toJson()` writes `["a","b"]`, as PHP's do.
+- A keyed collection lists its integer keys in ascending order, as a plain object does. Where PHP keeps integer keys out of sequence (`[2 => 'c', 0 => 'a']`), the methods that walk or rebuild such a collection can answer differently from Laravel. Keys built from a `Map`, and items appended after a string key, keep PHP's order wherever the class already tracks it.
 - PHP remembers the highest integer key a collection has held, so after `forget()` removes that key the next append still counts on from it: `collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')` stores `'x'` under `7`, where this port uses `6`.
 
 ### Values
