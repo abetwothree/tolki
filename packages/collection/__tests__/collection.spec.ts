@@ -3575,6 +3575,45 @@ describe("Collection", () => {
             expectShape(collect({ a: 1, b: 2 }).forget("a"), "keyed");
             expectShape(collect({ a: 1, b: 2 }).forget("z"), "keyed");
         });
+
+        it("reads each entry of a Map-built collection a bounded number of times, however many keys it forgets", () => {
+            const reads = new Map<PropertyKey, number>();
+
+            class Watched extends Collection<number, number> {
+                constructor() {
+                    super(
+                        new Map(
+                            Array.from(
+                                { length: 100 },
+                                (_, index): [number, number] => [
+                                    99 - index,
+                                    index,
+                                ],
+                            ),
+                        ),
+                    );
+                    this.items = new Proxy(this.items, {
+                        getOwnPropertyDescriptor(target, key) {
+                            reads.set(key, (reads.get(key) ?? 0) + 1);
+
+                            return Reflect.getOwnPropertyDescriptor(
+                                target,
+                                key,
+                            );
+                        },
+                    });
+                }
+            }
+
+            const collection = new Watched().forget(
+                Array.from({ length: 50 }, (_, index) => index),
+            );
+            const mostReads = Math.max(...reads.values());
+
+            // JS-only: a bound on the work, so forgetting many keys from a Map-built collection stays linear.
+            expect(mostReads).toBeLessThanOrEqual(2);
+            expect(collection.count()).toBe(50);
+        });
     });
 
     describe("get", () => {

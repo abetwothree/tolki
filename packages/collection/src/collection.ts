@@ -2041,14 +2041,7 @@ export class Collection<
             }
         }
 
-        // Each removal shifts a list's later indexes down, so a list drops its highest index first.
-        const ordered = isArray(this.items)
-            ? [...ownKeys].sort((a, b) => Number(b) - Number(a))
-            : ownKeys;
-
-        for (const key of ordered) {
-            this.offsetUnset(key);
-        }
+        this.unsetOwnKeys(ownKeys);
 
         if (illegal !== -1) {
             throw unsetOffset(phpDebugType(requested[illegal]));
@@ -5579,20 +5572,8 @@ export class Collection<
 
         const ownKey = this.ownKey(key);
 
-        if (isUndefined(ownKey)) {
-            return;
-        }
-
-        if (isArray(this.items)) {
-            this.items.splice(ownKey as number, 1);
-
-            return;
-        }
-
-        delete (this.items as Record<PropertyKey, TValue>)[ownKey];
-
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
+        if (!isUndefined(ownKey)) {
+            this.unsetOwnKeys(new Set([ownKey]));
         }
     }
 
@@ -7980,6 +7961,35 @@ export class Collection<
         }
 
         return Object.hasOwn(this.items, phpKey) ? phpKey : undefined;
+    }
+
+    /**
+     * Unset entries the backing holds, as PHP's `unset($items[$key])` does each in turn.
+     *
+     * @param ownKeys - The keys the backing holds the entries under, as ownKey() found them
+     */
+    protected unsetOwnKeys(ownKeys: ReadonlySet<string | number>): void {
+        if (isArray(this.items)) {
+            // Each removal shifts a list's later indexes down, so a list drops its highest index first.
+            const descending = [...ownKeys].sort(
+                (a, b) => Number(b) - Number(a),
+            );
+
+            for (const key of descending) {
+                this.items.splice(Number(key), 1);
+            }
+
+            return;
+        }
+
+        for (const key of ownKeys) {
+            delete (this.items as Record<PropertyKey, TValue>)[key];
+        }
+
+        // One reconcile once every key is gone, where one per key would walk the whole ordered view each time.
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
     }
 
     /**
