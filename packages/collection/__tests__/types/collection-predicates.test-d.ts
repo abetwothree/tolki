@@ -1080,7 +1080,15 @@ describe("collection predicate type tests", () => {
         });
 
         it("types a generic or a Map-built collection's key and callback", () => {
-            // Not pinned to dataSearch, whose Map rows are typed apart from the collection's.
+            const dataMappedFound = Data.dataSearch(mapBuilt, "a");
+            const dataGenericFound = Data.dataSearch(generic.all(), 1);
+
+            expectTypeOf(mapped.search("a")).toEqualTypeOf<
+                typeof dataMappedFound
+            >();
+            expectTypeOf(generic.search(1)).toEqualTypeOf<
+                typeof dataGenericFound
+            >();
             expectTypeOf(mapped.search("a")).toEqualTypeOf<number | false>();
             expectTypeOf(generic.search(1)).toEqualTypeOf<
                 string | number | false
@@ -1134,7 +1142,15 @@ describe("collection predicate type tests", () => {
         });
 
         it("types a generic or a Map-built collection's item and callback", () => {
-            // Not pinned to dataBefore, whose Map rows are typed apart from the collection's.
+            const dataMappedBefore = Data.dataBefore(mapBuilt, "a");
+            const dataGenericBefore = Data.dataBefore(generic.all(), 1);
+
+            expectTypeOf(mapped.before("a")).toEqualTypeOf<
+                typeof dataMappedBefore
+            >();
+            expectTypeOf(generic.before(1)).toEqualTypeOf<
+                typeof dataGenericBefore
+            >();
             expectTypeOf(mapped.before("a")).toEqualTypeOf<string | null>();
             expectTypeOf(generic.before(1)).toEqualTypeOf<number | null>();
             generic.before((value, key) => {
@@ -1184,7 +1200,15 @@ describe("collection predicate type tests", () => {
         });
 
         it("types a generic or a Map-built collection's item and callback", () => {
-            // Not pinned to dataAfter, whose Map rows are typed apart from the collection's.
+            const dataMappedAfter = Data.dataAfter(mapBuilt, "a");
+            const dataGenericAfter = Data.dataAfter(generic.all(), 1);
+
+            expectTypeOf(mapped.after("a")).toEqualTypeOf<
+                typeof dataMappedAfter
+            >();
+            expectTypeOf(generic.after(1)).toEqualTypeOf<
+                typeof dataGenericAfter
+            >();
             expectTypeOf(mapped.after("a")).toEqualTypeOf<string | null>();
             expectTypeOf(generic.after(1)).toEqualTypeOf<number | null>();
             mapped.after((value, key) => {
