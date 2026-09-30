@@ -1,4 +1,3 @@
-import { wrap as arrWrap } from "@tolki/arr";
 import {
     dataAfter,
     dataBefore,
@@ -12,25 +11,23 @@ import {
     dataDiff,
     dataDiffAssoc,
     dataDiffAssocUsing,
+    dataDiffKeys,
     dataDiffKeysUsing,
+    dataDiffUsing,
     dataDot,
     dataExcept,
     dataFilter,
     dataFirst,
     dataFlatten,
-    dataFlip,
-    dataForget,
-    dataGet,
-    dataHas,
-    dataHasAll,
-    dataHasAny,
     dataIntersect,
     dataIntersectAssoc,
     dataIntersectAssocUsing,
     dataIntersectByKeys,
+    dataIntersectUsing,
     dataKeys,
     dataLast,
     dataMap,
+    dataMapSpread,
     dataOnly,
     dataPad,
     dataPartition,
@@ -43,105 +40,904 @@ import {
     dataReverse,
     dataSearch,
     dataSelect,
-    dataSet,
     dataShift,
     dataShuffle,
+    dataSkipUntil,
+    dataSkipWhile,
     dataSlice,
     dataSort,
     dataSortDesc,
     dataSplice,
+    dataTakeUntil,
+    dataTakeWhile,
     dataUndot,
     dataUnion,
     dataUnshift,
     dataValues,
 } from "@tolki/data";
 import { SortDirection } from "@tolki/enum";
+import {
+    explodePluckPath,
+    hasPluckPath,
+    readPluckKey,
+    resolvePluckPath,
+} from "@tolki/path";
 import type {
-    Arrayable,
-    ArrayItems,
     CaseValue,
     DataItems,
+    DataIterableItems,
+    FlattenItemReach,
+    FlattenReach,
+    Jsonable,
+    JsonSerializable,
+    MapArrayKey,
+    NonNullableArray,
+    NonObjectItems,
+    ObjectFlatValue,
+    ObjectKey,
+    ObjectValue,
     PathKey,
     PathKeys,
+    PhpArrayKey,
+    PluckValue,
     SortSpec,
+    SpreadArgs,
+    TruthyArray,
+    UndotObjectValue,
+    UnionToIntersection,
 } from "@tolki/types";
 import {
+    arrayKeyExistsError,
     compareValues,
     createSortSpecComparator,
     defineKey,
+    hasOwnToString,
+    InvalidArgumentException,
     isArray,
     isBoolean,
+    isEnumCase,
+    isFiniteNumber,
+    isFloat,
     isFunction,
+    isIllegalOffset,
+    isInteger,
     isIntegerLikeKey,
+    isIterable,
     isMap,
     isNull,
     isNumber,
     isObject,
+    isPhpAccessible,
+    isPhpArrayKey,
+    isPhpFalsy,
+    isPhpNumeric,
     isPlainObject,
+    isPrimitive,
     isString,
     isSymbol,
-    isTruthy,
+    isTruthyObject,
     isUndefined,
-    isUnsafeKey,
     ItemNotFoundException,
     looseEqual,
     MultipleItemsFoundException,
-    objectToString,
     operatorMatch,
     phpArrayKey,
+    phpComputedKey,
+    phpDebugType,
+    phpIntArgument,
+    phpIntCast,
+    phpSortComparator,
+    phpStringCast,
+    phpTypeName,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
+    resolveDefault,
+    resolvePadLength,
+    resolveRangeSize,
     resolveSliceRange,
+    resolveSpliceRange,
+    resolveTakeCount,
     strictEqual,
     toArrayable,
-    toJsonable,
     toJsonSerializable,
+    toPhpKeyString,
     typeOf,
+    UnexpectedValueException,
 } from "@tolki/utils";
 
-// import { initProxyHandler } from "./proxy";
-
-// Collection resolves a descriptor's key with dataGet, the way
+// Collection resolves a descriptor's key with data_get, the way
 // Collection::sortByMany does; Arr and Obj resolve with getNestedValue.
 const sortSpecComparator = createSortSpecComparator((item, key) =>
-    dataGet(item as DataItems<unknown, PropertyKey>, key),
+    itemValue(item, key),
 );
 
+/** A list (`TValue[]`), a keyed record holding every key its type names, or a keyed record that may lack some. */
+export type CollectionShape = "list" | "keyed" | "partial";
+
+/** The shape a key type implies when none is named: number keys make a list, any other key a keyed record. */
+type DefaultShape<TKey extends PropertyKey> = [TKey] extends [number]
+    ? "list"
+    : "keyed";
+
+/** The items a collection of the given shape holds: a list, a record holding every key, or one that may lack some. */
+export type CollectionItems<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+> = [TShape] extends ["list"]
+    ? TValue[]
+    : [TShape] extends ["keyed"]
+      ? Record<TKey, TValue>
+      : [TShape] extends ["partial"]
+        ? Partial<Record<TKey, TValue>>
+        : TValue[] | Partial<Record<TKey, TValue>>;
+
+/**
+ * One item as toArray() hands it back: an Arrayable's own array, else the item. A plain object's toArray member types
+ * the same, though the runtime keeps a plain object as data.
+ */
+type ToArrayValue<TValue> = TValue extends { toArray(): infer TArray }
+    ? TArray
+    : TValue;
+
+/** A collection of an object's items: a list's under number keys, any other object's under its own keys. */
+type ItemsCollection<TItems> = Collection<
+    TItems extends readonly (infer TValue)[] ? TValue : ObjectValue<TItems>,
+    TItems extends readonly unknown[] ? number : ObjectKey<TItems>,
+    TItems extends readonly unknown[] ? "list" : "keyed"
+>;
+
+/** The value, key and shape of an object's items: a list's under number keys, any other object's under its own. */
+type ItemsParts<TItems> = TItems extends readonly (infer TItemValue)[]
+    ? [TItemValue, number, "list"]
+    : [ObjectValue<TItems>, ObjectKey<TItems>, "keyed"];
+
+/**
+ * The value, key and shape the constructor gives one member of an input. The arms follow the order getRawItems() reads
+ * in, and a collection is read through toBase(), whose base-class return stays inferable from a subclass.
+ */
+type CollectParts<TInput> = unknown extends TInput
+    ? [unknown, PropertyKey, CollectionShape]
+    : TInput extends null | undefined
+      ? [never, never, "list"]
+      : TInput extends {
+              toBase(): Collection<
+                  infer TItemValue,
+                  infer TItemKey,
+                  infer TItemShape
+              >;
+          }
+        ? [TItemValue, TItemKey, TItemShape]
+        : TInput extends ReadonlyMap<infer TMapKey, infer TItemValue>
+          ? [TItemValue, MapArrayKey<TMapKey>, "keyed"]
+          : TInput extends readonly (infer TItemValue)[]
+            ? [TItemValue, number, "list"]
+            : TInput extends
+                    | ((...args: never[]) => unknown)
+                    | (abstract new (...args: never[]) => unknown)
+              ? [TInput, number, "list"]
+              : TInput extends { toArray(): infer TItems extends object }
+                ? ItemsParts<TItems>
+                : TInput extends Iterable<infer TItemValue> & object
+                  ? [TItemValue, number, "list"]
+                  : TInput extends Jsonable
+                    ? [unknown, string | number, "list" | "keyed"]
+                    : TInput extends {
+                            jsonSerialize(): infer TItems extends object;
+                        }
+                      ? ItemsParts<TItems>
+                      : TInput extends JsonSerializable
+                        ? [unknown, string | number, "list" | "keyed"]
+                        : TInput extends object
+                          ? [ObjectValue<TInput>, ObjectKey<TInput>, "keyed"]
+                          : [TInput, number, "list"];
+
+/** The collection collect() and make() build from a value, typed member by member when its type is a union. */
+type CollectCollection<TInput> = Collection<
+    CollectParts<TInput>[0],
+    CollectParts<TInput>[1],
+    CollectParts<TInput>[2]
+>;
+
+/**
+ * The value, key and shape wrap() gives one member of an input, so a union is typed member by member. A collection is
+ * read through toBase(), whose base-class return stays inferable from a subclass.
+ */
+type WrapParts<TInput> = unknown extends TInput
+    ? [unknown, PropertyKey, CollectionShape]
+    : TInput extends null | undefined
+      ? [never, never, "list"]
+      : TInput extends {
+              toBase(): Collection<
+                  infer TItemValue,
+                  infer TItemKey,
+                  infer TItemShape
+              >;
+          }
+        ? [TItemValue, TItemKey, TItemShape]
+        : TInput extends readonly (infer TItemValue)[]
+          ? [TItemValue, number, "list"]
+          : TInput extends ReadonlyMap<infer TMapKey, infer TItemValue>
+            ? [TItemValue, MapArrayKey<TMapKey>, "keyed"]
+            : TInput extends WrappedWhole
+              ? [TInput, number, "list"]
+              : TInput extends object
+                ? [ObjectValue<TInput>, ObjectKey<TInput>, "keyed"]
+                : [TInput, number, "list"];
+
+/** Objects wrap() keeps whole whose types no plain object matches, so TypeScript can tell them from a record. */
+type WrappedWhole =
+    | ((...args: never[]) => unknown)
+    | (abstract new (...args: never[]) => unknown)
+    | Date
+    | ReadonlySet<unknown>
+    | WeakMap<object, unknown>
+    | WeakSet<object>
+    | RegExp
+    | Promise<unknown>;
+
+/** The collection wrap() makes of a value, typed member by member when its type is a union. */
+type WrapCollection<TInput> = Collection<
+    WrapParts<TInput>[0],
+    WrapParts<TInput>[1],
+    WrapParts<TInput>[2]
+>;
+
+/** What unwrap() hands back; a collection is read through toBase(), whose return stays inferable from a subclass. */
+type Unwrapped<TValue> = TValue extends {
+    toBase(): Collection<infer TItemValue, infer TItemKey, infer TItemShape>;
+}
+    ? CollectionItems<TItemValue, TItemKey, TItemShape>
+    : TValue;
+
+/** Anything PHP's getArrayableItems() accepts as a second collection. */
+type Operand = object | null | undefined;
+
+/**
+ * The values, keys and shape an operand hands over, and whether it may hide a string key, in getRawItems()'s order: a
+ * collection's through toBase(), which a subclass still infers from. A plain object with a toArray, toJson or
+ * jsonSerialize member is typed like a class, though it is data. Null names no shape, so a result takes the other's.
+ */
+type OperandParts<TOperand> =
+    // `0 extends 1 & TOperand` misses an any argument here, where TOperand has a constraint; this check does not.
+    unknown extends TOperand
+        ? [TOperand, string | number, CollectionShape, false]
+        : TOperand extends null | undefined
+          ? [never, never, never, false]
+          : TOperand extends {
+                  toBase(): Collection<
+                      infer TItemValue,
+                      infer TItemKey,
+                      infer TItemShape
+                  >;
+              }
+            ? [TItemValue, TItemKey, TItemShape, false]
+            : TOperand extends ReadonlyMap<infer TMapKey, infer TItemValue>
+              ? [
+                    TItemValue,
+                    MapArrayKey<TMapKey>,
+                    ItemKeyedShape<MapArrayKey<TMapKey>>,
+                    false,
+                ]
+              : TOperand extends readonly (infer TItemValue)[]
+                ? [TItemValue, number, "list", false]
+                : TOperand extends { toArray(...args: never[]): infer TItems }
+                  ? CastParts<TItems>
+                  : TOperand extends Iterable<infer TItemValue>
+                    ? [TItemValue, number, "list", false]
+                    : TOperand extends { toJson(...args: never[]): unknown }
+                      ? [unknown, string | number, "list" | "keyed", false]
+                      : TOperand extends {
+                              jsonSerialize(...args: never[]): infer TItems;
+                          }
+                        ? CastParts<TItems>
+                        : [
+                              FieldValues<TOperand>,
+                              FieldKeys<TOperand>,
+                              FieldsShape<TOperand>,
+                              HidesFieldKeys<TOperand>,
+                          ];
+
+/** The values an operand hands over, and any for an operand typed any, so a comparator declared for them still fits. */
+type OperandValue<TOperand> = OperandParts<TOperand>[0];
+
+/** The keys an operand's values sit under, each the way PHP stores it. */
+type OperandKey<TOperand> = OperandParts<TOperand>[1];
+
+/** The shape an operand's items take: none for null, which holds no items. */
+type OperandShape<TOperand> = OperandParts<TOperand>[2];
+
+/**
+ * What castToItems() reads, in OperandParts' form: none from null, a list's items, an object's own fields, else the
+ * value itself. An answer typed unknown may be any of these, so its keys and shape are unknown too.
+ */
+type CastParts<TItems> = unknown extends TItems
+    ? [TItems, string | number, "list" | "keyed", false]
+    : TItems extends null | undefined
+      ? [never, never, "list", false]
+      : TItems extends readonly (infer TItemValue)[]
+        ? [TItemValue, number, "list", false]
+        : TItems extends object
+          ? [
+                FieldValues<TItems>,
+                FieldKeys<TItems>,
+                FieldsShape<TItems>,
+                HidesFieldKeys<TItems>,
+            ]
+          : [TItems, number, "list", false];
+
+/**
+ * The values of an object's own fields: its members that are neither functions nor keyed by a symbol. TypeScript
+ * cannot tell a field from a method, so a record of closures loses its function values.
+ */
+type FieldValues<TItems> = {
+    [TField in keyof TItems]-?: TField extends symbol
+        ? never
+        : TItems[TField] extends (...args: never[]) => unknown
+          ? never
+          : TItems[TField];
+}[keyof TItems];
+
+/** The keys of the fields FieldValues reads, each the way PHP stores it. */
+type FieldKeys<TItems> = {
+    [TField in keyof TItems]-?: TField extends symbol
+        ? never
+        : TItems[TField] extends (...args: never[]) => unknown
+          ? never
+          : PhpArrayKey<TField>;
+}[keyof TItems];
+
+/** The shape an object's fields give: a record that may lack a key when a field its type names is optional. */
+type FieldsShape<TItems> = [
+    {
+        [TField in keyof TItems]-?: TField extends symbol
+            ? never
+            : string extends TField
+              ? never
+              : number extends TField
+                ? never
+                : Record<never, never> extends Pick<TItems, TField>
+                  ? TField
+                  : never;
+    }[keyof TItems],
+] extends [never]
+    ? "keyed"
+    : "partial";
+
+/**
+ * Whether an object may hold a string key its type does not name: it names no field, or a string-keyed member holds a
+ * function, which FieldKeys leaves out though the runtime copies a field that holds one.
+ */
+type HidesFieldKeys<TItems> = [FieldKeys<TItems>] extends [never]
+    ? true
+    : [
+            {
+                [TField in keyof TItems]-?: TField extends string
+                    ? TItems[TField] extends (...args: never[]) => unknown
+                        ? TField
+                        : never
+                    : never;
+            }[keyof TItems],
+        ] extends [never]
+      ? false
+      : true;
+
+/** A key looked up the way PHP's array_key_exists() looks one up, where null reads the "" key. */
+type LookupKey = PropertyKey | null | undefined;
+
+/** A value to look for that is no callback, so a callback falls to the overload that types its parameters. */
+type NonCallable<TNeedle> = TNeedle extends (...args: never[]) => unknown
+    ? never
+    : TNeedle;
+
+/** A value to look for or a callback over the items, read member by member, so a union may hold both. */
+type NeedleOrCallback<TNeedle, TValue, TKey> = TNeedle extends (
+    ...args: never[]
+) => unknown
+    ? (value: TValue, key: TKey) => unknown
+    : TNeedle;
+
+/**
+ * The shape a method that may drop keys leaves: a list reindexes and stays one, and a keyed result may lack keys.
+ * Each shape of a union maps on its own, since a collection that may be either shape may still be a list.
+ */
+type Removed<TShape extends CollectionShape> = TShape extends "list"
+    ? "list"
+    : "partial";
+
+/**
+ * The shape a keyed write leaves: a list stays one only while an integer key may land inside it, and a partial
+ * record stays partial, since the keys it lacked are still missing.
+ */
+type WrittenShape<
+    TShape extends CollectionShape,
+    TWrittenKey,
+> = TShape extends "list"
+    ? [TWrittenKey] extends [string]
+        ? "keyed"
+        : "list" | "keyed"
+    : TShape;
+
+/**
+ * A key an argument surely names: one literal key. A union, a wide or patterned string, or a branded key may name
+ * many keys, and only a literal makes a record's key required, so that is what tells them apart.
+ */
+type LoneKey<TKey> = [TKey] extends [UnionToIntersection<TKey>]
+    ? Record<never, never> extends Record<TKey & PropertyKey, unknown>
+        ? never
+        : TKey
+    : never;
+
+/** Whether every key of a literal list is a lone key, so the list surely names each one. */
+type AllLoneKeys<TKeys extends readonly unknown[]> = TKeys extends readonly [
+    infer THead,
+    ...infer TRest,
+]
+    ? [LoneKey<THead>] extends [never]
+        ? false
+        : AllLoneKeys<TRest>
+    : true;
+
+/**
+ * The keys an argument surely names, wrapped in a tuple so that naming no key is told apart from an unknown set:
+ * a lone key, or each key of a literal list of lone keys. It answers false for any other argument, which may name
+ * any of its keys, or none.
+ */
+type SureKeys<TKeys> = [TKeys] extends [infer TList extends readonly unknown[]]
+    ? number extends TList["length"]
+        ? false
+        : AllLoneKeys<TList> extends true
+          ? [TList[number]]
+          : false
+    : [LoneKey<TKeys>] extends [never]
+      ? false
+      : [TKeys];
+
+/** Whether every member of a key type is a literal; a wide, patterned or branded member leaves no key required. */
+type LiteralKeys<TKey> = [
+    TKey extends unknown
+        ? Record<never, never> extends Record<TKey & PropertyKey, unknown>
+            ? TKey
+            : never
+        : never,
+] extends [never]
+    ? true
+    : false;
+
+/**
+ * The keys only() or except() surely names: none unless the collection's keys and the argument's are all literals,
+ * since a wide key on either side may name keys the other side's type cannot list.
+ */
+type NamedKeys<TKey, TKeys> =
+    LiteralKeys<TKey> extends true ? SureKeys<TKeys> : false;
+
+/**
+ * Admits only() or except()'s literal rows for keys they surely name. It stays deferred for a key typed by a type
+ * parameter, so such a call reaches the widest row, whose collection type a chained overloaded call can still read.
+ */
+type IfNamed<TKey, TKeys> =
+    NamedKeys<TKey, TKeys> extends false ? never : unknown;
+
+/** The keys an argument surely names, unwrapped from SureKeys' tuple: none when it may name any of its keys. */
+type SurelyNamed<TKeys> =
+    SureKeys<TKeys> extends [infer TNamed] ? TNamed : never;
+
+/**
+ * Admits forget()'s exact row for keys it surely removes. It stays deferred for a key typed by a type parameter, so
+ * such a call reaches the widest row, whose collection type a chained overloaded call can still read.
+ */
+type IfSure<TKeys> = SureKeys<TKeys> extends false ? never : unknown;
+
+/**
+ * The fields select() reads from one item. Only an object item has fields: a primitive's or a list's own members are
+ * none, so such an item gives the widest row's record of unknown fields.
+ */
+type SelectedFields<TValue, TPick> = TValue extends readonly unknown[]
+    ? Record<string, unknown>
+    : TValue extends object
+      ? Pick<TValue, TPick & keyof TValue>
+      : Record<string, unknown>;
+
+/** Any class, abstract or not: `never[]` parameters let a constructor that takes typed parameters match. */
+type AbstractConstructor = abstract new (...args: never[]) => unknown;
+
+/** Distributes over the item types, so each member of a union is narrowed on its own. */
+type InstanceNarrowed<TValue, TInstance> = TValue extends TInstance
+    ? TValue
+    : TInstance extends TValue
+      ? TInstance
+      : never;
+
+/**
+ * The items whereInstanceOf() keeps. One class narrows each item type the way `instanceof` does: a subtype stays and a
+ * supertype becomes the class, since its items may be plain instances; the class stands in when no item type relates.
+ */
+type InstancesOf<TValue, TType> = TType extends AbstractConstructor
+    ? [InstanceNarrowed<TValue, InstanceType<TType>>] extends [never]
+        ? InstanceType<TType>
+        : InstanceNarrowed<TValue, InstanceType<TType>>
+    : TType extends readonly AbstractConstructor[]
+      ? InstanceType<TType[number]>
+      : TType extends Readonly<Record<PropertyKey, AbstractConstructor>>
+        ? InstanceType<TType[keyof TType]>
+        : never;
+
+/**
+ * What partition() answers: a list of exactly two halves, each also read by index the way PHP's $partition[0] reads
+ * it. The pair comes first, so all() answers it rather than the collection's own items type.
+ */
+type PartitionResult<TPart> = {
+    all(): [TPart, TPart];
+    readonly 0: TPart;
+    readonly 1: TPart;
+} & Collection<TPart, number, "list">;
+
+/**
+ * The key an entry is left under where integer keys renumber: array_splice(), array_merge() and split() renumber them,
+ * and a reordering must, since a record cannot hold integer keys out of order. A string key is kept.
+ */
+type SplicedKey<TKey extends PropertyKey> = TKey extends number ? number : TKey;
+
+/** What pop() or shift() answers for a count: the item for 1, a list of the items for another, either for a number. */
+type Taken<TValue, TCount extends number> = number extends TCount
+    ? TValue | Collection<TValue, number, "list"> | null
+    : TCount extends 1
+      ? TValue | null
+      : Collection<TValue, number, "list">;
+
+/** The members of a key type that each name one key: a literal, where a wide, patterned or branded one names many. */
+type NamingKeys<TKey> = TKey extends unknown
+    ? Record<never, never> extends Record<TKey & PropertyKey, unknown>
+        ? never
+        : TKey
+    : never;
+
+/**
+ * The shape of a keyed result whose keys come from the items. A literal key may be one no item gave, so the result
+ * may lack it; a wide key names none.
+ */
+type ItemKeyedShape<TKey> = [NamingKeys<TKey>] extends [never]
+    ? "keyed"
+    : "partial";
+
+/** The key flip() files a value under: array_flip() takes only a string or an integer. */
+type FlipKey<TValue> = unknown extends TValue
+    ? string | number
+    : PhpArrayKey<Extract<TValue, string | number>>;
+
+/** The key groupBy() files an item under: each member of a list the grouping gives, else the grouping itself. */
+type GroupKey<TGroupKey> = TGroupKey extends readonly (infer TMember)[]
+    ? MapArrayKey<TMember>
+    : MapArrayKey<TGroupKey>;
+
+/** The keys each group holds: the items' own when they are preserved, else a list's. */
+type GroupedKey<TKey, TPreserve> = TPreserve extends true ? TKey : number;
+
+/**
+ * The shape of each group: a list, or with the items' keys preserved, a record of some of them. A list's items stay a
+ * list only while their keys run 0..n-1.
+ */
+type GroupedShape<
+    TShape extends CollectionShape,
+    TPreserve,
+> = TPreserve extends true
+    ? TShape extends "list"
+        ? "list" | "partial"
+        : "partial"
+    : "list";
+
+/** Items collapse() and collapseWithKeys() skip, as Arr::collapse skips any object that is no array. */
+type SkippedItem =
+    | Exclude<NonObjectItems, readonly unknown[]>
+    | Date
+    | RegExp
+    | Promise<unknown>;
+
+/**
+ * The values one item hands collapse(): a list's or a collection's items, or an object's values; any other item none.
+ * A collection is read through toBase(), whose base-class return stays inferable from a subclass.
+ */
+type CollapseValue<TItem> = unknown extends TItem
+    ? unknown
+    : TItem extends readonly (infer TListValue)[]
+      ? TListValue
+      : TItem extends {
+              toBase(): Collection<
+                  infer TItemValue,
+                  infer _TItemKey,
+                  infer _TItemShape
+              >;
+          }
+        ? TItemValue
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? ObjectValue<TItem>
+            : never;
+
+/**
+ * Whether one item may make collapse()'s result a record: an object, which array_merge() merges key by key, or a
+ * collection holding a string key. A list's keys and a collection's integer keys are renumbered into a list.
+ */
+type MergesKeyed<TItem> = unknown extends TItem
+    ? true
+    : TItem extends readonly unknown[]
+      ? never
+      : TItem extends {
+              toBase(): Collection<
+                  infer _TItemValue,
+                  infer TItemKey,
+                  infer _TItemShape
+              >;
+          }
+        ? [Exclude<TItemKey, number>] extends [never]
+            ? never
+            : true
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? true
+            : never;
+
+/** The keys collapse() gives: a list's, unless an item may make the result a record. */
+type CollapseKey<TItem> = [MergesKeyed<TItem>] extends [never]
+    ? number
+    : string | number;
+
+/** The shape collapse() gives: a list, unless an item may make a record, and an empty collection still gives one. */
+type CollapseShape<TItem> = [MergesKeyed<TItem>] extends [never]
+    ? "list"
+    : "list" | "keyed";
+
+/** The keys one item hands collapseWithKeys(), which array_replace() keeps: a list's, a collection's or an object's. */
+type CollapseWithKeysKey<TItem> = unknown extends TItem
+    ? string | number
+    : TItem extends readonly unknown[]
+      ? number
+      : TItem extends {
+              toBase(): Collection<
+                  infer _TItemValue,
+                  infer TItemKey,
+                  infer _TItemShape
+              >;
+          }
+        ? TItemKey
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? ObjectKey<TItem>
+            : never;
+
+/** Whether one item may make collapseWithKeys()' result a record: any item but a list or a collection holding one. */
+type ReplacesKeyed<TItem> = unknown extends TItem
+    ? true
+    : TItem extends readonly unknown[]
+      ? never
+      : TItem extends {
+              toBase(): Collection<
+                  infer _TItemValue,
+                  infer _TItemKey,
+                  infer TItemShape
+              >;
+          }
+        ? [Exclude<TItemShape, "list">] extends [never]
+            ? never
+            : true
+        : TItem extends SkippedItem
+          ? never
+          : TItem extends object
+            ? true
+            : never;
+
+/**
+ * The shape collapseWithKeys() gives: a list, unless an item may be a record, whose keys another item may lack, and an
+ * empty collection still gives a list.
+ */
+type CollapseWithKeysShape<TItem> = [ReplacesKeyed<TItem>] extends [never]
+    ? "list"
+    : "list" | "partial";
+
+/** Whether a collection surely holds a string key: a keyed one holds every literal key its type names. */
+type HoldsStringKey<TKey, TShape> = [TShape] extends ["keyed"]
+    ? [NamingKeys<Extract<TKey, string>>] extends [never]
+        ? false
+        : true
+    : false;
+
+/** Whether an operand surely holds a string key whichever of its types it has, where null holds none. */
+type OperandHoldsStringKey<TOperand> = false extends (
+    TOperand extends unknown
+        ? HoldsStringKey<OperandKey<TOperand>, OperandShape<TOperand>>
+        : never
+)
+    ? false
+    : true;
+
+/** Whether an operand may hold a string key its type does not name, whichever of its types it has. */
+type OperandHidesKeys<TOperand> = true extends OperandParts<TOperand>[3]
+    ? true
+    : false;
+
+/** The literal keys some type of an operand may lack: a key it names that only a keyed type holds for sure. */
+type OperandUnsureKeys<
+    TOperand,
+    TKeys = NamingKeys<OperandKey<TOperand>>,
+> = TOperand extends unknown
+    ? Exclude<
+          TKeys,
+          [OperandShape<TOperand>] extends ["keyed"]
+              ? NamingKeys<OperandKey<TOperand>>
+              : never
+      >
+    : never;
+
+/** A record holding both sides' keys holds every literal key it names only while neither side may lack one. */
+type JoinShape<
+    TShape extends CollectionShape,
+    TOperand,
+> = "partial" extends TShape
+    ? "partial"
+    : [OperandUnsureKeys<TOperand>] extends [never]
+      ? "keyed"
+      : "partial";
+
+/**
+ * The shape merge() leaves. array_merge() renumbers integer keys, so only a string key makes a record: one neither side
+ * surely holds may be absent, leaving a list, and one an operand's type cannot name may be present.
+ */
+type MergedShape<TKey, TShape extends CollectionShape, TOperand> = [
+    Extract<TKey | OperandKey<TOperand>, string>,
+] extends [never]
+    ? OperandHidesKeys<TOperand> extends true
+        ? "list" | JoinShape<TShape, TOperand>
+        : "list"
+    : HoldsStringKey<TKey, TShape> extends true
+      ? JoinShape<TShape, TOperand>
+      : OperandHoldsStringKey<TOperand> extends true
+        ? JoinShape<TShape, TOperand>
+        : "list" | JoinShape<TShape, TOperand>;
+
+/**
+ * The shape union() or replace() leaves, keeping every key: a record stays one, and a list stays one while the
+ * operand's keys may extend it as 0..n-1, which a list's always do.
+ */
+type KeptKeysShape<
+    TShape extends CollectionShape,
+    TOperand,
+> = TShape extends "list"
+    ? [OperandShape<TOperand>] extends ["list"]
+        ? "list"
+        : OperandHoldsStringKey<TOperand> extends true
+          ? JoinShape<TShape, TOperand>
+          : "list" | JoinShape<TShape, TOperand>
+    : JoinShape<TShape, TOperand>;
+
+/**
+ * The values mergeRecursive() leaves: a string key both sides may hold keeps a list of both values, a list value
+ * joining with its items. A nested key both hold joins the same way, which the values' own types do not show.
+ */
+type MergedRecursiveValue<TValue, TKey, TOperand> =
+    | TValue
+    | OperandValue<TOperand>
+    | ([Extract<TKey, string> & Extract<OperandKey<TOperand>, string>] extends [
+          never,
+      ]
+          ? never
+          : Array<JoinedItem<TValue> | JoinedItem<OperandValue<TOperand>>>);
+
+/** What one value adds to the list array_merge_recursive() joins it into: a list its items, any other value itself. */
+type JoinedItem<TValue> = TValue extends readonly (infer TItem)[]
+    ? TItem
+    : TValue;
+
+/** The key array_combine() files a value under: its string cast, read back like an array key, so false gives "". */
+type CombinedKey<TValue> = unknown extends TValue
+    ? string | number
+    : TValue extends string
+      ? PhpArrayKey<TValue>
+      : TValue extends number
+        ? `${TValue}` extends `${bigint}`
+            ? TValue
+            : string | number
+        : TValue extends true
+          ? 1
+          : TValue extends false | null | undefined
+            ? ""
+            : string | number;
+
+/**
+ * The shape of each chunk that keeps its keys. It is a record, since it keeps a list's positions, and one that may
+ * lack keys unless the collection is surely a list whose key type names none.
+ */
+type ChunkShape<TKey, TShape extends CollectionShape> = [TShape] extends [
+    "list",
+]
+    ? [NamingKeys<TKey>] extends [never]
+        ? "keyed"
+        : "partial"
+    : "partial";
+
+/**
+ * The shape of each group split() makes. It renumbers integer keys, so a group holding no string key is a list, and
+ * only a literal string key surely holds one.
+ */
+type SplitShape<TKey, TShape extends CollectionShape> = TShape extends "list"
+    ? "list"
+    : [Extract<TKey, string>] extends [never]
+      ? "list"
+      : [Exclude<TKey, NamingKeys<Extract<TKey, string>>>] extends [never]
+        ? "partial"
+        : "list" | "partial";
+
+/**
+ * A collection whose key type survives a reordering, so it keeps its own type too: a string key is kept, and a key type
+ * naming any integer still names the renumbered ones.
+ */
+type StableKeyed<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+> = Collection<TValue, number extends TKey ? TKey : TKey & string, TShape>;
+
+/** One comparison sortBy() takes; SortSpec lacks PHP's comparator wrapped in a list, which Arr::wrap() reads alike. */
+type SortDescriptor<TValue> =
+    | SortSpec<TValue>
+    | readonly [(a: TValue, b: TValue) => number | boolean];
+
+/** What sortBy() and sortByDesc() take: a callback alone reads one item, while one inside the list compares two. */
+type SortByCallback<TValue, TKey> =
+    | readonly SortDescriptor<TValue>[]
+    | ((value: TValue, key: TKey) => unknown)
+    | PathKey;
+
+/**
+ * An item PHP's `+` may add: a scalar or null. It throws for an array or an object, so sum() and avg() read those only
+ * through a callback or a key.
+ */
+type PhpNumeric = number | string | boolean | null | undefined;
+
+/**
+ * Create a collection from the given value.
+ *
+ * @param items - A collection, a list, a Map, an Arrayable, an iterable, a Jsonable, a JsonSerializable or a record;
+ * null or nothing makes an empty collection, and a scalar is wrapped in one
+ * @returns A new collection holding a copy of the items
+ *
+ * @remarks A plain object with a toArray, toJson or jsonSerialize member is typed by the interface it matches,
+ * though at runtime every plain object is data. A class instance's methods are typed among its items, since
+ * TypeScript cannot tell a method from a function-valued field, though only its own fields are copied.
+ *
+ * @example
+ *
+ * collect([1, 2, 3]); -> new Collection([1, 2, 3])
+ * collect({a: 1, b: 2}); -> new Collection({a: 1, b: 2})
+ * collect(new Map([['a', 1]])); -> new Collection({a: 1})
+ * collect('abc'); -> new Collection(['abc'])
+ * collect(null); -> new Collection([])
+ */
+export function collect<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+>(items: Collection<TValue, TKey, TShape>): Collection<TValue, TKey, TShape>;
 export function collect<TValue>(
-    items: TValue[] | readonly TValue[],
-): Collection<TValue, number>;
-export function collect<TValue, TKey extends PropertyKey>(
-    items: Collection<TValue, TKey>,
-): Collection<TValue, TKey>;
-export function collect<TValue>(
-    items: Arrayable<TValue>,
-): Collection<TValue, number>;
-export function collect<TValue, TKey extends PropertyKey>(
-    items: Map<TKey, TValue>,
-): Collection<TValue, TKey>;
-export function collect(items?: null | undefined): Collection<[], number>;
-export function collect(items: string): Collection<string[], number>;
-export function collect(items: number): Collection<number[], number>;
-export function collect(items: boolean): Collection<boolean[], number>;
-export function collect(items: symbol): Collection<symbol[], number>;
-export function collect<TValue>(
-    items: Record<string, TValue>,
-): Collection<TValue, string>;
-export function collect<TValue, TKey extends PropertyKey>(
-    items?:
-        | TValue[]
-        | Record<TKey, TValue>
-        | Collection<TValue, TKey>
-        | Arrayable<TValue>
-        | Map<TKey, TValue>
-        | string
-        | number
-        | boolean
-        | symbol
-        | null
-        | undefined,
-): Collection<TValue, TKey> {
-    return new Collection<TValue, TKey>(items);
+    items: readonly TValue[],
+): Collection<TValue, number, "list">;
+export function collect<TValue, TMapKey>(
+    items: ReadonlyMap<TMapKey, TValue>,
+): Collection<TValue, MapArrayKey<TMapKey>, "keyed">;
+export function collect<TValue>(items: {
+    toArray(): readonly TValue[];
+}): Collection<TValue, number, "list">;
+export function collect<TItems extends object>(items: {
+    toArray(): TItems;
+}): ItemsCollection<TItems>;
+export function collect(
+    items?: null | undefined,
+): Collection<never, number, "list">;
+export function collect<TInput>(items: TInput): CollectCollection<TInput>;
+export function collect(items?: unknown): unknown {
+    return new (Collection as CollectionClass<unknown, PropertyKey>)(items);
 }
 
 /**
@@ -165,35 +961,14 @@ function sortedIntoItems<TValue>(
 }
 
 /**
- * A Collection whose items are always array-backed, ensuring all() returns TValue[].
- * Used as the return type for methods like partition() that always produce arrays.
- */
-export interface ArrayCollection<
-    TValue,
-    TKey extends PropertyKey,
-> extends Collection<TValue, TKey> {
-    all(): TValue[];
-}
-
-/**
- * A Collection containing exactly two elements, used for partition().
- * Extends ArrayCollection and adds tuple-like indexing for better type inference.
- */
-export interface TupleCollection<T1, T2> extends ArrayCollection<
-    T1 | T2,
-    number
-> {
-    all(): [T1, T2];
-    0: T1;
-    1: T2;
-    [Symbol.iterator](): IterableIterator<T1 | T2>;
-}
-
-/**
  * Laravel-style Collection class for JavaScript/TypeScript.
  * Provides a fluent interface for working with arrays and objects.
  */
-export class Collection<TValue, TKey extends PropertyKey> {
+export class Collection<
+    TValue = never,
+    TKey extends PropertyKey = number,
+    TShape extends CollectionShape = DefaultShape<TKey>,
+> {
     /**
      * The items contained in the collection.
      */
@@ -207,135 +982,149 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected itemsWithOrder?: Array<[TKey, TValue]>;
 
-    constructor(items: TValue[]);
-    constructor(items: readonly TValue[]);
-    constructor(items: Collection<TValue, TKey>);
-    constructor(items: Arrayable<TValue>);
-    constructor(items: Map<TKey, TValue>);
-    constructor(items?: null | undefined);
-    constructor(items: TValue extends unknown[] ? TValue : never);
-    constructor(items: TValue extends readonly unknown[] ? TValue : never);
-    constructor(items: Record<TKey & string, TValue>);
-    constructor(
-        items?:
-            | TValue[]
-            | readonly TValue[]
-            | Record<TKey, TValue>
-            | Collection<TValue, TKey>
-            | Arrayable<TValue>
-            | Map<TKey, TValue>
-            | string
-            | number
-            | boolean
-            | symbol
-            | null
-            | undefined,
-    );
-    constructor(
-        items?:
-            | TValue[]
-            | readonly TValue[]
-            | Record<TKey, TValue>
-            | Collection<TValue, TKey>
-            | Arrayable<TValue>
-            | Map<TKey, TValue>
-            | null
-            | undefined,
-    ) {
-        this.items = this.adoptRawItems(items);
-
-        // Return a proxy that intercepts property access
-        // return this.createProxy();
-    }
+    /**
+     * Indicates that the object's string representation should be escaped when toString is invoked.
+     */
+    protected shouldEscapeWhenCastingToString = false;
 
     /**
-     * Create a proxy that intercepts property access for both array and object usage
+     * The shape the type declares, never set. all() reads the shape only through a conditional type, which alone would
+     * let a collection that may be keyed pass where a list is expected, and so match a list-only overload.
      */
-    // private createProxy(): this {
-    //     return new Proxy(this, initProxyHandler<TValue>());
-    // }
+    declare protected readonly collectionShape: TShape;
+
+    /**
+     * Create a new collection.
+     *
+     * @param items - The items, read the way collect() reads them
+     *
+     * @remarks A constructor declares no type parameters of its own, so collect() and make() type what it cannot:
+     * the keys PHP stores for a Map, the keyed shape of a Map or record with integer keys, and a Jsonable's items.
+     */
+    constructor(items: Collection<TValue, TKey, TShape>);
+    constructor(items: readonly TValue[]);
+    constructor(items: ReadonlyMap<TKey, TValue>);
+    constructor(items: { toArray(): readonly TValue[] });
+    constructor(items: { toArray(): Record<TKey, TValue> });
+    constructor(items: Iterable<TValue> & object);
+    constructor(items: { jsonSerialize(): readonly TValue[] });
+    constructor(items: { jsonSerialize(): Record<TKey, TValue> });
+    constructor(items?: null | undefined);
+    constructor(items: readonly TValue[] | null | undefined);
+    constructor(items: TValue & (string | number | boolean | symbol));
+    constructor(items: Record<TKey, TValue>);
+    // A subclass hands on whatever its own constructor took, which may be any of the above.
+    constructor(
+        items?:
+            | DataIterableItems<TValue, TKey>
+            | Collection<TValue, TKey, TShape>
+            | ReadonlyMap<TKey, TValue>
+            | { toArray(): readonly TValue[] | Record<TKey, TValue> }
+            | { jsonSerialize(): readonly TValue[] | Record<TKey, TValue> }
+            | (TValue & (string | number | boolean | symbol))
+            | null,
+    );
+    constructor(items?: unknown) {
+        this.items = this.adoptRawItems(items);
+    }
 
     /**
      * Make the collection iterable with for...of loops.
      *
-     * @returns An iterator for the collection values
+     * @returns The iterator getIterator() returns, over the collection's values
      */
-    [Symbol.iterator](): Iterator<TValue> {
-        const values = Object.values(this.items);
-
-        let index = 0;
-
-        return {
-            next: (): IteratorResult<TValue> => {
-                if (index < values.length) {
-                    return { value: values[index++] as TValue, done: false };
-                }
-
-                return { value: undefined as never, done: true };
-            },
-        };
+    [Symbol.iterator](): ArrayIterator<TValue> {
+        return this.getIterator();
     }
 
     /**
      * Create a collection with the given range.
      *
      * @param from - Starting number of the range
-     * @param to - Ending number of the range
-     * @param step - Step size for the range
+     * @param to - Ending number of the range, counted down to when it is below the start
+     * @param step - Step size for the range; it may be negative only on a decreasing range
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new Collection instance containing the range of numbers
+     * @throws Error when an argument is not a finite number, or the step is 0, negative on an increasing range,
+     * or longer than the range, or when the range would hold 2^30 items or more, as PHP's range() throws its ValueError
      *
      * @example
      *
-     * Collection.range(1, 5); -> new Collection({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-     * Collection.range(1, 10, 2); -> new Collection({0: 1, 1: 3, 2: 5, 3: 7, 4: 9})
+     * Collection.range(1, 5); -> new Collection([1, 2, 3, 4, 5])
+     * Collection.range(1, 10, 2); -> new Collection([1, 3, 5, 7, 9])
+     * Collection.range(5, 1); -> new Collection([5, 4, 3, 2, 1])
+     * Collection.range(0, 1, 0.25); -> new Collection([0, 0.25, 0.5, 0.75, 1])
      */
     static range(
         from: number,
         to: number,
         step: number = 1,
-    ): Collection<number, number> {
-        const rangeArray: number[] = [];
+        ...args: unknown[]
+    ): Collection<number, number, "list"> {
+        const size = resolveRangeSize(from, to, step);
+        const stride = Math.abs(step);
+        const descending = to < from;
+        // Each item is reckoned from the start, so a float step's rounding error never builds up. The rounded size
+        // can reach one step past the end, and PHP drops that item.
+        const items = Array.from({ length: size }, (_, index) =>
+            descending ? from - index * stride : from + index * stride,
+        ).filter((item) => (descending ? item >= to : item <= to));
 
-        for (let i = from; i <= to; i += step) {
-            rangeArray.push(i);
-        }
-
-        return new Collection<number, number>(rangeArray);
+        return new (this as CollectionClass<number, number>)(
+            handOver(items),
+            ...args,
+        );
     }
 
     /**
      * Get all of the items in the collection.
      *
-     * @returns The underlying items in the collection
+     * This is Laravel's `$c->all()`, but it hands back the items themselves where PHP copies them, so a write to them
+     * writes to the collection; toArray() answers a copy.
+     *
+     * @returns The collection's own items: an array for a list, else a record
      *
      * @example
      *
      * new Collection([1, 2, 3]).all(); -> [1, 2, 3]
      * new Collection({a: 1, b: 2}).all(); -> {a: 1, b: 2}
      */
-    all() {
+    all(): CollectionItems<TValue, TKey, TShape>;
+    all(): unknown {
         return this.items;
     }
 
     /**
      * Get the median of a given key.
      *
-     * @param  key - The key to calculate the median for, or null for the values themselves
-     * @returns The median value or null if the collection is empty
+     * @param  key - The key or path of segments to calculate the median for, or null for the values themselves
+     * @returns The middle value itself for an odd count, the average of the middle two for an even one, or null when
+     * no value that is not null remains
      *
      * @example
      *
      * new Collection([1, 3, 3, 6, 7, 8, 9]).median(); -> 6
      * new Collection([1, 2, 3, 4, 5, 6]).median(); -> 3.5
      * new Collection([{value: 1}, {value: 3}, {value: 3}, {value: 6}, {value: 7}, {value: 8}, {value: 9}]).median('value'); -> 6
+     * new Collection([{a: {b: 1}}, {a: {b: 9}}, {a: {b: 5}}]).median(['a', 'b']); -> 5
      */
-    median(key: PropertyKey | null = null): TValue | null {
-        const values = (!isNull(key) ? this.pluck(key) : this)
-            .reject((item) => isNull(item))
-            .sort()
-            .values();
+    median(key?: null | undefined): NonNullable<TValue> | number | null;
+    median<TPath extends string | number>(
+        key: TPath,
+    ): PluckValue<TValue, TPath> | number | null;
+    median<TPath extends string | number = never>(
+        key: TPath | null | undefined,
+    ): NonNullable<TValue> | PluckValue<TValue, TPath> | number | null;
+    median(key?: PathKey | readonly PathKey[]): unknown;
+    median(key: PathKey | readonly PathKey[] = null): unknown {
+        // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it.
+        const absent = (item: unknown) => isNull(item) || isUndefined(item);
+        // Each branch keeps its own collection type, since TypeScript calls no overloaded method on a union of two.
+        const values: readonly unknown[] = isNull(key)
+            ? this.reject(absent).sort().values().orderedValues()
+            : this.pluck(key).reject(absent).sort().values().orderedValues();
 
-        const count = values.count();
+        const count = values.length;
 
         if (count === 0) {
             return null;
@@ -344,13 +1133,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const middle = Math.floor(count / 2);
 
         if (count % 2) {
-            return values.get(middle);
+            return values[middle];
         }
 
-        return this.newInstance([
-            values.get(middle - 1),
-            values.get(middle),
-        ]).average() as TValue;
+        // The middle values' type is unknown, so the identity stands in for average()'s missing callback.
+        return this.newInstance<unknown, number, "list">(
+            handOver([values[middle - 1], values[middle]]),
+        ).average(this.identity());
     }
 
     /**
@@ -358,7 +1147,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * Null items are skipped, and each value is counted under the key PHP would store it as.
      *
-     * @param key - The key to calculate the mode for, or null for the values themselves
+     * @param key - The key or path of segments to calculate the mode for, or null for the values themselves
      * @returns The most frequent values in the order first seen, or null when no non-null value remains
      *
      * @example
@@ -369,7 +1158,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{foo: 5}, {foo: null}, {foo: null}]).mode('foo'); -> [5]
      * new Collection([null, null]).mode(); -> null
      */
-    mode(key: PropertyKey | null = null): Array<string | number> | null {
+    mode(
+        key: PathKey | readonly PathKey[] = null,
+    ): Array<string | number> | null {
         const values = isNull(key) ? this.values() : this.values().pluck(key);
         const counts = new Map<string | number, number>();
 
@@ -379,7 +1170,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return;
             }
 
-            const countKey = phpArrayKey(value);
+            const countKey = phpComputedKey(value, { invalid: issetOffset });
 
             counts.set(countKey, (counts.get(countKey) ?? 0) + 1);
         });
@@ -407,37 +1198,51 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * new Collection([[1, 2], [3, 4]]).collapse(); -> new Collection([1, 2, 3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapse(); -> new Collection({a: 1, b: 2})
+     * new Collection({a: [1, 2], b: [3]}).collapse(); -> new Collection([1, 2, 3])
      */
-    collapse() {
-        return this.newInstance(
-            dataCollapse(this.itemsToRawValues() as TValue[]),
+    collapse(): Collection<
+        CollapseValue<TValue>,
+        CollapseKey<TValue>,
+        CollapseShape<TValue>
+    >;
+    collapse(): unknown {
+        // Arr::collapse merges the items alone, so the receiver's own keys never shape the result.
+        const items = this.orderedValues().map((item) =>
+            item instanceof Collection ? item.renumberedItems() : item,
         );
+
+        return this.newInstance(handOver(dataCollapse(items)));
     }
 
     /**
      * Collapse the collection of items into a single array while preserving its keys.
      *
-     * @return A new collection with collapsed items
+     * @returns A new collection with collapsed items, a later item's key replacing an earlier one's: a list when every
+     * item is a list
      *
      * @example
      *
-     * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([1, 2, 3, 4])
+     * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
      */
-    collapseWithKeys() {
+    collapseWithKeys(): Collection<
+        CollapseValue<TValue>,
+        CollapseWithKeysKey<TValue>,
+        CollapseWithKeysShape<TValue>
+    >;
+    collapseWithKeys(): unknown {
         if (this.isEmpty()) {
             return this.newInstance();
         }
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
-        const results = dataMap(this.items, (value) => {
-            // If it's a Collection, get its raw items
-            if (value instanceof Collection) {
-                return value.all();
-            }
-
-            // If it's not an array or object, skip it
-            if (!isArray(value) && !isObject(value)) {
+        const results = this.orderedValues().map((value) => {
+            // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
+            if (
+                !(value instanceof Collection) &&
+                !isArray(value) &&
+                !isPlainObject(value)
+            ) {
                 return null;
             }
 
@@ -445,31 +1250,35 @@ export class Collection<TValue, TKey extends PropertyKey> {
         });
 
         // Filter out nulls (non-arrays/objects that we skipped)
-        const validResults = dataFilter(results, (item) => item !== null);
+        const validResults = results.filter((item) => item !== null);
 
-        if (Object.values(validResults).length === 0) {
+        if (validResults.length === 0) {
             return this.newInstance();
         }
 
         // Check if all valid results are arrays
-        const allArrays = Object.values(validResults).every((item) =>
-            isArray(item),
+        const allArrays = validResults.every((item) =>
+            isArray(item instanceof Collection ? item.all() : item),
         );
 
-        // Merge all arrays/objects with later keys overwriting earlier ones. A plain
-        // Object.assign uses [[Set]], so a "__proto__" source key would reparent the
-        // merge target instead of becoming an entry.
-        const merged: Record<string, unknown> = {};
-        for (const source of Object.values(validResults)) {
-            for (const [key, value] of Object.entries(source as object)) {
-                defineKey(merged, key, value);
+        // Later keys overwrite earlier ones where the first one stood, as array_replace keeps them.
+        const merged = new Map<PropertyKey, unknown>();
+        for (const source of validResults) {
+            // A collection's own order can hold what its all() cannot: integer keys out of ascending order.
+            const entries =
+                source instanceof Collection
+                    ? source.entriesInOrder()
+                    : Object.entries(source as object);
+
+            for (const [key, value] of entries) {
+                merged.set(phpArrayKey(key), value);
             }
         }
 
         // If all inputs were arrays, convert the result back to an array
         // to match PHP's behavior
         if (allArrays) {
-            return this.newInstance(Object.values(merged));
+            return this.newInstance(handOver([...merged.values()]));
         }
 
         return this.newInstance(merged);
@@ -488,16 +1297,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).contains(2); -> true
      * new Collection([{id: 1}, {id: 2}]).contains(item => item.id === 2); -> true
      */
-    contains(key: (value: TValue, index: TKey) => boolean): boolean;
-    contains(key: unknown, operator?: unknown, value?: unknown): boolean;
-    contains(
-        key: ((value: TValue, index: TKey) => boolean) | unknown,
+    contains(key: (value: TValue, key: TKey) => unknown): boolean;
+    // A generic caller's needle, or one that may be a string, needs this row, as PHP's PHPDoc takes an item or a
+    // string; through it, items that may be functions take a mis-typed callback.
+    contains(key: TValue | PathKey): boolean;
+    contains<TNeedle>(
+        key: NonCallable<TNeedle>,
         operator?: unknown,
         value?: unknown,
+    ): boolean;
+    contains<TNeedle>(key: NeedleOrCallback<TNeedle, TValue, TKey>): boolean;
+    contains(
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        if (isUndefined(operator) && isUndefined(value)) {
+        const [key] = args;
+
+        if (args.length < 2) {
             if (isFunction(key)) {
-                const callback = key as (value: TValue, index: TKey) => boolean;
+                const callback = key as (value: TValue, index: TKey) => unknown;
 
                 return dataContains(this.items, callback);
             }
@@ -505,13 +1326,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return dataContains(this.items, key as TValue);
         }
 
-        return this.contains(
-            this.operatorForWhere(
-                key as PathKey | ((value: TValue, index: TKey) => unknown),
-                operator as string | undefined,
-                value,
-            ),
-        );
+        return this.contains(this.operatorForWhereArgs(args));
     }
 
     /**
@@ -529,22 +1344,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{tags: ['a']}]).containsStrict('tags', ['a']); -> true
      * new Collection([1, null, 2]).containsStrict(value => value === null); -> true
      */
-    containsStrict(key: (value: TValue, index: TKey) => unknown): boolean;
-    containsStrict(key: unknown, value?: unknown): boolean;
-    containsStrict(
-        key: ((value: TValue, index: TKey) => unknown) | unknown,
+    containsStrict(key: (value: TValue, key: TKey) => unknown): boolean;
+    containsStrict(key: TValue | PathKey): boolean;
+    containsStrict<TNeedle>(
+        key: NonCallable<TNeedle>,
         value?: unknown,
+    ): boolean;
+    containsStrict<TNeedle>(
+        key: NeedleOrCallback<TNeedle, TValue, TKey>,
+    ): boolean;
+    containsStrict(
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        // PHP takes the two-argument form whenever a second argument is passed, a null one included.
-        if (!isUndefined(value)) {
+        const [key, value = null] = args;
+
+        // PHP takes the two-argument form whenever a second argument is passed, whatever it holds.
+        if (args.length === 2) {
             return this.contains((item) => {
-                return strictEqual(
-                    dataGet(
-                        item as DataItems<unknown, PropertyKey>,
-                        key as PathKey,
-                    ),
-                    value,
-                );
+                return strictEqual(itemValue(item, key as PathKey), value);
             });
         }
 
@@ -554,7 +1374,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
             return (
                 this.first<typeof placeholder>(
-                    key as (value: TValue, index: TKey) => boolean,
+                    key as (value: TValue, index: TKey) => unknown,
                     placeholder,
                 ) !== placeholder
             );
@@ -579,25 +1399,32 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).doesntContain(2); -> false
      * new Collection([{id: 1}, {id: 2}]).doesntContain(item => item.id === 3); -> true
      */
-    doesntContain(key: (value: TValue, index: TKey) => boolean): boolean;
-    doesntContain(key: unknown, operator?: unknown, value?: unknown): boolean;
-    doesntContain(
-        key: ((value: TValue, index: TKey) => boolean) | unknown,
+    doesntContain(key: (value: TValue, key: TKey) => unknown): boolean;
+    doesntContain(key: TValue | PathKey): boolean;
+    doesntContain<TNeedle>(
+        key: NonCallable<TNeedle>,
         operator?: unknown,
         value?: unknown,
+    ): boolean;
+    doesntContain<TNeedle>(
+        key: NeedleOrCallback<TNeedle, TValue, TKey>,
+    ): boolean;
+    doesntContain(
+        ...args: [
+            key: ((value: TValue, index: TKey) => unknown) | unknown,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        return !this.contains(
-            key as (value: TValue, index: TKey) => boolean,
-            operator,
-            value,
-        );
+        return !this.contains(...args);
     }
 
     /**
      * Determine if an item is not contained in the enumerable, using strict comparison.
      *
-     * @param key - The value to search for or a callback function
-     * @param value - The value to compare against (if operator is provided)
+     * @param key - The value to search for, a callback, or the path to compare when exactly one more argument follows
+     * @param operator - The value the path must strictly equal, under the name PHP gives it
+     * @param value - A third argument, which makes containsStrict() read the key alone, the way PHP's does
      * @returns True if the item does not exist using strict comparison, false otherwise
      *
      * @example
@@ -607,43 +1434,55 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).doesntContainStrict('2'); -> true
      * new Collection([{id: 1}, {id: 2}]).doesntContainStrict(item => item.id === 3); -> true
      */
-    doesntContainStrict(key: (value: TValue, index: TKey) => boolean): boolean;
-    doesntContainStrict(key: unknown, value?: unknown): boolean;
-    doesntContainStrict(
-        key: ((value: TValue, index: TKey) => boolean) | unknown,
+    doesntContainStrict(key: (value: TValue, key: TKey) => unknown): boolean;
+    doesntContainStrict(key: TValue | PathKey): boolean;
+    doesntContainStrict<TNeedle>(
+        key: NonCallable<TNeedle>,
+        operator?: unknown,
         value?: unknown,
+    ): boolean;
+    doesntContainStrict<TNeedle>(
+        key: NeedleOrCallback<TNeedle, TValue, TKey>,
+    ): boolean;
+    doesntContainStrict(
+        ...args: [key: unknown, operator?: unknown, value?: unknown]
     ): boolean {
-        return !this.containsStrict(
-            key as (value: TValue, index: TKey) => unknown,
-            value,
-        );
+        const [key, operator] = args;
+
+        // PHP forwards every argument to containsStrict(), which compares a path only when handed exactly two.
+        return args.length === 2
+            ? !this.containsStrict(key, operator)
+            : !this.containsStrict(key);
     }
 
     /**
      * Cross join with the given lists, returning all possible permutations.
      * The collection's values are one dimension and each list's values another, whatever their keys.
      *
-     * @param items - The lists to cross join with
-     * @returns A new collection with the cross joined items
+     * @param lists - The lists to cross join with
+     * @returns A new collection listing each permutation: a row of one value from each list
      *
      * @example
      *
      * new Collection([1, 2]).crossJoin([3, 4]); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      * new Collection({a: 1, b: 2}).crossJoin({c: 3, d: 4}); -> new Collection([[1, 3], [1, 4], [2, 3], [2, 4]])
      */
-    crossJoin(
-        // Note: Collection<any, any> is intentional here due to TypeScript contravariance.
-        // Collection<unknown, PropertyKey> breaks when passing typed collections.
-        ...items: Array<DataItems<unknown, PropertyKey> | Collection<any, any>>
-    ) {
+    crossJoin<const TLists extends readonly Operand[]>(
+        ...lists: TLists
+    ): Collection<
+        [TValue, ...{ [TIndex in keyof TLists]: OperandValue<TLists[TIndex]> }],
+        number,
+        "list"
+    >;
+    crossJoin(...lists: Operand[]): unknown {
         // Collection::crossJoin hands $this->items to Arr::crossJoin as one argument, so an object backing
         // is one dimension too, never obj.crossJoin's dimension per key.
         const results = dataCrossJoin(
             this.getItemValues(this.items),
-            ...items.map((item) => this.getRawItems(item)),
+            ...lists.map((list) => this.getRawItems(list)),
         );
 
-        return this.newInstance(results);
+        return this.newInstance(handOver(results));
     }
 
     /**
@@ -654,61 +1493,60 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection({0: 1, 2: 3})
+     * new Collection([1, 2, 3, 4]).diff([2, 4]); -> new Collection([1, 3])
      */
-    diff(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
-            | null
-            | undefined,
-    ) {
-        return this.newInstance(dataDiff(this.items, this.getRawItems(items)));
+    diff<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    diff<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diff(items: Operand): unknown {
+        return this.sameInstance(
+            handOver(dataDiff(this.items, this.getRawItems(items))),
+        );
     }
 
     /**
      * Get the items in the collection that are not present in the given items, using the callback.
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to determine equality
+     * @param callback - A comparator answering 0 for equal values, as PHP's `strcasecmp` and `<=>` do, or true
      * @returns A new collection with the difference
      *
      * @example
      *
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).diffUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection({0: {id: 1}, 2: {id: 3}})
-     * new Collection(['apple', 'banana', 'cherry']).diffUsing(['banana'], (a, b) => a === b); -> new Collection({0: 'apple', 2: 'cherry'})
+     * new Collection([1, 2, 3]).diffUsing([2], (a, b) => a - b); -> new Collection([1, 3])
+     * new Collection({a: 'x', b: 'y'}).diffUsing(['y'], (a, b) => a === b); -> new Collection({a: 'x'})
      */
-    diffUsing(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items:
-            | DataItems<unknown, PropertyKey>
-            | Collection<any, any>
-            | null
-            | undefined,
-        callback: (a: TValue, b: TValue) => boolean,
-    ) {
-        const otherItems = this.getRawItems(items);
-        const results = {} as DataItems<TValue, TKey>;
-
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            let found = false;
-            for (const otherValue of Object.values(
-                otherItems as Record<TKey, TValue>,
-            )) {
-                if (callback(value as TValue, otherValue as TValue)) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                defineKey(results as Record<string, TValue>, key, value);
-            }
-        }
-
-        return this.newInstance(results);
+    diffUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): this;
+    diffUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): unknown {
+        return this.sameInstance(
+            handOver(
+                dataDiffUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes `unknown` and rejects a typed callback (contravariance).
+                    equalityTest(callback) as (
+                        a: unknown,
+                        b: unknown,
+                    ) => boolean,
+                ),
+            ),
+        );
     }
 
     /**
@@ -726,12 +1564,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({b: 3}); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).diffAssoc({d: 4}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    diffAssoc(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
-    ) {
-        return this.newInstance(
-            dataDiffAssoc(this.items, this.getRawItems(items)),
+    diffAssoc<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    diffAssoc<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffAssoc(items: Operand): unknown {
+        return this.sameInstance(
+            handOver(dataDiffAssoc(this.items, this.getRawItems(items))),
         );
     }
 
@@ -740,29 +1582,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback is used to compare keys (case-insensitively, for example), while values are compared strictly.
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
      * @returns A new collection with the difference
      *
      * @example
      *
-     * const strcasecmp = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({a: 'green', b: 'brown', c: 'blue', 0: 'red'}).diffAssocUsing({A: 'green', 0: 'yellow', 1: 'red'}, strcasecmp); -> new Collection({b: 'brown', c: 'blue', 0: 'red'})
      */
+    diffAssocUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): this;
+    diffAssocUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
     diffAssocUsing(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
-        callback: (keyA: TKey, keyB: TKey) => boolean,
-    ) {
-        return this.newInstance(
-            dataDiffAssocUsing(
-                this.items,
-                this.getRawItems(items),
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes a bare key and rejects a typed callback (contravariance).
-                callback as (
-                    keyA: string | number,
-                    keyB: string | number,
-                ) => boolean,
+        items: Operand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): unknown {
+        return this.sameInstance(
+            handOver(
+                dataDiffAssocUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes a bare key and rejects a typed callback (contravariance).
+                    equalityTest(callback) as (
+                        keyA: string | number,
+                        keyB: string | number,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -778,26 +1630,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).diffKeys({b: 2}); -> new Collection({a: 1, c: 3})
      * new Collection([1, 3, 5, 7, 8]).diffKeys([1, 3, 5]); -> new Collection([7, 8])
      */
-    diffKeys(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
-    ) {
-        const otherItems = this.getRawItems(items);
-        const results = {} as DataItems<TValue, TKey>;
-
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            if (!Object.hasOwn(otherItems as object, key)) {
-                defineKey(results as Record<string, TValue>, key, value);
-            }
-        }
-
-        if (isArray(this.items)) {
-            return this.newInstance(Object.values(results) as TValue[]);
-        }
-
-        return this.newInstance(results);
+    diffKeys<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    diffKeys<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    diffKeys(items: Operand): unknown {
+        return this.sameInstance(
+            handOver(dataDiffKeys(this.items, this.getRawItems(items))),
+        );
     }
 
     /**
@@ -805,29 +1648,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback is used to compare keys only (ignoring values).
      *
      * @param items - The items to diff against
-     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
      * @returns A new collection with the difference
      *
      * @example
      *
-     * const strcasecmp = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+     * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
      * new Collection({id: 1, first_word: 'Hello'}).diffKeysUsing({ID: 123, foo_bar: 'Hello'}, strcasecmp); -> new Collection({first_word: 'Hello'})
      */
+    diffKeysUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): this;
+    diffKeysUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
     diffKeysUsing(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        items: DataItems<unknown, PropertyKey> | Collection<any, any>,
-        callback: (keyA: TKey, keyB: TKey) => boolean,
-    ) {
-        return this.newInstance(
-            dataDiffKeysUsing(
-                this.items,
-                this.getRawItems(items),
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes a bare key and rejects a typed callback (contravariance).
-                callback as (
-                    keyA: string | number,
-                    keyB: string | number,
-                ) => boolean,
+        items: Operand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): unknown {
+        return this.sameInstance(
+            handOver(
+                dataDiffKeysUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes a bare key and rejects a typed callback (contravariance).
+                    equalityTest(callback) as (
+                        keyA: string | number,
+                        keyB: string | number,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -848,10 +1701,30 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 2}]).duplicates('id'); -> new Collection({2: 2})
      * new Collection([1, '1', 2, '2', 2]).duplicates(null, true); -> new Collection({4: 2})
      */
+    duplicates(
+        callback?: null | undefined,
+        strict?: boolean,
+    ): Collection<TValue, TKey, "partial">;
+    duplicates<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+        strict?: boolean,
+    ): Collection<TMapValue, TKey, "partial">;
+    duplicates<const TPath extends string>(
+        callback: TPath,
+        strict?: boolean,
+    ): Collection<PluckValue<TValue, TPath>, TKey, "partial">;
+    duplicates<TMapValue>(
+        callback: ((value: TValue, key: TKey) => TMapValue) | null | undefined,
+        strict?: boolean,
+    ): Collection<TValue | TMapValue, TKey, "partial">;
+    duplicates(
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+        strict?: boolean,
+    ): Collection<unknown, TKey, "partial">;
     duplicates<TMapValue>(
         callback: ((value: TValue, key: TKey) => TMapValue) | PathKey = null,
         strict: boolean = false,
-    ) {
+    ): unknown {
         const items = this.map(
             this.valueRetriever(
                 callback as
@@ -887,7 +1760,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         // Laravel preserves keys for both arrays and objects
-        return this.newInstance(duplicatesItems);
+        return this.newInstance<TMapValue, TKey, "partial">(
+            handOver(duplicatesItems),
+        );
     }
 
     /**
@@ -896,9 +1771,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback function to determine the value to check for duplicates, or a string key, or null to use the values themselves
      * @returns A new collection with the duplicate items
      */
+    duplicatesStrict(
+        callback?: null | undefined,
+    ): Collection<TValue, TKey, "partial">;
     duplicatesStrict<TMapValue>(
-        callback: ((value: TValue) => TMapValue) | string | null = null,
-    ) {
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue, TKey, "partial">;
+    duplicatesStrict<const TPath extends string>(
+        callback: TPath,
+    ): Collection<PluckValue<TValue, TPath>, TKey, "partial">;
+    duplicatesStrict<TMapValue>(
+        callback: ((value: TValue, key: TKey) => TMapValue) | null | undefined,
+    ): Collection<TValue | TMapValue, TKey, "partial">;
+    duplicatesStrict(
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): Collection<unknown, TKey, "partial">;
+    duplicatesStrict(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): unknown {
         return this.duplicates(callback, true);
     }
 
@@ -919,7 +1809,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get all items except for those with the specified keys.
      *
-     * @param keys - The keys to exclude, can be: a single key, an array of keys, a Collection, null, or multiple key arguments
+     * @param keys - The key or keys to exclude: one key, a list or a Collection of keys, or null to keep every item
+     * @param rest - Further keys to exclude, when each key is passed as its own argument
      * @returns A new collection without the specified keys
      *
      * @example
@@ -927,42 +1818,42 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).except(['a', 'c']); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).except('a', 'c'); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).except(new Collection(['a', 'c'])); -> new Collection({b: 2})
-     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection({1: 2, 3: 4})
-     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection({1: 2, 3: 4})
+     * new Collection([1, 2, 3, 4]).except([0, 2]); -> new Collection([2, 4])
+     * new Collection([1, 2, 3, 4]).except(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    except<TExceptValue, TExceptKey extends PropertyKey>(
-        ...keys: (
-            | PathKey
-            | PathKey[]
-            | Collection<TExceptValue, TExceptKey>
-            | null
-            | undefined
-        )[]
-    ) {
-        // Handle null/undefined - return all items
-        if (keys.length === 0 || isNull(keys[0]) || isUndefined(keys[0])) {
-            return this.newInstance(this.items);
+    except(keys: null | undefined, ...rest: LookupKey[]): this;
+    except<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        this: Collection<TValue, TKey, "list">,
+        keys:
+            | LookupKey
+            | readonly LookupKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: LookupKey[]
+    ): this;
+    except<const TKeys extends readonly [TKey, ...TKey[]]>(
+        ...keys: TKeys & IfNamed<TKey, TKeys>
+    ): Collection<TValue, Exclude<TKey, TKeys[number]>, TShape>;
+    except<const TKeys extends readonly TKey[]>(
+        keys: TKeys & IfNamed<TKey, TKeys>,
+        ...rest: LookupKey[]
+    ): Collection<TValue, Exclude<TKey, TKeys[number]>, TShape>;
+    except<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        keys:
+            | LookupKey
+            | readonly LookupKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: LookupKey[]
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    except(...keys: unknown[]): unknown {
+        const keysToExcept = this.keysArgument(keys);
+
+        if (isNull(keysToExcept)) {
+            return this.sameInstance(this.items);
         }
 
-        let keysToExcept: PathKey[];
-
-        // If first argument is a Collection, extract its items
-        if (keys[0] instanceof Collection) {
-            const collectionItems = keys[0].all();
-            keysToExcept = isArray(collectionItems)
-                ? collectionItems
-                : Object.values(collectionItems);
-        }
-        // If first argument is an array, use it directly
-        else if (isArray(keys[0])) {
-            keysToExcept = keys[0];
-        }
-        // Otherwise, treat all arguments as individual keys
-        else {
-            keysToExcept = keys as PathKey[];
-        }
-
-        return this.newInstance(dataExcept(this.items, keysToExcept));
+        return this.sameInstance(
+            handOver(dataExcept(this.items, keysToExcept)),
+        );
     }
 
     /**
@@ -976,16 +1867,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).filter(x => x > 2); -> new Collection([3, 4])
      * new Collection([0, 1, false, 2, '', 3]).filter(); -> new Collection([1, 2, 3])
      */
-    filter(callback: ((value: TValue, key: TKey) => boolean) | null = null) {
+    filter<TNarrow extends TValue>(
+        callback: (value: TValue, key: TKey) => value is TNarrow,
+    ): Collection<TNarrow, TKey, Removed<TShape>>;
+    filter(
+        callback?: null | undefined,
+    ): Collection<TruthyArray<TValue[]>[number], TKey, Removed<TShape>>;
+    filter(
+        this: Collection<TValue, TKey, "list">,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): this;
+    filter(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    filter(
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
+    ): unknown {
         if (isNull(callback)) {
-            return this.newInstance(dataFilter(this.items));
+            return this.sameInstance(handOver(dataFilter(this.items)));
         }
 
         // `Items` is a union, so the delegates hand the callback their own widest
         // value type; the collection's own generics are the narrower truth here.
-        return this.newInstance(
-            dataFilter(this.items, (value, key) =>
-                callback(value as TValue, key as TKey),
+        return this.sameInstance(
+            handOver(
+                dataFilter(this.items, (value, key) =>
+                    callback(value as TValue, key as TKey),
+                ),
             ),
         );
     }
@@ -994,8 +1902,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Get the first item from the collection passing the given truth test.
      *
      * @param callback - The callback function to test with, or null
-     * @param defaultValue - The default value to return if no item is found
-     * @returns The first matching item or default value
+     * @param defaultValue - The default value to return if no item is found, or a callback that returns it
+     * @returns The first matching item, or the default: null when none is given
      *
      * @example
      *
@@ -1005,28 +1913,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).first(); -> 1
      * new Collection({a: 1, b: 2, c: 3, d: 4}).first(x => x > 2); -> 3
      */
+    first(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): TValue | null;
     first<TFirstDefault>(
-        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+        callback: ((value: TValue, key: TKey) => unknown) | null | undefined,
+        defaultValue: TFirstDefault | (() => TFirstDefault),
+    ): TValue | TFirstDefault;
+    first<TFirstDefault>(
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
-    ): TValue | TFirstDefault | null {
+    ): unknown {
         const ordered = this.orderedEntries();
 
         if (ordered) {
             return this.firstOrdered(ordered, callback, defaultValue);
         }
 
-        // The auto-forwarding chain ends here: `this.items` is the `DataItems` union, which
-        // always picks obj's widest row, so the delegate answers `unknown`. Restating the
-        // class's own generics is the only way to keep them; widening `items` is Part B work.
+        // The `DataItems` union picks obj's widest row, whose `unknown`-valued callback rejects a typed one.
         return dataFirst(
             this.items,
-            // The same union makes obj's row take an `unknown`-valued callback, which
-            // rejects a typed one (contravariance).
             callback as
-                | ((value: unknown, key: string | number) => boolean)
+                | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
-        ) as TValue | TFirstDefault | null;
+        );
     }
 
     /**
@@ -1037,7 +1948,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * are flattened too; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
-     * @returns A new collection with flattened items (always array-based)
+     * @returns A new collection with flattened items (always array-based); with a depth, an item may leave any value
+     * below it
      *
      * @example
      *
@@ -1046,9 +1958,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: [1, 2], b: [3, 4]}).flatten(); -> new Collection([1, 2, 3, 4])
      * new Collection({a: [1, [2, 3]], b: [4]}).flatten(1); -> new Collection([1, [2, 3], 4])
      */
-    flatten(depth: number = Infinity) {
+    flatten(): Collection<ObjectFlatValue<TValue>, number, "list">;
+    flatten(
+        depth?: number,
+    ): Collection<FlattenItemReach<TValue>, number, "list">;
+    flatten(depth: number = Infinity): unknown {
         // Collection::flatten is Arr::flatten($this->items, $depth), which obj and arr flatten mirror.
-        return this.newInstance(dataFlatten(this.items, depth));
+        return this.newInstance(handOver(dataFlatten(this.items, depth)));
     }
 
     /**
@@ -1061,18 +1977,34 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection(['a', 'b', 'c']).flip(); -> new Collection({a: 0, b: 1, c: 2})
      * new Collection({name: 'taylor'}).flip(); -> new Collection({taylor: 'name'})
      */
-    flip() {
-        return this.newInstance(dataFlip(this.items));
+    flip(): Collection<TKey, FlipKey<TValue>, ItemKeyedShape<FlipKey<TValue>>>;
+    flip(): unknown {
+        const flipped = new Map<string | number, TKey>();
+
+        for (const [key, value] of this.entriesInOrder()) {
+            // array_flip skips a value it cannot store as a key.
+            if (isPhpArrayKey(value)) {
+                flipped.set(phpArrayKey(value), key);
+            }
+        }
+
+        return this.newInstance(flipped);
     }
 
     /**
-     * Remove one or more items from the collection by key or keys.
+     * Remove an item from the collection by key.
+     *
+     * Each key is unset literally, as offsetUnset does, so a dotted key never reaches a nested value.
+     * The receiver's variable keeps its declared type, removed keys included; the returned collection drops them.
      *
      * @param keys - The key or keys to remove, or a collection of keys
-     * @returns The collection instance after removing the specified keys
+     * @returns The collection instance after removing the specified keys, typed without the literal keys it is sure
+     * to remove
+     * @throws TypeError for an array, object or function key, once the keys before it are unset, as unset() refuses one
      *
      * @example
      *
+     * new Collection({a: {b: 1}}).forget('a.b'); -> new Collection({a: {b: 1}})
      * new Collection({a: 1, b: 2, c: 3}).forget('b'); -> new Collection({a: 1, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).forget(['a', 'c']); -> new Collection({b: 2})
      * new Collection({a: 1, b: 2, c: 3}).forget(new Collection(['a', 'c'])); -> new Collection({b: 2})
@@ -1080,33 +2012,40 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).forget([0, 2]); -> new Collection([2, 4])
      * new Collection([1, 2, 3, 4]).forget(new Collection([0, 2])); -> new Collection([2, 4])
      */
-    forget<T, K extends PropertyKey = PropertyKey>(
-        keys: PathKeys | Collection<T, K>,
-    ) {
-        keys = this.getRawItems(keys) as PathKey[];
-        this.items = dataForget(this.items as TValue[], keys);
+    forget<const TForgetKeys extends TKey | readonly TKey[]>(
+        keys: TForgetKeys & IfSure<TForgetKeys>,
+    ): Collection<TValue, Exclude<TKey, SurelyNamed<TForgetKeys>>, TShape>;
+    forget<
+        TForgetKey extends PathKey,
+        TKeysKey extends PropertyKey = PropertyKey,
+    >(
+        keys:
+            | TKey
+            | readonly TKey[]
+            | PathKeys
+            | Collection<TForgetKey, TKeysKey, CollectionShape>,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    forget(keys: unknown): unknown {
+        const requested = Object.values(this.getRawItems(keys));
+        // PHP unsets each key in turn, so the keys before one it cannot hold are gone when it throws.
+        const illegal = requested.findIndex((key) => isIllegalOffset(key));
+        const ownKeys = new Set<string | number>();
 
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
+        for (const key of illegal === -1
+            ? requested
+            : requested.slice(0, illegal)) {
+            const ownKey = this.ownKey(key);
+
+            if (!isUndefined(ownKey)) {
+                ownKeys.add(ownKey);
+            }
         }
 
-        return this;
-    }
+        this.unsetOwnKeys(ownKeys);
 
-    /**
-     * Set an item in the collection by key.
-     *
-     * @param key - The key to set
-     * @param value - The value to set
-     * @returns The collection instance after setting the item
-     *
-     * @example
-     *
-     * new Collection({a: 1, b: 2}).set('c', 3); -> new Collection({a: 1, b: 2, c: 3})
-     * new Collection([1, 2, 3]).set(1, 4); -> new Collection([1, 4, 3])
-     */
-    set<K extends PathKey, T>(key: K, value: T) {
-        this.items = dataSet(this.items, key, value) as DataItems<TValue, TKey>;
+        if (illegal !== -1) {
+            throw unsetOffset(phpDebugType(requested[illegal]));
+        }
 
         return this;
     }
@@ -1114,34 +2053,47 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get an item from the collection by key.
      *
-     * Diverges from PHP, whose `Collection::get` is a literal `array_key_exists`: this
-     * resolves a dot path, so `get('a.b')` reads a nested value where PHP answers the
-     * default. `has` and `getOrPut` carry the same extension; the policy is not settled.
+     * This is Laravel's `$c->get('a', $default)`. The key is looked up literally, as PHP's `array_key_exists` does:
+     * a dotted key never reads a nested value, and a null key reads the `""` key.
      *
      * @param key - The key to get
-     * @param defaultValue - The default value to return if key doesn't exist
+     * @param defaultValue - The default value to return if key doesn't exist, or a callback that returns it
      * @returns The value at the key or default value
+     * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).get('b'); -> 2
      * new Collection({a: 1, b: 2, c: 3}).get('d', 'default'); -> 'default'
+     * new Collection({a: {b: 1}}).get('a.b', 'default'); -> 'default'
      */
-    get<TGetDefault = null>(
-        key: PathKey,
+    get(key: LookupKey): TValue | null;
+    get<TGetDefault>(
+        key: LookupKey,
+        defaultValue: TGetDefault | (() => TGetDefault),
+    ): TValue | TGetDefault;
+    get<TGetDefault>(
+        key: LookupKey,
         defaultValue?: TGetDefault | (() => TGetDefault),
-    ): TValue | TGetDefault | null {
-        // `?? null` only pins the delegate's TDefault: both delegates already read an
-        // omitted default as null, so the value handed back is unchanged.
-        return dataGet(this.items as TValue[], key, defaultValue ?? null);
+    ): unknown {
+        const ownKey = this.existingKey(key);
+
+        if (isUndefined(ownKey)) {
+            return resolveDefault(defaultValue);
+        }
+
+        return (this.items as Record<PropertyKey, TValue>)[ownKey];
     }
 
     /**
      * Get an item from the collection by key or add it to collection if it does not exist.
      *
+     * The receiver's variable keeps its declared type after a put, whatever value it holds.
+     *
      * @param key - The key to get or add
      * @param value - The value to add if the key does not exist, or a callback function that returns the value
      * @returns The value at the key or the newly added value
+     * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
      *
@@ -1150,20 +2102,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).getOrPut(3, () => 4); -> 4, collection is now [1, 2, 3, 4]
      */
     getOrPut<TGetOrPutValue>(
-        key: PathKey,
+        key: LookupKey,
         value: TGetOrPutValue | (() => TGetOrPutValue),
     ): TValue | TGetOrPutValue {
-        const normalizedKey = key ?? "";
+        const ownKey = this.existingKey(key);
 
-        if (this.has(normalizedKey)) {
-            return this.get(normalizedKey) as TValue;
+        if (!isUndefined(ownKey)) {
+            return (this.items as Record<PropertyKey, TValue>)[
+                ownKey
+            ] as TValue;
         }
 
         if (isFunction(value)) {
             value = value();
         }
 
-        this.offsetSet(key as TKey | null, value);
+        this.putKey(key, value);
 
         return value;
     }
@@ -1173,237 +2127,220 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param groupByValue - The key to group by, a callback function, or an array of keys/callbacks for nested grouping
      * @param preserveKeys - Whether to preserve the original keys in the grouped collections
-     * @returns A new collection with grouped items
+     * @returns A new collection of the groups, each a collection of its items, at every level
      */
-    groupBy<TGroupKey extends PropertyKey = PropertyKey>(
+    groupBy<TGroupKey, TPreserve extends boolean = false>(
+        groupByValue: (value: TValue, key: TKey) => TGroupKey,
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            GroupedKey<TKey, TPreserve>,
+            GroupedShape<TShape, TPreserve>
+        >,
+        GroupKey<TGroupKey>,
+        ItemKeyedShape<GroupKey<TGroupKey>>
+    >;
+    groupBy<
+        const TPath extends string | number,
+        TPreserve extends boolean = false,
+    >(
+        groupByValue: TPath,
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            GroupedKey<TKey, TPreserve>,
+            GroupedShape<TShape, TPreserve>
+        >,
+        GroupKey<PluckValue<TValue, TPath>>,
+        ItemKeyedShape<GroupKey<PluckValue<TValue, TPath>>>
+    >;
+    groupBy<TPreserve extends boolean = false>(
+        groupByValue: readonly (
+            | PathKey
+            | ((value: TValue, key: TKey | number) => unknown)
+        )[],
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            unknown,
+            string | number | GroupedKey<TKey, TPreserve>,
+            CollectionShape
+        >,
+        string | number,
+        "keyed"
+    >;
+    groupBy<TPreserve extends boolean = false>(
+        groupByValue: ((value: TValue, key: TKey) => unknown) | PathKey,
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            GroupedKey<TKey, TPreserve>,
+            GroupedShape<TShape, TPreserve>
+        >,
+        string | number,
+        "keyed"
+    >;
+    groupBy(
         groupByValue:
-            | ((
-                  value: TValue,
-                  index: TKey,
-              ) => TGroupKey | TGroupKey[] | null | undefined)
-            | Array<
-                  | TGroupKey
-                  | ((
-                        value: TValue,
-                        index: TKey,
-                    ) => TGroupKey | TGroupKey[] | null | undefined)
-              >
-            | TGroupKey
-            | PathKey,
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly (
+                  | PathKey
+                  | ((value: TValue, key: TKey | number) => unknown)
+              )[],
+        preserveKeys?: boolean,
+    ): Collection<
+        Collection<unknown, PropertyKey, CollectionShape>,
+        string | number,
+        "keyed"
+    >;
+    groupBy(
+        groupByValue:
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly (
+                  | PathKey
+                  | ((value: TValue, key: TKey | number) => unknown)
+              )[],
         preserveKeys: boolean = false,
-    ) {
+    ): unknown {
         let nextGroups: Array<
-            | TGroupKey
-            | ((
-                  value: TValue,
-                  index: TKey,
-              ) => TGroupKey | TGroupKey[] | null | undefined)
-        > | null = null;
+            PathKey | ((value: TValue, key: TKey | number) => unknown)
+        > = [];
 
-        if (!isFunction(groupByValue) && isArray(groupByValue)) {
-            // Make a copy of the array so we don't mutate the original
-            nextGroups = [...groupByValue];
-
-            const shiftedValue = nextGroups.shift();
-
-            if (isUndefined(shiftedValue)) {
-                throw new Error(
-                    "groupBy requires at least one callback or key",
-                );
-            }
-
-            groupByValue = shiftedValue as
-                | ((value: TValue, index: TKey) => TGroupKey)
-                | PathKey;
+        // PHP shifts this level's grouping off the list, and an empty list shifts null, which groups by the values.
+        if (
+            !isFunction(groupByValue) &&
+            isArray<PathKey | ((value: TValue, key: TKey | number) => unknown)>(
+                groupByValue,
+            )
+        ) {
+            [groupByValue = null, ...nextGroups] = groupByValue;
         }
 
-        groupByValue = this.valueRetriever(
-            groupByValue as
-                | PathKey
-                | ((...args: (TValue | TKey)[]) => TGroupKey),
-        ) as (value: TValue, key: TKey) => TGroupKey;
+        const groupKeysOf = this.valueRetriever(
+            groupByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
+        ) as (value: TValue, key: TKey) => unknown;
 
-        const results = {} as Record<TGroupKey, Collection<TValue, TKey>>;
+        const groups = new Map<
+            string | number,
+            Collection<TValue, TKey | number, CollectionShape>
+        >();
 
         // Determine if we should use objects for grouped collections
         // When preserving keys from an object collection, use objects
         const useObjects = preserveKeys && isObject(this.items);
 
-        const normalizeGroupKey = (groupKey: unknown) => {
-            if (isBoolean(groupKey)) {
-                return groupKey ? 1 : 0;
+        for (const [key, value] of this.entriesInOrder()) {
+            const rawGroupKeys = groupKeysOf(value, key);
+            let groupKeys: unknown[] = [rawGroupKeys];
+
+            // PHP groups by each value of an array it gets back, which a plain object that is no enum case models.
+            if (isArray(rawGroupKeys)) {
+                groupKeys = rawGroupKeys;
+            } else if (
+                isPlainObject(rawGroupKeys) &&
+                !isEnumCase(rawGroupKeys)
+            ) {
+                groupKeys = Object.values(rawGroupKeys);
             }
 
-            // Handle stringable objects (objects with toString method)
-            // Check if it's an object/function with a toString method
-            if (objectToString(groupKey)) {
-                return groupKey.toString();
-            }
+            for (const rawGroupKey of groupKeys) {
+                const groupKey = phpComputedKey(rawGroupKey, {
+                    enumCases: true,
+                    stringables: true,
+                    invalid: arrayKeyExistsError,
+                });
 
-            return groupKey as unknown as TGroupKey | string | number;
-        };
-
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            const rawGroupKeys = groupByValue(value as TValue, key as TKey);
-            const groupKeys = isArray(rawGroupKeys)
-                ? rawGroupKeys
-                : [rawGroupKeys];
-
-            for (let groupKey of groupKeys) {
-                // Group null/undefined keys under an empty string key,
-                // mirroring PHP's (string) null cast in Laravel
-                if (isNull(groupKey) || isUndefined(groupKey)) {
-                    groupKey = "" as TGroupKey;
-                }
-
-                groupKey = normalizeGroupKey(groupKey) as TGroupKey;
-
-                const groups = results as Record<
-                    PropertyKey,
-                    Collection<TValue, TKey>
-                >;
-                let group = Object.hasOwn(groups, groupKey)
-                    ? groups[groupKey]
-                    : undefined;
+                let group = groups.get(groupKey);
 
                 if (!group) {
-                    group = (useObjects
-                        ? this.newInstance({})
-                        : this.newInstance()) as unknown as Collection<
+                    // An empty Map builds an empty record, as {} would, in a form the typed builder takes.
+                    group = this.newInstance<
                         TValue,
-                        TKey
-                    >;
-                    defineKey(
-                        groups as Record<string, Collection<TValue, TKey>>,
-                        groupKey,
-                        group,
-                    );
+                        TKey | number,
+                        CollectionShape
+                    >(useObjects ? new Map() : undefined);
+                    groups.set(groupKey, group);
                 }
 
-                group.offsetSet(
-                    preserveKeys ? (key as TKey) : null,
-                    value as TValue,
-                );
+                group.offsetSet(preserveKeys ? key : null, value);
             }
         }
 
-        const result = this.newInstance(results);
-
-        if (isArray(nextGroups) && nextGroups.length > 0) {
-            const nestedResult = result.map((group) => {
-                return (group as unknown as Collection<TValue, TKey>).groupBy(
-                    nextGroups,
-                    preserveKeys,
-                );
-            }) as unknown as Collection<Collection<TValue, TKey>, TGroupKey>;
-
-            // For nested groupBy, we also need to convert to arrays/objects
-            const nestedConvertedResults = {} as Record<
-                TGroupKey,
-                TValue[] | Record<TKey, TValue>
-            >;
-            for (const [groupKey, collection] of Object.entries(
-                nestedResult.items,
-            )) {
-                defineKey(
-                    nestedConvertedResults as Record<
-                        string,
-                        TValue[] | Record<TKey, TValue>
-                    >,
-                    groupKey,
-                    collection.all() as TValue[] | Record<TKey, TValue>,
-                );
-            }
-
-            return this.newInstance(nestedConvertedResults);
+        if (nextGroups.length === 0) {
+            return this.newInstance(groups);
         }
 
-        // Convert inner collections to arrays/objects to match Laravel's toArray() behavior
-        // This must be done AFTER nested groupBy to keep Collection instances during recursion
-        const convertedResults = {} as Record<
-            TGroupKey,
-            TValue[] | Record<TKey, TValue>
-        >;
-        for (const [groupKey, collection] of Object.entries(results) as [
-            string,
-            Collection<TValue, TKey>,
-        ][]) {
-            defineKey(
-                convertedResults as Record<
-                    string,
-                    TValue[] | Record<TKey, TValue>
-                >,
-                groupKey,
-                collection.all() as TValue[] | Record<TKey, TValue>,
-            );
+        const nested = new Map<string | number, unknown>();
+
+        for (const [groupKey, group] of groups) {
+            nested.set(groupKey, group.groupBy(nextGroups, preserveKeys));
         }
 
-        return this.newInstance(convertedResults);
+        return this.newInstance(nested);
     }
 
     /**
-     * Key an array or object by a field or using a callback, array, or key/index.
-     * Each resolved key is stored the way PHP stores an array key: `null` as `""`, a boolean as `0`/`1`,
-     * and a float truncated toward zero.
+     * Key an associative array by a field or using a callback.
      *
-     * @param keyByValue - The key to key by, or a callback function
+     * @param keyByValue - The path or callback giving each item's key, cast as PHP casts an array key
      * @returns A new collection with keyed items
      *
      * @example
      *
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy('id'); -> new Collection({1: {id: 1, name: 'John'}, 2: {id: 2, name: 'Jane'}})
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(item => item.name); -> new Collection({'John': {id: 1, name: 'John'}, 'Jane': {id: 2, name: 'Jane'}})
-     * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).keyBy(['id', 'name']); -> new Collection({'1.John': {id: 1, name: 'John'}, '2.Jane': {id: 2, name: 'Jane'}})
+     * new Collection([{user: {id: 7}}]).keyBy(['user', 'id']); -> new Collection({7: {user: {id: 7}}})
      */
+    keyBy<TNewKey>(
+        keyByValue: (value: TValue, key: TKey) => TNewKey,
+    ): Collection<
+        TValue,
+        MapArrayKey<TNewKey>,
+        ItemKeyedShape<MapArrayKey<TNewKey>>
+    >;
+    keyBy<const TPath extends string | number>(
+        keyByValue: TPath,
+    ): Collection<
+        TValue,
+        MapArrayKey<PluckValue<TValue, TPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TPath>>>
+    >;
     keyBy(
         keyByValue:
-            | ((value: TValue, index: TKey) => unknown)
-            | ArrayItems<PropertyKey>
-            | PathKey,
-    ) {
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly PathKey[],
+    ): Collection<TValue, string | number, "keyed">;
+    keyBy(
+        keyByValue:
+            | ((value: TValue, key: TKey) => unknown)
+            | PathKey
+            | readonly PathKey[],
+    ): unknown {
         const keyByValueCallback = this.valueRetriever(
             keyByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        const results = {} as Record<string, TValue>;
+        const results = new Map<PropertyKey, TValue>();
 
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            let callbackKey: string | number = key;
+        for (const [key, value] of this.entriesInOrder()) {
+            const resolvedKey = keyByValueCallback(value, key);
 
-            if (isArray(this.items)) {
-                callbackKey = Number(key);
-            }
-
-            let resolvedKey = keyByValueCallback(
-                value as TValue,
-                callbackKey as TKey,
-            );
-
-            // Convert Collection instances to arrays before JSON stringifying
-            if (resolvedKey instanceof Collection) {
-                resolvedKey = JSON.stringify(resolvedKey.all());
-            } else if (
-                isObject(resolvedKey) &&
-                Object.prototype.hasOwnProperty.call(resolvedKey, "value") &&
-                (isString(resolvedKey["value"]) ||
-                    isNumber(resolvedKey["value"]))
-            ) {
-                // Treat objects with a primitive `value` property as backed enums (Laravel UnitEnum pattern)
-                resolvedKey = resolvedKey["value"] as string | number;
-            } else if (isObject(resolvedKey)) {
-                resolvedKey = JSON.stringify(resolvedKey);
-            } else if (isArray(resolvedKey)) {
-                resolvedKey = resolvedKey.join(".");
-            }
-
-            defineKey(
-                results,
-                isSymbol(resolvedKey) ? resolvedKey : phpArrayKey(resolvedKey),
-                value as TValue,
+            results.set(
+                // JS-only: PHP has no symbols; a symbol key is kept as it is, as arr and obj keyBy keep it.
+                isSymbol(resolvedKey)
+                    ? resolvedKey
+                    : phpComputedKey(resolvedKey, {
+                          enumCases: true,
+                          stringables: true,
+                          invalid: unconvertibleKey,
+                      }),
+                value,
             );
         }
 
@@ -1413,28 +2350,36 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Determine if an item exists in the collection by key.
      *
-     * @param key - The key or keys to check for
+     * Each key is looked up literally, as PHP's `array_key_exists` does, and a null key reads the `""` key.
+     *
+     * @param key - The key to check for, or an array of keys, which ignores the keys after it
+     * @param keys - Further keys to check for
      * @returns True if all keys exist, false otherwise
+     * @throws TypeError for an array, object or function key it reaches, as array_key_exists() refuses one
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).has('a'); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'b']); -> true
      * new Collection({a: 1, b: 2, c: 3}).has(['a', 'd']); -> false
+     * new Collection({a: {b: 1}}).has('a.b'); -> false
      */
-    has(...keys: PathKey[] | PathKeys[]): boolean {
-        if (keys.length > 1) {
-            return dataHasAll(this.items, keys.flat() as PathKeys);
-        }
+    has(key: LookupKey | readonly LookupKey[], ...keys: LookupKey[]): boolean {
+        // PHP reads an array first argument as the whole key list, and any other call's arguments as its keys.
+        const list: readonly unknown[] = isArray(key) ? key : [key, ...keys];
 
-        return dataHas(this.items, keys[0]);
+        return list.every((each) => !isUndefined(this.existingKey(each)));
     }
 
     /**
      * Determine if any of the keys exist in the collection.
      *
-     * @param key - The key or keys to check for
+     * Each key is looked up literally, as PHP's `array_key_exists` does, and a null key reads the `""` key.
+     *
+     * @param key - The key to check for, or an array of keys, which ignores the keys after it
+     * @param keys - Further keys to check for
      * @returns True if any key exists, false otherwise
+     * @throws TypeError for an array, object or function key it reaches, as array_key_exists() refuses one
      *
      * @example
      *
@@ -1442,21 +2387,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['a', 'd']); -> true
      * new Collection({a: 1, b: 2, c: 3}).hasAny(['d', 'e']); -> false
      */
-    hasAny(...keys: PathKey[] | PathKeys[]) {
+    hasAny(
+        key: LookupKey | readonly LookupKey[],
+        ...keys: LookupKey[]
+    ): boolean {
         if (this.isEmpty()) {
             return false;
         }
 
-        return dataHasAny(this.items, keys.flat() as PathKeys);
+        const list: readonly unknown[] = isArray(key) ? key : [key, ...keys];
+
+        return list.some((each) => !isUndefined(this.existingKey(each)));
     }
 
     /**
      * Determine if the collection contains multiple items, optionally matching the given criteria.
      *
-     * @param key - The key, callback, or null to check for multiple items
-     * @param operator - The operator to use for comparison (if using key-value matching)
-     * @param value - The value to compare against (if using key-value matching)
+     * @param callback - The test each item must pass, or null to count every item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns True if multiple items exist or match the condition, false otherwise
+     * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
      * @example
      *
@@ -1465,41 +2417,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{age: 2}, {age: 3}]).hasMany('age', '>', 1); -> true
      * new Collection([{age: 2}, {age: 3}]).hasMany(item => item.age > 1); -> true
      */
+    hasMany(callback?: ((value: TValue, key: TKey) => unknown) | null): boolean;
+    hasMany(key: PathKey, operatorOrValue: unknown, value?: unknown): boolean;
     hasMany(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
-        operator?: unknown,
-        value?: unknown,
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
-
-        if (!isUndefined(operator) || !isUndefined(value)) {
-            filter = this.operatorForWhere(
-                key as ((value: TValue, index: TKey) => boolean) | PathKey,
-                operator as string | undefined,
-                value,
-            );
-        } else {
-            filter = isNull(key)
-                ? null
-                : this.useAsCallable(key)
-                  ? (key as (value: TValue, key: TKey) => boolean)
-                  : this.operatorForWhere(key);
-        }
-
-        const collection = isNull(filter)
-            ? this
-            : this.filter(filter as (value: TValue, key: TKey) => boolean);
-
-        return collection.take(2).count() === 2;
+        return this.filterUnlessNull(args).take(2).count() === 2;
     }
 
     /**
      * Determine if the collection contains a single item, optionally matching the given criteria.
      *
-     * @param key - The key, callback, or null to check for a single item
-     * @param operator - The operator to use for comparison (if using key-value matching)
-     * @param value - The value to compare against (if using key-value matching)
+     * @param callback - The test each item must pass, or null to count every item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns True if exactly one item exists or matches the condition, false otherwise
+     * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
      * @example
      *
@@ -1508,68 +2446,45 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{age: 2}, {age: 3}]).hasSole('age', 2); -> true
      * new Collection([{age: 2}, {age: 3}]).hasSole(item => item.age === 2); -> true
      */
+    hasSole(callback?: ((value: TValue, key: TKey) => unknown) | null): boolean;
+    hasSole(key: PathKey, operatorOrValue: unknown, value?: unknown): boolean;
     hasSole(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey | null = null,
-        operator?: unknown,
-        value?: unknown,
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey | null,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
-
-        if (!isUndefined(operator) || !isUndefined(value)) {
-            filter = this.operatorForWhere(
-                key as ((value: TValue, index: TKey) => boolean) | PathKey,
-                operator as string | undefined,
-                value,
-            );
-        } else {
-            filter = isNull(key)
-                ? null
-                : this.useAsCallable(key)
-                  ? (key as (value: TValue, key: TKey) => boolean)
-                  : this.operatorForWhere(key);
-        }
-
-        if (isNull(filter)) {
-            return this.count() === 1;
-        }
-
-        return this.filter(filter).count() === 1;
+        return this.filterUnlessNull(args).count() === 1;
     }
 
     /**
      * Concatenate values of a given key as a string.
      *
-     * @param value - The key to pluck values from, or a callback function to generate values
+     * When the first item is an array or an object, each item is plucked by the key, as PHP plucks any object but its
+     * own fluent Stringable; an `@tolki/str` Stringable, that class's port, is joined as it is.
+     *
+     * @param value - The key to pluck values from, or a callback function to generate values; the glue when the
+     * first item is neither an array nor an object, or is an `@tolki/str` Stringable
      * @param glue - The string to join values with, defaults to an empty string
      * @returns A string of concatenated values
+     * @throws Error for a piece that is an object without its own toString, or a closure, which PHP cannot cast
      *
      * @example
      *
-     * new Collection(['apple', 'banana', 'cherry']).implode(); -> 'applebananacherry'
+     * new Collection(['apple', 'banana', 'cherry']).implode(''); -> 'applebananacherry'
      * new Collection(['apple', 'banana', 'cherry']).implode(', '); -> 'apple, banana, cherry'
      * new Collection([{name: 'John'}, {name: 'Jane'}]).implode('name', ', '); -> 'John, Jane'
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).implode(item => item.name.toUpperCase(), ' - '); -> 'JOHN - JANE'
+     * new Collection([new Stringable('a'), new Stringable('b')]).implode(', '); -> 'a, b'
+     * new Collection([new Date(0), new Date(1)]).implode(', '); -> ''
      */
-    implode<TReturnValue>(
-        value:
-            | ((item: TValue, key: TKey) => TReturnValue)
-            | PropertyKey
-            | null = null,
+    implode(
+        value: ((value: TValue, key: TKey) => unknown) | PathKey,
         glue: string | null = null,
-    ) {
-        const convertToString = (item: unknown): string => {
-            if (objectToString(item)) {
-                return item.toString();
-            }
-
-            return String(item);
-        };
-
-        const joinItems = (items: unknown[], separator: string | null) => {
-            const stringValues = items.map(convertToString);
-
-            return stringValues.join(separator ?? "");
-        };
+    ): string {
+        const joinItems = (items: unknown[], separator: string | null) =>
+            items.map(phpStringCast).join(separator ?? "");
 
         if (isFunction(value)) {
             const ordered = this.orderedEntries();
@@ -1586,31 +2501,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const first = this.first();
 
-        if (!isNull(value)) {
-            // Check if we should pluck: first item is an array or a plain object
-            // Note: We check isArray first, then isObject. For objects, we want to pluck
-            // unless they are Stringable objects (which have custom toString).
-            // Plain objects inherit toString from Object.prototype, so we need to check
-            // if toString is a custom method or the inherited one.
-            if (
-                isArray(first) ||
-                (isObject(first) && first.constructor === Object)
-            ) {
-                // With no key argument `pluck` answers a list in iteration order, so
-                // plucking the ORDERED values keeps PHP's order. The cast re-narrows what
-                // isFunction left: its constraint takes unknown[], so it subtracts nothing.
-                const items = dataPluck(
-                    this.orderedValues(),
-                    value as PropertyKey as string,
-                    null,
-                );
-
-                return joinItems(items as unknown[], glue);
-            }
+        if (isArray(first) || (isObject(first) && !joinsAsString(first))) {
+            // The cast re-narrows what isFunction left: its constraint takes unknown[], so it subtracts nothing.
+            return joinItems(
+                this.orderedValues().map((item) =>
+                    itemValue(item, value as PathKey),
+                ),
+                glue,
+            );
         }
 
-        // When dealing with simple values (strings, numbers, etc.),
-        // the value parameter becomes the glue
         return joinItems(this.orderedValues(), value as string | null);
     }
 
@@ -1622,21 +2522,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection({1: 2, 3: 4})
+     * new Collection([1, 2, 3, 4]).intersect([2, 4, 6]); -> new Collection([2, 4])
      * new Collection({a: 1, b: 2, c: 3}).intersect({b: 2, d: 4}); -> new Collection({b: 2})
      */
-    intersect<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-    ) {
+    intersect<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    intersect<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersect(items: Operand): unknown {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
-            dataIntersect(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-            ),
+        return this.sameInstance(
+            handOver(dataIntersect(this.items, this.getRawItems(items))),
         );
     }
 
@@ -1644,29 +2546,43 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Intersect the collection with the given items, using the callback.
      *
      * @param items - The items to intersect with
-     * @param callback - The callback function to determine equality
+     * @param callback - A comparator answering 0 for equal values, as PHP's `strcasecmp` and `<=>` do, or true
      * @returns A new collection with the intersected items
      *
      * @example
      *
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).intersectUsing([{id: 2}], (a, b) => a.id === b.id); -> new Collection([{id: 2}])
-     * new Collection(['apple', 'banana', 'cherry']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
+     * new Collection([1, 2, 3]).intersectUsing([2, 3], (a, b) => a - b); -> new Collection([2, 3])
+     * new Collection(['apple', 'banana']).intersectUsing(['banana'], (a, b) => a === b); -> new Collection(['banana'])
      */
-    intersectUsing<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-        callback: (a: TValue, b: TValue) => boolean,
-    ) {
+    intersectUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): this;
+    intersectUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (a: TValue, b: OperandValue<TOperand>) => boolean | number,
+    ): unknown {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
-            dataIntersect(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes `unknown` and rejects a typed callback (contravariance).
-                callback as (a: unknown, b: unknown) => boolean,
+        return this.sameInstance(
+            handOver(
+                dataIntersectUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes `unknown` and rejects a typed callback (contravariance).
+                    equalityTest(callback) as (
+                        a: unknown,
+                        b: unknown,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -1683,18 +2599,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 'green', b: 'brown', c: 'blue'}).intersectAssoc({a: 'green', b: 'yellow', c: 'blue'}); -> new Collection({a: 'green', c: 'blue'})
      * new Collection([1, 2, 3]).intersectAssoc([2, 3, 4]); -> new Collection([])
      */
-    intersectAssoc<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-    ) {
+    intersectAssoc<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    intersectAssoc<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectAssoc(items: Operand): unknown {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
-            dataIntersectAssoc(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-            ),
+        return this.sameInstance(
+            handOver(dataIntersectAssoc(this.items, this.getRawItems(items))),
         );
     }
 
@@ -1703,32 +2621,43 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * The callback is used to compare keys, while values are compared strictly.
      *
      * @param items - The items to intersect with
-     * @param callback - The callback function to compare keys (returns true if keys match)
+     * @param callback - A comparator answering 0 for matching keys, as PHP's `strcasecmp` does, or true
      * @returns A new collection with the intersected items
      *
      * @example
      *
-     * const strcasecmpKeys = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
-     * new Collection({a: 'green', b: 'brown'}).intersectAssocUsing({A: 'GREEN', B: 'brown'}, strcasecmpKeys); -> new Collection({b: 'brown'})
+     * const strcasecmp = (a, b) => String(a).localeCompare(String(b), 'en', {sensitivity: 'base'});
+     * new Collection({a: 'x', b: 'y'}).intersectAssocUsing({A: 'X', B: 'y'}, strcasecmp); -> new Collection({b: 'y'})
      */
-    intersectAssocUsing<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-        callback: (keyA: TKey, keyB: TKey) => boolean,
-    ) {
+    intersectAssocUsing<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): this;
+    intersectAssocUsing<TOperand extends Operand>(
+        items: TOperand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectAssocUsing(
+        items: Operand,
+        callback: (keyA: TKey, keyB: TKey) => boolean | number,
+    ): unknown {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
 
-        return this.newInstance(
-            dataIntersectAssocUsing(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-                // `this.items` is a union, so the call lands on obj's widest row, whose
-                // comparator takes a bare key and rejects a typed callback (contravariance).
-                callback as (
-                    keyA: string | number,
-                    keyB: string | number,
-                ) => boolean,
+        return this.sameInstance(
+            handOver(
+                dataIntersectAssocUsing(
+                    this.items,
+                    this.getRawItems(items),
+                    // `this.items` is a union, so the call lands on obj's widest row, whose
+                    // comparator takes a bare key and rejects a typed callback (contravariance).
+                    equalityTest(callback) as (
+                        keyA: string | number,
+                        keyB: string | number,
+                    ) => boolean,
+                ),
             ),
         );
     }
@@ -1742,19 +2671,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).intersectByKeys({b: 2, d: 4}); -> new Collection({b: 2})
-     * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2, 3])
+     * new Collection([1, 2, 3, 4]).intersectByKeys([1, 3]); -> new Collection([1, 2])
      */
-    intersectByKeys<T, K extends PropertyKey = PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-    ) {
+    intersectByKeys<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
+        items: TOperand,
+    ): this;
+    intersectByKeys<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    intersectByKeys(items: Operand): unknown {
         if (isNull(items)) {
-            return this.newInstance(isArray(this.items) ? [] : {});
+            return this.sameInstance(handOver(isArray(this.items) ? [] : {}));
         }
-        return this.newInstance(
-            dataIntersectByKeys(
-                this.items,
-                this.getRawItems(items) as DataItems<TValue, TKey>,
-            ),
+        return this.sameInstance(
+            handOver(dataIntersectByKeys(this.items, this.getRawItems(items))),
         );
     }
 
@@ -1769,8 +2700,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).isEmpty(); -> false
      */
     isEmpty(): boolean {
+        // some() skips a list's holes, which count() does not count, and stops at the first item.
         return isArray(this.items)
-            ? this.items.length === 0
+            ? !this.items.some(() => true)
             : Object.keys(this.items).length === 0;
     }
 
@@ -1790,8 +2722,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).containsOneItem(x => x < 2); -> true
      */
     containsOneItem(
-        callback: ((value: TValue, key: TKey) => boolean) | null = null,
-    ) {
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
+    ): boolean {
         return this.hasSole(callback);
     }
 
@@ -1811,7 +2743,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection(['ant', 'bear', 'cat']).containsManyItems(x => x.length === 3); -> true
      */
     containsManyItems(
-        callback: ((value: TValue, key: TKey) => boolean) | null = null,
+        callback: ((value: TValue, key: TKey) => unknown) | null = null,
     ): boolean {
         return this.hasMany(callback);
     }
@@ -1819,9 +2751,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Join all items from the collection using a string. The final items can use a separate glue string.
      *
+     * The items go through implode(), all but the last when a final glue is given, so when the first is an array, or
+     * an object other than an `@tolki/str` Stringable, each is plucked by the glue as a key, as PHP's are.
+     *
      * @param glue - The string to join all but the last item with
      * @param finalGlue - The string to join the last item with, defaults to an empty string
-     * @returns A string of joined items
+     * @returns A string of joined items, or the lone item itself when a final glue is given
+     * @throws Error for an item that is an object without its own toString, or a closure, which PHP cannot cast
      *
      * @example
      *
@@ -1829,8 +2765,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection(['apple', 'banana', 'cherry']).join(', ', ' and '); -> 'apple, banana and cherry'
      * new Collection([1, 2, 3]).join(' + ', ' = '); -> '1 + 2 = 3'
      * new Collection(['apple']).join(', ', ' and '); -> 'apple'
+     * new Collection([new Stringable('a'), new Stringable('b')]).join(', ', ' and '); -> 'a and b'
+     * new Collection([new Date(0), new Date(1)]).join(', '); -> ''
      */
-    join(glue: string, finalGlue: string = "") {
+    join(glue: string, finalGlue?: string): TValue | string;
+    join(glue: string, finalGlue: string = ""): unknown {
         if (finalGlue === "") {
             return this.implode(glue);
         }
@@ -1852,7 +2791,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         const finalItem = collection.pop();
 
-        return collection.implode(glue) + finalGlue + finalItem;
+        // PHP's . casts the last item as implode() casts the others.
+        return `${collection.implode(glue)}${finalGlue}${phpStringCast(finalItem)}`;
     }
 
     /**
@@ -1865,28 +2805,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).keys(); -> new Collection(['a', 'b', 'c'])
      * new Collection([1, 2, 3]).keys(); -> new Collection([0, 1, 2])
      */
-    keys(): Collection<TKey, number> {
+    keys(): Collection<TKey, number, "list"> {
         const ordered = this.orderedEntries();
 
         // If we have preserved order for numeric keys, use it
         if (ordered) {
-            return this.newInstance(
-                ordered.map(([key]) => key),
-            ) as unknown as Collection<TKey, number>;
+            return this.newInstance<TKey, number, "list">(
+                handOver(ordered.map(([key]) => key)),
+            );
         }
 
-        return this.newInstance(dataKeys(this.items)) as unknown as Collection<
-            TKey,
-            number
-        >;
+        return this.newInstance<TKey, number, "list">(
+            handOver(dataKeys(this.items) as TKey[]),
+        );
     }
 
     /**
      * Get the last item from the collection.
      *
      * @param callback - The callback function to test with, or null
-     * @param defaultValue - The default value to return if no item is found
-     * @returns The last matching item or default value
+     * @param defaultValue - The default value to return if no item is found, or a callback that returns it
+     * @returns The last matching item, or the default: null when none is given
      *
      * @example
      *
@@ -1894,10 +2833,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).last(x => x < 4); -> 3
      * new Collection([]).last(null, 'default'); -> 'default'
      */
-    last<D = null>(
-        callback?: ((value: TValue, key: TKey) => boolean) | null,
-        defaultValue?: D | (() => D),
-    ): TValue | D | null {
+    last(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): TValue | null;
+    last<TLastDefault>(
+        callback: ((value: TValue, key: TKey) => unknown) | null | undefined,
+        defaultValue: TLastDefault | (() => TLastDefault),
+    ): TValue | TLastDefault;
+    last<TLastDefault>(
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+        defaultValue?: TLastDefault | (() => TLastDefault),
+    ): unknown {
         const ordered = this.orderedEntries();
 
         // array_reverse then reset: `last` is `first` over the entries read backwards.
@@ -1909,24 +2855,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
             );
         }
 
-        // Same as `first`: the `DataItems` union picks obj's widest row, so both the
-        // `unknown`-valued callback and the restated return type are forced here.
-        const result = dataLast(
+        // The `DataItems` union picks obj's widest row, whose `unknown`-valued callback rejects a typed one.
+        return dataLast(
             this.items,
             callback as
-                | ((value: unknown, key: string | number) => boolean)
+                | ((value: unknown, key: string | number) => unknown)
                 | null,
             defaultValue,
-        ) as TValue | D | null | undefined;
-
-        return result === undefined ? null : result;
+        );
     }
 
     /**
      * Get the values of a given key.
      *
-     * @param value - The key path to pluck
-     * @returns A new collection with plucked values
+     * @param value - The key path to pluck, or a callback reading each item's value
+     * @param key - The key path or callback giving each value's key, or null to list the values
+     * @returns A new collection with plucked values: a list without a key, else keyed by each item's key
      *
      * @example
      *
@@ -1934,17 +2878,95 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: {name: 'John'}, b: {name: 'Jane'}}).pluck('name'); ->  Collection(['John', 'Jane'])
      * new Collection({a: { id: 1, name: "John" }, b: { id: 2, name: "Jane" }}).pluck('name', 'id'); -> Collection({1: "John", 2: "Jane"})
      */
-    pluck<TPluckValue = TValue>(
-        value: string | PropertyKey | ((item: TValue) => TPluckValue),
-        key: PropertyKey | ((item: TValue) => string | number) | null = null,
-    ): Collection<TPluckValue, TKey> {
-        return this.newInstance(
-            dataPluck(
-                this.items,
-                value as string | ((item: unknown) => unknown),
-                key as string | ((item: unknown) => string | number) | null,
-            ),
-        ) as unknown as Collection<TPluckValue, TKey>;
+    pluck<const TPath extends string | number>(
+        value: TPath,
+        key?: null | undefined,
+    ): Collection<PluckValue<TValue, TPath>, number, "list">;
+    pluck<
+        const TPath extends string | number,
+        const TKeyPath extends string | number,
+    >(
+        value: TPath,
+        key: TKeyPath,
+    ): Collection<
+        PluckValue<TValue, TPath>,
+        MapArrayKey<PluckValue<TValue, TKeyPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TKeyPath>>>
+    >;
+    pluck<const TPath extends string | number, TNewKey>(
+        value: TPath,
+        key: (item: TValue) => TNewKey,
+    ): Collection<
+        PluckValue<TValue, TPath>,
+        MapArrayKey<TNewKey>,
+        ItemKeyedShape<MapArrayKey<TNewKey>>
+    >;
+    pluck<TPluckValue>(
+        value: (item: TValue) => TPluckValue,
+        key?: null | undefined,
+    ): Collection<TPluckValue, number, "list">;
+    pluck<TPluckValue, const TKeyPath extends string | number>(
+        value: (item: TValue) => TPluckValue,
+        key: TKeyPath,
+    ): Collection<
+        TPluckValue,
+        MapArrayKey<PluckValue<TValue, TKeyPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TKeyPath>>>
+    >;
+    pluck<TPluckValue, TNewKey>(
+        value: (item: TValue) => TPluckValue,
+        key: (item: TValue) => TNewKey,
+    ): Collection<
+        TPluckValue,
+        MapArrayKey<TNewKey>,
+        ItemKeyedShape<MapArrayKey<TNewKey>>
+    >;
+    pluck(
+        value: PathKey | readonly PathKey[],
+        key?: null | undefined,
+    ): Collection<unknown, number, "list">;
+    pluck(
+        value: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+        key: string | number | readonly PathKey[] | ((item: TValue) => unknown),
+    ): Collection<unknown, string | number, "keyed">;
+    pluck(
+        value: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+        key?: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+    ): Collection<unknown, string | number, "list" | "keyed">;
+    pluck(
+        value: PathKey | readonly PathKey[] | ((item: TValue) => unknown),
+        key: PathKey | readonly PathKey[] | ((item: TValue) => unknown) = null,
+    ): unknown {
+        if (isNull(key) || isUndefined(key)) {
+            return this.newInstance(
+                handOver(
+                    dataPluck(
+                        this.items,
+                        value as string | ((item: unknown) => unknown),
+                        null,
+                    ),
+                ),
+            );
+        }
+
+        const results = new Map<string | number, unknown>();
+
+        for (const item of this.orderedValues()) {
+            const pluckedValue = isFunction(value)
+                ? value(item)
+                : itemValue(item, value as PathKey);
+            const pluckedKey = isFunction(key)
+                ? key(item)
+                : itemValue(item, key as PathKey);
+
+            // Arr::pluck casts an object with __toString to its string before PHP casts the array key.
+            results.set(
+                phpComputedKey(pluckedKey, { stringables: true }),
+                pluckedValue,
+            );
+        }
+
+        return this.newInstance(results);
     }
 
     /**
@@ -1958,10 +2980,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).map(x => x * 2); -> new Collection([2, 4, 6])
      * new Collection({a: 1, b: 2, c: 3}).map((value, key) => value * 2); -> new Collection({a: 2, b: 4, c: 6})
      */
-    map<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
+    map<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue, TKey, TShape>;
+    map(callback: (value: TValue, key: TKey) => unknown): unknown {
         return this.newInstance(
-            dataMap(this.items, (value, key) =>
-                callback(value as TValue, key as TKey),
+            handOver(
+                dataMap(this.items, (value, key) =>
+                    callback(value as TValue, key as TKey),
+                ),
             ),
         );
     }
@@ -1969,7 +2996,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Run a dictionary map over the items.
      *
-     * The callback should return an array with two elements: [key, value] or an object with a single key/value pair.
+     * The callback should return an object with a single key/value pair. Only its first pair is read, so a list it
+     * returns files its first value under key 0.
      *
      * @param callback - The callback function to map with
      * @returns A new collection with mapped items as a dictionary where each value is an array of accumulated values
@@ -1977,70 +3005,44 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @example
      *
      * new Collection([{id: 1, name: 'A'}, {id: 2, name: 'B'}, {id: 3, name: 'A'}]).mapToDictionary(item => ({[item.name]: item.id})); -> new Collection({A: [1, 3], B: [2]})
+     * new Collection([{id: 1, name: 'A'}]).mapToDictionary(item => [item.name, item.id]); -> new Collection({0: ['A']})
      */
+    mapToDictionary<TMapToDictionaryValue>(
+        callback: (
+            value: TValue,
+            key: TKey,
+        ) => readonly TMapToDictionaryValue[],
+    ): Collection<(TMapToDictionaryValue | false)[], 0 | "", "partial">;
     mapToDictionary<
         TMapToDictionaryValue,
-        TMapToDictionaryKey extends PropertyKey = PropertyKey,
+        TMapToDictionaryKey extends PropertyKey,
     >(
         callback: (
             value: TValue,
             key: TKey,
-        ) => Record<TMapToDictionaryKey, TMapToDictionaryValue>,
-    ) {
-        const dictionary = {} as Record<
-            TMapToDictionaryKey,
-            TMapToDictionaryValue[]
-        >;
+        ) => Record<TMapToDictionaryKey, TMapToDictionaryValue> & object,
+    ): Collection<
+        TMapToDictionaryValue[],
+        PhpArrayKey<TMapToDictionaryKey>,
+        ItemKeyedShape<PhpArrayKey<TMapToDictionaryKey>>
+    >;
+    mapToDictionary(
+        callback: (value: TValue, key: TKey) => object,
+    ): Collection<unknown[], string | number, "keyed">;
+    mapToDictionary(callback: (value: TValue, key: TKey) => object): unknown {
+        const dictionary = new Map<string | number, unknown[]>();
 
-        const buckets = dictionary as Record<
-            PropertyKey,
-            TMapToDictionaryValue[]
-        >;
+        for (const [key, value] of this.entriesInOrder()) {
+            // PHP reads the pair with key() and reset(), which give null and false when there is none.
+            const [pairKey, pairValue]: [string | null, unknown] =
+                Object.entries(callback(value, key))[0] ?? [null, false];
+            const dictionaryKey = phpArrayKey(pairKey);
+            const values = dictionary.get(dictionaryKey);
 
-        const bucket = (name: PropertyKey): TMapToDictionaryValue[] => {
-            const existing = Object.hasOwn(buckets, name)
-                ? buckets[name]
-                : undefined;
-
-            if (existing) {
-                return existing;
-            }
-
-            const created: TMapToDictionaryValue[] = [];
-            defineKey(
-                buckets as Record<string, TMapToDictionaryValue[]>,
-                name,
-                created,
-            );
-
-            return created;
-        };
-
-        // For objects, use Object.entries
-        for (const [key, value] of Object.entries(
-            this.items as Record<TKey, TValue>,
-        )) {
-            const loopKey = phpArrayKey(key);
-
-            const mapped = callback(value as TValue, loopKey as TKey);
-
-            if (isArray(mapped)) {
-                if (mapped.length !== 2) {
-                    throw new Error(
-                        "When returning an array from the mapToDictionary callback, it must have exactly two elements: [key, value]",
-                    );
-                }
-
-                const [mappedKey, mappedValue] = mapped;
-
-                bucket(mappedKey as PropertyKey).push(
-                    mappedValue as TMapToDictionaryValue,
-                );
-                continue;
-            }
-
-            for (const [mappedKey, mappedValue] of Object.entries(mapped)) {
-                bucket(mappedKey).push(mappedValue as TMapToDictionaryValue);
+            if (values) {
+                values.push(pairValue);
+            } else {
+                dictionary.set(dictionaryKey, [pairValue]);
             }
         }
 
@@ -2052,7 +3054,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * The callback should return an object with a single key/value pair.
      *
-     * @param callback - The callback function to map with
+     * @param callback - The callback function to map with, returning its pairs as an object or a collection
      * @returns A new collection with mapped items as an associative array
      *
      * @example
@@ -2060,39 +3062,63 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}]).mapWithKeys(item => ({[item.id]: item.name})); -> new Collection({1: 'John', 2: 'Jane'})
      * new Collection(['apple', 'banana']).mapWithKeys((item, index) => ({[index]: item.toUpperCase()})); -> new Collection({0: 'APPLE', 1: 'BANANA'})
      */
-    mapWithKeys<
-        TMapWithKeysValue,
-        TMapWithKeysKey extends PropertyKey = PropertyKey,
-    >(
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends PropertyKey>(
         callback: (
             value: TValue,
             key: TKey,
-        ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
-    ) {
-        const entries: Array<[TKey, TValue]> =
-            this.orderedEntries() ??
-            (isArray(this.items)
-                ? Object.entries(this.items).map(
-                      ([key, value]) =>
-                          [phpArrayKey(key), value] as unknown as [
-                              TKey,
-                              TValue,
-                          ],
-                  )
-                : (Object.entries(this.items) as unknown as Array<
-                      [TKey, TValue]
-                  >));
+        ) => {
+            toBase(): Collection<
+                TMapWithKeysValue,
+                TMapWithKeysKey,
+                CollectionShape
+            >;
+        },
+    ): Collection<
+        TMapWithKeysValue,
+        PhpArrayKey<TMapWithKeysKey>,
+        ItemKeyedShape<PhpArrayKey<TMapWithKeysKey>>
+    >;
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey>(
+        callback: (
+            value: TValue,
+            key: TKey,
+        ) => ReadonlyMap<TMapWithKeysKey, TMapWithKeysValue>,
+    ): Collection<
+        TMapWithKeysValue,
+        MapArrayKey<TMapWithKeysKey>,
+        ItemKeyedShape<MapArrayKey<TMapWithKeysKey>>
+    >;
+    mapWithKeys<TMapWithKeysValue>(
+        callback: (value: TValue, key: TKey) => readonly TMapWithKeysValue[],
+    ): Collection<TMapWithKeysValue, number, "keyed">;
+    mapWithKeys<TMapWithKeysValue, TMapWithKeysKey extends PropertyKey>(
+        callback: (
+            value: TValue,
+            key: TKey,
+        ) => Record<TMapWithKeysKey, TMapWithKeysValue> & object,
+    ): Collection<
+        TMapWithKeysValue,
+        PhpArrayKey<TMapWithKeysKey>,
+        ItemKeyedShape<PhpArrayKey<TMapWithKeysKey>>
+    >;
+    mapWithKeys(
+        callback: (value: TValue, key: TKey) => object,
+    ): Collection<unknown, string | number, "keyed">;
+    mapWithKeys(callback: (value: TValue, key: TKey) => object): unknown {
+        const map = new Map<PropertyKey, unknown>();
 
-        const map = new Map<TMapWithKeysKey, TMapWithKeysValue>();
-
-        for (const [key, value] of entries) {
+        for (const [key, value] of this.entriesInOrder()) {
             const result = callback(value, key);
-            // Spread the result object to get the key-value pairs
-            for (const [newKey, newValue] of Object.entries(result)) {
-                map.set(
-                    newKey as TMapWithKeysKey,
-                    newValue as TMapWithKeysValue,
-                );
+            // PHP's foreach walks a collection by its items, never by its own fields; a Map stands for an array.
+            const pairs: Array<[unknown, unknown]> =
+                result instanceof Collection
+                    ? result.entriesInOrder()
+                    : isMap(result)
+                      ? [...result]
+                      : Object.entries(result);
+
+            for (const [newKey, newValue] of pairs) {
+                map.set(newKey as PropertyKey, newValue);
             }
         }
 
@@ -2102,164 +3128,91 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Merge the collection with the given items.
      *
+     * As `array_merge` does, integer keys are renumbered and appended in order, and a string key keeps its first place.
+     *
      * @param items - The items to merge with
-     * @returns A new collection with merged items
+     * @returns A new collection with merged items, a list when every key is an integer
      *
      * @example
      *
      * new Collection([1, 2]).merge([3, 4]); -> new Collection([1, 2, 3, 4])
-     * new Collection({a: 1, b: 2}).merge({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
-     * new Collection([1, 2]).merge({a: 3}); -> new Collection([1, 2, {a: 3}])
-     * new Collection({a: 1}).merge([2]); -> new Collection({a: 1, 0: 2})
+     * new Collection({a: 1, b: 2}).merge({c: 3, a: 4}); -> new Collection({a: 4, b: 2, c: 3})
+     * new Collection([1, 2]).merge({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
+     * new Collection({5: 'a'}).merge({5: 'b'}); -> new Collection(['a', 'b'])
      */
-    merge<TMergeValue, TMergeKey extends PropertyKey>(
-        items:
-            | TMergeValue[]
-            | Record<TMergeKey, TMergeValue>
-            | Collection<TMergeValue, TMergeKey>
-            | null,
-    ) {
-        if (isNull(items)) {
-            return this;
-        }
+    merge<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        SplicedKey<TKey | OperandKey<TOperand>>,
+        MergedShape<TKey, TShape, TOperand>
+    >;
+    merge(items: Operand): unknown {
+        const merged = renumberIntegerKeys<unknown>([
+            ...this.entriesInOrder(),
+            ...this.operandEntries(items),
+        ]);
 
-        const rawItems = this.getRawItems(items);
-
-        if (isArray(this.items) && isArray(rawItems)) {
-            return this.newInstance([...this.items, ...rawItems]);
-        }
-
-        if (isObject(this.items) && isObject(rawItems)) {
-            return this.newInstance({ ...this.items, ...rawItems });
-        }
-
-        return this.newInstance({ ...this.items, ...rawItems });
+        return this.newInstance(inPhpOrder(merged));
     }
 
     /**
      * Recursively merge the collection with the given items.
+     *
+     * As `array_merge_recursive` does, integer keys append at every depth, and a string key both sides hold merges
+     * both values, each one that is not an array joining the other as one. The result's value type shows the top
+     * level: a nested key both sides hold is joined too.
+     *
      * @param items - The items to merge with
-     * @returns A new collection with merged items
+     * @returns A new collection with merged items, a list when every key is an integer
      *
      * @example
      *
      * new Collection({a: {b: 1}}).mergeRecursive({a: {c: 2}}); -> new Collection({a: {b: 1, c: 2}})
-     * new Collection({a: {b: 1}}).mergeRecursive({a: {b: 2}}); -> new Collection({a: {b: 2}})
-     * new Collection([1, [2, 3]]).mergeRecursive([4, [5]]); -> new Collection([1, [2, 3, 5], 4])
-     * new Collection([1, {a: 2}]).mergeRecursive([{b: 3}, {a: 4}]); -> new Collection([1, {a: 4, b: 3}])
-     * new Collection([1, 2]).mergeRecursive({a: 3}); -> new Collection([1, 2, {a: 3}])
+     * new Collection({a: {b: 1}}).mergeRecursive({a: {b: 2}}); -> new Collection({a: {b: [1, 2]}})
+     * new Collection([1, [2, 3]]).mergeRecursive([4, [5]]); -> new Collection([1, [2, 3], 4, [5]])
+     * new Collection({a: 1}).mergeRecursive({a: [2, 3]}); -> new Collection({a: [1, 2, 3]})
      */
-    mergeRecursive<TMergeRecursiveValue, TMergeKey extends PropertyKey>(
-        items:
-            | TMergeRecursiveValue[]
-            | Record<TMergeKey, TMergeRecursiveValue>
-            | Collection<TMergeRecursiveValue, TMergeKey>
-            | null,
-    ) {
-        if (isNull(items)) {
-            return this;
-        }
+    mergeRecursive<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        MergedRecursiveValue<TValue, TKey, TOperand>,
+        SplicedKey<TKey | OperandKey<TOperand>>,
+        MergedShape<TKey, TShape, TOperand>
+    >;
+    mergeRecursive(items: Operand): unknown {
+        // The receiver goes in first, so its own integer keys renumber as array_merge_recursive copies it.
+        const receiver = mergeRecursively(new Map(), this.entriesInOrder());
 
-        const otherItems = this.getRawItems(items);
-
-        // Helper function to recursively merge two values
-        // Mimics PHP's array_merge_recursive behavior
-        const mergeRecursively = (
-            target: unknown,
-            source: unknown,
-        ): unknown => {
-            // If both are arrays, concatenate them
-            if (isArray(target) && isArray(source)) {
-                return [...target, ...source];
-            }
-
-            // If target is array and source is not, append source to target
-            if (isArray(target) && !isArray(source)) {
-                return [...target, source];
-            }
-
-            // If source is array and target is not, prepend target to source
-            if (!isArray(target) && isArray(source)) {
-                return [target, ...source];
-            }
-
-            // If both are objects (but not arrays), merge them recursively
-            if (
-                isObject(target) &&
-                !isArray(target) &&
-                isObject(source) &&
-                !isArray(source)
-            ) {
-                const result = { ...target };
-
-                for (const [key, value] of Object.entries(source)) {
-                    defineKey(
-                        result,
-                        key,
-                        Object.hasOwn(result, key)
-                            ? mergeRecursively(result[key], value)
-                            : value,
-                    );
-                }
-
-                return result;
-            }
-
-            // If neither are arrays or objects, create an array with both values
-            // This mimics PHP's array_merge_recursive where duplicate keys create arrays
-            return [target, source];
-        };
-
-        if (isArray(this.items) && isArray(otherItems)) {
-            const result: unknown[] = [];
-            const maxLength = Math.max(this.items.length, otherItems.length);
-
-            for (let i = 0; i < maxLength; i++) {
-                if (i < this.items.length && i < otherItems.length) {
-                    result[i] = mergeRecursively(this.items[i], otherItems[i]);
-                } else if (i < this.items.length) {
-                    result[i] = this.items[i];
-                } else {
-                    result[i] = otherItems[i];
-                }
-            }
-
-            return this.newInstance(result as TValue[]);
-        }
-
-        if (isObject(this.items) && isObject(otherItems)) {
-            const result = mergeRecursively(this.items, otherItems) as Record<
-                TKey,
-                TValue | TMergeRecursiveValue
-            >;
-
-            return this.newInstance(result);
-        }
-
-        return this.merge(items as DataItems<TValue, TKey>) as Collection<
-            TValue | TMergeRecursiveValue,
-            TKey
-        >;
+        return this.newInstance(
+            inPhpOrder(mergeRecursively(receiver, this.operandEntries(items))),
+        );
     }
 
     /**
      * Multiply the items in the collection by the multiplier.
      *
-     * @param multiplier - The number of times to repeat the items
-     * @returns A new collection with the items repeated
+     * @param multiplier - The number of times to repeat the items; a fraction is dropped, as PHP's int parameter does
+     * @returns A new collection with the items' values repeated, as a list
+     * @throws TypeError when the multiplier is NAN, infinite or outside PHP's int range, as its int parameter refuses
      *
      * @example
      *
      * new Collection([1, 2]).multiply(3); -> new Collection([1, 2, 1, 2, 1, 2])
-     * new Collection({a: 1, b: 2}).multiply(2); -> new Collection({a: 1, b: 2})
-     * new Collection([]).multiply(5); -> new Collection([])
-     * new Collection([1, 2]).multiply(0); -> new Collection([1, 2])
+     * new Collection({a: 1, b: 2}).multiply(2); -> new Collection([1, 2, 1, 2])
+     * new Collection([1, 2]).multiply(2.5); -> new Collection([1, 2, 1, 2])
+     * new Collection([1, 2]).multiply(0); -> new Collection([])
      */
-    multiply(multiplier: number) {
-        const newCollection = this.newInstance();
+    multiply(multiplier: number): Collection<TValue, number, "list"> {
+        const times = phpIntArgument(
+            multiplier,
+            "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
+        );
+        const newCollection = this.newInstance<TValue, number, "list">();
+        const values = this.getItemValues(this.items);
 
-        for (let i = 0; i < multiplier; i++) {
-            newCollection.push(...this.getItemValues(this.items));
+        for (let i = 0; i < times; i++) {
+            newCollection.push(...values);
         }
 
         return newCollection;
@@ -2271,22 +3224,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * collection's own keys.
      *
      * @param values - The values to combine with the keys from this collection
-     * @returns A new collection with the combined keys and values
+     * @returns A new collection with the combined keys and values; an empty collection gives an empty list
      *
      * @example
      *
      * new Collection([1, 2]).combine([3, 4]); -> new Collection({1: 3, 2: 4})
      */
-    combine<TCombineValue, TCombineKey extends PropertyKey>(
-        values:
-            | TCombineValue[]
-            | Record<TCombineKey, TCombineValue>
-            | Collection<TCombineValue, TCombineKey>,
-    ) {
+    combine<TOperand extends Operand>(
+        values: TOperand,
+    ): Collection<
+        OperandValue<TOperand>,
+        CombinedKey<TValue>,
+        "list" | ItemKeyedShape<CombinedKey<TValue>>
+    >;
+    combine(values: Operand): unknown {
+        const keys = this.orderedValues();
+        const combined = dataCombine(
+            keys,
+            this.getRawItems(values) as TValue[],
+        ) as Record<string, unknown>;
+
+        // PHP's empty array is a list, where a Map holding no entries would build an empty record.
+        if (keys.length === 0) {
+            return this.newInstance(handOver([]));
+        }
+
+        // A plain object re-sorts integer keys, so the combined pairs are laid out again in the order the keys come.
         return this.newInstance(
-            dataCombine(
-                this.items as TValue[],
-                this.getRawItems(values) as TValue[],
+            new Map(
+                keys.map((key) => {
+                    const phpKey = toPhpKeyString(key);
+
+                    return [phpKey, combined[phpKey]];
+                }),
             ),
         );
     }
@@ -2306,61 +3276,65 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).union({a: 3}); -> new Collection({0: 1, 1: 2, a: 3})
      * new Collection({a: 1, b: 2}).union({b: 2, c: 3}); -> new Collection({a: 1, b: 2, c: 3})
      */
-    union<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-    ) {
-        if (isNull(items)) {
-            return this;
-        }
+    union<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        TKey | OperandKey<TOperand>,
+        KeptKeysShape<TShape, TOperand>
+    >;
+    union(items: Operand): unknown {
+        const operand = this.operandEntries(items);
 
-        return this.newInstance(dataUnion(this.items, this.getRawItems(items)));
+        return this.newInstance(
+            this.inKeyOrder(dataUnion(this.items, new Map(operand)), operand),
+        );
     }
 
     /**
      * Create a new collection consisting of every n-th element.
      *
-     * @param step - The step interval to take elements
-     * @param offset - The offset to start from, defaults to 0
-     * @returns A new collection with every n-th element
-     * @throws Error if step is less than 1
+     * @param step - The step interval to take elements; a fraction is dropped, as PHP's `%` drops it
+     * @param offset - The offset to start from, defaults to 0, read as slice() reads it
+     * @returns A new list of every n-th element, whatever keys the items had
+     * @throws InvalidArgumentException if step is less than 1
+     * @throws Error when the step is NAN or infinite and there is an item to step over, as PHP's `%` divides by zero
      *
      * @example
      *
      * collect(new Map([[6, "a"], [4, "b"], [7, "c"], [1, "d"], [5, "e"], [3, "f"]])).nth(4).all() -> ["a", "e"]
      */
-    nth(step: number, offset: number = 0): Collection<TValue[], number> {
+    nth(
+        this: Collection<TValue, TKey, "list">,
+        step: number,
+        offset?: number,
+    ): this;
+    nth(step: number, offset?: number): Collection<TValue, number, "list">;
+    nth(step: number, offset: number = 0): unknown {
         if (step < 1) {
-            throw new Error("Step value must be at least 1.");
+            throw new InvalidArgumentException(
+                "Step value must be at least 1.",
+            );
         }
 
-        const newItems: TValue[] = [];
+        const values = this.slice(offset).orderedValues();
+        // PHP's % casts the step to an int, which makes NAN or an infinity 0, and divides only once an item comes.
+        const divisor = phpIntCast(step);
 
-        let position = 0;
-
-        // Use the ordered entries when available to preserve numeric key insertion order
-        const ordered = this.orderedEntries();
-        const entries = ordered
-            ? ordered.slice(offset)
-            : Object.entries(this.slice(offset).all() as Record<TKey, TValue>);
-
-        for (const [, value] of entries) {
-            if (position % step === 0) {
-                newItems.push(value as TValue);
-            }
-
-            position++;
+        if (divisor === 0 && values.length > 0) {
+            throw new Error("Modulo by zero");
         }
 
-        return this.newInstance(newItems) as unknown as Collection<
-            TValue[],
-            number
-        >;
+        return this.newInstance<TValue, number, "list">(
+            handOver(values.filter((_, position) => position % divisor === 0)),
+        );
     }
 
     /**
      * Get the items with the specified keys.
      *
      * @param keys - The key or keys to retrieve
+     * @param rest - Further keys to retrieve, when each key is passed as its own argument
      * @returns A new collection with only the specified keys
      *
      * @example
@@ -2370,21 +3344,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).only(0, 2); -> new Collection([1, 3])
      * new Collection([1, 2, 3]).only(1); -> new Collection([2])
      * new Collection([1, 2, 3]).only(null); -> new Collection([1, 2, 3])
+     * new Collection(['a', 'b', 'c', 'd']).only([3, 1]); -> new Collection(['b', 'd'])
      */
-    only<T, K extends PropertyKey>(
-        ...keys: PathKey[] | PathKeys[] | Collection<T, K>[]
-    ) {
-        if (keys.every((key) => isNull(key))) {
-            return this.newInstance(this.items);
+    only(keys: null | undefined, ...rest: LookupKey[]): this;
+    only<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        this: Collection<TValue, TKey, "list">,
+        keys:
+            | LookupKey
+            | readonly LookupKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: LookupKey[]
+    ): this;
+    only<const TKeys extends readonly [TKey, ...TKey[]]>(
+        ...keys: TKeys & IfNamed<TKey, TKeys>
+    ): Collection<TValue, Extract<TKey, TKeys[number]>, TShape>;
+    only<const TKeys extends readonly TKey[]>(
+        keys: TKeys & IfNamed<TKey, TKeys>,
+        ...rest: LookupKey[]
+    ): Collection<TValue, Extract<TKey, TKeys[number]>, TShape>;
+    only<TKeysValue extends PathKey, TKeysKey extends PropertyKey>(
+        keys:
+            | LookupKey
+            | readonly LookupKey[]
+            | Collection<TKeysValue, TKeysKey, CollectionShape>,
+        ...rest: LookupKey[]
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    only(...keys: unknown[]): unknown {
+        const keysToKeep = this.keysArgument(keys);
+
+        if (isNull(keysToKeep)) {
+            return this.sameInstance(this.items);
         }
 
-        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
-        // that flatMap cannot infer an element type from; the cast below names it anyway.
-        const keysParam = keys.flatMap((key): unknown[] =>
-            arrWrap(this.getRawItems(key)),
-        ) as PathKey[];
-
-        return this.newInstance(dataOnly(this.items, keysParam));
+        return this.sameInstance(handOver(dataOnly(this.items, keysToKeep)));
     }
 
     /**
@@ -2395,53 +3387,67 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * indexed collection of key paths.
      *
      * @param keys - The key or keys to select from each item
+     * @param rest - Further keys to select, when each key is passed as its own argument
      * @returns A new collection with only the selected values
      *
      * @example
      *
      * new Collection([{id: 1, name: 'John', age: 30}, {id: 2, name: 'Jane', age: 25}]).select('id', 'name'); -> new Collection([{id: 1, name: 'John'}, {id: 2, name: 'Jane'}])
      * new Collection({a: {id: 1, name: 'John'}, b: {id: 2, name: 'Jane'}}).select('id'); -> new Collection({a: {id: 1}, b: {id: 2}})
-     * new Collection([{id: 1, details: {age: 30, city: 'NY'}}, {id: 2, details: {age: 25, city: 'LA'}}]).select(['id', 'details.age']); -> new Collection([{id: 1, details: {age: 30}}, {id: 2, details: {age: 25}}])
+     * new Collection([{id: 1, details: {age: 30}}]).select(['id', 'details.age']); -> new Collection([{id: 1}])
+     * new Collection([[10, 20, 30]]).select([0, 2]); -> new Collection([{0: 10, 2: 30}])
      */
-    select(...keys: PathKey[] | PathKeys[] | Collection<string, number>[]) {
-        if (keys.every((key) => isNull(key))) {
-            return this.newInstance(this.items);
+    select(keys: null | undefined, ...rest: PathKeys[]): this;
+    select<const TPick extends keyof TValue & string>(
+        ...keys: [TPick, ...TPick[]]
+    ): Collection<SelectedFields<TValue, TPick>, TKey, TShape>;
+    select<const TPicks extends readonly (keyof TValue & string)[]>(
+        keys: TPicks,
+    ): Collection<SelectedFields<TValue, TPicks[number]>, TKey, TShape>;
+    select(
+        keys: PathKeys | Collection<string, number, CollectionShape>,
+        ...rest: PathKeys[]
+    ): Collection<Record<string, unknown>, TKey, TShape>;
+    select(...keys: unknown[]): unknown {
+        const keysToSelect = this.keysArgument(keys);
+
+        if (isNull(keysToSelect)) {
+            return this.sameInstance(this.items);
         }
 
-        // arrWrap's fallback distributes, so a union backing answers a union of one-tuples
-        // that flatMap cannot infer an element type from; the cast below names it anyway.
-        const keysParam = keys.flatMap((key): unknown[] =>
-            arrWrap(this.getRawItems(key)),
-        ) as PathKey[];
-
-        return this.newInstance(dataSelect(this.items, keysParam));
+        return this.sameInstance(
+            handOver(dataSelect(this.items, keysToSelect)),
+        );
     }
 
     /**
      * Get and remove the last N items from the collection.
      *
-     * @param count - The number of items to pop
-     * @returns A new collection with the popped items
+     * The receiver's variable keeps its declared type, removed keys included.
+     *
+     * @param count - The number of items to pop; a fraction is dropped, and NAN pops every item
+     * @returns The last item, or null for an empty collection, for a count of 1; any other count gives a new
+     * collection of the popped items
+     * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError
      *
      * @example
      *
+     * new Collection([1, 2, 3]).pop(); -> 3
      * new Collection([1, 2, 3]).pop(2); -> new Collection([3, 2])
      * new Collection({a: 1, b: 2, c: 3}).pop(2); -> new Collection([3, 2])
      */
     pop(): TValue | null;
-    pop(count: number): Collection<TValue[], number>;
-    pop(count: number = 1): TValue | null | Collection<TValue[], number> {
+    pop<TCount extends number>(count: TCount): Taken<TValue, TCount>;
+    pop(count: number = 1): unknown {
         if (count < 1) {
-            return this.newInstance() as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">();
         }
 
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            const kept = ordered.slice(0, Math.max(ordered.length - count, 0));
+            const taken = resolveTakeCount(count, ordered.length);
+            const kept = ordered.slice(0, ordered.length - taken);
             const removed = ordered
                 .slice(kept.length)
                 .map(([, value]) => value)
@@ -2454,15 +3460,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 return removed[0] ?? null;
             }
 
-            return this.newInstance(removed) as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">(handOver(removed));
         }
 
         if (count === 1) {
             if (isArray(this.items)) {
-                return (this.items as TValue[]).pop() ?? null;
+                return this.items.pop() ?? null;
             }
 
             // For objects, remove and return the last item
@@ -2480,22 +3483,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (this.isEmpty()) {
-            return this.newInstance() as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">();
         }
 
-        const poppedValues = dataPop(this.items, count);
+        const poppedValues = dataPop(this.items, count) as TValue[];
 
-        return this.newInstance(poppedValues) as unknown as Collection<
-            TValue[],
-            number
-        >;
+        return this.newInstance<TValue, number, "list">(handOver(poppedValues));
     }
 
     /**
      * Push an item onto the beginning of the collection.
+     *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new item and key.
      *
      * @param value - The value to prepend
      * @param key - The key to prepend the value at, cast as PHP casts an array key (null files it under "");
@@ -2510,45 +3509,84 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).prepend(1); -> new Collection([1])
      * new Collection({}).prepend(1, 'a'); -> new Collection({a: 1})
      */
-    prepend<T, K extends PropertyKey>(value: T, key?: K | null) {
+    prepend<TPrependValue>(
+        value: TPrependValue,
+    ): Collection<TValue | TPrependValue, TKey | number, TShape>;
+    prepend<TPrependValue>(
+        value: TPrependValue,
+        key: null | undefined,
+    ): Collection<TValue | TPrependValue, TKey | "", WrittenShape<TShape, "">>;
+    // PHP's PHPDoc takes the collection's own key type, which for a generic caller may be one no other key names.
+    prepend<TPrependValue, TPrependKey extends string | number | TKey>(
+        value: TPrependValue,
+        key: TPrependKey,
+    ): Collection<
+        TValue | TPrependValue,
+        TKey | MapArrayKey<TPrependKey>,
+        WrittenShape<TShape, MapArrayKey<TPrependKey>>
+    >;
+    prepend<TPrependValue, TPrependKey extends string | number | TKey>(
+        value: TPrependValue,
+        key: TPrependKey | null | undefined,
+    ): Collection<
+        TValue | TPrependValue,
+        TKey | "" | MapArrayKey<TPrependKey>,
+        WrittenShape<TShape, "" | MapArrayKey<TPrependKey>>
+    >;
+    prepend(value: unknown, key?: string | number | null): unknown {
         const ordered = this.orderedEntries();
+        // The item types widen at runtime; only the collection this returns carries the widened ones.
+        const item = value as TValue;
 
-        if (ordered) {
-            if (arguments.length > 1) {
-                // `[$key => $value] + $array`: the new pair leads, and wins its key outright.
-                const ownKey = phpArrayKey(key ?? null);
-
-                this.setOrderedItems(
-                    [
-                        [ownKey, value as unknown as TValue],
-                        ...ordered.filter(
-                            ([existing]) => String(existing) !== String(ownKey),
-                        ),
-                    ],
-                    false,
-                );
+        if (arguments.length === 1) {
+            if (ordered) {
+                this.unshiftOrdered(ordered, [item]);
             } else {
-                this.unshiftOrdered(ordered, [value as unknown as TValue]);
+                this.items = dataPrepend(this.items, item) as DataItems<
+                    TValue,
+                    TKey
+                >;
             }
 
             return this;
         }
 
-        if (arguments.length > 1) {
-            this.items = dataPrepend(
-                this.items,
-                value as unknown as TValue,
-                key ?? null,
-            );
-        } else {
-            this.items = dataPrepend(this.items, value as unknown as TValue);
+        // `[$key => $value] + $array`: the new pair leads, and wins its key outright.
+        const ownKey = phpArrayKey(key ?? null);
+        const prepended = ordered
+            ? undefined
+            : (dataPrepend(this.items, item, key ?? null) as DataItems<
+                  TValue,
+                  TKey
+              >);
+
+        // A plain object sorts its integer keys first, so it holds PHP's order only when the new key leads there.
+        if (
+            prepended &&
+            (isArray(prepended) || Object.keys(prepended)[0] === String(ownKey))
+        ) {
+            this.items = prepended;
+
+            return this;
         }
+
+        this.setOrderedItems(
+            [
+                [ownKey, item],
+                ...this.entriesInOrder().filter(
+                    ([existing]) => String(existing) !== String(ownKey),
+                ),
+            ],
+            false,
+        );
 
         return this;
     }
 
     /**
      * Push one or more items onto the end of the collection.
+     *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new items.
      *
      * @param values - The values to push
      * @returns The collection instance for chaining
@@ -2559,34 +3597,19 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).push(3, 4, 5); -> new Collection([1, 2, 3, 4, 5])
      * new Collection({a: 1}).push(2); -> new Collection({a: 1, 0: 2})
      */
-    push<T>(...values: T[]) {
-        if (isArray(this.items)) {
-            // For arrays, simply push each value
-            for (const value of values) {
-                (this.items as TValue[]).push(value as unknown as TValue);
-            }
-        } else {
-            let nextIndex = this.nextAppendKey();
-
-            for (const value of values) {
-                defineKey(
-                    this.items as Record<string, TValue>,
-                    nextIndex,
-                    value as unknown as TValue,
-                );
-                nextIndex++;
-            }
-
-            if (this.itemsWithOrder) {
-                this.reorderAfterMutation(this.itemsWithOrder);
-            }
-        }
+    push<TPushValues extends unknown[]>(
+        ...values: TPushValues
+    ): Collection<TValue | TPushValues[number], TKey | number, TShape>;
+    push(...values: unknown[]): unknown {
+        this.appendItems(values);
 
         return this;
     }
 
     /**
      * Prepend one or more items to the beginning of the collection.
+     *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new items.
      *
      * @param values - The values to unshift
      * @returns The collection instance for chaining
@@ -2598,15 +3621,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([4, 5, 6]).unshift(['a', 'b', 'c']); -> new Collection([['a', 'b', 'c'], 4, 5, 6])
      * new Collection({b: 2}).unshift({a: 1}); -> new Collection({0: {a: 1}, b: 2})
      */
-    unshift<T>(...values: T[]) {
+    unshift<TUnshiftValues extends unknown[]>(
+        ...values: TUnshiftValues
+    ): Collection<TValue | TUnshiftValues[number], TKey | number, TShape>;
+    unshift(...additions: unknown[]): unknown {
+        // The item types widen at runtime; only the collection this returns carries the widened ones.
+        const values = additions as TValue[];
         // Arrays stay on the built-in unshift, which keeps the undefined items Arr.unshift drops;
         // dataUnshift rewrites an object backing in place, as array_unshift does by reference.
         const ordered = this.orderedEntries();
 
         if (isArray(this.items)) {
-            this.items.unshift(...(values as unknown as TValue[]));
+            this.items.unshift(...values);
         } else if (ordered) {
-            this.unshiftOrdered(ordered, values as unknown as TValue[]);
+            this.unshiftOrdered(ordered, values);
         } else {
             dataUnshift(this.items, ...values);
         }
@@ -2618,128 +3646,92 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Push all of the given items onto the collection.
      *
      * @param source - The items to concatenate
-     * @returns A new collection with the concatenated items
+     * @returns A new collection with each given value appended under the next integer key, as push() appends it
      *
      * @example
      *
      * new Collection([1, 2]).concat([3, 4]); -> new Collection([1, 2, 3, 4])
-     * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, c: 3, d: 4})
-     * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, {a: 3}])
+     * new Collection({a: 1, b: 2}).concat({c: 3, d: 4}); -> new Collection({a: 1, b: 2, 0: 3, 1: 4})
+     * new Collection([1, 2]).concat({a: 3}); -> new Collection([1, 2, 3])
      */
-    concat<TConcatValue, TConcatKey extends PropertyKey = PropertyKey>(
-        source:
-            | TConcatValue[]
-            | Record<TConcatKey, TConcatValue>
-            | Collection<TConcatValue, TConcatKey>,
-    ) {
+    concat<TOperand extends NonNullable<Operand>>(
+        source: TOperand,
+    ): Collection<TValue | OperandValue<TOperand>, TKey | number, TShape>;
+    concat(source: NonNullable<Operand>): unknown {
         // PHP's `new static($this)` copies the array, because an array is a value there.
         // A JS backing is a reference, so without a copy every `push` below would append
         // to this collection as well as to the result.
         const result = this.detachedCopy();
-        const items = this.getRawItems(source);
 
-        for (const [, value] of Object.entries(items)) {
-            result.push(value);
-        }
+        result.appendItems(
+            this.operandEntries(source).map(([, value]) => value),
+        );
 
         return result;
     }
 
     /**
-     * Get a value from the array, and remove it.
+     * Get and remove an item from the collection.
      *
-     * @param key - The key path to pull
-     * @param defaultValue - The default value to return if the key does not exist
-     * @returns The value at the specified key, or the default value
+     * The key is read as `Arr::pull` reads it: a key the items hold first, even one with dots, then a dot path into
+     * the arrays, plain objects and collections they hold. Laravel's PHPDoc types a dot path's value like an item, and
+     * so does this; the receiver's variable keeps its declared type, removed keys included.
+     *
+     * @param key - The key or dot path of the item to pull, or null for every item, which it leaves in place
+     * @param defaultValue - The default value to return if the key does not exist, or a callback that returns it
+     * @returns The value at the specified key, or the default value; every item for a null key
+     * @throws TypeError for an array, object or function key, as array_key_exists() refuses one
      *
      * @example
      *
      * const collection = new Collection({a: 1, b: 2, c: 3});
      * collection.pull('b', 0); -> 2
      * collection.pull('d', 0); -> 0
+     * new Collection({a: {b: 1, c: 2}}).pull('a.b'); -> 1, collection is now {a: {c: 2}}
      */
+    pull(
+        key: null | undefined,
+        defaultValue?: unknown,
+    ): CollectionItems<TValue, TKey, TShape>;
+    pull(key: string | number): TValue | null;
     pull<TPullDefault>(
+        key: string | number,
+        defaultValue: TPullDefault | (() => TPullDefault),
+    ): TValue | TPullDefault;
+    pull<TPullDefault = null>(
         key: PathKey,
         defaultValue?: TPullDefault | (() => TPullDefault),
-    ) {
-        // Convert nested Collections to plain objects for path operations
-        const items = this.recursivelyConvertCollections(this.items);
+    ): TValue | TPullDefault | CollectionItems<TValue, TKey, TShape>;
+    pull(key: PathKey, defaultValue?: unknown): unknown {
+        // Arr::get answers the whole array for a null key, and Arr::forget removes nothing for one.
+        if (isNull(key) || isUndefined(key)) {
+            return this.castToItems(this.items);
+        }
 
-        // Get the value first
-        const value = dataGet(items, key, defaultValue);
+        // Arr::exists checks a float key as its string form; the read and the unset that follow cast it to an integer.
+        if (!isUndefined(this.existingKey(isFloat(key) ? String(key) : key))) {
+            const value = this.offsetGet(key);
+            this.offsetUnset(key);
 
-        // Handle simple numeric key on array - convert to object to preserve keys
-        if (
-            isArray(this.items) &&
-            typeof key === "number" &&
-            !String(key).includes(".")
-        ) {
-            // Convert array to object to preserve keys when removing (PHP behavior)
-            const obj: Record<number, TValue> = {};
-            for (let i = 0; i < (this.items as TValue[]).length; i++) {
-                if (i !== key) {
-                    obj[i] = (this.items as TValue[])[i] as TValue;
-                }
-            }
-            this.items = obj as unknown as DataItems<TValue, TKey>;
-        } else {
-            // For objects or path-based keys, manually remove the path.
-            // A literal key wins over dot-path traversal even when it
-            // contains dots (mirrors Arr::exists being checked first).
-            const keyStr = String(key);
+            return value;
+        }
 
-            if (isObject(items) && Object.hasOwn(items, keyStr)) {
-                delete (items as Record<PropertyKey, unknown>)[keyStr];
-                this.items = items as DataItems<TValue, TKey>;
+        const [segment, ...path] = String(key).split(".");
+        const itemKey = this.ownKey(segment);
 
-                return value;
-            }
+        if (path.length === 0 || isUndefined(itemKey)) {
+            return resolveDefault(defaultValue);
+        }
 
-            const segments = keyStr.split(".");
+        const item = (this.items as Record<PropertyKey, TValue>)[itemKey];
+        const [value, pulled] = pullPath(
+            item,
+            path as [string, ...string[]],
+            defaultValue,
+        );
 
-            if (segments.length === 1) {
-                // Simple key - just delete it
-                if (isObject(items)) {
-                    delete (items as Record<PropertyKey, unknown>)[
-                        key as PropertyKey
-                    ];
-                } else {
-                    const numKey = Number(key);
-                    if (!isNaN(numKey)) {
-                        delete (items as unknown[])[numKey];
-                    }
-                }
-            } else {
-                // Nested path - navigate to parent and delete the final segment
-                let current: unknown = items;
-                for (let i = 0; i < segments.length - 1; i++) {
-                    const segment = segments[i] as string;
-                    if (isUnsafeKey(segment)) {
-                        current = undefined;
-                        break;
-                    }
-                    if (isObject(current) || isArray(current)) {
-                        current = (current as Record<PropertyKey, unknown>)[
-                            segment
-                        ];
-                    } else {
-                        break;
-                    }
-                }
-
-                // Delete the final segment
-                const finalSegment = segments[segments.length - 1] as string;
-                if (
-                    (isObject(current) || isArray(current)) &&
-                    !isUnsafeKey(finalSegment)
-                ) {
-                    delete (current as Record<PropertyKey, unknown>)[
-                        finalSegment
-                    ];
-                }
-            }
-
-            this.items = items as DataItems<TValue, TKey>;
+        if (pulled !== item) {
+            this.putKey(itemKey, pulled);
         }
 
         return value;
@@ -2748,9 +3740,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Put an item in the collection by key.
      *
-     * @param key - The key to set the value at
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new item and key.
+     *
+     * @param key - The key to set the value at, cast the way PHP casts an array key, or null to append
      * @param value - The value to set
      * @returns The collection instance for chaining
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
      * @example
      *
@@ -2758,8 +3753,31 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1}).put('b', 2); -> new Collection({a: 1, b: 2})
      * new Collection([1, 2]).put(2, 3); -> new Collection([1, 2, 3])
      */
-    put<K, V>(key: K, value: V) {
-        this.offsetSet(key as TKey | null, value);
+    put<TPutValue>(
+        key: null | undefined,
+        value: TPutValue,
+    ): Collection<TValue | TPutValue, TKey | number, TShape>;
+    // PHP's PHPDoc takes the collection's own key type, which for a generic caller may be one no other key names.
+    put<TPutValue, TPutKey extends string | number | boolean | TKey>(
+        key: TPutKey,
+        value: TPutValue,
+    ): Collection<
+        TValue | TPutValue,
+        TKey | MapArrayKey<TPutKey>,
+        WrittenShape<TShape, MapArrayKey<TPutKey>>
+    >;
+    // A null key appends under an integer key. Naming that key in WrittenShape, not writing `TShape |`, keeps a
+    // subclass's shape inferable where wrap() and unwrap() read it from the members.
+    put<TPutValue, TPutKey extends string | number | boolean | TKey>(
+        key: TPutKey | null | undefined,
+        value: TPutValue,
+    ): Collection<
+        TValue | TPutValue,
+        TKey | number | MapArrayKey<TPutKey>,
+        WrittenShape<TShape, number | MapArrayKey<TPutKey>>
+    >;
+    put(key: unknown, value: unknown): unknown {
+        this.putKey(key, value);
 
         return this;
     }
@@ -2767,82 +3785,108 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get one or a specified number of items randomly from the collection.
      *
-     * @param count - The number of items to retrieve, a callback to determine the count, or null for a single item
+     * The examples show one possible draw.
+     *
+     * @param count - The number of items to retrieve, a fraction truncated, a callback that answers it, or null for
+     * a single item
      * @param preserveKeys - Whether to preserve the original keys, defaults to false
-     * @returns A single random item or a new collection with the random items
+     * @returns A single random item, or a new collection of the picks: a list, unless it keeps keys other than 0..n-1
+     * @throws InvalidArgumentException when more items are requested than the collection holds
+     * @throws TypeError for a NAN count or a string that is not numeric, as PHP's Randomizer rejects it
+     * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it
      *
      * @example
      *
      * new Collection([1, 2, 3]).random(); -> 2
      * new Collection([1, 2, 3]).random(2); -> new Collection([1, 3])
+     * new Collection({a: 1, b: 2, c: 3}).random(2); -> new Collection([1, 3])
      * new Collection({a: 1, b: 2, c: 3}).random(2, true); -> new Collection({a: 1, c: 3})
      * new Collection([1, 2, 3]).random(collection => Math.floor(collection.count() / 2)); -> new Collection([2])
-     * new Collection([]).random(); -> throws Error (no items available)
+     * new Collection([]).random(); -> throws InvalidArgumentException (no items available)
      */
-    random(count?: null, preserveKeys?: boolean): TValue;
+    random(count?: null | undefined, preserveKeys?: boolean): TValue;
+    random(
+        count: number | string | ((collection: this) => number),
+        preserveKeys?: false | undefined,
+    ): Collection<TValue, number, "list">;
+    random(
+        count: number | string | ((collection: this) => number),
+        preserveKeys: true | undefined,
+    ): Collection<TValue, TKey, "list" | "partial">;
     random(
         count: number | string | ((collection: this) => number),
         preserveKeys?: boolean,
-    ): Collection<TValue, TKey>;
+    ): Collection<TValue, TKey | number, "list" | "partial">;
     random(
-        count?: ((collection: this) => number) | number | string | null,
+        count:
+            | ((collection: this) => number)
+            | number
+            | string
+            | null
+            | undefined,
         preserveKeys?: boolean,
-    ): TValue | Collection<TValue, TKey>;
+    ): TValue | Collection<TValue, TKey | number, "list" | "partial">;
     random(
         count?: ((collection: this) => number) | number | string | null,
         preserveKeys: boolean = false,
-    ): TValue | Collection<TValue, TKey> {
+    ): unknown {
         if (isNull(count) || isUndefined(count)) {
-            return dataRandom(this.items) as TValue;
+            return dataRandom(this.items);
         }
 
-        if (isFunction(count)) {
-            const countValue = count(this) as number;
-            return this.newInstance(
-                dataRandom(this.items, countValue, preserveKeys),
-            );
-        }
+        const picked = dataRandom(
+            this.items,
+            isFunction(count) ? (count(this) as number) : (count as number),
+            preserveKeys,
+        ) as DataItems<TValue, TKey | number>;
 
-        return this.newInstance(
-            dataRandom(this.items, count as number, preserveKeys),
+        // Arr::random appends each pick unless it keeps their keys,
+        // and kept keys that run 0..n-1 in order make a list as well.
+        return this.newInstance<TValue, TKey | number, "list" | "partial">(
+            handOver(
+                isListOrder(Object.keys(picked).map((key) => phpArrayKey(key)))
+                    ? Object.values(picked)
+                    : picked,
+            ),
         );
     }
 
     /**
      * Replace the collection items with the given items.
      *
-     * A `null` `items` is a no-op regardless of whether this collection is array-
-     * or object-backed; it's passed straight to `dataReplace` rather than through
-     * `getRawItems` (which always returns `[]`) so it dispatches on `this.items`'s shape.
+     * As `array_replace` does, a replaced key keeps its place and a key the replacer adds comes after the rest.
      *
-     * @param items - The items to replace with
+     * @param items - The items to replace with; `null` replaces nothing
      * @returns A new collection with the replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
      *
      * new Collection([1, 2, 3]).replace([4, 5]); -> new Collection([4, 5, 3])
      * new Collection([1, 2, 3]).replace({1: 9, k: 'y'}); -> new Collection({0: 1, 1: 9, 2: 3, k: 'y'})
+     * new Collection({a: 1}).replace(['x']); -> new Collection({a: 1, 0: 'x'})
      */
-    replace<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-    ) {
+    replace<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        TKey | OperandKey<TOperand>,
+        KeptKeysShape<TShape, TOperand>
+    >;
+    replace(items: Operand): unknown {
+        const operand = this.operandEntries(items);
+
         return this.newInstance(
-            dataReplace(
-                this.items,
-                isNull(items) || isUndefined(items)
-                    ? items
-                    : this.getRawItems(items),
-            ),
+            this.inKeyOrder(dataReplace(this.items, new Map(operand)), operand),
         );
     }
 
     /**
      * Recursively replace the collection items with the given items.
      *
-     * A `null` `items` is a no-op regardless of backing, for the same
-     * reason as `replace` above.
+     * As in `replace`, a key the replacer adds comes after the rest. A nested array is replaced key by key, so it may
+     * mix both sides' values, which the result's value type, either side's value, does not show.
      *
-     * @param items - The items to replace with
+     * @param items - The items to replace with; `null` replaces nothing
      * @returns A new collection with the recursively replaced items; object-backed once its keys aren't `0..n-1`
      *
      * @example
@@ -2852,15 +3896,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, [2, 3]]).replaceRecursive([4, [5]]); -> new Collection([4, [5, 3]])
      * new Collection([1, {a: 2}]).replaceRecursive([{b: 3}, {a: 4}]); -> new Collection([{b: 3}, {a: 4}])
      */
-    replaceRecursive<T, K extends PropertyKey>(
-        items: T[] | Record<K, T> | Collection<T, K> | null,
-    ) {
+    replaceRecursive<TOperand extends Operand>(
+        items: TOperand,
+    ): Collection<
+        TValue | OperandValue<TOperand>,
+        TKey | OperandKey<TOperand>,
+        KeptKeysShape<TShape, TOperand>
+    >;
+    replaceRecursive(items: Operand): unknown {
+        const operand = this.operandEntries(items);
+
         return this.newInstance(
-            dataReplaceRecursive(
-                this.items,
-                isNull(items) || isUndefined(items)
-                    ? items
-                    : this.getRawItems(items),
+            this.inKeyOrder(
+                dataReplaceRecursive(this.items, new Map(operand)),
+                operand,
             ),
         );
     }
@@ -2868,15 +3917,18 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Reverse the order of the collection items.
      *
-     * @returns A new collection with the items in reverse order
+     * @returns A new collection with the items in reverse order, integer keys renumbered over it and string keys kept
      *
      * @example
      *
      * new Collection([1, 2, 3]).reverse(); -> new Collection([3, 2, 1])
      * new Collection({a: 1, b: 2, c: 3}).reverse(); -> new Collection({c: 3, b: 2, a: 1})
      */
-    reverse() {
-        return this.newInstance(dataReverse(this.items));
+    reverse(this: Collection<TValue, TKey, "list">): this;
+    reverse(this: StableKeyed<TValue, TKey, TShape>): this;
+    reverse(): Collection<TValue, SplicedKey<TKey>, TShape>;
+    reverse(): unknown {
+        return this.sameInstance(handOver(dataReverse(this.items)));
     }
 
     /**
@@ -2895,7 +3947,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).search(4); -> false
      */
     search(
-        value: TValue | ((item: TValue, key: TKey) => boolean),
+        value: TValue | ((item: TValue, key: TKey) => unknown),
         strict: boolean = false,
     ): TKey | number | false {
         return dataSearch(this.items, value, strict);
@@ -2906,7 +3958,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The item before the found item, or null if not found or no previous item
+     * @returns The item before the found item, or null when none is found or it is first. The found key is looked up
+     * again loosely, as PHP does, so an earlier key equal to it, as `1` is to `'01'`, stands in for it
      *
      * @example
      *
@@ -2915,9 +3968,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).before(x => x > 2); -> 2
      * new Collection([1, 2, 3]).before(1); -> null
      * new Collection([1, 2, 3]).before(4); -> null
+     * new Collection({1: 'b', '01': 'a'}).before('a'); -> null
      */
     before(
-        value: TValue | ((item: TValue, key: TKey) => boolean),
+        value: TValue | ((item: TValue, key: TKey) => unknown),
         strict: boolean = false,
     ): TValue | null {
         return dataBefore(this.items, value, strict);
@@ -2928,7 +3982,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param value - The value to search for, or a callback to determine a match
      * @param strict - Whether to use strict comparison, defaults to false
-     * @returns The item after the found item, or null if not found or is last item
+     * @returns The item after the found item, or null when none is found or it is last. The found key is looked up
+     * again loosely, as PHP does, so an earlier key equal to it, as `1` is to `'01'`, stands in for it, and the answer
+     * can be the found item itself
      *
      * @example
      *
@@ -2937,9 +3993,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).after(x => x > 1); -> 3
      * new Collection([1, 2, 3]).after(3); -> null
      * new Collection([1, 2, 3]).after(4); -> null
+     * new Collection({1: 'b', '01': 'a'}).after('a'); -> 'a'
      */
     after(
-        value: TValue | ((item: TValue, key: TKey) => boolean),
+        value: TValue | ((item: TValue, key: TKey) => unknown),
         strict: boolean = false,
     ): TValue | null {
         return dataAfter(this.items, value, strict);
@@ -2948,23 +4005,29 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get and remove the first N items from the collection.
      *
-     * @param count - The number of items to shift
-     * @returns A new collection with the shifted items
+     * Laravel checks for an empty collection before it reads the count, so one answers null whatever the count.
+     * The receiver's variable keeps its declared type, removed keys included.
+     *
+     * @param count - The number of items to shift; a fraction is dropped, and NAN shifts every item
+     * @returns The first item for a count of 1; any other count gives a new collection of the shifted items
+     * @throws InvalidArgumentException when the count is negative, even for an empty collection
+     * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError
      *
      * @example
      *
      * new Collection([1, 2, 3]).shift(); -> 1
      * new Collection({a: 1, b: 2, c: 3}).shift(); -> 1
      * new Collection([]).shift(); -> null
+     * new Collection([]).shift(2); -> null
      * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
      * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection([1, 2])
      * new Collection([1, 2, 3]).shift(0); -> new Collection([])
      */
     shift(): TValue | null;
-    shift(count: number): Collection<TValue[], number>;
-    shift(count: number = 1): TValue | null | Collection<TValue[], number> {
+    shift<TCount extends number>(count: TCount): Taken<TValue, TCount> | null;
+    shift(count: number = 1): unknown {
         if (count < 0) {
-            throw new Error(
+            throw new InvalidArgumentException(
                 "Number of shifted items may not be less than zero.",
             );
         }
@@ -2974,27 +4037,22 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         if (count === 0) {
-            return this.newInstance([]) as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">(handOver([]));
         }
 
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            const removed = ordered.slice(0, count).map(([, value]) => value);
+            const taken = resolveTakeCount(count, ordered.length);
+            const removed = ordered.slice(0, taken).map(([, value]) => value);
 
-            this.setOrderedItems(ordered.slice(count), true);
+            this.setOrderedItems(ordered.slice(taken), true);
 
             if (count === 1) {
-                return removed[0] as TValue;
+                return removed[0];
             }
 
-            return this.newInstance(removed) as unknown as Collection<
-                TValue[],
-                number
-            >;
+            return this.newInstance<TValue, number, "list">(handOver(removed));
         }
 
         // Delegating keeps the object-backed branch on array_shift's
@@ -3002,27 +4060,32 @@ export class Collection<TValue, TKey extends PropertyKey> {
         const shifted = dataShift(this.items, count);
 
         if (count === 1) {
-            return shifted as TValue;
+            return shifted;
         }
 
-        return this.newInstance(shifted as TValue[]) as unknown as Collection<
-            TValue[],
-            number
-        >;
+        return this.newInstance<TValue, number, "list">(
+            handOver(shifted as TValue[]),
+        );
     }
 
     /**
      * Shuffle the items in the collection.
      *
-     * @returns A new collection with the items shuffled
+     * The examples show one possible order.
+     *
+     * @returns A new collection with the items shuffled, as a list whatever keys they had
      *
      * @example
      *
      * new Collection([1, 2, 3]).shuffle(); -> new Collection([3, 1, 2])
-     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection({0: 2, 1: 3, 2: 1})
+     * new Collection({a: 1, b: 2, c: 3}).shuffle(); -> new Collection([2, 3, 1])
      */
-    shuffle() {
-        return this.newInstance(dataShuffle(this.items));
+    shuffle(this: Collection<TValue, TKey, "list">): this;
+    shuffle(): Collection<TValue, number, "list">;
+    shuffle(): unknown {
+        return this.newInstance<TValue, number, "list">(
+            handOver(dataShuffle(this.orderedValues())),
+        );
     }
 
     /**
@@ -3030,30 +4093,52 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param size - The size of each chunk, defaults to 2 (must be at least 1)
      * @param step - The number of items to skip between chunks, defaults to 1 (must be at least 1)
-     * @returns A new collection with the sliding window chunks
-     * @throws Error if size or step is less than 1
+     * @returns A new list of the windows, each cut the way slice() cuts, so a keyed collection's windows keep its keys
+     * @throws InvalidArgumentException if size or step is less than 1
+     * @throws Error when size or step is NAN, as range() refuses the window count static::times() hands it
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).sliding(); -> new Collection([ [1, 2], [2, 3], [3, 4] ])
-     * new Collection([1, 2, 3, 4]).sliding(3); -> new Collection([ [1, 2, 3], [2, 3, 4] ])
-     * new Collection([1, 2, 3, 4]).sliding(2, 2); -> new Collection([ [1, 2], [3, 4] ])
-     * new Collection({a: 1, b: 2, c: 3}).sliding(); -> new Collection([ {a: 1, b: 2}, {b: 2, c: 3} ])
+     * new Collection([1, 2, 3, 4]).sliding();
+     * -> new Collection([new Collection([1, 2]), new Collection([2, 3]), new Collection([3, 4])])
+     * new Collection([1, 2, 3, 4]).sliding(3);
+     * -> new Collection([new Collection([1, 2, 3]), new Collection([2, 3, 4])])
+     * new Collection([1, 2, 3, 4]).sliding(2, 2);
+     * -> new Collection([new Collection([1, 2]), new Collection([3, 4])])
+     * new Collection({a: 1, b: 2, c: 3}).sliding();
+     * -> new Collection([new Collection({a: 1, b: 2}), new Collection({b: 2, c: 3})])
      */
-    sliding(size: number = 2, step: number = 1) {
+    sliding(
+        size: number = 2,
+        step: number = 1,
+    ): Collection<Collection<TValue, TKey, Removed<TShape>>, number, "list"> {
         if (size < 1) {
-            throw new Error("Size value must be at least 1.");
+            throw new InvalidArgumentException(
+                "Size value must be at least 1.",
+            );
         }
 
         if (step < 1) {
-            throw new Error("Step value must be at least 1.");
+            throw new InvalidArgumentException(
+                "Step value must be at least 1.",
+            );
         }
 
         const chunks = Math.floor((this.count() - size) / step) + 1;
+        // static::times() builds no window below 1 and hands range() the rest, which refuses NAN.
+        const windowCount = chunks < 1 ? 0 : resolveRangeSize(1, chunks, 1);
+        const windows: Array<Collection<TValue, TKey, Removed<TShape>>> = [];
+        const cut = this.sliceCutter();
 
-        return Collection.times(chunks, (count: number) =>
-            this.slice((count - 1) * step, size),
-        );
+        for (let window = 1; window <= windowCount; window++) {
+            windows.push(cut(...sliceArguments((window - 1) * step, size)));
+        }
+
+        return this.newInstance<
+            Collection<TValue, TKey, Removed<TShape>>,
+            number,
+            "list"
+        >(handOver(windows));
     }
 
     /**
@@ -3067,16 +4152,69 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).skip(2); -> new Collection([3, 4])
      * new Collection({a: 1, b: 2, c: 3}).skip(1); -> new Collection({b: 2, c: 3})
      */
-    skip(count: number) {
+    skip(this: Collection<TValue, TKey, "list">, count: number): this;
+    skip(count: number): Collection<TValue, TKey, Removed<TShape>>;
+    skip(count: number): unknown {
         return this.slice(count);
+    }
+
+    /**
+     * Skip items in the collection until the given condition is met.
+     *
+     * @param value - The value to skip until, compared with PHP's `===`, or a callback judged by PHP truthiness
+     * @returns A new collection of the items from the first that meets the condition on
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3, 4]).skipUntil(3); -> new Collection([3, 4])
+     * new Collection({a: 1, b: 2, c: 3}).skipUntil((value) => value >= 2); -> new Collection({b: 2, c: 3})
+     */
+    skipUntil(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    skipUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    skipUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
+        return this.sameInstance(handOver(dataSkipUntil(this.items, value)));
+    }
+
+    /**
+     * Skip items in the collection while the given condition is met.
+     *
+     * @param value - The value to skip while items equal it, compared with PHP's `===`, or a callback judged by PHP
+     * truthiness
+     * @returns A new collection of the items from the first that fails the condition on
+     *
+     * @example
+     *
+     * new Collection([1, 1, 2, 1]).skipWhile(1); -> new Collection([2, 1])
+     * new Collection({a: 1, b: 2, c: 3}).skipWhile((value) => value < 3); -> new Collection({c: 3})
+     */
+    skipWhile(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    skipWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    skipWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
+        return this.sameInstance(handOver(dataSkipWhile(this.items, value)));
     }
 
     /**
      * Slice the underlying collection data.
      *
-     * @param offset - The offset to start the slice
-     * @param length - The length of the slice, or null to slice to the end
+     * @param offset - The offset to start the slice; a fraction is dropped, as array_slice()'s int parameter drops it
+     * @param length - The length of the slice, a fraction dropped likewise, or null to slice to the end
      * @returns A new collection with the sliced items
+     * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, as array_slice()
+     * refuses it
      *
      * @example
      *
@@ -3084,30 +4222,41 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3, 4]).slice(1, 2); -> new Collection([2, 3])
      * new Collection({a: 1, b: 2, c: 3}).slice(1); -> new Collection({b: 2, c: 3})
      * new Collection({a: 1, b: 2, c: 3}).slice(1, 1); -> new Collection({b: 2})
+     * new Collection([1, 2, 3, 4]).slice(-1.5); -> new Collection([4])
      */
-    slice(offset: number, length: number | null = null) {
+    slice(
+        this: Collection<TValue, TKey, "list">,
+        offset: number,
+        length?: number | null,
+    ): this;
+    slice(
+        offset: number,
+        length?: number | null,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    slice(offset: number, length: number | null = null): unknown {
+        const [start, count] = sliceArguments(offset, length);
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            const { start, end } = resolveSliceRange(
-                ordered.length,
-                offset,
-                length,
-            );
+            const range = resolveSliceRange(ordered.length, start, count);
 
             // array_slice($items, $offset, $length, true): positional, and keys survive.
-            return this.newInstance(new Map(ordered.slice(start, end)));
+            return this.sameInstance(
+                new Map(ordered.slice(range.start, range.end)),
+            );
         }
 
-        return this.newInstance(dataSlice(this.items, offset, length));
+        return this.sameInstance(handOver(dataSlice(this.items, start, count)));
     }
 
     /**
      * Split a collection into a certain number of groups.
      *
      * @param numberOfGroups - The number of groups to split into
-     * @returns A new collection with the split groups
-     * @throws Error if numberOfGroups is less than 1
+     * @returns A new collection with the split groups, each group's integer keys renumbered from 0, so a group holding
+     * only those is a list
+     * @throws InvalidArgumentException if numberOfGroups is less than 1
+     * @throws Error when numberOfGroups is NAN or infinite and there are items, as PHP's `%` divides by zero
      *
      * @example
      *
@@ -3117,23 +4266,38 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     split(
         numberOfGroups: number,
-    ): Collection<Collection<TValue, TKey>, number> {
+    ): Collection<
+        Collection<TValue, SplicedKey<TKey>, SplitShape<TKey, TShape>>,
+        number,
+        "list"
+    > {
         if (numberOfGroups < 1) {
-            throw new Error("Number of groups must be at least 1.");
+            throw new InvalidArgumentException(
+                "Number of groups must be at least 1.",
+            );
         }
 
-        const groups = this.newInstance() as unknown as Collection<
-            Collection<TValue, TKey>,
-            number
-        >;
+        const groups = this.newInstance<
+            Collection<TValue, SplicedKey<TKey>, SplitShape<TKey, TShape>>,
+            number,
+            "list"
+        >();
 
         if (this.isEmpty()) {
             return groups;
         }
 
-        const groupSize = Math.floor(this.count() / numberOfGroups);
+        const entries = this.entriesInOrder();
+        // PHP's % casts the number of groups to an int, which makes NAN or an infinity 0.
+        const divisor = phpIntCast(numberOfGroups);
 
-        const remain = this.count() % numberOfGroups;
+        if (divisor === 0) {
+            throw new Error("Modulo by zero");
+        }
+
+        const groupSize = Math.floor(entries.length / numberOfGroups);
+
+        const remain = entries.length % divisor;
 
         let start = 0;
 
@@ -3144,15 +4308,25 @@ export class Collection<TValue, TKey extends PropertyKey> {
                 size += 1;
             }
 
-            if (size > 0) {
-                groups.push(
-                    this.newInstance(
-                        this.slice(start, size).items,
-                    ) as unknown as Collection<TValue, TKey>,
-                );
-
-                start += size;
+            // Every group after an empty one is empty too, so PHP's loop adds nothing more, however far it counts.
+            if (size === 0) {
+                break;
             }
+
+            // array_slice() without preserve_keys renumbers each group's integer keys from 0.
+            const group = renumberIntegerKeys(
+                entries.slice(start, start + size),
+            );
+
+            groups.push(
+                this.newInstance<
+                    TValue,
+                    SplicedKey<TKey>,
+                    SplitShape<TKey, TShape>
+                >(inPhpOrder(group)),
+            );
+
+            start += size;
         }
 
         return groups;
@@ -3162,31 +4336,44 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Split a collection into a certain number of groups, and fill the first groups completely.
      *
      * @param numberOfGroups - The number of groups to split into
-     * @returns A new collection with the split groups
-     * @throws Error if numberOfGroups is less than 1
+     * @returns A new collection with the split groups, each keeping its items' keys the way chunk() keeps them
+     * @throws InvalidArgumentException if numberOfGroups is less than 1
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).splitIn(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection([1, 2, 3]).splitIn(2); -> new Collection([ new Collection({0: 1, 1: 2}), new Collection({2: 3}) ])
      * new Collection({a: 1, b: 2, c: 3, d: 4}).splitIn(2); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
-     * new Collection([1, 2, 3]).splitIn(5); -> new Collection([ new Collection([1]), new Collection([2]), new Collection([3]) ])
+     * new Collection([1, 2]).splitIn(5); -> new Collection([ new Collection({0: 1}), new Collection({1: 2}) ])
      */
-    splitIn(numberOfGroups: number) {
+    splitIn(
+        numberOfGroups: number,
+    ): Collection<
+        Collection<TValue, TKey, ChunkShape<TKey, TShape>>,
+        number,
+        "list"
+    > {
         if (numberOfGroups < 1) {
-            throw new Error("Number of groups must be at least 1.");
+            throw new InvalidArgumentException(
+                "Number of groups must be at least 1.",
+            );
         }
 
-        return this.chunk(Math.ceil(this.count() / numberOfGroups));
+        // PHP's (int) cast of the size makes NAN 0, which chunk() answers with no chunks.
+        return this.chunk<true>(
+            phpIntCast(Math.ceil(this.count() / numberOfGroups)),
+        );
     }
 
     /**
      * Get the first item in the collection, but only if exactly one item exists. Otherwise, throw an exception.
      *
-     * @param key - The key or callback to determine the item to retrieve, or null for the first item
-     * @param operator - The operator to use for comparison, or null if key is a callback or null
-     * @param value - The value to compare against, or null if key is a callback or null
+     * @param callback - The test the item must pass, or null to count every item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns The single item in the collection
      * @throws ItemNotFoundException if no item matches, MultipleItemsFoundException if several do.
+     * @throws TypeError for a lone key that is not callable, unless PHP compares it equal to null
      *
      * @example
      *
@@ -3194,32 +4381,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}]).sole('id', '==', 1); -> {id: 1}
      * new Collection([{id: 1}, {id: 2}]).sole(item => item.id === 2); -> {id: 2}
      */
+    sole(callback?: ((value: TValue, key: TKey) => unknown) | null): TValue;
+    sole(key: PathKey, operatorOrValue: unknown, value?: unknown): TValue;
     sole(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
-        operator?: string,
-        value?: unknown,
-    ) {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
-        if (isUndefined(operator) && isUndefined(value)) {
-            filter = isNull(key)
-                ? key
-                : (this.valueRetriever(
-                      key as
-                          | PathKey
-                          | ((...args: (TValue | TKey)[]) => boolean),
-                  ) as (value: TValue, key: TKey) => boolean);
-        } else {
-            filter = this.operatorForWhere(
-                key,
-                operator as string | undefined,
-                value,
-            );
-        }
-
-        // Laravel's `unless(...)` hands back a HigherOrderWhenProxy that SKIPS the
-        // forwarded filter; this port's `unless` returns the collection, so calling
-        // `filter(null)` would drop every falsy item before the count.
-        const items = isNull(filter) ? this : this.filter(filter);
+        ...args: [
+            key?: ((value: TValue, index: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): unknown {
+        const items = this.filterUnlessNull(args);
 
         const count = items.count();
 
@@ -3237,11 +4408,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Get the first item in the collection but throw an exception if no matching items exist.
      *
-     * @param key - The key or callback to determine the item to retrieve
-     * @param operator - The operator to use for comparison, or null if key is a callback
-     * @param value - The value to compare against, or null if key is a callback
+     * @param callback - The test the item must pass, or null for the first item
+     * @param key - The key to compare, when an operator or a value follows
+     * @param operatorOrValue - The operator to use for comparison, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns The first matching item in the collection
      * @throws ItemNotFoundException if no item matches.
+     * @throws TypeError for a lone key that is neither callable nor null, as first() takes no other
      *
      * @example
      *
@@ -3251,25 +4424,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([]).firstOrFail(); -> throws ItemNotFoundException
      */
     firstOrFail(
-        key: ((value: TValue, index: TKey) => boolean) | PathKey = null,
-        operator?: string,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
+    ): TValue;
+    firstOrFail(
+        key: PathKey,
+        operatorOrValue: unknown,
         value?: unknown,
-    ) {
-        let filter: ((value: TValue, key: TKey) => boolean) | null;
-        if (isUndefined(operator) && isUndefined(value)) {
-            filter = isNull(key)
-                ? key
-                : (this.valueRetriever(
-                      key as
-                          | PathKey
-                          | ((...args: (TValue | TKey)[]) => boolean),
-                  ) as (value: TValue, key: TKey) => boolean);
-        } else {
-            filter = this.operatorForWhere(
-                key,
-                operator as string | undefined,
-                value,
-            );
+    ): TValue;
+    firstOrFail(
+        ...args: [
+            key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): TValue {
+        const filter =
+            args.length > 1 ? this.operatorForWhereArgs(args) : args[0];
+
+        // PHP hands the filter straight to first()'s ?callable, with no unless() to skip one equal to null.
+        if (!isNull(filter) && !isUndefined(filter) && !isFunction(filter)) {
+            throw notCallable("first", filter);
         }
 
         // Laravel seeds this with a fresh stdClass, so only an ABSENT item can
@@ -3278,9 +4452,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
         // `first` answers `| null` only for its no-default form; this call always hands
         // one over, so the placeholder is the single stand-in for an absent item.
-        const item = this.first<typeof placeholder>(filter, placeholder) as
-            | TValue
-            | typeof placeholder;
+        const item = this.first<typeof placeholder>(filter, placeholder);
 
         if (item === placeholder) {
             throw new ItemNotFoundException();
@@ -3292,34 +4464,62 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Chunk the collection into chunks of the given size.
      *
-     * @param size - The size of each chunk
-     * @param preserveKeys - Whether to preserve the original keys, defaults to false
-     * @returns A new collection with the chunked items
+     * @param size - The size of each chunk; a fraction is dropped, as array_chunk()'s int parameter drops it
+     * @param preserveKeys - Whether to preserve the original keys, defaults to true
+     * @returns A new collection with the chunked items, or an empty one for a size of 0 or below; each chunk is a
+     * record keeping its items' keys, or a list when they are not preserved
+     * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_chunk() refuses it
+     * @throws Error when the size drops to 0, as array_chunk() refuses it
      *
      * @example
      *
-     * new Collection([1, 2, 3, 4]).chunk(2); -> new Collection([ new Collection([1, 2]), new Collection([3, 4]) ])
+     * new Collection([1, 2, 3]).chunk(2); -> new Collection([ new Collection({0: 1, 1: 2}), new Collection({2: 3}) ])
      * new Collection({a: 1, b: 2, c: 3, d: 4}).chunk(2, true); -> new Collection([ new Collection({a: 1, b: 2}), new Collection({c: 3, d: 4}) ])
-     * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection([1, 2, 3]) ])
+     * new Collection([1, 2, 3]).chunk(5); -> new Collection([ new Collection({0: 1, 1: 2, 2: 3}) ])
      */
-    chunk(
+    chunk<TPreserve extends boolean = true>(
         size: number,
-        preserveKeys: boolean = true,
-    ): Collection<Collection<TValue, TKey>, number> {
-        if (size < 0) {
-            return this.newInstance() as unknown as Collection<
-                Collection<TValue, TKey>,
-                number
-            >;
+        preserveKeys?: TPreserve,
+    ): Collection<
+        Collection<
+            TValue,
+            TPreserve extends false ? number : TKey,
+            TPreserve extends false ? "list" : ChunkShape<TKey, TShape>
+        >,
+        number,
+        "list"
+    >;
+    chunk(size: number, preserveKeys: boolean = true): unknown {
+        if (size <= 0) {
+            return this.wrapChunks([]);
+        }
+
+        const length = phpIntArgument(
+            size,
+            "array_chunk(): Argument #2 ($length) must be of type int, float given",
+        );
+
+        // A size between 0 and 1 drops to 0, which array_chunk() refuses with a ValueError.
+        if (length === 0) {
+            throw new Error(
+                "array_chunk(): Argument #2 ($length) must be greater than 0",
+            );
         }
 
         const chunkedData = dataChunk(
             this.items as TValue[],
-            size,
+            length,
             preserveKeys,
         );
 
-        return this.wrapChunks(chunkedData);
+        if (preserveKeys) {
+            return this.wrapChunks(chunkedData);
+        }
+
+        // Without preserve_keys, array_chunk() numbers each chunk from 0, so every chunk is a list.
+        return this.wrapChunks(
+            Object.values(chunkedData).map((chunk) => Object.values(chunk)),
+        );
     }
 
     /**
@@ -3332,7 +4532,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *      `LazyCollection::chunkWhile`.
      *
      * @param callback - Receives the value, its key and the chunk so far; return true to keep appending
-     * @returns A collection of chunk collections
+     * @returns A collection of chunk collections: a list's chunks are lists, and a keyed collection's keep their keys
      *
      * @example
      *
@@ -3343,23 +4543,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
         callback: (
             value: TValue,
             key: TKey,
-            chunk: Collection<TValue, TKey>,
-        ) => boolean,
-    ): Collection<Collection<TValue, TKey>, number> {
+            chunk: Collection<TValue, TKey, Removed<TShape>>,
+        ) => unknown,
+    ): Collection<Collection<TValue, TKey, Removed<TShape>>, number, "list"> {
         const chunked = dataChunkWhile(
             this.items as TValue[],
             (value, key, chunk) =>
                 callback(
                     value,
                     key as unknown as TKey,
-                    this.newInstance(chunk) as unknown as Collection<
-                        TValue,
-                        TKey
-                    >,
+                    // PHP hands the callback the chunk it is building; a copy per call would cost a long chunk its
+                    // length squared.
+                    this.newInstance<TValue, TKey, Removed<TShape>>(
+                        handOver(chunk),
+                    ),
                 ),
         );
 
-        return this.wrapChunks(chunked);
+        return this.wrapChunks<TKey, Removed<TShape>>(chunked, true);
     }
 
     /**
@@ -3369,7 +4570,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *      Adjacent values compare with PHP's `==`, so `1` and `"1"` share a chunk.
      *
      * @param key - A path into each item, or a callback receiving the value and its key
-     * @returns A collection of chunk collections
+     * @returns A collection of chunk collections: a list's chunks are lists, and a keyed collection's keep their keys
      *
      * @example
      *
@@ -3380,13 +4581,13 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     chunkBy(
         key: PathKey | ((value: TValue, key: TKey) => unknown),
-    ): Collection<Collection<TValue, TKey>, number> {
+    ): Collection<Collection<TValue, TKey, Removed<TShape>>, number, "list"> {
         const chunked = dataChunkBy(
             this.items as TValue[],
             key as PathKey | ((value: TValue, index: number) => unknown),
         );
 
-        return this.wrapChunks(chunked);
+        return this.wrapChunks<TKey, Removed<TShape>>(chunked);
     }
 
     /**
@@ -3396,41 +4597,60 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * reordered at once, so they're renumbered over the sorted sequence (same
      * policy as `sortBy`/`sortDesc`/`reverse`/`pad`/`splice`).
      *
-     * @param callback - The value extractor callback, a path key to get values from, or null for default sort
+     * @param callback - A comparator answering below, at or above zero for two items, read as uasort() reads it: cast
+     * to an int, and a bool deprecated but still sorting; or null to sort the values themselves
      * @returns A new collection with the sorted items
      *
      * @example
      *
      * new Collection([3, 1, 2]).sort(); -> new Collection([1, 2, 3])
+     * new Collection([5, 3, 1, 2, 4]).sort((a, b) => b - a); -> new Collection([5, 4, 3, 2, 1])
+     * new Collection({a: 3, b: 1, c: 2}).sort((x, y) => x - y); -> new Collection({b: 1, c: 2, a: 3})
      */
     sort(
-        callback:
-            | ((value: TValue, key: PropertyKey) => unknown)
-            | string
-            | null = null,
-    ) {
-        return this.newInstance(dataSort(this.items as TValue[], callback));
+        this: Collection<TValue, TKey, "list">,
+        callback?: ((a: TValue, b: TValue) => number | boolean) | null,
+    ): this;
+    sort(
+        this: StableKeyed<TValue, TKey, TShape>,
+        callback?: ((a: TValue, b: TValue) => number | boolean) | null,
+    ): this;
+    sort(
+        callback?: ((a: TValue, b: TValue) => number | boolean) | null,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sort(
+        callback: ((a: TValue, b: TValue) => number | boolean) | null = null,
+    ): unknown {
+        if (!isFunction(callback)) {
+            return this.sameInstance(
+                handOver(dataSort(this.items as TValue[])),
+            );
+        }
+
+        const entries = this.entriesInOrder().sort(
+            phpSortComparator(([, a], [, b]) => callback(a, b)),
+        );
+
+        return this.sameInstance(this.sortedItems(entries));
     }
 
     /**
      * Sort items in descending order.
      *
-     * @param callback - The value extractor callback, a path key to get values from, or null for default sort
-     * @returns A new collection with the sorted items in descending order
+     * @returns A new collection with the sorted items in descending order, integer keys renumbered over it
      *
      * @example
      *
      * new Collection([1, 2, 3]).sortDesc(); -> new Collection([3, 2, 1])
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc('id'); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
-     * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortDesc((item) => item.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
+     * new Collection({a: 1, b: 3, c: 2}).sortDesc(); -> new Collection({b: 3, c: 2, a: 1})
      */
-    sortDesc(
-        callback:
-            | ((value: TValue, key: PropertyKey) => unknown)
-            | string
-            | null = null,
-    ) {
-        return this.newInstance(dataSortDesc(this.items as TValue[], callback));
+    sortDesc(this: Collection<TValue, TKey, "list">): this;
+    sortDesc(this: StableKeyed<TValue, TKey, TShape>): this;
+    sortDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortDesc(): unknown {
+        return this.sameInstance(
+            handOver(dataSortDesc(this.items as TValue[])),
+        );
     }
 
     /**
@@ -3439,57 +4659,50 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Integer-like keys are renumbered over the sorted sequence, so `all()`
      * and `values()` always agree about order; see `sort` above.
      *
-     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @param descending - Ignored when `callback` is an array (Collection.php:1601); use `sortByDesc`/`sortByMany`.
+     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or a
+     * list of paths, each alone or with its direction, and comparators of two items for multi-level sorting
+     * @param descending - Ignored when `callback` is an array, as PHP ignores it; `sortByDesc` sorts those descending
      * @returns A new collection with the sorted items
      *
      * @example
      *
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).sortBy('id'); -> new Collection([{id: 1}, {id: 2}, {id: 3}])
      */
-    sortBy<TSortValue>(
-        callback:
-            | Array<
-                  | ((a: TValue, b: TValue) => TSortValue)
-                  | ((item: TValue, key: TKey) => TSortValue)
-                  | PathKey
-                  | [PathKey]
-                  | [
-                        PathKey,
-                        (
-                            | CaseValue<typeof SortDirection>
-                            | boolean
-                            | "asc"
-                            | "desc"
-                        ),
-                    ]
-              >
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey,
+    sortBy(
+        this: Collection<TValue, TKey, "list">,
+        callback: SortByCallback<TValue, TKey>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortBy(
+        this: StableKeyed<TValue, TKey, TShape>,
+        callback: SortByCallback<TValue, TKey>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortBy(
+        callback: SortByCallback<TValue, TKey>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortBy(
+        callback: SortByCallback<TValue, TKey>,
         descending: CaseValue<typeof SortDirection> | boolean = false,
-    ) {
+    ): unknown {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
-        if (isArray(callback) && !isFunction(callback)) {
-            // PHP's sortBy (Collection.php:1601) discards $descending
-            // entirely for the array form; not passed through here either.
-            // Use sortByDesc/sortByMany's forceDescending to force it.
+        if (
+            isArray<SortDescriptor<TValue>>(callback) &&
+            !isFunction(callback)
+        ) {
             return this.sortByMany(callback);
         }
 
         const callbackFn = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => TSortValue),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        // Create array of [key, value, sortValue] tuples
-        const entries: Array<[TKey, TValue, TSortValue]> = [];
-        for (const [key, value] of Object.entries(this.items)) {
-            const sortValue = callbackFn(
-                value as TValue,
-                key as TKey,
-            ) as TSortValue;
-            entries.push([key as TKey, value as TValue, sortValue]);
-        }
+        // Read in the order PHP holds the items, so a tie keeps it: the sort below is stable.
+        const entries = this.entriesInOrder().map(
+            ([key, value]) => [key, value, callbackFn(value, key)] as const,
+        );
 
         // Sort by the sort values
         entries.sort(([, , a], [, , b]) => {
@@ -3498,84 +4711,17 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return isDesc ? -comparison : comparison;
         });
 
-        return this.newInstance(
-            sortedIntoItems(
-                entries.map(([key, value]) => [String(key), value]),
-            ) as DataItems<TValue, TKey>,
-        );
-    }
-
-    /**
-     * Sort the collection using multiple comparisons.
-     *
-     * Integer-like keys are renumbered over the sorted sequence; see `sort`.
-     *
-     * @param comparisons - An array of callbacks to determine the sort value, path keys
-     *   to get values from and compare, or tuples of such keys for multi-level sorting.
-     *   A bare key path or direction-less tuple defaults to ascending; an empty array
-     *   leaves the order alone (`Collection::sortByMany`).
-     * @param descending - Forces every comparison descending regardless of its own
-     *   direction; has no effect on a comparator function. Defaults to false.
-     * @returns A new collection with the sorted items
-     *
-     * @example
-     *
-     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany(['id', 'name']); -> new Collection([{id: 1, name: 'Alice'}, {id: 1, name: 'Charlie'}, {id: 2, name: 'Bob'}])
-     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany([item => item.id, item => item.name]); -> new Collection([{id: 1, name: 'Alice'}, {id: 1, name: 'Charlie'}, {id: 2, name: 'Bob'}])
-     * new Collection([{id: 1, name: 'Alice'}, {id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}]).sortByMany(['id', item => item.name], true); -> new Collection([{id: 2, name: 'Bob'}, {id: 1, name: 'Charlie'}, {id: 1, name: 'Alice'}])
-     */
-    sortByMany<TSortValue>(
-        comparisons: Array<
-            | ((a: TValue, b: TValue) => TSortValue)
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey
-            | [PathKey]
-            | [
-                  PathKey,
-                  CaseValue<typeof SortDirection> | boolean | "asc" | "desc",
-              ]
-        >,
-        descending: CaseValue<typeof SortDirection> | boolean = false,
-    ) {
-        if (!isArray(comparisons)) {
-            throw new Error("You must provide at least one comparison.");
-        }
-
-        const isDescGlobal =
-            descending === true || descending === SortDirection.Descending;
-
-        const comparators = comparisons.map((comparison) =>
-            sortSpecComparator<TValue>(
-                comparison as SortSpec<TValue>,
-                isDescGlobal,
-            ),
-        );
-
-        const entries = Object.entries(this.items);
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const result = comparator(a as TValue, b as TValue);
-
-                if (result !== 0) {
-                    return result;
-                }
-            }
-
-            return 0;
-        });
-
-        return this.newInstance(
-            sortedIntoItems(
-                entries.map(([key, value]) => [String(key), value as TValue]),
-            ) as DataItems<TValue, TKey>,
+        return this.sameInstance(
+            this.sortedItems(entries.map(([key, value]) => [key, value])),
         );
     }
 
     /**
      * Sort the collection in descending order using the given callback.
      *
-     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or an array of such callbacks/keys for multi-level sorting
-     * @returns A new collection with the sorted items in descending order
+     * @param callback - The callback to determine the sort value, a path key to get values from and compare, or a
+     * list of paths, each alone or with its direction, and comparators of two items for multi-level sorting
+     * @returns A new collection with the sorted items in descending order, integer keys renumbered over it
      *
      * @example
      *
@@ -3583,30 +4729,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 3}, {id: 1}, {id: 2}]).sortByDesc(item => item.id); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
      * new Collection([{id: 2}, {id: 1}, {id: 3}]).sortByDesc(['id']); -> new Collection([{id: 3}, {id: 2}, {id: 1}])
      */
-    sortByDesc<TSortValue>(
-        callback:
-            | Array<
-                  | ((a: TValue, b: TValue) => TSortValue)
-                  | ((item: TValue, key: TKey) => TSortValue)
-                  | PathKey
-                  | [PathKey]
-                  | [
-                        PathKey,
-                        (
-                            | CaseValue<typeof SortDirection>
-                            | boolean
-                            | "asc"
-                            | "desc"
-                        ),
-                    ]
-              >
-            | ((item: TValue, key: TKey) => TSortValue)
-            | PathKey,
-    ) {
-        if (isArray(callback) && !isFunction(callback)) {
-            // sortBy's array branch discards its own `descending` argument,
-            // so forcing every descriptor descending goes through
-            // sortByMany's forceDescending param (Collection.php:1700).
+    sortByDesc(
+        this: Collection<TValue, TKey, "list">,
+        callback: SortByCallback<TValue, TKey>,
+    ): this;
+    sortByDesc(
+        this: StableKeyed<TValue, TKey, TShape>,
+        callback: SortByCallback<TValue, TKey>,
+    ): this;
+    sortByDesc(
+        callback: SortByCallback<TValue, TKey>,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortByDesc(callback: SortByCallback<TValue, TKey>): unknown {
+        if (
+            isArray<SortDescriptor<TValue>>(callback) &&
+            !isFunction(callback)
+        ) {
+            // sortBy() ignores its flag for descriptors, so they are forced descending here, as PHP rewrites each one.
             return this.sortByMany(callback, true);
         }
 
@@ -3617,7 +4756,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Sort the collection keys.
      *
      * @param descending - Whether to sort in descending order, defaults to false
-     * @returns A new collection with the items sorted by keys
+     * @returns A new collection with the items sorted by keys, integer keys renumbered over the new order
      *
      * @example
      *
@@ -3625,7 +4764,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({b: 2, a: 1, c: 3}).sortKeys(true); -> new Collection({c: 3, b: 2, a: 1})
      * new Collection({5: "e", 2: "b", 9: "z"}).sortKeys(); -> new Collection({0: "b", 1: "e", 2: "z"})
      */
-    sortKeys(descending: CaseValue<typeof SortDirection> | boolean = false) {
+    sortKeys(
+        this: Collection<TValue, TKey, "list">,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortKeys(
+        this: StableKeyed<TValue, TKey, TShape>,
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): this;
+    sortKeys(
+        descending?: CaseValue<typeof SortDirection> | boolean,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortKeys(
+        descending: CaseValue<typeof SortDirection> | boolean = false,
+    ): unknown {
         const isDesc =
             descending === true || descending === SortDirection.Descending;
         const keys = Object.keys(this.items);
@@ -3654,41 +4806,63 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // A real array has no engine-imposed key order to fight, so the sorted
         // values slot straight in; only the object branch needs reindexIntegerKeys.
         if (isArray(this.items)) {
-            return this.newInstance(entries.map(([, value]) => value));
+            return this.sameInstance(
+                handOver(entries.map(([, value]) => value)),
+            );
         }
 
-        return this.newInstance(sortedIntoItems(entries));
+        return this.sameInstance(handOver(sortedIntoItems(entries)));
     }
 
     /**
      * Sort the collection keys in descending order.
      *
-     * @returns A new collection with the items sorted by keys in descending order
+     * @returns A new collection with the items sorted by keys in descending order, integer keys renumbered over it
      *
      * @example
      *
      * new Collection({a: 1, b: 2, c: 3}).sortKeysDesc(); -> new Collection({c: 3, b: 2, a: 1})
      * new Collection({5: "e", 2: "b", 9: "z"}).sortKeysDesc(); -> new Collection({0: "z", 1: "e", 2: "b"})
      */
-    sortKeysDesc() {
+    sortKeysDesc(this: Collection<TValue, TKey, "list">): this;
+    sortKeysDesc(this: StableKeyed<TValue, TKey, TShape>): this;
+    sortKeysDesc(): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortKeysDesc(): unknown {
         return this.sortKeys(SortDirection.Descending);
     }
 
     /**
      * Sort the collection keys using a callback.
      *
-     * @param callback - The callback to determine the sort order of keys
-     * @returns A new collection with the items sorted by keys using the callback
+     * @param callback - A comparator answering below, at or above zero for two keys, read as uksort() reads it: cast to
+     * an int, and a bool deprecated but still sorting
+     * @returns A new collection with the items sorted by keys using the callback, integer keys renumbered over the new
+     * order
      *
      * @example
      *
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => a.localeCompare(b)); -> new Collection({a: 1, b: 2, c: 3})
      * new Collection({b: 2, a: 1, c: 3}).sortKeysUsing((a, b) => b.localeCompare(a)); -> new Collection({c: 3, b: 2, a: 1})
      */
-    sortKeysUsing(callback: (a: TKey, b: TKey) => number) {
+    sortKeysUsing(
+        this: Collection<TValue, TKey, "list">,
+        callback: (a: TKey, b: TKey) => number | boolean,
+    ): this;
+    sortKeysUsing(
+        this: StableKeyed<TValue, TKey, TShape>,
+        callback: (a: TKey, b: TKey) => number | boolean,
+    ): this;
+    sortKeysUsing(
+        callback: (a: TKey, b: TKey) => number | boolean,
+    ): Collection<TValue, SplicedKey<TKey>, TShape>;
+    sortKeysUsing(callback: (a: TKey, b: TKey) => number | boolean): unknown {
         const keys = Object.keys(this.items);
 
-        keys.sort((a, b) => callback(a as TKey, b as TKey));
+        keys.sort(
+            phpSortComparator((a, b) =>
+                callback(phpArrayKey(a) as TKey, phpArrayKey(b) as TKey),
+            ),
+        );
 
         const entries = keys.map(
             (key) =>
@@ -3699,19 +4873,26 @@ export class Collection<TValue, TKey extends PropertyKey> {
         );
 
         if (isArray(this.items)) {
-            return this.newInstance(entries.map(([, value]) => value));
+            return this.sameInstance(
+                handOver(entries.map(([, value]) => value)),
+            );
         }
 
-        return this.newInstance(sortedIntoItems(entries));
+        return this.sameInstance(handOver(sortedIntoItems(entries)));
     }
 
     /**
      * Splice a portion of the underlying collection array.
      *
-     * @param offset - The offset to start the splice
-     * @param length - The number of items to remove (if undefined, removes all from offset to end)
-     * @param replacement - The items to insert in place of the removed items
+     * The receiver's variable keeps its declared type, whatever the splice removes or inserts.
+     *
+     * @param offset - The offset to start the splice; a fraction is dropped, as array_splice()'s int parameter drops it
+     * @param length - The number of items to remove, a fraction dropped; null or none removes everything from the
+     * offset on
+     * @param replacement - The items to insert in place of the removed items, or a scalar, which becomes one item
      * @returns A new collection with the removed items
+     * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, as array_splice()
+     * refuses it
      *
      * @example
      *
@@ -3720,41 +4901,45 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).splice(1, 1, [4, 5]); -> new Collection([2]), original collection is now [1, 4, 5, 3]
      * new Collection({a: 1, b: 2, c: 3}).splice(1); -> new Collection({b: 2, c: 3}), original collection is now {a: 1}
      */
-    splice<TReplace, TKeyReplace extends PropertyKey>(
+    splice<TOperand extends Operand>(
         offset: number,
-        length?: number,
-        replacement?:
-            | DataItems<TReplace, TKeyReplace>
-            | Collection<TReplace, TKeyReplace>,
-    ) {
-        const replacementItems =
-            replacement !== undefined
-                ? [this.getRawItems(replacement)]
-                : ([] as []);
+        length?: number | null,
+        replacement?: TOperand | TValue,
+    ): Collection<TValue, SplicedKey<TKey>, Removed<TShape>>;
+    splice(
+        offset: number,
+        length?: number | null,
+        replacement?: unknown,
+    ): unknown {
+        // array_splice inserts the replacement's values in its own order, which a Map read as a record would lose.
+        const values = isUndefined(replacement)
+            ? []
+            : this.operandEntries(replacement).map(
+                  ([, value]) => value as TValue,
+              );
 
-        const ordered = this.orderedEntries();
-
-        if (ordered) {
+        // A plain object lists its integer keys first, so a keyed backing is read in the order PHP's array holds it.
+        if (!isArray(this.items)) {
             return this.spliceOrdered(
-                ordered,
+                this.entriesInOrder(),
                 offset,
                 length,
-                replacementItems.flatMap(
-                    (source) => Object.values(source) as TValue[],
-                ),
+                values,
             );
         }
 
-        return this.newInstance(
-            dataSplice(this.items, offset, length, ...replacementItems),
+        return this.newInstance<TValue, SplicedKey<TKey>, Removed<TShape>>(
+            handOver(dataSplice(this.items, offset, length, values)),
         );
     }
 
     /**
      * Take the first or last {$limit} items.
      *
-     * @param limit - The number of items to take, positive for first items, negative for last items
+     * @param limit - The number of items to take, positive for first items, negative for last items; a fraction is
+     * dropped, as array_slice()'s int parameters drop it
      * @returns A new collection with the taken items
+     * @throws TypeError when the limit is NAN, infinite or outside PHP's int range, as array_slice() refuses it
      *
      * @example
      *
@@ -3763,16 +4948,69 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2, c: 3}).take(2); -> new Collection({a: 1, b: 2})
      * new Collection({a: 1, b: 2, c: 3}).take(-2); -> new Collection({b: 2, c: 3})
      */
-    take(limit: number) {
+    take(this: Collection<TValue, TKey, "list">, limit: number): this;
+    take(limit: number): Collection<TValue, TKey, Removed<TShape>>;
+    take(limit: number): unknown {
         if (limit < 0) {
-            return this.slice(Math.max(0, this.count() + limit));
+            return this.slice(limit, Math.abs(limit));
         }
 
         return this.slice(0, limit);
     }
 
     /**
+     * Take items in the collection until the given condition is met.
+     *
+     * @param value - The value to take until, compared with PHP's `===`, or a callback judged by PHP truthiness
+     * @returns A new collection of the items before the first that meets the condition
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3, 4]).takeUntil(3); -> new Collection([1, 2])
+     * new Collection({a: 1, b: 2, c: 3}).takeUntil((value, key) => key === 'c'); -> new Collection({a: 1, b: 2})
+     */
+    takeUntil(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    takeUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    takeUntil(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
+        return this.sameInstance(handOver(dataTakeUntil(this.items, value)));
+    }
+
+    /**
+     * Take items in the collection while the given condition is met.
+     *
+     * @param value - The value to take while items equal it, compared with PHP's `===`, or a callback judged by PHP
+     * truthiness
+     * @returns A new collection of the items before the first that fails the condition
+     *
+     * @example
+     *
+     * new Collection([1, 1, 2, 2, 3, 3]).takeWhile(1); -> new Collection([1, 1])
+     * new Collection({a: 1, b: 2, c: 3}).takeWhile((value) => value < 3); -> new Collection({a: 1, b: 2})
+     */
+    takeWhile(
+        this: Collection<TValue, TKey, "list">,
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): this;
+    takeWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    takeWhile(
+        value: TValue | ((value: TValue, key: TKey) => unknown),
+    ): unknown {
+        return this.sameInstance(handOver(dataTakeWhile(this.items, value)));
+    }
+
+    /**
      * Transform each item in the collection using a callback.
+     *
+     * The receiver's variable keeps its declared type; the returned collection is typed with the callback's answers.
      *
      * @param callback - The callback to transform each item
      * @returns The current collection with the transformed items
@@ -3782,12 +5020,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).transform(x => x * 2); -> new Collection([2, 4, 6])
      * new Collection({a: 1, b: 2, c: 3}).transform((value, key) => value + key); -> new Collection({a: '1a', b: '2b', c: '3c'})
      */
-    transform<TMapValue>(callback: (value: TValue, key: TKey) => TMapValue) {
+    transform<TMapValue>(
+        callback: (value: TValue, key: TKey) => TMapValue,
+    ): Collection<TMapValue, TKey, TShape>;
+    transform(callback: (value: TValue, key: TKey) => unknown): unknown {
         if (this.itemsWithOrder) {
             this.setOrderedItems(
                 this.itemsWithOrder.map(([key, value]) => [
                     key,
-                    callback(value, key) as unknown as TValue,
+                    callback(value, key) as TValue,
                 ]),
                 false,
             );
@@ -3804,29 +5045,38 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Flatten a multi-dimensional associative array with dots.
      *
      * @param depth - Maximum depth to flatten. Defaults to Infinity.
-     * @returns A new collection with the flattened items
+     * @returns A new collection with the flattened items, keyed by their dot paths
      *
      * @example
      *
      * new Collection({a: {b: 1}, c: 2}).dot(); -> new Collection({'a.b': 1, c: 2})
      * new Collection([{a: 1}, {b: {c: 2}}]).dot(); -> new Collection({'0.a': 1, '1.b.c': 2})
      */
-    dot(depth: number = Infinity) {
-        return this.newInstance(dataDot(this.items, "", depth));
+    dot(
+        depth?: number,
+    ): Collection<FlattenReach<TValue>, string | number, "keyed">;
+    dot(depth: number = Infinity): unknown {
+        return this.newInstance(handOver(dataDot(this.items, "", depth)));
     }
 
     /**
      * Convert a flatten "dot" notation array into an expanded array.
      *
-     * @returns A new collection with the expanded items
+     * @returns A new collection with the expanded items; a list, whose keys hold no dot, stays as it is
      *
      * @example
      *
      * new Collection({'a.b': 1, c: 2}).undot(); -> new Collection({a: {b: 1}, c: 2})
-     * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection([{a: 1}, {b: {c: 2}}])
+     * new Collection({'0.a': 1, '1.b.c': 2}).undot(); -> new Collection({0: {a: 1}, 1: {b: {c: 2}}})
      */
-    undot() {
-        return this.newInstance(dataUndot(this.items));
+    undot(this: Collection<TValue, TKey, "list">): this;
+    undot(): Collection<
+        UndotObjectValue<TValue>,
+        string | number,
+        TShape extends "list" ? "list" : "keyed"
+    >;
+    undot(): unknown {
+        return this.newInstance(handOver(dataUndot(this.items)));
     }
 
     /**
@@ -3844,15 +5094,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).unique(item => item.id); -> new Collection([{id: 1}, {id: 2}])
      */
     unique(
-        key: ((item: TValue, key: TKey) => unknown) | PathKey = null,
+        this: Collection<TValue, TKey, "list">,
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+        strict?: boolean,
+    ): this;
+    unique(
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+        strict?: boolean,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    unique(
+        key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
         strict: boolean = false,
-    ) {
+    ): unknown {
         if (isNull(key) && strict === false) {
             // For non-strict mode without a key, we need to do loose comparison
             // We can't use Set because it uses SameValueZero (strict comparison)
             const seen: unknown[] = [];
 
-            return this.newInstance(
+            return this.sameInstance(
                 dataFilter(this.items, (value) => {
                     // Check if we've seen this value using loose comparison
                     for (const seenValue of seen) {
@@ -3876,7 +5135,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // This does deep comparison for arrays/objects but strict type checking for primitives
             const seen: unknown[] = [];
 
-            return this.newInstance(
+            return this.sameInstance(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value as TValue, key as TKey);
 
@@ -3895,7 +5154,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             // For non-strict mode with a key/callback, use loose comparison
             const seen: unknown[] = [];
 
-            return this.newInstance(
+            return this.sameInstance(
                 dataFilter(this.items, (value, key) => {
                     const result = callback(value as TValue, key as TKey);
 
@@ -3920,101 +5179,115 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection({0: 1, 1: 2, 2: 3})
+     * new Collection({a: 1, b: 2, c: 3}).values(); -> new Collection([1, 2, 3])
      * new Collection([1, 2, 3]).values(); -> new Collection([1, 2, 3])
      */
-    values() {
+    values(): Collection<TValue, number, "list"> {
         // Use the ordered entries when available to preserve numeric key insertion order
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.newInstance(ordered.map(([, value]) => value));
+            return this.newInstance<TValue, number, "list">(
+                handOver(ordered.map(([, value]) => value)),
+            );
         }
 
-        return this.newInstance(dataValues(this.items));
+        return this.newInstance<TValue, number, "list">(
+            handOver(dataValues(this.items) as TValue[]),
+        );
     }
 
     /**
      * Zip the collection together with one or more arrays.
      *
-     * @param items - The items to zip with, can be an array or another collection
-     * @returns A new collection with the zipped items
+     * As `array_map` does, every shorter side, this collection's own values included, is padded with `null`.
+     *
+     * @param lists - The items to zip with, each an array, an object or another collection
+     * @returns A new collection listing, for each position, a collection of every side's value there
      *
      * @example
      *
-     * new Collection([1, 2, 3]).zip(['a', 'b', 'c']); -> new Collection([[1, 'a'], [2, 'b'], [3, 'c']])
-     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c'])); -> new Collection([[1, 'a'], [2, 'b']])
-     * new Collection({a: 1, b: 2}).zip({x: 'a', y: 'b', z: 'c'}); -> new Collection([[1, 'a'], [2, 'b']])
+     * new Collection([1, 2, 3]).zip(['a', 'b', 'c']);
+     * -> new Collection([new Collection([1, 'a']), new Collection([2, 'b']), new Collection([3, 'c'])])
+     * new Collection([1, 2]).zip(new Collection(['a', 'b', 'c']));
+     * -> new Collection([new Collection([1, 'a']), new Collection([2, 'b']), new Collection([null, 'c'])])
+     * new Collection({a: 1, b: 2}).zip({x: 'a'});
+     * -> new Collection([new Collection([1, 'a']), new Collection([2, null])])
      */
-    zip<TZipValue>(
-        // Note: Collection<any, any> is intentional due to TypeScript contravariance.
-        ...list: Array<DataItems<TZipValue, PropertyKey> | Collection<any, any>>
-    ): Collection<Collection<TValue | TZipValue, number>, number> {
-        const arraysToZip = list.map((items) => {
-            const rawItems = this.getRawItems(items) as DataItems<TZipValue>;
-            return isArray(rawItems) ? rawItems : Object.values(rawItems);
-        });
+    zip<const TLists extends AtLeastOne<Operand>>(
+        ...lists: TLists
+    ): Collection<
+        Collection<
+            TValue | OperandValue<TLists[number]> | null,
+            number,
+            "list"
+        >,
+        number,
+        "list"
+    >;
+    zip(...lists: AtLeastOne<Operand>): unknown {
+        const columns: unknown[][] = [
+            this.getItemValues(this.items),
+            ...lists.map((items) => {
+                const rawItems = this.getRawItems(items);
 
-        const maxLength = Math.max(
-            this.count(),
-            ...arraysToZip.map((arr) => arr.length),
+                return isArray(rawItems) ? rawItems : Object.values(rawItems);
+            }),
+        ];
+        const length = Math.max(...columns.map((column) => column.length));
+        const zipped = Array.from({ length }, (_, index) =>
+            this.newInstance(
+                handOver(
+                    columns.map((column) =>
+                        index < column.length ? column[index] : null,
+                    ),
+                ),
+            ),
         );
 
-        const zipped: Array<Collection<TValue | TZipValue, number>> = [];
-
-        for (let i = 0; i < maxLength; i++) {
-            const row: Array<TValue | TZipValue> = [];
-
-            const thisValues = this.getItemValues(this.items);
-            if (i < thisValues.length) {
-                row.push(thisValues[i]!);
-            }
-
-            for (const arr of arraysToZip) {
-                if (i < arr.length) {
-                    row.push(arr[i]!);
-                } else {
-                    row.push(null as TZipValue);
-                }
-            }
-
-            zipped.push(
-                this.newInstance(row) as unknown as Collection<
-                    TValue | TZipValue,
-                    number
-                >,
-            );
-        }
-
-        return this.newInstance(zipped) as unknown as Collection<
-            Collection<TValue | TZipValue, number>,
-            number
-        >;
+        return this.newInstance(handOver(zipped));
     }
 
     /**
      * Pad collection to the specified length with a value.
      *
-     * For an object-backed collection, pad slots are numbered `0, 1, 2, ...`
-     * regardless of direction — a genuine, unfixable JS/PHP divergence (see
-     * `pad`'s JSDoc in `@tolki/obj`).
+     * As `array_pad` does, a collection that grows renumbers its integer keys from 0 in order, pad slots included, and
+     * keeps its string keys.
      *
-     * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning
+     * @param size - The size to pad to, positive to pad at the end, negative to pad at the beginning; a fraction is
+     * dropped, as array_pad()'s int parameter drops it
      * @param value - The value to pad with
      * @returns A new collection padded to the specified length
+     * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it
+     * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError
      *
      * @example
      *
      * new Collection([1, 2, 3]).pad(5, 0); -> new Collection([1, 2, 3, 0, 0])
+     * new Collection({a: 1, b: 2}).pad(-4, 0); -> new Collection({0: 0, 1: 0, a: 1, b: 2})
      */
-    pad<TPadValue>(size: number, value: TPadValue) {
+    pad<TPadValue>(
+        size: number,
+        value: TPadValue,
+    ): Collection<TValue | TPadValue, TKey | number, TShape>;
+    pad<TPadValue>(size: number, value: TPadValue): unknown {
+        const length = resolvePadLength(size);
         const ordered = this.orderedEntries();
 
         if (ordered) {
-            return this.newInstance(this.padOrdered(ordered, size, value));
+            return this.newInstance<TValue | TPadValue, TKey | number, TShape>(
+                this.padOrdered(ordered, length, value),
+            );
         }
 
-        return this.newInstance(dataPad(this.items, size, value));
+        return this.newInstance<TValue | TPadValue, TKey | number, TShape>(
+            handOver(
+                dataPad(this.items, length, value) as DataItems<
+                    TValue | TPadValue,
+                    TKey | number
+                >,
+            ),
+        );
     }
 
     /**
@@ -4035,8 +5308,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * iteratorObj.next(); -> {value: 2, done: false}
      * iteratorObj.next(); -> {value: undefined, done: true}
      */
-    getIterator() {
-        return this.getItemValues(this.items)[Symbol.iterator]();
+    getIterator(): ArrayIterator<TValue> {
+        // PHP's ArrayIterator holds a copy of the items, so an item pushed mid-loop is never visited.
+        return Object.values(this.items)[Symbol.iterator]();
     }
 
     /**
@@ -4054,20 +5328,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Convert the collection to a primitive value (returns count).
-     * This allows the collection to be used in numeric contexts.
+     * Convert the collection to a primitive: its count where a number is wanted, and its string form otherwise.
      *
-     * @returns The number of items in the collection
+     * @param hint - The kind of primitive JavaScript asks for: "number", "string" or "default"
+     * @returns The number of items for the "number" hint, else what toString() returns
      *
      * @example
      *
      * const c = new Collection([1, 2, 3]);
      * +c; -> 3
      * Number(c); -> 3
-     * c == 3; -> true (loose comparison)
+     * c + ''; -> '[1,2,3]'
+     * `${c}`; -> '[1,2,3]'
      */
-    valueOf(): number {
-        return this.count();
+    [Symbol.toPrimitive](hint: "number"): number;
+    [Symbol.toPrimitive](hint: "string" | "default"): string;
+    [Symbol.toPrimitive](hint: string): number | string;
+    [Symbol.toPrimitive](hint: string): number | string {
+        if (hint === "number") {
+            return this.count();
+        }
+
+        return this.toString();
     }
 
     /**
@@ -4099,38 +5381,57 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy('id'); -> new Collection({ '1': 2, '2': 1 })
      * new Collection([{id: 1}, {id: 2}, {id: 1}]).countBy(item => item.id); -> new Collection({ '1': 2, '2': 1 })
      */
-    countBy<TCountByResult>(
+    countBy(
+        countByValue?: null | undefined,
+    ): Collection<
+        number,
+        MapArrayKey<TValue>,
+        ItemKeyedShape<MapArrayKey<TValue>>
+    >;
+    countBy<TCountKey>(
+        countByValue: (value: TValue, key: TKey) => TCountKey,
+    ): Collection<
+        number,
+        MapArrayKey<TCountKey>,
+        ItemKeyedShape<MapArrayKey<TCountKey>>
+    >;
+    countBy<const TPath extends string | number>(
+        countByValue: TPath,
+    ): Collection<
+        number,
+        MapArrayKey<PluckValue<TValue, TPath>>,
+        ItemKeyedShape<MapArrayKey<PluckValue<TValue, TPath>>>
+    >;
+    countBy<TCountKey>(
         countByValue:
-            | ((value: TValue, key: TKey) => TCountByResult)
-            | PathKey = null,
-    ) {
-        const results = {} as Record<string | number, number>;
+            | ((value: TValue, key: TKey) => TCountKey)
+            | null
+            | undefined,
+    ): Collection<
+        number,
+        MapArrayKey<TValue | TCountKey>,
+        ItemKeyedShape<MapArrayKey<TValue | TCountKey>>
+    >;
+    countBy(
+        countByValue?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): Collection<number, string | number, "keyed">;
+    countBy(
+        countByValue: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): unknown {
+        const results = new Map<string | number, number>();
 
         const callback = this.valueRetriever(
-            countByValue as
-                | PathKey
-                | ((...args: (TValue | TKey)[]) => TCountByResult),
+            countByValue as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        for (const [key, value] of Object.entries(this.items)) {
-            const result = callback(value as TValue, key as TKey);
+        for (const [key, value] of this.entriesInOrder()) {
+            const result = callback(value, key);
+            const resultKey = phpComputedKey(result, {
+                enumCases: true,
+                invalid: issetOffset,
+            });
 
-            let resultKey: string;
-            if (isObject(result) || isArray(result)) {
-                resultKey = JSON.stringify(result);
-            } else if (isNull(result) || isUndefined(result)) {
-                // Count null/undefined keys under an empty string key,
-                // mirroring PHP's (string) null cast in Laravel
-                resultKey = "";
-            } else {
-                resultKey = String(result);
-            }
-
-            const seen = Object.hasOwn(results, resultKey)
-                ? (results[resultKey] as number)
-                : 0;
-
-            defineKey(results as Record<string, number>, resultKey, seen + 1);
+            results.set(resultKey, (results.get(resultKey) ?? 0) + 1);
         }
 
         return this.newInstance(results);
@@ -4139,10 +5440,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Add an item to the collection.
      *
-     * A null key appends where PHP's `$array[] =` does: past the highest integer key.
+     * The item lands where PHP's `$array[] =` puts it: past the highest integer key.
+     * The receiver's variable keeps its declared type; the returned collection is typed with the new item.
      *
      * @param item - The item to add to the collection
-     * @param key - The key to add the item under, or null to append
      * @returns The current collection with the item added
      *
      * @example
@@ -4150,43 +5451,36 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2]).add(3); -> collection is now [1, 2, 3]
      * new Collection({a: 1, b: 2}).add(3); -> collection is now {a: 1, b: 2, '0': 3}
      * new Collection({5: 'a'}).add('z'); -> collection is now {5: 'a', 6: 'z'}
-     * new Collection({a: 1, b: 2}).add(3, 'c'); -> collection is now {a: 1, b: 2, 'c': 3}
      */
-    add<T, K extends PropertyKey>(item: T, key: K | null = null) {
-        if (isArray(this.items)) {
-            if (!isNull(key)) {
-                // `put`/`offsetSet`/`getOrPut` take an unconstrained key, so a
-                // "__proto__" one reaches the array write and would reparent it.
-                defineKey(
-                    this.items as unknown as Record<string, TValue>,
-                    key,
-                    item as unknown as TValue,
-                );
-            } else {
-                (this.items as TValue[]).push(item as unknown as TValue);
-            }
-
-            return this;
-        }
-
-        defineKey(
-            this.items as Record<string, TValue>,
-            isNull(key) ? this.nextAppendKey() : key,
-            item as unknown as TValue,
-        );
-
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
-        }
+    add<TAddValue>(
+        item: TAddValue,
+    ): Collection<TValue | TAddValue, TKey | number, TShape>;
+    add(item: unknown): unknown {
+        this.putKey(null, item);
 
         return this;
     }
 
     /**
+     * Get a base Support collection instance from this collection.
+     *
+     * @returns A new base Collection holding a copy of the items
+     *
+     * @example
+     *
+     * class Users extends Collection {}
+     * Users.make([1, 2]).toBase(); -> new Collection([1, 2])
+     */
+    toBase(): Collection<TValue, TKey, TShape> {
+        return new Collection<TValue, TKey, TShape>(this);
+    }
+
+    /**
      * Determine if an item exists at an offset.
      *
-     * @param offset - The offset to check for existence
+     * @param key - The offset to check for existence
      * @returns True if an item exists at the offset, false otherwise
+     * @throws TypeError for an array, object or function key, as isset() refuses one
      *
      * @example
      *
@@ -4195,19 +5489,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetExists('a'); -> true
      * new Collection({a: 1, b: 2}).offsetExists('c'); -> false
      */
-    offsetExists(key: TKey): boolean {
-        if (isArray(this.items)) {
-            return isTruthy(this.items[key as number]);
+    offsetExists(key: PropertyKey): boolean {
+        if (isIllegalOffset(key)) {
+            throw issetOffset(phpDebugType(key));
         }
 
-        return isTruthy((this.items as Record<TKey, TValue>)[key]);
+        const value = this.offsetGet(key);
+
+        return !isNull(value) && !isUndefined(value);
     }
 
     /**
      * Get an item at a given offset.
      *
-     * @param offset - The offset to get the item from
+     * This is Laravel's `$c['a']`, called by name, since a collection's items are not its properties (`c.a`, `c[0]`).
+     *
+     * @param key - The offset to get the item from
      * @returns The item at the given offset, or undefined if not found
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
      * @example
      *
@@ -4216,20 +5515,30 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection({a: 1, b: 2}).offsetGet('a'); -> 1
      * new Collection({a: 1, b: 2}).offsetGet('c'); -> undefined
      */
-    offsetGet(key: TKey) {
-        if (isArray(this.items)) {
-            return this.items[key as number];
+    offsetGet(key: PropertyKey): TValue | undefined {
+        if (isIllegalOffset(key)) {
+            throw accessOffset(phpDebugType(key));
         }
 
-        return (this.items as Record<TKey, TValue>)[key];
+        const ownKey = this.ownKey(key);
+
+        if (isUndefined(ownKey)) {
+            return undefined;
+        }
+
+        return (this.items as Record<PropertyKey, TValue>)[ownKey];
     }
 
     /**
      * Set the item at a given offset.
      *
-     * @param offset - The offset to set the item at, or null to append
+     * It returns no collection to carry a wider type, so it takes the collection's own key and value; put() takes any.
+     * The receiver's variable keeps its declared type, though an index past a list's end makes the list keyed.
+     *
+     * @param key - The offset to set the item at, or null to append
      * @param value - The item to set at the given offset
      * @returns Void
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
      *
      * @example
      *
@@ -4239,17 +5548,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * const objCollection = new Collection({a: 1, b: 2});
      * objCollection.offsetSet(null, 3); -> collection is now {a: 1, b: 2, '0': 3}
-     * objCollection.offsetSet('c', 4); -> collection is now {a: 1, b: 2, '0': 3, c: 4}
+     * objCollection.offsetSet('b', 4); -> collection is now {a: 1, b: 4, '0': 3}
      */
-    offsetSet(key: TKey | null, value: TValue | unknown) {
-        this.add(value, key);
+    offsetSet(key: TKey | null | undefined, value: TValue): void {
+        this.putKey(key, value);
     }
 
     /**
      * Unset the item at a given offset.
      *
-     * @param offset - The offset to unset the item at
+     * The receiver's variable keeps its declared type, the removed key included.
+     *
+     * @param key - The offset to unset the item at
      * @returns Void
+     * @throws TypeError for an array, object or function key, as unset() refuses one
      *
      * @example
      *
@@ -4259,16 +5571,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * const objCollection = new Collection({a: 1, b: 2, c: 3});
      * objCollection.offsetUnset('b'); -> collection is now {a: 1, c: 3}
      */
-    offsetUnset(key: TKey) {
-        if (isArray(this.items)) {
-            this.items.splice(key as number, 1);
-            return;
+    offsetUnset(key: PropertyKey): void {
+        if (isIllegalOffset(key)) {
+            throw unsetOffset(phpDebugType(key));
         }
 
-        delete (this.items as Record<TKey, TValue>)[key];
+        const ownKey = this.ownKey(key);
 
-        if (this.itemsWithOrder) {
-            this.reorderAfterMutation(this.itemsWithOrder);
+        if (!isUndefined(ownKey)) {
+            this.unsetOwnKeys(new Set([ownKey]));
         }
     }
 
@@ -4278,6 +5589,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Create a new collection instance if the value isn't one already.
      *
      * @param items - The items to create the collection from
+     * @param args - Further arguments for the constructor, which a subclass may take
      * @returns A new collection instance
      *
      * @example
@@ -4287,38 +5599,42 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.make(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.make(null); -> new Collection([])
      */
-    static make<TValue extends Record<PropertyKey, unknown>>(
-        items: TValue,
-    ): Collection<TValue, string>;
-    static make<TValue>(
-        items: TValue[] | readonly TValue[],
-    ): Collection<TValue, number>;
-    static make<TValue, TKey extends PropertyKey>(
-        items: Collection<TValue, TKey>,
-    ): Collection<TValue, TKey>;
-    static make<TValue>(
-        items: Arrayable<TValue>,
-    ): Collection<ReturnType<Arrayable<TValue>["toArray"]>, number>;
-    static make<TValue, TKey extends PropertyKey>(
-        items: Map<TKey, TValue>,
-    ): Collection<TValue, TKey>;
-    static make(items?: null | undefined): Collection<[], number>;
-    static make(items: string): Collection<string[], number>;
-    static make(items: number): Collection<number[], number>;
-    static make(items: boolean): Collection<boolean[], number>;
-    static make(items: symbol): Collection<symbol[], number>;
-    static make<TMakeValue, TMakeKey extends PropertyKey = PropertyKey>(
-        items?:
-            | DataItems<TMakeValue, TMakeKey>
-            | string
-            | number
-            | boolean
-            | symbol
-            | null
-            | undefined,
-    ) {
-        return new this<TMakeValue, TMakeKey>(
-            items ?? ([] as DataItems<TMakeValue, TMakeKey>),
+    static make<
+        TMakeValue,
+        TMakeKey extends PropertyKey,
+        TMakeShape extends CollectionShape,
+    >(
+        items: Collection<TMakeValue, TMakeKey, TMakeShape>,
+        ...args: unknown[]
+    ): Collection<TMakeValue, TMakeKey, TMakeShape>;
+    static make<TMakeValue>(
+        items: readonly TMakeValue[],
+        ...args: unknown[]
+    ): Collection<TMakeValue, number, "list">;
+    static make<TMakeValue, TMapKey>(
+        items: ReadonlyMap<TMapKey, TMakeValue>,
+        ...args: unknown[]
+    ): Collection<TMakeValue, MapArrayKey<TMapKey>, "keyed">;
+    static make<TMakeValue>(
+        items: { toArray(): readonly TMakeValue[] },
+        ...args: unknown[]
+    ): Collection<TMakeValue, number, "list">;
+    static make<TItems extends object>(
+        items: { toArray(): TItems },
+        ...args: unknown[]
+    ): ItemsCollection<TItems>;
+    static make(
+        items?: null | undefined,
+        ...args: unknown[]
+    ): Collection<never, number, "list">;
+    static make<TMakeInput>(
+        items: TMakeInput,
+        ...args: unknown[]
+    ): CollectCollection<TMakeInput>;
+    static make(items?: unknown, ...args: unknown[]): unknown {
+        return new (this as CollectionClass<unknown, PropertyKey>)(
+            items,
+            ...args,
         );
     }
 
@@ -4326,27 +5642,59 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Wrap the given value in a collection if applicable.
      *
      * @param value - The value to wrap in a collection
+     * @param args - Further arguments for the constructor, which a subclass may take
      * @returns The value as a collection, or the original collection if already one
      *
      * @example
      *
      * Collection.wrap([1, 2, 3]); -> new Collection([1, 2, 3])
      * Collection.wrap({a: 1, b: 2}); -> new Collection({a: 1, b: 2})
+     * Collection.wrap(new Map([['a', 1]])); -> new Collection({a: 1})
      * Collection.wrap(new Collection([1, 2, 3])); -> new Collection([1, 2, 3])
      * Collection.wrap(123); -> new Collection([123])
      * Collection.wrap(null); -> new Collection([])
+     *
+     * @remarks An instance of a class of your own is typed by its fields, like collect() types one, though wrap() keeps
+     * it whole in a one-item list: TypeScript cannot tell it from a plain object, whose entries wrap() takes.
      */
-    static wrap<TWrapValue, TWrapKey extends PropertyKey = PropertyKey>(
-        value:
-            | TWrapValue
-            | DataItems<TWrapValue, TWrapKey>
-            | Collection<TWrapValue, TWrapKey>,
-    ) {
-        if (value instanceof Collection) {
-            return new this(value);
+    static wrap<
+        TWrapValue,
+        TWrapKey extends PropertyKey,
+        TWrapShape extends CollectionShape,
+    >(
+        value: Collection<TWrapValue, TWrapKey, TWrapShape>,
+        ...args: unknown[]
+    ): Collection<TWrapValue, TWrapKey, TWrapShape>;
+    static wrap<TWrapValue>(
+        value: readonly TWrapValue[],
+        ...args: unknown[]
+    ): Collection<TWrapValue, number, "list">;
+    static wrap<TWrapValue, TMapKey>(
+        value: ReadonlyMap<TMapKey, TWrapValue>,
+        ...args: unknown[]
+    ): Collection<TWrapValue, MapArrayKey<TMapKey>, "keyed">;
+    static wrap(
+        value: null | undefined,
+        ...args: unknown[]
+    ): Collection<never, number, "list">;
+    static wrap<TWrapInput>(
+        value: TWrapInput,
+        ...args: unknown[]
+    ): WrapCollection<TWrapInput>;
+    static wrap(value: unknown, ...args: unknown[]): unknown {
+        const Static = this as CollectionClass<unknown, PropertyKey>;
+
+        // Arr::wrap leaves an array as it is and makes null empty; a plain object and a Map stand in for arrays.
+        if (
+            value instanceof Collection ||
+            isPhpAccessible(value) ||
+            isNull(value) ||
+            isUndefined(value)
+        ) {
+            return new Static(value, ...args);
         }
 
-        return new this(arrWrap(value) as DataItems<TWrapValue, TWrapKey>);
+        return new Static(handOver([value]), ...args);
     }
 
     /**
@@ -4362,11 +5710,15 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.unwrap([1, 2, 3]); -> [1, 2, 3]
      * Collection.unwrap({a: 1, b: 2}); -> {a: 1, b: 2}
      */
-    static unwrap<TUnwrapValue, TUnwrapKey extends PropertyKey = PropertyKey>(
-        value:
-            | Collection<TUnwrapValue, TUnwrapKey>
-            | DataItems<TUnwrapValue, TUnwrapKey>,
-    ) {
+    static unwrap<
+        TUnwrapValue,
+        TUnwrapKey extends PropertyKey,
+        TUnwrapShape extends CollectionShape,
+    >(
+        value: Collection<TUnwrapValue, TUnwrapKey, TUnwrapShape>,
+    ): CollectionItems<TUnwrapValue, TUnwrapKey, TUnwrapShape>;
+    static unwrap<TUnwrapValue>(value: TUnwrapValue): Unwrapped<TUnwrapValue>;
+    static unwrap(value: unknown): unknown {
         if (value instanceof Collection) {
             return value.all();
         }
@@ -4377,16 +5729,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Create a new instance with no items.
      *
-     * @param asArray - Whether to create the empty collection as an array or object, defaults to true (array)
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new empty collection instance
      *
      * @example
      *
      * Collection.empty(); -> new Collection([])
-     * Collection.empty(true); -> new Collection({})
+     * Collection.empty<string>(); -> new Collection([]), typed to hold strings
      */
-    static empty(asArray: boolean = true) {
-        return new this(asArray ? [] : {});
+    static empty<TEmptyValue = never>(
+        ...args: unknown[]
+    ): Collection<TEmptyValue, number, "list"> {
+        return new (this as CollectionClass<TEmptyValue, number, "list">)(
+            handOver([]),
+            ...args,
+        );
     }
 
     /**
@@ -4394,6 +5751,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @param count - The number of times to invoke the callback
      * @param callback - The callback to invoke, receives the current count (1-based) as an argument, or null to just create a range of numbers
+     * @param args - Arguments for the constructor after the items, which a subclass may take
      * @returns A new collection with the results of the callback or a range of numbers
      *
      * @example
@@ -4402,94 +5760,140 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Collection.times(3); -> new Collection([1, 2, 3])
      * Collection.times(0); -> new Collection()
      */
+    static times(
+        count: number,
+        callback?: null | undefined,
+        ...args: unknown[]
+    ): Collection<number, number, "list">;
+    static times<TTimesValue>(
+        count: number,
+        callback: (count: number) => TTimesValue,
+        ...args: unknown[]
+    ): Collection<TTimesValue, number, "list">;
+    static times<TTimesValue>(
+        count: number,
+        callback: ((count: number) => TTimesValue) | null | undefined,
+        ...args: unknown[]
+    ): Collection<number | TTimesValue, number, "list">;
     static times<TTimesValue>(
         count: number,
         callback: ((count: number) => TTimesValue) | null = null,
-    ) {
+        ...args: unknown[]
+    ): unknown {
         if (count < 1) {
-            return new this();
+            return new (this as CollectionClass<unknown, PropertyKey>)(
+                handOver([]),
+                ...args,
+            );
         }
 
         if (isNull(callback)) {
-            return Collection.range(1, count);
+            return this.range(1, count, 1, ...args);
         }
 
-        return (
-            Collection.range(1, count) as unknown as Collection<number, number>
-        ).map(callback);
+        return this.range(1, count, 1, ...args).map(callback);
     }
 
     /**
      * Create a new collection by decoding a JSON string.
      *
      * @param json - The JSON string to decode
-     * @returns A new collection with the decoded items
+     * @param _depth - PHP's json_decode nesting limit, which JSON.parse has no counterpart for
+     * @param _flags - PHP's json_decode flags, which JSON.parse has no counterpart for
+     * @param args - Arguments for the constructor after the items, which a subclass may take
+     * @returns A new collection with the decoded items, or an empty one when the JSON is invalid
      *
      * @example
      *
      * Collection.fromJson('{"a":1,"b":2}'); -> new Collection({a: 1, b: 2})
      * Collection.fromJson('[1,2,3]'); -> new Collection([1, 2, 3])
+     * Collection.fromJson('{bad'); -> new Collection([])
+     * Collection.fromJson<number>('[1,2]'); -> new Collection([1, 2]), typed to hold numbers
      */
-    static fromJson(json: string) {
-        return new this(JSON.parse(json));
+    static fromJson<
+        TJsonValue = unknown,
+        TJsonKey extends PropertyKey = PropertyKey,
+    >(
+        json: string,
+        _depth: number = 512,
+        _flags: number = 0,
+        ...args: unknown[]
+    ): Collection<TJsonValue, TJsonKey, CollectionShape> {
+        return new (this as CollectionClass<
+            TJsonValue,
+            TJsonKey,
+            CollectionShape
+        >)(decodeJson(json), ...args);
     }
 
     /**
      * Get the average value of a given key.
      *
-     * @param callback - The key or callback to determine the value to average, or null to average the items directly
-     * @returns The average value, or null if no numeric values found
+     * @param callback - The key or callback to determine the value to average, or null to average the items directly,
+     * which PHP's `+` must then be able to add
+     * @returns The average of the values that are not null, or null when none is
+     * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      *
      * @example
      *
      * new Collection([1, 2, 3]).avg(); -> 2
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).avg('id'); -> 2
      * new Collection([{id: 1}, {id: 2}, {id: 3}]).avg(item => item.id); -> 2
-     * new Collection([1, 'a', 3]).avg(); -> 2
+     * new Collection(['1', '2', 3]).avg(); -> 2
      * new Collection([]).avg(); -> null
      */
-    avg<TReturn>(
-        callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null,
-    ) {
+    avg(
+        callback: ((value: TValue, key: TKey) => unknown) | string | number,
+    ): number | null;
+    avg(
+        this: Collection<TValue & PhpNumeric, TKey, TShape>,
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): number | null;
+    avg(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): number | null {
         const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
+            callback as PathKey | ((...args: (TValue | TKey)[]) => unknown),
         );
 
-        const reduced = this.reduce<number[]>(
-            (carry: TValue | number[], item: TValue, key: TKey): number[] => {
-                const arrCarry = carry as number[];
+        const [total, count] = this.reduce<[number, number]>(
+            ([sum, counted], item, key) => {
                 const resolved = callbackValue(item, key);
 
-                if (!isNull(resolved) && !isUndefined(resolved)) {
-                    const numValue = Number(resolved);
-                    if (!isNaN(numValue)) {
-                        arrCarry[0] = (arrCarry[0] as number) + numValue;
-                        arrCarry[1] = (arrCarry[1] as number) + 1;
-                    }
+                if (isNull(resolved) || isUndefined(resolved)) {
+                    return [sum, counted];
                 }
 
-                return arrCarry;
+                return [phpAdd(sum, resolved), counted + 1];
             },
-            [0, 0] as number[],
+            [0, 0],
         );
 
-        return isArray(reduced) && isTruthy(reduced[1])
-            ? reduced[0]! / reduced[1]!
-            : null;
+        return count === 0 ? null : total / count;
     }
 
     /**
      * Alias for the "avg" method.
      *
-     * @param callback - The key or callback to determine the value to average, or null to average the items directly
-     * @returns The average value, or null if no numeric values found
+     * @param callback - The key or callback to determine the value to average, or null to average the items directly,
+     * which PHP's `+` must then be able to add
+     * @returns The average of the values that are not null, or null when none is
+     * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      *
      * @see {@link Collection.avg}
      */
-    average<TReturn>(
-        callback: ((value: TValue, key: TKey) => TReturn) | PathKey = null,
-    ) {
-        return this.avg(callback);
+    average(
+        callback: ((value: TValue, key: TKey) => unknown) | string | number,
+    ): number | null;
+    average(
+        this: Collection<TValue & PhpNumeric, TKey, TShape>,
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): number | null;
+    average(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
+    ): number | null {
+        // A generic `this` cannot show its items are ones PHP's + adds, so the identity stands in for no callback.
+        return this.avg(callback ?? this.identity());
     }
 
     /**
@@ -4502,12 +5906,38 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @see {@link Collection.contains}
      */
-    some(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+    some(key: (value: TValue, key: TKey) => unknown): boolean;
+    some(key: TValue | PathKey): boolean;
+    some<TNeedle>(
+        key: NonCallable<TNeedle>,
         operator?: unknown,
         value?: unknown,
-    ) {
-        return this.contains(key, operator, value);
+    ): boolean;
+    some<TNeedle>(key: NeedleOrCallback<TNeedle, TValue, TKey>): boolean;
+    some(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | unknown,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): boolean {
+        return this.contains(...args);
+    }
+
+    /**
+     * Dump the items.
+     *
+     * @param args - Further values to dump after the items
+     * @returns The current collection instance
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3]).dump('one', 'two'); -> logs [1, 2, 3] 'one' 'two'
+     */
+    dump(...args: unknown[]) {
+        console.log(this.all(), ...args);
+
+        return this;
     }
 
     /**
@@ -4524,13 +5954,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * // Stop iterating when the callback returns false
      * new Collection([1, 2, 3]).each((value, key) => { console.log(key, value); if (value === 2) return false; });
      */
-    each(callback: (value: TValue, key: TKey) => unknown) {
+    each(callback: (value: TValue, key: TKey) => unknown): this {
         for (const [key, value] of Object.entries(this.items)) {
-            let loopKey = phpArrayKey(key) as unknown;
-            if (isObject(value)) {
-                loopKey = String(loopKey);
-            }
-            if (callback(value as TValue, loopKey as TKey) === false) {
+            if (callback(value as TValue, phpArrayKey(key) as TKey) === false) {
                 break;
             }
         }
@@ -4539,61 +5965,68 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
-     * Determine if all items pass the given truth test.
+     * Execute a callback over each nested chunk of items.
      *
-     * @param callback - The callback to execute, receives the value(s) as arguments
-     * @return True if all items pass the truth test, false otherwise
+     * @param callback - The callback to execute, receiving a row's items, or a plain object's or a Map's values, and
+     * then its key; false stops the loop
+     * @returns The current collection instance
+     *
+     * @example
+     *
+     * new Collection([[1, 'a'], [2, 'b']]).eachSpread((n, s, k) => console.log(n, s, k)); -> logs "1 a 0", "2 b 1"
      */
-    eachSpread(callback: (...values: TValue[]) => unknown) {
-        return this.each((chunk, key) => {
-            let values: unknown[];
+    eachSpread(callback: (...args: SpreadArgs<TValue, TKey>) => unknown): this {
+        // The row's own items reach the callback, which its declared tuple cannot check here.
+        const spread = callback as (...args: unknown[]) => unknown;
 
-            if (isArray(chunk)) {
-                values = chunk as unknown[];
-            } else if (chunk instanceof Collection) {
-                const all = (
-                    chunk as unknown as Collection<unknown, PropertyKey>
-                ).all();
-                values = isArray(all) ? (all as unknown[]) : [all as unknown];
-            } else {
-                values = arrWrap(chunk as unknown);
-            }
-
-            const loopKey = phpArrayKey(key);
-            return callback(
-                ...(values as TValue[]),
-                loopKey as unknown as TValue,
-            );
-        });
+        // A one-row record hands dataMapSpread() the row and its key, so each row reads as mapSpread() reads it.
+        return this.each(
+            (chunk, key) =>
+                Object.values(dataMapSpread({ [key]: chunk }, spread))[0],
+        );
     }
 
     /**
      * Determine if all items pass the given truth test.
      *
      * @param key - The key or callback to determine the item to check for, or null to check the items directly
-     * @param operator - The operator to use for comparison, if key is not a callback or null
-     * @param value - The value to compare against, if key is not a callback or null
+     * @param operator - The operator to compare with, or the value itself when no third argument is given
+     * @param value - The value to compare against, when an operator is given
      * @returns True if all items pass the truth test, false otherwise
      *
      * @example
      *
      * new Collection([1, 2, 3]).every(x => x > 0); -> true
      * new Collection([1, 2, 3]).every(x => x > 1); -> false
+     * new Collection([{id: 1}, {id: 1}]).every('id', 1); -> true
      * new Collection([{id: 1}, {id: 2}]).every('id', '>=', 1); -> true
      * new Collection([{id: 1}, {id: 2}]).every('id', '>', 1); -> false
      * new Collection([1, 2, 3]).every(2); -> false
      */
+    every(key: ((value: TValue, key: TKey) => unknown) | PathKey): boolean;
+    // A generic caller's item, or one that may be a path, needs this row, as PHP's PHPDoc takes an item too.
+    every(key: TValue | PathKey): boolean;
+    every(key: PathKey, value: unknown): boolean;
+    every(key: PathKey, operator: unknown, value: unknown): boolean;
     every(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
-        operator: unknown = null,
-        value: unknown = null,
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | TValue | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): boolean {
-        if (isNull(operator) && isNull(value)) {
+        const [key] = args;
+
+        if (args.length < 2) {
             const callback = this.valueRetriever(
-                key as PathKey | ((...args: (TValue | TKey)[]) => boolean),
+                key as PathKey | ((...args: (TValue | TKey)[]) => unknown),
             );
-            for (const [key, value] of Object.entries(this.items)) {
-                if (!callback(value as TValue, key as TKey)) {
+            for (const [itemKey, item] of Object.entries(this.items)) {
+                if (
+                    isPhpFalsy(
+                        callback(item as TValue, phpArrayKey(itemKey) as TKey),
+                    )
+                ) {
                     return false;
                 }
             }
@@ -4601,13 +6034,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return true;
         }
 
-        return this.every(
-            this.operatorForWhere(
-                key as PathKey | ((value: TValue, index: TKey) => unknown),
-                isString(operator) ? operator : undefined,
-                value,
-            ),
-        );
+        return this.every(this.operatorForWhereArgs(args));
     }
 
     /**
@@ -4616,31 +6043,36 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key or callback to determine the item to find, or null to check the items directly
      * @param operator - The operator to use for comparison, if key is not a callback or null
      * @param value - The value to compare against, if key is not a callback or null
-     * @returns The first item that matches the given key value pair, or undefined if not found
+     * @returns The first item that matches the given key value pair, or null if none does
      *
      * @example
      *
      * new Collection([1, 2, 3]).firstWhere(x => x > 1); -> 2
-     * new Collection([1, 2, 3]).firstWhere(2); -> 2
+     * new Collection([{active: false}, {active: true}]).firstWhere('active'); -> {active: true}
      * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>=', 2); -> {id: 2}
-     * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> undefined
+     * new Collection([{id: 1}, {id: 2}]).firstWhere('id', '>', 2); -> null
      */
     firstWhere(
-        key: ((value: TValue, key: TKey) => boolean) | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
+    ): TValue | null;
+    firstWhere(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
     ): TValue | null {
-        return this.first(
-            this.operatorForWhere(key, operator as string | undefined, value),
-        ) as TValue | null;
+        return this.first(this.operatorForWhereArgs(args));
     }
 
     /**
      * Get a single key's value from the first matching item in the collection.
      *
-     * @param key - The key to retrieve the value from
-     * @param defaultValue - The default value to return if the key is not found, or a closure that returns the default value
-     * @returns The value of the key from the first matching item, or the default value if not found
+     * @param key - The key or dot path to read in each item; a null one answers null, whatever the default
+     * @param defaultValue - The default value to return if no item holds the key, or a closure that returns it
+     * @returns The value at the key in the first item that holds it, or the default value if none does
      *
      * @example
      *
@@ -4649,80 +6081,90 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([{name: 'Alice'}, {name: 'Bob'}]).value('age', () => 25); -> 25
      * new Collection([]).value('id', 10); -> 10
      * new Collection([]).value('id'); -> null
+     * new Collection([{id: 1}]).value(null, 10); -> null
      */
-    value<TValueDefault>(
-        key: PathKey,
-        defaultValue: TValueDefault | (() => TValueDefault) | null = null,
-    ) {
-        const item = this.first((target) => {
-            return dataHas(target as DataItems<unknown, PropertyKey>, key);
-        });
+    // NoInfer reads the path from the key alone: inferring it from an expected `any` (vitest's expect() offers one)
+    // walks every member of the items, which overflows for a union of collections.
+    value<TPath extends string>(
+        key: TPath,
+    ): NoInfer<PluckValue<TValue, TPath>> | null;
+    value<TPath extends string, TValueDefault>(
+        key: TPath,
+        defaultValue: TValueDefault | (() => TValueDefault),
+    ): NoInfer<PluckValue<TValue, TPath>> | TValueDefault;
+    value(key: null | undefined, defaultValue?: unknown): null;
+    value(key: PathKey, defaultValue?: unknown): unknown;
+    value(key: PathKey, defaultValue: unknown = null): unknown {
+        // data_get() hands back its null target for a null key, so PHP answers null whatever the default.
+        if (isNull(key) || isUndefined(key)) {
+            return null;
+        }
 
-        return dataGet(
-            item as DataItems<unknown, PropertyKey>,
-            key,
-            defaultValue,
-        );
+        const item = this.first((target) => itemHas(target, key));
+
+        // An item that holds the key is never null, as data_has finds no key in null.
+        if (isNull(item)) {
+            return resolveDefault(defaultValue);
+        }
+
+        return itemValue(item, key);
     }
 
     /**
      * Ensure that every item in the collection is of the expected type.
      *
-     * @param type - The expected type(s) for the items, can be a string type name, constructor, array of types, or object with types as values
-     * @returns The current collection instance if all items are of the expected type
-     * @throws Error if any item is not of the expected type
+     * A class named as a string matches only that class; pass the class itself to accept its subclasses too.
+     * Any other string may name a class, so a misspelt type name compiles, narrowing the values to objects.
+     *
+     * @param type - A class, a type name as PHP's get_debug_type() gives it ("int", "float", "string", "bool", "array",
+     * "null" or a class's name) or as JavaScript's typeof does ("number", "boolean", "object", "undefined", …),
+     * or a list or record of them
+     * @returns The current collection instance, typed to hold the expected type, when every item is of it
+     * @throws UnexpectedValueException naming the first item that is none of the types, and its position
      *
      * @example
      *
-     * new Collection([1, 2, 3]).ensure('number'); -> collection is valid
-     * new Collection([1, '2', 3]).ensure('number'); -> throws Error
+     * new Collection([1, 2, 3]).ensure('int'); -> collection is valid
+     * new Collection([1, '2', 3]).ensure('int'); -> throws UnexpectedValueException
      * new Collection([new Date(), new Date()]).ensure(Date); -> collection is valid
-     * new Collection([new Date(), {}]).ensure(Date); -> throws Error
-     * new Collection([1, '2', true]).ensure(['number', 'string', 'boolean']); -> collection is valid
-     * new Collection([1, '2', null]).ensure(['number', 'string', 'boolean']); -> throws Error
-     * new Collection([1, '2', null]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> throws Error
-     * new Collection([1, '2', true]).ensure({a: 'number', b: 'string', c: 'boolean'}); -> collection is valid
-     * new Collection([1, 2, 3]).ensure('string'); -> throws Error
+     * new Collection([new Date(), {}]).ensure(Date); -> throws UnexpectedValueException
+     * new Collection([1, '2', true]).ensure(['int', 'string', 'bool']); -> collection is valid
+     * new Collection([1, '2', null]).ensure(['int', 'string', 'bool']); -> throws UnexpectedValueException
+     * new Collection([1, '2', true]).ensure({a: 'int', b: 'string', c: 'bool'}); -> collection is valid
      * new Collection([null, undefined]).ensure('null'); -> collection is valid
-     * new Collection([null, undefined]).ensure('undefined'); -> collection is valid
-     * new Collection([null, undefined]).ensure(['null', 'undefined']); -> collection is valid
+     * new Collection([1.5, 2]).ensure('number'); -> collection is valid
+     * new Collection([{}, new Date()]).ensure('object'); -> collection is valid
      */
-    ensure<TEnsureOfType>(
+    ensure<const TSpec extends EnsureSpec>(
+        type: TSpec | readonly TSpec[] | Readonly<Record<string, TSpec>>,
+    ): Collection<EnsuredType<TSpec>, TKey, TShape>;
+    ensure(
         type:
-            | TEnsureOfType
-            | Array<TEnsureOfType>
-            | Record<PropertyKey, TEnsureOfType>
-            | "string"
-            | "number"
-            | "symbol"
-            | "boolean"
-            | "undefined"
-            | "null",
-    ) {
-        const types = isArray(type)
+            | EnsureSpec
+            | readonly EnsureSpec[]
+            | Readonly<Record<string, EnsureSpec>>,
+    ): unknown {
+        const allowedTypes: unknown[] = isArray(type)
             ? type
             : isObject(type)
               ? Object.values(type)
               : [type];
 
-        return this.each((item, index) => {
-            const itemType = typeOf(item);
-            for (const allowedType of types) {
-                // When checking for 'object' type, exclude Collection instances
-                if (allowedType === "object" && item instanceof Collection) {
-                    continue;
-                }
-
-                if (
-                    itemType === allowedType ||
-                    (isFunction(allowedType) && item instanceof allowedType)
-                ) {
-                    return true;
-                }
+        return this.each((item, key) => {
+            if (
+                allowedTypes.some((allowedType) => isOfType(item, allowedType))
+            ) {
+                return true;
             }
 
-            throw new Error(
-                `Collection should only include [${types.join(", ")}] items, but '${itemType}' found at position ${String(index)}.`,
+            const names = allowedTypes.map((allowedType) =>
+                isFunction(allowedType)
+                    ? allowedType.name
+                    : String(allowedType),
+            );
+
+            throw new UnexpectedValueException(
+                `Collection should only include [${names.join(", ")}] items, but '${phpDebugType(item)}' found at position ${phpIntegerFormat(key)}.`,
             );
         });
     }
@@ -4739,20 +6181,23 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Run a map over each nested chunk of items.
      *
-     * @param callback - The callback to execute, receives the value(s) as arguments, with the key as the last argument
+     * @param callback - The callback to execute, receiving a row's items, or a plain object's or a Map's values, and
+     * then its key
      * @returns A new collection with the results of the callback
+     *
+     * @example
+     *
+     * new Collection([[1, 'a'], [2, 'b']]).mapSpread((n, s, k) => `${n}${s}${k}`); -> new Collection(['1a0', '2b1'])
      */
     mapSpread<TMapSpreadValue>(
-        callback: (...values: TValue[]) => TMapSpreadValue,
-    ) {
-        return this.map((chunk, key) => {
-            const values =
-                chunk instanceof Collection
-                    ? (chunk.all() as TValue[])
-                    : (arrWrap(chunk) as TValue[]);
+        callback: (...args: SpreadArgs<TValue, TKey>) => TMapSpreadValue,
+    ): Collection<TMapSpreadValue, TKey, TShape> {
+        // The row's own items reach the callback, which its declared tuple cannot check here.
+        const spread = callback as (...args: unknown[]) => TMapSpreadValue;
 
-            return callback(...values, key as unknown as TValue);
-        });
+        return this.newInstance<TMapSpreadValue, TKey, TShape>(
+            handOver(dataMapSpread(this.items, spread)),
+        );
     }
 
     /**
@@ -4760,33 +6205,47 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * The callback should return an associative array with a single key/value pair.
      *
-     * @param callback - The callback to execute, receives the value and key as arguments, should return a [groupKey, groupValue] tuple
+     * @param callback - The callback to execute, receives the value and key as arguments, should return an object with
+     * a single key/value pair
      * @returns A new collection with the grouped items as collections
      */
-    mapToGroups<
-        TMapToGroupsValue,
-        TMapToGroupsKey extends PropertyKey = PropertyKey,
-    >(
+    mapToGroups<TMapToGroupsValue>(
+        callback: (value: TValue, key: TKey) => readonly TMapToGroupsValue[],
+    ): Collection<
+        Collection<TMapToGroupsValue | false, number, "list">,
+        0 | "",
+        "partial"
+    >;
+    mapToGroups<TMapToGroupsValue, TMapToGroupsKey extends PropertyKey>(
         callback: (
             value: TValue,
             key: TKey,
-        ) =>
-            | Record<TMapToGroupsKey, TMapToGroupsValue>
-            | [TMapToGroupsKey, TMapToGroupsValue],
-    ) {
-        const groups = this.mapToDictionary(
-            callback as (
-                value: TValue,
-                key: TKey,
-            ) => Record<TMapToGroupsKey, TMapToGroupsValue>,
-        );
+        ) => Record<TMapToGroupsKey, TMapToGroupsValue> & object,
+    ): Collection<
+        Collection<TMapToGroupsValue, number, "list">,
+        PhpArrayKey<TMapToGroupsKey>,
+        ItemKeyedShape<PhpArrayKey<TMapToGroupsKey>>
+    >;
+    mapToGroups(
+        callback: (value: TValue, key: TKey) => object,
+    ): Collection<
+        Collection<unknown, number, "list">,
+        string | number,
+        "keyed"
+    >;
+    mapToGroups(callback: (value: TValue, key: TKey) => object): unknown {
+        const dictionary = this.mapToDictionary(callback);
+        const groups = new Map<
+            string | number,
+            Collection<unknown, number, "list">
+        >();
 
-        return groups.map(
-            (group: unknown) =>
-                this.newInstance(
-                    group as DataItems<TMapToGroupsValue, TMapToGroupsKey>,
-                ) as unknown as Collection<TMapToGroupsValue, TMapToGroupsKey>,
-        );
+        // map() reads the plain object, which re-sorts integer keys, so the groups follow the dictionary's order.
+        for (const [key, group] of dictionary.entriesInOrder()) {
+            groups.set(key, this.newInstance<unknown, number, "list">(group));
+        }
+
+        return this.newInstance(groups);
     }
 
     /**
@@ -4795,93 +6254,118 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the value and key as arguments, should return a collection or arrayable
      * @returns A new collection with the flattened results of the callback
      */
-    flatMap<TFlatMapValue, TFlatMapKey extends PropertyKey = PropertyKey>(
-        callback: (
-            value: TValue,
-            key: TKey,
-        ) =>
-            | Collection<TFlatMapValue, TFlatMapKey>
-            | DataItems<TFlatMapValue, TFlatMapKey>,
-    ) {
+    flatMap<TFlatMapItems extends object>(
+        callback: (value: TValue, key: TKey) => TFlatMapItems,
+    ): Collection<
+        CollapseValue<TFlatMapItems>,
+        CollapseKey<TFlatMapItems>,
+        CollapseShape<TFlatMapItems>
+    > {
         return this.map(callback).collapse();
     }
 
     /**
      * Map the values into a new class.
      *
-     * @param className - The class to map the values into, should have a constructor that accepts the value
+     * @param className - The class to map the values into, whose constructor receives each value and its key, or a
+     * backed `@tolki/enum` definition, whose from() resolves each value to its case
      * @returns A new collection with the values mapped into the new class
+     *
+     * @example
+     *
+     * new Collection(['first']).mapInto(Wrapper); -> new Collection([new Wrapper('first', 0)])
+     *
+     * const Status = defineEnum({A: 1, B: 2, backed: true, _cases: ['A', 'B']});
+     * new Collection([1, 2]).mapInto(Status); -> new Collection([Status.from(1), Status.from(2)])
      */
     mapInto<TMapIntoValue>(
-        className: new (...args: unknown[]) => TMapIntoValue,
-    ): Collection<TMapIntoValue, TKey> {
-        return this.map((item) => new className(item)) as unknown as Collection<
-            TMapIntoValue,
-            TKey
-        >;
+        className:
+            | (new (value: TValue, key: TKey) => TMapIntoValue)
+            | EnumDefinition<TValue, TMapIntoValue>,
+    ): Collection<TMapIntoValue, TKey, TShape> {
+        if (isEnumDefinition(className)) {
+            return this.map((value) => className.from(value));
+        }
+
+        return this.map((value, key) => new className(value, key));
     }
 
     /**
      * Get the min value of a given key.
      *
-     * @param callback - The key or callback to determine the value to min, or null to min the items directly
-     * @returns The min value, or null if no numeric values found
+     * @param callback - The key or callback to determine the value to min, which receives the value alone, or null to
+     * min the items directly
+     * @param key - The key or path of segments to read each item's value at, in place of a callback
+     * @returns The smallest value that is not null, compared as PHP's `<` compares them, or null when none is
      */
-    min(
-        callback:
-            | ((value: TValue, key: TKey) => number | null | undefined)
-            | PathKey = null,
-    ) {
-        const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
-        );
+    min(callback?: null | undefined): NonNullable<TValue> | null;
+    min<TMinResult>(
+        callback: (value: TValue) => TMinResult,
+    ): NonNullable<TMinResult> | null;
+    min<TPath extends string | number>(
+        key: TPath,
+    ): PluckValue<TValue, TPath> | null;
+    min<TMinResult>(
+        callback: ((value: TValue) => TMinResult) | null | undefined,
+    ): NonNullable<TValue | TMinResult> | null;
+    min<TPath extends string | number>(
+        key: TPath | null | undefined,
+    ): NonNullable<TValue> | PluckValue<TValue, TPath> | null;
+    min(callback?: ((value: TValue) => unknown) | PathKey): unknown;
+    min(callback: ((value: TValue) => unknown) | PathKey = null): unknown {
+        const callbackValue = this.valueRetriever(callback);
 
-        return this.map((value: TValue) =>
-            callbackValue(value as TValue | TKey),
-        )
-            .reject((value: TValue) => isNull(value))
-            .reduce(
-                ((carry: number | null, value: unknown) => {
-                    if (isNull(carry) || (value as number) < carry) {
-                        return value as number;
-                    }
+        // undefined stands for PHP's null, so it is skipped with it.
+        return this.map((value) => callbackValue(value))
+            .reject((value) => isNull(value) || isUndefined(value))
+            .reduce<unknown>((carry, value) => {
+                if (isNull(carry) || compareValues(value, carry) < 0) {
+                    return value;
+                }
 
-                    return carry;
-                }) as (
-                    carry: number | TValue | null,
-                    value: TValue,
-                    key: TKey,
-                ) => number | null,
-                null,
-            );
+                return carry;
+            }, null);
     }
 
     /**
      * Get the max value of a given key.
      *
-     * @param callback - The key or callback to determine the value to max, or null to max the items directly
-     * @returns The max value, or null if no numeric values found
+     * @param callback - The key or callback to determine the value to max, which receives the value alone, or null to
+     * max the items directly
+     * @param key - The key or path of segments to read each item's value at, in place of a callback
+     * @returns The largest value of an item that is not null, compared as PHP's `>` compares them, or null when none is
      */
-    max(callback: ((value: TValue, key: TKey) => number) | PathKey = null) {
-        const callbackValue = this.valueRetriever(
-            callback as PathKey | ((...args: (TValue | TKey)[]) => number),
-        );
+    max(callback?: null | undefined): NonNullable<TValue> | null;
+    max<TMaxResult>(
+        callback: (value: TValue) => TMaxResult,
+    ): NonNullable<TMaxResult> | null;
+    max<TPath extends string | number>(
+        key: TPath,
+    ): PluckValue<TValue, TPath> | null;
+    max<TMaxResult>(
+        callback: ((value: TValue) => TMaxResult) | null | undefined,
+    ): NonNullable<TValue | TMaxResult> | null;
+    max<TPath extends string | number>(
+        key: TPath | null | undefined,
+    ): NonNullable<TValue> | PluckValue<TValue, TPath> | null;
+    max(callback?: ((value: TValue) => unknown) | PathKey): unknown;
+    max(callback: ((value: TValue) => unknown) | PathKey = null): unknown {
+        const callbackValue = this.valueRetriever(callback);
 
-        return this.reject((value: TValue) => isNull(value)).reduce(
-            ((carry: number | null, item: TValue) => {
-                const value = callbackValue(item as TValue | TKey) as number;
-                if (isNull(carry) || value > carry) {
-                    return value;
-                }
+        // undefined stands for PHP's null, so it is skipped with it.
+        return this.reject(
+            (value: TValue) => isNull(value) || isUndefined(value),
+        ).reduce<unknown>((carry, item) => {
+            // A callback's undefined is PHP's null too: the next value replaces it, and it answers when none does.
+            const value = callbackValue(item) ?? null;
 
-                return carry;
-            }) as (
-                carry: number | TValue | null,
-                value: TValue,
-                key: TKey,
-            ) => number | null,
-            null,
-        );
+            // PHP compiles $value > $result as $result < $value, which differs where <=> answers 1 both ways.
+            if (isNull(carry) || compareValues(carry, value) < 0) {
+                return value;
+            }
+
+            return carry;
+        }, null);
     }
 
     /**
@@ -4891,7 +6375,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param perPage - The number of items per page
      * @returns A new collection with the items for the specified page
      */
-    forPage(page: number, perPage: number) {
+    forPage(
+        this: Collection<TValue, TKey, "list">,
+        page: number,
+        perPage: number,
+    ): this;
+    forPage(
+        page: number,
+        perPage: number,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    forPage(page: number, perPage: number): unknown {
         const offset = Math.max(0, (page - 1) * perPage);
 
         return this.slice(offset, perPage);
@@ -4903,152 +6396,184 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key or callback to determine the partitioning, or null to partition the items directly
      * @param operator - The operator to use for comparison, if key is not a callback or null
      * @param value - The value to compare against, if key is not a callback or null
-     * @returns A TupleCollection with two collections: the first with items that pass the truth test, the second with items that fail
+     * @returns A list of two collections, also read by index: the items that pass the truth test, then the rest
      */
     partition(
-        key: ((value: TValue, key: TKey) => boolean) | TValue | PathKey = null,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
-    ): TupleCollection<Collection<TValue, TKey>, Collection<TValue, TKey>> {
-        let callback;
-        if (isUndefined(operator) && isUndefined(value)) {
-            callback = this.valueRetriever(
-                key as PathKey | ((...args: (TValue | TKey)[]) => boolean),
-            );
-        } else {
-            callback = this.operatorForWhere(
-                key as PathKey | ((value: TValue, index: TKey) => unknown),
-                operator as string | undefined,
-                value,
-            );
-        }
+    ): PartitionResult<Collection<TValue, TKey, Removed<TShape>>>;
+    partition(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): unknown {
+        const callback: (value: TValue, key: TKey) => unknown =
+            args.length === 1
+                ? this.valueRetriever(
+                      args[0] as
+                          | PathKey
+                          | ((...args: (TValue | TKey)[]) => unknown),
+                  )
+                : this.operatorForWhereArgs(args);
 
         const [passed, failed] = dataPartition(this.items, (item, key) =>
-            Boolean(callback(item as TValue, key as TKey)),
+            callback(item as TValue, key as TKey),
         );
 
-        return this.newInstance([
-            this.newInstance(
-                passed as DataItems<TValue, TKey>,
-            ) as unknown as Collection<TValue, TKey>,
-            this.newInstance(
-                failed as DataItems<TValue, TKey>,
-            ) as unknown as Collection<TValue, TKey>,
-        ]) as unknown as Collection<
-            Collection<TValue, TKey>,
-            number
-        > as TupleCollection<
-            Collection<TValue, TKey>,
-            Collection<TValue, TKey>
-        >;
+        const halves = this.newInstance<
+            Collection<TValue, TKey, Removed<TShape>>,
+            number,
+            "list"
+        >(
+            handOver([
+                this.newInstance<TValue, TKey, Removed<TShape>>(
+                    handOver(passed as DataItems<TValue, TKey>),
+                ),
+                this.newInstance<TValue, TKey, Removed<TShape>>(
+                    handOver(failed as DataItems<TValue, TKey>),
+                ),
+            ]),
+        );
+
+        // PHP reads $partition[0] through ArrayAccess; a non-enumerable getter reads [0] and [1] the same way.
+        for (const index of [0, 1]) {
+            Object.defineProperty(halves, index, {
+                get: () => halves.offsetGet(index),
+            });
+        }
+
+        return halves;
     }
 
     /**
      * Calculate the percentage of items that pass a given truth test.
      *
      * @param callback - The callback to execute, receives the value and key as arguments
-     * @param precision - Decimal places to round to (default 2)
-     * @returns The percentage of items that pass the truth test, rounded to the given precision, or null if the collection is empty
+     * @param precision - Decimal places to round to (default 2); a negative precision rounds to tens, hundreds and on,
+     * and a fraction is dropped, as PHP's int parameter does
+     * @returns The percentage of items that pass the truth test, rounded as PHP's round() rounds it, or null if the
+     * collection is empty
+     * @throws TypeError when the precision is NAN, infinite or outside PHP's int range, as its int parameter refuses
      */
     percentage(
-        callback: (value: TValue, key: TKey) => boolean,
+        callback: (value: TValue, key: TKey) => unknown,
         precision: number = 2,
-    ) {
+    ): number | null {
+        // PHP reads the precision as an int on the way in, so one it refuses throws before the items are looked at.
+        const places = phpIntArgument(
+            precision,
+            "Collection::percentage(): Argument #2 ($precision) must be of type int, float given",
+        );
+
         if (this.isEmpty()) {
             return null;
         }
 
-        const ratio = this.filter(callback).count() / this.count();
-        const percent = ratio * 100;
-
-        // Round to the specified precision (matches Laravel's round(..., precision))
-        const factor = Math.pow(10, precision);
-
-        return Math.round(percent * factor) / factor;
+        return phpRound(
+            (this.filter(callback).count() / this.count()) * 100,
+            places,
+        );
     }
 
     /**
-     * Get the sum of the given values.\
+     * Get the sum of the given values.
      *
-     * @param callback - The key or callback to determine the value to sum, or null to sum the items directly
-     * @returns The sum of the values
+     * @param callback - The key or callback to determine the value to sum, or null to sum the items directly, which
+     * PHP's `+` must then be able to add
+     * @returns The sum of the values, each added as PHP's `+` adds it
+     * @throws TypeError for a value PHP's `+` cannot add, such as a non-numeric string or an array
      */
-    sum<TReturnType = number>(
-        callback: ((value: TValue, key: TKey) => TReturnType) | PathKey = null,
+    sum(
+        callback: ((value: TValue, key: TKey) => unknown) | string | number,
+    ): number;
+    sum(
+        this: Collection<TValue & PhpNumeric, TKey, TShape>,
+        callback?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): number;
+    sum(
+        callback: ((value: TValue, key: TKey) => unknown) | PathKey = null,
     ): number {
         const callbackValue = isNull(callback)
             ? this.identity()
             : this.valueRetriever(
                   callback as
                       | PathKey
-                      | ((...args: (TValue | TKey)[]) => TReturnType),
+                      | ((...args: (TValue | TKey)[]) => unknown),
               );
 
-        return this.reduce((carry, value, key) => {
-            const result = callbackValue(value, key) as number;
-            return (carry as number) + result;
-        }, 0);
+        return this.reduce(
+            (total, value, key) => phpAdd(total, callbackValue(value, key)),
+            0,
+        );
     }
 
     /**
      * Apply the callback if the collection is empty.
      *
-     * @param callback - The callback to execute if the collection is empty
-     * @param defaultValue - The callback to execute if the collection is not empty
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @param callback - The callback to execute if the collection is empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is not empty, receiving it and false
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     whenEmpty<TWhenEmptyReturnType>(
-        callback: (instance: this) => TWhenEmptyReturnType,
-        defaultValue: ((instance: this) => TWhenEmptyReturnType) | null = null,
-    ) {
+        callback: (collection: this, value: boolean) => TWhenEmptyReturnType,
+        defaultValue:
+            | ((collection: this, value: boolean) => TWhenEmptyReturnType)
+            | null = null,
+    ): this | Exclude<TWhenEmptyReturnType, null | undefined | void> {
         return this.when(this.isEmpty(), callback, defaultValue);
     }
 
     /**
      * Apply the callback if the collection is not empty.
      *
-     * @param callback - The callback to execute if the collection is not empty
-     * @param defaultValue - The callback to execute if the collection is empty
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @param callback - The callback to execute if the collection is not empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is empty, receiving it and false
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     whenNotEmpty<TWhenNotEmptyReturnType>(
-        callback: (instance: this) => TWhenNotEmptyReturnType,
+        callback: (collection: this, value: boolean) => TWhenNotEmptyReturnType,
         defaultValue:
-            | ((instance: this) => TWhenNotEmptyReturnType)
+            | ((collection: this, value: boolean) => TWhenNotEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TWhenNotEmptyReturnType, null | undefined | void> {
         return this.when(this.isNotEmpty(), callback, defaultValue);
     }
 
     /**
      * Apply the callback unless the collection is empty.
      *
-     * @param callback - The callback to execute unless the collection is empty
-     * @param defaultValue - The callback to execute if the collection is empty
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @param callback - The callback to execute unless the collection is empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is empty, receiving it and false
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     unlessEmpty<TUnlessEmptyReturnType>(
-        callback: (instance: this) => TUnlessEmptyReturnType,
+        callback: (collection: this, value: boolean) => TUnlessEmptyReturnType,
         defaultValue:
-            | ((instance: this) => TUnlessEmptyReturnType)
+            | ((collection: this, value: boolean) => TUnlessEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TUnlessEmptyReturnType, null | undefined | void> {
         return this.whenNotEmpty(callback, defaultValue);
     }
 
     /**
      * Apply the callback unless the collection is not empty.
      *
-     * @param callback - The callback to execute unless the collection is not empty
-     * @param defaultValue - The callback to execute if the collection is not empty
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @param callback - The callback to execute unless the collection is not empty, receiving it and true
+     * @param defaultValue - The callback to execute if the collection is not empty, receiving it and false
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
      */
     unlessNotEmpty<TUnlessNotEmptyReturnType>(
-        callback: (instance: this) => TUnlessNotEmptyReturnType,
+        callback: (
+            collection: this,
+            value: boolean,
+        ) => TUnlessNotEmptyReturnType,
         defaultValue:
-            | ((instance: this) => TUnlessNotEmptyReturnType)
+            | ((collection: this, value: boolean) => TUnlessNotEmptyReturnType)
             | null = null,
-    ) {
+    ): this | Exclude<TUnlessNotEmptyReturnType, null | undefined | void> {
         return this.whenEmpty(callback, defaultValue);
     }
 
@@ -5061,13 +6586,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A new collection with the items that match the given key value pair
      */
     where(
-        key: ((value: TValue, index: TKey) => unknown) | PathKey,
+        this: Collection<TValue, TKey, "list">,
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
         operator?: unknown,
         value?: unknown,
-    ) {
-        return this.filter(
-            this.operatorForWhere(key, operator as string | undefined, value),
-        );
+    ): this;
+    where(
+        key: ((value: TValue, key: TKey) => unknown) | PathKey,
+        operator?: unknown,
+        value?: unknown,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    where(
+        ...args: [
+            key: ((value: TValue, key: TKey) => unknown) | PathKey,
+            operator?: unknown,
+            value?: unknown,
+        ]
+    ): unknown {
+        return this.filter(this.operatorForWhereArgs(args));
     }
 
     /**
@@ -5076,7 +6612,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key to check for null values, or null to check the items directly
      * @returns A new collection with the items where the value for the given key is null
      */
-    whereNull(key: PathKey = null) {
+    whereNull(this: Collection<TValue, TKey, "list">, key?: PathKey): this;
+    whereNull(key?: PathKey): Collection<TValue, TKey, Removed<TShape>>;
+    whereNull(key: PathKey = null): unknown {
         return this.whereStrict(key, null);
     }
 
@@ -5086,7 +6624,12 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param key - The key to check for non-null values, or null to check the items directly
      * @returns A new collection with the items where the value for the given key is not null
      */
-    whereNotNull(key: PathKey = null) {
+    whereNotNull(
+        key?: null | undefined,
+    ): Collection<NonNullableArray<TValue[]>[number], TKey, Removed<TShape>>;
+    whereNotNull(this: Collection<TValue, TKey, "list">, key: PathKey): this;
+    whereNotNull(key: PathKey): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotNull(key: PathKey = null): unknown {
         return this.where(key, "!==", null);
     }
 
@@ -5097,7 +6640,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param value - The value to compare against
      * @returns A new collection with the items that match the given key value pair using strict comparison
      */
-    whereStrict(key: PathKey, value: unknown) {
+    whereStrict(
+        this: Collection<TValue, TKey, "list">,
+        key: PathKey,
+        value: unknown,
+    ): this;
+    whereStrict(
+        key: PathKey,
+        value: unknown,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereStrict(key: PathKey, value: unknown): unknown {
         return this.where(key, "===", value);
     }
 
@@ -5109,24 +6661,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that match any of the given values for the specified key
      */
-    whereIn<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereIn<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
-        values: TValueSet,
-        strict: boolean = false,
-    ) {
-        const valueSet = this.getRawItems(values);
+        values: TOperand,
+        strict?: boolean,
+    ): this;
+    whereIn<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+        strict?: boolean,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereIn(key: PathKey, values: Operand, strict: boolean = false): unknown {
+        const isIn = inArrayTest(
+            Object.values(this.getRawItems(values)),
+            strict,
+        );
 
-        return this.filter((item: TValue) => {
-            const itemValue = dataGet(
-                item as DataItems<unknown, PropertyKey>,
-                key,
-            );
-            if (strict) {
-                return Object.values(valueSet).includes(itemValue as TValue);
-            }
-
-            return Object.values(valueSet).some((v) => v == itemValue);
-        });
+        return this.filter((item: TValue) => isIn(itemValue(item, key)));
     }
 
     /**
@@ -5136,10 +6688,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that match any of the given values for the specified key using strict comparison
      */
-    whereInStrict<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereInStrict<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
-        values: TValueSet,
-    ) {
+        values: TOperand,
+    ): this;
+    whereInStrict<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereInStrict(key: PathKey, values: Operand): unknown {
         return this.whereIn(key, values, true);
     }
 
@@ -5150,10 +6708,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key between the given values
      */
-    whereBetween<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereBetween<TOperand extends NonNullable<Operand>>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
-        values: TValueSet,
-    ) {
+        values: TOperand,
+    ): this;
+    whereBetween<TOperand extends NonNullable<Operand>>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereBetween(key: PathKey, values: NonNullable<Operand>): unknown {
         const valueSet = this.getRawItems(values);
         const valuesArray = Object.values(valueSet);
 
@@ -5171,21 +6735,24 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object, should contain exactly two values
      * @returns A new collection with the items that have the value for the specified key not between the given values
      */
-    whereNotBetween<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereNotBetween<TOperand extends NonNullable<Operand>>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
-        values: TValueSet,
-    ) {
+        values: TOperand,
+    ): this;
+    whereNotBetween<TOperand extends NonNullable<Operand>>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotBetween(key: PathKey, values: NonNullable<Operand>): unknown {
+        const valuesArray = Object.values(this.getRawItems(values));
+
         return this.filter((item: TValue) => {
-            const itemValue = dataGet(
-                item as DataItems<unknown, PropertyKey>,
-                key,
-            );
-            const valueSet = this.getRawItems(values);
-            const valuesArray = Object.values(valueSet);
+            const retrieved = itemValue(item, key);
 
             return (
-                compareValues(itemValue, valuesArray[0]) < 0 ||
-                compareValues(itemValue, valuesArray[valuesArray.length - 1]) >
+                compareValues(retrieved, valuesArray[0]) < 0 ||
+                compareValues(retrieved, valuesArray[valuesArray.length - 1]) >
                     0
             );
         });
@@ -5199,24 +6766,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param strict - Whether to use strict comparison (===) or loose comparison (==), defaults to false (loose)
      * @returns A new collection with the items that do not match any of the given values for the specified key
      */
-    whereNotIn<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereNotIn<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
-        values: TValueSet,
+        values: TOperand,
+        strict?: boolean,
+    ): this;
+    whereNotIn<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+        strict?: boolean,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotIn(
+        key: PathKey,
+        values: Operand,
         strict: boolean = false,
-    ) {
-        const valueSet = this.getRawItems(values);
+    ): unknown {
+        const isIn = inArrayTest(
+            Object.values(this.getRawItems(values)),
+            strict,
+        );
 
-        return this.reject((item: TValue) => {
-            const itemValue = dataGet(
-                item as DataItems<unknown, PropertyKey>,
-                key,
-            );
-            if (strict) {
-                return Object.values(valueSet).includes(itemValue as TValue);
-            }
-
-            return Object.values(valueSet).some((v) => v == itemValue);
-        });
+        return this.reject((item: TValue) => isIn(itemValue(item, key)));
     }
 
     /**
@@ -5226,10 +6797,16 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param values - The values to filter by, can be an array, collection, or object
      * @returns A new collection with the items that do not match any of the given values for the specified key using strict comparison
      */
-    whereNotInStrict<TValueSet extends DataItems<unknown, PropertyKey>>(
+    whereNotInStrict<TOperand extends Operand>(
+        this: Collection<TValue, TKey, "list">,
         key: PathKey,
-        values: TValueSet,
-    ) {
+        values: TOperand,
+    ): this;
+    whereNotInStrict<TOperand extends Operand>(
+        key: PathKey,
+        values: TOperand,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    whereNotInStrict(key: PathKey, values: Operand): unknown {
         return this.whereNotIn(key, values, true);
     }
 
@@ -5239,12 +6816,20 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param type - The expected type(s) for the items, can be a constructor, array of constructors, or object with constructors as values
      * @returns A new collection with the items that match the given type(s)
      */
-    whereInstanceOf<TWhereInstanceOf>(
+    whereInstanceOf<
+        TType extends
+            | AbstractConstructor
+            | readonly AbstractConstructor[]
+            | Readonly<Record<PropertyKey, AbstractConstructor>>,
+    >(
+        type: TType,
+    ): Collection<InstancesOf<TValue, TType>, TKey, Removed<TShape>>;
+    whereInstanceOf(
         type:
-            | (new (...args: unknown[]) => TWhereInstanceOf)
-            | Array<new (...args: never[]) => unknown>
+            | (new (...args: never[]) => unknown)
+            | (new (...args: never[]) => unknown)[]
             | Record<PropertyKey, new (...args: never[]) => unknown>,
-    ) {
+    ): unknown {
         return this.filter((item: TValue) => {
             if (isArray(type) || isObject(type)) {
                 const types = isArray(type) ? type : Object.values(type);
@@ -5261,7 +6846,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the current instance as an argument
      * @returns The result of the callback
      */
-    pipe<TPipeReturnType>(callback: (instance: this) => TPipeReturnType) {
+    pipe<TPipeReturnType>(
+        callback: (collection: this) => TPipeReturnType,
+    ): TPipeReturnType {
         return callback(this);
     }
 
@@ -5272,23 +6859,39 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A new instance of the given class, instantiated with the current collection
      */
     pipeInto<TPipeIntoValue>(
-        className: new (instance: this) => TPipeIntoValue,
-    ) {
+        className: new (collection: this) => TPipeIntoValue,
+    ): TPipeIntoValue {
         return new className(this);
     }
 
     /**
      * Pass the collection through a series of callable pipes and return the result.
      *
-     * @param callbacks - An array of callbacks to execute, each receives the current instance as an argument
-     * @returns The result of the final callback in the series
+     * @param callbacks - The callbacks to execute in turn: the first receives the collection, and each one after it
+     * what the one before it returned
+     * @returns The result of the final callback in the series, or the collection itself when there is none
      */
-    pipeThrough(callbacks: Array<(instance: this) => unknown>) {
-        return this.newInstance(callbacks).reduce<this>(
+    pipeThrough(callbacks: readonly []): this;
+    pipeThrough<TFirst>(callbacks: readonly [(carry: this) => TFirst]): TFirst;
+    pipeThrough<TFirst, TSecond>(
+        callbacks: readonly [
+            (carry: this) => TFirst,
+            (carry: TFirst) => TSecond,
+        ],
+    ): TSecond;
+    pipeThrough<TFirst, TSecond, TThird>(
+        callbacks: readonly [
+            (carry: this) => TFirst,
+            (carry: TFirst) => TSecond,
+            (carry: TSecond) => TThird,
+        ],
+    ): TThird;
+    pipeThrough(callbacks: ReadonlyArray<(carry: never) => unknown>): unknown;
+    pipeThrough(callbacks: ReadonlyArray<(carry: never) => unknown>): unknown {
+        // Each callback takes what the one before it returned, which only the rows above can type.
+        return this.sameInstance(callbacks).reduce<unknown>(
             (carry, callback) =>
-                (callback as (instance: this) => unknown)(
-                    carry as this,
-                ) as this,
+                (callback as unknown as (carry: unknown) => unknown)(carry),
             this,
         );
     }
@@ -5297,52 +6900,33 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * Reduce the collection to a single value.
      *
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
-     * @param initial - The initial value to start the reduction with
+     * @param initial - The carry the first item is reduced into, null when none is given
      * @returns The reduced value, or the initial value if the collection is empty
      */
-    reduce(
-        callback: (carry: TValue, value: TValue, key: TKey) => TValue,
-    ): TValue | null;
+    reduce<TReduce = TValue>(
+        callback: (
+            carry: TReduce | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce | null,
+    ): TReduce | null;
     reduce<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
     ): TReduce;
-    reduce<TReduce = TValue>(
+    reduce<TReduce>(
         callback: (
-            carry: TValue | TReduce,
+            carry: TReduce | null,
             value: TValue,
             key: TKey,
-        ) => TReduce,
-        initial?: TReduce,
-    ) {
-        const entries = Object.entries(this.items);
+        ) => TReduce | null,
+        initial: TReduce | null = null,
+    ): unknown {
+        // PHP's $initial defaults to null, so the first item reaches the callback too, unlike Array.prototype.reduce.
+        let result = initial;
 
-        if (entries.length === 0) {
-            // PHP's reduce never throws: an empty backing hands back $initial,
-            // which defaults to null (EnumeratesValues.php:845).
-            return isUndefined(initial) ? null : (initial as TReduce);
-        }
-
-        let result: TReduce;
-        let startIndex: number;
-
-        if (isUndefined(initial)) {
-            // Use first element as initial value (like native JS Array.reduce)
-            result = entries[0]![1] as unknown as TReduce;
-            startIndex = 1;
-        } else {
-            result = initial;
-            startIndex = 0;
-        }
-
-        for (let i = startIndex; i < entries.length; i++) {
-            const [key, value] = entries[i]!;
-
-            result = callback(
-                result,
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            );
+        for (const [key, value] of this.entriesInOrder()) {
+            result = callback(result, value, key);
         }
 
         return result;
@@ -5366,12 +6950,10 @@ export class Collection<TValue, TKey extends PropertyKey> {
     ): TReduce {
         let result = initial;
 
-        for (const [key, value] of Object.entries(this.items)) {
-            const returned = callback(
-                result,
-                value as TValue,
-                phpArrayKey(key) as TKey,
-            ) as TReduce | undefined;
+        for (const [key, value] of this.entriesInOrder()) {
+            const returned = callback(result, value, key) as
+                | TReduce
+                | undefined;
 
             if (!isUndefined(returned)) {
                 result = returned;
@@ -5387,23 +6969,27 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the spread carry values, value, and key as arguments
      * @param initial - The initial values to start the reduction with
      * @returns The reduced values as an array
+     * @throws UnexpectedValueException when the reducer answers anything but an array, named as gettype() names it,
+     * under the name of the class it was called on, which a minified build may rename
      */
     reduceSpread<TSpread extends unknown[]>(
-        callback: (...args: [...TSpread, TValue, PropertyKey]) => [...TSpread],
+        callback: (...args: [...TSpread, TValue, TKey]) => [...TSpread],
         ...initial: [...TSpread]
     ): [...TSpread] {
         let result = initial as unknown[];
 
-        for (const [key, value] of Object.entries(this.items)) {
+        for (const [key, value] of this.entriesInOrder()) {
             const callbackResult = (
                 callback as (...args: unknown[]) => unknown
             )(...result, value, key);
 
             if (!isArray(callbackResult)) {
-                const resultType = typeOf(callbackResult);
+                const type = phpTypeName(callbackResult);
+                // PHP names the class with class_basename(static::class), so a subclass gives its own name.
+                const name = this.constructor.name;
 
-                throw new Error(
-                    `The reduceSpread function expect the reducer callback to return an array, but got ${resultType}`,
+                throw new UnexpectedValueException(
+                    `${name}::reduceSpread expects reducer to return an array, but got a '${type}' instead.`,
                 );
             }
 
@@ -5416,68 +7002,75 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Reduce an associative collection to a single value.
      *
-     * @param initial - The initial value to start the reduction with
      * @param callback - The callback to execute, receives the carry, value, and key as arguments
+     * @param initial - The carry the first item is reduced into, null when none is given
      * @returns The reduced value, or the initial value if the collection is empty
      */
+    reduceWithKeys<TReduce = TValue>(
+        callback: (
+            carry: TReduce | null,
+            value: TValue,
+            key: TKey,
+        ) => TReduce | null,
+    ): TReduce | null;
     reduceWithKeys<TReduce>(
         callback: (carry: TReduce, value: TValue, key: TKey) => TReduce,
         initial: TReduce,
     ): TReduce;
-    reduceWithKeys(
+    reduceWithKeys<TReduce>(
         callback: (
-            carry: TValue | null,
+            carry: TReduce | null,
             value: TValue,
             key: TKey,
-        ) => TValue | null,
-    ): TValue | null;
-    reduceWithKeys<TReduce = TValue | null>(
-        callback: (
-            carry: TReduce | TValue | null,
-            value: TValue,
-            key: TKey,
-        ) => TReduce,
-        initial?: TReduce | null,
-    ) {
-        return this.reduce(
-            callback as unknown as (
-                carry: TValue | TReduce,
-                value: TValue,
-                key: TKey,
-            ) => TReduce,
-            (isUndefined(initial) ? null : initial) as TReduce,
-        );
+        ) => TReduce | null,
+        initial: TReduce | null = null,
+    ): unknown {
+        return this.reduce<TReduce | null>(callback, initial);
     }
 
     /**
      * Create a collection of all elements that do not pass a given truth test.
      *
-     * @param callback - The callback to execute, receives the value and key as arguments, or a value to compare against, defaults to true
+     * @param callback - The truth test, which receives the value and key; an item it answers truthy for is rejected
+     * @param value - A value to reject each item loosely equal to, as PHP's `!=` keeps the rest; true, the default,
+     * rejects every truthy item
      * @returns A new collection with the items that do not pass the truth test
+     *
+     * @example
+     *
+     * new Collection([1, 2, 3, 4]).reject(value => value > 2); -> new Collection([1, 2])
+     * new Collection([null, 0, '', 'a', [], true, false]).reject(false); -> new Collection(['a', true])
      */
     reject(
-        callback:
-            | ((value: TValue, key: TKey) => boolean)
-            | boolean
-            | TValue = true,
-    ) {
+        this: Collection<TValue, TKey, "list">,
+        callback: (value: TValue, key: TKey) => unknown,
+    ): this;
+    reject(
+        callback: (value: TValue, key: TKey) => unknown,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    reject(this: Collection<TValue, TKey, "list">, value?: TValue | null): this;
+    reject(value?: TValue | null): Collection<TValue, TKey, Removed<TShape>>;
+    reject<TRejectValue>(
+        this: Collection<TValue, TKey, "list">,
+        value: NeedleOrCallback<TRejectValue, TValue, TKey>,
+    ): this;
+    reject<TRejectValue>(
+        value: NeedleOrCallback<TRejectValue, TValue, TKey>,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    reject(callback: unknown = true): unknown {
         const useAsCallable = this.useAsCallable(callback);
 
         return this.filter((value: TValue, key: TKey) => {
             if (useAsCallable) {
-                return !(callback as (value: TValue, key: TKey) => boolean)(
-                    value,
-                    key,
+                return isPhpFalsy(
+                    (callback as (value: TValue, key: TKey) => unknown)(
+                        value,
+                        key,
+                    ),
                 );
             }
 
-            // When reject() is called without arguments (or with true),
-            // filter out all truthy values (like PHP does)
-            if (callback === true) {
-                return !value;
-            }
-
-            return value != callback;
+            return !looseEqual(value, callback);
         });
     }
 
@@ -5487,7 +7080,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param callback - The callback to execute, receives the current instance as an argument
      * @returns The current instance
      */
-    tap(callback: (instance: this) => unknown) {
+    tap(callback: (collection: this) => unknown): this {
         callback(this);
 
         return this;
@@ -5500,76 +7093,71 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns A new collection with only unique items, determined using strict comparison
      */
     uniqueStrict(
+        this: Collection<TValue, TKey, "list">,
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): this;
+    uniqueStrict(
+        key?: ((value: TValue, key: TKey) => unknown) | PathKey,
+    ): Collection<TValue, TKey, Removed<TShape>>;
+    uniqueStrict(
         key: ((value: TValue, key: TKey) => unknown) | PathKey = null,
-    ) {
+    ): unknown {
         return this.unique(key, true);
     }
 
     /**
      * Collect the values into a collection.
      *
-     * @returns A new collection with the current items
+     * @returns A new base collection holding a copy of the current items
      */
-    collect() {
-        return this.newInstance(this.all());
+    collect(): Collection<TValue, TKey, TShape> {
+        return new Collection<TValue, TKey, TShape>(this);
     }
 
     /**
      * Get the collection of items as a plain array.
      *
-     * @returns An array of the collection's items
+     * @returns A copy of the items, each Arrayable one converted by its toArray(): an array for a list, else a record
+     *
+     * @example
+     *
+     * new Collection([1, 2]).toArray(); -> [1, 2]
+     * new Collection({a: 1, b: 2}).toArray(); -> {a: 1, b: 2}
+     * new Collection([new Collection({a: 1})]).toArray(); -> [{a: 1}]
      */
-    toArray() {
+    toArray(): CollectionItems<ToArrayValue<TValue>, TKey, TShape>;
+    toArray(): unknown {
+        // A plain object is data, as a PHP array is, so only an object a class built is Arrayable.
         return this.map((value) =>
-            toArrayable(value) ? value.toArray() : value,
+            !isPlainObject(value) && toArrayable(value)
+                ? value.toArray()
+                : value,
         ).all();
     }
 
     /**
      * Convert the object into something JSON serializable.
      *
-     * @returns An array of the collection's items, with each item converted to a JSON-serializable form
+     * @returns The items, each converted to a JSON-serializable form: a list when the keys are 0..n-1 in order or
+     * there are none, else a record
+     *
+     * @example
+     *
+     * new Collection([1, 2]).jsonSerialize(); -> [1, 2]
+     * new Collection({a: 1, b: 2}).jsonSerialize(); -> {a: 1, b: 2}
      */
-    jsonSerialize() {
-        return this.map((value) => {
-            // If the item is Arrayable, use its array representation
-            if (toArrayable(value)) {
-                return value.toArray();
-            }
+    jsonSerialize(): unknown[] | CollectionItems<unknown, TKey, TShape>;
+    jsonSerialize(): unknown {
+        const entries = this.entriesInOrder().map(
+            ([key, value]): [TKey, unknown] => [key, jsonSerializeItem(value)],
+        );
 
-            // If the item is Jsonable, use its JSON representation via toJson(),
-            // and parse it to a native value to match Laravel expectations
-            if (toJsonable(value)) {
-                // Prefer Laravel-style toJson(); otherwise fall back to JS toJSON()
-                let jsonOut: unknown;
-                if (isFunction((value as { toJson: () => unknown }).toJson)) {
-                    jsonOut = (value as { toJson: () => unknown }).toJson();
-                } else {
-                    const raw = (value as { toJSON: () => unknown }).toJSON();
-                    // If toJSON returned an object/value, stringify then parse to normalize
-                    jsonOut = JSON.stringify(raw);
-                }
+        // json_encode writes a list only for keys 0..n-1 in order, whichever backing holds them.
+        if (isListOrder(entries.map(([key]) => key))) {
+            return entries.map(([, value]) => value);
+        }
 
-                // If we have a string, try to parse to native; otherwise return as-is
-                if (isString(jsonOut)) {
-                    try {
-                        return JSON.parse(jsonOut);
-                    } catch {
-                        return jsonOut;
-                    }
-                }
-
-                return jsonOut;
-            }
-
-            // If the item is JsonSerializable, delegate to jsonSerialize()
-            if (toJsonSerializable(value)) {
-                return value.jsonSerialize();
-            }
-
-            // Otherwise, return the raw value as-is (no wrapping)
-            return value as unknown;
-        }).all();
+        return Object.fromEntries(entries);
     }
 
     /**
@@ -5598,6 +7186,21 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * Give JSON.stringify the items to encode, as json_encode reads a JsonSerializable's jsonSerialize().
+     *
+     * @returns What jsonSerialize() returns
+     *
+     * @example
+     *
+     * JSON.stringify(new Collection([1, 2])); -> '[1,2]'
+     * JSON.stringify({users: new Collection([{id: 1}])}); -> '{"users":[{"id":1}]}'
+     */
+    toJSON(): unknown {
+        // Typed unknown so an argument with a toJSON of its own infers no item type through this one.
+        return this.jsonSerialize();
+    }
+
+    /**
      * Get the collection of items as pretty print formatted JSON.
      *
      * @param replacer - The replacer function or array for JSON.stringify
@@ -5617,10 +7220,28 @@ export class Collection<TValue, TKey extends PropertyKey> {
     /**
      * Convert the collection to its string representation.
      *
-     * @returns A JSON string representing the collection's items
+     * @returns A JSON string representing the collection's items, HTML-escaped when escapeWhenCastingToString() asked
      */
     toString() {
-        return this.toJson();
+        const json = this.toJson();
+
+        return this.shouldEscapeWhenCastingToString ? escapeHtml(json) : json;
+    }
+
+    /**
+     * Indicate that the collection's string representation should be escaped when toString is invoked.
+     *
+     * @param escape - Whether to escape it
+     * @returns The current collection instance
+     *
+     * @example
+     *
+     * String(new Collection(['<b>']).escapeWhenCastingToString()); -> '[&quot;&lt;b&gt;&quot;]'
+     */
+    escapeWhenCastingToString(escape: boolean = true) {
+        this.shouldEscapeWhenCastingToString = escape;
+
+        return this;
     }
 
     /**
@@ -5655,13 +7276,35 @@ export class Collection<TValue, TKey extends PropertyKey> {
         return function (item: unknown): boolean {
             const retrieved = isNull(key)
                 ? item
-                : dataGet(item!, key as PathKey);
+                : itemValue(item, key as PathKey);
 
             // The switch this used to inline IS operatorMatch, which `contains`'s
             // key/operator/value form in arr and obj already runs; sharing it is what
             // keeps the three in step. An absent operator is PHP's `default:` arm.
             return operatorMatch(retrieved, operator ?? "=", value);
         };
+    }
+
+    /**
+     * Get an operator checker callback for the arguments a method was given, counted as func_get_args() counts them.
+     *
+     * @param args - The key, then the operator or the value, then the value
+     * @returns A callback that checks if an item matches them
+     */
+    protected operatorForWhereArgs(
+        args: readonly unknown[],
+    ): (value: TValue, index: TKey) => boolean {
+        // operatorForWhere reads undefined as an argument never passed, so a given undefined becomes PHP's null.
+        const [key, operator = null, value = null] = args;
+        const path = key as PathKey | ((value: TValue, index: TKey) => unknown);
+
+        if (args.length < 2) {
+            return this.operatorForWhere(path);
+        }
+
+        return args.length === 2
+            ? this.operatorForWhere(path, operator as string)
+            : this.operatorForWhere(path, operator as string, value);
     }
 
     /**
@@ -5691,9 +7334,9 @@ export class Collection<TValue, TKey extends PropertyKey> {
      *
      * @example
      *
-     * valueRetriever('id'); -> (item) => dataGet(item, 'id', null)
+     * valueRetriever('id'); -> (item) => itemValue(item, 'id')
      * valueRetriever((item) => item.id); -> (item) => item.id
-     * valueRetriever('user.name'); -> (item) => dataGet(item, 'user.name', null)
+     * valueRetriever('user.name'); -> (item) => itemValue(item, 'user.name')
      */
     protected valueRetriever<TArgs, TReturn>(
         value: PathKey | ((...args: TArgs[]) => TReturn),
@@ -5710,33 +7353,135 @@ export class Collection<TValue, TKey extends PropertyKey> {
         }
 
         return function (...args: TArgs[]) {
-            return dataGet(
-                args[0] as DataItems<unknown, PropertyKey>,
-                value as PathKey,
-                null,
-            );
+            return itemValue(args[0], value as PathKey);
         };
+    }
+
+    /**
+     * Filter the items by what a key-or-callback method was given, as `unless($filter == null)->filter($filter)` does.
+     *
+     * @param args - A lone filter, or the key, then the operator or the value, then the value
+     * @returns The items that pass the filter, or this collection itself when the filter equals null
+     * @throws TypeError for a filter that is neither callable nor equal to null, as filter()'s `?callable` rejects it
+     */
+    protected filterUnlessNull(
+        args: readonly unknown[],
+    ): Collection<TValue, TKey, CollectionShape> {
+        const filter =
+            args.length > 1 ? this.operatorForWhereArgs(args) : args[0];
+
+        // PHP's unless() proxy skips filter() for a filter == null, so a falsy item is still counted.
+        if (looseEqual(filter, null)) {
+            return this;
+        }
+
+        if (!isFunction(filter)) {
+            throw notCallable("filter", filter);
+        }
+
+        return this.filter(filter as (value: TValue, key: TKey) => unknown);
+    }
+
+    /**
+     * Read the keys except, only and select take, as each reads its `$keys` argument.
+     *
+     * @param keys - The arguments: an array or a collection of keys first, else the keys themselves
+     * @returns The keys, a collection's values among them, or null when the first argument is null
+     */
+    protected keysArgument(keys: readonly unknown[]): PathKey[] | null {
+        const [first] = keys;
+
+        if (isNull(first) || isUndefined(first)) {
+            return null;
+        }
+
+        if (first instanceof Collection) {
+            return first.values().all() as PathKey[];
+        }
+
+        return (isArray(first) ? first : keys) as PathKey[];
     }
 
     /**
      * Wrap each plain chunk from `@tolki/data` in a collection, then wrap the list of them.
      *
      * @param chunked - The chunks as `dataChunk*` returned them
-     * @returns A collection of chunk collections
+     * @param shared - Whether a callback was handed the chunks, which it may still hold, so each is copied, as PHP
+     * yields a copy of the chunk it built
+     * @returns A list of chunk collections, each typed by the key and shape its caller names
      */
-    protected wrapChunks(
+    protected wrapChunks<
+        TChunkKey extends PropertyKey,
+        TChunkShape extends CollectionShape,
+    >(
         chunked: TValue[][] | Record<number, Record<PropertyKey, TValue>>,
-    ): Collection<Collection<TValue, TKey>, number> {
+        shared: boolean = false,
+    ): Collection<Collection<TValue, TChunkKey, TChunkShape>, number, "list"> {
         const chunks = isArray(chunked) ? chunked : Object.values(chunked);
 
-        return this.newInstance(
-            chunks.map(
-                (chunk) =>
-                    this.newInstance(
-                        chunk as DataItems<TValue, TKey>,
-                    ) as unknown as Collection<TValue, TKey>,
+        return this.newInstance<
+            Collection<TValue, TChunkKey, TChunkShape>,
+            number,
+            "list"
+        >(
+            handOver(
+                chunks.map((chunk) =>
+                    this.newInstance<TValue, TChunkKey, TChunkShape>(
+                        shared ? chunk : handOver(chunk),
+                    ),
+                ),
             ),
-        ) as unknown as Collection<Collection<TValue, TKey>, number>;
+        );
+    }
+
+    /**
+     * Cut slices as slice() cuts them, from one reading of the entries.
+     *
+     * slice() reads every entry to cut one slice, so a caller that cuts many reads them here once instead.
+     *
+     * @returns A function that takes an offset and a length as sliceArguments() reads them, and returns what slice()
+     * returns for them
+     */
+    protected sliceCutter(): (
+        start: number,
+        count: number | null,
+    ) => Collection<TValue, TKey, Removed<TShape>> {
+        const ordered = this.orderedEntries();
+        const items = this.items;
+
+        if (ordered) {
+            return (start, count) => {
+                const range = resolveSliceRange(ordered.length, start, count);
+
+                return this.newInstance<TValue, TKey, Removed<TShape>>(
+                    new Map(ordered.slice(range.start, range.end)),
+                );
+            };
+        }
+
+        if (isArray(items)) {
+            return (start, count) => {
+                const range = resolveSliceRange(items.length, start, count);
+
+                return this.newInstance<TValue, TKey, Removed<TShape>>(
+                    handOver(items.slice(range.start, range.end)),
+                );
+            };
+        }
+
+        const entries: Array<[string, TValue]> = Object.entries(items);
+
+        return (start, count) => {
+            const range = resolveSliceRange(entries.length, start, count);
+
+            return this.newInstance<TValue, TKey, Removed<TShape>>(
+                handOver(
+                    Object.fromEntries(
+                        entries.slice(range.start, range.end),
+                    ) as Record<TKey, TValue>,
+                ),
+            );
+        };
     }
 
     /** Conditionable Trait Methods */
@@ -5747,7 +7492,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param value - The value to evaluate or a closure that returns the value
      * @param callback - The callback to execute if the value is truthy
      * @param defaultCallback - The callback to execute if the value is falsy
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
+     * @throws Error `Value of type null is not callable` when the value is truthy and the callback null, as PHP's does
      *
      * @example
      *
@@ -5755,28 +7501,29 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).when(false, coll => coll.map(x => x * 2)); -> new Collection([1, 2, 3])
      */
     when<TWhenParameter, TWhenReturnType>(
-        value: ((instance: this) => TWhenParameter) | TWhenParameter | null,
-        callback:
-            | ((instance: this, value: TWhenParameter) => TWhenReturnType)
-            | null = null,
+        value: ((collection: this) => TWhenParameter) | TWhenParameter,
+        callback: (collection: this, value: TWhenParameter) => TWhenReturnType,
+        defaultCallback?:
+            | ((collection: this, value: TWhenParameter) => TWhenReturnType)
+            | null,
+    ): this | Exclude<TWhenReturnType, null | undefined | void>;
+    when(
+        value: unknown,
+        callback: (collection: this, value: unknown) => unknown,
         defaultCallback:
-            | ((instance: this, value: TWhenParameter) => TWhenReturnType)
+            | ((collection: this, value: unknown) => unknown)
             | null = null,
-    ) {
-        const resolvedValue = isFunction(value)
-            ? (value as (instance: this) => TWhenParameter)(this)
-            : (value as TWhenParameter);
+    ): unknown {
+        const resolvedValue = isFunction(value) ? value(this) : value;
 
-        if (resolvedValue) {
-            return (callback?.(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+        if (!isPhpFalsy(resolvedValue)) {
+            if (!isFunction(callback)) {
+                throw notCallableValue(callback);
+            }
+
+            return callback(this, resolvedValue) ?? this;
         } else if (defaultCallback) {
-            return (defaultCallback(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+            return defaultCallback(this, resolvedValue) ?? this;
         }
 
         return this;
@@ -5788,7 +7535,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @param value - The value to evaluate or a closure that returns the value
      * @param callback - The callback to execute if the value is falsy
      * @param defaultCallback - The callback to execute if the value is truthy
-     * @returns The result of the callback if executed, otherwise the current instance
+     * @returns What the callback it runs returns, or the current instance when that is null or undefined or none runs
+     * @throws Error `Value of type null is not callable` when the value is falsy and the callback null, as PHP's does
      *
      * @example
      *
@@ -5796,28 +7544,32 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * new Collection([1, 2, 3]).unless(true, coll => coll.map(x => x * 2)); -> new Collection([1, 2, 3])
      */
     unless<TUnlessParameter, TUnlessReturnType>(
-        value: ((instance: this) => TUnlessParameter) | TUnlessParameter | null,
-        callback:
-            | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
-            | null = null,
+        value: ((collection: this) => TUnlessParameter) | TUnlessParameter,
+        callback: (
+            collection: this,
+            value: TUnlessParameter,
+        ) => TUnlessReturnType,
+        defaultCallback?:
+            | ((collection: this, value: TUnlessParameter) => TUnlessReturnType)
+            | null,
+    ): this | Exclude<TUnlessReturnType, null | undefined | void>;
+    unless(
+        value: unknown,
+        callback: (collection: this, value: unknown) => unknown,
         defaultCallback:
-            | ((instance: this, value: TUnlessParameter) => TUnlessReturnType)
+            | ((collection: this, value: unknown) => unknown)
             | null = null,
-    ) {
-        const resolvedValue = (
-            isFunction(value) ? value(this) : value
-        ) as TUnlessParameter;
+    ): unknown {
+        const resolvedValue = isFunction(value) ? value(this) : value;
 
-        if (!resolvedValue) {
-            return (callback?.(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+        if (isPhpFalsy(resolvedValue)) {
+            if (!isFunction(callback)) {
+                throw notCallableValue(callback);
+            }
+
+            return callback(this, resolvedValue) ?? this;
         } else if (defaultCallback) {
-            return (defaultCallback(this, resolvedValue) ?? this) as Collection<
-                TValue,
-                TKey
-            >;
+            return defaultCallback(this, resolvedValue) ?? this;
         }
 
         return this;
@@ -5825,83 +7577,115 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * Get the values from items, whether it's an array or object
+     *
+     * @param items - The list or record to read
+     * @returns Its values, as a list
      */
     protected getItemValues(items: DataItems<TValue, TKey>): TValue[] {
         return isArray(items) ? items : Object.values(items);
     }
 
     /**
-     * Get the raw values of all items.
-     * Basically, if an item is a collection, get the underlying raw items.
+     * Create a new instance of the collection.
+     *
+     * @param items - The new instance's items, which the method that built them hands over; a Map carries an order a
+     * record cannot, and none makes an empty collection
+     * @returns A new instance of this collection's class, typed by the value, key and shape its caller names
      */
-    protected itemsToRawValues() {
-        return dataMap(this.items, (item) => {
-            if (item instanceof Collection) {
-                return item.all();
-            }
+    protected newInstance<
+        TNewValue,
+        TNewKey extends PropertyKey,
+        TNewShape extends CollectionShape,
+    >(
+        items?:
+            | DataItems<TNewValue, TNewKey>
+            | ReadonlyMap<PropertyKey, TNewValue>,
+    ): Collection<TNewValue, TNewKey, TNewShape> {
+        const Static = this.constructor as CollectionClass<
+            TNewValue,
+            TNewKey,
+            TNewShape
+        >;
 
-            return item;
-        });
+        return new Static(items);
     }
 
     /**
-     * Recursively convert all Collection instances to their raw values.
-     * This is needed for operations like flatten that need to handle nested Collections.
+     * Create a new instance of the collection holding this collection's value, key and shape.
      *
-     * @param data - The data to convert
-     * @returns The data with all Collection instances converted to raw values
+     * @param items - The new instance's items, which the method that built them hands over
+     * @returns A new instance of this collection's class and type
      */
-    protected recursivelyConvertCollections<
-        T,
-        K extends PropertyKey = PropertyKey,
-    >(data: T[] | Record<K, T> | Collection<T, K>): T[] | Record<K, T> {
-        if (data instanceof Collection) {
-            return this.recursivelyConvertCollections(data.all());
-        }
-
-        if (isArray(data)) {
-            return data.map((item) =>
-                this.recursivelyConvertCollections(
-                    item as unknown as T[] | Record<K, T> | Collection<T, K>,
-                ),
-            ) as T[];
-        }
-
-        if (isObject(data)) {
-            const result: Record<string, unknown> = {};
-            for (const [key, value] of Object.entries(data)) {
-                defineKey(
-                    result,
-                    key,
-                    this.recursivelyConvertCollections(
-                        value as unknown as
-                            | T[]
-                            | Record<K, T>
-                            | Collection<T, K>,
-                    ),
-                );
-            }
-            return result as Record<K, T>;
-        }
-
-        return data as T[] | Record<K, T>;
+    protected sameInstance(items?: unknown): this {
+        // A subclass overrides newInstance() to carry its own state, the way PHP's does, so every instance is built
+        // there. Its callers also hand over a Map or nothing, which the constructor reads all the same.
+        return this.newInstance<TValue, TKey, TShape>(
+            items as DataItems<TValue, TKey>,
+        ) as this;
     }
 
     /**
-     * Create a new instance of the collection using the runtime constructor.
-     * This preserves subclass behavior (equivalent to PHP's `new static()`).
+     * Sort the collection using multiple comparisons.
      *
-     * Note: Generic defaults to `unknown` because this method is called with transformed
-     * data (e.g., from collapse, flip, dot, mapWithKeys) that may have different
-     * TValue/TKey types than the original collection.
-     *
-     * @param items - The items for the new collection instance
-     * @returns A new collection instance
+     * @param comparisons - Paths, each alone or with its direction, and comparators of two items; a bare path or a
+     * direction-less descriptor sorts ascending, and no comparisons leave the order alone
+     * @param descending - Whether every path sorts descending whatever its own direction, as sortByDesc() rewrites
+     * them; a comparator is never reversed
+     * @returns A new collection with the sorted items
      */
-    protected newInstance<TItems = unknown>(items?: TItems): this {
-        const Ctor = this.constructor as new (items?: TItems) => this;
+    protected sortByMany(
+        comparisons: readonly SortDescriptor<TValue>[],
+        descending: CaseValue<typeof SortDirection> | boolean = false,
+    ) {
+        const isDescGlobal =
+            descending === true || descending === SortDirection.Descending;
 
-        return new Ctor(items);
+        const comparators = comparisons.map((comparison) =>
+            sortSpecComparator<TValue>(
+                comparison as SortSpec<TValue>,
+                isDescGlobal,
+            ),
+        );
+
+        const entries = this.entriesInOrder();
+
+        // PHP hands uasort() the closure's whole answer, so a comparator's bool or fraction ends the comparison there.
+        entries.sort(
+            phpSortComparator(([, a], [, b]) => {
+                for (const comparator of comparators) {
+                    const result = comparator(a, b);
+
+                    if (result !== 0) {
+                        return result;
+                    }
+                }
+
+                return 0;
+            }),
+        );
+
+        return this.sameInstance(this.sortedItems(entries));
+    }
+
+    /**
+     * Lay sorted entries out as the sort family hands them back: a list stays a list, and any other backing
+     * renumbers its integer keys over the sorted order, which a plain object cannot hold out of order.
+     *
+     * @param entries - The entries in their sorted order, each key as PHP stores it
+     * @returns The sorted items, ready for the next instance to adopt
+     */
+    protected sortedItems(
+        entries: Array<[TKey, TValue]>,
+    ): DataItems<TValue, TKey> {
+        if (isArray(this.items)) {
+            return handOver(entries.map(([, value]) => value));
+        }
+
+        return handOver(
+            sortedIntoItems(
+                entries.map(([key, value]) => [String(key), value]),
+            ) as DataItems<TValue, TKey>,
+        );
     }
 
     /**
@@ -5986,11 +7770,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
      */
     protected firstOrdered<TFirstDefault>(
         ordered: Array<[TKey, TValue]>,
-        callback?: ((value: TValue, key: TKey) => boolean) | null,
+        callback?: ((value: TValue, key: TKey) => unknown) | null,
         defaultValue?: TFirstDefault | (() => TFirstDefault),
     ): TValue | TFirstDefault | null {
         const match = callback
-            ? ordered.find(([key, value]) => callback(value, key))
+            ? ordered.find(([key, value]) => !isPhpFalsy(callback(value, key)))
             : ordered[0];
 
         // An empty backing defers to dataFirst, so the thunk-or-value default resolves in one place.
@@ -6023,6 +7807,44 @@ export class Collection<TValue, TKey extends PropertyKey> {
     }
 
     /**
+     * The entries this collection holds, in the order PHP keeps them, each key as PHP stores it.
+     *
+     * @returns The ordered view's entries, or the backing's own entries with their keys cast
+     */
+    protected entriesInOrder(): Array<[TKey, TValue]> {
+        return (
+            this.orderedEntries() ??
+            Object.entries(this.items).map(
+                ([key, value]) => [phpArrayKey(key), value] as [TKey, TValue],
+            )
+        );
+    }
+
+    /**
+     * The items as array_merge() appends them: integer keys renumbered from 0, in the order this collection holds them.
+     *
+     * @returns The values when every key is an integer, otherwise a record keeping the string keys
+     */
+    protected renumberedItems(): TValue[] | Record<string, TValue> {
+        const entries = renumberPhpIntegerKeys<TValue>(
+            this.entriesInOrder().map(([key, value]) => [String(key), value]),
+        );
+
+        // all() cannot express integer keys out of ascending order, so a list is handed over as its values.
+        if (isListOrder(entries.map(([key]) => phpArrayKey(key)))) {
+            return entries.map(([, value]) => value);
+        }
+
+        const items: Record<string, TValue> = {};
+
+        for (const [key, value] of entries) {
+            defineKey(items, key, value);
+        }
+
+        return items;
+    }
+
+    /**
      * A copy of this collection that shares no backing with it.
      *
      * PHP gets this for free: `new static($this->items)` copies the array, because an array
@@ -6037,38 +7859,36 @@ export class Collection<TValue, TKey extends PropertyKey> {
         // A Map is the only input the constructor adopts an order from, so an ordered
         // backing has to be handed back as one or the copy loses the order on the way in.
         if (ordered) {
-            return this.newInstance(new Map(ordered));
+            return this.sameInstance(new Map(ordered));
         }
 
-        return this.newInstance(
-            isArray(this.items) ? [...this.items] : { ...this.items },
+        return this.sameInstance(
+            handOver(isArray(this.items) ? [...this.items] : { ...this.items }),
         );
     }
 
     /**
-     * Splice a backing that carries its own insertion order, as array_splice does.
+     * Splice a keyed backing in the order PHP's array holds it, as array_splice does.
      *
-     * @param ordered - The backing's entries, in insertion order
+     * @param ordered - The backing's entries, in the order PHP's array holds them
      * @param offset - Where to start, counting back from the end when negative
-     * @param length - How many entries to remove, leaving that many at the end when negative
+     * @param length - How many entries to remove, leaving that many at the end when negative; null or none runs to the
+     * end
      * @param replacement - The values to insert, whose own keys array_splice discards
      * @returns A new collection of the removed entries
      */
     protected spliceOrdered(
         ordered: Array<[TKey, TValue]>,
         offset: number,
-        length: number | undefined,
+        length: number | null | undefined,
         replacement: TValue[],
-    ) {
+    ): Collection<TValue, SplicedKey<TKey>, Removed<TShape>> {
         const entries: Array<[PropertyKey, TValue]> = [...ordered];
-        const size = entries.length;
-        const start =
-            offset < 0 ? Math.max(size + offset, 0) : Math.min(offset, size);
-        const count = isUndefined(length)
-            ? size - start
-            : length < 0
-              ? Math.max(size + length - start, 0)
-              : length;
+        const { start, count } = resolveSpliceRange(
+            entries.length,
+            offset,
+            length,
+        );
 
         const removed = entries.splice(
             start,
@@ -6081,7 +7901,7 @@ export class Collection<TValue, TKey extends PropertyKey> {
         this.setOrderedItems(entries, true);
 
         // Both halves renumber their integer keys; a Map is the only backing that can carry the order.
-        return this.newInstance(
+        return this.newInstance<TValue, SplicedKey<TKey>, Removed<TShape>>(
             new Map(
                 renumberPhpIntegerKeys<TValue>(
                     removed.map(([key, value]) => [String(key), value]),
@@ -6151,47 +7971,217 @@ export class Collection<TValue, TKey extends PropertyKey> {
 
     /**
      * The key PHP's `$array[] =` writes next: one past the highest integer key an
-     * object backing holds, or 0 when it holds none.
+     * object backing holds, negative ones included, or 0 when it holds none.
      *
      * @returns The next free integer key
      */
     protected nextAppendKey(): number {
-        let next = 0;
+        let highest: number | null = null;
 
-        // Ascending key order stops above 2**32-2, so the largest integer-like key may not be last.
-        // `isIntegerLikeKey` rejects a negative one, so an all-negative backing appends at 0 where
-        // PHP 8.3+ counts on from the highest — a divergence, never an overwrite.
+        // Ascending key order stops above 2**32-2, so the largest integer key may not be last.
         for (const key of Object.keys(this.items)) {
-            if (isIntegerLikeKey(key) && Number(key) >= next) {
-                next = Number(key) + 1;
+            const phpKey = phpArrayKey(key);
+
+            if (isNumber(phpKey) && (isNull(highest) || phpKey > highest)) {
+                highest = phpKey;
             }
         }
 
-        return next;
+        return isNull(highest) ? 0 : highest + 1;
     }
 
     /**
-     * Read a Map's entries as the pairs a PHP array would hold, casting a
-     * numeric-looking key to a number the way PHP's array key cast does.
+     * The key an offset names among the backing's own entries, looked up as PHP's `array_key_exists` looks one up.
+     *
+     * @param key - The key to look up; null reads the "" key
+     * @returns The key the backing holds the entry under, or undefined when it holds none
+     * @throws TypeError for a key no PHP array can hold, as array_key_exists() refuses one
+     */
+    protected existingKey(key: unknown): string | number | undefined {
+        if (isIllegalOffset(key)) {
+            throw arrayKeyExistsError();
+        }
+
+        return this.ownKey(key ?? "");
+    }
+
+    /**
+     * The key an offset names among the backing's own entries, cast as PHP casts an array key.
+     *
+     * @param key - The offset to look up
+     * @returns The key the backing holds the entry under, or undefined when it holds none
+     */
+    protected ownKey(key: unknown): string | number | undefined {
+        const phpKey = phpArrayKey(key);
+
+        // A list's entries are its indexes alone; its `length` and its methods are no items.
+        if (isArray(this.items) && !isNumber(phpKey)) {
+            return undefined;
+        }
+
+        return Object.hasOwn(this.items, phpKey) ? phpKey : undefined;
+    }
+
+    /**
+     * Unset entries the backing holds, as PHP's `unset($items[$key])` does each in turn.
+     *
+     * @param ownKeys - The keys the backing holds the entries under, as ownKey() found them
+     */
+    protected unsetOwnKeys(ownKeys: ReadonlySet<string | number>): void {
+        if (isArray(this.items)) {
+            // Each removal shifts a list's later indexes down, so a list drops its highest index first.
+            const descending = [...ownKeys].sort(
+                (a, b) => Number(b) - Number(a),
+            );
+
+            for (const key of descending) {
+                this.items.splice(Number(key), 1);
+            }
+
+            return;
+        }
+
+        for (const key of ownKeys) {
+            delete (this.items as Record<PropertyKey, TValue>)[key];
+        }
+
+        // One reconcile once every key is gone, where one per key would walk the whole ordered view each time.
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
+    }
+
+    /**
+     * Write a value under a key, or append it for a null key, as PHP's `$items[$key] = $value` and
+     * `$items[] = $value` do.
+     *
+     * @param key - The key to write, cast as PHP casts an array key, or null to append past the highest integer key
+     * @param value - The value to store under the key
+     * @throws TypeError for an array, object or function key, which no PHP array can hold
+     */
+    protected putKey(key: unknown, value: unknown): void {
+        if (isIllegalOffset(key)) {
+            throw accessOffset(phpDebugType(key));
+        }
+
+        // A null or undefined offset appends, as PHP's `$items[] = $value` does.
+        if (isNull(key) || isUndefined(key)) {
+            this.appendItems([value]);
+
+            return;
+        }
+
+        // The item types widen at runtime; only the collection a writer returns carries the widened ones.
+        const item = value as TValue;
+        const phpKey = phpArrayKey(key);
+
+        if (isArray(this.items)) {
+            // An index up to the length overwrites or appends; any other key makes PHP's array a keyed one.
+            if (
+                isNumber(phpKey) &&
+                phpKey >= 0 &&
+                phpKey <= this.items.length
+            ) {
+                this.items[phpKey] = item;
+
+                return;
+            }
+
+            // Only the indexes the list owns carry over, so a hole gains no undefined item.
+            const items = Object.fromEntries(Object.entries(this.items));
+            defineKey(items, phpKey, item);
+            this.items = items as Record<TKey, TValue>;
+
+            return;
+        }
+
+        defineKey(this.items as Record<string, TValue>, phpKey, item);
+
+        if (this.itemsWithOrder) {
+            this.reorderAfterMutation(this.itemsWithOrder);
+        }
+    }
+
+    /**
+     * Append values past the highest integer key, as PHP's `$items[] = $value` does for each in turn.
+     *
+     * @param additions - The values to append, in order
+     */
+    protected appendItems(additions: readonly unknown[]): void {
+        if (additions.length === 0) {
+            return;
+        }
+
+        // The item types widen at runtime; only the collection a writer returns carries the widened ones.
+        const values = additions as readonly TValue[];
+
+        if (isArray(this.items)) {
+            for (const value of values) {
+                this.items.push(value);
+            }
+
+            return;
+        }
+
+        const items = this.items as Record<string, TValue>;
+        const ordered = this.orderedEntries();
+        const appended: Array<[TKey, TValue]> = [];
+        let key = this.nextAppendKey();
+
+        for (const value of values) {
+            appended.push([key as TKey, value]);
+            defineKey(items, key++, value);
+        }
+
+        if (ordered) {
+            this.itemsWithOrder = [...ordered, ...appended];
+
+            return;
+        }
+
+        const appendedKeys = appended.map(([appendedKey]) =>
+            String(appendedKey),
+        );
+
+        // PHP keeps each appended key last in turn, where a plain object sorts every array index ahead of other keys.
+        if (
+            Object.keys(items)
+                .slice(-appendedKeys.length)
+                .every((existing, index) => existing === appendedKeys[index])
+        ) {
+            return;
+        }
+
+        const added = new Set(appendedKeys);
+
+        this.itemsWithOrder = [
+            ...this.entriesInOrder().filter(
+                ([existing]) => !added.has(String(existing)),
+            ),
+            ...appended,
+        ];
+    }
+
+    /**
+     * Read a Map's entries as the pairs a PHP array would hold, one per key PHP stores.
      *
      * @param items - The Map to read
-     * @returns The entries in the Map's own insertion order
+     * @returns The entries in the Map's own insertion order, each key cast as PHP casts an array key
      */
     protected mapEntries(
         items: ReadonlyMap<unknown, unknown>,
     ): Array<[TKey, TValue]> {
-        return [...items.entries()].map(([key, value]) => {
-            // PHP has no symbol key to cast, and Number(symbol) throws rather than answering NaN.
-            if (isSymbol(key)) {
-                return [key as TKey, value as TValue];
-            }
+        const entries = new Map<unknown, [TKey, TValue]>();
 
-            const numKey = Number(key);
-            const numeric =
-                !Number.isNaN(numKey) && String(numKey) === String(key);
+        for (const [key, value] of items) {
+            // PHP has no symbol key to cast, so a symbol stays the key it is.
+            const phpKey = isSymbol(key) ? key : phpArrayKey(key);
 
-            return [(numeric ? numKey : key) as TKey, value as TValue];
-        });
+            // Keys PHP stores as one fold into the first one's place, holding the last one's value.
+            entries.set(phpKey, [phpKey as TKey, value as TValue]);
+        }
+
+        return [...entries.values()];
     }
 
     /**
@@ -6238,6 +8228,11 @@ export class Collection<TValue, TKey extends PropertyKey> {
             this.itemsWithOrder = ordered;
         }
 
+        // A builder's fresh items need no copy; anything a caller can still reach is copied, as PHP copies an array.
+        if (isTruthyObject(items) && owned.delete(items)) {
+            return items as DataItems<TValue, TKey>;
+        }
+
         return this.getRawItems(items);
     }
 
@@ -6248,13 +8243,8 @@ export class Collection<TValue, TKey extends PropertyKey> {
      * @returns The items preserving their original structure
      */
     protected getRawItems(items: unknown): DataItems<TValue, TKey> {
-        if (isNull(items) || isUndefined(items)) {
-            return [] as DataItems<TValue, TKey>;
-        }
-
-        // If it's already a Collection, get its items
         if (items instanceof Collection) {
-            return items.all();
+            return this.castToItems(items.all());
         }
 
         // If it's a Map, convert to an object; `adoptedOrder` keeps the order a caller owns
@@ -6268,28 +8258,849 @@ export class Collection<TValue, TKey extends PropertyKey> {
             return obj;
         }
 
-        // PHP asks `instanceof Arrayable`, which no plain array of data carries: a plain object
-        // whose `toArray` is merely a member is cast with `(array)` and keeps every key.
-        if (!isPlainObject(items) && toArrayable(items)) {
-            return items.toArray() as DataItems<TValue, TKey>;
+        // A plain object models a PHP array, so a toArray, toJson or jsonSerialize member on one is data.
+        if (isPlainObject(items) || !isObject(items)) {
+            return this.castToItems(items);
         }
 
-        // If it's an empty array, return empty array
-        if (isArray(items) && items.length === 0) {
-            return [] as DataItems<TValue, TKey>;
+        if (toArrayable(items)) {
+            return this.castToItems(items.toArray());
         }
 
-        // If it's an array, keep it as an array
-        if (isArray(items)) {
-            return items as TValue[];
+        // PHP's Traversable wins over JsonSerializable; a JS iterator yields no keys, so it gives a list.
+        if (isIterable(items)) {
+            return Array.from(items) as TValue[];
         }
 
-        // If it's an object, keep it as an object
-        if (!isNull(items) && isObject(items)) {
-            return items as Record<TKey, TValue>;
+        if (isFunction(items["toJson"])) {
+            return this.castToItems(decodeJson(String(items["toJson"]())));
         }
 
-        // For primitives and other types, wrap in an array
-        return [items as TValue];
+        if (toJsonSerializable(items)) {
+            return this.castToItems(items.jsonSerialize());
+        }
+
+        return this.castToItems(items);
     }
+
+    /**
+     * An operand's entries in the order PHP's array holds them, each key cast as PHP casts an array key.
+     *
+     * @param items - The operand, read once, the way getRawItems reads it
+     * @returns A collection's or a Map's entries in their insertion order, otherwise the operand's own entries
+     */
+    protected operandEntries(items: unknown): Array<[PropertyKey, unknown]> {
+        if (items instanceof Collection) {
+            return items.entriesInOrder();
+        }
+
+        // getRawItems reads a Map into a record, which lists its integer keys ascending; PHP has no symbol key.
+        if (isMap(items)) {
+            return this.mapEntries(items).filter(([key]) => !isSymbol(key));
+        }
+
+        return Object.entries(this.getRawItems(items)).map(([key, value]) => [
+            phpArrayKey(key),
+            value,
+        ]);
+    }
+
+    /**
+     * Lay a result out in PHP's key order: the keys this collection holds, in its order, then those the operand adds.
+     *
+     * @param result - The result's items, which hold each key's value
+     * @param operand - The operand's entries, in the order PHP's array holds them
+     * @returns A list result as it is, whose keys already run in order, otherwise a Map in PHP's key order
+     */
+    protected inKeyOrder(
+        result: unknown,
+        operand: Array<[PropertyKey, unknown]>,
+    ): unknown[] | Map<PropertyKey, unknown> {
+        if (isArray(result)) {
+            return handOver(result);
+        }
+
+        const values = result as Record<PropertyKey, unknown>;
+        const ordered = new Map<PropertyKey, unknown>();
+
+        for (const [key] of [...this.entriesInOrder(), ...operand]) {
+            ordered.set(key, values[key]);
+        }
+
+        return ordered;
+    }
+
+    /**
+     * Read a value as items the way PHP's `(array)` cast does.
+     *
+     * @param value - The value to cast
+     * @returns No items for null, a copy of an array or of an object's own fields, else the value wrapped
+     */
+    protected castToItems(value: unknown): DataItems<TValue, TKey> {
+        if (isNull(value) || isUndefined(value)) {
+            return [];
+        }
+
+        if (isArray(value)) {
+            return value.slice() as TValue[];
+        }
+
+        // A spread defines each own key, "__proto__" included, where an assignment would run a setter.
+        if (isObject(value)) {
+            return { ...value } as Record<TKey, TValue>;
+        }
+
+        return [value as TValue];
+    }
+}
+
+/** A collection class as its static factories call it: `new static($items, ...$args)`. */
+type CollectionClass<
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape = DefaultShape<TKey>,
+> = new (
+    items?: unknown,
+    ...args: unknown[]
+) => Collection<TValue, TKey, TShape>;
+
+/** A rest parameter holding at least one argument, as a required PHP parameter read on with func_get_args(). */
+type AtLeastOne<TItem> = readonly [TItem, ...TItem[]];
+
+/** An `@tolki/enum` definition, whose from() resolves a backing value to its case, as BackedEnum::from() does. */
+type EnumDefinition<TValue, TCase = unknown> = {
+    // A method signature, so a definition typed for its own case values still takes the collection's values.
+    from(value: TValue): TCase;
+};
+
+/** The values each of ensure()'s type names lets through: JavaScript's typeof names and get_debug_type()'s. */
+interface EnsureTypeMap {
+    string: string;
+    number: number;
+    int: number;
+    float: number;
+    boolean: boolean;
+    bool: boolean;
+    symbol: symbol;
+    bigint: bigint;
+    undefined: undefined;
+    // undefined stands in for PHP's null.
+    null: null | undefined;
+    object: object;
+    // A plain object stands in for a PHP array.
+    array: unknown[] | Record<PropertyKey, unknown>;
+    // typeof calls a class a function too, and a class called without new throws.
+    function:
+        | ((...args: never[]) => unknown)
+        | (abstract new (...args: never[]) => unknown);
+}
+
+/** A type ensure() checks for: a type name, a class's name, or the class itself, which takes its subclasses too. */
+type EnsureSpec =
+    | keyof EnsureTypeMap
+    | (string & {})
+    | (abstract new (...args: never[]) => unknown);
+
+/**
+ * The values ensure() lets through for a type: a name's values, a class's instances, and objects for any other name,
+ * which only a class's name can match. A string that may be one of the names narrows nothing.
+ */
+type EnsuredType<TSpec> = TSpec extends keyof EnsureTypeMap
+    ? EnsureTypeMap[TSpec]
+    : TSpec extends abstract new (...args: never[]) => infer TInstance
+      ? TInstance
+      : [Extract<keyof EnsureTypeMap, TSpec>] extends [never]
+        ? object
+        : unknown;
+
+/** Items a builder created for a new instance; the constructor adopts them instead of copying. */
+const owned = new WeakSet<object>();
+
+/**
+ * Hand items a builder just created to the constructor it calls next, which adopts them without a copy.
+ *
+ * @param items - The freshly built items, which nothing else may hold
+ * @returns The same items
+ */
+function handOver<TItems extends object>(items: TItems): TItems {
+    owned.add(items);
+
+    return items;
+}
+
+/**
+ * Whether keys run 0..n-1 in order, as a PHP list's keys do.
+ *
+ * @param keys - The keys, each as PHP stores it, in the order PHP's array holds them
+ * @returns True when the keys are exactly 0, 1, 2 and on, in turn
+ */
+function isListOrder(keys: Iterable<PropertyKey>): boolean {
+    return [...keys].every((key, index) => key === index);
+}
+
+/**
+ * Hand over entries in PHP's order: as a list while their keys run 0..n-1, otherwise as the Map that holds the order.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns The values as a list, or the entries themselves
+ */
+function inPhpOrder<TValue>(
+    entries: Map<PropertyKey, TValue>,
+): TValue[] | Map<PropertyKey, TValue> {
+    if (isListOrder(entries.keys())) {
+        return handOver([...entries.values()]);
+    }
+
+    return entries;
+}
+
+/**
+ * Renumber entries' integer keys from 0 in the order they come, as array_merge() and array_slice() do.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns The entries in that order, each integer key renumbered and each string key kept, a repeated one in its
+ * first place with its last value
+ */
+function renumberIntegerKeys<TValue>(
+    entries: Array<[PropertyKey, TValue]>,
+): Map<PropertyKey, TValue> {
+    // A Map folds a repeated string key as array_merge() does, where utils' renumberPhpIntegerKeys() keeps both.
+    const renumbered = new Map<PropertyKey, TValue>();
+    let next = 0;
+
+    for (const [key, value] of entries) {
+        renumbered.set(isNumber(key) ? next++ : key, value);
+    }
+
+    return renumbered;
+}
+
+/**
+ * Read slice()'s offset and length as array_slice() reads its int parameters.
+ *
+ * @param offset - The offset to start at
+ * @param length - The length to take, or null to run to the end
+ * @returns The offset and the length, each without its fraction
+ * @throws TypeError for NAN, an infinity or a number outside PHP's int range, as array_slice() refuses one
+ */
+function sliceArguments(
+    offset: number,
+    length: number | null,
+): [number, number | null] {
+    return [
+        phpIntArgument(
+            offset,
+            "array_slice(): Argument #2 ($offset) must be of type int, float given",
+        ),
+        isNull(length)
+            ? null
+            : phpIntArgument(
+                  length,
+                  "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+              ),
+    ];
+}
+
+/**
+ * Merge entries into a PHP array's as array_merge_recursive does: an integer key appends under the next free one, a
+ * string key both hold merges both values, and a new string key joins with its value.
+ *
+ * @param target - The entries merged into, in order, which this writes
+ * @param source - The entries to merge in, in order
+ * @returns The target
+ */
+function mergeRecursively(
+    target: Map<PropertyKey, unknown>,
+    source: Array<[PropertyKey, unknown]>,
+): Map<PropertyKey, unknown> {
+    let next = nextIntegerKey(target);
+
+    for (const [key, value] of source) {
+        if (isNumber(key)) {
+            target.set(next++, value);
+        } else if (target.has(key)) {
+            const merged = mergeRecursively(
+                new Map(phpArrayEntries(target.get(key))),
+                phpArrayEntries(value),
+            );
+
+            target.set(key, phpArrayValue(merged));
+        } else {
+            target.set(key, value);
+        }
+    }
+
+    return target;
+}
+
+/**
+ * A value's entries as PHP's array cast reads them in array_merge_recursive.
+ *
+ * @param value - A list or plain object, which model a PHP array, or any other value
+ * @returns The entries, each key cast as PHP casts an array key, or the value alone under key 0
+ */
+function phpArrayEntries(value: unknown): Array<[PropertyKey, unknown]> {
+    // JS-only: PHP casts an object to its properties; a Date, Map or class instance stays one value here.
+    if (isArray(value) || isPlainObject(value)) {
+        return Object.entries(value).map(([key, entry]) => [
+            phpArrayKey(key),
+            entry,
+        ]);
+    }
+
+    return [[0, value]];
+}
+
+/**
+ * The key PHP's `$array[] =` writes next: one past the highest integer key, negative ones included, or 0 when none.
+ *
+ * @param entries - The entries of the array written to
+ * @returns The next free integer key
+ */
+function nextIntegerKey(entries: Map<PropertyKey, unknown>): number {
+    let highest: number | null = null;
+
+    for (const key of entries.keys()) {
+        if (isNumber(key) && (isNull(highest) || key > highest)) {
+            highest = key;
+        }
+    }
+
+    return isNull(highest) ? 0 : highest + 1;
+}
+
+/**
+ * Build a nested value from entries in PHP's order: a list while their keys run 0..n-1, otherwise a plain object.
+ *
+ * @param entries - The entries, in the order PHP's array holds them
+ * @returns The values as a list, or an object holding every entry
+ */
+function phpArrayValue(
+    entries: Map<PropertyKey, unknown>,
+): unknown[] | Record<string, unknown> {
+    if (isListOrder(entries.keys())) {
+        return [...entries.values()];
+    }
+
+    const value: Record<string, unknown> = {};
+
+    for (const [key, entry] of entries) {
+        defineKey(value, key, entry);
+    }
+
+    return value;
+}
+
+/** The number a string opens with, as PHP's arithmetic reads it: optional whitespace, then a decimal or exponent. */
+const PHP_LEADING_NUMBER =
+    /^[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?/;
+
+/**
+ * Add a value to a running total as PHP's `+` does.
+ *
+ * JS has one number type, so a whole-number total is named "int" where PHP's may be a float: sum([0.5, 0.5, 'a']) says
+ * "int + string" where PHP says "float + string". A Map is named "Map", though the port reads it as a PHP array.
+ *
+ * @param total - The total so far, an int or a float to PHP
+ * @param value - The value to add: a number, a string that is or opens with a number, a boolean or null
+ * @returns The new total
+ * @throws TypeError `Unsupported operand types: int + string` for any other value, naming both operands' types
+ */
+function phpAdd(total: number, value: unknown): number {
+    // The port reads undefined as PHP's null, which adds nothing.
+    if (isNull(value) || isUndefined(value)) {
+        return total;
+    }
+
+    if (isBoolean(value)) {
+        return total + Number(value);
+    }
+
+    if (typeOf(value) === "number") {
+        return total + (value as number);
+    }
+
+    // PHP adds the number a string opens with, warning when anything follows it.
+    const leading = isString(value) ? PHP_LEADING_NUMBER.exec(value) : null;
+
+    if (!isNull(leading)) {
+        return total + Number(leading[0]);
+    }
+
+    throw new TypeError(
+        `Unsupported operand types: ${isInteger(total) ? "int" : "float"} + ${phpDebugType(value)}`,
+    );
+}
+
+/**
+ * Round a number as PHP's round() does in its default mode, half away from zero.
+ *
+ * @param value - The number to round, which is never negative, as no percentage is
+ * @param precision - The decimal places to keep; a negative precision rounds to tens, hundreds and on
+ * @returns The rounded number, or the number itself once a double has no digits left to round at the precision
+ */
+function phpRound(value: number, precision: number): number {
+    // 10 ** 309 is INF, and 0 × INF is NaN; the largest finite power gives PHP's answers past it.
+    const exponent = 10 ** Math.min(Math.abs(precision), 308);
+    const toScale = (amount: number) =>
+        precision > 0 ? amount * exponent : amount / exponent;
+    const fromScale = (amount: number) =>
+        precision > 0 ? amount / exponent : amount * exponent;
+    let integral = Math.floor(toScale(value));
+
+    // Scaling can fall just short of the whole number that maps back onto the value, which PHP takes instead.
+    if (fromScale(integral + 1) === value) {
+        integral += 1;
+    }
+
+    if (integral >= 1e16) {
+        return value;
+    }
+
+    // PHP compares with the double nearest the midpoint, not the exact midpoint, so 0.285 rounds up to 0.29.
+    return fromScale(
+        value >= fromScale(integral + 0.5) ? integral + 1 : integral,
+    );
+}
+
+/**
+ * Read a `*Using` callback as the equality test the data helpers take, so a PHP comparator gives PHP's answer.
+ *
+ * @param callback - A comparator answering a number, equal where PHP's int cast makes it 0, or a boolean test
+ * @returns A test answering whether its two arguments are equal
+ */
+function equalityTest<TLeft, TRight>(
+    callback: (left: TLeft, right: TRight) => boolean | number,
+): (left: TLeft, right: TRight) => boolean {
+    return (left, right) => {
+        const answer = callback(left, right);
+
+        // PHP casts the answer to an int, so a number means equal only where that cast makes it 0.
+        if (typeOf(answer) === "number") {
+            return phpIntCast(answer as number) === 0;
+        }
+
+        return answer as boolean;
+    };
+}
+
+/**
+ * Determine whether an item is of a type ensure() names, as PHP matches get_debug_type() or instanceof.
+ *
+ * @param item - The item to check
+ * @param type - A class, a get_debug_type() name such as "int", "array", "null" or a class's name, or a typeof name
+ * @returns True when the item is of the type
+ */
+function isOfType(item: unknown, type: unknown): boolean {
+    if (isFunction(type)) {
+        return item instanceof type;
+    }
+
+    if (type === phpDebugType(item)) {
+        return true;
+    }
+
+    // JS-only: JavaScript's typeof names are accepted too, "object" meaning any object but null and an array.
+    return !isNull(item) && type === typeOf(item);
+}
+
+/**
+ * Print a key the way PHP's `sprintf('%d', $key)` does: an integer as itself, a string by its leading number, else 0.
+ *
+ * @param key - The key to print
+ * @returns The integer PHP prints
+ */
+function phpIntegerFormat(key: PropertyKey): number {
+    if (isNumber(key)) {
+        return key;
+    }
+
+    const leading = Number.parseFloat(String(key));
+
+    return isFiniteNumber(leading) ? Math.trunc(leading) : 0;
+}
+
+/**
+ * Determine whether mapInto() was handed a backed `@tolki/enum` definition rather than a class.
+ *
+ * @param value - The class or the enum definition
+ * @returns True for a definition marked backed, whose from() resolves a value to its case
+ */
+function isEnumDefinition(value: unknown): value is EnumDefinition<never> {
+    // PHP resolves only a BackedEnum through from(); a pure enum is built as a class would be, and throws.
+    return (
+        isObject(value) && value["backed"] === true && isFunction(value["from"])
+    );
+}
+
+/**
+ * Escape HTML's special characters as Laravel's `e()` helper does, an existing entity included.
+ *
+ * @param value - The text to escape
+ * @returns The text with &, <, >, " and ' written as HTML entities
+ */
+function escapeHtml(value: string): string {
+    return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+/**
+ * Decode JSON the way PHP's `json_decode($json, true)` does, where invalid JSON decodes to null.
+ *
+ * @param json - The JSON text to decode
+ * @returns The decoded value, or null when the text is not JSON
+ */
+function decodeJson(json: string): unknown {
+    try {
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Convert one item as `jsonSerialize()` does: JsonSerializable first, then Jsonable, then Arrayable.
+ *
+ * @param value - The item to convert
+ * @returns What the item serializes as, or the item itself when it converts through none of them
+ */
+function jsonSerializeItem(value: unknown): unknown {
+    // A plain object is data, as a PHP array is, whatever conversion members it holds.
+    if (isPlainObject(value) || !isObject(value)) {
+        return value;
+    }
+
+    if (toJsonSerializable(value)) {
+        return value.jsonSerialize();
+    }
+
+    if (isFunction(value["toJson"])) {
+        const json = value["toJson"]();
+
+        // PHP's toJson() must answer a string; any other answer is taken as already decoded.
+        return isString(json) ? decodeJson(json) : json;
+    }
+
+    if (toArrayable(value)) {
+        return value.toArray();
+    }
+
+    // JavaScript's own toJSON hook comes last, so it never overrides one of PHP's interfaces.
+    if (isFunction(value["toJSON"])) {
+        return decodeJson(JSON.stringify(value));
+    }
+
+    return value;
+}
+
+/**
+ * The error keyBy's PHP throws for a key it cannot store: it casts every object with `(string)` first.
+ *
+ * @param type - The type name of the key
+ * @returns A TypeError for an array, else the Error `(string)` throws for an object without `__toString`
+ */
+function unconvertibleKey(type: string): Error {
+    if (type === "array") {
+        return accessOffset(type);
+    }
+
+    return new Error(
+        `Object of class ${type} could not be converted to string`,
+    );
+}
+
+/**
+ * The error PHP throws when it looks up, through `isset` or `empty`, a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function issetOffset(type: string): TypeError {
+    return new TypeError(
+        `Cannot access offset of type ${type} in isset or empty`,
+    );
+}
+
+/**
+ * The error PHP throws when it reads or writes an array's entry under a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function accessOffset(type: string): TypeError {
+    return new TypeError(`Cannot access offset of type ${type} on array`);
+}
+
+/**
+ * The error PHP throws when it unsets an array's entry under a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function unsetOffset(type: string): TypeError {
+    return new TypeError(`Cannot unset offset of type ${type} on array`);
+}
+
+/**
+ * The error PHP throws when a method whose callback is `?callable` is handed something it cannot call.
+ *
+ * @param method - The method whose parameter rejects the argument
+ * @param argument - The argument it rejects
+ * @returns The TypeError PHP throws, naming the argument's type as get_debug_type() does
+ */
+function notCallable(method: string, argument: unknown): TypeError {
+    return new TypeError(
+        `Collection::${method}(): Argument #1 ($callback) must be of type ?callable, ${phpDebugType(argument)} given`,
+    );
+}
+
+/**
+ * The error PHP throws when it calls a value that is not callable, as when() and unless() call a null callback.
+ *
+ * @param value - The value called
+ * @returns The Error PHP throws, naming the value's type as get_debug_type() does
+ */
+function notCallableValue(value: unknown): Error {
+    return new Error(`Value of type ${phpDebugType(value)} is not callable`);
+}
+
+/**
+ * Build a test of whether a value is among the given values, as PHP's `in_array` compares them.
+ *
+ * @param haystack - The values to look among
+ * @param strict - Whether to compare with PHP's `===` rather than its `==`
+ * @returns A test answering whether a value in the haystack equals the one it is given
+ */
+function inArrayTest(
+    haystack: readonly unknown[],
+    strict: boolean,
+): (needle: unknown) => boolean {
+    const equals = strict ? strictEqual : looseEqual;
+    const keyOf = strict ? strictKey : looseKey;
+    const keyed = new Set<unknown>();
+    const unkeyed: unknown[] = [];
+
+    for (const value of haystack) {
+        const key = keyOf(value);
+
+        if (isUndefined(key)) {
+            unkeyed.push(value);
+        } else {
+            keyed.add(key);
+        }
+    }
+
+    return (needle) => {
+        const key = keyOf(needle);
+
+        if (isUndefined(key)) {
+            return haystack.some((value) => equals(needle, value));
+        }
+
+        return keyed.has(key) || unkeyed.some((value) => equals(needle, value));
+    };
+}
+
+/**
+ * The key two values share exactly when PHP's `===` holds between them.
+ *
+ * @param value - The value to key
+ * @returns The value itself when it is a primitive, else undefined; NAN, which equals nothing, has no key
+ */
+function strictKey(value: unknown): unknown {
+    return isPrimitive(value) ? value : undefined;
+}
+
+/**
+ * The key two values share exactly when PHP's `==` holds between them, for the values it can key.
+ *
+ * @param value - The value to key
+ * @returns A string that is not numeric, the number a number or numeric string stands for, else undefined
+ */
+function looseKey(value: unknown): string | number | undefined {
+    if (isString(value) && !isPhpNumeric(value)) {
+        return value;
+    }
+
+    const number =
+        isNumber(value) || isString(value) ? Number(value) : Number.NaN;
+
+    // Past 2^53 a double drops the digits PHP compares an integer string by, and INF compares by rules of its own.
+    return Math.abs(number) <= Number.MAX_SAFE_INTEGER ? number : undefined;
+}
+
+/**
+ * Determine whether implode() joins an item as it is, as PHP's does an Illuminate\Support\Stringable, over plucking it.
+ *
+ * @param item - The collection's first item, an object
+ * @returns True for an `@tolki/str` Stringable, the port of Illuminate\Support\Stringable; any other object is plucked
+ */
+function joinsAsString(item: Record<PropertyKey, unknown>): boolean {
+    // Laravel's unqualified Stringable there is its own fluent string class, which @tolki/str ports. That package is
+    // no dependency here, so its Stringable is known by a toString and fluent members no other class carries.
+    return (
+        hasOwnToString(item) &&
+        ["afterLast", "beforeLast", "squish"].every((member) =>
+            isFunction(item[member]),
+        )
+    );
+}
+
+/**
+ * Read the value an item holds at a path, the way PHP's `data_get` does.
+ *
+ * @param item - The item to read
+ * @param path - A dot-separated path or its segments; null reads the item itself
+ * @returns The value at the path, or null when the item holds none there
+ */
+function itemValue(item: unknown, path: PathKey | readonly PathKey[]): unknown {
+    return resolvePluckPath(item, pathSegments(path));
+}
+
+/**
+ * Determine whether an item holds a value at a path, the way PHP's `data_has` does.
+ *
+ * @param item - The item to check
+ * @param path - A dot-separated path or its segments; null names no path, which no item holds
+ * @returns True when the item holds a value at the path, null included
+ */
+function itemHas(item: unknown, path: PathKey | readonly PathKey[]): boolean {
+    return hasPluckPath(item, pathSegments(path));
+}
+
+/**
+ * Split a path into the segments `data_get` reads one at a time.
+ *
+ * @param path - A dot-separated path or its segments
+ * @returns The segments, as strings
+ */
+function pathSegments(path: PathKey | readonly PathKey[]): string[] {
+    if (isArray(path)) {
+        return path.map((segment) => String(segment));
+    }
+
+    return explodePluckPath(
+        isNull(path) || isUndefined(path) ? null : String(path),
+    );
+}
+
+/**
+ * Pull a dot path out of an item, the way `Arr::pull` reads and removes one below the collection's own keys.
+ *
+ * @param target - The item the path is read in
+ * @param path - The path's segments, each read as a literal key
+ * @param defaultValue - What to answer when the path holds nothing, resolved if it is a callback
+ * @returns What the path held, or the default, and the target with that removed: a changed copy of an array, a
+ * plain object or a Map, or the same collection, changed in place
+ */
+function pullPath(
+    target: unknown,
+    path: readonly [string, ...string[]],
+    defaultValue: unknown,
+): [unknown, unknown] {
+    const [segment, ...rest] = path;
+
+    if (target instanceof Collection) {
+        if (!target.has(segment)) {
+            return [resolveDefault(defaultValue), target];
+        }
+
+        const child: unknown = target.offsetGet(segment);
+
+        if (rest.length === 0) {
+            target.offsetUnset(segment);
+
+            return [child, target];
+        }
+
+        // PHP writes below an ArrayAccess element on a copy it discards, so only a collection further down changes.
+        return [
+            pullPath(child, rest as [string, ...string[]], defaultValue)[0],
+            target,
+        ];
+    }
+
+    // A Map stands in for a PHP array: its keys are read as PHP casts them, and a change lands on a copy.
+    if (isMap(target)) {
+        const [found, child] = readPluckKey(target, segment);
+
+        if (!found) {
+            return [resolveDefault(defaultValue), target];
+        }
+
+        const phpKey = String(phpArrayKey(segment));
+        const keys = [...target.keys()].filter(
+            (key) => String(phpArrayKey(key)) === phpKey,
+        );
+        const copy = new Map(target);
+
+        if (rest.length === 0) {
+            for (const key of keys) {
+                copy.delete(key);
+            }
+
+            return [child, copy];
+        }
+
+        const [value, pulled] = pullPath(
+            child,
+            rest as [string, ...string[]],
+            defaultValue,
+        );
+
+        if (pulled === child) {
+            return [value, target];
+        }
+
+        for (const key of keys) {
+            copy.set(key, pulled);
+        }
+
+        return [value, copy];
+    }
+
+    const key = isArray(target) ? phpArrayKey(segment) : segment;
+    // A list's own keys are its indexes alone; its length is no item.
+    const found = isArray(target)
+        ? isNumber(key) && Object.hasOwn(target, key)
+        : isPlainObject(target) && Object.hasOwn(target, key);
+
+    if (!found) {
+        return [resolveDefault(defaultValue), target];
+    }
+
+    const child = (target as Record<PropertyKey, unknown>)[key];
+
+    if (rest.length > 0) {
+        const [value, pulled] = pullPath(
+            child,
+            rest as [string, ...string[]],
+            defaultValue,
+        );
+
+        if (pulled === child) {
+            return [value, target];
+        }
+
+        // An array and a plain object are PHP arrays, which are values, so the change lands on a copy.
+        const copy = isArray(target)
+            ? target.slice()
+            : { ...(target as Record<PropertyKey, unknown>) };
+        defineKey(copy as Record<PropertyKey, unknown>, key, pulled);
+
+        return [value, copy];
+    }
+
+    if (isArray(target)) {
+        return [child, target.filter((_, index) => index !== key)];
+    }
+
+    const copy = { ...(target as Record<PropertyKey, unknown>) };
+    delete copy[key];
+
+    return [child, copy];
 }

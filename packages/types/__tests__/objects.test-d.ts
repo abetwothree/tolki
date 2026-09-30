@@ -1,7 +1,10 @@
 import type {
     ArrayableItems,
+    CollapsedObject,
     DeepMergeObjects,
     EnsureObject,
+    FlattenItemReach,
+    FlattenReach,
     FlipObject,
     MapArrayKey,
     MapData,
@@ -21,6 +24,7 @@ import type {
     ReindexedObject,
     SetObjectPath,
     Simplify,
+    SpreadArgs,
     SpreadObjects,
     TruthyObject,
     UnionToIntersection,
@@ -455,6 +459,121 @@ describe("object helper types", () => {
             expectTypeOf<
                 UnionToIntersection<{ a: 1 } | { b: 2 }>
             >().toEqualTypeOf<{ a: 1 } & { b: 2 }>();
+        });
+    });
+
+    describe("FlattenReach and FlattenItemReach", () => {
+        it("reaches a value itself and every value below it", () => {
+            expectTypeOf<FlattenReach<{ a: [1, { b: "x" }] }>>().toEqualTypeOf<
+                { a: [1, { b: "x" }] } | [1, { b: "x" }] | 1 | { b: "x" } | "x"
+            >();
+        });
+
+        it("reaches what flattening one item can push, never a container it unwraps", () => {
+            expectTypeOf<FlattenItemReach<number[][]>>().toEqualTypeOf<
+                number[] | number
+            >();
+            expectTypeOf<FlattenItemReach<{ a: 1 }>>().toEqualTypeOf<1>();
+            expectTypeOf<FlattenItemReach<"s">>().toEqualTypeOf<"s">();
+        });
+
+        it("keeps a Date whole and reads a Collection-like item through all()", () => {
+            expectTypeOf<FlattenItemReach<Date>>().toEqualTypeOf<Date>();
+            expectTypeOf<
+                FlattenItemReach<{ all(): number[] }>
+            >().toEqualTypeOf<number>();
+        });
+    });
+
+    describe("CollapsedObject", () => {
+        it("merges every item's entries, requiring the keys a required item must hold", () => {
+            expectTypeOf<
+                CollapsedObject<{ a: { x: 1 }; b: { y: "s" } }>
+            >().toEqualTypeOf<{ x: 1; y: "s" }>();
+        });
+
+        it("makes each key optional where no item is sure to be there", () => {
+            expectTypeOf<
+                CollapsedObject<Record<number, { a: number }>>
+            >().toEqualTypeOf<{ a?: number }>();
+        });
+
+        it("holds any key and value once a list sits among the items", () => {
+            expectTypeOf<
+                CollapsedObject<{ a: number[]; b: { y: "s" } }>
+            >().toEqualTypeOf<Record<string | number, unknown>>();
+        });
+    });
+
+    describe("SpreadArgs", () => {
+        it("spreads a tuple row as a tuple, then appends the key", () => {
+            expectTypeOf<SpreadArgs<[number, string], "x">>().toEqualTypeOf<
+                [number, string, "x"]
+            >();
+        });
+
+        it("zips same-length tuple rows position by position", () => {
+            expectTypeOf<
+                SpreadArgs<readonly [1, "a"] | readonly [2, "b"], "x" | "y">
+            >().toEqualTypeOf<[1 | 2, "a" | "b", "x" | "y"]>();
+        });
+
+        it("types each argument as any item or the key when a row's length varies", () => {
+            expectTypeOf<SpreadArgs<number[], number>>().toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf<SpreadArgs<string[], number>>().toEqualTypeOf<
+                (string | number)[]
+            >();
+            expectTypeOf<SpreadArgs<[1] | [1, 2], "k">>().toEqualTypeOf<
+                (1 | 2 | "k")[]
+            >();
+        });
+
+        it("spreads an object row's values", () => {
+            expectTypeOf<
+                SpreadArgs<{ x: number; y: string }, "p">
+            >().toEqualTypeOf<(number | string | "p")[]>();
+        });
+
+        it("reads a Collection-like row through all()", () => {
+            expectTypeOf<
+                SpreadArgs<{ all(): number[] }, number>
+            >().toEqualTypeOf<number[]>();
+            expectTypeOf<
+                SpreadArgs<{ all(): Record<string, boolean> }, "k">
+            >().toEqualTypeOf<(boolean | "k")[]>();
+        });
+
+        it("hands a null row on as no items, so only its key follows", () => {
+            expectTypeOf<SpreadArgs<null, "k">>().toEqualTypeOf<["k"]>();
+            expectTypeOf<SpreadArgs<number[] | null, 0>>().toEqualTypeOf<
+                number[]
+            >();
+        });
+
+        it("spreads a Map row's values, as a Map stands for a PHP array", () => {
+            expectTypeOf<SpreadArgs<Map<string, number>, "k">>().toEqualTypeOf<
+                (number | "k")[]
+            >();
+        });
+
+        it("passes a Set, Date, RegExp or Promise row whole, as none stands for a PHP array", () => {
+            expectTypeOf<SpreadArgs<Date, 0>>().toEqualTypeOf<[Date, 0]>();
+            expectTypeOf<SpreadArgs<Set<number>, 0>>().toEqualTypeOf<
+                [Set<number>, 0]
+            >();
+        });
+
+        it("passes a scalar or function row whole", () => {
+            expectTypeOf<SpreadArgs<string, 0>>().toEqualTypeOf<[string, 0]>();
+            expectTypeOf<SpreadArgs<() => void, 1>>().toEqualTypeOf<
+                [() => void, 1]
+            >();
+        });
+
+        it("types every argument as unknown for an unknown row", () => {
+            expectTypeOf<SpreadArgs<unknown, "k">>().toEqualTypeOf<unknown[]>();
         });
     });
 

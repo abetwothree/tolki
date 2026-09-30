@@ -586,6 +586,185 @@ type FlatLeafValue<T, D extends number> = T extends readonly (infer E)[]
       : T;
 
 /**
+ * Every value `flatten()` may push for `T` at some depth: `T` itself, or any value below it. At each level a
+ * Collection-like value is read through `all()` first, and a `Date`, `RegExp`, `Map`, `Set`, `Promise` or function is
+ * kept whole. `ObjectPathValue` cannot stand in: it drops `undefined` and never reads through `all()`.
+ *
+ * @example
+ * FlattenReach<{ a: [1, { b: "x" }] }> // { a: [1, { b: "x" }] } | [1, { b: "x" }] | 1 | { b: "x" } | "x"
+ */
+export type FlattenReach<T, D extends number = 5> = [D] extends [never]
+    ? unknown
+    : T | FlattenItemReach<T, D>;
+
+/**
+ * The values flattening the item `T` may push, at any depth: those a list or object holds at every level below it,
+ * read through `all()` first, or `T` itself when it is a scalar, `Date`, `RegExp`, `Map`, `Set`, `Promise` or function.
+ * TypeScript cannot tell a class instance from a plain object, so a class instance item is typed as walked while the
+ * runtime keeps it whole.
+ *
+ * @example
+ * FlattenItemReach<number[][]> // number[] | number
+ * FlattenItemReach<{ a: 1 }>   // 1
+ */
+export type FlattenItemReach<T, D extends number = 5> = FlattenReachOf<
+    T extends { all: (...args: never[]) => infer R } ? R : T,
+    D
+>;
+
+/** What lies below a value `flatten()` has read through `all()`: a list's or object's values, each reached in turn. */
+type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
+    ? FlattenReach<E, ObjectDepth[D]>
+    : T extends NonObjectItems | Date | RegExp | Promise<unknown>
+      ? T
+      : T extends object
+        ? [keyof T] extends [never]
+            ? unknown
+            : FlattenReach<ObjectValue<T>, ObjectDepth[D]>
+        : T;
+
+/** collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection. */
+type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
+
+/**
+ * The items whose own entries collapse copies; a Map, Set, Date, RegExp, Promise or scalar is skipped. The runtime
+ * skips a class instance too, as PHP skips an object, but a type can't tell one from a plain object.
+ */
+type CollapseEntries<V> = Extract<
+    Exclude<V, NonObjectItems | Date | RegExp | Promise<unknown>>,
+    object
+>;
+
+/** An empty object fits Pick<I, K> only when K is optional in I; distributing checks each shape I may take. */
+type CollapseRequired<I, K extends PropertyKey> = I extends unknown
+    ? Record<never, never> extends Pick<I, K & keyof I>
+        ? false
+        : true
+    : never;
+
+/** A key is certain only when every shape I may take requires it; a Date, Map or scalar among them adds nothing. */
+type CollapseAlwaysKeys<I> = [I] extends [CollapseEntries<I>]
+    ? {
+          [K in keyof I]-?: false extends CollapseRequired<I, K> ? never : K;
+      }[keyof I]
+    : never;
+
+/** Only an item under a declared, required key of T is sure to be merged; an index signature may hold none. */
+type CollapseGuaranteed<T> = {
+    [P in keyof T]-?: string extends P
+        ? never
+        : number extends P
+          ? never
+          : Record<never, never> extends Pick<T, P>
+            ? never
+            : CollapseAlwaysKeys<CollapseItem<T[P]>>;
+}[keyof T];
+
+/** Object.entries skips symbol keys, so collapse never copies one. */
+type CollapseKeys<U> = U extends unknown ? Exclude<keyof U, symbol> : never;
+
+/** The last item holding a key wins it, and a union has no order, so the key may hold any of their values. */
+type CollapseValue<U, K extends PropertyKey> = U extends unknown
+    ? K extends keyof U
+        ? Required<U>[K]
+        : never
+    : never;
+
+/** A string index signature swallows the literal keys beside it, so that result holds any item's value at any key. */
+type CollapseMerge<U, G> =
+    string extends CollapseKeys<U>
+        ? Record<string, CollapseAnyValue<U>>
+        : Simplify<
+              { [K in Extract<CollapseKeys<U>, G>]: CollapseValue<U, K> } & {
+                  [K in Exclude<CollapseKeys<U>, G>]?: CollapseValue<U, K>;
+              }
+          >;
+
+/** Any value any item holds at any of its keys. */
+type CollapseAnyValue<U> = U extends unknown
+    ? Required<U>[CollapseKeys<U> & keyof U]
+    : never;
+
+/**
+ * The object `collapse()` merges an object's (or a list's) items into, as `array_merge` does: every key an item may
+ * have, required only where an item under a required key must have it, and integer keys renumbered. A list among the
+ * items appends under integer keys, so that result holds any key and value.
+ *
+ * @example
+ * CollapsedObject<{ a: { x: 1 }; b: { y: "s" } }>  // { x: 1; y: "s" }
+ * CollapsedObject<Record<number, { a: number }>>   // { a?: number }
+ * CollapsedObject<{ a: number[]; b: { y: "s" } }>  // Record<string | number, unknown>
+ */
+export type CollapsedObject<T> = [
+    Extract<CollapseItem<ObjectValue<T>>, readonly unknown[]>,
+] extends [never]
+    ? ReindexedObject<
+          CollapseMerge<
+              CollapseEntries<CollapseItem<ObjectValue<T>>>,
+              CollapseGuaranteed<T>
+          >
+      >
+    : Record<string | number, unknown>;
+
+/**
+ * One row's items, as `mapSpread` reads it: a plain object or a Map stands for a PHP array, whose values spread, and
+ * a null row gives none; an unknown or keyless object row may hold any. A type cannot tell a class instance from a
+ * plain object, so an instance's fields spread and a plain object's `all` member unwraps, both unlike the runtime.
+ */
+type SpreadRowItems<V> = unknown extends V
+    ? unknown[]
+    : V extends null
+      ? []
+      : V extends readonly unknown[]
+        ? V
+        : V extends (...args: never[]) => unknown
+          ? [V]
+          : V extends { all: (...args: never[]) => infer R }
+            ? SpreadRowItems<R>
+            : V extends ReadonlyMap<unknown, infer M>
+              ? M[]
+              : V extends
+                      | ReadonlySet<unknown>
+                      | WeakMap<object, unknown>
+                      | WeakSet<object>
+                      | Date
+                      | RegExp
+                      | Promise<unknown>
+                ? [V]
+                : V extends object
+                  ? [keyof V] extends [never]
+                      ? unknown[]
+                      : ObjectValue<V>[]
+                  : [V];
+
+/** Rows of one fixed length zip into one tuple; rows of differing or open length give `false`. */
+type SpreadZip<
+    S extends readonly unknown[],
+    A extends unknown[] = [],
+> = S["length"] extends A["length"]
+    ? A
+    : A["length"] extends S["length"]
+      ? false
+      : SpreadZip<S, [...A, S[A["length"]]]>;
+
+/**
+ * The arguments `mapSpread` and `eachSpread` hand their callback for one row: the row's items, then its key.
+ * Rows of one fixed length spread as a tuple, so a callback may leave off the key; otherwise the key's position
+ * varies, so every argument may be any item or the key.
+ *
+ * @example
+ * SpreadArgs<[number, string], "x">  // [number, string, "x"]
+ * SpreadArgs<number[], number>       // number[]
+ * SpreadArgs<{ all(): string[] }, 0> // (string | 0)[]
+ */
+export type SpreadArgs<TRow, TKey> =
+    SpreadRowItems<TRow> extends infer S extends readonly unknown[]
+        ? SpreadZip<S> extends infer Z extends unknown[]
+            ? [...Z, TKey]
+            : (S[number] | TKey)[]
+        : never;
+
+/**
  * The object members of a resolved type, falling back to a loose record when
  * it has none — `objectItem` throws for a non-object at runtime.
  *

@@ -254,6 +254,56 @@ describe("data predicates type tests", () => {
         });
     });
 
+    describe("dataContainsStrict", () => {
+        it("matches arr.containsStrict for a list", () => {
+            expectTypeOf(Data.dataContainsStrict(numberList, 2)).toEqualTypeOf(
+                Arr.containsStrict(numberList, 2),
+            );
+        });
+
+        it("matches obj.containsStrict for a record", () => {
+            expectTypeOf(Data.dataContainsStrict(abc, 2)).toEqualTypeOf(
+                Obj.containsStrict(abc, 2),
+            );
+        });
+
+        it("matches each backing's form that compares a key path", () => {
+            expectTypeOf(
+                Data.dataContainsStrict(rowList, "id", 1),
+            ).toEqualTypeOf(Arr.containsStrict(rowList, "id", 1));
+            expectTypeOf(
+                Data.dataContainsStrict(rowsById, "id", 1),
+            ).toEqualTypeOf(Obj.containsStrict(rowsById, "id", 1));
+        });
+
+        it("routes each backing's callback to its own key type", () => {
+            Data.dataContainsStrict(numberList, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<number>();
+                return value > 1;
+            });
+            Data.dataContainsStrict(abc, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<"a" | "b" | "c">();
+                return value > 1;
+            });
+        });
+
+        it("hands a Map callback obj's widest parameters, not arr's", () => {
+            Data.dataContainsStrict(numberMap, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+                return Number(value) > 0;
+            });
+        });
+
+        it("takes data no shape can be read off, which DataItems rejects", () => {
+            expectTypeOf(Data.dataContainsStrict(opaque, 2)).toEqualTypeOf(
+                Obj.containsStrict(opaque, 2),
+            );
+        });
+    });
+
     describe("dataSole", () => {
         // The one function here whose return type discriminates: the throws are pinned
         // functionally, so these rows pin only the success return.

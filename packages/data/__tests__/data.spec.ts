@@ -2,6 +2,7 @@ import * as Arr from "@tolki/arr";
 import * as Data from "@tolki/data";
 import * as Obj from "@tolki/obj";
 import {
+    InvalidArgumentException,
     ItemNotFoundException,
     MultipleItemsFoundException,
 } from "@tolki/utils";
@@ -11,12 +12,17 @@ const strcasecmp = (a: unknown, b: unknown) =>
     String(a).toLowerCase() === String(b).toLowerCase();
 
 /**
- * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()`.
+ * Wrap items in the smallest Collection-like operand, which obj unwraps through `all()` as Laravel does.
  *
  * @param items - The items `all()` returns
- * @returns An object whose `all()` returns the items
+ * @returns A class instance whose `all()` returns the items, since a plain object's `all` member is data
  */
-const collectionLike = <T>(items: T) => ({ all: () => items });
+const collectionLike = <T>(items: T): { all: () => T } =>
+    new (class {
+        all() {
+            return items;
+        }
+    })();
 
 /**
  * Build `["a", <hole>, "c"]`: a three-element list whose middle index is absent.
@@ -177,6 +183,16 @@ describe("Data", () => {
     });
 
     describe("dataItem", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::array does", () => {
+            // docs/php-parity/task-12-regression-pins.json, "Arr::array requires an array at the key"
+            expect(() => Data.dataItem([1, 2, 3], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Data.dataItem({ a: 5 }, "a")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("is object", () => {
             const result = Data.dataItem({ a: { f: 3 }, b: { g: 4 } }, "b");
             expect(result).toEqual({ g: 4 });
@@ -261,6 +277,16 @@ describe("Data", () => {
     });
 
     describe("dataBoolean", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::boolean does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-string-value", "boolean-list-int-key"
+            expect(() => Data.dataBoolean(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataBoolean({ string: "foo bar" }, "string"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             expect(Data.dataBoolean({ active: true }, "active", false)).toBe(
                 true,
@@ -1701,6 +1727,11 @@ describe("Data", () => {
             });
             expect(Data.dataExcept([1, 2, 3], null)).toEqual([1, 2, 3]);
         });
+
+        it("reads a null among the keys as the '' key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-null-key"
+            expect(Data.dataExcept({ "": 1, a: 2 }, [null])).toEqual({ a: 2 });
+        });
     });
 
     describe("dataExists", () => {
@@ -2094,6 +2125,16 @@ describe("Data", () => {
     });
 
     describe("dataFloat", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::float does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "float-string-value", "float-list-int-key"
+            expect(() => Data.dataFloat(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataFloat({ string: "foo bar" }, "string"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             const result = Data.dataFloat(
                 { price: 19.99, discount: 0.1 },
@@ -2191,6 +2232,11 @@ describe("Data", () => {
     });
 
     describe("dataFrom", () => {
+        it("throws InvalidArgumentException for a scalar, as Laravel's Arr::from does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-arr-from-scalar-throws"
+            expect(() => Data.dataFrom(123)).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             const result = Data.dataFrom({ a: 1, b: 2, c: 3 });
             expect(result).toEqual({ a: 1, b: 2, c: 3 });
@@ -2617,6 +2663,16 @@ describe("Data", () => {
     });
 
     describe("dataInteger", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::integer does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-string-value", "integer-list-int-key"
+            expect(() => Data.dataInteger(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataInteger({ string: "foo bar" }, "string"),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             const result = Data.dataInteger({ count: 42 }, "count", 0);
             expect(result).toBe(42);
@@ -2674,6 +2730,16 @@ describe("Data", () => {
     });
 
     describe("dataJoin", () => {
+        it("agrees across backings on how each piece casts", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            expect(Data.dataJoin([1, [2, 3]], ",")).toBe("1,Array");
+            expect(Data.dataJoin({ a: 1, b: [2] }, ",")).toBe("1,Array");
+            expect(Data.dataJoin([true, null], ", ", " and ")).toBe("1 and ");
+            expect(Data.dataJoin({ a: true, b: null }, ", ", " and ")).toBe(
+                "1 and ",
+            );
+        });
+
         it("is object", () => {
             const result = Data.dataJoin(
                 { a: "hello", b: "world", c: "test" },
@@ -3387,7 +3453,7 @@ describe("Data", () => {
         it("spreads a Collection-like row's items on the array backing", () => {
             // docs/php-parity/task-24-data-release-readiness.json,
             // "d6-map-spread-collection-row", "list"
-            const rows = [{ all: () => [1, "a"] }, { all: () => [2, "b"] }];
+            const rows = [collectionLike([1, "a"]), collectionLike([2, "b"])];
 
             expect(
                 Data.dataMapSpread(
@@ -3400,8 +3466,8 @@ describe("Data", () => {
         it("spreads a Collection-like row's items on the object backing", () => {
             // Same row, "assoc": Arr::mapSpread(['x' => new Collection([1, 'a'])], ...)
             const rows = {
-                x: { all: () => [1, "a"] },
-                y: { all: () => [2, "b"] },
+                x: collectionLike([1, "a"]),
+                y: collectionLike([2, "b"]),
             };
 
             expect(
@@ -4401,6 +4467,36 @@ describe("Data", () => {
     });
 
     describe("dataShift", () => {
+        it("agrees across backings on a fractional or NAN count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            expect(Data.dataShift([1, 2, 3, 4], 2.5)).toEqual([1, 2]);
+            expect(Data.dataShift({ a: 1, b: 2, c: 3, d: 4 }, 2.5)).toEqual([
+                1, 2,
+            ]);
+            expect(Data.dataShift([1, 2, 3, 4], NaN)).toEqual([1, 2, 3, 4]);
+            expect(Data.dataShift({ a: 1, b: 2, c: 3, d: 4 }, NaN)).toEqual([
+                1, 2, 3, 4,
+            ]);
+            expect(() => Data.dataShift([1, 2, 3, 4], 1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(() =>
+                Data.dataShift({ a: 1, b: 2, c: 3, d: 4 }, 1.5),
+            ).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+        });
+
+        it("throws InvalidArgumentException for a negative count on either backing, as Collection::shift does", () => {
+            // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
+            expect(() => Data.dataShift([1], -1)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Data.dataShift({ a: 1 }, -1)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("renumbers a negative integer key through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const data = { x: "a", "-1": "b", y: "c" };
@@ -4637,6 +4733,16 @@ describe("Data", () => {
     });
 
     describe("dataPush", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-12-regression-pins.json, "push requires an array at the key"
+            expect(() => Data.dataPush([1, 2, 3], 0, 9)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Data.dataPush({ 0: 1, 1: 2, 2: 3 }, "0", 9)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("is object", () => {
             const obj = { items: ["a", "b"] };
             const result = Data.dataPush(obj, "items", "c", "d");
@@ -4862,6 +4968,60 @@ describe("Data", () => {
 
             expect(Object.values(result).sort()).toEqual(["b", "z"]);
             expect(Object.keys(result)).toEqual(["0", "1"]);
+        });
+    });
+
+    describe("dataSkipUntil", () => {
+        it("is array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Data.dataSkipUntil([1, 2, 3, 4], 3)).toEqual([3, 4]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-keyed"
+            expect(Data.dataSkipUntil({ a: 1, b: 2, c: 3 }, 2)).toEqual({
+                b: 2,
+                c: 3,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-out-of-order-keys"
+            expect(Data.dataSkipUntil(map, "a")).toEqual({ 0: "a", 1: "b" });
+        });
+    });
+
+    describe("dataSkipWhile", () => {
+        it("is array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Data.dataSkipWhile([1, 1, 2, 1], 1)).toEqual([2, 1]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-keyed"
+            expect(Data.dataSkipWhile({ a: 1, b: 2, c: 1 }, 1)).toEqual({
+                b: 2,
+                c: 1,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Data.dataSkipWhile(map, "c")).toEqual({ 0: "a", 1: "b" });
         });
     });
 
@@ -5784,6 +5944,33 @@ describe("Data", () => {
     });
 
     describe("dataSplice", () => {
+        it("agrees across backings that a null length removes to the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            expect(Data.dataSplice([1, 2, 3, 4], 1, null)).toEqual([2, 3, 4]);
+            expect(
+                Object.values(
+                    Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1, null),
+                ),
+            ).toEqual([2, 3, 4]);
+        });
+
+        it("agrees across backings on a fractional offset, and refuses a non-finite one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            expect(Data.dataSplice([1, 2, 3, 4], 1.5)).toEqual([2, 3, 4]);
+            expect(
+                Object.values(Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, 1.5)),
+            ).toEqual([2, 3, 4]);
+            expect(() => Data.dataSplice([1, 2, 3, 4], NaN, 1)).toThrow(
+                "array_splice(): Argument #2 ($offset) must be of type int, float given",
+            );
+            expect(() =>
+                Data.dataSplice({ a: 1, b: 2, c: 3, d: 4 }, NaN, 1),
+            ).toThrow(
+                "array_splice(): Argument #2 ($offset) must be of type int, float given",
+            );
+        });
+
         it("renumbers negative integer keys through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
             const data = { x: "a", "-3": "b", "-7": "c" };
@@ -5908,7 +6095,73 @@ describe("Data", () => {
         });
     });
 
+    describe("dataTakeUntil", () => {
+        it("is array", () => {
+            // CollectionTest::testTakeUntilUsingValue
+            expect(Data.dataTakeUntil([1, 2, 3, 4], 3)).toEqual([1, 2]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-keyed"
+            expect(Data.dataTakeUntil({ a: 1, b: 2, c: 3 }, 3)).toEqual({
+                a: 1,
+                b: 2,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Data.dataTakeUntil(map, "a")).toEqual({ 2: "c" });
+        });
+    });
+
+    describe("dataTakeWhile", () => {
+        it("is array", () => {
+            // CollectionTest::testTakeWhileUsingValue
+            expect(Data.dataTakeWhile([1, 1, 2, 2, 3, 3], 1)).toEqual([1, 1]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-keyed"
+            expect(Data.dataTakeWhile({ a: 1, b: 1, c: 2, d: 1 }, 1)).toEqual({
+                a: 1,
+                b: 1,
+            });
+        });
+
+        it("walks a Map in its insertion order", () => {
+            const map = new Map([
+                [2, "c"],
+                [0, "a"],
+                [1, "b"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect(Data.dataTakeWhile(map, "c")).toEqual({ 2: "c" });
+        });
+    });
+
     describe("dataString", () => {
+        it("throws InvalidArgumentException for either backing, as Laravel's Arr::string does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            // docs/php-parity/task-23-obj-release-readiness.json, "string-int-value"
+            expect(() => Data.dataString([1234], 0)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() =>
+                Data.dataString(
+                    { string: "foo bar", integer: 1234 },
+                    "integer",
+                ),
+            ).toThrow(InvalidArgumentException);
+        });
+
         it("is object", () => {
             expect(Data.dataString({ name: "John" }, "name", "")).toBe("John");
             expect(Data.dataString({}, "missing", "default")).toBe("default");
@@ -6748,6 +7001,22 @@ describe("Data", () => {
     });
 
     describe("dataPad", () => {
+        it("agrees across backings on a fractional size, and refuses a non-finite one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            expect(Data.dataPad([1, 2, 3], 7.5, 0)).toEqual([
+                1, 2, 3, 0, 0, 0, 0,
+            ]);
+            expect(
+                Object.values(Data.dataPad({ a: 1, b: 2, c: 3 }, -7.5, 0)),
+            ).toEqual([0, 0, 0, 0, 1, 2, 3]);
+            expect(() => Data.dataPad([1, 2, 3], NaN, 0)).toThrow(
+                "array_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+            expect(() => Data.dataPad({ a: 1, b: 2, c: 3 }, NaN, 0)).toThrow(
+                "array_pad(): Argument #2 ($length) must be of type int, float given",
+            );
+        });
+
         it("renumbers a negative integer key through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
             expect(Data.dataPad({ "-1": "a", x: "b" }, 4, 0)).toEqual({
@@ -7937,6 +8206,184 @@ describe("Data", () => {
         });
     });
 
+    describe("dataContainsStrict", () => {
+        it("compares a value with PHP's === on both backings", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            expect(Data.dataContainsStrict([1, 3, 5, "02"], "02")).toBe(true);
+            expect(Data.dataContainsStrict([1, 3, 5, "02"], 2)).toBe(false);
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "L9 containsStrict (assoc)", "mixed"
+            const mixed = { a: 1, b: 3, c: 5, d: "02" };
+            expect(Data.dataContainsStrict(mixed, 1)).toBe(true);
+            expect(Data.dataContainsStrict(mixed, "1")).toBe(false);
+            expect(Data.dataContainsStrict(mixed, 2)).toBe(false);
+            expect(Data.dataContainsStrict(mixed, "02")).toBe(true);
+            expect(Data.dataContainsStrict(mixed, true)).toBe(false);
+            expect(
+                Data.dataContainsStrict(mixed, (value) => Number(value) < 5),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(mixed, (value) => Number(value) > 5),
+            ).toBe(false);
+        });
+
+        it("compares a key path strictly when a second argument is given, on both backings", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            expect(
+                Data.dataContainsStrict([{ tags: ["a", "b"] }], "tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict([{ t: { x: 1, y: 2 } }], "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(Data.dataContainsStrict([{ a: 1 }], "name", null)).toBe(
+                true,
+            );
+
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-assoc-backed-contains",
+            // "containsStrict-two-args"
+            expect(
+                Data.dataContainsStrict({ r: { tags: ["a", "b"] } }, "tags", [
+                    "a",
+                    "b",
+                ]),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict({ r: { t: { x: 1, y: 2 } } }, "t", {
+                    y: 2,
+                    x: 1,
+                }),
+            ).toBe(false);
+            expect(
+                Data.dataContainsStrict({ r: { name: "x" } }, "name", null),
+            ).toBe(false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-containsStrict-two-args-dot-path"
+            const users = [{ user: { id: 1 } }, { user: { id: 2 } }];
+            expect(Data.dataContainsStrict(users, "user.id", 2)).toBe(true);
+            expect(Data.dataContainsStrict(users, "user.id", "2")).toBe(false);
+            expect(
+                Data.dataContainsStrict(
+                    { r: { user: { id: 2 } } },
+                    "user.id",
+                    2,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    { r: { user: { id: 2 } } },
+                    "user.id",
+                    "2",
+                ),
+            ).toBe(false);
+        });
+
+        it("compares a key path strictly through a Map, as through the record it mirrors", () => {
+            // JS-only: PHP has no Map, so each answer is its keyed array's.
+            // docs/php-parity/task-24-data-release-readiness.json, "r3-assoc-backed-contains",
+            // "containsStrict-two-args": "array", "reordered" and "null-missing"
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { tags: ["a", "b"] }]]),
+                    "tags",
+                    ["a", "b"],
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { t: { x: 1, y: 2 } }]]),
+                    "t",
+                    { y: 2, x: 1 },
+                ),
+            ).toBe(false);
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { a: 1 }]]),
+                    "name",
+                    null,
+                ),
+            ).toBe(true);
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-C-containsStrict-two-args-dot-path", "keyed"
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { user: { id: 2 } }]]),
+                    "user.id",
+                    2,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    new Map([["r", { user: { id: 2 } }]]),
+                    "user.id",
+                    "2",
+                ),
+            ).toBe(false);
+        });
+
+        it("counts a callback match holding null, as array_any does, on both backings", () => {
+            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // "containsStrict-list-null-callback" and "containsStrict-list-zero-callback"
+            expect(
+                Data.dataContainsStrict(
+                    [1, null, 2],
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict([1, null, 2], (value) => value === 0),
+            ).toBe(false);
+            // Same file, "containsStrict-assoc-null-callback" and "containsStrict-assoc-zero-callback"
+            expect(
+                Data.dataContainsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === null,
+                ),
+            ).toBe(true);
+            expect(
+                Data.dataContainsStrict(
+                    { a: 1, b: null, c: 2 },
+                    (value) => value === 0,
+                ),
+            ).toBe(false);
+        });
+
+        it("reads a Map in its insertion order, keeping only the last value of keys PHP stores as one", () => {
+            const seen: unknown[] = [];
+
+            Data.dataContainsStrict(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+                (_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "containsStrict-out-of-order-callback-order"
+            expect(seen).toEqual([2, 0, 1]);
+            // docs/php-parity/task-30-map-order.json, "containsStrict-collision"
+            expect(
+                Data.dataContainsStrict(
+                    new Map<string | number, string>([
+                        [1, "a"],
+                        ["1", "b"],
+                    ]),
+                    "a",
+                ),
+            ).toBe(false);
+        });
+    });
+
     describe("dataDiff", () => {
         it("is object", () => {
             expect(
@@ -8104,6 +8551,24 @@ describe("Data", () => {
     });
 
     describe("dataPop", () => {
+        it("agrees across backings on a fractional or NAN count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            expect(Data.dataPop([1, 2, 3, 4], 2.5)).toEqual([4, 3]);
+            expect(Data.dataPop({ a: 1, b: 2, c: 3, d: 4 }, 2.5)).toEqual([
+                4, 3,
+            ]);
+            expect(Data.dataPop([1, 2, 3, 4], NaN)).toEqual([4, 3, 2, 1]);
+            expect(Data.dataPop({ a: 1, b: 2, c: 3, d: 4 }, NaN)).toEqual([
+                4, 3, 2, 1,
+            ]);
+            expect(() => Data.dataPop([1, 2, 3, 4], 1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(() => Data.dataPop({ a: 1, b: 2, c: 3, d: 4 }, 1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+        });
+
         it("is object", () => {
             const obj = { a: 1, b: 2, c: 3 };
             const result = Data.dataPop(obj, 2);
@@ -8258,6 +8723,37 @@ describe("Data", () => {
                 5,
             ]);
             expect(Data.dataIntersect({ 0: 5 }, [5])).toEqual({ 0: 5 });
+        });
+    });
+
+    describe("dataIntersectUsing", () => {
+        it("is array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+            expect(
+                Data.dataIntersectUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    strcasecmp,
+                ),
+            ).toEqual(["green"]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+            expect(
+                Data.dataIntersectUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    strcasecmp,
+                ),
+            ).toEqual({ a: "green" });
+        });
+
+        it("reads a null operand as empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using"
+            expect(
+                Data.dataIntersectUsing({ a: "green" }, null, strcasecmp),
+            ).toEqual({});
         });
     });
 
@@ -8422,6 +8918,70 @@ describe("Data", () => {
                     collectionLike({ id: 1, name: "b" }) as never,
                 ),
             ).toEqual({ name: "a" });
+        });
+    });
+
+    describe("dataDiffKeys", () => {
+        it("is array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys", whose list keeps key 2;
+            // a list renumbers its survivors, as every removal from a list does
+            expect(Data.dataDiffKeys([1, 2, 3], [9, 9])).toEqual([3]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+            expect(
+                Data.dataDiffKeys(
+                    { id: 1, first_word: "Hello" },
+                    { id: 123, foo_bar: "Hello" },
+                ),
+            ).toEqual({ first_word: "Hello" });
+        });
+
+        it("matches a keyed operand by key on a list, and reads a null operand as empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+            expect(Data.dataDiffKeys([1, 2], { a: 1, 1: 5 })).toEqual([1]);
+            expect(Data.dataDiffKeys({ a: 1 }, null)).toEqual({ a: 1 });
+        });
+
+        it("counts a list operand's indexes as its keys, never its length", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffKeys-length-key"
+            expect(Data.dataDiffKeys({ length: 5, b: 2 }, ["x"])).toEqual({
+                length: 5,
+                b: 2,
+            });
+        });
+    });
+
+    describe("dataDiffUsing", () => {
+        it("is array", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", whose list keeps keys 1 and 2;
+            // a list renumbers its survivors, as every removal from a list does
+            expect(
+                Data.dataDiffUsing(
+                    ["green", "brown", "blue"],
+                    ["GREEN", "yellow"],
+                    strcasecmp,
+                ),
+            ).toEqual(["brown", "blue"]);
+        });
+
+        it("is object", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+            expect(
+                Data.dataDiffUsing(
+                    { a: "green", b: "brown", c: "blue" },
+                    { A: "GREEN", 0: "yellow" },
+                    strcasecmp,
+                ),
+            ).toEqual({ b: "brown", c: "blue" });
+        });
+
+        it("reads a null operand as empty", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+            expect(
+                Data.dataDiffUsing({ a: "green" }, null, strcasecmp),
+            ).toEqual({ a: "green" });
         });
     });
 
@@ -10678,6 +11238,18 @@ describe("Data", () => {
             ).toEqual(Data.dataDiffAssoc(asRecord, { a: 1, b: 99, c: 3 }));
         });
 
+        it("dataDiffKeys diffs a Map's keys like the record it mirrors", () => {
+            expect(Data.dataDiffKeys(asMap, { b: 99 })).toEqual(
+                Data.dataDiffKeys(asRecord, { b: 99 }),
+            );
+        });
+
+        it("dataDiffUsing diffs a Map like the record it mirrors", () => {
+            expect(Data.dataDiffUsing(asMap, [2], strcasecmp)).toEqual(
+                Data.dataDiffUsing(asRecord, [2], strcasecmp),
+            );
+        });
+
         it("dataDiffAssocUsing diffs a Map like the record it mirrors", () => {
             expect(
                 Data.dataDiffAssocUsing(asMap, { B: 2 }, strcasecmp),
@@ -10705,6 +11277,12 @@ describe("Data", () => {
         it("dataIntersect intersects a Map like the record it mirrors", () => {
             expect(Data.dataIntersect(asMap, [1, 2])).toEqual(
                 Data.dataIntersect(asRecord, [1, 2]),
+            );
+        });
+
+        it("dataIntersectUsing intersects a Map like the record it mirrors", () => {
+            expect(Data.dataIntersectUsing(asMap, [1, 2], strcasecmp)).toEqual(
+                Data.dataIntersectUsing(asRecord, [1, 2], strcasecmp),
             );
         });
 
@@ -10838,5 +11416,213 @@ describe("Data", () => {
                 [0, 1, 2],
             );
         });
+    });
+
+    describe("callback results judged by PHP truthiness", () => {
+        /** The items "a" and "b" (or "a" alone), as a list or keyed "x" and "y". */
+        const items = (
+            keyed: boolean,
+            one = false,
+        ): string[] | Record<string, string> => {
+            if (keyed) {
+                return one ? { x: "a" } : { x: "a", y: "b" };
+            }
+
+            return one ? ["a"] : ["a", "b"];
+        };
+
+        /** What `run` answers, or the name of the exception it throws, as the probe records one. */
+        const outcome = (run: () => unknown): unknown => {
+            try {
+                return run();
+            } catch (error) {
+                return (error as Error).name;
+            }
+        };
+
+        // PHP casts "0" and [] to false, and every object to true, however empty.
+        const answers = ["0", [], new Date(0), new (class {})()];
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-collection-callback-php-truthiness", which records each chunk's values
+                "dataChunkWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    Object.values(
+                        Data.dataChunkWhile(items(keyed), callback),
+                    ).map((chunk) => Object.values(chunk)),
+                {
+                    list: [
+                        [["a"], ["b"]],
+                        [["a"], ["b"]],
+                        [["a", "b"]],
+                        [["a", "b"]],
+                    ],
+                    keyed: [
+                        [["a"], ["b"]],
+                        [["a"], ["b"]],
+                        [["a", "b"]],
+                        [["a", "b"]],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataFirst",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataFirst(items(keyed), callback),
+                { list: [null, null, "a", "a"], keyed: [null, null, "a", "a"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataLast",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataLast(items(keyed), callback),
+                { list: [null, null, "b", "b"], keyed: [null, null, "b", "b"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataEvery",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataEvery(items(keyed), callback),
+                {
+                    list: [false, false, true, true],
+                    keyed: [false, false, true, true],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataSome",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataSome(items(keyed), callback),
+                {
+                    list: [false, false, true, true],
+                    keyed: [false, false, true, true],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataSole",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataSole(items(keyed, true), callback),
+                {
+                    list: [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a",
+                        "a",
+                    ],
+                    keyed: [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a",
+                        "a",
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataWhere",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataWhere(items(keyed), callback),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataReject",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataReject(items(keyed), callback),
+                {
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}, {}],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "dataPartition",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataPartition(items(keyed), callback),
+                {
+                    list: [
+                        [[], ["a", "b"]],
+                        [[], ["a", "b"]],
+                        [["a", "b"], []],
+                        [["a", "b"], []],
+                    ],
+                    keyed: [
+                        [{}, { x: "a", y: "b" }],
+                        [{}, { x: "a", y: "b" }],
+                        [{ x: "a", y: "b" }, {}],
+                        [{ x: "a", y: "b" }, {}],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataContains",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataContains(items(keyed), callback),
+                {
+                    list: [false, false, true, true],
+                    keyed: [false, false, true, true],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataFilter",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataFilter(items(keyed), callback),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataSearch",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataSearch(items(keyed), callback),
+                { list: [false, false, 0, 0], keyed: [false, false, "x", "x"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-collection-callback-php-truthiness", whose before callback answers for "b" only
+                "dataBefore",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataBefore(items(keyed), (value: unknown) =>
+                        value === "b" ? callback() : false,
+                    ),
+                { list: [null, null, "a", "a"], keyed: [null, null, "a", "a"] },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "dataAfter",
+                (callback: () => unknown, keyed: boolean) =>
+                    Data.dataAfter(items(keyed), callback),
+                { list: [null, null, "b", "b"], keyed: [null, null, "b", "b"] },
+            ],
+        ] as [
+            string,
+            (callback: () => unknown, keyed: boolean) => unknown,
+            { list: unknown[]; keyed: unknown[] },
+        ][])(
+            "%s judges its callback's result by PHP truthiness on either backing",
+            (_name, run, expected) => {
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, false)),
+                    ),
+                ).toEqual(expected.list);
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, true)),
+                    ),
+                ).toEqual(expected.keyed);
+            },
+        );
     });
 });

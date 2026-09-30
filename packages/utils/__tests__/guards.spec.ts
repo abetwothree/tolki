@@ -52,6 +52,35 @@ describe("Utils", () => {
         });
     });
 
+    describe("isEnumCase", () => {
+        it("returns true for a case @tolki/enum builds", () => {
+            // JS-only: the shape defineEnum's from() and cases() build, where a PHP enum case is an
+            // object of its enum's class.
+            expect(
+                Utils.isEnumCase({ value: 2, backed: true, name: "B" }),
+            ).toBe(true);
+            expect(
+                Utils.isEnumCase({ value: "A", backed: false, name: "A" }),
+            ).toBe(true);
+        });
+
+        it("returns false without an own string name and an own string or number value", () => {
+            // JS-only: the shape defineEnum's from() and cases() build, where a PHP enum case is an
+            // object of its enum's class.
+            class Case {
+                name = "A";
+                value = 1;
+            }
+
+            expect(Utils.isEnumCase({ value: 1 })).toBe(false);
+            expect(Utils.isEnumCase({ name: 1, value: 1 })).toBe(false);
+            expect(Utils.isEnumCase({ name: "A" })).toBe(false);
+            expect(Utils.isEnumCase({ name: "A", value: null })).toBe(false);
+            expect(Utils.isEnumCase(new Case())).toBe(false);
+            expect(Utils.isEnumCase("A")).toBe(false);
+        });
+    });
+
     describe("isObjectAny", () => {
         it("returns true for types that return typeof as 'object'", () => {
             expect(Utils.isObjectAny({})).toBe(true);
@@ -189,6 +218,22 @@ describe("Utils", () => {
             expect(Utils.isFloat([])).toBe(false);
             expect(Utils.isFloat(null)).toBe(false);
             expect(Utils.isFloat(undefined)).toBe(false);
+        });
+    });
+
+    describe("isPhpInt", () => {
+        it("answers true for an integer PHP holds as an int, and false for a float it holds, -0 included", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            expect(
+                [2 ** 62, -(2 ** 63), 0, 7].map((value) =>
+                    Utils.isPhpInt(value),
+                ),
+            ).toEqual([true, true, true, true]);
+            expect(
+                [1e19, -1e19, 2 ** 63, -0, 1.5, NaN, "1"].map((value) =>
+                    Utils.isPhpInt(value),
+                ),
+            ).toEqual([false, false, false, false, false, false, false]);
         });
     });
 
@@ -507,13 +552,28 @@ describe("Utils", () => {
             expect(Utils.isPhpFalsy(true)).toBe(false);
         });
 
-        it("treats any own-key-less object as falsy, a documented non-PHP limitation", () => {
-            // PHP has no equivalent of Date/Map/RegExp; these are objects with no own
-            // enumerable keys, so isPhpFalsy treats them the same as an empty plain
-            // object.
-            expect(Utils.isPhpFalsy(new Date())).toBe(true);
+        it("keeps a Date, a RegExp or a class instance truthy however empty, as PHP keeps every object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-keeps-empty-objects"
+            // JS-only: a RegExp has no PHP class; it is an object like any other.
+            class Empty {}
+
+            expect(Utils.isPhpFalsy(new Date(0))).toBe(false);
+            expect(Utils.isPhpFalsy(/re/)).toBe(false);
+            expect(Utils.isPhpFalsy(new Empty())).toBe(false);
+        });
+
+        it("reads a Map or a Set as the array it stands for, falsy only when empty", () => {
+            // JS-only: a Map or a Set has no PHP type; it stands in for an array, which is falsy only when empty.
             expect(Utils.isPhpFalsy(new Map())).toBe(true);
-            expect(Utils.isPhpFalsy(/re/)).toBe(true);
+            expect(Utils.isPhpFalsy(new Set())).toBe(true);
+            expect(Utils.isPhpFalsy(new Map([[1, 2]]))).toBe(false);
+            expect(Utils.isPhpFalsy(new Set([1]))).toBe(false);
+        });
+
+        it("reads a zero bigint as falsy", () => {
+            // JS-only: PHP has no bigint; a zero one is falsy as the integer 0 is.
+            expect(Utils.isPhpFalsy(0n)).toBe(true);
+            expect(Utils.isPhpFalsy(1n)).toBe(false);
         });
     });
 

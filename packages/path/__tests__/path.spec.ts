@@ -1,4 +1,5 @@
 import * as Path from "@tolki/path";
+import { InvalidArgumentException } from "@tolki/utils";
 import { afterEach, describe, expect, it } from "vitest";
 
 /**
@@ -419,6 +420,68 @@ describe("Path Functions", () => {
             expect(result).not.toBe(data);
         });
 
+        it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-null-key"
+            expect(Path.forgetKeys({ "": 1, a: 2 }, null)).toEqual({
+                "": 1,
+                a: 2,
+            });
+            expect(Path.forgetKeys({ "": 1, a: 2 }, [null])).toEqual({ a: 2 });
+            expect(Path.forgetKeys({ a: { "": 1 } }, [null])).toEqual({
+                a: { "": 1 },
+            });
+            // JS-only: undefined stands for PHP's null, so it names the '' key too, never an "undefined" one.
+            expect(
+                Path.forgetKeys({ "": 1, a: 2, undefined: 3 }, [undefined]),
+            ).toEqual({ a: 2, undefined: 3 });
+        });
+
+        it("looks a float up by its string form, then removes its integer part, as unset casts it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            expect(
+                Path.forgetKeys({ "1.5": "a", 1: "b", c: "d" }, [1.5]),
+            ).toEqual({ "1.5": "a", c: "d" });
+            expect(Path.forgetKeys({ "1.5": "a", c: "d" }, [1.5])).toEqual({
+                "1.5": "a",
+                c: "d",
+            });
+            expect(Path.forgetKeys({ 1: { 5: "x", 6: "y" } }, [1.5])).toEqual({
+                1: { 6: "y" },
+            });
+        });
+
+        it("walks a float over a list as the path its string form names", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-float-list-path"
+            expect(
+                Path.forgetKeys([["a", "b", "c", "d", "e", "f"]], [0.5]),
+            ).toEqual([["a", "b", "c", "d", "e"]]);
+            expect(Path.forgetKeys(["a", "b", "c"], [1.5])).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+            expect(
+                Path.forgetKeys([["a", "b", "c", "d", "e", "f"]], [0.5, 9]),
+            ).toEqual([["a", "b", "c", "d", "e"]]);
+        });
+
+        it("throws array_key_exists()'s TypeError for an array or object key, even over no items", () => {
+            const failure = new TypeError(
+                "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() =>
+                Path.forgetKeys([], [["b"]] as unknown as string[]),
+            ).toThrow(failure);
+            expect(() =>
+                Path.forgetKeys({ a: 1, b: 2 }, [
+                    "a",
+                    {},
+                ] as unknown as string[]),
+            ).toThrow(failure);
+        });
+
         it("removes single numeric key", () => {
             expect(Path.forgetKeys(["a", "b", "c"], 1)).toEqual(["a", "c"]);
             expect(Path.forgetKeys(["a", "b", "c"], 0)).toEqual(["b", "c"]);
@@ -686,6 +749,13 @@ describe("Path Functions", () => {
     });
 
     describe("pushWithPath", () => {
+        it("throws InvalidArgumentException for a non-array at the key, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-16-final-review.json, "push rejects a boolean at the leaf"
+            expect(() => Path.pushWithPath([true], "0", "value")).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("pushes to root array when key is null", () => {
             const data = ["a"];
             expect(Path.pushWithPath(data, null, "b", "c")).toEqual([

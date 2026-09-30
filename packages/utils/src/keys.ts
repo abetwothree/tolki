@@ -1,16 +1,20 @@
 import {
+    isArray,
     isBoolean,
+    isEnumCase,
     isFunction,
     isInteger,
     isMap,
     isNull,
     isNumber,
+    isObject,
     isPrototypeObject,
     isString,
     isSymbol,
     isTruthyObject,
     isUndefined,
 } from "./guards";
+import { phpDebugType } from "./reflect";
 
 /**
  * The first magnitude beyond PHP's 64-bit integer range. `PHP_INT_MAX`
@@ -136,6 +140,106 @@ export function phpArrayKey(key: unknown): string | number {
     }
 
     return String(key);
+}
+
+/**
+ * The key a Laravel method stores for a value it computed, cast the way that method casts it.
+ *
+ * @param value - The computed key
+ * @param options - `enumCases` reads an `@tolki/enum` case as its value, as `enum_value()` does; `stringables`
+ * reads an object with its own `toString` as that string; `invalid` builds the error the method's PHP throws
+ * @returns The key PHP stores, cast as {@linkcode phpArrayKey} casts it
+ * @throws TypeError `Cannot access offset of type X on array` for any other object, or the error `invalid` builds
+ *
+ * @example
+ * phpComputedKey(true); -> 1
+ * phpComputedKey(1.5); -> 1
+ * phpComputedKey({ value: 2, backed: true, name: "B" }, { enumCases: true }); -> 2
+ * phpComputedKey([1, 2]); -> throws TypeError("Cannot access offset of type array on array")
+ */
+export function phpComputedKey(
+    value: unknown,
+    options: {
+        enumCases?: boolean;
+        stringables?: boolean;
+        invalid?: (type: string) => Error;
+    } = {},
+): string | number {
+    const { enumCases = false, stringables = false } = options;
+    let key = value;
+
+    if (enumCases && isEnumCase(key)) {
+        key = key["value"];
+    }
+
+    if (stringables && hasOwnToString(key)) {
+        key = String(key.toString());
+    }
+
+    if (isIllegalOffset(key)) {
+        const invalid = options.invalid ?? illegalOffset;
+
+        throw invalid(phpDebugType(key));
+    }
+
+    return phpArrayKey(key);
+}
+
+/**
+ * Determine whether a value is a key no PHP array can hold, which PHP throws for wherever it reads or writes one.
+ *
+ * @param value - The key to test
+ * @returns True for an array, an object or a function, which PHP reads as a Closure
+ *
+ * @example
+ * isIllegalOffset(["b"]); -> true
+ * isIllegalOffset(null); -> false
+ */
+export function isIllegalOffset(value: unknown): value is object {
+    return isArray(value) || isObject(value) || isFunction(value);
+}
+
+/**
+ * The error `array_key_exists` throws for a key no PHP array can hold, called from a namespace as Laravel calls it.
+ *
+ * @returns The TypeError PHP throws
+ */
+export function arrayKeyExistsError(): TypeError {
+    return new TypeError(
+        "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+    );
+}
+
+/**
+ * Determine whether a value is an object with its own `toString`, the JS reading of a PHP Stringable.
+ *
+ * @param value - The value to test
+ * @returns True unless the value is no object, inherits `Object.prototype`'s `toString`, or is a Date
+ *
+ * @example
+ * hasOwnToString(new (class { toString() { return "a"; } })()); -> true
+ * hasOwnToString(new Date(0)); -> false
+ */
+export function hasOwnToString(
+    value: unknown,
+): value is { toString(): unknown } {
+    // A Date's toString is built in, but PHP's DateTime has no __toString.
+    return (
+        isObject(value) &&
+        !(value instanceof Date) &&
+        isFunction(value["toString"]) &&
+        value["toString"] !== Object.prototype.toString
+    );
+}
+
+/**
+ * The error PHP throws when an array is written under a key it cannot store.
+ *
+ * @param type - The type name of the key
+ * @returns The TypeError PHP throws
+ */
+function illegalOffset(type: string): TypeError {
+    return new TypeError(`Cannot access offset of type ${type} on array`);
 }
 
 /**

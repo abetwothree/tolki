@@ -1,4 +1,20 @@
 /**
+ * Thrown for an argument out of range, as Laravel's `nth()` throws `'Step value must be at least 1.'`.
+ */
+export class InvalidArgumentException extends Error {
+    /**
+     * Create a new exception instance.
+     *
+     * @param message - The exception message
+     */
+    constructor(message: string) {
+        super(message);
+
+        this.name = "InvalidArgumentException";
+    }
+}
+
+/**
  * Thrown when a lookup that must match exactly one item matches none.
  *
  * Laravel's `Illuminate\Support\ItemNotFoundException` extends `RuntimeException`
@@ -38,5 +54,30 @@ export class MultipleItemsFoundException extends Error {
 
         this.name = "MultipleItemsFoundException";
         this.count = count;
+    }
+
+    /**
+     * Get the number of items found.
+     *
+     * @returns The number of items the lookup matched
+     */
+    getCount(): number {
+        return this.count;
+    }
+}
+
+/**
+ * Thrown for a value of the wrong type, as Laravel's `ensure()` and `reduceSpread()` throw it.
+ */
+export class UnexpectedValueException extends Error {
+    /**
+     * Create a new exception instance.
+     *
+     * @param message - The exception message
+     */
+    constructor(message: string) {
+        super(message);
+
+        this.name = "UnexpectedValueException";
     }
 }

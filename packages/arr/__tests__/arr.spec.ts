@@ -1,9 +1,10 @@
 import * as Arr from "@tolki/arr";
-import { SortDirection } from "@tolki/enum";
+import { defineEnum, SortDirection } from "@tolki/enum";
 import * as Obj from "@tolki/obj";
 import { MAX_UNDOT_INDEX } from "@tolki/path";
 import type { UndotArrayKey } from "@tolki/types";
 import {
+    InvalidArgumentException,
     isArray,
     ItemNotFoundException,
     MultipleItemsFoundException,
@@ -14,9 +15,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  * Wrap items in the smallest Collection-like operand, which arr unwraps through `all()` as Laravel does.
  *
  * @param items - The items `all()` returns
- * @returns An object whose `all()` returns the items
+ * @returns A class instance whose `all()` returns the items, since a plain object's `all` member is data
  */
-const collectionLike = <T>(items: T) => ({ all: () => items });
+const collectionLike = <T>(items: T): { all: () => T } =>
+    new (class {
+        all() {
+            return items;
+        }
+    })();
 
 /** A case-insensitive value comparator, the JavaScript twin of PHP's `strcasecmp` as array_udiff uses it. */
 const caseless = (a: unknown, b: unknown): boolean =>
@@ -257,6 +263,13 @@ describe("Arr", () => {
     });
 
     describe("arrayItem", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::array does", () => {
+            // docs/php-parity/task-12-regression-pins.json, "Arr::array requires an array at the key"
+            expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("arrayItem", () => {
             // Valid arrays
             expect(
@@ -299,6 +312,13 @@ describe("Arr", () => {
     });
 
     describe("boolean", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::boolean does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "boolean-list-int-key"
+            expect(() => Arr.boolean(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("boolean", () => {
             // Valid booleans
             expect(Arr.boolean([true, false], 0)).toBe(true);
@@ -625,8 +645,17 @@ describe("Arr", () => {
         it("merges a Collection-like item's items and skips a scalar", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-collection-items"
             expect(
-                Arr.collapse([{ all: () => [1, 2] }, 5, { all: () => [3] }]),
+                Arr.collapse([collectionLike([1, 2]), 5, collectionLike([3])]),
             ).toEqual([1, 2, 3]);
+        });
+
+        it("merges a plain object item's all member as data, never unwrapping it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            const all = () => [9];
+            const collapsed = Arr.collapse([{ all, b: 2 }]);
+
+            expect(collapsed).toEqual({ all, b: 2 });
+            expect(Object.keys(collapsed)).toEqual(["all", "b"]);
         });
 
         it("renumbers a negative integer key like any other integer key", () => {
@@ -715,7 +744,7 @@ describe("Arr", () => {
                 2: "y",
             });
             expect(
-                Arr.combine([1, 2], { all: () => ({ a: "x", b: "y" }) }),
+                Arr.combine([1, 2], collectionLike({ a: "x", b: "y" })),
             ).toEqual({ 1: "x", 2: "y" });
         });
 
@@ -873,6 +902,25 @@ describe("Arr", () => {
                 "b",
                 "d",
             ]);
+        });
+
+        it("walks a float as the path its string form names", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-float-list-path"
+            expect(Arr.except([["a", "b", "c", "d", "e", "f"]], [0.5])).toEqual(
+                [["a", "b", "c", "d", "e"]],
+            );
+            expect(Arr.except(["a", "b", "c"], [1.5])).toEqual(["a", "b", "c"]);
+        });
+
+        it("throws array_key_exists()'s TypeError for an array key, even over no items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() =>
+                Arr.except([], [["b"]] as unknown as string[]),
+            ).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
         });
     });
 
@@ -1273,6 +1321,13 @@ describe("Arr", () => {
             const kept = collectionLike([2, 3]);
             expect(Arr.flatten([[kept]], 1)).toEqual([kept]);
         });
+
+        it("keeps a plain object item's all member as a value, never unwrapping it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            const all = () => [9];
+
+            expect(Arr.flatten([{ all, b: 2 }])).toEqual([all, 2]);
+        });
     });
 
     describe("flip", () => {
@@ -1449,6 +1504,11 @@ describe("Arr", () => {
     });
 
     describe("from", () => {
+        it("throws InvalidArgumentException for a scalar, as Laravel's Arr::from does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-arr-from-scalar-throws"
+            expect(() => Arr.from(123)).toThrow(InvalidArgumentException);
+        });
+
         it("from", () => {
             expect(Arr.from(keyed({ foo: "bar" }))).toEqual({ foo: "bar" });
             expect(Arr.from(keyed(new Object({ foo: "bar" })))).toEqual({
@@ -1929,6 +1989,13 @@ describe("Arr", () => {
     });
 
     describe("integer", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::integer does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "integer-list-int-key"
+            expect(() => Arr.integer(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("integer", () => {
             const testArray = ["foo bar", 1234];
 
@@ -2211,6 +2278,13 @@ describe("Arr", () => {
     });
 
     describe("push", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::push does through Arr::array", () => {
+            // docs/php-parity/task-12-regression-pins.json, "push requires an array at the key"
+            expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("push", () => {
             let data: unknown[] = [];
 
@@ -2487,6 +2561,63 @@ describe("Arr", () => {
     });
 
     describe("join", () => {
+        it("casts each piece as implode() does and the last as . does", () => {
+            class Label {
+                toString(): string {
+                    return "S:T";
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            expect(Arr.join([1, [2, 3]], ",")).toBe("1,Array");
+            expect(Arr.join([true, false, null, 1.5, "x"], ",")).toBe(
+                "1,,,1.5,x",
+            );
+            expect(Arr.join([1, new Label()], ",")).toBe("1,S:T");
+            expect(Arr.join([1, [2]], ", ", " and ")).toBe("1 and Array");
+            expect(Arr.join([true, null, false], ", ", " and ")).toBe(
+                "1,  and ",
+            );
+        });
+
+        it("throws PHP's Error for an object piece without its own toString, or a closure", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces": the message
+            // names the JS class, where PHP's names stdClass
+            expect(() => Arr.join([1, new Point()], ",")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+            expect(() => Arr.join([1, new Point()], ", ", " and ")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+            expect(() => Arr.join([1, () => 1], ",")).toThrow(
+                new Error(
+                    "Object of class Closure could not be converted to string",
+                ),
+            );
+        });
+
+        it("answers a lone item as the string it casts to, where PHP hands the item back", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            // JS-only: join() answers a string, so a lone [1, 2] or true is the string PHP's would cast to
+            expect(Arr.join([[1, 2]], ", ", " and ")).toBe("Array");
+            expect(Arr.join([true], ", ", " and ")).toBe("1");
+        });
+
+        it("throws for a lone object without its own toString, which PHP hands back", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
+            // JS-only: join() answers a string, so it throws the Error the object's cast raises where PHP returns it;
+            // Collection's join() hands the object back, as its answer may be an item
+            expect(() => Arr.join([new Point()], ", ", " and ")).toThrow(
+                new Error(
+                    "Object of class Point could not be converted to string",
+                ),
+            );
+        });
+
         it("join", () => {
             expect(Arr.join(["a", "b", "c"], ", ")).toBe("a, b, c");
             expect(Arr.join(["a", "b", "c"], ", ", " and ")).toBe("a, b and c");
@@ -2779,7 +2910,7 @@ describe("Arr", () => {
                 "d",
             ]);
             expect(
-                Arr.union([1, 2], keyed({ all: () => ({ 2: "z" }) })),
+                Arr.union([1, 2], keyed(collectionLike({ 2: "z" }))),
             ).toEqual([1, 2, "z"]);
         });
 
@@ -3501,6 +3632,33 @@ describe("Arr", () => {
     });
 
     describe("pad", () => {
+        it("drops a fraction from the size, as array_pad()'s int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            expect(Arr.pad([1, 2, 3], 7.5, 0)).toEqual([1, 2, 3, 0, 0, 0, 0]);
+            expect(Arr.pad([1, 2, 3], -7.5, 0)).toEqual([0, 0, 0, 0, 1, 2, 3]);
+            expect(Arr.pad([1, 2, 3], 0.5, 0)).toEqual([1, 2, 3]);
+        });
+
+        it("throws array_pad()'s TypeError for a size no int holds, and its ValueError past the maximum array size", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
+                expect(() => Arr.pad([1, 2, 3], size, 0)).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-far-past-maximum-array-size"
+            for (const size of [1e18, -1e18]) {
+                expect(() => Arr.pad([1, 2, 3], size, 0)).toThrow(
+                    new Error(
+                        "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
+                    ),
+                );
+            }
+        });
+
         it("pad", () => {
             const data = [1, 2, 3];
 
@@ -3610,6 +3768,177 @@ describe("Arr", () => {
 
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result?.polluted).toBeUndefined();
+        });
+
+        it("selects an item's own keys, never its prototype's", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-prototype-key-names"
+            expect(
+                Arr.select([{ a: 1 }], ["toString", "constructor", "a"]),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("reads an ArrayAccess item through its offsets, then a property isset() finds", () => {
+            class Access {
+                a = "prop-a";
+                p = "prop-p";
+                q = null;
+                readonly #items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.#items = items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.#items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.#items[offset];
+                }
+            }
+            const selected = Arr.select(
+                [new Access({ a: "offset-a", n: null })],
+                ["a", "n", "p", "q", "missing"],
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-rows"
+            expect(selected).toEqual([{ a: "offset-a", n: null, p: "prop-p" }]);
+            expect(Object.keys(selected[0] ?? {})).toEqual(["a", "n", "p"]);
+        });
+
+        it("asks an ArrayAccess item offsetExists once per key and offsetGet once per hit", () => {
+            class Counting {
+                readonly calls = { exists: 0, gets: 0 };
+
+                offsetExists(offset: string): boolean {
+                    this.calls.exists++;
+
+                    return offset === "a";
+                }
+
+                offsetGet(offset: string): unknown {
+                    this.calls.gets++;
+
+                    return offset === "a" ? 1 : undefined;
+                }
+            }
+
+            const one = new Counting();
+            const two = new Counting();
+            const selectedOne = Arr.select([one], ["a"]);
+            const selectedTwo = Arr.select([two], ["a", "missing"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-call-counts"
+            expect([selectedOne, one.calls]).toEqual([
+                [{ a: 1 }],
+                { exists: 1, gets: 1 },
+            ]);
+            expect([selectedTwo, two.calls]).toEqual([
+                [{ a: 1 }],
+                { exists: 2, gets: 1 },
+            ]);
+        });
+
+        it("reads none of an Enumerable item's own fields, which hold its items and state", () => {
+            class Rows {
+                readonly items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.items = items;
+                }
+
+                all(): Record<string, unknown> {
+                    return this.items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.items[offset];
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-row-fields"
+            expect(Arr.select([new Rows({ a: 1 })], ["items", "a"])).toEqual([
+                { a: 1 },
+            ]);
+        });
+
+        it("throws array_key_exists()'s TypeError for an array key over an array item, and skips it elsewhere", () => {
+            class Row {
+                a = 1;
+                b = 2;
+            }
+            const keys = ["a", ["b"]] as unknown as string[];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() => Arr.select([{ a: 1, b: 2 }], keys)).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+            expect(Arr.select([new Row()], keys)).toEqual([{ a: 1 }]);
+            expect(Arr.select([1], keys)).toEqual([{}]);
+            expect(Arr.select([], keys)).toEqual([]);
+        });
+
+        it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
+            const rows = [{ "": "e", a: 1 }];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-key-cast"
+            expect(Arr.select(rows, [null])).toEqual([{ "": "e" }]);
+            expect(Arr.select(rows, null)).toEqual([{}]);
+        });
+
+        it("selects a list item by index, reading a numeric string as one and length as none", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
+            expect(Arr.select([[10, 20, 30]], [0, 2])).toEqual([
+                { 0: 10, 2: 30 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-string-index-and-length"
+            expect(Arr.select([[10, 20, 30]], ["1", "length"])).toEqual([
+                { 1: 20 },
+            ]);
+        });
+
+        it("selects a Map item by the key PHP stores, a stored null included", () => {
+            const item = new Map<string | number, unknown>([
+                ["a", null],
+                [1, "x"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-integer-string-key" and
+            // "C32-D-select-array-null-value": a Map stands for the PHP array
+            expect(Arr.select([item], ["1", "a"])).toEqual([
+                { 1: "x", a: null },
+            ]);
+        });
+
+        it("skips an object's null property, as PHP's isset does, where a plain object's null stays", () => {
+            class Row {
+                a = null;
+                b = 1;
+                c = 0;
+                d = "";
+                e = undefined;
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-falsy-props", whose
+            // object has no `e`; an undefined property stands for PHP's null, which isset() skips as it skips `a`
+            expect(
+                Object.keys(
+                    Arr.select([new Row()], ["a", "b", "c", "d", "e"])[0] ?? {},
+                ),
+            ).toEqual(["b", "c", "d"]);
+            expect(Arr.select([new Row()], ["a", "b", "c", "d", "e"])).toEqual([
+                { b: 1, c: 0, d: "" },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-null-value"
+            expect(Arr.select([{ a: null, b: 1 }], ["a", "b"])).toEqual([
+                { a: null, b: 1 },
+            ]);
         });
     });
 
@@ -4048,6 +4377,20 @@ describe("Arr", () => {
             expect(Arr.only([10, 20, 30, 40], 1)).toEqual([20]);
             expect(Arr.only([10, 20, 30, 40], null)).toEqual([]);
         });
+
+        it("keeps the array's order and lists a repeated index once, as array_intersect_key does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-only-repeated-keys" and
+            // "C32-D-only-list-keys", whose keys name these items; a list renumbers them, as every removal does
+            expect(Arr.only(["a", "b", "c"], [2, 0, 2])).toEqual(["a", "c"]);
+            expect(Arr.only(["a", "b", "c", "d"], [3, 1])).toEqual(["b", "d"]);
+        });
+
+        it("skips a key array_flip cannot store, such as an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
+            expect(
+                Arr.only(["x", "y"], [0, [1]] as unknown as number[]),
+            ).toEqual(["x"]);
+        });
     });
 
     describe("prepend", () => {
@@ -4074,20 +4417,41 @@ describe("Arr", () => {
             ]);
         });
 
-        it("reads a key the way union reads a keyed operand, so key 0 replaces the first item", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key": PHP's other results are
-            // keyed; a list holds each key by index, with undefined in a gap, as arr.union does.
-            expect(Arr.prepend(["b", "c"], "a", 0)).toEqual(["a", "c"]);
-            expect(Arr.prepend(["b", "c"], "a", 1)).toEqual(["b", "a"]);
-            expect(Arr.prepend(["b", "c"], "a", 1.5)).toEqual(["b", "a"]);
-            expect(Arr.prepend(["b", "c"], "a", 5)).toEqual([
-                "b",
-                "c",
-                undefined,
-                undefined,
-                undefined,
-                "a",
-            ]);
+        it("returns PHP's keyed result for a list given a key, which stays a list only for key 0", () => {
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
+            expect(Arr.prepend(["b", "c"], "a", 0)).toStrictEqual(["a", "c"]);
+            expect(Arr.prepend(["b", "c"], "a", 1)).toStrictEqual({
+                1: "a",
+                0: "b",
+            });
+            expect(Arr.prepend(["b", "c"], "a", 1.5)).toStrictEqual({
+                1: "a",
+                0: "b",
+            });
+            expect(Arr.prepend(["b", "c"], "a", 5)).toStrictEqual({
+                5: "a",
+                0: "b",
+                1: "c",
+            });
+            expect(Arr.prepend(["b", "c"], "a", "k")).toStrictEqual({
+                k: "a",
+                0: "b",
+                1: "c",
+            });
+            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-null-empty-key"
+            expect(Arr.prepend(["one", "two"], null, "")).toStrictEqual({
+                "": null,
+                0: "one",
+                1: "two",
+            });
+        });
+
+        it("reads an undefined key as null, so a third argument is always a key", () => {
+            // JS-only: PHP has no undefined. It counts its arguments, and obj.prepend stores this key as "" too.
+            expect(Arr.prepend(["b"], "a", undefined)).toStrictEqual({
+                "": "a",
+                0: "b",
+            });
         });
     });
 
@@ -4477,9 +4841,106 @@ describe("Arr", () => {
             expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
             expect(result.polluted).toBeUndefined();
         });
+
+        it("casts a key closure's bool or float result the way PHP stores the key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-closure-casts"
+            expect(
+                Arr.pluck(
+                    [{ v: "x" }, { v: "y" }],
+                    "v",
+                    (row) => row.v === "x",
+                ),
+            ).toEqual({ 1: "x", 0: "y" });
+            expect(Arr.pluck([{ v: "x" }], "v", () => 1.5)).toEqual({
+                1: "x",
+            });
+        });
+
+        it("casts a key path's null, bool or float value the way PHP stores the key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+            expect(
+                Arr.pluck(
+                    [
+                        { k: null, v: "n" },
+                        { k: true, v: "t" },
+                        { k: false, v: "f" },
+                        { k: 1.5, v: "fl" },
+                    ],
+                    "v",
+                    "k",
+                ),
+            ).toEqual({ "": "n", 1: "fl", 0: "f" });
+        });
+
+        it("throws for a key PHP cannot store", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key",
+            // "C32-E-pluck-assoc-key" and "C32-E-pluck-date-key": a JS Date names its own class,
+            // where PHP's message names DateTime.
+            const rows = [{ v: 1 }];
+
+            expect(() => Arr.pluck(rows, "v", () => [1, 2])).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
+            expect(() => Arr.pluck(rows, "v", () => ({ a: 1 }))).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
+            expect(() => Arr.pluck(rows, "v", () => new Date(0))).toThrow(
+                new TypeError("Cannot access offset of type Date on array"),
+            );
+        });
+
+        it("throws for an enum case key, which PHP cannot store either", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a plain
+            // object here, so the message names the array it models where PHP names the enum's class.
+            const Status = defineEnum({
+                A: 1,
+                B: 2,
+                backed: true,
+                _cases: ["A", "B"],
+            } as const);
+
+            expect(() =>
+                Arr.pluck([{ v: 1 }], "v", () => Status.from(2)),
+            ).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
+        });
     });
 
     describe("pop", () => {
+        it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.pop(data, 2.5)).toEqual([4, 3]);
+            expect(data).toEqual([1, 2]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = [1, 2, 3, 4];
+
+                expect(Arr.pop(everything, count)).toEqual([4, 3, 2, 1]);
+                expect(everything).toEqual([]);
+            }
+        });
+
+        it("pops nothing for a count below 1 and throws range()'s ValueError for one between 1 and 2", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.pop(data, 0.5)).toEqual([]);
+            expect(() => Arr.pop(data, 1.5)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                ),
+            );
+            expect(data).toEqual([1, 2, 3, 4]);
+
+            const one = [9];
+
+            expect(Arr.pop(one, 1.5)).toEqual([9]);
+            expect(one).toEqual([]);
+        });
+
         it("removes the last item from the source, like array_pop", () => {
             const data = [1, 2, 3];
             expect(Arr.pop(data)).toBe(3);
@@ -4730,6 +5191,13 @@ describe("Arr", () => {
     });
 
     describe("float", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::float does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "float-list-int-key"
+            expect(() => Arr.float(["foo bar"], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("float", () => {
             // Valid numbers
             expect(Arr.float([1.5, 2.3], 1)).toBe(2.3);
@@ -4754,6 +5222,13 @@ describe("Arr", () => {
     });
 
     describe("string", () => {
+        it("throws InvalidArgumentException, as Laravel's Arr::string does", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            expect(() => Arr.string([1234], 0)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("string", () => {
             // Valid strings
             expect(Arr.string(["hello", "world"], 0)).toBe("hello");
@@ -4892,6 +5367,64 @@ describe("Arr", () => {
             Arr.mapSpread([collectionLike(items)], (n, c, k) => [n, c, k]);
 
             expect(items).toEqual([1, "a"]);
+        });
+
+        it("spreads a plain object row's values, never unwrapping its all member", () => {
+            // JS-only: PHP throws on a string-keyed row (task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-string-keyed-row"); the lenient spread passes a plain object row's values.
+            const all = () => [9];
+
+            expect(Arr.mapSpread([{ all, b: 2 }], (...args) => args)).toEqual([
+                [all, 2, 0],
+            ]);
+        });
+
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-int-keyed-row", "list"
+            expect(
+                Arr.mapSpread([{ 5: "a", 7: "b" }, {}], (...args) => args),
+            ).toEqual([["a", "b", 0], [1]]);
+            expect(
+                Arr.mapSpread(
+                    [
+                        new Map([
+                            [5, "a"],
+                            [7, "b"],
+                        ]),
+                        new Map(),
+                    ],
+                    (...args) => args,
+                ),
+            ).toEqual([["a", "b", 0], [1]]);
+        });
+
+        it("spreads the values of the record a Collection-like row holds", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-int-keyed-collection-row", "list"
+            expect(
+                Arr.mapSpread(
+                    [collectionLike({ 5: "a", 7: "b" })],
+                    (...args) => args,
+                ),
+            ).toEqual([["a", "b", 0]]);
+        });
+
+        it("passes any other object row whole", () => {
+            // JS-only: PHP throws "Cannot use object of type DateTime as array", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-object-row"
+            const date = new Date(0);
+
+            expect(Arr.mapSpread([date], (...args) => args)).toEqual([
+                [date, 0],
+            ]);
+        });
+
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-null-row", "list"
+            expect(Arr.mapSpread([null, [1]], (...args) => args)).toEqual([
+                [0],
+                [1, 1],
+            ]);
         });
     });
 
@@ -5113,6 +5646,102 @@ describe("Arr", () => {
         });
     });
 
+    describe("skipUntil", () => {
+        const items = [1, 1, 2, 2, 3, 3, 4, 4];
+
+        it("skips until an item is identical to the value", () => {
+            // CollectionTest::testSkipUntil
+            expect(Arr.skipUntil(items, 1)).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+            expect(Arr.skipUntil(items, 3)).toEqual([3, 3, 4, 4]);
+            expect(Arr.skipUntil(items, 5)).toEqual([]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-strict-value"
+            expect(Arr.skipUntil(mixed, "3")).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Arr.skipUntil(mixed, 3)).toEqual([3, 4]);
+        });
+
+        it("skips until a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testSkipUntil
+            expect(Arr.skipUntil(items, (value) => value <= 1)).toEqual(items);
+            expect(Arr.skipUntil(items, (value) => value >= 3)).toEqual([
+                3, 3, 4, 4,
+            ]);
+            expect(Arr.skipUntil(items, (value) => value >= 5)).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(
+                Arr.skipUntil(["x", "y", "z"], (_value, index) => index === 1),
+            ).toEqual(["y", "z"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.skipUntil(["a", "b"], () => answer),
+                ),
+            ).toEqual([[], [], ["a", "b"]]);
+        });
+
+        it("keeps nothing of data holding no items", () => {
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.skipUntil(null, 1)).toEqual([]);
+        });
+    });
+
+    describe("skipWhile", () => {
+        const items = [1, 1, 2, 2, 3, 3, 4, 4];
+
+        it("skips while an item is identical to the value", () => {
+            // CollectionTest::testSkipWhile
+            expect(Arr.skipWhile(items, 1)).toEqual([2, 2, 3, 3, 4, 4]);
+            expect(Arr.skipWhile(items, 5)).toEqual(items);
+            expect(Arr.skipWhile(items, 2)).toEqual(items);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-strict-value"
+            expect(Arr.skipWhile(mixed, "1")).toEqual([1, 1, 2]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(Arr.skipWhile([1, 1, 2, 1], 1)).toEqual([2, 1]);
+        });
+
+        it("skips while a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testSkipWhile
+            expect(Arr.skipWhile(items, (value) => value >= 5)).toEqual(items);
+            expect(Arr.skipWhile(items, (value) => value >= 2)).toEqual(items);
+            expect(Arr.skipWhile(items, (value) => value < 3)).toEqual([
+                3, 3, 4, 4,
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key"
+            expect(
+                Arr.skipWhile(["x", "y", "z"], (_value, index) => index < 1),
+            ).toEqual(["y", "z"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.skipWhile(["a", "b"], () => answer),
+                ),
+            ).toEqual([["a", "b"], ["a", "b"], []]);
+        });
+
+        it("keeps nothing of data holding no items", () => {
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.skipWhile(undefined, 1)).toEqual([]);
+        });
+    });
+
     describe("slice", () => {
         it("slice", () => {
             const data = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -5223,16 +5852,86 @@ describe("Arr", () => {
         });
 
         it("throws when requesting more items than are available, even from an empty array", () => {
-            // Ported from Laravel's testRandomThrowsAnErrorWhenRequestingMoreItemsThanAreAvailable
+            // ArrTest::testRandomThrowsAnErrorWhenRequestingMoreItemsThanAreAvailable
+            expect(() => Arr.random([])).toThrow(InvalidArgumentException);
+            expect(() => Arr.random([], 1)).toThrow(InvalidArgumentException);
+            expect(() => Arr.random([], 2)).toThrow(InvalidArgumentException);
+            // docs/php-parity/task-08-arr-parity.json, "Arr::random on empty"
             expect(() => Arr.random([])).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
             );
+            // docs/php-parity/task-11-cross-backing.json, "X23 random throws before the empty guard"
             expect(() => Arr.random([], 1)).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
             );
+            // docs/php-parity/task-23-obj-release-readiness.json, "random-empty-2"
             expect(() => Arr.random([], 2)).toThrow(
                 "You requested 2 items, but there are only 0 items available.",
             );
+        });
+
+        it("truncates a fractional count, as Arr::random's int cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            expect(Arr.random([1, 2, 3], 1.2)).toHaveLength(1);
+            expect(Arr.random([1, 2, 3], 2.9)).toHaveLength(2);
+            expect(Object.keys(Arr.random([1, 2, 3], 1.5, true))).toHaveLength(
+                1,
+            );
+        });
+
+        it("checks a fractional count against the items before truncating it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            expect(() => Arr.random([1, 2, 3], 3.5)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.random([1, 2, 3], 3.5)).toThrow(
+                "You requested 3.5 items, but there are only 3 items available.",
+            );
+            expect(() => Arr.random([1, 2, 3], 0.5)).toThrow(
+                new Error(
+                    "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
+                ),
+            );
+        });
+
+        it("names an infinite count INF, as PHP prints it, and picks nothing for -INF", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => Arr.random([1, 2, 3], Infinity)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.random([1, 2, 3], Infinity)).toThrow(
+                "You requested INF items, but there are only 3 items available.",
+            );
+            expect(Arr.random([1, 2, 3], -Infinity)).toEqual([]);
+        });
+
+        it("compares a count that is not numeric as a string, as PHP does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => Arr.random([1, 2, 3], "abc")).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => Arr.random([1, 2, 3], "abc")).toThrow(
+                "You requested abc items, but there are only 3 items available.",
+            );
+        });
+
+        it("rejects a NAN count or a string that is not numeric, as pickArrayKeys' int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => Arr.random([1, 2, 3], NaN)).toThrow(TypeError);
+            expect(() => Arr.random([1, 2, 3], NaN)).toThrow(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => Arr.random([1, 2, 3], "1x")).toThrow(TypeError);
+            expect(() => Arr.random([1, 2, 3], "1x")).toThrow(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
+            );
+        });
+
+        it("picks nothing from an empty array at a NAN count, as Arr::random's empty guard answers first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-nan-count-on-empty"
+            expect(Arr.random([], NaN)).toEqual([]);
+            expect(Arr.random([], NaN, true)).toEqual([]);
         });
 
         it("returns the picked values in the array's own order, not the order drawn", () => {
@@ -5258,6 +5957,47 @@ describe("Arr", () => {
     });
 
     describe("shift", () => {
+        it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.shift(data, 2.5)).toEqual([1, 2]);
+            expect(data).toEqual([3, 4]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = [1, 2, 3, 4];
+
+                expect(Arr.shift(everything, count)).toEqual([1, 2, 3, 4]);
+                expect(everything).toEqual([]);
+            }
+        });
+
+        it("throws range()'s ValueError for a fraction below 2 and shifts nothing, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            for (const count of [1.5, 0.5]) {
+                const data = [1, 2, 3, 4];
+
+                expect(() => Arr.shift(data, count)).toThrow(
+                    new Error(
+                        "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                    ),
+                );
+                expect(data).toEqual([1, 2, 3, 4]);
+            }
+
+            const one = [9];
+
+            expect(Arr.shift(one, 1.5)).toEqual([9]);
+            expect(one).toEqual([]);
+        });
+
+        it("throws InvalidArgumentException for a negative count, as Collection::shift does", () => {
+            // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
+            expect(() => Arr.shift([10, 20, 30, 40], -1)).toThrow(
+                InvalidArgumentException,
+            );
+        });
+
         it("removes the first item from the source, like array_shift", () => {
             const data = [1, 2, 3];
             expect(Arr.shift(data)).toBe(1);
@@ -5313,6 +6053,14 @@ describe("Arr", () => {
     });
 
     describe("sort", () => {
+        it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator"
+            // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
+            expect(
+                Arr.sort([3, 1, 2], [(a: number, b: number) => a > b]),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("sort", () => {
             // Natural sorting
             expect(Arr.sort([3, 1, 4, 1, 5])).toEqual([1, 1, 3, 4, 5]);
@@ -5631,6 +6379,14 @@ describe("Arr", () => {
     });
 
     describe("sortDesc", () => {
+        it("sorts by a comparator answering a bool, which the descending direction never reverses", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-bool-comparator"
+            // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
+            expect(
+                Arr.sortDesc([3, 1, 2], [(a: number, b: number) => a > b]),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("hands the callback the key, the same way sort does", () => {
             const seen: number[] = [];
 
@@ -6393,6 +7149,66 @@ describe("Arr", () => {
     });
 
     describe("splice", () => {
+        it("removes to the end for a null length, as array_splice()'s ?int length reads null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            const data = [1, 2, 3, 4];
+
+            expect(Arr.splice(data, 1, null)).toEqual([2, 3, 4]);
+            expect(data).toEqual([1]);
+
+            const fromTheEnd = [1, 2, 3, 4];
+
+            expect(Arr.splice(fromTheEnd, -1, null)).toEqual([4]);
+            expect(fromTheEnd).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length"
+            const replaced = [1, 2, 3, 4];
+
+            expect(Arr.splice(replaced, 1, null, "x")).toEqual([2, 3, 4]);
+            expect(replaced).toEqual([1, "x"]);
+        });
+
+        it("drops the fraction from an offset or a length before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            const offsetOnly = [1, 2, 3, 4];
+
+            expect(Arr.splice(offsetOnly, 1.5)).toEqual([2, 3, 4]);
+            expect(offsetOnly).toEqual([1]);
+
+            const fromTheEnd = [1, 2, 3, 4];
+
+            expect(Arr.splice(fromTheEnd, -1.5, 1)).toEqual([4]);
+            expect(fromTheEnd).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-lengths"
+            const shortOfTheEnd = [1, 2, 3, 4];
+
+            expect(Arr.splice(shortOfTheEnd, 1, -1.5, "x")).toEqual([2, 3]);
+            expect(shortOfTheEnd).toEqual([1, "x", 4]);
+        });
+
+        it("throws array_splice()'s TypeError for an offset or a length no int holds, and splices nothing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
+            for (const value of [NaN, Infinity, 1e19]) {
+                const data = [1, 2, 3, 4];
+
+                expect(() => Arr.splice(data, value, 1)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => Arr.splice(data, 1, value, "x")).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(data).toEqual([1, 2, 3, 4]);
+            }
+        });
+
         it("mutates the array in place and returns the removed elements", () => {
             // Splice mutates and returns only what was removed; omitting length removes
             // everything from offset to the end.
@@ -6483,6 +7299,98 @@ describe("Arr", () => {
             const data = [1, 2, 3];
             Arr.splice(data, 1, 1, [9, 8] as never);
             expect(data).toEqual([1, 9, 8, 3]);
+        });
+    });
+
+    describe("takeUntil", () => {
+        const items = [1, 2, 3, 4];
+
+        it("takes until an item is identical to the value", () => {
+            // CollectionTest::testTakeUntilUsingValue
+            expect(Arr.takeUntil(items, 3)).toEqual([1, 2]);
+            // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
+            expect(Arr.takeUntil(items, 99)).toEqual(items);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-strict-value"
+            expect(Arr.takeUntil(mixed, "3")).toEqual([1, 2, 3, 4]);
+        });
+
+        it("takes until a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testTakeUntilUsingCallback
+            expect(Arr.takeUntil(items, (item) => item >= 3)).toEqual([1, 2]);
+            // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
+            expect(Arr.takeUntil(items, (item) => item >= 99)).toEqual(items);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(
+                Arr.takeUntil(["x", "y", "z"], (_value, index) => index === 1),
+            ).toEqual(["x"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.takeUntil(["a", "b"], () => answer),
+                ),
+            ).toEqual([["a", "b"], ["a", "b"], []]);
+        });
+
+        it("takes nothing from an empty array or data holding no items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-empty"
+            expect(Arr.takeUntil([], 1)).toEqual([]);
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.takeUntil(null, 1)).toEqual([]);
+        });
+    });
+
+    describe("takeWhile", () => {
+        it("takes while an item is identical to the value", () => {
+            // CollectionTest::testTakeWhileUsingValue
+            expect(Arr.takeWhile([1, 1, 2, 2, 3, 3], 1)).toEqual([1, 1]);
+            // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
+            expect(Arr.takeWhile([1, 2, 3, 4], 2)).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-null-value"
+            expect(Arr.takeWhile([null, null, 0], null)).toEqual([null, null]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const mixed: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-strict-value"
+            expect(Arr.takeWhile(mixed, "1")).toEqual([]);
+        });
+
+        it("takes while a callback handed each value and index answers truthy", () => {
+            // CollectionTest::testTakeWhileUsingCallback
+            expect(Arr.takeWhile([1, 2, 3, 4], (item) => item < 3)).toEqual([
+                1, 2,
+            ]);
+            // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
+            expect(Arr.takeWhile([1, 2, 3, 4], (item) => item === 99)).toEqual(
+                [],
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key"
+            expect(
+                Arr.takeWhile(["x", "y", "z"], (_value, index) => index < 2),
+            ).toEqual(["x", "y"]);
+        });
+
+        it("judges a callback's answer by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            expect(
+                ["0", [], new Date(0)].map((answer) =>
+                    Arr.takeWhile(["a", "b"], () => answer),
+                ),
+            ).toEqual([[], [], ["a", "b"]]);
+        });
+
+        it("takes nothing from data holding no items", () => {
+            // JS-only: null holds no items, as an empty array holds none
+            expect(Arr.takeWhile(null, 1)).toEqual([]);
         });
     });
 
@@ -6805,6 +7713,139 @@ describe("Arr", () => {
             ).toEqual(["b"]);
         });
     });
+
+    describe("callback results judged by PHP truthiness", () => {
+        /** What `run` answers, or the name of the exception it throws, as the probe records one. */
+        const outcome = (run: () => unknown): unknown => {
+            try {
+                return run();
+            } catch (error) {
+                return (error as Error).name;
+            }
+        };
+
+        // PHP casts "0" and [] to false, and every object to true, however empty.
+        const answers = ["0", [], new Date(0), new (class {})()];
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "chunkWhile",
+                (callback: () => unknown) =>
+                    Arr.chunkWhile(["a", "b"], callback),
+                [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]], [["a", "b"]]],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "first",
+                (callback: () => unknown) => Arr.first(["a", "b"], callback),
+                [null, null, "a", "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness",
+                // whose keyed answers a Map gives, as the array it stands for
+                "first over a Map",
+                (callback: () => unknown) =>
+                    Arr.first(
+                        new Map([
+                            ["x", "a"],
+                            ["y", "b"],
+                        ]),
+                        callback,
+                    ),
+                [null, null, "a", "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "last",
+                (callback: () => unknown) => Arr.last(["a", "b"], callback),
+                [null, null, "b", "b"],
+            ],
+            [
+                // JS-only: PHP has no Set; it walks as the list of its values does.
+                "last over a Set",
+                (callback: () => unknown) =>
+                    Arr.last(new Set(["a", "b"]), callback),
+                [null, null, "b", "b"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "every",
+                (callback: () => unknown) => Arr.every(["a", "b"], callback),
+                [false, false, true, true],
+            ],
+            [
+                // JS-only: PHP has no Set; it walks as the list of its values does.
+                "every over a Set",
+                (callback: () => unknown) =>
+                    Arr.every(new Set(["a", "b"]), callback),
+                [false, false, true, true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "some",
+                (callback: () => unknown) => Arr.some(["a", "b"], callback),
+                [false, false, true, true],
+            ],
+            [
+                // JS-only: PHP has no Set; it walks as the list of its values does.
+                "some over a Set",
+                (callback: () => unknown) =>
+                    Arr.some(new Set(["a", "b"]), callback),
+                [false, false, true, true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "sole",
+                (callback: () => unknown) => Arr.sole(["a"], callback),
+                ["ItemNotFoundException", "ItemNotFoundException", "a", "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "where",
+                (callback: () => unknown) => Arr.where(["a", "b"], callback),
+                [[], [], ["a", "b"], ["a", "b"]],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "reject",
+                (callback: () => unknown) => Arr.reject(["a", "b"], callback),
+                [["a", "b"], ["a", "b"], [], []],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                "partition",
+                (callback: () => unknown) =>
+                    Arr.partition(["a", "b"], callback),
+                [
+                    [[], ["a", "b"]],
+                    [[], ["a", "b"]],
+                    [["a", "b"], []],
+                    [["a", "b"], []],
+                ],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "contains",
+                (callback: () => unknown) => Arr.contains(["a", "b"], callback),
+                [false, false, true, true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                "filter",
+                (callback: () => unknown) => Arr.filter(["a", "b"], callback),
+                [[], [], ["a", "b"], ["a", "b"]],
+            ],
+        ] as [string, (callback: () => unknown) => unknown, unknown[]][])(
+            "%s judges its callback's result by PHP truthiness",
+            (_name, run, expected) => {
+                expect(
+                    answers.map((answer) => outcome(() => run(() => answer))),
+                ).toEqual(expected);
+            },
+        );
+    });
+
     // Array.prototype passes `isArray` and Object.prototype passes `isObjectAny`,
     // so a write target has to be refused by identity, not by its shape.
     describe("prototype objects as write targets", () => {

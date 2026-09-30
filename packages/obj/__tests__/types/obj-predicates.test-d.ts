@@ -279,6 +279,38 @@ describe("obj predicate type tests", () => {
                 Obj.containsStrict(numberList, 1),
             ).toEqualTypeOf<boolean>();
         });
+
+        it("types a callback on data it cannot narrow as unknown values and PHP keys, not any", () => {
+            Obj.containsStrict(unknownObject, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(key).toEqualTypeOf<string | number>();
+
+                return true;
+            });
+        });
+
+        it("takes a callback answering something other than a boolean on its callback rows", () => {
+            // The type arguments drop the untyped fallback rows, so only a callback row can accept these calls.
+            expectTypeOf(
+                Obj.containsStrict<typeof abc>(abc, (value, key) => {
+                    expectTypeOf(value).toEqualTypeOf<number>();
+                    expectTypeOf(key).toEqualTypeOf<"a" | "b" | "c">();
+
+                    return "0";
+                }),
+            ).toEqualTypeOf<boolean>();
+            expectTypeOf(
+                Obj.containsStrict<string, number>(
+                    new Map([[1, "a"]]),
+                    (value, key) => {
+                        expectTypeOf(value).toEqualTypeOf<string>();
+                        expectTypeOf(key).toEqualTypeOf<number>();
+
+                        return "0";
+                    },
+                ),
+            ).toEqualTypeOf<boolean>();
+        });
     });
 
     describe("sole", () => {

@@ -53,6 +53,158 @@ describe("arr slicing type tests", () => {
         });
     });
 
+    describe("skipUntil", () => {
+        it("preserves the element type for a value or a callback", () => {
+            expectTypeOf(Arr.skipUntil([1, 2, 3], 2)).toEqualTypeOf<number[]>();
+            expectTypeOf(
+                Arr.skipUntil(idObjects, (value) => value.id > 1),
+            ).toEqualTypeOf<{ id: number }[]>();
+            expectTypeOf(Arr.skipUntil(readonlyStrings, "a")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("types the callback's value and index", () => {
+            Arr.skipUntil([1, 2], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return "0";
+            });
+        });
+
+        it("answers unknown[] for a value of another type, which no item is identical to", () => {
+            expectTypeOf(Arr.skipUntil([1, 2], "1")).toEqualTypeOf<unknown[]>();
+        });
+
+        it("rejects unknown data, and types an untyped list's callback once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.skipUntil(unknownArray, 1);
+            expectTypeOf(Arr.skipUntil(null, 1)).toEqualTypeOf<unknown[]>();
+            Arr.skipUntil(unknownArray as unknown[], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+    });
+
+    describe("skipWhile", () => {
+        it("preserves the element type for a value or a callback", () => {
+            expectTypeOf(Arr.skipWhile([1, 2, 3], 1)).toEqualTypeOf<number[]>();
+            expectTypeOf(
+                Arr.skipWhile(idObjects, (value) => value.id < 2),
+            ).toEqualTypeOf<{ id: number }[]>();
+            expectTypeOf(Arr.skipWhile(readonlyNumbers, 1)).toEqualTypeOf<
+                number[]
+            >();
+        });
+
+        it("types the callback's value and index", () => {
+            Arr.skipWhile(["a", "b"], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return [];
+            });
+        });
+
+        it("answers unknown[] for a value of another type, which no item is identical to", () => {
+            expectTypeOf(Arr.skipWhile([1, 2], "1")).toEqualTypeOf<unknown[]>();
+        });
+
+        it("rejects unknown data, and types an untyped list's callback once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.skipWhile(unknownArray, 1);
+            expectTypeOf(Arr.skipWhile(undefined, 1)).toEqualTypeOf<
+                unknown[]
+            >();
+            Arr.skipWhile(unknownArray as unknown[], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+    });
+
+    describe("takeUntil", () => {
+        it("preserves the element type for a value or a callback", () => {
+            expectTypeOf(Arr.takeUntil([1, 2, 3], 3)).toEqualTypeOf<number[]>();
+            expectTypeOf(
+                Arr.takeUntil(idObjects, (value) => value.id > 1),
+            ).toEqualTypeOf<{ id: number }[]>();
+            expectTypeOf(Arr.takeUntil(readonlyStrings, "b")).toEqualTypeOf<
+                string[]
+            >();
+        });
+
+        it("types the callback's value and index", () => {
+            Arr.takeUntil([1, 2], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return new Date(0);
+            });
+        });
+
+        it("answers unknown[] for a value of another type, which no item is identical to", () => {
+            expectTypeOf(Arr.takeUntil([1, 2], "3")).toEqualTypeOf<unknown[]>();
+        });
+
+        it("rejects unknown data, and types an untyped list's callback once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.takeUntil(unknownArray, 1);
+            expectTypeOf(Arr.takeUntil(null, 1)).toEqualTypeOf<unknown[]>();
+            Arr.takeUntil(unknownArray as unknown[], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+    });
+
+    describe("takeWhile", () => {
+        it("preserves the element type for a value or a callback", () => {
+            expectTypeOf(Arr.takeWhile([1, 1, 2], 1)).toEqualTypeOf<number[]>();
+            expectTypeOf(
+                Arr.takeWhile(idObjects, (value) => value.id < 2),
+            ).toEqualTypeOf<{ id: number }[]>();
+            expectTypeOf(Arr.takeWhile(readonlyNumbers, 1)).toEqualTypeOf<
+                number[]
+            >();
+        });
+
+        it("types the callback's value and index", () => {
+            Arr.takeWhile(["a", "b"], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<string>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return index < 1;
+            });
+        });
+
+        it("answers unknown[] for a value of another type, which no item is identical to", () => {
+            expectTypeOf(Arr.takeWhile([1, 2], "1")).toEqualTypeOf<unknown[]>();
+        });
+
+        it("rejects unknown data, and types an untyped list's callback once narrowed", () => {
+            // @ts-expect-error - arr's rows are array-shaped; bare `unknown` belongs to obj/data.
+            Arr.takeWhile(unknownArray, 1);
+            expectTypeOf(Arr.takeWhile(undefined, 1)).toEqualTypeOf<
+                unknown[]
+            >();
+            Arr.takeWhile(unknownArray as unknown[], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<unknown>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return true;
+            });
+        });
+    });
+
     describe("pad", () => {
         it("returns the array unchanged when already at the target size", () => {
             expectTypeOf(Arr.pad([1, 2, 3], 5, 0)).toEqualTypeOf<number[]>();

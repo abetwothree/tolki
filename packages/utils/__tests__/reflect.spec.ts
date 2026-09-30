@@ -39,6 +39,72 @@ describe("Utils", () => {
         });
     });
 
+    describe("phpDebugType", () => {
+        it("names a number past PHP's int range, or -0, float, as PHP holds each", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            expect(
+                [1e19, -1e19, -0, 2 ** 63, 2 ** 62].map((value) =>
+                    Utils.phpDebugType(value),
+                ),
+            ).toEqual(["float", "float", "float", "float", "int"]);
+        });
+
+        it("names a scalar, null or an array as get_debug_type() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-debug-type-names",
+            // "C32-A-ensure-scalar-message" and "C32-A-ensure-array-rejects-null"
+            expect(
+                [1, 1.5, NaN, true, { a: 1 }, [1], "foo", null].map((value) =>
+                    Utils.phpDebugType(value),
+                ),
+            ).toEqual([
+                "int",
+                "float",
+                "float",
+                "bool",
+                "array",
+                "array",
+                "string",
+                "null",
+            ]);
+            // JS-only: PHP has no undefined; it is named as null
+            expect(Utils.phpDebugType(undefined)).toBe("null");
+        });
+
+        it("names a function Closure, an object its class, and an anonymous class class@anonymous", () => {
+            class Point {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-ensure-closure-and-anonymous-class-names" and "C32-A-ensure-inheritance-message"
+            expect(Utils.phpDebugType(() => 1)).toBe("Closure");
+            expect(Utils.phpDebugType(new (class {})())).toBe(
+                "class@anonymous",
+            );
+            expect(Utils.phpDebugType(new Point())).toBe("Point");
+        });
+
+        it("names an instance of an anonymous subclass after the class it extends, as get_debug_type() does", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-anonymous-subclass-name"
+            expect(Utils.phpDebugType(new (class extends Parent {})())).toBe(
+                "Parent@anonymous",
+            );
+            expect(Utils.phpDebugType(new (class extends Child {})())).toBe(
+                "Child@anonymous",
+            );
+        });
+
+        it("names what PHP has no type for by its JavaScript type", () => {
+            // JS-only: a symbol, a bigint and an object with no class have no PHP type name
+            expect(
+                [Symbol("s"), 1n, Object.create(Object.create(null))].map(
+                    (value) => Utils.phpDebugType(value),
+                ),
+            ).toEqual(["symbol", "bigint", "object"]);
+        });
+    });
+
     describe("typeOf", () => {
         it("returns correct type strings", () => {
             expect(Utils.typeOf([])).toBe("array");

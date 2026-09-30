@@ -8,11 +8,15 @@ import type {
     UndotValue,
 } from "@tolki/types";
 import {
+    arrayKeyExistsError,
     arrayValueMessage,
     castableToArray,
     defineKey,
+    InvalidArgumentException,
     isArray,
+    isFloat,
     isFunction,
+    isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
     isNull,
@@ -26,6 +30,7 @@ import {
     isUnsafeKey,
     keyedEntries,
     phpArrayKey,
+    toPhpKeyString,
 } from "@tolki/utils";
 
 /**
@@ -242,6 +247,11 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | ArrayItems<TValue>,
     keys: PathKeys,
 ): Record<TKey, TValue> | TValue[] {
+    // Arr::forget asks array_key_exists about each key, which throws for one no array can hold, even over no items.
+    if ((isArray(keys) ? keys : [keys]).some(isIllegalOffset)) {
+        throw arrayKeyExistsError();
+    }
+
     if (isObject(data)) {
         return forgetKeysObject(data, keys) as Record<TKey, TValue>;
     }
@@ -256,6 +266,9 @@ export function forgetKeys<TValue, TKey extends PropertyKey = PropertyKey>(
  * - Each key is resolved from the top level of the object.
  * - A key that exists literally at the top level (even if it contains dots)
  *   is removed literally instead of being dot-traversed.
+ * - A null key names the '' key, and a float is looked up by its string form,
+ *   as Arr::exists casts them; a float that names a literal key removes its
+ *   integer part instead, as unset casts it.
  * - If an intermediate path segment is missing or not traversable, the key
  *   is skipped entirely and nothing is removed for that key.
  * - Traversal descends into both plain objects and arrays, the two shapes
@@ -282,7 +295,9 @@ export function forgetKeysObject<
     TValue,
     TKey extends PropertyKey = PropertyKey,
 >(data: Record<TKey, TValue>, keys: PathKeys): Record<TKey, TValue> {
-    const keyList = isArray(keys) ? keys : [keys];
+    // Arr::forget's (array) cast makes a bare null no keys at all; a null among the keys is a key.
+    const keyList =
+        isNull(keys) || isUndefined(keys) ? [] : isArray(keys) ? keys : [keys];
     const result = { ...data };
 
     /**
@@ -336,18 +351,19 @@ export function forgetKeysObject<
      * top level. Clones each container along the descended path (objects via
      * spread, arrays via slice) to maintain immutability.
      *
-     * @param keyStr - The dot-notation key to remove.
+     * @param name - The key as Arr::exists looks it up and explode splits it into a path.
+     * @param offset - The key unset removes when the name is a literal top-level key.
      * @returns Nothing; mutates only cloned containers inside the new result.
      */
-    const forgetOne = (keyStr: string): void => {
+    const forgetOne = (name: string, offset: string): void => {
         // A literal top-level key wins, even if it contains dots
-        if (Object.hasOwn(result, keyStr)) {
-            delete (result as Record<string, TValue>)[keyStr];
+        if (Object.hasOwn(result, name)) {
+            delete (result as Record<string, TValue>)[offset];
 
             return;
         }
 
-        const parts = keyStr.split(".");
+        const parts = name.split(".");
         let current: Record<string, unknown> | unknown[] = result as Record<
             string,
             unknown
@@ -404,11 +420,10 @@ export function forgetKeysObject<
     };
 
     for (const key of keyList) {
-        if (isNull(key)) {
-            continue;
-        }
+        const name = forgetName(key);
 
-        forgetOne(String(key));
+        // unset casts a float to its integer part, so a float that names a literal key removes that part instead.
+        forgetOne(name, isFloat(key) ? String(phpArrayKey(key)) : name);
     }
 
     return result;
@@ -511,12 +526,12 @@ export function forgetKeysArray<TValue>(
 
     if (keyList.length === 1) {
         const k = keyList[0]!;
-        if (isNumber(k)) {
+        if (isInteger(k)) {
             return removeAt(data, k);
         }
 
         // PHP's array-key cast, so "01" is a string key no list holds, not index 1.
-        const parts = String(k).split(".").map(phpArrayKey);
+        const parts = forgetName(k).split(".").map(phpArrayKey);
 
         if (parts.length === 1) {
             return removeAt(data, parts[0]!);
@@ -534,7 +549,7 @@ export function forgetKeysArray<TValue>(
 
     // At this point, keyList.length > 1, so we iterate over keyList directly
     for (const k of keyList) {
-        if (isNumber(k)) {
+        if (isInteger(k)) {
             const key = "";
             const entry = groupsMap.get(key) ?? {
                 path: [],
@@ -544,7 +559,7 @@ export function forgetKeysArray<TValue>(
             groupsMap.set(key, entry);
             continue;
         }
-        const parts = String(k).split(".").map(phpArrayKey);
+        const parts = forgetName(k).split(".").map(phpArrayKey);
         if (parts.length === 0 || parts.some((n) => !isNumber(n))) {
             continue;
         }
@@ -707,6 +722,7 @@ export function setImmutable<TValue>(
  * @param key - The path where to push values (number, string, null, or undefined).
  * @param values - The values to push.
  * @returns The modified array with values pushed at the specified path.
+ * @throws InvalidArgumentException if a value along the path is not an array.
  *
  * @example
  *
@@ -777,7 +793,7 @@ export function pushWithPath<TValue>(
             continue;
         }
 
-        throw new Error(arrayValueMessage(next, key));
+        throw new InvalidArgumentException(arrayValueMessage(next, key));
     }
 
     // `Arr::push` appends into the array AT the key, never beside it; an existing
@@ -786,7 +802,9 @@ export function pushWithPath<TValue>(
     const leaf = clamp(numericSegs[numericSegs.length - 1]!, cursor.length);
 
     if (leaf < cursor.length && !isArray(cursor[leaf])) {
-        throw new Error(arrayValueMessage(cursor[leaf], key));
+        throw new InvalidArgumentException(
+            arrayValueMessage(cursor[leaf], key),
+        );
     }
 
     if (leaf === cursor.length) {
@@ -1937,4 +1955,16 @@ export function hasObjectKey<TValue, TKey extends PropertyKey = PropertyKey>(
     const value = getNestedValue(obj, keyStr);
 
     return !isUndefined(value);
+}
+
+/**
+ * The name Arr::forget reads a key by, as Arr::exists casts it: a null key is '' and a float its string form.
+ *
+ * @param key - The key to read.
+ * @returns The name Arr::exists looks up and explode splits into a path.
+ */
+function forgetName(key: unknown): string {
+    return isNull(key) || isUndefined(key) || isFloat(key)
+        ? toPhpKeyString(key)
+        : String(key);
 }

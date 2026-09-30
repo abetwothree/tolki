@@ -126,10 +126,10 @@ export type TruthyArray<T extends readonly unknown[]> =
  * - a `[key]` single-element tuple, identical to a bare key path, ascending
  * - a `[key, direction]` tuple: `true`/`'asc'`/`"Ascending"` sorts ascending,
  *   everything else descending, mirroring `Collection::sortByMany`
- * - a comparator returning a negative, zero, or positive number
+ * - a comparator returning a negative, zero, or positive number, or a bool, which sorts as PHP's `usort()` reads one
  */
 export type SortSpec<TValue> =
     | string
     | readonly [string]
     | readonly [string, boolean | "Ascending" | "Descending" | "asc" | "desc"]
-    | ((a: TValue, b: TValue) => number);
+    | ((a: TValue, b: TValue) => number | boolean);
