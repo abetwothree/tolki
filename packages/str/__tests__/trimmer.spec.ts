@@ -204,7 +204,7 @@ describe("Str/Trimmer", () => {
 
     describe("ltrim", () => {
         it("Laravel tests ltrim", () => {
-            // StrTest::testLtrim. The newline and NUL inputs of the last loop are also rows of
+            // StrTest::testLtrim. The `foo bar` inputs for newline and NUL in the last loop are also rows of
             // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
             expect(ltrim(" foo    bar ")).toBe("foo    bar ");
 

@@ -3197,7 +3197,7 @@ describe("Str tests", () => {
             const start = (...args: unknown[]): unknown =>
                 Reflect.apply(Str.start, undefined, args);
 
-            // The first case answers "nulla" without the cast, and the cases below it would never return.
+            // The first case answers "nulla" without the cast, and most of the cases below it would never return.
             expect(start("a", null)).toBe("a");
             expect(start("5a", 5)).toBe("5a");
             expect(start("a", 5)).toBe("5a");
