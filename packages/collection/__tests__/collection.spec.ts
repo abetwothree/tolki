@@ -1366,18 +1366,44 @@ describe("Collection", () => {
         it("keeps a plain object item's all member as data, and skips an all() that answers no array", () => {
             // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-array-item-all-member-is-data"
             const all = () => ({ z: 9 });
+            const kept = collect([{ all, b: 2 }]).collapseWithKeys();
 
-            expect(
-                collect([{ all, b: 2 }])
-                    .collapseWithKeys()
-                    .all(),
-            ).toEqual({
-                all,
-                b: 2,
-            });
+            expect(kept.all()).toEqual({ all, b: 2 });
+            expect(kept.keys().all()).toEqual(["all", "b"]);
             // JS-only: PHP's all() always answers an array; any other answer is skipped, as collapse() skips it
             expect(
                 collect([{ a: 1 }, lazyLike(new Map([["b", 2]])), lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ a: 1 });
+            expect(
+                collect([[1], lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([1]);
+            expect(
+                collect([[1], lazyLike("ab")])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([1]);
+            expect(
+                collect([lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([]);
+        });
+
+        it("skips a null item, as it skips any item that is no array", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-null-item"
+            expect(
+                collect([null, { a: 1 }])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ a: 1 });
+            expect(collect([null]).collapseWithKeys().all()).toEqual([]);
+            // JS-only: PHP has no undefined; this port skips it as it skips null
+            expect(
+                collect([undefined, { a: 1 }])
                     .collapseWithKeys()
                     .all(),
             ).toEqual({ a: 1 });

@@ -319,6 +319,19 @@
             ]
         },
         {
+            "label": "collapseWithKeys-null-item",
+            "php": "(new Collection([null, ['a' => 1]]))->collapseWithKeys(), then (new Collection([null]))->collapseWithKeys()",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                []
+            ]
+        },
+        {
             "label": "finish-cases",
             "php": "Str::finish($value, $cap) for each [$value, $cap], recorded as [$value, $cap, result]",
             "value": [

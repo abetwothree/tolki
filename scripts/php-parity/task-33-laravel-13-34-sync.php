@@ -117,6 +117,7 @@ probe('collapseWithKeys-lazy-only', "(new Collection([new LazyCollection(['a' =>
 probe('collapseWithKeys-lazy-then-array', "(new Collection([new LazyCollection(['a' => 1, 'b' => 2]), ['b' => 9]]))->collapseWithKeys()", fn () => shown((new Collection([new LazyCollection(['a' => 1, 'b' => 2]), ['b' => 9]]))->collapseWithKeys()->all()));
 probe('collapseWithKeys-lazy-int-keys', "(new Collection([[5 => 'a'], new LazyCollection([5 => 'b', 6 => 'c'])]))->collapseWithKeys()", fn () => shown((new Collection([[5 => 'a'], new LazyCollection([5 => 'b', 6 => 'c'])]))->collapseWithKeys()->all()));
 probe('collapseWithKeys-array-item-all-member-is-data', "(new Collection([['all' => fn () => ['z' => 9], 'b' => 2]]))->collapseWithKeys()->keys()->all()", fn () => (new Collection([['all' => fn () => ['z' => 9], 'b' => 2]]))->collapseWithKeys()->keys()->all());
+probe('collapseWithKeys-null-item', "(new Collection([null, ['a' => 1]]))->collapseWithKeys(), then (new Collection([null]))->collapseWithKeys()", fn () => [shown((new Collection([null, ['a' => 1]]))->collapseWithKeys()->all()), (new Collection([null]))->collapseWithKeys()->all()]);
 
 // Str::finish() and Str::start() return early for an empty or absent cap (laravel/framework#61803).
 $slashes = str_repeat('/', 100000);
