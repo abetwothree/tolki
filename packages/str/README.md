@@ -767,7 +767,7 @@ import { limit } from "@tolki/str";
 
 const result = limit("The quick brown fox jumps over the lazy dog", 20);
 
-// result is "The quick brown fox "
+// result is "The quick brown fox..."
 ```
 
 You may pass a third argument to specify the string to append to the truncated string (defaults to an ellipsis):
@@ -775,9 +775,13 @@ You may pass a third argument to specify the string to append to the truncated s
 ```javascript
 import { limit } from "@tolki/str";
 
-const result = limit("The quick brown fox jumps over the lazy dog", 20, "...");
+const result = limit(
+  "The quick brown fox jumps over the lazy dog",
+  20,
+  " (...)",
+);
 
-// result is "The quick brown fox..."
+// result is "The quick brown fox (...)"
 ```
 
 You may also pass a fourth argument to indicate whether to avoid cutting off words (defaults to false):
@@ -1600,7 +1604,7 @@ const result = trim(" foo bar ");
 // result is "foo bar"
 ```
 
-Pass a second argument to trim those characters instead of whitespace. `ltrim` and `rtrim` take it too. An empty string trims nothing:
+To trim other characters instead of whitespace, pass them as a second argument. `ltrim` and `rtrim` take it too. An empty string trims nothing, not even whitespace:
 
 ```javascript
 import { trim } from "@tolki/str";
