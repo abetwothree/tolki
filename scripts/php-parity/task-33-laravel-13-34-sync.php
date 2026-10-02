@@ -188,7 +188,7 @@ probe('rtrim-cases', 'Str::rtrim($value, $charlist) for each [$value, $charlist]
 ]));
 probe('trim-charlist-range-not-ported', "Str::trim('abcxcba', 'a..c'): PHP reads a..c as the range a to c", fn () => Str::trim('abcxcba', 'a..c'));
 probe('excerpt-two-spaces-before-phrase', "Str::excerpt('This is  my name', 'my'), then with ['radius' => 3]", fn () => [Str::excerpt('This is  my name', 'my'), Str::excerpt('This is  my name', 'my', ['radius' => 3])]);
-// Found by the whole-branch review: arguments that are no string, Stringable's empty charlist, and two unpinned cases.
+// finish() and start() given no string, Stringable's empty charlist, excerpt() with a tab, toBoolean() and whitespace.
 probe('finish-start-non-string-arguments', 'Str::finish() and Str::start() given a cap, prefix or value that is no string: an int, true, null, a Stringable', fn () => [
     'finish-int-cap-present' => Str::finish('a5', 5),
     'finish-int-cap-absent' => Str::finish('a', 5),
