@@ -45,7 +45,7 @@ probe('X3 shift throws on a negative count', 'collect([10,20,30,40])->shift(-1)'
     return (new Collection(nums()))->shift(-1);
 });
 
-probe('X4 shift on empty returns null for any count', 'collect([])->shift(3)', function () {
+probe('X4 shift on empty returns null only for a count of 1', 'collect([])->shift(3)', function () {
     return ['count3' => (new Collection([]))->shift(3), 'count1' => (new Collection([]))->shift()];
 });
 
