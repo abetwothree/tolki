@@ -1182,6 +1182,15 @@ describe("Str tests", () => {
             );
         }, 2000);
 
+        it("stays fast when the cut holds no whitespace to cut back to", () => {
+            const word = "x".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "limit-preserve-words-no-whitespace"
+            expect(Str.limit(`${word}${word}`, 100_000, "...", true)).toBe(
+                `${word}...`,
+            );
+        }, 2000);
+
         it("limit when value length equals limit", () => {
             // Exactly at limit returns unchanged
             expect(Str.limit("hello", 5)).toBe("hello");

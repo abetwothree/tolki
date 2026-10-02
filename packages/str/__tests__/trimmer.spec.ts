@@ -47,6 +47,7 @@ describe("Str/Trimmer", () => {
 
         it("Laravel tests: handles long interior whitespace runs", () => {
             // StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-long-interior-run"
             const run = " \u200B\t".repeat(20000);
 
             expect(trim(`${run}[${run}x${run}`)).toBe(`[${run}x`);
@@ -276,6 +277,7 @@ describe("Str/Trimmer", () => {
 
         it("Laravel tests: handles long interior whitespace runs", () => {
             // StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-long-interior-run"
             const run = " \u200B\t".repeat(20000);
 
             expect(rtrim(`${run}[${run}x${run}`)).toBe(`${run}[${run}x`);
@@ -295,6 +297,12 @@ describe("Str/Trimmer", () => {
             expect(rtrim("a\u{1D159}\u{E0020}")).toBe("a");
             expect(rtrim("a😀😀b😀", "😀")).toBe("a😀😀b");
             expect(rtrim("a]]", "]")).toBe("a");
+        });
+
+        it("never removes half of a two-unit character", () => {
+            // JS-only: a PHP string cannot hold half of a surrogate pair
+            expect(rtrim("a😀", "\uDE00")).toBe("a😀");
+            expect(rtrim("a\uD83Dx", "x")).toBe("a\uD83D");
         });
 
         it("trims whitespace from right side only", () => {

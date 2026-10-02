@@ -154,6 +154,7 @@ probe('limit-long-interior-run', "Str::limit() past a run of 100000 spaces: plai
     'plain' => Str::limit("{$spaces}x{$spaces}x", 200001) === "{$spaces}x...",
     'preserve-words' => Str::limit("{$spaces}x{$spaces}x y", 200001, '...', true) === "x{$spaces}x...",
 ]);
+probe('limit-preserve-words-no-whitespace', "Str::limit(str_repeat('x', 200000), 100000, '...', true) === str_repeat('x', 100000).'...'", fn () => Str::limit(str_repeat('x', 200000), 100000, '...', true) === str_repeat('x', 100000) . '...');
 
 // What Str::trim(), ltrim() and rtrim() answer, which this port's own tests had pinned otherwise.
 probe('trim-default-characters', 'every code point Str::trim() removes by default, as hex ranges; ltrim and rtrim remove the same ones', function () {

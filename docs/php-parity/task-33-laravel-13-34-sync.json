@@ -589,6 +589,11 @@
             }
         },
         {
+            "label": "limit-preserve-words-no-whitespace",
+            "php": "Str::limit(str_repeat('x', 200000), 100000, '...', true) === str_repeat('x', 100000).'...'",
+            "value": true
+        },
+        {
             "label": "trim-default-characters",
             "php": "every code point Str::trim() removes by default, as hex ranges; ltrim and rtrim remove the same ones",
             "value": {

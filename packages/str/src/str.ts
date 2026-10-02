@@ -768,7 +768,8 @@ export function limit(
 
     const trimmed = value.slice(0, limit).trimEnd();
 
-    if (value.substring(limit, limit + 1) === " ") {
+    // A cut with no whitespace has no word to cut back to, and the pattern below would retry from every character.
+    if (value.substring(limit, limit + 1) === " " || !/\s/.test(trimmed)) {
         return trimmed + end;
     }
 
