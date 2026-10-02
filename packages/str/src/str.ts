@@ -482,6 +482,7 @@ export function doesntEndWith(
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#finish
  */
 export function finish(value: string, cap: string): string {
+    // Every string ends with "", so an empty cap would never leave the loop below.
     if (cap === "") {
         return value;
     }
@@ -2106,6 +2107,7 @@ export function reverse(value: string): string {
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#start
  */
 export function start(value: string, prefix: string): string {
+    // Every string starts with "", so an empty prefix would never leave the loop below.
     if (prefix === "") {
         return value;
     }
