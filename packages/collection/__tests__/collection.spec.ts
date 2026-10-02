@@ -10878,14 +10878,14 @@ describe("Collection", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
             const list = collect([1, 2, 3, 4]);
 
-            expect(list.shift(2.5)?.all()).toEqual([1, 2]);
+            expect(list.shift(2.5).all()).toEqual([1, 2]);
             expect(list.all()).toEqual([3, 4]);
             expect(list.keys().all()).toEqual([0, 1]);
             expect(list.values().all()).toEqual([3, 4]);
 
             const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
 
-            expect(keyed.shift(2.5)?.all()).toEqual([1, 2]);
+            expect(keyed.shift(2.5).all()).toEqual([1, 2]);
             expect(keyed.all()).toEqual({ c: 3, d: 4 });
             expect(keyed.keys().all()).toEqual(["c", "d"]);
             expect(keyed.values().all()).toEqual([3, 4]);
@@ -10932,9 +10932,9 @@ describe("Collection", () => {
 
             const one = collect([9]);
 
-            expect(one.shift(1.5)?.all()).toEqual([9]);
+            expect(one.shift(1.5).all()).toEqual([9]);
             expect(one.all()).toEqual([]);
-            expect(collect([]).shift(1.5)).toBeNull();
+            expect(collect([]).shift(1.5).all()).toEqual([]);
         });
 
         it("takes a fractional or NAN count in the order PHP's array holds integer keys out of order", () => {
@@ -10949,7 +10949,7 @@ describe("Collection", () => {
                 );
             const partly = outOfOrder();
 
-            expect(partly.shift(2.5)?.all()).toEqual(["c", "a"]);
+            expect(partly.shift(2.5).all()).toEqual(["c", "a"]);
             expect(partly.all()).toEqual({ 0: "b" });
             expect(partly.keys().all()).toEqual([0]);
             expect(partly.values().all()).toEqual(["b"]);
@@ -10973,7 +10973,7 @@ describe("Collection", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const c = collect({ x: "a", "-1": "b", "-2": "c", y: "d" });
 
-            expect(c.shift(2)?.all()).toEqual(["a", "b"]);
+            expect(c.shift(2).all()).toEqual(["a", "b"]);
             expect(c.all()).toEqual({ 0: "c", y: "d" });
         });
 
@@ -10992,10 +10992,10 @@ describe("Collection", () => {
                 // CollectionTest::testShiftReturnsAndRemovesFirstXItemsInCollection
                 const data = collect(["foo", "bar", "baz"]);
 
-                expect(data.shift(2)?.all()).toEqual(["foo", "bar"]);
+                expect(data.shift(2).all()).toEqual(["foo", "bar"]);
                 expect(data.first()).toBe("baz");
 
-                expect(collect(["foo", "bar", "baz"]).shift(6)?.all()).toEqual([
+                expect(collect(["foo", "bar", "baz"]).shift(6).all()).toEqual([
                     "foo",
                     "bar",
                     "baz",
@@ -11003,7 +11003,7 @@ describe("Collection", () => {
 
                 const data2 = collect(["foo", "bar", "baz"]);
 
-                expect(data2.shift(0)?.all()).toEqual([]);
+                expect(data2.shift(0).all()).toEqual([]);
                 expect(data2.all()).toEqual(["foo", "bar", "baz"]);
 
                 expect(() => {
@@ -11033,6 +11033,50 @@ describe("Collection", () => {
                 expect(bar?.["text"]).toBe("x");
                 expect(items2.shift()).toBeNull();
             });
+
+            it("test shift many returns empty collection on empty collection", () => {
+                // CollectionTest::testShiftManyReturnsEmptyCollectionOnEmptyCollection
+                expect(collect([]).shift(0)).toEqual(collect([]));
+                expect(collect([]).shift(2)).toEqual(collect([]));
+            });
+        });
+
+        it("answers null from an empty collection for a count of 1, and an empty collection for any other count", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
+            expect(collect([]).shift()).toBeNull();
+            expect(collect([]).shift(1)).toBeNull();
+            expect(collect({}).shift()).toBeNull();
+            expect(new Collection(new Map()).shift()).toBeNull();
+
+            for (const count of [0, 2, 3, 0.5, 1.5, 2.5, NaN, Infinity]) {
+                expect(takenItems(collect([]).shift(count))).toEqual([]);
+                expect(takenItems(collect({}).shift(count))).toEqual([]);
+                expect(
+                    takenItems(new Collection(new Map()).shift(count)),
+                ).toEqual([]);
+            }
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
+            expect(collect(null).shift()).toBeNull();
+            expect(collect(null).shift(2).all()).toEqual([]);
+        });
+
+        it("keeps answering an empty collection once drained, and null for a count of 1", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-drained-then-again"
+            const c = collect([1, 2, 3]);
+
+            expect(c.shift(2).all()).toEqual([1, 2]);
+            expect(c.shift(2).all()).toEqual([3]);
+            expect(c.shift(2).all()).toEqual([]);
+            expect(c.shift()).toBeNull();
+        });
+
+        it("answers an empty collection of the receiver's own class", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-subclass"
+            class Basket<TValue> extends Collection<TValue> {}
+
+            expect(new Basket<number>([]).shift(2)).toBeInstanceOf(Basket);
+            expect(new Basket<number>([]).shift(0)).toBeInstanceOf(Basket);
         });
 
         it("test shift function comprehensive coverage", () => {
@@ -11044,13 +11088,13 @@ describe("Collection", () => {
             // Test shift with objects - multiple items (count > 1)
             const objCollection2 = collect({ x: 10, y: 20, z: 30 });
             const shifted = objCollection2.shift(2);
-            expect(shifted?.all()).toEqual([10, 20]);
+            expect(shifted.all()).toEqual([10, 20]);
             expect(objCollection2.all()).toEqual({ z: 30 });
 
             // Test shift with objects - shift more than available
             const objCollection3 = collect({ p: 100, q: 200 });
             const shiftedAll = objCollection3.shift(5);
-            expect(shiftedAll?.all()).toEqual([100, 200]);
+            expect(shiftedAll.all()).toEqual([100, 200]);
             expect(objCollection3.count()).toBe(0);
 
             // JS-only: a stored undefined is an item, which shift hands back as it is
@@ -11062,7 +11106,7 @@ describe("Collection", () => {
         it("handles object with keys branch", () => {
             const c = collect({ a: 1, b: 2, c: 3 });
             const shifted = c.shift(2);
-            expect(shifted?.all()).toEqual([1, 2]);
+            expect(shifted.all()).toEqual([1, 2]);
             expect(c.all()).toEqual({ c: 3 });
         });
 
@@ -11072,7 +11116,7 @@ describe("Collection", () => {
             const c = collect({ a: 1 });
             // Request 3 items but only 1 exists - will try to shift from empty object
             const shifted = c.shift(3);
-            expect(shifted?.all()).toEqual([1]); // Only got 1 item
+            expect(shifted.all()).toEqual([1]); // Only got 1 item
             expect(c.all()).toEqual({}); // Object is now empty
         });
 
@@ -11108,18 +11152,11 @@ describe("Collection", () => {
 
         it("lists the items a count shifts from a list or a keyed collection, as its type declares", () => {
             // JS-only: the type declares the shape, which the backing all() hands out must match
-            expectShape(
-                collect([1, 2, 3]).shift(2) ?? expect.unreachable(),
-                "list",
-            );
-            expectShape(
-                outOfOrderKeys().shift(2) ?? expect.unreachable(),
-                "list",
-            );
-            expectShape(
-                outOfOrderKeys().shift(0) ?? expect.unreachable(),
-                "list",
-            );
+            expectShape(collect([1, 2, 3]).shift(2), "list");
+            expectShape(outOfOrderKeys().shift(2), "list");
+            expectShape(outOfOrderKeys().shift(0), "list");
+            expectShape(collect({} as Record<string, number>).shift(2), "list");
+            expectShape(collect({} as Record<string, number>).shift(0), "list");
         });
     });
 
@@ -21839,7 +21876,7 @@ describe("Collection", () => {
             const collection = collect(outOfOrder());
 
             // docs/php-parity/task-26-collection-order.json, "order-shift-two"
-            expect(collection.shift(2)?.all()).toEqual(["c", "a"]);
+            expect(collection.shift(2).all()).toEqual(["c", "a"]);
             expect(views(collection)).toEqual({
                 all: { 0: "b" },
                 values: ["b"],
@@ -21851,7 +21888,7 @@ describe("Collection", () => {
             const collection = collect(outOfOrder());
 
             // docs/php-parity/task-26-collection-order.json, "order-shift-past-the-end"
-            expect(collection.shift(5)?.all()).toEqual(["c", "a", "b"]);
+            expect(collection.shift(5).all()).toEqual(["c", "a", "b"]);
             expect(views(collection)).toEqual({
                 all: {},
                 values: [],
@@ -23576,7 +23613,7 @@ describe("Collection", () => {
 
             const twoFromArray = new Collection(nums());
             const twoFromObject = new Collection(numsObj());
-            agree(twoFromArray.shift(2)?.all(), twoFromObject.shift(2)?.all(), [
+            agree(twoFromArray.shift(2).all(), twoFromObject.shift(2).all(), [
                 ["0", 10],
                 ["1", 20],
             ]);

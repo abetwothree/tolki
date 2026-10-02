@@ -27,7 +27,7 @@ describe("obj mutation type tests", () => {
 
         it("return a list for a literal count other than 1", () => {
             expectTypeOf(Obj.pop(abc, 2)).toEqualTypeOf<number[]>();
-            expectTypeOf(Obj.shift(abc, 2)).toEqualTypeOf<number[] | null>();
+            expectTypeOf(Obj.shift(abc, 2)).toEqualTypeOf<number[]>();
         });
 
         it("cover both shapes for a widened count", () => {
@@ -41,8 +41,10 @@ describe("obj mutation type tests", () => {
             >();
         });
 
-        it("return null for non-object data", () => {
-            expectTypeOf(Obj.shift(numberList, 2)).toEqualTypeOf<null>();
+        it("return null, or an empty list for a count, for non-object data", () => {
+            expectTypeOf(Obj.shift(numberList, 2)).toEqualTypeOf<
+                null | never[]
+            >();
             expectTypeOf(Obj.pop(null)).toEqualTypeOf<null | never[]>();
         });
 
@@ -64,9 +66,7 @@ describe("obj mutation type tests", () => {
             expectTypeOf(Obj.pop(numberMap)).toEqualTypeOf<number | null>();
             expectTypeOf(Obj.shift(numberMap)).toEqualTypeOf<number | null>();
             expectTypeOf(Obj.pop(numberMap, 2)).toEqualTypeOf<number[]>();
-            expectTypeOf(Obj.shift(numberMap, 2)).toEqualTypeOf<
-                number[] | null
-            >();
+            expectTypeOf(Obj.shift(numberMap, 2)).toEqualTypeOf<number[]>();
             expectTypeOf(Obj.pop(numberMap, count)).toEqualTypeOf<
                 number | number[] | null
             >();
@@ -77,16 +77,16 @@ describe("obj mutation type tests", () => {
             expectTypeOf(Obj.pop(numberMap)).not.toEqualTypeOf<
                 null | never[]
             >();
-            expectTypeOf(Obj.shift(numberMap, 2)).not.toEqualTypeOf<null>();
+            expectTypeOf(Obj.shift(numberMap, 2)).not.toEqualTypeOf<
+                null | never[]
+            >();
         });
 
         it("take a Map typed read-only, as they take a readonly record, and write through it", () => {
             const readonlyMap: ReadonlyMap<string, number> = numberMap;
 
             expectTypeOf(Obj.pop(readonlyMap)).toEqualTypeOf<number | null>();
-            expectTypeOf(Obj.shift(readonlyMap, 2)).toEqualTypeOf<
-                number[] | null
-            >();
+            expectTypeOf(Obj.shift(readonlyMap, 2)).toEqualTypeOf<number[]>();
         });
 
         it("return a union of Maps' values, and unknown for a Map in any other union", () => {
@@ -94,7 +94,7 @@ describe("obj mutation type tests", () => {
                 string | number | null
             >();
             expectTypeOf(Obj.shift(mapUnion, 2)).toEqualTypeOf<
-                (string | number)[] | null
+                (string | number)[]
             >();
             // Not the non-object row's `null | never[]`: the Map's values are removed and returned.
             expectTypeOf(Obj.pop(maybeMap)).toEqualTypeOf<unknown>();

@@ -8051,7 +8051,7 @@ describe("Obj", () => {
             });
 
             expect(Obj.shift(Holder.prototype)).toBeNull();
-            expect(Obj.shift(Holder.prototype, 2)).toBeNull();
+            expect(Obj.shift(Holder.prototype, 2)).toEqual([]);
             expect(Object.entries(Holder.prototype)).toEqual([["kept", "str"]]);
         });
 
@@ -8066,10 +8066,11 @@ describe("Obj", () => {
             expect(two).toEqual({ 0: "c", y: "d" });
         });
 
-        it("returns null for non-object data, whatever the count", () => {
+        it("shifts nothing from non-object data, answering as an empty object does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
-            expect(Obj.shift(null, 2)).toBeNull();
-            expect(Obj.shift([], 2)).toBeNull();
+            expect(Obj.shift(null, 2)).toEqual([]);
+            expect(Obj.shift([], 2)).toEqual([]);
+            expect(Obj.shift(null, 0)).toEqual([]);
             expect(Obj.shift(null)).toBeNull();
         });
 
@@ -8100,11 +8101,9 @@ describe("Obj", () => {
             expect(result).toBeNull();
             expect(obj).toEqual({});
 
-            // Collection::shift($count) returns null once isEmpty is true, for any
-            // count — not an empty array. Matches the captured Collection::shift(3)
-            // ground truth on an empty source.
+            // docs/php-parity/task-02-mutation.json, "shift(3) on empty"
             const resultMultiple = Obj.shift(obj, 3);
-            expect(resultMultiple).toBeNull();
+            expect(resultMultiple).toEqual([]);
             expect(obj).toEqual({});
         });
 
@@ -8114,9 +8113,16 @@ describe("Obj", () => {
             );
         });
 
-        it("returns null when shifting an empty object, for any count", () => {
-            expect(Obj.shift({}, 3)).toBeNull();
+        it("returns null from an empty object or Map for a count of 1, and an empty array for any other count", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
             expect(Obj.shift({})).toBeNull();
+            expect(Obj.shift({}, 1)).toBeNull();
+            expect(Obj.shift(new Map())).toBeNull();
+
+            for (const count of [0, 2, 3, 0.5, 1.5, 2.5, NaN, Infinity]) {
+                expect(Obj.shift({}, count)).toEqual([]);
+                expect(Obj.shift(new Map(), count)).toEqual([]);
+            }
         });
 
         it("returns an empty array when the requested count is zero", () => {

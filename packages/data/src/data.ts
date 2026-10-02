@@ -1668,13 +1668,13 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get and remove the first N items from the data, mutating it in place.
  *
- * An empty source returns null for any count, and otherwise a count of zero returns an empty array.
- * A Map is shifted from the start of its insertion order.
+ * A count of zero returns an empty array. An empty source returns null for a count of 1 and an empty array for any
+ * other. A Map is shifted from the start of its insertion order.
  *
  * @param items - The data to shift from. Mutated in place for an array or record backing; a Map,
  * Set or generator backing is copied first, so the write lands on the copy and is discarded.
  * @param count - Number of items to shift; a fraction is dropped, and NAN shifts every item
- * @returns The shifted item(s), or null if the source had nothing to shift.
+ * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
  * @throws InvalidArgumentException if count is negative.
  * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  *

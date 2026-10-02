@@ -4524,9 +4524,17 @@ describe("Data", () => {
                 "Number of shifted items may not be less than zero.",
             );
         });
-        it("returns null when shifting an empty source, for any count and either backing", () => {
-            expect(Data.dataShift([], 3)).toBeNull();
-            expect(Data.dataShift({}, 3)).toBeNull();
+        it("returns null from an empty source for a count of 1, and an empty array for any other count, on every backing", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
+            expect(Data.dataShift([])).toBeNull();
+            expect(Data.dataShift({})).toBeNull();
+            expect(Data.dataShift(new Map())).toBeNull();
+
+            for (const count of [0, 2, 3, 1.5, NaN]) {
+                expect(Data.dataShift([], count)).toEqual([]);
+                expect(Data.dataShift({}, count)).toEqual([]);
+                expect(Data.dataShift(new Map(), count)).toEqual([]);
+            }
         });
         it("shifts a Map from the start of its insertion order, which a record cannot hold", () => {
             const outOfOrder = () =>
@@ -9498,14 +9506,14 @@ describe("Data", () => {
             expect(() => Data.dataShift(numsObj(), -1)).toThrow(message);
         });
 
-        it("shift on empty returns null for any count", () => {
-            // The isEmpty() guard precedes every count branch.
-            expect(Arr.shift([], 3)).toBeNull();
-            expect(Obj.shift({}, 3)).toBeNull();
+        it("shift on empty returns null only for a count of 1", () => {
+            // docs/php-parity/task-11-cross-backing.json, "X4 shift on empty returns null only for a count of 1"
+            expect(Arr.shift([], 3)).toEqual([]);
+            expect(Obj.shift({}, 3)).toEqual([]);
             expect(Arr.shift([])).toBeNull();
             expect(Obj.shift({})).toBeNull();
-            expect(Data.dataShift([], 3)).toBeNull();
-            expect(Data.dataShift({}, 3)).toBeNull();
+            expect(Data.dataShift([], 3)).toEqual([]);
+            expect(Data.dataShift({}, 3)).toEqual([]);
         });
 
         it("push agrees on the array-guard message across both backings", () => {
