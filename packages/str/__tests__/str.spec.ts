@@ -1172,6 +1172,16 @@ describe("Str tests", () => {
             expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
         });
 
+        it("stays fast over a long run of spaces inside the limit", () => {
+            const run = " ".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "limit-long-interior-run"
+            expect(Str.limit(`${run}x${run}x`, 200_001)).toBe(`${run}x...`);
+            expect(Str.limit(`${run}x${run}x y`, 200_001, "...", true)).toBe(
+                `x${run}x...`,
+            );
+        }, 2000);
+
         it("limit when value length equals limit", () => {
             // Exactly at limit returns unchanged
             expect(Str.limit("hello", 5)).toBe("hello");

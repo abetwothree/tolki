@@ -759,14 +759,14 @@ export function limit(
     }
 
     if (!preserveWords) {
-        return value.slice(0, limit).replace(/\s+$/, "") + end;
+        return value.slice(0, limit).trimEnd() + end;
     }
 
     value = stripTags(value)
         .replace(/[\n\r]+/g, " ")
         .trim();
 
-    const trimmed = value.slice(0, limit).replace(/\s+$/, "");
+    const trimmed = value.slice(0, limit).trimEnd();
 
     if (value.substring(limit, limit + 1) === " ") {
         return trimmed + end;

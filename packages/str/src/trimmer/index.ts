@@ -37,6 +37,32 @@ function escapeForClass(s: string): string {
 }
 
 /**
+ * Remove the trailing run of characters in a character class.
+ *
+ * @param value - The string to strip.
+ * @param characterClass - The body of the character class, as a regex fragment for the 'u' flag.
+ * @returns The string without its trailing run.
+ */
+function stripEnd(value: string, characterClass: string): string {
+    const last = new RegExp(`[${characterClass}]$`, "u");
+    let end = value.length;
+
+    // Reading one character at a time, at most two UTF-16 units, keeps this linear: a `[...]+$` pattern retries
+    // from every character of an interior run.
+    while (end > 0) {
+        const match = last.exec(value.slice(Math.max(end - 2, 0), end));
+
+        if (match === null) {
+            break;
+        }
+
+        end -= match[0].length;
+    }
+
+    return value.slice(0, end);
+}
+
+/**
  * Compute the base and tail indentation of a multiline string.
  *
  * @param value - The multiline string.
@@ -78,8 +104,10 @@ export function trim(value: string, charlist: string | null = null): string {
         const { baseIndent, tailIndent } = computeIndents(value);
 
         const cls = defaultClass();
-        const re = new RegExp(`^[${cls}]+|[${cls}]+$`, "gu");
-        let out = value.replace(re, "");
+        let out = stripEnd(
+            value.replace(new RegExp(`^[${cls}]+`, "u"), ""),
+            cls,
+        );
 
         const delta = Math.max(0, baseIndent - tailIndent);
         if (delta > 0 && out.includes("\n")) {
@@ -93,12 +121,9 @@ export function trim(value: string, charlist: string | null = null): string {
         return out.length !== value.length ? out : value.trim();
     }
 
-    const re = new RegExp(
-        `^[${escapeForClass(charlist)}]+|[${escapeForClass(charlist)}]+$`,
-        "gu",
-    );
+    const cls = escapeForClass(charlist);
 
-    return value.replace(re, "");
+    return stripEnd(value.replace(new RegExp(`^[${cls}]+`, "u"), ""), cls);
 }
 
 /**
@@ -144,9 +169,7 @@ export function ltrim(value: string, charlist: string | null = null): string {
  */
 export function rtrim(value: string, charlist: string | null = null): string {
     if (charlist == null || charlist === "") {
-        const cls = defaultClass();
-        const re = new RegExp(`[${cls}]+$`, "gu");
-        let out = value.replace(re, "");
+        let out = stripEnd(value, defaultClass());
 
         // Multiline indentation compensation (template literal parity)
         if (out.includes("\n")) {
@@ -164,7 +187,5 @@ export function rtrim(value: string, charlist: string | null = null): string {
         return out.length !== value.length ? out : value.trimEnd();
     }
 
-    const re = new RegExp(`[${escapeForClass(charlist)}]+$`, "gu");
-
-    return value.replace(re, "");
+    return stripEnd(value, escapeForClass(charlist));
 }

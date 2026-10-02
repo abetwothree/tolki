@@ -45,6 +45,34 @@ describe("Str/Trimmer", () => {
             });
         });
 
+        it("Laravel tests: handles long interior whitespace runs", () => {
+            // StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns
+            const run = " \u200B\t".repeat(20000);
+
+            expect(trim(`${run}[${run}x${run}`)).toBe(`[${run}x`);
+            expect(trim(run)).toBe("");
+            expect(trim(" a b c\u00A0\uFEFF\n")).toBe("a b c");
+        }, 2000);
+
+        it("stays fast over a long interior run of the charlist's characters", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-charlist-long-interior-run"
+            const run = "x".repeat(120000);
+
+            expect(trim(`${run}[${run}y${run}`, "x")).toBe(`[${run}y`);
+        }, 2000);
+
+        it("trims a character of two UTF-16 units at either end", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            expect(trim("\u{1D159}a\u{E0020}\u{1D173}")).toBe("a");
+            expect(trim("😀a😀", "😀")).toBe("a");
+        });
+
+        it("reads a charlist of regex characters literally", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            expect(trim("-^a^-", "^-")).toBe("a");
+            expect(trim("\\a\\", "\\")).toBe("a");
+        });
+
         it("trims whitespace from both ends", () => {
             expect(trim("  hello  ")).toBe("hello");
             expect(trim("\thello\t")).toBe("hello");
@@ -244,6 +272,29 @@ describe("Str/Trimmer", () => {
                     `${char} foo bar`,
                 );
             });
+        });
+
+        it("Laravel tests: handles long interior whitespace runs", () => {
+            // StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns
+            const run = " \u200B\t".repeat(20000);
+
+            expect(rtrim(`${run}[${run}x${run}`)).toBe(`${run}[${run}x`);
+            expect(rtrim(run)).toBe("");
+            expect(rtrim(" a  b \u3000\r\n")).toBe(" a  b");
+        }, 2000);
+
+        it("stays fast over a long interior run of the charlist's characters", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-charlist-long-interior-run"
+            const run = "x".repeat(120000);
+
+            expect(rtrim(`${run}[${run}y${run}`, "x")).toBe(`${run}[${run}y`);
+        }, 2000);
+
+        it("trims a character of two UTF-16 units from the end", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-cases"
+            expect(rtrim("a\u{1D159}\u{E0020}")).toBe("a");
+            expect(rtrim("a😀😀b😀", "😀")).toBe("a😀😀b");
+            expect(rtrim("a]]", "]")).toBe("a");
         });
 
         it("trims whitespace from right side only", () => {
