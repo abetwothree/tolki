@@ -2,4 +2,7 @@
 "@tolki/str": patch
 ---
 
-`trim()`, `rtrim()` and `limit()` no longer slow to a crawl on a string that holds a long run of whitespace, or of the characters being trimmed, somewhere before its end: trimming a string with 60,000 whitespace characters in its middle took over 20 seconds and now takes a few milliseconds. The results are unchanged, and the change follows a fix in Laravel.
+`trim()`, `rtrim()` and `limit()` no longer become very slow when a long run of whitespace comes before the end of the string. On one machine, `trim()` took about 20 seconds and `rtrim()` about 40 on text with runs of 60,000 whitespace characters; both now take a few milliseconds, following a fix in Laravel.
+
+- `trim()` and `rtrim()` also no longer slow down on a long run of the characters you ask them to trim.
+- With `preserveWords` turned on, `limit()` also no longer slows down when the text it keeps is long and has no whitespace at all, such as one 100,000-character word.
