@@ -159,14 +159,24 @@ describe("Str/Trimmer", () => {
                 expect(rtrim(char)).toBe("");
             }
 
-            // The nearest code points on either side of a range stay.
-            const kept = [
-                0x0008, 0x000e, 0x001f, 0x0021, 0x0084, 0x0086, 0x2010, 0x2027,
-                0x2066, 0x2069, 0x1d17b, 0xe0021,
-            ].map((codePoint) => String.fromCodePoint(codePoint));
+            // Each range's nearest neighbour on either side stays.
+            const removedCodePoints = new Set(
+                removed.map((char) => char.codePointAt(0)),
+            );
+            const kept = ranges
+                .flatMap(([from, to]) => [from - 1, to + 1])
+                .filter(
+                    (codePoint) =>
+                        codePoint >= 0 && !removedCodePoints.has(codePoint),
+                )
+                .map((codePoint) => String.fromCodePoint(codePoint));
+
+            expect(kept).toHaveLength(49);
 
             for (const char of kept) {
                 expect(trim(char)).toBe(char);
+                expect(ltrim(char)).toBe(char);
+                expect(rtrim(char)).toBe(char);
             }
         });
 
@@ -194,7 +204,7 @@ describe("Str/Trimmer", () => {
 
     describe("ltrim", () => {
         it("Laravel tests ltrim", () => {
-            // StrTest::testLtrim. The inputs that start and end with a default character are also rows of
+            // StrTest::testLtrim. The newline and NUL inputs of the last loop are also rows of
             // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
             expect(ltrim(" foo    bar ")).toBe("foo    bar ");
 

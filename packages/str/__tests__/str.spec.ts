@@ -829,6 +829,8 @@ describe("Str tests", () => {
             expect(Str.excerpt("This is  my name", "my", { radius: 3 })).toBe(
                 "...s  my na...",
             );
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "excerpt-space-then-tab-before-phrase"
+            expect(Str.excerpt("foo \tbar", "bar")).toBe("foo \tbar");
         });
     });
 

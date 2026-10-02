@@ -848,17 +848,32 @@ describe("Stringable basic delegation", () => {
         it("Laravel tests", () => {
             expectEqual(Str.trim("  foo  "), Str.of("  foo  ").trim());
         });
+
+        it("trims nothing for an empty charlist", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "stringable-trim-empty-charlist"
+            expect(Str.of("  hello  ").trim("").toString()).toBe("  hello  ");
+        });
     });
 
     describe("ltrim", () => {
         it("Laravel tests", () => {
             expectEqual(Str.ltrim("  foo  "), Str.of("  foo  ").ltrim());
         });
+
+        it("trims nothing for an empty charlist", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "stringable-trim-empty-charlist"
+            expect(Str.of("  hello  ").ltrim("").toString()).toBe("  hello  ");
+        });
     });
 
     describe("rtrim", () => {
         it("Laravel tests", () => {
             expectEqual(Str.rtrim("  foo  "), Str.of("  foo  ").rtrim());
+        });
+
+        it("trims nothing for an empty charlist", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "stringable-trim-empty-charlist"
+            expect(Str.of("  hello  ").rtrim("").toString()).toBe("  hello  ");
         });
     });
 
