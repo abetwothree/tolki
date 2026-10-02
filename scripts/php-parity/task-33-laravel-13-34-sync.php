@@ -98,7 +98,7 @@ probe('shift-drained-then-again', '$c = collect([1, 2, 3]); $c->shift(2) three t
     return [shown($c->shift(2)), shown($c->shift(2)), shown($c->shift(2)), $c->shift()];
 });
 
-// Arr::collapse() and Arr::flatten() read any Enumerable through all(), a LazyCollection included (laravel/framework#61811).
+// Arr::collapse() and Arr::flatten() read any Enumerable through all(), a LazyCollection too (laravel/framework#61811).
 probe('collapse-lazy-list', 'Arr::collapse([[1], new LazyCollection([2, 3]), collect([4])])', fn () => Arr::collapse([[1], new LazyCollection([2, 3]), collect([4])]));
 probe('collapse-lazy-nested-kept', 'Arr::collapse([new LazyCollection([[1, 2], new LazyCollection([3])])])', fn () => shown(Arr::collapse([new LazyCollection([[1, 2], new LazyCollection([3])])])));
 probe('collapse-lazy-assoc-outer', "Arr::collapse(['x' => [1], 'y' => new LazyCollection([2, 3]), 'z' => collect([4])])", fn () => Arr::collapse(['x' => [1], 'y' => new LazyCollection([2, 3]), 'z' => collect([4])]));
