@@ -188,5 +188,24 @@ probe('rtrim-cases', 'Str::rtrim($value, $charlist) for each [$value, $charlist]
 ]));
 probe('trim-charlist-range-not-ported', "Str::trim('abcxcba', 'a..c'): PHP reads a..c as the range a to c", fn () => Str::trim('abcxcba', 'a..c'));
 probe('excerpt-two-spaces-before-phrase', "Str::excerpt('This is  my name', 'my'), then with ['radius' => 3]", fn () => [Str::excerpt('This is  my name', 'my'), Str::excerpt('This is  my name', 'my', ['radius' => 3])]);
+// Found by the whole-branch review: arguments that are no string, Stringable's empty charlist, and two unpinned cases.
+probe('finish-start-non-string-arguments', 'Str::finish() and Str::start() given a cap, prefix or value that is no string: an int, true, null, a Stringable', fn () => [
+    'finish-int-cap-present' => Str::finish('a5', 5),
+    'finish-int-cap-absent' => Str::finish('a', 5),
+    'finish-true-cap' => Str::finish('a1', true),
+    'finish-null-cap' => Str::finish('a', null),
+    'finish-stringable-cap' => Str::finish('a/', Str::of('/')),
+    'finish-stringable-value' => Str::finish(Str::of('a/'), '/'),
+    'stringable-finish-stringable-cap' => (string) Str::of('a/')->finish(Str::of('/')),
+    'start-null-prefix' => Str::start('a', null),
+    'start-int-prefix-present' => Str::start('5a', 5),
+    'start-int-prefix-absent' => Str::start('a', 5),
+    'start-stringable-prefix' => Str::start('/a', Str::of('/')),
+    'start-stringable-value' => Str::start(Str::of('/a'), '/'),
+    'stringable-start-stringable-prefix' => (string) Str::of('/a')->start(Str::of('/')),
+]);
+probe('stringable-trim-empty-charlist', "(string) Str::of('  hello  ')->trim(''), ->ltrim('') and ->rtrim('')", fn () => [(string) Str::of('  hello  ')->trim(''), (string) Str::of('  hello  ')->ltrim(''), (string) Str::of('  hello  ')->rtrim('')]);
+probe('excerpt-space-then-tab-before-phrase', 'Str::excerpt("foo \tbar", "bar")', fn () => Str::excerpt("foo \tbar", 'bar'));
+probe('toBoolean-wrapped-in-whitespace', 'Str::of($value)->toBoolean() for " true ", "\u{0085}true" and "\u{00A0}true": filter_var() trims ASCII whitespace only', fn () => [Str::of(' true ')->toBoolean(), Str::of("\u{0085}true")->toBoolean(), Str::of("\u{00A0}true")->toBoolean()]);
 
 emit();

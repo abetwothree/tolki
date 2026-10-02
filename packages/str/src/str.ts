@@ -5,6 +5,7 @@ import {
     isNumber,
     isString,
     isUndefined,
+    phpStringCast,
     toLower,
 } from "@tolki/utils";
 
@@ -482,19 +483,23 @@ export function doesntEndWith(
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#finish
  */
 export function finish(value: string, cap: string): string {
+    // Cast as PHP does: an untyped caller's number or Stringable has no length for the scan below to step by.
+    const subject = phpStringCast(value);
+    const ending = phpStringCast(cap);
+
     // Every string ends with "", so an empty cap would never leave the loop below.
-    if (cap === "") {
-        return value;
+    if (ending === "") {
+        return subject;
     }
 
     // Reads back from the end: (?:cap)+$ retries at every cap in the string, so a long run of caps is quadratic.
-    let end = value.length;
+    let end = subject.length;
 
-    while (value.endsWith(cap, end)) {
-        end -= cap.length;
+    while (subject.endsWith(ending, end)) {
+        end -= ending.length;
     }
 
-    return `${value.slice(0, end)}${cap}`;
+    return `${subject.slice(0, end)}${ending}`;
 }
 
 /**
@@ -2107,18 +2112,22 @@ export function reverse(value: string): string {
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#start
  */
 export function start(value: string, prefix: string): string {
+    // Cast as PHP does: an untyped caller's number or Stringable has no length for the scan below to step by.
+    const subject = phpStringCast(value);
+    const opening = phpStringCast(prefix);
+
     // Every string starts with "", so an empty prefix would never leave the loop below.
-    if (prefix === "") {
-        return value;
+    if (opening === "") {
+        return subject;
     }
 
     let from = 0;
 
-    while (value.startsWith(prefix, from)) {
-        from += prefix.length;
+    while (subject.startsWith(opening, from)) {
+        from += opening.length;
     }
 
-    return `${prefix}${value.slice(from)}`;
+    return `${opening}${subject.slice(from)}`;
 }
 
 /**

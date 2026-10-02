@@ -838,6 +838,48 @@
                 "This is  my name",
                 "...s  my na..."
             ]
+        },
+        {
+            "label": "finish-start-non-string-arguments",
+            "php": "Str::finish() and Str::start() given a cap, prefix or value that is no string: an int, true, null, a Stringable",
+            "value": {
+                "finish-int-cap-present": "a5",
+                "finish-int-cap-absent": "a5",
+                "finish-true-cap": "a1",
+                "finish-null-cap": "a",
+                "finish-stringable-cap": "a/",
+                "finish-stringable-value": "a/",
+                "stringable-finish-stringable-cap": "a/",
+                "start-null-prefix": "a",
+                "start-int-prefix-present": "5a",
+                "start-int-prefix-absent": "5a",
+                "start-stringable-prefix": "/a",
+                "start-stringable-value": "/a",
+                "stringable-start-stringable-prefix": "/a"
+            }
+        },
+        {
+            "label": "stringable-trim-empty-charlist",
+            "php": "(string) Str::of('  hello  ')->trim(''), ->ltrim('') and ->rtrim('')",
+            "value": [
+                "  hello  ",
+                "  hello  ",
+                "  hello  "
+            ]
+        },
+        {
+            "label": "excerpt-space-then-tab-before-phrase",
+            "php": "Str::excerpt(\"foo \\tbar\", \"bar\")",
+            "value": "foo \tbar"
+        },
+        {
+            "label": "toBoolean-wrapped-in-whitespace",
+            "php": "Str::of($value)->toBoolean() for \" true \", \"\\u{0085}true\" and \"\\u{00A0}true\": filter_var() trims ASCII whitespace only",
+            "value": [
+                true,
+                false,
+                false
+            ]
         }
     ]
 }

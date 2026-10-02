@@ -875,6 +875,26 @@ describe("Str tests", () => {
             // ("finish-long-interior-run-then-caps"); this port still caps the string it was given.
             expect(Str.finish(`${run}x//`, "/")).toBe(`${run}x/`);
         }, 2000);
+
+        it("casts a cap or a value that is no string as PHP does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-start-non-string-arguments"
+            const finish = (...args: unknown[]): unknown =>
+                Reflect.apply(Str.finish, undefined, args);
+
+            // The first case answers "5" without the cast, and the Stringable value below would never return.
+            expect(finish("a5", 5)).toBe("a5");
+            expect(finish("a", 5)).toBe("a5");
+            expect(finish("a1", true)).toBe("a1");
+            expect(finish("a", null)).toBe("a");
+            expect(finish("a/", Str.of("/"))).toBe("a/");
+            expect(finish(Str.of("a/"), "/")).toBe("a/");
+
+            const capped = Str.of("a/");
+
+            expect(
+                String(Reflect.apply(capped.finish, capped, [Str.of("/")])),
+            ).toBe("a/");
+        });
     });
 
     describe("wrap", () => {
@@ -3169,6 +3189,25 @@ describe("Str tests", () => {
             // ("start-long-leading-run"); this port still starts the string it was given.
             expect(Str.start(`${run}x`, "/")).toBe("/x");
         }, 2000);
+
+        it("casts a prefix or a value that is no string as PHP does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-start-non-string-arguments"
+            const start = (...args: unknown[]): unknown =>
+                Reflect.apply(Str.start, undefined, args);
+
+            // The first case answers "nulla" without the cast, and the cases below it would never return.
+            expect(start("a", null)).toBe("a");
+            expect(start("5a", 5)).toBe("5a");
+            expect(start("a", 5)).toBe("5a");
+            expect(start("/a", Str.of("/"))).toBe("/a");
+            expect(start(Str.of("/a"), "/")).toBe("/a");
+
+            const started = Str.of("/a");
+
+            expect(
+                String(Reflect.apply(started.start, started, [Str.of("/")])),
+            ).toBe("/a");
+        });
     });
 
     describe("upper", () => {
