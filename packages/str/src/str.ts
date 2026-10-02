@@ -482,9 +482,18 @@ export function doesntEndWith(
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#finish
  */
 export function finish(value: string, cap: string): string {
-    const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (cap === "") {
+        return value;
+    }
 
-    return value.replace(new RegExp(`(?:${quoted})+$`, "u"), "") + cap;
+    // Reads back from the end: (?:cap)+$ retries at every cap in the string, so a long run of caps is quadratic.
+    let end = value.length;
+
+    while (value.endsWith(cap, end)) {
+        end -= cap.length;
+    }
+
+    return `${value.slice(0, end)}${cap}`;
 }
 
 /**
@@ -2096,9 +2105,17 @@ export function reverse(value: string): string {
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#start
  */
 export function start(value: string, prefix: string): string {
-    const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (prefix === "") {
+        return value;
+    }
 
-    return prefix + value.replace(new RegExp(`^(?:${quoted})+`, "u"), "");
+    let from = 0;
+
+    while (value.startsWith(prefix, from)) {
+        from += prefix.length;
+    }
+
+    return `${prefix}${value.slice(from)}`;
 }
 
 /**

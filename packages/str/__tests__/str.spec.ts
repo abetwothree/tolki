@@ -827,7 +827,44 @@ describe("Str tests", () => {
             expect(Str.finish("ab", "bc")).toBe("abbc");
             expect(Str.finish("abbcbc", "bc")).toBe("abbc");
             expect(Str.finish("abcbbcbc", "bc")).toBe("abcbbc");
+            expect(Str.finish("test/string", "/")).toBe("test/string/");
+            expect(Str.finish("test/string/", "/")).toBe("test/string/");
+            expect(Str.finish("test/string//", "/")).toBe("test/string/");
+            expect(Str.finish("test/string", "")).toBe("test/string");
+            expect(Str.finish("", "")).toBe("");
         });
+
+        it("drops every trailing cap, whatever characters it holds", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-cases"
+            expect(Str.finish("", "/")).toBe("/");
+            expect(Str.finish("///", "/")).toBe("/");
+            expect(Str.finish("a.b..", ".")).toBe("a.b.");
+            expect(Str.finish("a$$", "$")).toBe("a$");
+            expect(Str.finish("x[[", "[")).toBe("x[");
+            expect(Str.finish("x\\\\", "\\")).toBe("x\\");
+            expect(Str.finish("añññ", "ñ")).toBe("añ");
+            expect(Str.finish("😀😀", "😀")).toBe("😀");
+            expect(Str.finish("a", "abc")).toBe("aabc");
+            expect(Str.finish("a/b/c", "/")).toBe("a/b/c/");
+        });
+
+        it("reads a cap that overlaps itself from the end", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-cases"
+            expect(Str.finish("aaa", "aa")).toBe("aaa");
+            expect(Str.finish("aaaa", "aa")).toBe("aa");
+            expect(Str.finish("aaaaa", "aa")).toBe("aaa");
+            expect(Str.finish("abab", "ab")).toBe("ab");
+        });
+
+        it("stays fast over a long run of the cap inside the string", () => {
+            const run = "/".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-long-interior-run"
+            expect(Str.finish(`${run}x`, "/")).toBe(`${run}x/`);
+            // JS-only: PHP's own pattern runs out of stack here and answers "/" alone
+            // ("finish-long-interior-run-then-caps"); this port still caps the string it was given.
+            expect(Str.finish(`${run}x//`, "/")).toBe(`${run}x/`);
+        }, 2000);
     });
 
     describe("wrap", () => {
@@ -3070,7 +3107,39 @@ describe("Str tests", () => {
             expect(Str.start("test/string", "/")).toBe("/test/string");
             expect(Str.start("/test/string", "/")).toBe("/test/string");
             expect(Str.start("//test/string", "/")).toBe("/test/string");
+            expect(Str.start("test/string", "")).toBe("test/string");
+            expect(Str.start("", "")).toBe("");
         });
+
+        it("drops every leading prefix, whatever characters it holds", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-cases"
+            expect(Str.start("", "/")).toBe("/");
+            expect(Str.start("///", "/")).toBe("/");
+            expect(Str.start("..a.b", ".")).toBe(".a.b");
+            expect(Str.start("$$a", "$")).toBe("$a");
+            expect(Str.start("[[x", "[")).toBe("[x");
+            expect(Str.start("ñññz", "ñ")).toBe("ñz");
+            expect(Str.start("😀😀x", "😀")).toBe("😀x");
+            expect(Str.start("a", "abc")).toBe("abca");
+        });
+
+        it("reads a prefix that overlaps itself from the start", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-cases"
+            expect(Str.start("aaa", "aa")).toBe("aaa");
+            expect(Str.start("aaaa", "aa")).toBe("aa");
+            expect(Str.start("aaaaa", "aa")).toBe("aaa");
+            expect(Str.start("abab", "ab")).toBe("ab");
+        });
+
+        it("stays fast over a long run of the prefix", () => {
+            const run = "/".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-long-run"
+            expect(Str.start(`x${run}`, "/")).toBe(`/x${run}`);
+            // JS-only: PHP's own pattern runs out of stack on a run this long and answers "/" alone
+            // ("start-long-leading-run"); this port still starts the string it was given.
+            expect(Str.start(`${run}x`, "/")).toBe("/x");
+        }, 2000);
     });
 
     describe("upper", () => {
