@@ -1903,10 +1903,12 @@ If no string is provided, a Stringable class instance with an empty string will 
 ```javascript
 import { str } from "@tolki/str";
 
-const result = str().snake("FooBar");
+const result = str().append("FooBar").snake();
 
 // result is a Stringable class instance representing "foo_bar"
 ```
+
+`str()` always returns a Stringable, so pass it the string you want to work on, as in `str("FooBar").snake()`, or call the standalone function, `snake("FooBar")`. Laravel's `str()` with no argument forwards a call such as `str()->snake('FooBar')` to `Str::snake()`, but this package's `str()` does not.
 
 #### of
 
