@@ -701,6 +701,25 @@ describe("Data", () => {
             });
         });
 
+        it("merges a lazy collection's items on either backing", () => {
+            // ArrTest::testCollapse. LazyCollection is not ported: any Collection-like item stands in for it.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-lazy-list" and "collapse-lazy-assoc-outer"
+            expect(
+                Data.dataCollapse([
+                    [1],
+                    collectionLike([2, 3]),
+                    collectionLike([4]),
+                ]),
+            ).toEqual([1, 2, 3, 4]);
+            expect(
+                Data.dataCollapse({
+                    x: [1],
+                    y: collectionLike([2, 3]),
+                    z: collectionLike([4]),
+                }),
+            ).toEqual({ 0: 1, 1: 2, 2: 3, 3: 4 });
+        });
+
         it("keeps list items beside an object item and unwraps Collection-like items on a list", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-collection-items"
             expect(Data.dataCollapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
@@ -1929,6 +1948,23 @@ describe("Data", () => {
                 "#baz",
                 "#zap",
             ]);
+        });
+
+        it("flattens lazy collections on either backing", () => {
+            // ArrTest::testFlattenWithLazyCollections. A Collection-like item stands in for LazyCollection.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-lazy-list" and "flatten-lazy-assoc"
+            expect(
+                Data.dataFlatten([
+                    collectionLike(["#foo", ["#bar"]]),
+                    ["#baz", collectionLike(["#zap"])],
+                ]),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
+            expect(
+                Data.dataFlatten({
+                    a: collectionLike({ x: "#foo", y: ["#bar"] }),
+                    b: { c: "#baz", d: collectionLike(["#zap"]) },
+                }),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
         });
 
         it("keeps a class instance or Date whole, through the object backing", () => {

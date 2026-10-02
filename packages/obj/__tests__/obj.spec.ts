@@ -1087,6 +1087,29 @@ describe("Obj", () => {
             ).toEqual({ x: 1, y: 2 });
         });
 
+        it("merges a lazy collection's items beside an object's and a collection's", () => {
+            // ArrTest::testCollapse, keyed. LazyCollection is not ported: any Collection-like item stands in for it.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-lazy-assoc-outer" and "collapse-lazy-keyed"
+            expect(
+                Obj.collapse({
+                    x: [1],
+                    y: collectionLike([2, 3]),
+                    z: collectionLike([4]),
+                }),
+            ).toEqual({ 0: 1, 1: 2, 2: 3, 3: 4 });
+            expect(
+                Object.entries(
+                    Obj.collapse({
+                        first: { a: 1 },
+                        second: collectionLike({ b: 2, a: 3 }),
+                    }),
+                ),
+            ).toEqual([
+                ["a", 3],
+                ["b", 2],
+            ]);
+        });
+
         it("merges a plain object item's all member as data, never unwrapping it", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
             const all = () => [9];
@@ -5778,6 +5801,17 @@ describe("Obj", () => {
 
             const kept = collectionLike([2, 3]);
             expect(Obj.flatten({ a: [kept] }, 1)).toEqual([kept]);
+        });
+
+        it("flattens lazy collections wherever they sit", () => {
+            // ArrTest::testFlattenWithLazyCollections, keyed. A Collection-like item stands in for LazyCollection.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-lazy-assoc"
+            expect(
+                Obj.flatten({
+                    a: collectionLike({ x: "#foo", y: ["#bar"] }),
+                    b: { c: "#baz", d: collectionLike(["#zap"]) },
+                }),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
         });
 
         it("keeps a plain object item's all member as a value, never unwrapping it", () => {

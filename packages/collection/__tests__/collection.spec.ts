@@ -95,6 +95,14 @@ const outOfOrderKeys = () =>
         ]),
     );
 
+/** Stands in for LazyCollection, which is not ported: an Enumerable that is no Collection, read through all(). */
+const lazyLike = <TItems>(items: TItems): { all: () => TItems } =>
+    new (class {
+        all() {
+            return items;
+        }
+    })();
+
 /** A collection's three views, which a keyed result has to agree on. */
 const viewsOf = <
     TValue,
@@ -1159,6 +1167,14 @@ describe("Collection", () => {
             expect(data.collapse().all()).toEqual([1, 2, 3, 4, 5, 6]);
         });
 
+        it("test collapse with mixed collection types", () => {
+            // CollectionTest::testCollapseWithMixedCollectionTypes
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-mixed-collection-types"
+            const data = collect([collect([1, 2]), lazyLike([3, 4]), [5]]);
+
+            expect(data.collapse().all()).toEqual([1, 2, 3, 4, 5]);
+        });
+
         it("keeps list items beside an object item on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map"
             expect(
@@ -1297,6 +1313,74 @@ describe("Collection", () => {
                 [3, 4],
             ]);
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
+        });
+
+        it("test collapse with keys with mixed collection types", () => {
+            // CollectionTest::testCollapseWithKeysWithMixedCollectionTypes
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-mixed-collection-types"
+            const collapsed = collect([
+                collect({ a: 1, b: 2 }),
+                lazyLike({ b: 3, c: 4 }),
+            ]).collapseWithKeys();
+
+            expect(collapsed.all()).toEqual({ a: 1, b: 3, c: 4 });
+            expect(collapsed.keys().all()).toEqual(["a", "b", "c"]);
+            expect(collapsed.values().all()).toEqual([1, 3, 4]);
+        });
+
+        it("merges an enumerable that is no collection through its all(), list or record", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-lazy-lists",
+            // "collapseWithKeys-lazy-only", "collapseWithKeys-lazy-then-array" and "collapseWithKeys-lazy-int-keys"
+            expect(
+                collect([lazyLike([1, 2]), [3]])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([3, 2]);
+            expect(
+                Object.entries(
+                    collect([lazyLike({ a: 1 }), lazyLike({ a: 2, b: 3 })])
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 2],
+                ["b", 3],
+            ]);
+            expect(
+                Object.entries(
+                    collect([lazyLike({ a: 1, b: 2 }), { b: 9 }])
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 1],
+                ["b", 9],
+            ]);
+            expect(
+                collect([{ 5: "a" }, lazyLike({ 5: "b", 6: "c" })])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ 5: "b", 6: "c" });
+        });
+
+        it("keeps a plain object item's all member as data, and skips an all() that answers no array", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-array-item-all-member-is-data"
+            const all = () => ({ z: 9 });
+
+            expect(
+                collect([{ all, b: 2 }])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({
+                all,
+                b: 2,
+            });
+            // JS-only: PHP's all() always answers an array; any other answer is skipped, as collapse() skips it
+            expect(
+                collect([{ a: 1 }, lazyLike(new Map([["b", 2]])), lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ a: 1 });
         });
 
         it("skips an item that is an object but no plain object, as collapse does", () => {
@@ -3306,6 +3390,22 @@ describe("Collection", () => {
                     "#bar",
                     "#zap",
                     "#baz",
+                ]);
+            });
+
+            it("test flatten with mixed collection types", () => {
+                // CollectionTest::testFlattenWithMixedCollectionTypes
+                // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-mixed-collection-types"
+                const c = collect([
+                    collect(["#foo", lazyLike(["#bar"])]),
+                    lazyLike(["#baz", collect(["#zap"])]),
+                ]);
+
+                expect(c.flatten().all()).toEqual([
+                    "#foo",
+                    "#bar",
+                    "#baz",
+                    "#zap",
                 ]);
             });
 

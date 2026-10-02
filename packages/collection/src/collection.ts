@@ -1217,6 +1217,9 @@ export class Collection<
     /**
      * Collapse the collection of items into a single array while preserving its keys.
      *
+     * A collection item is merged through its items, as is any other class instance with an `all()` method; any
+     * other object that is no plain object is skipped.
+     *
      * @returns A new collection with collapsed items, a later item's key replacing an earlier one's: a list when every
      * item is a list
      *
@@ -1224,6 +1227,7 @@ export class Collection<
      *
      * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
+     * new Collection([new Collection({a: 1, b: 2}), {b: 3}]).collapseWithKeys(); -> new Collection({a: 1, b: 3})
      */
     collapseWithKeys(): Collection<
         CollapseValue<TValue>,
@@ -1237,16 +1241,20 @@ export class Collection<
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
         const results = this.orderedValues().map((value) => {
-            // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
-            if (
-                !(value instanceof Collection) &&
-                !isArray(value) &&
-                !isPlainObject(value)
-            ) {
-                return null;
+            if (value instanceof Collection) {
+                return value;
             }
 
-            return value;
+            // An Enumerable merges through all() as collapse() reads one, while a plain object's all member is data.
+            const items =
+                !isPlainObject(value) &&
+                isObject(value) &&
+                isFunction(value["all"])
+                    ? value["all"]()
+                    : value;
+
+            // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
+            return isArray(items) || isPlainObject(items) ? items : null;
         });
 
         // Filter out nulls (non-arrays/objects that we skipped)
@@ -1944,8 +1952,8 @@ export class Collection<
      * Flatten a multi-dimensional collection into a single level.
      *
      * Laravel's flatten always returns an array-based collection, iterating over
-     * values and recursively flattening nested arrays. A nested collection's items
-     * are flattened too; any other object that isn't a plain object is kept whole.
+     * values and recursively flattening nested arrays. A nested collection's items are flattened too, as are those
+     * of any other class instance with an `all()` method; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
      * @returns A new collection with flattened items (always array-based); with a depth, an item may leave any value
