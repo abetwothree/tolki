@@ -3374,7 +3374,16 @@ export function pop<TMap>(
 ): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
 export function pop(
     data: NonKeyedItems | null | undefined,
-    count?: number,
+    count?: 1 | undefined,
+): null;
+// A count typed `1 | 2` may be 1 when it runs, which answers null.
+export function pop<const N extends number>(
+    data: NonKeyedItems | null | undefined,
+    count: N,
+): number extends N ? null | never[] : N extends 1 ? null : never[];
+export function pop(
+    data: NonKeyedItems | null | undefined,
+    count: number | undefined,
 ): null | never[];
 export function pop(
     data: NonObjectItems | null | undefined,
@@ -4286,7 +4295,16 @@ export function shift<TMap>(
 ): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
 export function shift(
     data: NonKeyedItems | null | undefined,
-    count?: number,
+    count?: 1 | undefined,
+): null;
+// A count typed `1 | 2` may be 1 when it runs, which answers null.
+export function shift<const N extends number>(
+    data: NonKeyedItems | null | undefined,
+    count: N,
+): number extends N ? null | never[] : N extends 1 ? null : never[];
+export function shift(
+    data: NonKeyedItems | null | undefined,
+    count: number | undefined,
 ): null | never[];
 export function shift(
     data: NonObjectItems | null | undefined,
