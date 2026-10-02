@@ -8,7 +8,7 @@ describe("Str/Trimmer", () => {
             expect(trim("foo bar   ")).toBe("foo bar");
             expect(trim("   foo bar")).toBe("foo bar");
             expect(trim("foo bar")).toBe("foo bar");
-            expect(trim(" foo bar ", "")).toBe("foo bar");
+            expect(trim(" foo bar ", "")).toBe(" foo bar ");
             expect(trim(" foo bar ", " ")).toBe("foo bar");
             expect(trim("-foo  bar_", "-_")).toBe("foo  bar");
             expect(trim(" foo    bar ")).toBe("foo    bar");
@@ -19,20 +19,14 @@ describe("Str/Trimmer", () => {
             expect(trim("   だ    ")).toBe("だ");
             expect(trim("   ム    ")).toBe("ム");
 
-            expect(
-                trim(`
-                    foo bar
-                `),
-            ).toBe("foo bar");
-            expect(
-                trim(`
-                        foo
-                        bar
-                    `),
-            ).toBe(
-                `foo
-                            bar`,
+            expect(trim("\n                foo bar\n            ")).toBe(
+                "foo bar",
             );
+            expect(
+                trim(
+                    "\n                foo\n                bar\n            ",
+                ),
+            ).toBe("foo\n                bar");
 
             expect(trim(" \xE9 ")).toBe("\xE9");
 
@@ -104,22 +98,20 @@ describe("Str/Trimmer", () => {
             expect(trim("hello")).toBe("hello");
         });
 
-        it("handles multiline strings with indentation", () => {
-            const multiline = `
-    hello
-    world
-`;
-            const result = trim(multiline);
-            expect(result).toContain("hello");
-            expect(result).toContain("world");
+        it("leaves the lines between the ends exactly as they were", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            expect(trim("\n    hello\n    world\n")).toBe("hello\n    world");
+            expect(trim("    line1\nline2\n")).toBe("line1\nline2");
+            expect(trim("  first\n  second\n  third\n")).toBe(
+                "first\n  second\n  third",
+            );
+            expect(trim("   \n   \n   ")).toBe("");
+            expect(trim("hello\nworld")).toBe("hello\nworld");
         });
 
-        it("handles multiline with base and tail indent difference", () => {
-            // Test where baseIndent > tailIndent (delta > 0)
-            const input = "    line1\nline2\n";
-            const result = trim(input);
-            expect(result).toContain("line1");
-            expect(result).toContain("line2");
+        it("trims the next-line character, which PHP counts as whitespace", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases" and "trim-default-characters"
+            expect(trim("\u0085a\u0085")).toBe("a");
         });
 
         it("handles special regex characters in charlist", () => {
@@ -129,8 +121,9 @@ describe("Str/Trimmer", () => {
             expect(trim("[[[hello]]]", "[]")).toBe("hello");
         });
 
-        it("handles empty charlist as null", () => {
-            expect(trim("  hello  ", "")).toBe("hello");
+        it("trims nothing for an empty charlist, as PHP's trim() does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
+            expect(trim("  hello  ", "")).toBe("  hello  ");
         });
 
         it("handles null charlist", () => {
@@ -171,22 +164,27 @@ describe("Str/Trimmer", () => {
             const ltrimDefaultChars = [" ", "\n", "\r", "\t", "\v", "\0"];
             ltrimDefaultChars.forEach((char) => {
                 expect(ltrim(` ${char} `)).toBe("");
-                expect(ltrim(`foo bar ${char}`)).toBe("foo bar");
 
-                expect(ltrim(`${char} foo bar ${char}`)).toBe("foo bar");
+                expect(ltrim(`${char} foo bar ${char}`)).toBe(
+                    `foo bar ${char}`,
+                );
             });
         });
 
         it("trims whitespace from left side only", () => {
-            // Note: ltrim collapses exactly 2 trailing spaces
             expect(ltrim("  hello")).toBe("hello");
             expect(ltrim("\thello")).toBe("hello");
             expect(ltrim("\nhello")).toBe("hello");
         });
 
-        it("preserves trailing single space", () => {
-            // Single trailing space is preserved (unless followed by control char)
-            expect(ltrim("  hello ").length).toBeGreaterThanOrEqual(5);
+        it("leaves the end of the string exactly as it was", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
+            expect(ltrim("  hello ")).toBe("hello ");
+            expect(ltrim("  hello  ")).toBe("hello  ");
+            expect(ltrim("  hello   ")).toBe("hello   ");
+            expect(ltrim("  hello \n")).toBe("hello \n");
+            expect(ltrim("  hello \t")).toBe("hello \t");
+            expect(ltrim("\u0085a\u0085")).toBe("a\u0085");
         });
 
         it("trims invisible characters from left", () => {
@@ -215,28 +213,13 @@ describe("Str/Trimmer", () => {
             expect(ltrim("***hello", "*")).toBe("hello");
         });
 
-        it("handles empty charlist as null", () => {
-            expect(ltrim("  hello", "")).toBe("hello");
+        it("trims nothing for an empty charlist, as PHP's ltrim() does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
+            expect(ltrim("  hello", "")).toBe("  hello");
         });
 
         it("handles null charlist", () => {
             expect(ltrim("  hello", null)).toBe("hello");
-        });
-
-        it("handles trailing control characters", () => {
-            // Test removal of space followed by control character at end
-            expect(ltrim("  hello \n")).toBe("hello");
-            expect(ltrim("  hello \t")).toBe("hello");
-        });
-
-        it("handles double trailing spaces", () => {
-            // Test collapsing double trailing spaces (special ltrim behavior)
-            expect(ltrim("  hello  ")).toBe("hello");
-        });
-
-        it("does not collapse triple trailing spaces", () => {
-            const result = ltrim("  hello   ");
-            expect(result).toBe("hello   ");
         });
     });
 
@@ -337,90 +320,24 @@ describe("Str/Trimmer", () => {
             expect(rtrim("hello***", "*")).toBe("hello");
         });
 
-        it("handles empty charlist as null", () => {
-            expect(rtrim("hello  ", "")).toBe("hello");
+        it("trims nothing for an empty charlist, as PHP's rtrim() does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-cases"
+            expect(rtrim("hello  ", "")).toBe("hello  ");
         });
 
         it("handles null charlist", () => {
             expect(rtrim("hello  ", null)).toBe("hello");
         });
 
-        it("handles multiline strings with indentation compensation", () => {
-            // Test multiline with newline in output (contains \n)
-            const input = "line1\nline2   ";
-            const result = rtrim(input);
-            expect(result).toContain("line1");
-            expect(result).toContain("line2");
-        });
-
-        it("handles multiline with tailIndent > baseIndent", () => {
-            // This should trigger the delta > 0 branch (lines 110-113)
-            // baseIndent is computed from first non-empty line
-            // tailIndent is computed from last line
-            // When tailIndent > baseIndent, delta > 0 and padding is added
-            const input = "line1\n    line2\n        ";
-            const result = rtrim(input);
-            expect(result).toContain("line1");
-        });
-
-        it("handles multiline where lines need padding", () => {
-            // Create a scenario where tailIndent > baseIndent
-            // First line has no indent, last line has indent before trailing spaces
-            const input = "hello\n    world\n      ";
-            const result = rtrim(input);
-            expect(result).toBeDefined();
-        });
-    });
-
-    describe("computeIndents edge cases", () => {
-        it("handles string with no non-whitespace characters", () => {
-            // This tests the branch where no line has \S (non-whitespace)
-            // so baseIndent defaults to what the first match returns
-            const result = trim("   \n   \n   ");
-            expect(result).toBe("");
-        });
-
-        it("handles empty lines array", () => {
-            // Empty string split on newlines should still work
-            expect(trim("")).toBe("");
-        });
-
-        it("handles line with no leading whitespace", () => {
-            // Test when match returns something with 0 length
-            const result = trim("hello\nworld");
-            expect(result).toBe("hello\nworld");
-        });
-    });
-
-    describe("edge cases for branch coverage", () => {
-        it("handles line where regex match could be null", () => {
-            // Most strings will have a match for /^[ \t]*/, but
-            // we need to ensure all branches are covered
-            const result = trim("a");
-            expect(result).toBe("a");
-        });
-
-        it("handles multiline trim with varying indentation", () => {
-            // Test with first line indented more than subsequent lines
-            const input = "    first\nsecond\n";
-            const result = trim(input);
-            expect(result).toContain("first");
-            expect(result).toContain("second");
-        });
-
-        it("handles rtrim multiline with empty lines", () => {
-            // Test the map function's /\S/.test(ln) branch for empty lines
-            const input = "line1\n\nline2\n   ";
-            const result = rtrim(input);
-            expect(result).toContain("line1");
-            expect(result).toContain("line2");
-        });
-
-        it("handles trim multiline padding for non-first lines", () => {
-            // Test the map's i === 0 check and /^\s*$/.test(ln) branches
-            const input = "  first\n  second\n  third\n";
-            const result = trim(input);
-            expect(result).toContain("first");
+        it("leaves the lines before the end exactly as they were", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "rtrim-cases"
+            expect(rtrim("line1\nline2   ")).toBe("line1\nline2");
+            expect(rtrim("line1\n    line2\n        ")).toBe(
+                "line1\n    line2",
+            );
+            expect(rtrim("hello\n    world\n      ")).toBe("hello\n    world");
+            expect(rtrim("line1\n\nline2\n   ")).toBe("line1\n\nline2");
+            expect(rtrim("\u0085a\u0085")).toBe("\u0085a");
         });
     });
 });

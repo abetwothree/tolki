@@ -2307,6 +2307,20 @@ const result = trim(" foo bar ");
 // result is "foo bar"
 ```
 
+Pass a second argument to trim those characters instead of whitespace. `ltrim` and `rtrim` take it too. An empty string trims nothing:
+
+```javascript
+import { trim } from "@tolki/str";
+
+const result = trim("-foo  bar_", "-_");
+
+// result is "foo  bar"
+
+const result2 = trim(" foo bar ", "");
+
+// result2 is " foo bar "
+```
+
 <FnTry
   :fn="trim"
   :args="[
@@ -2323,7 +2337,7 @@ import { ltrim } from "@tolki/str";
 
 const result = ltrim("  foo bar  ");
 
-// result is "foo bar   "
+// result is "foo bar  "
 ```
 
 <FnTry

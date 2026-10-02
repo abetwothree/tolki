@@ -820,6 +820,16 @@ describe("Str tests", () => {
                 }),
             ).toBe("...ere xyz");
         });
+
+        it("keeps the spacing in front of the phrase", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "excerpt-two-spaces-before-phrase"
+            expect(Str.excerpt("This is  my name", "my")).toBe(
+                "This is  my name",
+            );
+            expect(Str.excerpt("This is  my name", "my", { radius: 3 })).toBe(
+                "...s  my na...",
+            );
+        });
     });
 
     describe("finish", () => {
