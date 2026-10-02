@@ -1284,7 +1284,8 @@ export class Stringable {
     /**
      * Trim the string of the given characters.
      *
-     * @param charlist - The characters to trim from the string. If null, trims whitespace.
+     * @param charlist - The characters to trim from the string. If null, trims whitespace; an empty string
+     * trims nothing.
      * @returns The trimmed string as a new Stringable instance.
      */
     trim(charlist: string | null = null): Stringable {
@@ -1294,7 +1295,8 @@ export class Stringable {
     /**
      * Left trim the string of the given characters.
      *
-     * @param charlist - The characters to trim from the start of the string. If null, trims whitespace.
+     * @param charlist - The characters to trim from the start of the string. If null, trims whitespace; an empty string
+     * trims nothing.
      * @returns The left-trimmed string as a new Stringable instance.
      */
     ltrim(charlist: string | null = null): Stringable {
@@ -1304,7 +1306,8 @@ export class Stringable {
     /**
      * Right trim the string of the given characters.
      *
-     * @param charlist - The characters to trim from the end of the string. If null, trims whitespace.
+     * @param charlist - The characters to trim from the end of the string. If null, trims whitespace; an empty string
+     * trims nothing.
      * @returns The right-trimmed string as a new Stringable instance.
      */
     rtrim(charlist: string | null = null): Stringable {

@@ -87,7 +87,7 @@ function trimmedClass(charlist: string | null): string {
  * Remove all whitespace from both ends of a string.
  *
  * @param value - The string to trim.
- * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @param charlist - Optional list of characters to trim instead of whitespace; an empty string trims nothing.
  * @returns The trimmed string.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#trim
@@ -102,7 +102,7 @@ export function trim(value: string, charlist: string | null = null): string {
  * Remove all whitespace from the beginning of a string.
  *
  * @param value - The string to trim.
- * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @param charlist - Optional list of characters to trim instead of whitespace; an empty string trims nothing.
  * @returns The left-trimmed string.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ltrim
@@ -115,7 +115,7 @@ export function ltrim(value: string, charlist: string | null = null): string {
  * Remove all whitespace from the end of a string.
  *
  * @param value - The string to trim.
- * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @param charlist - Optional list of characters to trim instead of whitespace; an empty string trims nothing.
  * @returns The right-trimmed string.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#rtrim
