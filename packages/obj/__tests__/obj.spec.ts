@@ -1087,6 +1087,29 @@ describe("Obj", () => {
             ).toEqual({ x: 1, y: 2 });
         });
 
+        it("merges a lazy collection's items beside an object's and a collection's", () => {
+            // ArrTest::testCollapse, keyed. LazyCollection is not ported: any Collection-like item stands in for it.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-lazy-assoc-outer" and "collapse-lazy-keyed"
+            expect(
+                Obj.collapse({
+                    x: [1],
+                    y: collectionLike([2, 3]),
+                    z: collectionLike([4]),
+                }),
+            ).toEqual({ 0: 1, 1: 2, 2: 3, 3: 4 });
+            expect(
+                Object.entries(
+                    Obj.collapse({
+                        first: { a: 1 },
+                        second: collectionLike({ b: 2, a: 3 }),
+                    }),
+                ),
+            ).toEqual([
+                ["a", 3],
+                ["b", 2],
+            ]);
+        });
+
         it("merges a plain object item's all member as data, never unwrapping it", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
             const all = () => [9];
@@ -4512,7 +4535,7 @@ describe("Obj", () => {
 
         it("is case-sensitive", () => {
             // Captured via docs/php-parity/task-06-setops.json ("diff is
-            // case-sensitive"). CollectionTest.php:1602.
+            // case-sensitive"). CollectionTest.php:1615.
             expect(
                 Obj.diff(
                     { 0: "en_GB", 1: "fr", 2: "HR" },
@@ -4802,7 +4825,7 @@ describe("Obj", () => {
         });
 
         it("still matches on key AND value together (must not collapse into intersect)", () => {
-            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1821),
+            // intersectAssoc keeps array_intersect_assoc semantics (CollectionTest.php:1834),
             // pinned so a future edit cannot collapse it into intersect's value-only rule.
             expect(
                 Obj.intersectAssoc(
@@ -5778,6 +5801,17 @@ describe("Obj", () => {
 
             const kept = collectionLike([2, 3]);
             expect(Obj.flatten({ a: [kept] }, 1)).toEqual([kept]);
+        });
+
+        it("flattens lazy collections wherever they sit", () => {
+            // ArrTest::testFlattenWithLazyCollections, keyed. A Collection-like item stands in for LazyCollection.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-lazy-assoc"
+            expect(
+                Obj.flatten({
+                    a: collectionLike({ x: "#foo", y: ["#bar"] }),
+                    b: { c: "#baz", d: collectionLike(["#zap"]) },
+                }),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
         });
 
         it("keeps a plain object item's all member as a value, never unwrapping it", () => {
@@ -8051,7 +8085,7 @@ describe("Obj", () => {
             });
 
             expect(Obj.shift(Holder.prototype)).toBeNull();
-            expect(Obj.shift(Holder.prototype, 2)).toBeNull();
+            expect(Obj.shift(Holder.prototype, 2)).toEqual([]);
             expect(Object.entries(Holder.prototype)).toEqual([["kept", "str"]]);
         });
 
@@ -8066,11 +8100,20 @@ describe("Obj", () => {
             expect(two).toEqual({ 0: "c", y: "d" });
         });
 
-        it("returns null for non-object data, whatever the count", () => {
+        it("shifts nothing from non-object data, answering as an empty object does", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
-            expect(Obj.shift(null, 2)).toBeNull();
-            expect(Obj.shift([], 2)).toBeNull();
+            expect(Obj.shift(null, 2)).toEqual([]);
+            expect(Obj.shift([], 2)).toEqual([]);
             expect(Obj.shift(null)).toBeNull();
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
+            expect(Obj.shift(null, 0)).toEqual([]);
+
+            // JS-only: a list is no object to Obj.shift, which leaves it as it is
+            const list = [1, 2];
+
+            expect(Obj.shift(list, 2)).toEqual([]);
+            expect(Obj.shift(list)).toBeNull();
+            expect(list).toEqual([1, 2]);
         });
 
         it("should remove and return first item", () => {
@@ -8100,11 +8143,9 @@ describe("Obj", () => {
             expect(result).toBeNull();
             expect(obj).toEqual({});
 
-            // Collection::shift($count) returns null once isEmpty is true, for any
-            // count — not an empty array. Matches the captured Collection::shift(3)
-            // ground truth on an empty source.
+            // docs/php-parity/task-02-mutation.json, "shift(3) on empty"
             const resultMultiple = Obj.shift(obj, 3);
-            expect(resultMultiple).toBeNull();
+            expect(resultMultiple).toEqual([]);
             expect(obj).toEqual({});
         });
 
@@ -8114,9 +8155,16 @@ describe("Obj", () => {
             );
         });
 
-        it("returns null when shifting an empty object, for any count", () => {
-            expect(Obj.shift({}, 3)).toBeNull();
+        it("returns null from an empty object or Map for a count of 1, and an empty array for any other count", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
             expect(Obj.shift({})).toBeNull();
+            expect(Obj.shift({}, 1)).toBeNull();
+            expect(Obj.shift(new Map())).toBeNull();
+
+            for (const count of [0, 2, 3, 0.5, 1.5, 2.5, NaN, Infinity]) {
+                expect(Obj.shift({}, count)).toEqual([]);
+                expect(Obj.shift(new Map(), count)).toEqual([]);
+            }
         });
 
         it("returns an empty array when the requested count is zero", () => {
@@ -11276,7 +11324,7 @@ describe("Obj", () => {
 
         it("treats a null replacer as a no-op", () => {
             // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
-            // CollectionTest.php:1502.
+            // CollectionTest.php:1515.
             expect(Obj.replace({ a: 1 }, null)).toEqual({ a: 1 });
         });
 
@@ -11594,7 +11642,7 @@ describe("Obj", () => {
 
         it("treats a null replacer as a no-op", () => {
             // getArrayableItems(null) -> [] (EnumeratesValues.php:1123); pinned by
-            // CollectionTest.php:1544.
+            // CollectionTest.php:1557.
             expect(Obj.replaceRecursive({ a: 1 }, null)).toEqual({ a: 1 });
         });
 

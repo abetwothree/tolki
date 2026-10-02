@@ -701,6 +701,25 @@ describe("Data", () => {
             });
         });
 
+        it("merges a lazy collection's items on either backing", () => {
+            // ArrTest::testCollapse. LazyCollection is not ported: any Collection-like item stands in for it.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-lazy-list" and "collapse-lazy-assoc-outer"
+            expect(
+                Data.dataCollapse([
+                    [1],
+                    collectionLike([2, 3]),
+                    collectionLike([4]),
+                ]),
+            ).toEqual([1, 2, 3, 4]);
+            expect(
+                Data.dataCollapse({
+                    x: [1],
+                    y: collectionLike([2, 3]),
+                    z: collectionLike([4]),
+                }),
+            ).toEqual({ 0: 1, 1: 2, 2: 3, 3: 4 });
+        });
+
         it("keeps list items beside an object item and unwraps Collection-like items on a list", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-collection-items"
             expect(Data.dataCollapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
@@ -1929,6 +1948,23 @@ describe("Data", () => {
                 "#baz",
                 "#zap",
             ]);
+        });
+
+        it("flattens lazy collections on either backing", () => {
+            // ArrTest::testFlattenWithLazyCollections. A Collection-like item stands in for LazyCollection.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-lazy-list" and "flatten-lazy-assoc"
+            expect(
+                Data.dataFlatten([
+                    collectionLike(["#foo", ["#bar"]]),
+                    ["#baz", collectionLike(["#zap"])],
+                ]),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
+            expect(
+                Data.dataFlatten({
+                    a: collectionLike({ x: "#foo", y: ["#bar"] }),
+                    b: { c: "#baz", d: collectionLike(["#zap"]) },
+                }),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
         });
 
         it("keeps a class instance or Date whole, through the object backing", () => {
@@ -4524,9 +4560,17 @@ describe("Data", () => {
                 "Number of shifted items may not be less than zero.",
             );
         });
-        it("returns null when shifting an empty source, for any count and either backing", () => {
-            expect(Data.dataShift([], 3)).toBeNull();
-            expect(Data.dataShift({}, 3)).toBeNull();
+        it("returns null from an empty source for a count of 1, and an empty array for any other count, on every backing", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
+            expect(Data.dataShift([])).toBeNull();
+            expect(Data.dataShift({})).toBeNull();
+            expect(Data.dataShift(new Map())).toBeNull();
+
+            for (const count of [0, 2, 3, 1.5, NaN]) {
+                expect(Data.dataShift([], count)).toEqual([]);
+                expect(Data.dataShift({}, count)).toEqual([]);
+                expect(Data.dataShift(new Map(), count)).toEqual([]);
+            }
         });
         it("shifts a Map from the start of its insertion order, which a record cannot hold", () => {
             const outOfOrder = () =>
@@ -9498,14 +9542,14 @@ describe("Data", () => {
             expect(() => Data.dataShift(numsObj(), -1)).toThrow(message);
         });
 
-        it("shift on empty returns null for any count", () => {
-            // The isEmpty() guard precedes every count branch.
-            expect(Arr.shift([], 3)).toBeNull();
-            expect(Obj.shift({}, 3)).toBeNull();
+        it("shift on empty returns null only for a count of 1", () => {
+            // docs/php-parity/task-11-cross-backing.json, "X4 shift on empty returns null only for a count of 1"
+            expect(Arr.shift([], 3)).toEqual([]);
+            expect(Obj.shift({}, 3)).toEqual([]);
             expect(Arr.shift([])).toBeNull();
             expect(Obj.shift({})).toBeNull();
-            expect(Data.dataShift([], 3)).toBeNull();
-            expect(Data.dataShift({}, 3)).toBeNull();
+            expect(Data.dataShift([], 3)).toEqual([]);
+            expect(Data.dataShift({}, 3)).toEqual([]);
         });
 
         it("push agrees on the array-guard message across both backings", () => {

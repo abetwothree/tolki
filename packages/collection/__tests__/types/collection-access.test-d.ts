@@ -655,17 +655,13 @@ describe("collection keyed access and mutation type tests", () => {
             expectTypeOf(list.shift(1)).toEqualTypeOf<number | null>();
         });
 
-        it("answers a list of the items for any other count, or null for an empty collection", () => {
-            expectTypeOf(list.shift(2)).toEqualTypeOf<Collection<
-                number,
-                number,
-                "list"
-            > | null>();
-            expectTypeOf(record.shift(0)).toEqualTypeOf<Collection<
-                number,
-                number,
-                "list"
-            > | null>();
+        it("answers a list of the items for any other count", () => {
+            expectTypeOf(list.shift(2)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
+            expectTypeOf(record.shift(0)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
         });
 
         it("answers either for a count that is only known to be a number", () => {
@@ -677,16 +673,12 @@ describe("collection keyed access and mutation type tests", () => {
         it("types a generic or a Map-built collection's items", () => {
             // Not pinned to dataShift, which types a Map's value as unknown.
             expectTypeOf(mapped.shift()).toEqualTypeOf<string | null>();
-            expectTypeOf(mapped.shift(2)).toEqualTypeOf<Collection<
-                string,
-                number,
-                "list"
-            > | null>();
-            expectTypeOf(generic.shift(2)).toEqualTypeOf<Collection<
-                number,
-                number,
-                "list"
-            > | null>();
+            expectTypeOf(mapped.shift(2)).toEqualTypeOf<
+                Collection<string, number, "list">
+            >();
+            expectTypeOf(generic.shift(2)).toEqualTypeOf<
+                Collection<number, number, "list">
+            >();
         });
 
         it("rejects a count that is no number", () => {

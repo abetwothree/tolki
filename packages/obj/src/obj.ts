@@ -3374,7 +3374,16 @@ export function pop<TMap>(
 ): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
 export function pop(
     data: NonKeyedItems | null | undefined,
-    count?: number,
+    count?: 1 | undefined,
+): null;
+// A count typed `1 | 2` may be 1 when it runs, which answers null.
+export function pop<const N extends number>(
+    data: NonKeyedItems | null | undefined,
+    count: N,
+): number extends N ? null | never[] : N extends 1 ? null : never[];
+export function pop(
+    data: NonKeyedItems | null | undefined,
+    count: number | undefined,
 ): null | never[];
 export function pop(
     data: NonObjectItems | null | undefined,
@@ -4249,7 +4258,7 @@ function pickArrayKeysCount(requested: unknown): number {
  *
  * @param data - The object or Map to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
- * @returns The shifted item(s), or null if the object had nothing to shift.
+ * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
  * @throws InvalidArgumentException if count is negative.
  * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
@@ -4265,7 +4274,7 @@ export function shift<TValue, TKey>(
 export function shift<TValue, TKey, const N extends number>(
     data: ReadonlyMap<TKey, TValue>,
     count: N,
-): number extends N ? TValue | TValue[] | null : TValue[] | null;
+): number extends N ? TValue | TValue[] | null : TValue[];
 export function shift<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
     count: number | undefined,
@@ -4279,15 +4288,24 @@ export function shift<TMap, const N extends number>(
     count: N,
 ): number extends N
     ? MapEntryValue<TMap> | MapEntryValue<TMap>[] | null
-    : MapEntryValue<TMap>[] | null;
+    : MapEntryValue<TMap>[];
 export function shift<TMap>(
     data: MapData<TMap>,
     count: number | undefined,
 ): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
 export function shift(
     data: NonKeyedItems | null | undefined,
-    count?: number,
+    count?: 1 | undefined,
 ): null;
+// A count typed `1 | 2` may be 1 when it runs, which answers null.
+export function shift<const N extends number>(
+    data: NonKeyedItems | null | undefined,
+    count: N,
+): number extends N ? null | never[] : N extends 1 ? null : never[];
+export function shift(
+    data: NonKeyedItems | null | undefined,
+    count: number | undefined,
+): null | never[];
 export function shift(
     data: NonObjectItems | null | undefined,
     count?: number,
@@ -4301,7 +4319,7 @@ export function shift<T extends object, const N extends number>(
     count: N,
 ): number extends N
     ? ObjectValue<T> | ObjectValue<T>[] | null
-    : ObjectValue<T>[] | null;
+    : ObjectValue<T>[];
 // A forwarded `number | undefined` count fits neither row above, so this answers
 // the union of both rather than dropping to the `unknown` fallback.
 export function shift<T extends object>(
@@ -4319,20 +4337,19 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
         );
     }
 
-    // Collection::shift checks isEmpty() before the count, so non-object data yields null for any count.
+    if (count === 0) {
+        return [];
+    }
+
     // A prototype object is never written, and shift rewrites its whole container, so it shifts nothing.
     if (!accessible(data) || isPrototypeObject(data)) {
-        return null;
+        return count === 1 ? null : [];
     }
 
     const entries = keyedEntries<TValue>(data);
 
     if (entries.length === 0) {
-        return null;
-    }
-
-    if (count === 0) {
-        return [];
+        return count === 1 ? null : [];
     }
 
     const actualCount = resolveTakeCount(count, entries.length);
@@ -5691,7 +5708,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_replace()` / `Collection::replace()`.
  *
  * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
- * is a no-op (`CollectionTest.php:1502`). Writes go through `defineKey` so a
+ * is a no-op (`CollectionTest.php:1515`). Writes go through `defineKey` so a
  * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
  * AGENTS.md:189).
  *
@@ -5742,7 +5759,7 @@ export function replace<T1, T2>(
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
  * Builds a new object at every recursion level rather than mutating `data`. A
- * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1544`). Only
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1557`). Only
  * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
  * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *

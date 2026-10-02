@@ -649,6 +649,25 @@ describe("Arr", () => {
             ).toEqual([1, 2, 3]);
         });
 
+        it("merges a lazy collection's items beside an array's and a collection's", () => {
+            // ArrTest::testCollapse. LazyCollection is not ported: any Collection-like item stands in for it.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-lazy-list" and "collapse-lazy-nested-kept"
+            expect(
+                Arr.collapse([
+                    [1],
+                    collectionLike([2, 3]),
+                    collectionLike([4]),
+                ]),
+            ).toEqual([1, 2, 3, 4]);
+
+            const inner = collectionLike([3]);
+
+            expect(Arr.collapse([collectionLike([[1, 2], inner])])).toEqual([
+                [1, 2],
+                inner,
+            ]);
+        });
+
         it("merges a plain object item's all member as data, never unwrapping it", () => {
             // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
             const all = () => [9];
@@ -1320,6 +1339,33 @@ describe("Arr", () => {
 
             const kept = collectionLike([2, 3]);
             expect(Arr.flatten([[kept]], 1)).toEqual([kept]);
+        });
+
+        it("flattens lazy collections wherever they sit", () => {
+            // ArrTest::testFlattenWithLazyCollections. LazyCollection is not ported: a Collection-like item stands in.
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-lazy-list", "flatten-lazy-depth-1"
+            // and "flatten-lazy-depth-2"
+            expect(
+                Arr.flatten([
+                    collectionLike(["#foo", ["#bar"]]),
+                    ["#baz", collectionLike(["#zap"])],
+                ]),
+            ).toEqual(["#foo", "#bar", "#baz", "#zap"]);
+
+            const kept = collectionLike([5]);
+
+            expect(
+                Arr.flatten([collectionLike([1, [2, [3]]]), [4, kept]], 1),
+            ).toEqual([1, [2, [3]], 4, kept]);
+            expect(
+                Arr.flatten(
+                    [
+                        collectionLike([1, [2, [3]]]),
+                        [4, collectionLike([5, [6]])],
+                    ],
+                    2,
+                ),
+            ).toEqual([1, 2, [3], 4, 5, [6]]);
         });
 
         it("keeps a plain object item's all member as a value, never unwrapping it", () => {
@@ -6018,7 +6064,9 @@ describe("Arr", () => {
             expect(data).toEqual(["Otwell"]);
 
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
-            expect(Arr.shift(null, 2)).toBeNull();
+            expect(Arr.shift(null, 2)).toEqual([]);
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
+            expect(Arr.shift(null, 0)).toEqual([]);
 
             expect(Arr.shift(null)).toBeNull();
             expect(Arr.shift(undefined)).toBeNull();
@@ -6042,9 +6090,14 @@ describe("Arr", () => {
             );
         });
 
-        it("returns null when shifting an empty array, for any count", () => {
-            expect(Arr.shift([], 3)).toBeNull();
+        it("returns null from an empty array for a count of 1, and an empty array for any other count", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
             expect(Arr.shift([])).toBeNull();
+            expect(Arr.shift([], 1)).toBeNull();
+
+            for (const count of [0, 2, 3, 0.5, 1.5, 2.5, NaN, Infinity]) {
+                expect(Arr.shift([], count)).toEqual([]);
+            }
         });
 
         it("returns an empty array when the requested count is zero", () => {
@@ -7926,6 +7979,7 @@ describe("Arr", () => {
 
             expect(Arr.pop(Array.prototype)).toBeNull();
             expect(Arr.shift(Array.prototype)).toBeNull();
+            expect(Arr.shift(Array.prototype, 2)).toEqual([]);
             expect(Arr.splice(Array.prototype, 0, 1)).toEqual([]);
             expect(Array.prototype.length).toBe(1);
             expect(Array.prototype[0]).toBe("PWNED");

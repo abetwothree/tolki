@@ -169,7 +169,7 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
         $results = [];
 
         foreach ($this->items as $values) {
-            if ($values instanceof Collection) {
+            if ($values instanceof Enumerable) {
                 $values = $values->all();
             } elseif (! is_array($values)) {
                 continue;
@@ -1284,16 +1284,16 @@ class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerabl
             throw new InvalidArgumentException('Number of shifted items may not be less than zero.');
         }
 
-        if ($this->isEmpty()) {
-            return null;
-        }
-
         if ($count === 0) {
             return $this->newInstance();
         }
 
         if ($count === 1) {
             return array_shift($this->items);
+        }
+
+        if ($this->isEmpty()) {
+            return $this->newInstance();
         }
 
         $results = [];

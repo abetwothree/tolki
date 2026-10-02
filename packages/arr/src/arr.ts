@@ -3110,15 +3110,16 @@ function pickArrayKeysCount(requested: unknown): number {
  * Get and remove the first N items from the array, mutating it in place,
  * like PHP's array_shift.
  *
- * Guard order matters: negative count throws, an empty array returns null
- * for any count, a count of zero returns an empty array, then items shift.
+ * Guard order matters: a negative count throws, a count of zero returns an
+ * empty array, and an empty array returns null for a count of 1 and an empty
+ * array for any other; then items shift.
  *
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1281`.
  *      Mirrors `array_shift`-style removal from the front, driven by `$count`; mutates.
  *
  * @param data - The array to shift items from. Mutated in place.
  * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
- * @returns The shifted item(s), or null if the array had nothing to shift.
+ * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
  * @throws InvalidArgumentException if count is negative.
  * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  */
@@ -3138,20 +3139,19 @@ export function shift<TValue>(
         );
     }
 
-    // Collection::shift checks isEmpty() before the count, so non-array data yields null for any count.
+    if (count === 0) {
+        return [];
+    }
+
     // A prototype object is never written, and shifting renumbers its whole container, so it shifts nothing.
     if (!accessible(data) || isPrototypeObject(data)) {
-        return null;
+        return count === 1 ? null : [];
     }
 
     const values = data as TValue[];
 
     if (values.length === 0) {
-        return null;
-    }
-
-    if (count === 0) {
-        return [];
+        return count === 1 ? null : [];
     }
 
     if (count === 1) {

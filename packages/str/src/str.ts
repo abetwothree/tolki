@@ -5,6 +5,7 @@ import {
     isNumber,
     isString,
     isUndefined,
+    phpStringCast,
     toLower,
 } from "@tolki/utils";
 
@@ -482,9 +483,23 @@ export function doesntEndWith(
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#finish
  */
 export function finish(value: string, cap: string): string {
-    const quoted = cap.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Cast as PHP does: an untyped caller's number or Stringable has no length for the scan below to step by.
+    const subject = phpStringCast(value);
+    const ending = phpStringCast(cap);
 
-    return value.replace(new RegExp(`(?:${quoted})+$`, "u"), "") + cap;
+    // Every string ends with "", so an empty cap would never leave the loop below.
+    if (ending === "") {
+        return subject;
+    }
+
+    // Reads back from the end: (?:cap)+$ retries at every cap in the string, so a long run of caps is quadratic.
+    let end = subject.length;
+
+    while (subject.endsWith(ending, end)) {
+        end -= ending.length;
+    }
+
+    return `${subject.slice(0, end)}${ending}`;
 }
 
 /**
@@ -750,16 +765,17 @@ export function limit(
     }
 
     if (!preserveWords) {
-        return value.slice(0, limit).replace(/\s+$/, "") + end;
+        return value.slice(0, limit).trimEnd() + end;
     }
 
     value = stripTags(value)
         .replace(/[\n\r]+/g, " ")
         .trim();
 
-    const trimmed = value.slice(0, limit).replace(/\s+$/, "");
+    const trimmed = value.slice(0, limit).trimEnd();
 
-    if (value.substring(limit, limit + 1) === " ") {
+    // A cut with no whitespace has no word to cut back to, and the pattern below would retry from every character.
+    if (value.substring(limit, limit + 1) === " " || !/\s/.test(trimmed)) {
         return trimmed + end;
     }
 
@@ -2096,9 +2112,22 @@ export function reverse(value: string): string {
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#start
  */
 export function start(value: string, prefix: string): string {
-    const quoted = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Cast as PHP does: an untyped caller's number or Stringable has no length for the scan below to step by.
+    const subject = phpStringCast(value);
+    const opening = phpStringCast(prefix);
 
-    return prefix + value.replace(new RegExp(`^(?:${quoted})+`, "u"), "");
+    // Every string starts with "", so an empty prefix would never leave the loop below.
+    if (opening === "") {
+        return subject;
+    }
+
+    let from = 0;
+
+    while (subject.startsWith(opening, from)) {
+        from += opening.length;
+    }
+
+    return `${opening}${subject.slice(from)}`;
 }
 
 /**

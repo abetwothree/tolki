@@ -1,7 +1,7 @@
 {
     "meta": {
         "php": "8.5.9",
-        "laravel": "v13.33.0-21-g5841965e11"
+        "laravel": "v13.34.0-30-g023c99482c"
     },
     "probes": [
         {
@@ -58,7 +58,7 @@
         {
             "label": "shift(3) on empty",
             "php": "(new Collection([]))->shift(3)",
-            "value": null
+            "value": []
         },
         {
             "label": "shift(0) on non-empty",

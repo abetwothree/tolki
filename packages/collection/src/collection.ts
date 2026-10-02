@@ -1217,6 +1217,9 @@ export class Collection<
     /**
      * Collapse the collection of items into a single array while preserving its keys.
      *
+     * A collection item is merged through its items, as is any other class instance with an `all()` method; any
+     * other object that is no plain object is skipped.
+     *
      * @returns A new collection with collapsed items, a later item's key replacing an earlier one's: a list when every
      * item is a list
      *
@@ -1224,6 +1227,7 @@ export class Collection<
      *
      * new Collection([[1, 2], [3, 4]]).collapseWithKeys(); -> new Collection([3, 4])
      * new Collection([{a: 1}, {b: 2}]).collapseWithKeys(); -> new Collection({a: 1, b: 2})
+     * new Collection([new Collection({a: 1, b: 2}), {b: 3}]).collapseWithKeys(); -> new Collection({a: 1, b: 3})
      */
     collapseWithKeys(): Collection<
         CollapseValue<TValue>,
@@ -1237,16 +1241,20 @@ export class Collection<
 
         // Extract raw items from nested Collections and filter out non-arrays/objects
         const results = this.orderedValues().map((value) => {
-            // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
-            if (
-                !(value instanceof Collection) &&
-                !isArray(value) &&
-                !isPlainObject(value)
-            ) {
-                return null;
+            if (value instanceof Collection) {
+                return value;
             }
 
-            return value;
+            // An Enumerable merges through all() as collapse() reads one, while a plain object's all member is data.
+            const items =
+                !isPlainObject(value) &&
+                isObject(value) &&
+                isFunction(value["all"])
+                    ? value["all"]()
+                    : value;
+
+            // PHP merges only arrays, which a plain object models, so collapse() skips any other object too.
+            return isArray(items) || isPlainObject(items) ? items : null;
         });
 
         // Filter out nulls (non-arrays/objects that we skipped)
@@ -1944,8 +1952,8 @@ export class Collection<
      * Flatten a multi-dimensional collection into a single level.
      *
      * Laravel's flatten always returns an array-based collection, iterating over
-     * values and recursively flattening nested arrays. A nested collection's items
-     * are flattened too; any other object that isn't a plain object is kept whole.
+     * values and recursively flattening nested arrays. A nested collection's items are flattened too, as are those
+     * of any other class instance with an `all()` method; any other object that isn't a plain object is kept whole.
      *
      * @param depth - The depth to flatten to, defaults to Infinity
      * @returns A new collection with flattened items (always array-based); with a depth, an item may leave any value
@@ -4005,11 +4013,11 @@ export class Collection<
     /**
      * Get and remove the first N items from the collection.
      *
-     * Laravel checks for an empty collection before it reads the count, so one answers null whatever the count.
      * The receiver's variable keeps its declared type, removed keys included.
      *
      * @param count - The number of items to shift; a fraction is dropped, and NAN shifts every item
-     * @returns The first item for a count of 1; any other count gives a new collection of the shifted items
+     * @returns The first item, or null for an empty collection, for a count of 1; any other count gives a new
+     * collection of the shifted items
      * @throws InvalidArgumentException when the count is negative, even for an empty collection
      * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError
      *
@@ -4018,13 +4026,13 @@ export class Collection<
      * new Collection([1, 2, 3]).shift(); -> 1
      * new Collection({a: 1, b: 2, c: 3}).shift(); -> 1
      * new Collection([]).shift(); -> null
-     * new Collection([]).shift(2); -> null
+     * new Collection([]).shift(2); -> new Collection([])
      * new Collection([1, 2, 3]).shift(2); -> new Collection([1, 2])
      * new Collection({a: 1, b: 2, c: 3}).shift(2); -> new Collection([1, 2])
      * new Collection([1, 2, 3]).shift(0); -> new Collection([])
      */
     shift(): TValue | null;
-    shift<TCount extends number>(count: TCount): Taken<TValue, TCount> | null;
+    shift<TCount extends number>(count: TCount): Taken<TValue, TCount>;
     shift(count: number = 1): unknown {
         if (count < 0) {
             throw new InvalidArgumentException(
@@ -4032,12 +4040,14 @@ export class Collection<
             );
         }
 
-        if (this.isEmpty()) {
-            return null;
+        if (count === 0) {
+            return this.newInstance<TValue, number, "list">();
         }
 
-        if (count === 0) {
-            return this.newInstance<TValue, number, "list">(handOver([]));
+        if (this.isEmpty()) {
+            return count === 1
+                ? null
+                : this.newInstance<TValue, number, "list">();
         }
 
         const ordered = this.orderedEntries();
