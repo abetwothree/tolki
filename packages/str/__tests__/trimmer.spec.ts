@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 describe("Str/Trimmer", () => {
     describe("trim", () => {
         it("Laravel tests trim", () => {
+            // StrTest::testTrim. The empty charlist and the two multi-line inputs are also rows of
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-cases"
             expect(trim("   foo bar   ")).toBe("foo bar");
             expect(trim("foo bar   ")).toBe("foo bar");
             expect(trim("   foo bar")).toBe("foo bar");
@@ -114,6 +116,60 @@ describe("Str/Trimmer", () => {
             expect(trim("\u0085a\u0085")).toBe("a");
         });
 
+        it("trims exactly the characters Laravel's default trim removes", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "trim-default-characters"
+            const ranges = [
+                [0x0000, 0x0000],
+                [0x0009, 0x000d],
+                [0x0020, 0x0020],
+                [0x0085, 0x0085],
+                [0x00a0, 0x00a0],
+                [0x00ad, 0x00ad],
+                [0x034f, 0x034f],
+                [0x061c, 0x061c],
+                [0x115f, 0x1160],
+                [0x1680, 0x1680],
+                [0x17b4, 0x17b5],
+                [0x180e, 0x180e],
+                [0x2000, 0x200f],
+                [0x2028, 0x2029],
+                [0x202f, 0x202f],
+                [0x205f, 0x2065],
+                [0x206a, 0x206f],
+                [0x2800, 0x2800],
+                [0x3000, 0x3000],
+                [0x3164, 0x3164],
+                [0xfeff, 0xfeff],
+                [0xffa0, 0xffa0],
+                [0x1d159, 0x1d159],
+                [0x1d173, 0x1d17a],
+                [0xe0020, 0xe0020],
+            ] as const;
+            const removed = ranges.flatMap(([from, to]) =>
+                Array.from({ length: to - from + 1 }, (_, offset) =>
+                    String.fromCodePoint(from + offset),
+                ),
+            );
+
+            expect(removed).toHaveLength(65);
+
+            for (const char of removed) {
+                expect(trim(char)).toBe("");
+                expect(ltrim(char)).toBe("");
+                expect(rtrim(char)).toBe("");
+            }
+
+            // The nearest code points on either side of a range stay.
+            const kept = [
+                0x0008, 0x000e, 0x001f, 0x0021, 0x0084, 0x0086, 0x2010, 0x2027,
+                0x2066, 0x2069, 0x1d17b, 0xe0021,
+            ].map((codePoint) => String.fromCodePoint(codePoint));
+
+            for (const char of kept) {
+                expect(trim(char)).toBe(char);
+            }
+        });
+
         it("handles special regex characters in charlist", () => {
             expect(trim("...hello...", ".")).toBe("hello");
             expect(trim("***hello***", "*")).toBe("hello");
@@ -138,6 +194,8 @@ describe("Str/Trimmer", () => {
 
     describe("ltrim", () => {
         it("Laravel tests ltrim", () => {
+            // StrTest::testLtrim. The inputs that start and end with a default character are also rows of
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "ltrim-cases"
             expect(ltrim(" foo    bar ")).toBe("foo    bar ");
 
             expect(ltrim("   123    ")).toBe("123    ");

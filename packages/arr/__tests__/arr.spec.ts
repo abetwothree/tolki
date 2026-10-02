@@ -6065,6 +6065,7 @@ describe("Arr", () => {
 
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
             expect(Arr.shift(null, 2)).toEqual([]);
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
             expect(Arr.shift(null, 0)).toEqual([]);
 
             expect(Arr.shift(null)).toBeNull();

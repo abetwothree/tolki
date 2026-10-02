@@ -8104,8 +8104,16 @@ describe("Obj", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
             expect(Obj.shift(null, 2)).toEqual([]);
             expect(Obj.shift([], 2)).toEqual([]);
-            expect(Obj.shift(null, 0)).toEqual([]);
             expect(Obj.shift(null)).toBeNull();
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
+            expect(Obj.shift(null, 0)).toEqual([]);
+
+            // JS-only: a list is no object to Obj.shift, which leaves it as it is
+            const list = [1, 2];
+
+            expect(Obj.shift(list, 2)).toEqual([]);
+            expect(Obj.shift(list)).toBeNull();
+            expect(list).toEqual([1, 2]);
         });
 
         it("should remove and return first item", () => {
