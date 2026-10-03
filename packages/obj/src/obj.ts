@@ -6,6 +6,9 @@ import {
     getNestedValue,
     getObjectValue,
     hasMixed,
+    isArrayAccess,
+    isEnumerable,
+    readPluckKey,
     resolvePluckPath,
     setObjectValue,
     undotExpandObject,
@@ -14,8 +17,10 @@ import { finish, randomInt } from "@tolki/str";
 import type {
     ArrayableItems,
     CaseValue,
+    CollapsedObject,
     DeepMergeObjects,
     EnsureObject,
+    FlattenReach,
     FlipObject,
     IsBareObject,
     MapArrayKey,
@@ -43,6 +48,7 @@ import type {
     SetObjectPath,
     Simplify,
     SortSpec,
+    SpreadArgs,
     SpreadItems,
     SpreadObjects,
     TruthyObject,
@@ -51,15 +57,18 @@ import type {
 import {
     arrayableItems,
     arrayableValues,
+    arrayKeyExistsError,
     arrayValueMessage,
     compareValues,
     createSortSpecComparator,
     cssListItemToString,
     defineKey,
+    InvalidArgumentException,
     isArray,
     isBoolean,
     isFalsy,
     isFunction,
+    isIllegalOffset,
     isInteger,
     isIntegerLikeKey,
     isIterable,
@@ -74,8 +83,8 @@ import {
     isPlainObject,
     isPrototypeObject,
     isString,
-    isStringable,
     isSymbol,
+    isTruthyObject,
     isUndefined,
     isWeakMap,
     ItemNotFoundException,
@@ -84,12 +93,18 @@ import {
     MultipleItemsFoundException,
     operatorMatch,
     phpArrayKey,
+    phpComputedKey,
+    phpSortComparator,
+    phpStringCast,
     phpTypeName,
     phpValueMatch,
     phpValueMatcher,
     reindexIntegerKeys,
     renumberPhpIntegerKeys,
+    resolvePadLength,
     resolveSliceRange,
+    resolveSpliceRange,
+    resolveTakeCount,
     strictEqual,
     toPhpKeyString,
 } from "@tolki/utils";
@@ -124,6 +139,13 @@ type NonBooleanValue =
     | object
     | null
     | undefined;
+// AnyValueOr (containsStrict, skipUntil, skipWhile, takeUntil, takeWhile): every value, as `{} | null | undefined`;
+// a bare `unknown` would absorb the callback member that types an inline callback's parameters.
+type AnyValueOr<TCallback> =
+    | TCallback
+    | NonNullable<unknown>
+    | null
+    | undefined;
 // set returns its value for a null or undefined key, so a key that may be nullish adds V to its result.
 // NoInfer keeps V off the result's top level, where TypeScript would stop widening a literal value.
 type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
@@ -141,36 +163,6 @@ type NullishKeyValue<K, V> = [Extract<K, null | undefined>] extends [never]
  * which also reads a Map typed by a type parameter, then a `MapData<TMap>` row, which reads a union of Maps; then an
  * empty-result `NonKeyedItems` row and a `NonObjectItems` row, the widest result, for a union like `Map | string[]`.
  */
-
-// Mirrors mapSpread's runtime: a list spreads its items, an object its values, and anything else (a function
-// included, which isObject rejects) passes whole. An unknown or bare `object` row may be a list of any length.
-type MapSpreadItems<V> = unknown extends V
-    ? unknown[]
-    : V extends readonly unknown[]
-      ? V
-      : V extends (...args: never[]) => unknown
-        ? [V]
-        : V extends object
-          ? [keyof V] extends [never]
-              ? unknown[]
-              : ObjectValue<V>[]
-          : [V];
-// Same-length tuple rows zip into one tuple so a callback may leave off the key;
-// rows of differing or open length give `false`, because the key's position then varies by row.
-type SpreadZip<
-    S extends readonly unknown[],
-    A extends unknown[] = [],
-> = S["length"] extends A["length"]
-    ? A
-    : A["length"] extends S["length"]
-      ? false
-      : SpreadZip<S, [...A, S[A["length"]]]>;
-type SpreadArgs<V, K> =
-    MapSpreadItems<V> extends infer S extends readonly unknown[]
-        ? SpreadZip<S> extends infer Z extends unknown[]
-            ? [...Z, K]
-            : (S[number] | K)[]
-        : never;
 
 // A default value, or a closure that produces one, as the guard helpers accept.
 type Default<TDefault> = TDefault | (() => TDefault);
@@ -250,10 +242,18 @@ type MapWithKeysList<T extends readonly unknown[]> = number extends T["length"]
     : { [I in keyof T & `${number}`]: T[I] };
 // filter without a callback keeps a Map's non-falsy values, narrowed as TruthyObject narrows a record's per key.
 type TruthyValue<V> = Exclude<V, null | undefined | false | 0 | "">;
-// A symbol key is optional: keyBy stores one only when some row resolves to it.
-type KeyByResult<V, S extends symbol> = [S] extends [never]
-    ? Record<string, V>
-    : Record<string, V> & { [K in S]?: V };
+// keyBy stores each key as PHP stores an array key. A symbol stays one, optional: only some row may resolve to it.
+type KeyByResult<V, K> = [Extract<K, symbol>] extends [never]
+    ? Record<MapArrayKey<K>, V>
+    : [Exclude<K, symbol>] extends [never]
+      ? { [S in Extract<K, symbol>]?: V }
+      : Record<MapArrayKey<Exclude<K, symbol>>, V> & {
+            [S in Extract<K, symbol>]?: V;
+        };
+// A widened path may reach any value, or none (null), so its key is any string or number, or a symbol it can reach.
+type KeyByPath<V, P> = string extends P
+    ? string | number | Extract<ObjectPathValue<V>, symbol>
+    : PluckValue<V, P>;
 // prepend casts its key as PHP casts an array key: a float truncates toward zero, so 1.5 replaces key 1.
 // A float between -1 and 0 truncates to "-0", which names no literal type, so it stays on the wide-number row.
 type PrependKey<K extends string | number> = K extends number
@@ -283,89 +283,8 @@ type DotDepth = [never, 0, 1, 2, 3, 4];
 type PluckKey<TItem> =
     | string
     | readonly (string | number)[]
-    | ((item: TItem) => string | number);
+    | ((item: TItem) => unknown);
 
-// At a depth, flatten() pushes a nested value as it is or reads it through all() first; ObjectPathValue (get()'s
-// reach) can't stand in, because it drops undefined and never unwraps all().
-type FlattenReach<T, D extends number = 5> = [D] extends [never]
-    ? unknown
-    :
-          | T
-          | FlattenReachOf<
-                T extends { all: (...args: never[]) => infer R } ? R : T,
-                D
-            >;
-type FlattenReachOf<T, D extends number> = T extends readonly (infer E)[]
-    ? FlattenReach<E, FlattenDepth[D]>
-    : T extends NonObjectItems | Date | RegExp | Promise<unknown>
-      ? T
-      : T extends object
-        ? [keyof T] extends [never]
-            ? unknown
-            : FlattenReach<ObjectValue<T>, FlattenDepth[D]>
-        : T;
-type FlattenDepth = [never, 0, 1, 2, 3, 4];
-
-// collapse reads a Collection-like item through all(), as Arr::collapse unwraps a Collection.
-type CollapseItem<V> = V extends { all: (...args: never[]) => infer R } ? R : V;
-// The items whose own entries collapse copies; a Map, Set, Date, RegExp, Promise or scalar is skipped. The runtime
-// skips a class instance too, as PHP skips an object, but a type can't tell one from a plain object.
-type CollapseEntries<V> = Extract<
-    Exclude<V, NonObjectItems | Date | RegExp | Promise<unknown>>,
-    object
->;
-// An empty object fits Pick<I, K> only when K is optional in I; distributing checks each shape I may take.
-type CollapseRequired<I, K extends PropertyKey> = I extends unknown
-    ? Record<never, never> extends Pick<I, K & keyof I>
-        ? false
-        : true
-    : never;
-// A key is certain only when every shape I may take requires it; a Date, Map or scalar among them adds nothing.
-type CollapseAlwaysKeys<I> = [I] extends [CollapseEntries<I>]
-    ? {
-          [K in keyof I]-?: false extends CollapseRequired<I, K> ? never : K;
-      }[keyof I]
-    : never;
-// Only an item under a declared, required key of T is sure to be merged; an index signature may hold none.
-type CollapseGuaranteed<T> = {
-    [P in keyof T]-?: string extends P
-        ? never
-        : number extends P
-          ? never
-          : Record<never, never> extends Pick<T, P>
-            ? never
-            : CollapseAlwaysKeys<CollapseItem<T[P]>>;
-}[keyof T];
-// Object.entries skips symbol keys, so collapse never copies one.
-type CollapseKeys<U> = U extends unknown ? Exclude<keyof U, symbol> : never;
-// The last item holding a key wins it, and a union has no order, so the key may hold any of their values.
-type CollapseValue<U, K extends PropertyKey> = U extends unknown
-    ? K extends keyof U
-        ? Required<U>[K]
-        : never
-    : never;
-// A string index signature swallows the literal keys beside it, so that result holds any item's value at any key.
-type CollapseMerge<U, G> =
-    string extends CollapseKeys<U>
-        ? Record<string, CollapseAnyValue<U>>
-        : Simplify<
-              { [K in Extract<CollapseKeys<U>, G>]: CollapseValue<U, K> } & {
-                  [K in Exclude<CollapseKeys<U>, G>]?: CollapseValue<U, K>;
-              }
-          >;
-type CollapseAnyValue<U> = U extends unknown
-    ? Required<U>[CollapseKeys<U> & keyof U]
-    : never;
-type CollapseResult<T> = [
-    Extract<CollapseItem<ObjectValue<T>>, readonly unknown[]>,
-] extends [never]
-    ? ReindexedObject<
-          CollapseMerge<
-              CollapseEntries<CollapseItem<ObjectValue<T>>>,
-              CollapseGuaranteed<T>
-          >
-      >
-    : Record<string | number, unknown>;
 // crossJoin walks each dimension like PHP's foreach: a list's items, a Map's or other iterable's values, an object's
 // own values; a string or other scalar gives none.
 type ForeachValue<V> = unknown extends V
@@ -576,13 +495,13 @@ export function add<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The objct value.
- * @throws Error if the value is not an object.
+ * @throws InvalidArgumentException if the value is not an object.
  *
  * @example
  *
  * objectItem({ items: { a: 1 } }, 'items'); -> { a: 1 }
- * objectItem({ items: ['a', 'b'] }, 'items'); -> throws Error (a list is not an object)
- * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws Error
+ * objectItem({ items: ['a', 'b'] }, 'items'); -> throws InvalidArgumentException (a list is not an object)
+ * objectItem({ user: { name: 'John' } }, 'user.name'); -> throws InvalidArgumentException
  */
 export function objectItem(
     data: NonObjectItems,
@@ -616,7 +535,7 @@ export function objectItem<
 
     if (!isObject(value)) {
         const typeName = phpTypeName(value);
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be an object, ${typeName} found.`,
         );
     }
@@ -632,13 +551,13 @@ export function objectItem<
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The boolean value.
- * @throws Error if the value is not a boolean.
+ * @throws InvalidArgumentException if the value is not a boolean.
  *
  * @example
  *
  * boolean({ active: true }, 'active'); -> true
  * boolean({ user: { verified: false } }, 'user.verified'); -> false
- * boolean({ user: { name: 'John' } }, 'user.name'); -> throws Error
+ * boolean({ user: { name: 'John' } }, 'user.name'); -> throws InvalidArgumentException
  */
 export function boolean(
     data: unknown,
@@ -657,7 +576,7 @@ export function boolean<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isBoolean(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be a boolean, ${phpTypeName(value)} found.`,
         );
     }
@@ -811,7 +730,7 @@ export function chunkWhile<TValue, TKey>(
         value: TValue,
         key: MapArrayKey<TKey>,
         chunk: Record<string, TValue>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, TValue>>;
 export function chunkWhile<TMap>(
     data: MapData<TMap>,
@@ -819,7 +738,7 @@ export function chunkWhile<TMap>(
         value: MapEntryValue<TMap>,
         key: MapEntryKey<TMap>,
         chunk: Record<string, MapEntryValue<TMap>>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, MapEntryValue<TMap>>>;
 export function chunkWhile(
     data: NonKeyedItems,
@@ -827,7 +746,7 @@ export function chunkWhile(
         value: unknown,
         key: string | number,
         chunk: Record<string, unknown>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, never>;
 export function chunkWhile(
     data: NonObjectItems,
@@ -835,7 +754,7 @@ export function chunkWhile(
         value: unknown,
         key: string | number,
         chunk: Record<string, unknown>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, unknown>>;
 export function chunkWhile<T extends object>(
     data: T,
@@ -843,7 +762,7 @@ export function chunkWhile<T extends object>(
         value: ObjectValue<T>,
         key: ObjectKey<T>,
         chunk: Partial<T>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Partial<T>>;
 export function chunkWhile(
     data: unknown,
@@ -851,7 +770,7 @@ export function chunkWhile(
         value: unknown,
         key: string | number,
         chunk: Record<string, unknown>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<string, unknown>>;
 export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
@@ -859,7 +778,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
         value: TValue,
         key: TKey,
         chunk: Record<TKey, TValue>,
-    ) => boolean,
+    ) => unknown,
 ): Record<number, Record<TKey, TValue>> {
     const chunks: Record<number, Record<TKey, TValue>> = {};
 
@@ -874,7 +793,7 @@ export function chunkWhile<TValue, TKey extends PropertyKey = PropertyKey>(
     for (const [rawKey, value] of keyedEntries<TValue>(data)) {
         const key = phpArrayKey(rawKey) as TKey;
 
-        if (size > 0 && !callback(value, key, chunk)) {
+        if (size > 0 && isPhpFalsy(callback(value, key, chunk))) {
             chunks[chunkIndex] = chunk;
             chunkIndex += 1;
             chunk = {} as Record<TKey, TValue>;
@@ -984,9 +903,10 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Collapse an object of objects or lists into a single object, renumbering integer keys as `array_merge` does.
  *
- * A Map is merged in its insertion order. A Collection-like item unwraps through `all()`, and any other item that
- * isn't a plain object or a list (a `Date`, a `Map`, a class instance) is skipped. Declared types, pinned in
- * `obj-residuals.test-d.ts`, still copy a class instance's keys and leave an OPTIONAL `all?()` item unwrapped.
+ * A Map is merged in its insertion order. A Collection-like item, a class instance with an `all()` method, unwraps
+ * through it, while a plain object is merged as data whatever members it has; any other item that isn't a list (a
+ * `Date`, a `Map`, another class instance) is skipped. Declared types, pinned in `obj-residuals.test-d.ts`, still
+ * copy a class instance's keys and leave an OPTIONAL `all?()` item unwrapped.
  *
  * @param object - The object or Map of objects or lists to collapse.
  * @returns A new flattened object.
@@ -1001,18 +921,18 @@ export function chunkBy<TValue, TKey extends PropertyKey = PropertyKey>(
 // A list's items collapse the way an object's values do, so it comes before the rejects-first row.
 export function collapse<T extends readonly unknown[]>(
     data: T,
-): CollapseResult<Record<number, T[number]>>;
+): CollapsedObject<Record<number, T[number]>>;
 export function collapse<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-): CollapseResult<Record<string, TValue>>;
+): CollapsedObject<Record<string, TValue>>;
 export function collapse<TMap>(
     data: MapData<TMap>,
-): CollapseResult<Record<string, MapEntryValue<TMap>>>;
+): CollapsedObject<Record<string, MapEntryValue<TMap>>>;
 export function collapse(data: NonKeyedItems): Record<string, never>;
 export function collapse(
     data: NonObjectItems,
 ): Record<string | number, unknown>;
-export function collapse<T extends object>(data: T): CollapseResult<T>;
+export function collapse<T extends object>(data: T): CollapsedObject<T>;
 export function collapse(data: unknown): Record<string | number, unknown>;
 export function collapse<
     TValue extends Record<
@@ -1030,9 +950,10 @@ export function collapse<
     let nextIndex = 0;
 
     for (const [, group] of keyedEntries<TValue[keyof TValue]>(object)) {
-        // Arr::collapse merges a Collection item's items, never the Collection's own fields.
+        // Arr::collapse merges a Collection item's items, never the Collection's own fields; a plain
+        // object models a PHP array, so an `all` member on one is data.
         const item =
-            isObject(group) && isFunction(group["all"])
+            !isPlainObject(group) && isObject(group) && isFunction(group["all"])
                 ? group["all"]()
                 : group;
 
@@ -1609,36 +1530,36 @@ export function exists<TValue extends Record<PropertyKey, unknown>>(
  */
 export function first<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: ((value: TValue, key: MapArrayKey<TKey>) => boolean) | null,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TValue | TDefault;
 export function first<TMap, TDefault = null>(
     data: MapData<TMap>,
     callback?:
-        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean)
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown)
         | null,
     defaultValue?: Default<TDefault>,
 ): MapEntryValue<TMap> | TDefault;
 export function first<TDefault = null>(
     data: NonKeyedItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TDefault;
 export function first<TDefault = null>(
     data: NonObjectItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function first<T extends object, TDefault = null>(
     data: T,
     callback?:
-        | ((value: BareObjectValue<T>, key: BareObjectKey<T>) => boolean)
+        | ((value: BareObjectValue<T>, key: BareObjectKey<T>) => unknown)
         | null,
     defaultValue?: Default<TDefault>,
 ): BareObjectValue<T> | TDefault;
 export function first<TDefault = null>(
     data: unknown,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function first<
@@ -1647,7 +1568,7 @@ export function first<
     TFirstDefault = null,
 >(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | null,
     defaultValue?: TFirstDefault | (() => TFirstDefault),
 ): TValue | TFirstDefault | null {
     const resolveDefault = (): TFirstDefault | null => {
@@ -1676,7 +1597,7 @@ export function first<
     }
 
     for (const [key, value] of entries) {
-        if (callback(value, key)) {
+        if (!isPhpFalsy(callback(value, key))) {
             return value;
         }
     }
@@ -1704,34 +1625,34 @@ export function first<
  */
 export function last<TValue, TKey, TDefault = null>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: ((value: TValue, key: MapArrayKey<TKey>) => boolean) | null,
+    callback?: ((value: TValue, key: MapArrayKey<TKey>) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TValue | TDefault;
 export function last<TMap, TDefault = null>(
     data: MapData<TMap>,
     callback?:
-        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean)
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown)
         | null,
     defaultValue?: Default<TDefault>,
 ): MapEntryValue<TMap> | TDefault;
 export function last<TDefault = null>(
     data: NonKeyedItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): TDefault;
 export function last<TDefault = null>(
     data: NonObjectItems,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function last<T extends object, TDefault = null>(
     data: T,
-    callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean) | null,
+    callback?: ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): ObjectValue<T> | TDefault;
 export function last<TDefault = null>(
     data: unknown,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
     defaultValue?: Default<TDefault>,
 ): unknown;
 export function last<
@@ -1740,7 +1661,7 @@ export function last<
     TDefault = null,
 >(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean) | null,
+    callback?: ((value: TValue, key: TKey) => unknown) | null,
     defaultValue?: TDefault | (() => TDefault),
 ): TValue | TDefault | null {
     const resolveDefault = (): TDefault | null => {
@@ -1774,7 +1695,7 @@ export function last<
 
     for (let i = entries.length - 1; i >= 0; i--) {
         const [key, value] = entries[i] as [TKey, TValue];
-        if (callback(value, key)) {
+        if (!isPhpFalsy(callback(value, key))) {
             candidate = value;
             found = true;
             break;
@@ -1864,8 +1785,10 @@ export function take<TValue extends Record<PropertyKey, unknown>>(
  * Flatten a multi-dimensional object into a single-level array.
  *
  * Arrays, plain objects, a root Map's values (in its insertion order) and a Collection-like item's `all()` items are
- * flattened; any other object, a nested `Map`, `Date` or class instance included, is kept as a value. Declared types,
- * pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an OPTIONAL `all?()`.
+ * flattened, a Collection-like item being a class instance with an `all()` method: a plain object's `all` member is
+ * one of its values. Any other object, a nested `Map`, `Date` or class instance included, is kept as a value.
+ * Declared types, pinned in `obj-residuals.test-d.ts`, walk a class instance or typed array and do not unwrap an
+ * OPTIONAL `all?()`.
  *
  * @see Arr::flatten — `packages/arr/stubs/Arr.php:368`.
  *
@@ -1920,9 +1843,12 @@ export function flatten<TValue>(
             : keyedEntries(items as object).map(([, value]) => value);
 
         for (const value of values) {
-            // Arr::flatten flattens a Collection item's items, and only an array otherwise.
+            // Arr::flatten flattens a Collection item's items, and only an array otherwise; a plain
+            // object models a PHP array, so an `all` member on one is data.
             const item =
-                isObject(value) && isFunction(value["all"])
+                !isPlainObject(value) &&
+                isObject(value) &&
+                isFunction(value["all"])
                     ? value["all"]()
                     : value;
 
@@ -2088,13 +2014,13 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The float value.
- * @throws Error if the value is not a number.
+ * @throws InvalidArgumentException if the value is not a number.
  *
  * @example
  *
  * float({ price: 19.99, discount: 0.1 }, 'price'); -> 19.99
  * float({ product: { price: 19.99 } }, 'product.price'); -> 19.99
- * float({ product: { name: 'Widget' } }, 'product.name'); -> throws Error
+ * float({ product: { name: 'Widget' } }, 'product.name'); -> throws InvalidArgumentException
  */
 export function float(
     data: unknown,
@@ -2113,7 +2039,7 @@ export function float<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isNumber(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be a float, ${phpTypeName(value)} found.`,
         );
     }
@@ -2186,7 +2112,8 @@ export function forget<TValue extends Record<PropertyKey, unknown>>(
  * @remarks A Map's keys are cast as PHP casts an array key. The record lists out-of-sequence integer keys ascending,
  * so the helpers that walk a Map in its insertion order read the Map itself, not this record.
  *
- * @throws Error if items cannot be converted to an object.
+ * @throws InvalidArgumentException if items is a scalar value.
+ * @throws Error if items is a WeakMap, whose values JavaScript cannot enumerate.
  */
 export function from<V>(items: ReadonlyMap<unknown, V>): Record<string, V>;
 export function from<TMap>(
@@ -2244,7 +2171,9 @@ export function from(items: unknown): Record<string, unknown> {
         return { ...items };
     }
 
-    throw new Error("Items cannot be represented by a scalar value.");
+    throw new InvalidArgumentException(
+        "Items cannot be represented by a scalar value.",
+    );
 }
 
 /**
@@ -2507,38 +2436,38 @@ export function hasAny<TValue extends Record<PropertyKey, unknown>>(
  */
 export function every<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): boolean;
 export function every<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): boolean;
 export function every(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function every(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function every<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): boolean;
 export function every(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function every<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
     for (const [key, value] of entriesOf<TValue, TKey>(data)) {
-        if (!callback(value, key)) {
+        if (isPhpFalsy(callback(value, key))) {
             return false;
         }
     }
@@ -2564,38 +2493,38 @@ export function every<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function some<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): boolean;
 export function some<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): boolean;
 export function some(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function some(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function some<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): boolean;
 export function some(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function some<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): boolean {
     if (!accessible(data)) {
         return false;
     }
 
     for (const [key, value] of entriesOf<TValue, TKey>(data)) {
-        if (callback(value, key)) {
+        if (!isPhpFalsy(callback(value, key))) {
             return true;
         }
     }
@@ -2612,13 +2541,13 @@ export function some<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @returns The integer value.
  *
- * @throws Error if the value is not an integer.
+ * @throws InvalidArgumentException if the value is not an integer.
  *
  * @example
  *
  * integer({ age: 30, score: 100 }, 'age'); -> 30
  * integer({ user: { age: 30 } }, 'user.age'); -> 30
- * integer({ user: { name: 'John' } }, 'user.name'); -> Error: The value is not an integer.
+ * integer({ user: { name: 'John' } }, 'user.name'); -> throws InvalidArgumentException
  */
 export function integer(
     data: unknown,
@@ -2637,7 +2566,7 @@ export function integer<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isInteger(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be an integer, ${phpTypeName(value)} found.`,
         );
     }
@@ -2654,6 +2583,8 @@ export function integer<
  * @param  data - The object or Map to join.
  * @param  glue - The string to join all but the last item.
  * @param  finalGlue - The string to join the last item.
+ * @returns The items joined, each cast as PHP's (string) cast casts it: "Array" for an array, "1" for true.
+ * @throws Error `Object of class X could not be converted to string` for an object without its own toString.
  *
  * @example
  *
@@ -2677,7 +2608,9 @@ export function join(
         return "";
     }
 
-    const items = keyedEntries(data).map(([, value]) => String(value));
+    // implode() casts each piece and `.` the last one. Where PHP hands a lone item back uncast, join(), which answers
+    // a string, answers the string that item casts to.
+    const items = keyedEntries(data).map(([, value]) => phpStringCast(value));
 
     if (finalGlue === "") {
         return items.join(glue);
@@ -2715,24 +2648,37 @@ export function join(
  * keyBy({ a: { name: 'John' }, b: { name: 'Jane' } }, (item) => item.name); -> { John: { name: 'John' }, Jane: { name: 'Jane' } }
  * keyBy(new Map([[2, { id: 'x', n: 'c' }], [0, { id: 'x', n: 'a' }]]), 'id'); -> { x: { id: 'x', n: 'a' } }
  */
+// Each callback row comes before its path row: there a callback would also be inferred to the bare `P`, which then
+// falls back to the whole `PathKey`.
+export function keyBy<
+    TValue,
+    TKey,
+    R extends PropertyKey | boolean | null | undefined,
+>(
+    data: ReadonlyMap<TKey, TValue>,
+    keyBy: (item: TValue, key: MapArrayKey<TKey>) => R,
+): KeyByResult<TValue, R>;
 export function keyBy<
     TValue,
     TKey,
     R extends PropertyKey | boolean | null | undefined = never,
+    P extends PathKey = never,
 >(
     data: ReadonlyMap<TKey, TValue>,
-    keyBy: PathKey | ((item: TValue, key: MapArrayKey<TKey>) => R),
-): KeyByResult<TValue, Extract<R | ObjectPathValue<TValue>, symbol>>;
+    keyBy: P | ((item: TValue, key: MapArrayKey<TKey>) => R),
+): KeyByResult<TValue, R | KeyByPath<TValue, P>>;
+export function keyBy<TMap, R extends PropertyKey | boolean | null | undefined>(
+    data: MapData<TMap>,
+    keyBy: (item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R,
+): KeyByResult<MapEntryValue<TMap>, R>;
 export function keyBy<
     TMap,
     R extends PropertyKey | boolean | null | undefined = never,
+    P extends PathKey = never,
 >(
     data: MapData<TMap>,
-    keyBy: PathKey | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R),
-): KeyByResult<
-    MapEntryValue<TMap>,
-    Extract<R | ObjectPathValue<MapEntryValue<TMap>>, symbol>
->;
+    keyBy: P | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => R),
+): KeyByResult<MapEntryValue<TMap>, R | KeyByPath<MapEntryValue<TMap>, P>>;
 export function keyBy(
     data: NonKeyedItems,
     keyBy:
@@ -2755,14 +2701,19 @@ export function keyBy(
 // way PHP does.
 export function keyBy<
     T extends object,
-    R extends PropertyKey | boolean | null | undefined = never,
+    R extends PropertyKey | boolean | null | undefined,
 >(
     data: T,
-    keyBy: PathKey | ((item: BareObjectValue<T>, key: BareObjectKey<T>) => R),
-): KeyByResult<
-    BareObjectValue<T>,
-    Extract<R | ObjectPathValue<BareObjectValue<T>>, symbol>
->;
+    keyBy: (item: BareObjectValue<T>, key: BareObjectKey<T>) => R,
+): KeyByResult<BareObjectValue<T>, R>;
+export function keyBy<
+    T extends object,
+    R extends PropertyKey | boolean | null | undefined = never,
+    P extends PathKey = never,
+>(
+    data: T,
+    keyBy: P | ((item: BareObjectValue<T>, key: BareObjectKey<T>) => R),
+): KeyByResult<BareObjectValue<T>, R | KeyByPath<BareObjectValue<T>, P>>;
 export function keyBy(
     data: unknown,
     keyBy:
@@ -2920,9 +2871,9 @@ export function only<TValue, TKey extends PropertyKey = PropertyKey>(
         : isArray(keys)
           ? keys
           : [keys]) as readonly PathKey[] as PropertyKey[];
-    // A key names an entry the way a property key does, so 0 and "0" select the same one. A
-    // symbol is left out: String() would let it match a key spelled "Symbol(...)".
-    const wanted = new Set(keyList.filter((key) => !isSymbol(key)).map(String));
+    // A key names an entry the way a property key does, so 0 and "0" select the same one. array_flip skips any key
+    // but a string or an integer; a symbol, which String() would let match "Symbol(...)", is looked up below.
+    const wanted = new Set(keyList.filter(isPhpArrayKey).map(String));
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
         if (wanted.has(key)) {
@@ -3003,14 +2954,20 @@ export function onlyValues<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Select an object of values from each item in the object.
  *
+ * An item PHP reads as an array (a list, a plain object or a Map) gives its own keys, as PHP stores each. An
+ * ArrayAccess item answers through `offsetExists` and `offsetGet` first; a key they miss, like a key of any other
+ * object, gives only a property PHP's `isset` finds, so a null one is left out, and an Enumerable gives none.
+ *
  * @param data - The object to select from.
  * @param keys - The key or keys to select from each item.
  * @returns A new object with selected key/value pairs from each item.
+ * @throws TypeError for an array or object key over an item PHP reads as an array, as `array_key_exists` does.
  *
  * @example
  *
  * select({ user1: { a: 1, b: 2, c: 3 }, user2: { a: 4, b: 5, c: 6 } }, 'a'); -> { user1: { a: 1 }, user2: { a: 4 } }
  * select({ user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }, ['a', 'b']); -> { user1: { a: 1, b: 2 }, user2: { a: 3, b: 4 } }
+ * select({ row: [10, 20, 30] }, [0, 2]); -> { row: { 0: 10, 2: 30 } }
  */
 export function select(
     data: NonObjectItems,
@@ -3047,30 +3004,17 @@ export function select<TValue extends Record<PropertyKey, unknown>>(
     }
 
     const obj = data as Record<PropertyKey, TValue>;
+    // Arr::wrap makes a bare null no keys at all; a null among the keys is a key, which selectItem casts.
     const keyList = (
-        (isArray(keys) ? keys : [keys]) as readonly PathKey[]
-    ).filter(
-        (key: unknown) => !isNull(key) && !isUndefined(key),
-    ) as PropertyKey[];
+        isNull(keys) || isUndefined(keys) ? [] : isArray(keys) ? keys : [keys]
+    ) as readonly PathKey[];
     const result: Record<PropertyKey, Record<PropertyKey, unknown>> = {};
 
     for (const [objKey, item] of Object.entries(obj)) {
-        const selected: Record<PropertyKey, unknown> = {};
-
-        for (const key of keyList) {
-            if (isObject(item) && Object.hasOwn(item, key)) {
-                defineKey(
-                    selected as Record<string, unknown>,
-                    key as string,
-                    item[key],
-                );
-            }
-        }
-
         defineKey(
             result as Record<string, Record<PropertyKey, unknown>>,
             objKey,
-            selected,
+            selectItem(item, keyList),
         );
     }
 
@@ -3329,7 +3273,7 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
     key:
         | string
         | readonly string[]
-        | ((item: TValue) => string | number)
+        | ((item: TValue) => unknown)
         | null
         | unknown = null,
 ): unknown[] | Record<PropertyKey, unknown> {
@@ -3346,7 +3290,6 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [, item] of keyedEntries<TValue>(data)) {
         let itemValue: unknown;
-        let itemKey: string | number | undefined;
 
         // Get the value
         if (isFunction(valuePath)) {
@@ -3360,48 +3303,25 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
             );
         }
 
-        // Get the key if specified
-        if (!isNull(key) && !isUndefined(key)) {
-            if (isFunction(key)) {
-                itemKey = (key as (item: TValue) => string | number)(item);
-            } else {
-                const nestedKey = resolvePluckPath(
-                    item,
-                    explodePluckPath(key as string | readonly string[]),
-                );
-
-                if (
-                    typeof nestedKey === "string" ||
-                    typeof nestedKey === "number"
-                ) {
-                    itemKey = nestedKey;
-                } else if (typeof nestedKey === "boolean") {
-                    // PHP casts a boolean array key to int (true -> 1,
-                    // false -> 0), not to the string "true"/"false".
-                    itemKey = nestedKey ? 1 : 0;
-                } else if (!isNull(nestedKey)) {
-                    itemKey = String(nestedKey) as string;
-                }
-            }
-
-            // Convert objects with toString to string
-            if (!isUndefined(itemKey) && isStringable(itemKey)) {
-                itemKey = String(itemKey);
-            }
-        }
-
-        // Add to results
         if (isNull(key) || isUndefined(key)) {
             (results as unknown[]).push(itemValue);
-        } else {
-            // PHP casts a null array key to "" — a key path that resolves
-            // to null/undefined files the value under "", not "undefined".
-            defineKey(
-                results as Record<string, unknown>,
-                String(isUndefined(itemKey) ? "" : itemKey),
-                itemValue,
-            );
+
+            continue;
         }
+
+        const itemKey = isFunction(key)
+            ? (key as (item: TValue) => unknown)(item)
+            : resolvePluckPath(
+                  item,
+                  explodePluckPath(key as string | readonly string[]),
+              );
+
+        // Arr::pluck casts an object with __toString to its string before PHP casts the array key.
+        defineKey(
+            results as Record<string, unknown>,
+            phpComputedKey(itemKey, { stringables: true }),
+            itemValue,
+        );
     }
 
     return results;
@@ -3417,8 +3337,9 @@ export function pluck<TValue, TKey extends PropertyKey = PropertyKey>(
  *      Mirrors `array_pop`, called `$count` times from the end; mutates.
  *
  * @param data - The object or Map to pop items from. Mutated in place.
- * @param count - The number of items to pop. Defaults to 1.
+ * @param count - The number of items to pop. Defaults to 1; a fraction is dropped, and NAN pops every item.
  * @returns The popped item(s) or null/empty array if none.
+ * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -3453,7 +3374,16 @@ export function pop<TMap>(
 ): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
 export function pop(
     data: NonKeyedItems | null | undefined,
-    count?: number,
+    count?: 1 | undefined,
+): null;
+// A count typed `1 | 2` may be 1 when it runs, which answers null.
+export function pop<const N extends number>(
+    data: NonKeyedItems | null | undefined,
+    count: N,
+): number extends N ? null | never[] : N extends 1 ? null : never[];
+export function pop(
+    data: NonKeyedItems | null | undefined,
+    count: number | undefined,
 ): null | never[];
 export function pop(
     data: NonObjectItems | null | undefined,
@@ -3507,8 +3437,12 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
         return value;
     }
 
+    if (count < 1) {
+        return [];
+    }
+
     const poppedValues: TValue[] = [];
-    const actualCount = Math.min(count, entries.length);
+    const actualCount = resolveTakeCount(count, entries.length);
 
     for (let i = 0; i < actualCount; i++) {
         // Always defined: `i < actualCount <= entries.length`.
@@ -3524,8 +3458,7 @@ export function pop<TValue, TKey extends PropertyKey = PropertyKey>(
         poppedValues.push(value);
     }
 
-    // A count below 1 pops nothing, so it leaves a Map exactly as it was.
-    if (isMap(data) && actualCount > 0) {
+    if (isMap(data)) {
         rewriteEntries(data, entries.slice(0, entries.length - actualCount));
     }
 
@@ -3735,7 +3668,7 @@ export function mapWithKeys<
 }
 
 /**
- * Run a map over each row, spreading a list row (or an object row's values) as arguments, followed by the key.
+ * Run a map over each row, spreading a list row's items (or a plain object's or a Map's values), then the key.
  *
  * A Map is walked in its insertion order, so the callback sees its rows in PHP's order.
  *
@@ -3789,19 +3722,18 @@ export function mapSpread<
 
     const result: Record<PropertyKey, TMapSpreadValue> = {};
 
-    for (const [key, item] of keyedEntries<TValue>(data)) {
+    for (const [key, item] of keyedEntries<unknown>(data)) {
         // A Collection row carries its items behind all(): PHP's `...$chunk` walks the
-        // Traversable, where spreading the instance would hand over its own fields.
+        // Traversable, where spreading the instance would hand over its own fields. A plain
+        // object models a PHP array, so an `all` member on one is data.
         const row =
-            isObject(item) && isFunction(item["all"]) ? item["all"]() : item;
+            !isPlainObject(item) && isObject(item) && isFunction(item["all"])
+                ? item["all"]()
+                : item;
 
-        // Arr::mapSpread spreads a list row; a plain-object row spreads its values and a scalar
-        // passes whole, which PHP rejects but is kept as JS leniency.
-        const args = isArray(row)
-            ? row
-            : isObject(row)
-              ? Object.values(row)
-              : [row];
+        // PHP appends the key to the row: a null row becomes an array and a plain object or a Map stands for one, so
+        // wrap() holds each as its values; any other row, which PHP rejects, stays whole as JS leniency.
+        const args = isArray(row) ? row : values(wrap(row));
 
         defineKey(
             result as Record<string, TMapSpreadValue>,
@@ -4111,10 +4043,12 @@ export function query(data: unknown): string {
  * `Randomizer::pickArrayKeys` returns the picked keys in the array's order.
  *
  * @param data - The object or Map to get random values from.
- * @param number - The number of items to return. If null, returns a single item.
+ * @param number - The number of items to return, a fraction truncated. If null, returns a single item.
  * @param preserveKeys - Preserve original keys when returning multiple items. Defaults to `false` (Arr.php:971).
  * @returns A single random item, an object of random items, or null if object is empty.
- * @throws Error if more items are requested than available, even against an empty object (Arr.php:977).
+ * @throws InvalidArgumentException if more items are requested than available, even against an empty object.
+ * @throws TypeError for a NAN count or a string that is not numeric, which PHP's Randomizer rejects too.
+ * @throws Error for a count between 0 and 1, which truncates to no item, as PHP's Randomizer rejects it.
  *
  * @example
  *
@@ -4212,12 +4146,12 @@ export function random<T extends object>(
 ): BareObjectValue<T> | Partial<T> | Record<number, BareObjectValue<T>>;
 export function random(
     data: unknown,
-    number?: number | null,
+    number?: number | string | null,
     preserveKeys?: boolean,
 ): unknown;
 export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    number?: number | null,
+    number?: number | string | null,
     preserveKeys: boolean = false,
 ): TValue | Record<TKey, TValue> | null {
     if (!accessible(data)) {
@@ -4230,24 +4164,26 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
     const count = entries.length;
     const requested = isNull(number) || isUndefined(number) ? 1 : number;
 
-    if (requested > count) {
-        throw new Error(
-            `You requested ${requested} items, but there are only ${count} items available.`,
+    // PHP compares a count that is not numeric as a string, and orders NAN with nothing.
+    if (operatorMatch(requested, ">", count)) {
+        throw new InvalidArgumentException(
+            `You requested ${toPhpKeyString(requested)} items, but there are only ${count} items available.`,
         );
     }
 
-    // Reaching this point with `number` null/undefined would mean requested === 1
-    // survived the throw guard above (which requires count >= 1), so `number` is
-    // always provided here — Arr.php:983's empty-or-non-positive short-circuit yields [].
-    if (requested <= 0) {
+    // Arr::random's empty($array) guard answers before the count reaches pickArrayKeys, a NAN count included;
+    // a null count is 1 here, which the check above already threw for when the object is empty.
+    if (count === 0 || operatorMatch(requested, "<=", 0)) {
         return {} as Record<TKey, TValue>;
     }
+
+    const picks = pickArrayKeysCount(requested);
 
     // Generate random indices
     const selectedIndices: number[] = [];
     const availableIndices = Array.from({ length: count }, (_, i) => i);
 
-    for (let i = 0; i < requested; i++) {
+    for (let i = 0; i < picks; i++) {
         const randomIndex = randomInt(0, availableIndices.length - 1);
         selectedIndices.push(availableIndices[randomIndex] as number);
         availableIndices.splice(randomIndex, 1);
@@ -4284,6 +4220,34 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
 }
 
 /**
+ * The count Arr::random hands Randomizer::pickArrayKeys, cast as that int parameter casts it.
+ *
+ * @param requested - The count Arr::random was given, once its own checks have let it through
+ * @returns The count, a fraction truncated
+ * @throws TypeError for NAN or a string that is not numeric, which the int parameter rejects
+ * @throws Error for a count that truncates below 1, as PHP's ValueError
+ */
+function pickArrayKeysCount(requested: unknown): number {
+    if (
+        isString(requested) ? !isPhpNumeric(requested) : Number.isNaN(requested)
+    ) {
+        throw new TypeError(
+            `Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, ${isString(requested) ? "string" : "float"} given`,
+        );
+    }
+
+    const picks = Math.trunc(Number(requested));
+
+    if (picks < 1) {
+        throw new Error(
+            "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be between 1 and the number of elements in argument #1 ($array)",
+        );
+    }
+
+    return picks;
+}
+
+/**
  * Get and remove the first N items from the object, mutating it in place, like PHP's array_shift.
  *
  * Survivors' integer keys, negative ones included, are renumbered from 0, matching `array_shift`; string keys keep
@@ -4293,9 +4257,10 @@ export function random<TValue, TKey extends PropertyKey = PropertyKey>(
  * @see Collection::shift — `packages/collection/stubs/Collection.php:1281`. Mirrors `array_shift`; mutates.
  *
  * @param data - The object or Map to shift items from. Mutated in place.
- * @param count - The number of items to shift. Defaults to 1.
- * @returns The shifted item(s), or null if the object had nothing to shift.
- * @throws Error if count is negative.
+ * @param count - The number of items to shift. Defaults to 1; a fraction is dropped, and NAN shifts every item.
+ * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
+ * @throws InvalidArgumentException if count is negative.
+ * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -4309,7 +4274,7 @@ export function shift<TValue, TKey>(
 export function shift<TValue, TKey, const N extends number>(
     data: ReadonlyMap<TKey, TValue>,
     count: N,
-): number extends N ? TValue | TValue[] | null : TValue[] | null;
+): number extends N ? TValue | TValue[] | null : TValue[];
 export function shift<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
     count: number | undefined,
@@ -4323,15 +4288,24 @@ export function shift<TMap, const N extends number>(
     count: N,
 ): number extends N
     ? MapEntryValue<TMap> | MapEntryValue<TMap>[] | null
-    : MapEntryValue<TMap>[] | null;
+    : MapEntryValue<TMap>[];
 export function shift<TMap>(
     data: MapData<TMap>,
     count: number | undefined,
 ): MapEntryValue<TMap> | MapEntryValue<TMap>[] | null;
 export function shift(
     data: NonKeyedItems | null | undefined,
-    count?: number,
+    count?: 1 | undefined,
 ): null;
+// A count typed `1 | 2` may be 1 when it runs, which answers null.
+export function shift<const N extends number>(
+    data: NonKeyedItems | null | undefined,
+    count: N,
+): number extends N ? null | never[] : N extends 1 ? null : never[];
+export function shift(
+    data: NonKeyedItems | null | undefined,
+    count: number | undefined,
+): null | never[];
 export function shift(
     data: NonObjectItems | null | undefined,
     count?: number,
@@ -4345,7 +4319,7 @@ export function shift<T extends object, const N extends number>(
     count: N,
 ): number extends N
     ? ObjectValue<T> | ObjectValue<T>[] | null
-    : ObjectValue<T>[] | null;
+    : ObjectValue<T>[];
 // A forwarded `number | undefined` count fits neither row above, so this answers
 // the union of both rather than dropping to the `unknown` fallback.
 export function shift<T extends object>(
@@ -4358,26 +4332,27 @@ export function shift<TValue, TKey extends PropertyKey = PropertyKey>(
     count: number = 1,
 ): TValue | TValue[] | null {
     if (count < 0) {
-        throw new Error("Number of shifted items may not be less than zero.");
+        throw new InvalidArgumentException(
+            "Number of shifted items may not be less than zero.",
+        );
     }
 
-    // Collection::shift checks isEmpty() before the count, so non-object data yields null for any count.
+    if (count === 0) {
+        return [];
+    }
+
     // A prototype object is never written, and shift rewrites its whole container, so it shifts nothing.
     if (!accessible(data) || isPrototypeObject(data)) {
-        return null;
+        return count === 1 ? null : [];
     }
 
     const entries = keyedEntries<TValue>(data);
 
     if (entries.length === 0) {
-        return null;
+        return count === 1 ? null : [];
     }
 
-    const actualCount = count === 1 ? 1 : Math.min(count, entries.length);
-
-    if (actualCount === 0) {
-        return [];
-    }
+    const actualCount = resolveTakeCount(count, entries.length);
 
     const shiftedValues = entries
         .slice(0, actualCount)
@@ -4452,6 +4427,7 @@ export function set<TValue, TKey extends PropertyKey = PropertyKey>(
  * to the object itself under the next integer-like key, mirroring Arr::push.
  * @param values - The values to push.
  * @returns A new object with the values pushed in.
+ * @throws InvalidArgumentException if the value at the key is not an array.
  *
  * @example
  *
@@ -4536,7 +4512,7 @@ export function push<TValue, TKey extends PropertyKey = PropertyKey>(
         return setObjectValue(obj, key, [...values]) as Record<TKey, TValue>;
     }
 
-    throw new Error(arrayValueMessage(existingValue, key));
+    throw new InvalidArgumentException(arrayValueMessage(existingValue, key));
 }
 
 /**
@@ -4578,6 +4554,128 @@ export function shuffle<TValue, TKey extends PropertyKey = PropertyKey>(
     });
 
     return result as Record<TKey, TValue>;
+}
+
+/**
+ * Skip items in the object until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to skip items of.
+ * @param value - The value to skip until, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items from the first that meets the condition on, each under its own key.
+ *
+ * @example
+ *
+ * skipUntil({ a: 1, b: 2, c: 3 }, 2); -> { b: 2, c: 3 }
+ * skipUntil({ a: 1, b: 2, c: 3 }, (value, key) => key === 'b'); -> { b: 2, c: 3 }
+ * skipUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> { 0: 'a', 1: 'b' }
+ */
+export function skipUntil<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function skipUntil<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function skipUntil(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function skipUntil(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipUntil<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function skipUntil(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipUntil<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    const condition = conditionFor<TValue, TKey>(value);
+
+    return skipWhile(data, (item, key) =>
+        isPhpFalsy(condition(item as TValue, key as TKey)),
+    ) as Record<TKey, TValue>;
+}
+
+/**
+ * Skip items in the object while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to skip items of.
+ * @param value - The value to skip while items equal it, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items from the first that fails the condition on, each under its own key.
+ *
+ * @example
+ *
+ * skipWhile({ a: 1, b: 2, c: 1 }, 1); -> { b: 2, c: 1 }
+ * skipWhile({ a: 1, b: 2, c: 3 }, (value) => value < 3); -> { c: 3 }
+ * skipWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> { 0: 'a', 1: 'b' }
+ */
+export function skipWhile<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function skipWhile<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function skipWhile(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function skipWhile(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipWhile<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function skipWhile(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function skipWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const entries = keyedEntries<TValue>(data);
+    const condition = conditionFor<TValue, TKey>(value);
+    const start = entries.findIndex(([key, item]) =>
+        isPhpFalsy(condition(item, phpArrayKey(key) as TKey)),
+    );
+
+    return recordFrom(
+        entries.slice(start === -1 ? entries.length : start),
+    ) as Record<TKey, TValue>;
 }
 
 /**
@@ -4679,31 +4777,31 @@ export function slice<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function sole<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback?: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback?: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): TValue;
 export function sole<TMap>(
     data: MapData<TMap>,
-    callback?: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback?: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): MapEntryValue<TMap>;
 export function sole(
     data: NonKeyedItems,
-    callback?: (value: unknown, key: string | number) => boolean,
+    callback?: (value: unknown, key: string | number) => unknown,
 ): never;
 export function sole(
     data: NonObjectItems,
-    callback?: (value: unknown, key: string | number) => boolean,
+    callback?: (value: unknown, key: string | number) => unknown,
 ): unknown;
 export function sole<T extends object>(
     data: T,
-    callback?: (value: BareObjectValue<T>, key: BareObjectKey<T>) => boolean,
+    callback?: (value: BareObjectValue<T>, key: BareObjectKey<T>) => unknown,
 ): BareObjectValue<T>;
 export function sole(
     data: unknown,
-    callback?: (value: unknown, key: string | number) => boolean,
+    callback?: (value: unknown, key: string | number) => unknown,
 ): unknown;
 export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: (value: TValue, key: TKey) => boolean,
+    callback?: (value: TValue, key: TKey) => unknown,
 ): TValue {
     if (!accessible(data)) {
         throw new ItemNotFoundException();
@@ -4721,7 +4819,7 @@ export function sole<TValue, TKey extends PropertyKey = PropertyKey>(
         // Filter using the callback
         filteredEntries = [];
         for (const [key, value] of entries) {
-            if (callback(value, phpArrayKey(key) as TKey)) {
+            if (!isPhpFalsy(callback(value, phpArrayKey(key) as TKey))) {
                 filteredEntries.push([key, value]);
             }
         }
@@ -4830,17 +4928,20 @@ export function sort<TValue, TKey extends PropertyKey = PropertyKey>(
             (spec) => sortSpecComparator<TValue>(spec, false),
         );
 
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const comparison = comparator(a as TValue, b as TValue);
+        // Collection::sortByMany hands uasort() its closure's whole answer, a comparator's bool included.
+        entries.sort(
+            phpSortComparator(([, a], [, b]) => {
+                for (const comparator of comparators) {
+                    const comparison = comparator(a as TValue, b as TValue);
 
-                if (comparison !== 0) {
-                    return comparison;
+                    if (comparison !== 0) {
+                        return comparison;
+                    }
                 }
-            }
 
-            return 0;
-        });
+                return 0;
+            }),
+        );
     } else if (isFalsy(callback)) {
         // asort() on raw values: -1 sorts before 0, so falsiness must not
         // pre-empt the comparison. Same predicate and comparator as
@@ -4961,17 +5062,20 @@ export function sortDesc<TValue, TKey extends PropertyKey = PropertyKey>(
             (spec) => sortSpecComparator<TValue>(spec, true),
         );
 
-        entries.sort(([, a], [, b]) => {
-            for (const comparator of comparators) {
-                const comparison = comparator(a as TValue, b as TValue);
+        // Collection::sortByMany hands uasort() its closure's whole answer, a comparator's bool included.
+        entries.sort(
+            phpSortComparator(([, a], [, b]) => {
+                for (const comparator of comparators) {
+                    const comparison = comparator(a as TValue, b as TValue);
 
-                if (comparison !== 0) {
-                    return comparison;
+                    if (comparison !== 0) {
+                        return comparison;
+                    }
                 }
-            }
 
-            return 0;
-        });
+                return 0;
+            }),
+        );
     } else if (isFalsy(callback)) {
         // arsort() on raw values. Same predicate as Arr.sortDesc and as both
         // packages' sort, which is what keeps the four in agreement — PHP
@@ -5141,10 +5245,12 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
  * @see Collection::splice — `packages/collection/stubs/Collection.php:1768`. Wraps `array_splice`; mutates.
  *
  * @param data - The object or Map to splice. Mutated in place.
- * @param offset - The starting index, by entry order (not by key)
- * @param length - The number of entries to remove. Defaults to everything from offset to the end.
+ * @param offset - The starting index, by entry order (not by key); a fraction is dropped, as array_splice() drops it
+ * @param length - The number of entries to remove, a fraction dropped. Null or none removes everything from offset on.
  * @param replacement - Object(s) whose values are spliced in at offset, renumbered from 0
  * @returns The removed entries, as `array_splice` returns them: string keys kept, integer keys renumbered from 0.
+ * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
+ * refuses.
  *
  * @example
  *
@@ -5156,43 +5262,43 @@ export function sortRecursiveDesc<T extends Record<PropertyKey, unknown>>(
 export function splice<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, TValue>;
 export function splice<TMap>(
     data: MapData<TMap>,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, MapEntryValue<TMap>>;
 export function splice(
     data: NonKeyedItems | null | undefined,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, never>;
 export function splice(
     data: NonObjectItems | null | undefined,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, unknown>;
 export function splice<T extends object>(
     data: T,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Partial<ReindexedObject<T>>;
 export function splice(
     data: unknown,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: unknown[]
 ): Record<string, unknown>;
 export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     data: Record<TKey, TValue> | unknown,
     offset: number,
-    length?: number,
+    length?: number | null,
     ...replacement: TReplacements[]
 ): Record<TKey, TValue> {
     // A prototype object is never written, and splice rewrites its whole container, so it removes nothing.
@@ -5201,16 +5307,11 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
     }
 
     const entries = keyedEntries<TValue>(data);
-    const len = entries.length;
-
-    const start =
-        offset < 0 ? Math.max(len + offset, 0) : Math.min(offset, len);
-    // PHP's array_splice treats a negative length as counting back from the end.
-    const deleteCount = isUndefined(length)
-        ? len - start
-        : length < 0
-          ? Math.max(len + length - start, 0)
-          : length;
+    const { start, count: deleteCount } = resolveSpliceRange(
+        entries.length,
+        offset,
+        length,
+    );
 
     const beforeEntries = entries.slice(0, start);
     const removedEntries = entries.slice(start, start + deleteCount);
@@ -5251,6 +5352,128 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
 }
 
 /**
+ * Take items in the object until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to take items from.
+ * @param value - The value to take until, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items before the first that meets the condition, each under its own key.
+ *
+ * @example
+ *
+ * takeUntil({ a: 1, b: 2, c: 3 }, 3); -> { a: 1, b: 2 }
+ * takeUntil({ a: 1, b: 2, c: 3 }, (value, key) => key === 'c'); -> { a: 1, b: 2 }
+ * takeUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> { 2: 'c' }
+ */
+export function takeUntil<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function takeUntil<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function takeUntil(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function takeUntil(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeUntil<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function takeUntil(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeUntil<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    if (!accessible(data)) {
+        return {} as Record<TKey, TValue>;
+    }
+
+    const entries = keyedEntries<TValue>(data);
+    const condition = conditionFor<TValue, TKey>(value);
+    const end = entries.findIndex(
+        ([key, item]) => !isPhpFalsy(condition(item, phpArrayKey(key) as TKey)),
+    );
+
+    return recordFrom(
+        entries.slice(0, end === -1 ? entries.length : end),
+    ) as Record<TKey, TValue>;
+}
+
+/**
+ * Take items in the object while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The object or Map to take items from.
+ * @param value - The value to take while items equal it, or a callback answering whether an item meets the condition.
+ * @returns A new object of the items before the first that fails the condition, each under its own key.
+ *
+ * @example
+ *
+ * takeWhile({ a: 1, b: 1, c: 2, d: 1 }, 1); -> { a: 1, b: 1 }
+ * takeWhile({ a: 1, b: 2, c: 3 }, (value) => value < 3); -> { a: 1, b: 2 }
+ * takeWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> { 2: 'c' }
+ */
+export function takeWhile<TValue, TKey>(
+    data: ReadonlyMap<TKey, TValue>,
+    value:
+        | NoInfer<TValue>
+        | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
+): Record<string, TValue>;
+export function takeWhile<TMap>(
+    data: MapData<TMap>,
+    value:
+        | MapEntryValue<TMap>
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
+): Record<string, MapEntryValue<TMap>>;
+export function takeWhile(
+    data: NonKeyedItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, never>;
+export function takeWhile(
+    data: NonObjectItems,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeWhile<T extends object>(
+    data: T,
+    value:
+        | ObjectValue<T>
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
+): Partial<T>;
+export function takeWhile(
+    data: unknown,
+    value: AnyValueOr<(value: unknown, key: string | number) => unknown>,
+): Record<string, unknown>;
+export function takeWhile<TValue, TKey extends PropertyKey = PropertyKey>(
+    data: Record<TKey, TValue> | unknown,
+    value: TValue | ((value: TValue, key: TKey) => unknown),
+): Record<TKey, TValue> {
+    const condition = conditionFor<TValue, TKey>(value);
+
+    return takeUntil(data, (item, key) =>
+        isPhpFalsy(condition(item as TValue, key as TKey)),
+    ) as Record<TKey, TValue>;
+}
+
+/**
  * Get a string item from an object using "dot" notation.
  * Throws an error if the value is not a string.
  *
@@ -5258,13 +5481,13 @@ export function splice<TValue, TKey extends PropertyKey, TReplacements>(
  * @param key - The key or dot-notated path of the item to get.
  * @param defaultValue - The default value if key is not found.
  * @returns The string value.
- * @throws Error if the value is not a string.
+ * @throws InvalidArgumentException if the value is not a string.
  *
  * @example
  *
  * string({ name: 'John', age: 30 }, 'name'); -> 'John'
  * string({ user: { name: 'John' } }, 'user.name'); -> 'John'
- * string({ user: { age: 30 } }, 'user.age'); -> throws Error
+ * string({ user: { age: 30 } }, 'user.age'); -> throws InvalidArgumentException
  */
 export function string(
     data: unknown,
@@ -5283,7 +5506,7 @@ export function string<
     const value = getObjectValue(data, key, defaultValue);
 
     if (!isString(value)) {
-        throw new Error(
+        throw new InvalidArgumentException(
             `Object value for key [${key}] must be a string, ${phpTypeName(value)} found.`,
         );
     }
@@ -5391,31 +5614,31 @@ export function toCssStyles(data: unknown): string {
  */
 export function where<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): Record<string, TValue>;
 export function where<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): Record<string, MapEntryValue<TMap>>;
 export function where(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, never>;
 export function where(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function where<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): Partial<T>;
 export function where(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -5424,7 +5647,7 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
     const result: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
-        if (callback(value, phpArrayKey(key) as TKey)) {
+        if (!isPhpFalsy(callback(value, phpArrayKey(key) as TKey))) {
             defineKey(result as Record<string, TValue>, key, value);
         }
     }
@@ -5449,35 +5672,34 @@ export function where<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function reject<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): Record<string, TValue>;
 export function reject<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): Record<string, MapEntryValue<TMap>>;
 export function reject(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, never>;
 export function reject(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function reject<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): Partial<T>;
 export function reject(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): Record<string, unknown>;
 export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): Record<TKey, TValue> {
-    return where(
-        data,
-        (value, key) => !callback(value as TValue, key as TKey),
+    return where(data, (value, key) =>
+        isPhpFalsy(callback(value as TValue, key as TKey)),
     ) as Record<TKey, TValue>;
 }
 
@@ -5486,7 +5708,7 @@ export function reject<TValue, TKey extends PropertyKey = PropertyKey>(
  * `array_replace()` / `Collection::replace()`.
  *
  * Returns a new object rather than mutating `data`; a `null`/`undefined` replacer
- * is a no-op (`CollectionTest.php:1502`). Writes go through `defineKey` so a
+ * is a no-op (`CollectionTest.php:1515`). Writes go through `defineKey` so a
  * `__proto__` key on `replacerData` becomes a real own key (see `isUnsafeKey`,
  * AGENTS.md:189).
  *
@@ -5537,7 +5759,7 @@ export function replace<T1, T2>(
  * `array_replace_recursive()` / `Collection::replaceRecursive()`.
  *
  * Builds a new object at every recursion level rather than mutating `data`. A
- * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1544`). Only
+ * `null`/`undefined` replacer is a no-op (`CollectionTest.php:1557`). Only
  * `__proto__` is skipped on `replacerData` — the sole prototype-pollution hazard
  * (see `isUnsafeKey`, AGENTS.md:189); `constructor`/`prototype` write normally.
  *
@@ -5680,8 +5902,11 @@ export function reverse<TValue, TKey extends PropertyKey = PropertyKey>(
  *
  * @param data - The object or Map to pad.
  * @param size - The desired size of the object after padding. Positive to pad at the end, negative to pad at the beginning.
+ * A fraction is dropped.
  * @param value - The value to use for padding.
  * @returns A new padded object.
+ * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it.
+ * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError.
  *
  * @example
  *
@@ -5723,6 +5948,8 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     size: number,
     value: TPadValue,
 ): Record<TKey, TValue | TPadValue> {
+    const length = resolvePadLength(size);
+
     if (!accessible(data)) {
         return {} as Record<TKey, TValue | TPadValue>;
     }
@@ -5731,14 +5958,14 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     const currentLength = entries.length;
 
     // A spread cannot see a Map's entries, so a Map goes through `from` to become the record array_pad hands back.
-    if (Math.abs(size) <= currentLength) {
+    if (Math.abs(length) <= currentLength) {
         return (isMap(data) ? from(data) : { ...data }) as Record<
             TKey,
             TValue | TPadValue
         >;
     }
 
-    const padCount = Math.abs(size) - currentLength;
+    const padCount = Math.abs(length) - currentLength;
     const padEntries: [string, TPadValue][] = [];
 
     for (let i = 0; i < padCount; i++) {
@@ -5748,7 +5975,7 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
     }
 
     const orderedEntries: [string, TValue | TPadValue][] =
-        size > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
+        length > 0 ? [...entries, ...padEntries] : [...padEntries, ...entries];
 
     const result: Record<string, TValue | TPadValue> = {};
     for (const [key, val] of renumberPhpIntegerKeys(orderedEntries)) {
@@ -5775,31 +6002,31 @@ export function pad<TPadValue, TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function partition<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): [Record<string, TValue>, Record<string, TValue>];
 export function partition<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): [Record<string, MapEntryValue<TMap>>, Record<string, MapEntryValue<TMap>>];
 export function partition(
     data: NonKeyedItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, never>, Record<string, never>];
 export function partition(
     data: NonObjectItems,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, unknown>, Record<string, unknown>];
 export function partition<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): [Partial<T>, Partial<T>];
 export function partition(
     data: unknown,
-    callback: (value: unknown, key: string | number) => boolean,
+    callback: (value: unknown, key: string | number) => unknown,
 ): [Record<string, unknown>, Record<string, unknown>];
 export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<string, TValue> | unknown,
-    callback: (value: TValue, key: TKey) => boolean,
+    callback: (value: TValue, key: TKey) => unknown,
 ): [Record<string, TValue>, Record<string, TValue>] {
     if (!accessible(data)) {
         return [{}, {}];
@@ -5809,7 +6036,7 @@ export function partition<TValue, TKey extends PropertyKey = PropertyKey>(
     const failed: Record<TKey, TValue> = {} as Record<TKey, TValue>;
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
-        if (callback(value, phpArrayKey(key) as TKey)) {
+        if (!isPhpFalsy(callback(value, phpArrayKey(key) as TKey))) {
             defineKey(passed as Record<string, TValue>, key, value);
         } else {
             defineKey(failed as Record<string, TValue>, key, value);
@@ -5882,12 +6109,12 @@ export function whereNotNull<TValue, TKey extends PropertyKey = PropertyKey>(
  */
 export function contains<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    value: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    value: (value: TValue, key: MapArrayKey<TKey>) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains<TMap>(
     data: MapData<TMap>,
-    value: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    value: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains(
@@ -5902,7 +6129,7 @@ export function contains(
 ): boolean;
 export function contains(
     data: NonObjectItems,
-    value: (value: unknown, key: string | number) => boolean,
+    value: (value: unknown, key: string | number) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains(
@@ -5912,7 +6139,7 @@ export function contains(
 ): boolean;
 export function contains<T extends object>(
     data: T,
-    value: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    value: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
     strict?: boolean,
 ): boolean;
 export function contains(
@@ -5926,7 +6153,7 @@ export function contains(
 // the `=` arm ("r3-contains-boolean-value", "non-string-operator").
 export function contains<TValue>(
     data: unknown,
-    key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
+    key: PathKey | ((value: TValue, key: PropertyKey) => unknown),
     operator: unknown,
     value: unknown,
 ): boolean;
@@ -5935,12 +6162,12 @@ export function contains<TValue>(
 // takes it first, so PHP's `contains($key, $flag)` is written `contains(data, key, "=", flag)`.
 export function contains<TValue>(
     data: unknown,
-    key: PathKey | ((value: TValue, key: PropertyKey) => boolean),
+    key: PathKey | ((value: TValue, key: PropertyKey) => unknown),
     value: NonBooleanValue,
 ): boolean;
 export function contains<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
-    value: TValue | ((value: TValue, key: PropertyKey) => boolean),
+    value: TValue | ((value: TValue, key: PropertyKey) => unknown),
     ...rest: readonly unknown[]
 ): boolean {
     // PHP overloads on func_num_args(); this port's third parameter is `strict`, so the
@@ -5973,7 +6200,7 @@ export function contains<TValue>(
 
     if (isFunction(value)) {
         for (const [key, val] of entries) {
-            if (value(val, phpArrayKey(key))) {
+            if (!isPhpFalsy(value(val, phpArrayKey(key)))) {
                 return true;
             }
         }
@@ -6057,34 +6284,34 @@ function operatorPredicate<TValue>(
  */
 export function containsStrict<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    key: TValue | ((value: TValue, key: MapArrayKey<TKey>) => boolean),
+    key: TValue | ((value: TValue, key: MapArrayKey<TKey>) => unknown),
 ): boolean;
 export function containsStrict<TMap>(
     data: MapData<TMap>,
     key:
         | MapEntryValue<TMap>
-        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
 ): boolean;
 export function containsStrict(data: NonKeyedItems, key: unknown): boolean;
 export function containsStrict(
     data: NonObjectItems,
-    key: (value: unknown, key: string | number) => boolean,
+    key: (value: unknown, key: string | number) => unknown,
 ): boolean;
 export function containsStrict(data: NonObjectItems, key: unknown): boolean;
 export function containsStrict<T extends object>(
     data: T,
     key:
         | ObjectValue<T>
-        | ((value: ObjectValue<T>, key: ObjectKey<T>) => boolean),
+        | ((value: ObjectValue<T>, key: ObjectKey<T>) => unknown),
 ): boolean;
 export function containsStrict(
     data: unknown,
-    key: unknown,
+    key: AnyValueOr<(value: unknown, key: string | number) => unknown>,
     value?: unknown,
 ): boolean;
 export function containsStrict<TValue>(
     data: Record<PropertyKey, TValue> | unknown,
-    key: TValue | ((value: TValue, key: PropertyKey) => boolean),
+    key: TValue | ((value: TValue, key: PropertyKey) => unknown),
     value?: unknown,
 ): boolean {
     // PHP takes the two-argument form whenever a second argument is passed, a null one included.
@@ -6123,7 +6350,7 @@ export function filter<TValue, TKey>(
 ): Record<string, TruthyValue<TValue>>;
 export function filter<TValue, TKey>(
     data: ReadonlyMap<TKey, TValue>,
-    callback: (value: TValue, key: MapArrayKey<TKey>) => boolean,
+    callback: (value: TValue, key: MapArrayKey<TKey>) => unknown,
 ): Record<string, TValue>;
 export function filter<TMap>(
     data: MapData<TMap>,
@@ -6131,15 +6358,15 @@ export function filter<TMap>(
 ): Record<string, TruthyValue<MapEntryValue<TMap>>>;
 export function filter<TMap>(
     data: MapData<TMap>,
-    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean,
+    callback: (value: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown,
 ): Record<string, MapEntryValue<TMap>>;
 export function filter(
     data: NonKeyedItems | null | undefined,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, never>;
 export function filter(
     data: NonObjectItems | null | undefined,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, unknown>;
 export function filter<T extends object>(
     data: T,
@@ -6147,15 +6374,15 @@ export function filter<T extends object>(
 ): TruthyObject<T>;
 export function filter<T extends object>(
     data: T,
-    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => boolean,
+    callback: (value: ObjectValue<T>, key: ObjectKey<T>) => unknown,
 ): Partial<T>;
 export function filter(
     data: unknown,
-    callback?: ((value: unknown, key: string | number) => boolean) | null,
+    callback?: ((value: unknown, key: string | number) => unknown) | null,
 ): Record<string, unknown>;
 export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
     data: Record<TKey, TValue> | unknown,
-    callback?: ((value: TValue, key: TKey) => boolean | null) | unknown,
+    callback?: ((value: TValue, key: TKey) => unknown) | unknown,
 ): Record<TKey, TValue> {
     if (!accessible(data)) {
         return {} as Record<TKey, TValue>;
@@ -6165,11 +6392,11 @@ export function filter<TValue, TKey extends PropertyKey = PropertyKey>(
 
     for (const [key, value] of keyedEntries<TValue>(data)) {
         // If no callback, filter out PHP-falsy values by default
-        const shouldInclude = isFunction(callback)
+        const judged = isFunction(callback)
             ? callback(value, phpArrayKey(key) as TKey)
-            : !isPhpFalsy(value);
+            : value;
 
-        if (shouldInclude) {
+        if (!isPhpFalsy(judged)) {
             // Writes go through `defineKey` so a `__proto__` key in `data`
             // becomes a real own key instead of reparenting `result` through
             // the `__proto__` setter (see `isUnsafeKey`, AGENTS.md:189).
@@ -6910,4 +7137,98 @@ export function intersectByKeys<T1, T2 = T1>(
     }
 
     return result;
+}
+
+/**
+ * Select the given keys from one item, as `Arr::select` reads it.
+ *
+ * @param item - The item to select from
+ * @param keys - The keys to select
+ * @returns The selected keys the item holds, each with its value
+ */
+function selectItem(
+    item: unknown,
+    keys: readonly PathKey[],
+): Record<string, unknown> {
+    const selected: Record<string, unknown> = {};
+
+    if (!isTruthyObject(item)) {
+        return selected;
+    }
+
+    // An array's entries are its own keys, as PHP stores them; an object's are the properties isset() finds set.
+    // JS-only: an Enumerable gives none, as JS cannot tell a public property from state such as its items.
+    const entries = new Map(isEnumerable(item) ? [] : keyedEntries(item));
+    const readsArray = isPhpAccessible(item);
+
+    for (const key of keys) {
+        // array_key_exists throws for a key no array can hold, where isset() only finds no property named by it.
+        if (isIllegalOffset(key)) {
+            if (readsArray) {
+                throw arrayKeyExistsError();
+            }
+
+            // JS-only: an ArrayAccess item skips it too, where PHP hands it to the item's offsetExists or has().
+            continue;
+        }
+
+        // Arr::exists casts a null key to '', the key it then names.
+        const name = isNull(key) || isUndefined(key) ? "" : String(key);
+
+        // An ArrayAccess item answers through its offsets first, as Arr::exists asks it; only a miss reads a property.
+        if (isArrayAccess(item)) {
+            const [held, offsetValue] = readPluckKey(item, name);
+
+            if (held) {
+                defineKey(selected, name, offsetValue);
+
+                continue;
+            }
+        }
+
+        const value = entries.get(name);
+
+        if (
+            entries.has(name) &&
+            (readsArray || !(isNull(value) || isUndefined(value)))
+        ) {
+            defineKey(selected, name, value);
+        }
+    }
+
+    return selected;
+}
+
+/**
+ * Make the test skipUntil, skipWhile, takeUntil and takeWhile run, as LazyCollection builds it.
+ *
+ * @param value - A callback, used as it is, or the value an item must be identical to
+ * @returns The test each item is handed to, with its key
+ */
+function conditionFor<TValue, TKey>(
+    value: unknown,
+): (item: TValue, key: TKey) => unknown {
+    if (isFunction(value)) {
+        return value as (item: TValue, key: TKey) => unknown;
+    }
+
+    return (item) => strictEqual(item, value);
+}
+
+/**
+ * Build an object from key/value pairs, each an own key, `__proto__` included.
+ *
+ * @param entries - The pairs, in the order the object lists them
+ * @returns The object holding them
+ */
+function recordFrom<TValue>(
+    entries: readonly [string, TValue][],
+): Record<string, TValue> {
+    const record: Record<string, TValue> = {};
+
+    for (const [key, value] of entries) {
+        defineKey(record, key, value);
+    }
+
+    return record;
 }

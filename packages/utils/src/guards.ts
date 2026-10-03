@@ -55,6 +55,29 @@ export function isPlainObject(
 }
 
 /**
+ * Check if a value is an `@tolki/enum` case, the shape `from()` and `cases()` build.
+ *
+ * @param value - The value to check
+ * @returns True for a plain object with its own string `name` and its own string or number `value`
+ *
+ * @example
+ *
+ * isEnumCase({ value: 1, backed: true, name: "A" }); -> true
+ * isEnumCase({ value: 1 }); -> false
+ */
+export function isEnumCase(
+    value: unknown,
+): value is Record<"name" | "value", string | number> {
+    return (
+        isPlainObject(value) &&
+        Object.hasOwn(value, "name") &&
+        isString(value["name"]) &&
+        Object.hasOwn(value, "value") &&
+        (isString(value["value"]) || isNumber(value["value"]))
+    );
+}
+
+/**
  * Check if a value is any object (including arrays, null).
  *
  * @param value - The value to check
@@ -224,6 +247,28 @@ export function isInteger(value: unknown): value is number {
  */
 export function isFloat(value: unknown): value is number {
     return isNumber(value) && !Number.isInteger(value);
+}
+
+/**
+ * Check if a value is a number PHP holds as an int: an integer within its 64-bit range, and never -0.
+ *
+ * @param value - The value to check
+ * @returns True if PHP would hold the number as an int, false for a float PHP holds, such as 1.5, 1e19 or -0.0
+ *
+ * @example
+ *
+ * isPhpInt(2 ** 62); -> true
+ * isPhpInt(1e19); -> false
+ * isPhpInt(-0); -> false
+ */
+export function isPhpInt(value: unknown): value is number {
+    // PHP_INT_MAX (2^63 - 1) rounds up to 2^63 as a double, so the upper bound is exclusive; PHP has no integer -0.
+    return (
+        isInteger(value) &&
+        value >= -(2 ** 63) &&
+        value < 2 ** 63 &&
+        !Object.is(value, -0)
+    );
 }
 
 /**
@@ -501,8 +546,9 @@ export function isTruthy(value: unknown): boolean {
  * Determine whether a value is falsy the way PHP's `array_filter()` (no
  * callback) treats it — PHP's own truthiness, not JS's.
  *
- * Drops `false`, `null`/`undefined`, `0`, `""`, `"0"`, and an empty array or
- * plain object; keeps `"00"`, `"0.0"`, and `NaN` (all truthy in PHP).
+ * Drops `false`, `null`/`undefined`, `0`, `0n`, `""`, `"0"`, and an empty array,
+ * plain object, `Map` or `Set`; keeps `"00"`, `"0.0"`, `NaN` and every other
+ * object, however empty, as PHP keeps every object.
  *
  * @param value - The value to check
  * @returns True if the value is falsy under PHP's rules
@@ -511,6 +557,7 @@ export function isTruthy(value: unknown): boolean {
  *
  * isPhpFalsy("0"); -> true
  * isPhpFalsy("00"); -> false
+ * isPhpFalsy(new Date(0)); -> false
  */
 export function isPhpFalsy(value: unknown): boolean {
     if (
@@ -518,19 +565,24 @@ export function isPhpFalsy(value: unknown): boolean {
         value === null ||
         isUndefined(value) ||
         value === 0 ||
+        value === 0n ||
         value === "" ||
         value === "0"
     ) {
         return true;
     }
 
-    // Empty arrays are falsy in PHP
     if (isArray(value)) {
         return value.length === 0;
     }
 
-    // Empty objects are falsy in PHP
-    if (isObject(value)) {
+    // A Map or a Set stands in for a PHP array here, so only its entries decide.
+    if (isMap(value) || isSet(value)) {
+        return value.size === 0;
+    }
+
+    // Every PHP object is truthy; a plain object models an array, which is falsy when empty.
+    if (isPlainObject(value)) {
         return Object.keys(value).length === 0;
     }
 

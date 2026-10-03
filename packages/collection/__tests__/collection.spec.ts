@@ -1,34 +1,42 @@
 import * as Arr from "@tolki/arr";
-import { collect, Collection } from "@tolki/collection";
-import { SortDirection } from "@tolki/enum";
+import { collect, Collection, type CollectionShape } from "@tolki/collection";
+import { defineEnum, SortDirection } from "@tolki/enum";
 import { Stringable } from "@tolki/str";
+import type { DataItems } from "@tolki/types";
 import {
+    compareValues,
+    InvalidArgumentException,
+    isString,
     ItemNotFoundException,
     MultipleItemsFoundException,
+    UnexpectedValueException,
 } from "@tolki/utils";
-import { afterEach, assertType, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectShape } from "./helpers";
 import {
     TestArrayableObject,
     TestCollectionMapIntoObject,
+    TestIterableWithDifferentJsonSerializeObject,
     TestJsonableObject,
     TestJsonSerializeObject,
     TestJsonSerializeToStringObject,
     TestJsonSerializeWithScalarValueObject,
     TestTraversableAndJsonSerializableObject,
 } from "./test-classes";
+import { listOrRecord } from "./types/fixtures";
 
-// Case-insensitive string comparison (like PHP's strcasecmp)
-// Returns true if items are equal (should be excluded from diff)
-const strcasecmp = (a: unknown, b: unknown): boolean => {
-    if (typeof a === "string" && typeof b === "string") {
-        return a.toLowerCase() === b.toLowerCase();
+// PHP's strcasecmp(), the comparator the *Using tests pass: 0 for strings equal but for case, else -1 or 1.
+const strcasecmp = (a: unknown, b: unknown): number => {
+    const left = String(a).toLowerCase();
+    const right = String(b).toLowerCase();
+
+    if (left === right) {
+        return 0;
     }
-    return a === b;
-};
 
-const strcasecmpKeys = (a: unknown, b: unknown) =>
-    String(a).toLowerCase() === String(b).toLowerCase();
+    return left < right ? -1 : 1;
+};
 
 const strnatcasecmp = (a: unknown, b: unknown): number => {
     if (typeof a === "string" && typeof b === "string") {
@@ -42,102 +50,83 @@ const strrev = (s: string): string => {
     return s.split("").reverse().join("");
 };
 
+// Laravel's test fixture enums (Illuminate\Tests\Support\Fixtures), as @tolki/enum defines them.
+const TestEnum = defineEnum({ A: "A", backed: false, _cases: ["A"] } as const);
+const TestBackedEnum = defineEnum({
+    A: 1,
+    B: 2,
+    backed: true,
+    _cases: ["A", "B"],
+} as const);
+const TestStringBackedEnum = defineEnum({
+    A: "A",
+    B: "B",
+    backed: true,
+    _cases: ["A", "B"],
+} as const);
+const StaffEnum = defineEnum({
+    Taylor: "Taylor",
+    Joe: "Joe",
+    James: "James",
+    backed: false,
+    _cases: ["Taylor", "Joe", "James"],
+} as const);
+
+/** CollectionTest's ['foo' => 'bar', 1, 2, 3, 4, 5], whose leading string key only a Map expresses in JS. */
+const stringKeyFirst = () =>
+    collect(
+        new Map<string | number, string | number>([
+            ["foo", "bar"],
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [4, 5],
+        ]),
+    );
+
+/** PHP's [2 => 'c', 0 => 'a', 1 => 'b'], whose integer keys only a Map keeps out of order in JS. */
+const outOfOrderKeys = () =>
+    collect(
+        new Map([
+            [2, "c"],
+            [0, "a"],
+            [1, "b"],
+        ]),
+    );
+
+/** Stands in for LazyCollection, which is not ported: an Enumerable that is no Collection, read through all(). */
+const lazyLike = <TItems>(items: TItems): { all: () => TItems } =>
+    new (class {
+        all() {
+            return items;
+        }
+    })();
+
+/** A collection's three views, which a keyed result has to agree on. */
+const viewsOf = <
+    TValue,
+    TKey extends PropertyKey,
+    TShape extends CollectionShape,
+>(
+    collection: Collection<TValue, TKey, TShape>,
+) => ({
+    all: collection.all(),
+    keys: collection.keys().all(),
+    values: collection.values().all(),
+});
+
+/** The items a pop() or shift() answers for a count typed number, which any count but 1 answers as a collection. */
+const takenItems = (taken: unknown): unknown => {
+    expect(taken).toBeInstanceOf(Collection);
+
+    return taken instanceof Collection ? taken.all() : taken;
+};
+
 describe("Collection", () => {
-    describe("assert constructor types", () => {
-        it("arrays", () => {
-            const arrColl = collect([{ foo: 1 }, { try: 5 }]);
-
-            assertType<Collection<[{ foo: number }, { try: number }], number>>(
-                // @ts-expect-error - Collection infers union of element types, not tuple
-                arrColl,
-            );
-
-            const arr = new Collection([{ foo: 1 }, { try: 5 }]);
-
-            assertType<Collection<[{ foo: number }, { try: number }], number>>(
-                // @ts-expect-error - Collection infers union of element types, not tuple
-                arr,
-            );
-
-            const fromCollection = collect(arrColl);
-            assertType<Collection<[{ foo: number }, { try: number }], number>>(
-                // @ts-expect-error - Collection infers union of element types, not tuple
-                fromCollection,
-            );
-        });
-
-        it("objects", () => {
-            const objColl = collect({ foo: 1 });
-            // @ts-expect-error - collect({}) returns Collection<TValue, string> not Collection<{shape}, string>
-            assertType<Collection<{ foo: number }, string>>(objColl);
-
-            const obj = new Collection({ foo: 1 });
-            // @ts-expect-error - constructor infers Collection<number, "foo"> not Collection<{shape}, string>
-            assertType<Collection<{ foo: number }, string>>(obj);
-
-            const fromCollection = collect(objColl);
-            // @ts-expect-error - collect(collection) preserves original types
-            assertType<Collection<{ foo: number }, string>>(fromCollection);
-
-            const objColl2 = collect({ 1: "a", 2: "b" });
-            // @ts-expect-error - collect({}) returns Collection<string, string> not Collection<{shape}, string>
-            assertType<Collection<{ 1: string; 2: string }, string>>(objColl2);
-
-            const obj2 = new Collection({ 1: "a", 2: "b" });
-            // @ts-expect-error - constructor infers Collection<string, "1"|"2"> not Collection<{shape}, string>
-            assertType<Collection<{ 1: string; 2: string }, string>>(obj2);
-
-            const fromCollection2 = collect(objColl2);
-            assertType<Collection<{ 1: string; 2: string }, string>>(
-                // @ts-expect-error - collect(collection) preserves original types
-                fromCollection2,
-            );
-        });
-
-        it("arrayable", () => {
-            const arrayable = {
-                toArray: () => [4, 5, 6],
-            };
-            const collection = collect(arrayable);
-            // @ts-expect-error - Arrayable<number> gives Collection<number, number> not Collection<number[], number>
-            assertType<Collection<number[], number>>(collection);
-
-            const collection2 = new Collection(arrayable);
-            // @ts-expect-error - Arrayable<number> gives Collection<number, number> not Collection<number[], number>
-            assertType<Collection<number[], number>>(collection2);
-
-            const fromCollection = collect(collection);
-            // @ts-expect-error - preserves original types from source collection
-            assertType<Collection<number[], number>>(fromCollection);
-        });
-
-        it("null and undefined", () => {
-            const collection = collect(null);
-            assertType<Collection<[], number>>(collection);
-
-            const collection2 = new Collection(null);
-            // @ts-expect-error - constructor with null gives Collection<unknown, PropertyKey> not Collection<[], number>
-            assertType<Collection<[], number>>(collection2);
-
-            const fromCollection = collect(collection);
-            assertType<Collection<[], number>>(fromCollection);
-        });
-
-        it("map", () => {
-            const data = collect(
-                new Map([
-                    [3, { id: 1, name: "A" }],
-                    [5, { id: 3, name: "B" }],
-                    [4, { id: 2, name: "C" }],
-                ]),
-            );
-
-            assertType<Collection<{ id: number; name: string }, number>>(data);
-        });
-    });
-
     describe("constructor", () => {
         it("creates empty collection with no arguments", () => {
+            // CollectionTest::testConstructMethodFromNull
             const collection = collect();
             expect(collection.all()).toEqual([]);
         });
@@ -151,11 +140,13 @@ describe("Collection", () => {
         });
 
         it("creates collection from object", () => {
+            // CollectionTest::testConstructMethodFromArray
             const collection = collect({ a: 1, b: 2 });
             expect(collection.all()).toEqual({ a: 1, b: 2 });
         });
 
         it("creates collection from null or undefined values", () => {
+            // CollectionTest::testConstructMethodFromNull
             const collectionFromNull = collect(null);
             expect(collectionFromNull.all()).toEqual([]);
 
@@ -164,6 +155,7 @@ describe("Collection", () => {
         });
 
         it("creates a collection from another collection", () => {
+            // CollectionTest::testConstructMethodFromCollection
             const original = collect([1, 2, 3]);
             const collection = collect(original);
             expect(collection.all()).toEqual([1, 2, 3]);
@@ -203,6 +195,8 @@ describe("Collection", () => {
         });
 
         it("creates a collection from a primitive value (string, number, boolean)", () => {
+            // CollectionTest::testConstructMethod
+            // CollectionTest::testCollectionIsConstructed
             const stringCollection = collect("hello");
             expect(stringCollection.all()).toEqual(["hello"]);
 
@@ -211,6 +205,9 @@ describe("Collection", () => {
 
             const booleanCollection = collect(true);
             expect(booleanCollection.all()).toEqual([true]);
+
+            // CollectionTest::testCollectionFromEnum, whose unit case is its name here, so it wraps as a string does
+            expect(new Collection(TestEnum.A).toArray()).toEqual([TestEnum.A]);
         });
 
         it("creates a collection from a Map", () => {
@@ -221,6 +218,8 @@ describe("Collection", () => {
                     [4, { id: 2, name: "C" }],
                 ]),
             );
+
+            // JS-only: a Map stands in for a PHP array whose integer keys are out of order
             expect(data.all()).toEqual({
                 3: { id: 1, name: "A" },
                 5: { id: 3, name: "B" },
@@ -228,27 +227,271 @@ describe("Collection", () => {
             });
         });
 
-        it("constructor preserves itemsWithOrder when created from another Collection", () => {
-            // Create a collection via Map with numeric keys to set itemsWithOrder
-            const m = new Map<number, { v: string }>([
-                [2, { v: "b" }],
-                [1, { v: "a" }],
-                [3, { v: "c" }],
-            ]);
-            const base = new Collection(m);
-            // @ts-expect-error internal check
-            expect(Array.isArray(base.itemsWithOrder)).toBe(true);
+        it("keeps the insertion order of the Map-built collection it is built from", () => {
+            // JS-only: a Map stands in for a PHP array whose integer keys are out of order
+            const base = new Collection(
+                new Map([
+                    [2, { v: "b" }],
+                    [1, { v: "a" }],
+                    [3, { v: "c" }],
+                ]),
+            );
             const next = new Collection(base);
-            // Ensure itemsWithOrder was preserved by constructor branch
-            // @ts-expect-error internal check
-            expect(Array.isArray(next.itemsWithOrder)).toBe(true);
-            // And data preserved
-            expect(next.toJson()).toEqual(base.toJson());
+            const views = {
+                all: { 1: { v: "a" }, 2: { v: "b" }, 3: { v: "c" } },
+                keys: [2, 1, 3],
+                values: [{ v: "b" }, { v: "a" }, { v: "c" }],
+            };
+
+            expect(viewsOf(base)).toEqual(views);
+            expect(viewsOf(next)).toEqual(views);
+        });
+
+        it("wraps a falsy scalar, as PHP's Arr::wrap does", () => {
+            // CollectionTest::testCollectionIsConstructed
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-false"
+            expect(new Collection(false).all()).toEqual([false]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-zero"
+            expect(new Collection(0).all()).toEqual([0]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-empty-string"
+            expect(new Collection("").all()).toEqual([""]);
+        });
+
+        it("builds a list from a Set, as PHP builds one from a Traversable", () => {
+            // CollectionTest::testCollectionFromTraversable
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-traversable-list"
+            const collection = new Collection(new Set([1, 2, 3]));
+
+            expect(collection.all()).toEqual([1, 2, 3]);
+            expect(collection.toArray()).toEqual([1, 2, 3]);
+            expect(collection.count()).toBe(3);
+        });
+
+        it("builds a list from a generator", () => {
+            const generator = (function* () {
+                yield 1;
+                yield 2;
+            })();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-generator-list"
+            expect(new Collection(generator).all()).toEqual([1, 2]);
+        });
+
+        it("builds a keyed collection from a Map, as PHP builds one from a keyed Traversable", () => {
+            // CollectionTest::testCollectionFromTraversableWithKeys
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-traversable-keyed"
+            const collection = new Collection(
+                new Map([
+                    ["foo", 1],
+                    ["bar", 2],
+                    ["baz", 3],
+                ]),
+            );
+
+            expect(collection.toArray()).toEqual({ foo: 1, bar: 2, baz: 3 });
+            expect(collection.keys().all()).toEqual(["foo", "bar", "baz"]);
+            expect(collection.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("folds Map keys PHP stores as one into the first one's place, holding the last value", () => {
+            const views = (entries: [unknown, string][]) => {
+                const collection = new Collection(new Map(entries));
+
+                return {
+                    all: collection.all(),
+                    keys: collection.keys().all(),
+                    values: collection.values().all(),
+                    count: collection.count(),
+                };
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-colliding-keys"
+            expect(
+                views([
+                    [true, "a"],
+                    [1, "b"],
+                    [0, "z"],
+                ]),
+            ).toEqual({
+                all: { 1: "b", 0: "z" },
+                keys: [1, 0],
+                values: ["b", "z"],
+                count: 2,
+            });
+            expect(
+                views([
+                    [null, "n"],
+                    ["", "e"],
+                ]),
+            ).toEqual({
+                all: { "": "e" },
+                keys: [""],
+                values: ["e"],
+                count: 1,
+            });
+            expect(
+                views([
+                    [1.5, "f"],
+                    [1, "i"],
+                ]),
+            ).toEqual({ all: { 1: "i" }, keys: [1], values: ["i"], count: 1 });
+        });
+
+        it("reads a class instance's own fields as a record, as PHP casts an object", () => {
+            class Stub {
+                foo = "bar";
+            }
+
+            const collection = new Collection(new Stub());
+
+            // CollectionTest::testConstructMethodFromObject
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-stdclass"
+            expect(collection.all()).toStrictEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
+        });
+
+        it("decodes a Jsonable's toJson()", () => {
+            const collection = new Collection(new TestJsonableObject());
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonable"
+            expect(collection.all()).toEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
+        });
+
+        it("builds an empty collection from a Jsonable whose toJson() is not JSON", () => {
+            class NotJson {
+                toJson() {
+                    return "not-json";
+                }
+            }
+
+            // JS-only: PHP keeps json_decode's null as the items, which count() then rejects.
+            expect(new Collection(new NotJson()).all()).toEqual([]);
+        });
+
+        it("lets an error thrown by a Jsonable's toJson() propagate", () => {
+            const failure = new Error("toJson failed");
+
+            class ThrowingJson {
+                toJson(): string {
+                    throw failure;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonable-toJson-throws"
+            expect(() => new Collection(new ThrowingJson())).toThrow(failure);
+        });
+
+        it("reads a JsonSerializable's jsonSerialize()", () => {
+            const collection = new Collection(new TestJsonSerializeObject());
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable"
+            expect(collection.all()).toEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
+        });
+
+        it("wraps a JsonSerializable's scalar result", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable-scalar"
+            expect(
+                new Collection(
+                    new TestJsonSerializeWithScalarValueObject(),
+                ).all(),
+            ).toEqual(["foo"]);
+        });
+
+        it("keeps the keys an Arrayable's toArray() returns", () => {
+            const collection = new Collection(new TestArrayableObject());
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-arrayable-keyed"
+            expect(collection.all()).toEqual({ foo: "bar" });
+            expect(collection.keys().all()).toEqual(["foo"]);
+            expect(collection.values().all()).toEqual(["bar"]);
+        });
+
+        it("iterates a Traversable before serializing it, as PHP does", () => {
+            const items = new TestTraversableAndJsonSerializableObject({
+                a: 1,
+                b: 2,
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-construct-traversable-beats-jsonserializable"
+            // JS-only: iteration wins there too, but an iterator yields no keys, so the row's {a: 1, b: 2} is a list.
+            expect(new Collection(items).all()).toEqual([1, 2]);
+        });
+
+        it("iterates before serializing where the two give different items", () => {
+            // JS-only: PHP's fixture iterates and serializes to the same array; this one tells the two apart.
+            expect(
+                new Collection(
+                    new TestIterableWithDifferentJsonSerializeObject(),
+                ).all(),
+            ).toEqual(["iterated"]);
+        });
+
+        it("copies another collection's items, as PHP copies its array", () => {
+            const a = collect([1, 2]);
+            const b = new Collection(a);
+            b.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-collection-copies"
+            expect([a.all(), b.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("copies the caller's array, as PHP's array is a value", () => {
+            const items = [1, 2];
+            const collection = new Collection(items);
+            collection.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-copies"
+            expect([items, collection.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("copies the caller's object, as PHP's array is a value", () => {
+            const items = { a: 1 };
+            const collection = new Collection(items);
+            collection.put("b", 2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-record-put-copies"
+            expect([items, collection.all()]).toEqual([
+                { a: 1 },
+                { a: 1, b: 2 },
+            ]);
+            expect(collection.keys().all()).toEqual(["a", "b"]);
+            expect(collection.values().all()).toEqual([1, 2]);
+        });
+
+        it("keeps its items off its own properties, so an item named then makes no thenable", async () => {
+            const collection = collect({ then: () => {}, x: 1 });
+
+            // JS-only: items are read through offsetGet() and get(), never as properties, which await would call
+            expect(await collection).toBe(collection);
+        });
+
+        it("copies only the top level, so a nested array stays shared", () => {
+            const nested = [1];
+            const collection = collect([nested]);
+            nested.push(2);
+
+            // JS-only: nested arrays are shared; PHP copies them by value
+            expect(collection.all()).toEqual([[1, 2]]);
         });
     });
 
     describe("Symbol.iterator", () => {
         it("makes the collection iterable with for...of", () => {
+            // JS-only: for...of is JavaScript's counterpart of PHP's foreach
             const collection = collect([10, 20, 30]);
             const result: number[] = [];
             for (const item of collection) {
@@ -258,6 +501,7 @@ describe("Collection", () => {
         });
 
         it("makes the collection iterable with for...of for object items", () => {
+            // JS-only: for...of is JavaScript's counterpart of PHP's foreach
             const collection = collect({ a: 1, b: 2, c: 3 });
             const result: number[] = [];
             for (const item of collection) {
@@ -265,12 +509,68 @@ describe("Collection", () => {
             }
             expect(result).toEqual([1, 2, 3]);
         });
+
+        it("hands out getIterator()'s iterator, which is itself iterable", () => {
+            const collection = collect([1, 2]);
+            const getIterator = vi.spyOn(collection, "getIterator");
+
+            try {
+                const seen: number[] = [];
+
+                for (const value of collection) {
+                    seen.push(value);
+                }
+
+                // JS-only: for...of is JavaScript's foreach, and it reads the iterator getIterator() returns
+                expect(getIterator).toHaveBeenCalledOnce();
+                expect(seen).toEqual([1, 2]);
+                expect(Symbol.iterator in collection[Symbol.iterator]()).toBe(
+                    true,
+                );
+            } finally {
+                getIterator.mockRestore();
+            }
+        });
+
+        it("iterates a snapshot, as PHP's foreach does", () => {
+            const collection = collect([1, 2]);
+            const seen: number[] = [];
+
+            for (const value of collection) {
+                seen.push(value);
+
+                if (seen.length < 5) {
+                    collection.push(9);
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-iterator-is-a-snapshot"
+            expect([seen, collection.all()]).toEqual([
+                [1, 2],
+                [1, 2, 9, 9],
+            ]);
+        });
+
+        it.fails("iterates integer keys in the order PHP keeps them", () => {
+            const collection = collect(
+                new Map([
+                    [2, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // Ordered-backing gap: PHP's foreach walks the keys in insertion order, 2 before 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-iterate-integer-keys-out-of-order"
+            expect([...collection]).toEqual(["a", "b"]);
+        });
     });
 
     describe("test helper classes", () => {
         it("TestArrayableObject implements toArray", () => {
             const obj = new TestArrayableObject();
-            expect(obj.toArray()).toEqual([{ foo: "bar" }]);
+
+            // CollectionTest::testGetArrayableItems
+            expect(obj.toArray()).toEqual({ foo: "bar" });
         });
 
         it("TestJsonableObject implements toJson", () => {
@@ -315,15 +615,197 @@ describe("Collection", () => {
         });
     });
 
+    describe("expectShape", () => {
+        it("passes a backing of the shape named and fails one of the other shape", () => {
+            // JS-only: this suite's own shape pin; a list typed as a list or a record lets the wrong name compile
+            expectShape(collect(listOrRecord), "list");
+            expectShape(collect({ a: 1 }), "keyed");
+
+            expect(() => expectShape(collect(listOrRecord), "keyed")).toThrow();
+
+            // The constructor types an integer-keyed record as a list: the mismatch the pin exists to catch
+            expect(() =>
+                expectShape(new Collection({ 1: "a", 2: "b" }), "list"),
+            ).toThrow();
+        });
+    });
+
     describe("range", () => {
-        it("creates collection with range", () => {
-            const collection = Collection.range(1, 5);
-            expect(collection.all()).toEqual([1, 2, 3, 4, 5]);
+        it("throws range()'s ValueError past the maximum array size before it builds an item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-past-maximum-array-size"
+            expect(() => Collection.range(1, 1e19)).toThrow(
+                new Error(
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824",
+                ),
+            );
+        });
+
+        describe("Laravel Tests", () => {
+            it("test range method", () => {
+                // CollectionTest::testRangeMethod
+                expect(Collection.range(1, 5).all()).toEqual([1, 2, 3, 4, 5]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-ascending-through-zero"
+                expect(Collection.range(-2, 2).all()).toEqual([
+                    -2, -1, 0, 1, 2,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-ascending-negative"
+                expect(Collection.range(-4, -2).all()).toEqual([-4, -3, -2]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending"
+                expect(Collection.range(5, 1).all()).toEqual([5, 4, 3, 2, 1]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-through-zero"
+                expect(Collection.range(2, -2).all()).toEqual([
+                    2, 1, 0, -1, -2,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-negative"
+                expect(Collection.range(-2, -4).all()).toEqual([-2, -3, -4]);
+            });
         });
 
         it("creates collection with step", () => {
             const collection = Collection.range(1, 10, 2);
             expect(collection.all()).toEqual([1, 3, 5, 7, 9]);
+        });
+
+        it("counts down by the step's size, whatever its sign", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-step"
+            expect(Collection.range(10, 1, 3).all()).toEqual([10, 7, 4, 1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-negative-step-descending"
+            expect(Collection.range(5, 1, -2).all()).toEqual([5, 3, 1]);
+        });
+
+        it("holds the one item when both ends meet", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-single"
+            expect(Collection.range(3, 3).all()).toEqual([3]);
+        });
+
+        it("takes a step as long as the span, but no longer", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-step-equals-span"
+            expect(Collection.range(0, 10, 10).all()).toEqual([0, 10]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-step-exceeds-span-throws"
+            expect(() => Collection.range(1, 2, 3)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+                ),
+            );
+        });
+
+        it("computes each float item from the start rather than adding steps up", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-step"
+            expect(Collection.range(0, 1, 0.1).all()).toEqual([
+                0, 0.1, 0.2, 0.30000000000000004, 0.4, 0.5, 0.6000000000000001,
+                0.7000000000000001, 0.8, 0.9, 1,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-float-step"
+            expect(Collection.range(1, 0, 0.3).all()).toEqual([
+                1, 0.7, 0.4, 0.10000000000000009,
+            ]);
+        });
+
+        it("sizes a float range by rounding half up, then stops at the far end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-size-rounds-half-up"
+            expect(Collection.range(0.2, 0.5, 0.1).all()).toEqual([
+                0.2, 0.30000000000000004, 0.4, 0.5,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-float-step-stops-at-end"
+            expect(Collection.range(0, 1, 0.4).all()).toEqual([0, 0.4, 0.8]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-descending-float-stops-at-end"
+            expect(Collection.range(4, 1.5).all()).toEqual([4, 3, 2]);
+        });
+
+        it("rejects a zero step", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-step-zero-throws"
+            expect(() => Collection.range(1, 5, 0)).toThrow(
+                new Error("range(): Argument #3 ($step) cannot be 0"),
+            );
+        });
+
+        it("rejects a step that is not a finite number", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-non-finite-arguments-throw"
+            expect(() => Collection.range(1, 5, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(1, 5, Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(1, 5, -Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, INF provided",
+                ),
+            );
+        });
+
+        it("rejects a start or an end that is not a finite number", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-non-finite-arguments-throw"
+            expect(() => Collection.range(NaN, 5)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(0, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(Infinity, 5)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(-Infinity, 5)).toThrow(
+                new Error(
+                    "range(): Argument #1 ($start) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(0, Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+            expect(() => Collection.range(0, -Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+        });
+
+        it("checks the step before the start and the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-checks-the-step-first"
+            expect(() => Collection.range(NaN, NaN, NaN)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.range(NaN, 5, 0)).toThrow(
+                new Error("range(): Argument #3 ($step) cannot be 0"),
+            );
+        });
+
+        it("rejects a negative step on an increasing range", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-range-negative-step-increasing-throws"
+            expect(() => Collection.range(1, 5, -1)).toThrow(
+                new Error(
+                    "range(): Argument #3 ($step) must be greater than 0 for increasing ranges",
+                ),
+            );
+        });
+
+        it("builds the list its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.range(1, 3), "list");
         });
     });
 
@@ -338,6 +820,16 @@ describe("Collection", () => {
             const items = { a: 1, b: 2, c: 3 };
             const collection = collect(items);
             expect(collection.all()).toEqual(items);
+        });
+
+        it("returns the live items, where toArray() returns a copy", () => {
+            const collection = collect([1, 2]);
+            collection.all()[2] = 3;
+            collection.toArray()[3] = 4;
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-all-returns-a-copy"
+            // JS-only: all() returns the live backing; toArray() copies
+            expect(collection.all()).toEqual([1, 2, 3]);
         });
     });
 
@@ -359,9 +851,7 @@ describe("Collection", () => {
                 { value: 3, age: 30 },
                 { value: 2, age: 25 },
             ]);
-            // After sorting by JSON string representation, the order is:
-            // {"age":20,"value":1}, {"age":25,"value":2}, {"age":30,"value":3}
-            // So the median (middle item) is {"age":25,"value":2}
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-rows-without-key"
             expect(collection.median()).toEqual({
                 age: 25,
                 value: 2,
@@ -380,11 +870,60 @@ describe("Collection", () => {
             expect(collection.median(0)).toBe(3);
             expect(collection.median(1)).toBe(4);
         });
-        it("test when count is not % === 2", () => {
+        it("averages the two middle values of an even count", () => {
             const collection = collect([1, 2, 3, 4, 5, 6]);
             expect(collection.median()).toBe(3.5);
         });
+        it("sorts numeric strings as numbers, and answers an odd count's middle one as it is", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-numeric-strings"
+            expect([
+                collect(["10", "9", "8"]).median(),
+                collect(["10", "9"]).median(),
+            ]).toEqual(["9", 9.5]);
+        });
+        it.fails(
+            "sorts a tie in a Map-built collection's insertion order",
+            () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-out-of-order-tie"
+                // Ordered-backing gap: PHP's stable sort keeps the '5' under key 2 ahead of key 0's 5, in the middle
+                expect(
+                    collect(
+                        new Map<number, string | number>([
+                            [2, "5"],
+                            [0, 5],
+                            [1, 1],
+                        ]),
+                    ).median(),
+                ).toBe("5");
+            },
+        );
+        it("reads a key given as an array of path segments", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-array-key"
+            expect(
+                collect([
+                    { a: { b: 1 } },
+                    { a: { b: 9 } },
+                    { a: { b: 5 } },
+                ]).median(["a", "b"]),
+            ).toBe(5);
+        });
+        it("skips undefined as it skips null", () => {
+            // JS-only: undefined stands for a value PHP does not have, so it is skipped with null, as mode() skips it
+            expect([
+                collect([1, undefined, 3]).median(),
+                collect([1, undefined, 3, 5]).median(),
+            ]).toEqual([2, 3]);
+        });
+        it("throws PHP's TypeError when it averages two middle values that are not numbers", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-median-non-numeric-middle-values"
+            expect(() => collect(["b", "a"]).median()).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
+        });
         it("Laravel tests", () => {
+            // CollectionTest::testMedianValueWithArrayCollection, CollectionTest::testMedianValueByKey,
+            // CollectionTest::testMedianOnCollectionWithNull, CollectionTest::testEvenMedianCollection,
+            // CollectionTest::testMedianOutOfOrderCollection and CollectionTest::testMedianOnEmptyCollectionReturnsNull
             expect(collect([1, 2, 2, 4]).median()).toBe(2);
 
             expect(
@@ -417,6 +956,8 @@ describe("Collection", () => {
 
     describe("mode", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testModeOnNullCollection, CollectionTest::testMode, CollectionTest::testModeValueByKey
+            // and CollectionTest::testWithMultipleModeValues
             expect(collect().mode()).toBeNull();
 
             const data = collect([1, 2, 3, 4, 4, 5]);
@@ -461,6 +1002,7 @@ describe("Collection", () => {
             expect(result).toEqual(["apple"]);
         });
 
+        // CollectionTest::testModeOnCollectionWithNull and CollectionTest::testModeOnCollectionWithOnlyNullsReturnsNull
         it("skips null items", () => {
             // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-key-with-nulls", "mode-null-and-value",
             // "mode-only-nulls" and "mode-missing-key"
@@ -570,6 +1112,20 @@ describe("Collection", () => {
         });
 
         it("Laravel Tests", () => {
+            // CollectionTest::testCollapse, with class instances standing in for its stdClass items
+            class Item {}
+            const object1 = new Item();
+            const object2 = new Item();
+            const objects = collect([[object1], [object2]])
+                .collapse()
+                .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapse-nested-collections": its
+            // "objects" count
+            expect(objects).toEqual([object1, object2]);
+            expect(objects[0]).toBe(object1);
+            expect(objects[1]).toBe(object2);
+
             expect(collect([[], [], []]).collapse().all()).toEqual([]);
             expect(collect([{}, {}, {}]).collapse().all()).toEqual({});
 
@@ -603,6 +1159,22 @@ describe("Collection", () => {
             ).toEqual([1, 2, "foo", "bar"]);
         });
 
+        it("test collapse with nested collections", () => {
+            // CollectionTest::testCollapseWithNestedCollections
+            const data = collect([collect([1, 2, 3]), collect([4, 5, 6])]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapse-nested-collections"
+            expect(data.collapse().all()).toEqual([1, 2, 3, 4, 5, 6]);
+        });
+
+        it("test collapse with mixed collection types", () => {
+            // CollectionTest::testCollapseWithMixedCollectionTypes
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-mixed-collection-types"
+            const data = collect([collect([1, 2]), lazyLike([3, 4]), [5]]);
+
+            expect(data.collapse().all()).toEqual([1, 2, 3, 4, 5]);
+        });
+
         it("keeps list items beside an object item on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map"
             expect(
@@ -612,14 +1184,56 @@ describe("Collection", () => {
             ).toEqual({ 0: 1, 1: 2, 2: "z", x: 1 });
         });
 
-        it("merges a Collection-like item's items on an object backing", () => {
+        it("merges a Collection item's items on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-collection-item"
-            // A duck-typed item isn't a Collection instance, so it reaches obj.collapse's own unwrap.
-            expect(
-                collect({ a: { all: () => ({ x: 1 }) }, b: { y: 2 } })
-                    .collapse()
-                    .all(),
-            ).toEqual({ x: 1, y: 2 });
+            const result = collect({
+                a: collect({ x: 1 }),
+                b: { y: 2 },
+            }).collapse();
+
+            expect(result.all()).toEqual({ x: 1, y: 2 });
+            expect(result.keys().all()).toEqual(["x", "y"]);
+            expect(result.values().all()).toEqual([1, 2]);
+        });
+
+        it("collapses a record of lists into a list", () => {
+            const collapsed = collect({ a: [1, 2], b: [3] }).collapse();
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-assoc-of-lists"
+            expect(collapsed.all()).toEqual([1, 2, 3]);
+            expect(collapsed.keys().all()).toEqual([0, 1, 2]);
+            expect(collapsed.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("collapses a Map-built collection's items in the order it holds them", () => {
+            const collapsed = collect(
+                new Map([
+                    [2, ["c"]],
+                    [0, ["a"]],
+                    [1, ["b"]],
+                ]),
+            ).collapse();
+
+            // docs/php-parity/task-30-map-order.json, "collapse-out-of-order-lists"
+            expect(collapsed.all()).toEqual(["c", "a", "b"]);
+            expect(collapsed.keys().all()).toEqual([0, 1, 2]);
+            expect(collapsed.values().all()).toEqual(["c", "a", "b"]);
+        });
+
+        it("collapses a Map-built collection item's items in the order it holds them, into a list", () => {
+            const collapsed = collect([
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ),
+            ]).collapse();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapse-out-of-order-collection-item"
+            expect(collapsed.all()).toEqual(["c", "a"]);
+            expect(collapsed.keys().all()).toEqual([0, 1]);
+            expect(collapsed.values().all()).toEqual(["c", "a"]);
         });
 
         it("renumbers a negative integer key on an object backing", () => {
@@ -630,10 +1244,24 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ 0: "a", 1: "c", k: "b" });
         });
+
+        it("joins lists into a list and records into a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([[1], [2]]).collapse(), "list");
+            expectShape(collect({ a: [1], b: [2] }).collapse(), "list");
+            expectShape(
+                collect([collect([1]), collect([2])]).collapse(),
+                "list",
+            );
+            expectShape(collect([{ a: 1 }, { b: 2 }]).collapse(), "keyed");
+            // An empty collection gives a list, whatever its items would hold.
+            expectShape(collect<{ a: number }>([]).collapse(), "list");
+        });
     });
 
     describe("collapseWithKeys", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testCollapseWithKeys
             const data = collect([{ 1: "a" }, { 3: "c" }, { 2: "b" }, "drop"]);
             expect(data.collapseWithKeys().all()).toEqual({
                 1: "a",
@@ -644,6 +1272,7 @@ describe("Collection", () => {
             const data2 = collect(["a", "b", "c"]);
             expect(data2.collapseWithKeys().all()).toEqual([]);
 
+            // CollectionTest::testCollapseWithKeysOnNestedCollections
             const data3 = collect([
                 new Collection({ a: "1a", b: "1b" }),
                 new Collection({ b: "2b", c: "2c" }),
@@ -686,7 +1315,154 @@ describe("Collection", () => {
             expect(data3.collapseWithKeys().all()).toEqual([3, 4, 5, 6]);
         });
 
+        it("test collapse with keys with mixed collection types", () => {
+            // CollectionTest::testCollapseWithKeysWithMixedCollectionTypes
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-mixed-collection-types"
+            const collapsed = collect([
+                collect({ a: 1, b: 2 }),
+                lazyLike({ b: 3, c: 4 }),
+            ]).collapseWithKeys();
+
+            expect(collapsed.all()).toEqual({ a: 1, b: 3, c: 4 });
+            expect(collapsed.keys().all()).toEqual(["a", "b", "c"]);
+            expect(collapsed.values().all()).toEqual([1, 3, 4]);
+        });
+
+        it("merges an enumerable that is no collection through its all(), list or record", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-lazy-lists",
+            // "collapseWithKeys-lazy-only", "collapseWithKeys-lazy-then-array" and "collapseWithKeys-lazy-int-keys"
+            expect(
+                collect([lazyLike([1, 2]), [3]])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([3, 2]);
+            expect(
+                Object.entries(
+                    collect([lazyLike({ a: 1 }), lazyLike({ a: 2, b: 3 })])
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 2],
+                ["b", 3],
+            ]);
+            expect(
+                Object.entries(
+                    collect([lazyLike({ a: 1, b: 2 }), { b: 9 }])
+                        .collapseWithKeys()
+                        .all(),
+                ),
+            ).toEqual([
+                ["a", 1],
+                ["b", 9],
+            ]);
+            expect(
+                collect([{ 5: "a" }, lazyLike({ 5: "b", 6: "c" })])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ 5: "b", 6: "c" });
+        });
+
+        it("keeps a plain object item's all member as data, and skips an all() that answers no array", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-array-item-all-member-is-data"
+            const all = () => ({ z: 9 });
+            const kept = collect([{ all, b: 2 }]).collapseWithKeys();
+
+            expect(kept.all()).toEqual({ all, b: 2 });
+            expect(kept.keys().all()).toEqual(["all", "b"]);
+            // JS-only: PHP's all() always answers an array; any other answer is skipped, as collapse() skips it
+            expect(
+                collect([{ a: 1 }, lazyLike(new Map([["b", 2]])), lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ a: 1 });
+            expect(
+                collect([[1], lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([1]);
+            expect(
+                collect([[1], lazyLike("ab")])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([1]);
+            expect(
+                collect([lazyLike(7)])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual([]);
+        });
+
+        it("skips a null item, as it skips any item that is no array", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapseWithKeys-null-item"
+            expect(
+                collect([null, { a: 1 }])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ a: 1 });
+            expect(collect([null]).collapseWithKeys().all()).toEqual([]);
+            // JS-only: PHP has no undefined; this port skips it as it skips null
+            expect(
+                collect([undefined, { a: 1 }])
+                    .collapseWithKeys()
+                    .all(),
+            ).toEqual({ a: 1 });
+        });
+
+        it("skips an item that is an object but no plain object, as collapse does", () => {
+            const collapsed = collect([[1, 2], new Date(0)]).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-skips-object-item"
+            expect(collapsed.all()).toEqual([1, 2]);
+            expect(collapsed.keys().all()).toEqual([0, 1]);
+            expect(collapsed.values().all()).toEqual([1, 2]);
+        });
+
+        it("merges a Map-built collection's items in the order it holds them", () => {
+            const collapsed = collect(
+                new Map([
+                    [2, { c: 1 }],
+                    [0, { a: 1 }],
+                    [1, { b: 1 }],
+                ]),
+            ).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-out-of-order"
+            expect(collapsed.all()).toEqual({ c: 1, a: 1, b: 1 });
+            expect(collapsed.keys().all()).toEqual(["c", "a", "b"]);
+            expect(collapsed.values().all()).toEqual([1, 1, 1]);
+        });
+
+        it("merges a Map-built collection item's items in the order it holds them", () => {
+            const collapsed = collect([
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                ),
+            ]).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-collection-items"
+            expect(collapsed.all()).toEqual({ 2: "c", 0: "a" });
+            expect(collapsed.keys().all()).toEqual([2, 0]);
+            expect(collapsed.values().all()).toEqual(["c", "a"]);
+        });
+
+        it("replaces a collection item's list with a later list index by index", () => {
+            const collapsed = collect([
+                collect([1, 2]),
+                [3],
+            ]).collapseWithKeys();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-collection-items"
+            expect(collapsed.all()).toEqual([3, 2]);
+            expect(collapsed.keys().all()).toEqual([0, 1]);
+            expect(collapsed.values().all()).toEqual([3, 2]);
+        });
+
         it("collapses an outer collection with string keys", () => {
+            // CollectionTest::testCollapseWithKeysWithStringKeys
             // docs/php-parity/task-31-laravel-13-33-sync.json, "collapseWithKeys-string-keys",
             // "collapseWithKeys-mixed-keys" and "collapseWithKeys-string-keys-lists"
             expect(
@@ -746,10 +1522,23 @@ describe("Collection", () => {
                 ).toBeUndefined();
             });
         });
+
+        it("keeps lists a list and records a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([[1], [2]]).collapseWithKeys(), "list");
+            expectShape(collect({ a: [1], b: [2] }).collapseWithKeys(), "list");
+            expectShape(
+                collect([{ 0: "a" }, { 1: "b" }]).collapseWithKeys(),
+                "keyed",
+            );
+            // An empty collection gives a list, whatever its items would hold.
+            expectShape(collect<{ a: number }>([]).collapseWithKeys(), "list");
+        });
     });
 
     describe("contains", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContains and CollectionTest::testContainsWithOperator
             const c = new Collection([1, 3, 5]);
 
             expect(c.contains(1)).toBe(true);
@@ -757,9 +1546,9 @@ describe("Collection", () => {
             expect(c.contains(2)).toBe(false);
             expect(c.contains("2")).toBe(false);
 
-            const d = collect([1]);
-            expect(d.contains(1)).toBe(true);
+            const d = collect(["1"]);
             expect(d.contains("1")).toBe(true);
+            expect(d.contains(1)).toBe(true);
 
             const e = collect([null]);
             expect(e.contains(false)).toBe(true);
@@ -831,20 +1620,68 @@ describe("Collection", () => {
             expect(collection.contains((item) => item.id === 2)).toBe(true);
             expect(collection.contains((item) => item.id === 3)).toBe(false);
         });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(collect([{ a: null }, { a: 1 }]).contains("a", null)).toBe(
+                true,
+            );
+            expect(collect([{ a: 1 }]).contains("a", null)).toBe(false);
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 1 }]).contains("a", undefined),
+            ).toBe(true);
+            expect(collect([{ a: 1 }]).contains("a", undefined)).toBe(false);
+        });
+
+        it("compares a unit enum case as the name it is", () => {
+            const rows = collect([{ n: StaffEnum.Joe }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-contains-unit-enum-operand"
+            expect([
+                rows.contains("n", "Joe"),
+                rows.contains("n", StaffEnum.Joe),
+                rows.contains("n", "!=", "Joe"),
+            ]).toEqual([true, true, false]);
+        });
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().contains((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP calls the callback in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "contains-out-of-order-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("containsStrict", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContainsStrict
             const c = new Collection([1, 3, 5, "02"]);
             expect(c.containsStrict(1)).toBe(true);
             expect(c.containsStrict("1")).toBe(false);
             expect(c.containsStrict(2)).toBe(false);
             expect(c.containsStrict("2")).toBe(false);
             expect(c.containsStrict("02")).toBe(true);
-            // @ts-expect-error - operator < on string | number union
-            expect(c.containsStrict((item) => item < 5)).toBe(true);
-            // @ts-expect-error - operator > on string | number union
-            expect(c.containsStrict((item) => item > 5)).toBe(false);
+            expect(c.containsStrict(true)).toBe(false);
+            expect(c.containsStrict((item) => compareValues(item, 5) < 0)).toBe(
+                true,
+            );
+            expect(c.containsStrict((item) => compareValues(item, 5) > 0)).toBe(
+                false,
+            );
 
             const d = collect([0]);
             expect(d.containsStrict(0)).toBe(true);
@@ -879,6 +1716,7 @@ describe("Collection", () => {
         });
 
         it("counts a callback match holding null, as array_any does", () => {
+            // CollectionTest::testContainsStrict
             // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-list-null-callback",
             // "containsStrict-list-zero-callback" and "containsStrict-null-first-callback"
             const c = collect([1, null, 2]);
@@ -977,10 +1815,25 @@ describe("Collection", () => {
                 new Collection([{ x: 1, y: 2 }]).containsStrict({ y: 2, x: 1 }),
             ).toBe(false);
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).containsStrict("a", null),
+                collect([{ a: 1 }]).containsStrict("a", null),
+            ]).toEqual([true, false]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).containsStrict("a", undefined),
+                collect([{ a: 1 }]).containsStrict("a", undefined),
+            ]).toEqual([true, false]);
+        });
     });
 
     describe("doesntContain", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDoesntContain
             const c = collect([1, 3, 5]);
 
             expect(c.doesntContain(1)).toBe(false);
@@ -1033,20 +1886,38 @@ describe("Collection", () => {
 
             expect(j.doesntContain((item) => item === null)).toBe(false);
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContain("a", null),
+                collect([{ a: 1 }]).doesntContain("a", null),
+            ]).toEqual([false, true]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContain("a", undefined),
+                collect([{ a: 1 }]).doesntContain("a", undefined),
+            ]).toEqual([false, true]);
+        });
     });
 
     describe("doesntContainStrict", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDoesntContainStrict
             const c = collect([1, 3, 5, "02"]);
             expect(c.doesntContainStrict(1)).toBe(false);
             expect(c.doesntContainStrict("1")).toBe(true);
             expect(c.doesntContainStrict(2)).toBe(true);
             expect(c.doesntContainStrict("2")).toBe(true);
             expect(c.doesntContainStrict("02")).toBe(false);
-            // @ts-expect-error - operator < on string | number union
-            expect(c.doesntContainStrict((item) => item < 5)).toBe(false);
-            // @ts-expect-error - operator > on string | number union
-            expect(c.doesntContainStrict((item) => item > 5)).toBe(true);
+            expect(c.doesntContainStrict(true)).toBe(true);
+            expect(
+                c.doesntContainStrict((item) => compareValues(item, 5) < 0),
+            ).toBe(false);
+            expect(
+                c.doesntContainStrict((item) => compareValues(item, 5) > 0),
+            ).toBe(true);
 
             const d = collect([0]);
             expect(d.doesntContainStrict(0)).toBe(false);
@@ -1083,10 +1954,37 @@ describe("Collection", () => {
                 ),
             ).toBe(false);
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContainStrict("a", null),
+                collect([{ a: 1 }]).doesntContainStrict("a", null),
+            ]).toEqual([false, true]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).doesntContainStrict(
+                    "a",
+                    undefined,
+                ),
+                collect([{ a: 1 }]).doesntContainStrict("a", undefined),
+            ]).toEqual([false, true]);
+        });
+
+        it("reads the key alone once a third argument follows, as PHP's containsStrict() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-doesntContainStrict-three-args"
+            expect([
+                collect([{ v: 1 }]).doesntContainStrict("v", 1),
+                collect([{ v: 1 }]).doesntContainStrict("v", "=", 1),
+                collect(["v"]).doesntContainStrict("v", "=", 1),
+            ]).toEqual([false, true, false]);
+        });
     });
 
     describe("crossJoin", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testCrossJoin
             expect(collect([1, 2]).crossJoin(["a", "b"]).all()).toEqual([
                 [1, "a"],
                 [1, "b"],
@@ -1166,10 +2064,63 @@ describe("Collection", () => {
                 [2, 4],
             ]);
         });
+
+        it("crosses nothing with a null operand, and a scalar one as a single value", () => {
+            const collection = collect([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-crossJoin-null-and-scalar-operands"
+            expect(collection.crossJoin(null).all()).toEqual([]);
+            // A scalar is outside crossJoin()'s operand types; PHP's runtime casts it to an array holding it
+            expect(
+                Reflect.apply(collection.crossJoin, collection, ["x"]).all(),
+            ).toEqual([
+                [1, "x"],
+                [2, "x"],
+            ]);
+        });
+
+        it.fails(
+            "walks a Map-built receiver in the order it holds its keys",
+            () => {
+                // Ordered-backing gap: PHP walks the receiver in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect(outOfOrderKeys().crossJoin(["x"]).all()).toEqual([
+                    ["c", "x"],
+                    ["a", "x"],
+                    ["b", "x"],
+                ]);
+            },
+        );
+
+        it.fails(
+            "walks a Map-built operand in the order it holds its keys",
+            () => {
+                const operand = collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP walks the operand in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-operand-out-of-order"
+                expect(collect([1]).crossJoin(operand).all()).toEqual([
+                    [1, "c"],
+                    [1, "a"],
+                ]);
+            },
+        );
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).crossJoin(["a"]), "list");
+            expectShape(collect({ a: 1, b: 2 }).crossJoin(["x"]), "list");
+        });
     });
 
     describe("diff", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffCollection
             const c = collect({ id: 1, first_word: "Hello" });
             expect(
                 c
@@ -1177,6 +2128,7 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ id: 1 });
 
+            // CollectionTest::testDiffUsingWithCollection
             const d = collect(["en_GB", "fr", "HR"]);
             expect(
                 d
@@ -1185,6 +2137,7 @@ describe("Collection", () => {
                     .toArray(),
             ).toEqual(["en_GB", "fr", "HR"]);
 
+            // CollectionTest::testDiffNull
             const e = collect({ id: 1, first_word: "Hello" });
             expect(e.diff(null).all()).toEqual({ id: 1, first_word: "Hello" });
         });
@@ -1217,13 +2170,43 @@ describe("Collection", () => {
                 a: 10,
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diff(["a"]);
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["b"] };
+            const result = collect(["a", "b"]).diff(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value": PHP's all member casts to 'zzz', since array_diff
+            // cannot cast a Closure, and a function matches by identity here, so neither matches an item
+            expect(result.all()).toEqual(["a", "b"]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diff([2]), "list");
+            expectShape(collect({ a: 1, b: 2 }).diff([2]), "keyed");
+        });
     });
 
     describe("diffUsing", () => {
         it("Laravel Tests", () => {
             const d = collect(["en_GB", "fr", "HR"]);
 
-            // Test case-insensitive diff: 'en_GB' matches 'en_gb', 'HR' matches 'hr', only 'fr' remains
+            // CollectionTest::testDiffUsingWithCollection
             expect(
                 d
                     .diffUsing(collect(["en_gb", "hr"]), strcasecmp)
@@ -1231,42 +2214,147 @@ describe("Collection", () => {
                     .toArray(),
             ).toEqual(["fr"]);
 
-            // Test diff against empty collection: all items should remain
+            // CollectionTest::testDiffUsingWithNull
             expect(d.diffUsing(null, strcasecmp).values().toArray()).toEqual([
                 "en_GB",
                 "fr",
                 "HR",
             ]);
         });
+
+        it("renumbers a list's survivors", () => {
+            const diffed = collect(["a", "b", "c"]).diffUsing(
+                ["a"],
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffUsing-list-keeps-keys"
+            // PHP keeps the gap ({1: "b", 2: "c"}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(diffed.all()).toEqual(["b", "c"]);
+            expect(diffed.keys().all()).toEqual([0, 1]);
+            expect(diffed.values().all()).toEqual(["b", "c"]);
+        });
+
+        it("reads a comparator's 0 as equal, as PHP's <=> answers", () => {
+            const diffed = collect([1, 2, 3]).diffUsing([2], (a, b) =>
+                Math.sign(a - b),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffUsing-spaceship-comparator"
+            // PHP keeps the gap ({0: 1, 2: 3}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(diffed.all()).toEqual([1, 3]);
+            expect(diffed.keys().all()).toEqual([0, 1]);
+            expect(diffed.values().all()).toEqual([1, 3]);
+        });
+
+        it("drops a fraction from a comparator's answer, as PHP's int cast does", () => {
+            const diffed = (answer: number) =>
+                collect([1, 2, 3])
+                    .diffUsing([2], () => answer)
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-fractional-comparator"
+            expect(diffed(0.5)).toEqual([]);
+            expect(diffed(-0.99)).toEqual([]);
+            expect(diffed(1.5)).toEqual([1, 2, 3]);
+        });
+
+        it("reads a NAN or infinite comparator answer as equal, as PHP's int cast makes it 0", () => {
+            const diffed = (answer: number) =>
+                collect([1, 2, 3])
+                    .diffUsing([2], () => answer)
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-non-finite-comparator"
+            expect(diffed(NaN)).toEqual([]);
+            expect(diffed(Infinity)).toEqual([]);
+            expect(diffed(-Infinity)).toEqual([]);
+        });
+
+        it("casts a comparator answer past PHP's int range to its low 64 bits, so 2**64 means equal", () => {
+            const byTimes = (times: number) => (a: number, b: number) =>
+                Math.sign(a - b) * times;
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-comparator-past-int-range"
+            expect(
+                collect([1, 2, 3])
+                    .diffUsing([2], byTimes(2 ** 64))
+                    .values()
+                    .all(),
+            ).toEqual([]);
+            expect(
+                collect([1, 2, 3])
+                    .intersectUsing([2], byTimes(2 ** 64))
+                    .values()
+                    .all(),
+            ).toEqual([1, 2, 3]);
+            expect(
+                collect([1, 2, 3]).diffUsing([2], byTimes(1e19)).values().all(),
+            ).toEqual([1, 3]);
+        });
+
+        it("keeps a record's keys", () => {
+            const diffed = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+            }).diffUsing({ A: "GREEN", 0: "yellow" }, strcasecmp);
+
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using"
+            expect(diffed.all()).toEqual({ b: "brown", c: "blue" });
+            expect(diffed.keys().all()).toEqual(["b", "c"]);
+            expect(diffed.values().all()).toEqual(["brown", "blue"]);
+        });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffUsing(["A"], strcasecmp);
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diffUsing([2], strcasecmp), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).diffUsing([2], strcasecmp),
+                "keyed",
+            );
+        });
     });
 
     describe("diffAssoc", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffAssoc
             const c1 = collect({
                 id: 1,
                 first_word: "Hello",
                 not_affected: "value",
             });
-            const c2 = { id: 123, foo_bar: "Hello", not_affected: "value" };
+            const c2 = collect({
+                id: 123,
+                foo_bar: "Hello",
+                not_affected: "value",
+            });
 
-            // diffAssoc compares BOTH keys AND values
-            // 'id' has same key but different value (1 vs 123) → included
-            // 'first_word' has different key from 'foo_bar' → included
-            // 'not_affected' has same key AND same value → excluded
+            // Only not_affected holds the same key and the same value on both sides.
             expect(c1.diffAssoc(c2).all()).toEqual({
                 id: 1,
                 first_word: "Hello",
             });
 
-            // Test case-sensitive key comparison
+            // CollectionTest::testDiffAssocUsing
             const c3 = collect({ a: "green", b: "brown", c: "blue", 0: "red" });
             const c4 = collect({ A: "green", 0: "yellow", 1: "red" });
 
-            // diffAssoc is case-sensitive for keys:
-            // 'a' !== 'A', so 'a: green' is included
-            // 'b' doesn't exist in c4, so 'b: brown' is included
-            // 'c' doesn't exist in c4, so 'c: blue' is included
-            // index 0 has different value ('red' vs 'yellow'), so '0: red' is included
+            // Keys match case-sensitively, so only index 0 pairs up, and its values differ.
             expect(c3.diffAssoc(c4).all()).toEqual({
                 a: "green",
                 b: "brown",
@@ -1274,13 +2362,8 @@ describe("Collection", () => {
                 0: "red",
             });
 
-            // diffAssocUsing uses callback for KEY comparison (case-insensitive), values compared strictly
-            // Expected: { b: "brown", c: "blue", 0: "red" }
-            // 'a' matches 'A' case-insensitively with same value → excluded
-            // 'b' has no case-insensitive match → included
-            // 'c' has no case-insensitive match → included
-            // index 0 exists in both BUT different value ('red' vs 'yellow') → included
-            expect(c3.diffAssocUsing(c4, strcasecmpKeys).all()).toEqual({
+            // strcasecmp pairs a with A, whose values match, and 0 with 0, whose values differ.
+            expect(c3.diffAssocUsing(c4, strcasecmp).all()).toEqual({
                 b: "brown",
                 c: "blue",
                 0: "red",
@@ -1305,54 +2388,157 @@ describe("Collection", () => {
         // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
             expect(
-                new Collection({ a: 0 }).diffAssoc({ a: "0" } as never).all(),
+                new Collection({ a: 0 }).diffAssoc({ a: "0" }).all(),
             ).toEqual({});
         });
 
-        it("unwraps a Collection-like operand when matching keys and values", () => {
-            // The preceding case shares no key+value pair with its operand either wrapped
-            // or raw, so this key-matching case is what actually pins the unwrap.
+        it("reads a Collection operand's items when matching keys and values", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-collection-matching-key"
-            expect(
-                collect({ id: 1, name: "a" })
-                    .diffAssoc({ all: () => ({ id: 1, name: "b" }) } as never)
-                    .all(),
-            ).toEqual({ name: "a" });
+            const result = collect({ id: 1, name: "a" }).diffAssoc(
+                collect({ id: 1, name: "b" }),
+            );
+
+            expect(result.all()).toEqual({ name: "a" });
+            expect(result.keys().all()).toEqual(["name"]);
+            expect(result.values().all()).toEqual(["a"]);
         });
 
-        it("unwraps a Collection-like operand for diffAssocUsing", () => {
+        it("reads a Collection operand's items for diffAssocUsing", () => {
+            const diffed = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            }).diffAssocUsing(
+                collect({ A: "green", 0: "yellow", 1: "red" }),
+                strcasecmp,
+            );
+
+            // CollectionTest::testDiffAssocUsing
             // docs/php-parity/task-23-obj-release-readiness.json, "C8 diffAssocUsing strcasecmp"
-            expect(
-                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
-                    .diffAssocUsing(
-                        {
-                            all: () => ({ A: "green", 0: "yellow", 1: "red" }),
-                        } as never,
-                        strcasecmpKeys,
-                    )
-                    .all(),
-            ).toEqual({ b: "brown", c: "blue", 0: "red" });
+            expect(diffed.all()).toEqual({ b: "brown", c: "blue", 0: "red" });
+            // A plain object literal holds key 0 first, so the answer does too; a Map keeps PHP's order (below)
+            expect(diffed.keys().all()).toEqual([0, "b", "c"]);
+            expect(diffed.values().all()).toEqual(["red", "brown", "blue"]);
         });
 
-        it("unwraps a Collection-like operand for diffAssocUsing on a list backing", () => {
+        it.fails(
+            "keeps a Map-built receiver's order for the items diffAssocUsing keeps",
+            () => {
+                const diffed = collect(
+                    new Map<string | number, string>([
+                        ["a", "green"],
+                        ["b", "brown"],
+                        ["c", "blue"],
+                        [0, "red"],
+                    ]),
+                ).diffAssocUsing(
+                    collect(
+                        new Map<string | number, string>([
+                            ["A", "green"],
+                            [0, "yellow"],
+                            [1, "red"],
+                        ]),
+                    ),
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the receiver's insertion order, so key 0 comes after b and c
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffAssocUsing-mixed-keys-order"
+                expect([diffed.keys().all(), diffed.values().all()]).toEqual([
+                    ["b", "c", 0],
+                    ["brown", "blue", "red"],
+                ]);
+            },
+        );
+
+        it("reads a Collection operand's items for diffAssocUsing on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-collection-operand"
             expect(
                 collect([1, 2, 3])
-                    .diffAssocUsing(
-                        { all: () => [1, 9, 3] } as never,
-                        strcasecmpKeys,
-                    )
+                    .diffAssocUsing(collect([1, 9, 3]), strcasecmp)
                     .all(),
             ).toEqual([2]);
+        });
+
+        it("reads a null operand as no items, for diffAssocUsing too", () => {
+            const results = [
+                collect({ a: 1 }).diffAssoc(null),
+                collect({ a: 1 }).diffAssocUsing(null, strcasecmp),
+            ];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-assoc-and-key-diffs-null-operand"
+            for (const result of results) {
+                expect(result.all()).toEqual({ a: 1 });
+                expect(result.keys().all()).toEqual(["a"]);
+                expect(result.values().all()).toEqual([1]);
+            }
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const result = collect({ a: 1, b: 2 }).diffAssoc({
+                all: () => ({ b: 2 }),
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, b: 2 });
+            expect(result.keys().all()).toEqual(["a", "b"]);
+            expect(result.values().all()).toEqual([1, 2]);
+        });
+
+        it("reads a plain object's all member as one of its entries for diffAssocUsing, never unwrapping it", () => {
+            const result = collect({ a: 1, b: 2 }).diffAssocUsing(
+                { all: () => ({ b: 2 }) },
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, b: 2 });
+            expect(result.keys().all()).toEqual(["a", "b"]);
+            expect(result.values().all()).toEqual([1, 2]);
+        });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffAssoc({ 0: "a" });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diffAssoc([1]), "list");
+            expectShape(collect({ a: 1, b: 2 }).diffAssoc({ a: 1 }), "keyed");
+        });
+
+        it("keeps a list's shape and a keyed one's for diffAssocUsing too, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).diffAssocUsing([1], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).diffAssocUsing({ a: 1 }, strcasecmp),
+                "keyed",
+            );
         });
     });
 
     describe("diffKeys", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffKeys
             const c1 = collect({ id: 1, first_word: "Hello" });
             const c2 = collect({ id: 123, foo_bar: "Hello" });
             expect(c1.diffKeys(c2).all()).toEqual({ first_word: "Hello" });
 
+            // CollectionTest::testDiffKeysUsing
             const d1 = collect({ id: 1, first_word: "Hello" });
             const d2 = collect({ ID: 123, foo_bar: "Hello" });
             expect(d1.diffKeys(d2).all()).toEqual({
@@ -1362,6 +2548,8 @@ describe("Collection", () => {
         });
 
         it("signature examples", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffKeys-signature-examples"
+            // PHP keeps the list's keys 3 and 4; a list backing reindexes, as a JS array holds no sparse keys.
             expect(
                 new Collection({ a: 1, b: 2, c: 3 }).diffKeys({ b: 2 }).all(),
             ).toEqual({ a: 1, c: 3 });
@@ -1372,47 +2560,149 @@ describe("Collection", () => {
                 new Collection([1, 3, 5]).diffKeys([1, 3, 5, 7, 8]).all(),
             ).toEqual([]);
         });
+
+        it("counts a list operand's indexes as its keys, never its length", () => {
+            const diffed = collect({ length: 5, b: 2 }).diffKeys(["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-diffKeys-length-key"
+            expect(diffed.all()).toEqual({ length: 5, b: 2 });
+            expect(diffed.keys().all()).toEqual(["length", "b"]);
+            expect(diffed.values().all()).toEqual([5, 2]);
+        });
+
+        it("reads a null operand as no items", () => {
+            const diffed = collect({ a: 1 }).diffKeys(null);
+
+            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys"
+            expect(diffed.all()).toEqual({ a: 1 });
+            expect(diffed.keys().all()).toEqual(["a"]);
+            expect(diffed.values().all()).toEqual([1]);
+        });
+
+        it("reads a plain object's all member as one of its keys, never unwrapping it", () => {
+            const result = collect({ all: 1, b: 2 }).diffKeys({
+                all: () => ({ b: 2 }),
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ b: 2 });
+            expect(result.keys().all()).toEqual(["b"]);
+            expect(result.values().all()).toEqual([2]);
+        });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffKeys({ 0: "x" });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).diffKeys([9]), "list");
+            expectShape(collect({ a: 1, b: 2 }).diffKeys({ a: 9 }), "keyed");
+        });
     });
 
     describe("diffKeysUsing", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDiffKeysUsing
             const c1 = collect({ id: 1, first_word: "Hello" });
             const c2 = { ID: 123, foo_bar: "Hello" } as Record<string, unknown>;
 
-            expect(c1.diffKeysUsing(c2, strcasecmpKeys).all()).toEqual({
+            expect(c1.diffKeysUsing(c2, strcasecmp).all()).toEqual({
                 first_word: "Hello",
             });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testDiffKeysUsing
             // docs/php-parity/task-23-obj-release-readiness.json, "C22 diffKeysUsing"
-            expect(
-                collect({ id: 1, first_word: "Hello" })
-                    .diffKeysUsing(
-                        { all: () => ({ ID: 123, foo_bar: "Hello" }) } as never,
-                        strcasecmpKeys,
-                    )
-                    .all(),
-            ).toEqual({ first_word: "Hello" });
+            const result = collect({
+                id: 1,
+                first_word: "Hello",
+            }).diffKeysUsing(
+                collect({ ID: 123, foo_bar: "Hello" }),
+                strcasecmp,
+            );
+
+            expect(result.all()).toEqual({ first_word: "Hello" });
+            expect(result.keys().all()).toEqual(["first_word"]);
+            expect(result.values().all()).toEqual(["Hello"]);
         });
 
-        it("unwraps a Collection-like operand on a list backing", () => {
+        it("reads a Collection operand's items on a list backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
             expect(
                 collect([1, 2, 3])
-                    .diffKeysUsing(
-                        { all: () => [9, 9] } as never,
-                        strcasecmpKeys,
-                    )
+                    .diffKeysUsing(collect([9, 9]), strcasecmp)
                     .all(),
             ).toEqual([3]);
+        });
+
+        it("reads a null operand as no items", () => {
+            const diffed = collect({ a: 1 }).diffKeysUsing(null, strcasecmp);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-assoc-and-key-diffs-null-operand"
+            expect(diffed.all()).toEqual({ a: 1 });
+            expect(diffed.keys().all()).toEqual(["a"]);
+            expect(diffed.values().all()).toEqual([1]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const result = collect({ a: 1, b: 2 }).diffKeysUsing(
+                { all: () => ({ b: 2 }) },
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, b: 2 });
+            expect(result.keys().all()).toEqual(["a", "b"]);
+            expect(result.values().all()).toEqual([1, 2]);
+        });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().diffKeysUsing(
+                    { 0: "x" },
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).diffKeysUsing([9], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).diffKeysUsing({ A: 9 }, strcasecmp),
+                "keyed",
+            );
         });
     });
 
     describe("duplicates", () => {
         describe("Laravel Tests", () => {
             it("test duplicates", () => {
-                // Keys are preserved! Returns duplicate items with their original indices
+                // CollectionTest::testDuplicates
+                // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
                 // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
                 const c = collect([
                     1,
@@ -1461,8 +2751,9 @@ describe("Collection", () => {
             });
 
             it("test duplicates with keys", () => {
-                // When using a key, Laravel returns the VALUES (not the full objects) at duplicate indices
-                // Laravel: [2 => 'laravel']
+                // CollectionTest::testDuplicatesWithKey
+                // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
+                // Laravel answers each duplicate's value at the key, not the item: [2 => 'laravel']
                 const items = [
                     { framework: "vue" },
                     { framework: "laravel" },
@@ -1483,8 +2774,9 @@ describe("Collection", () => {
             });
 
             it("test duplicates with callback", () => {
-                // When using a callback, Laravel returns the CALLBACK RESULT (not the full objects) at duplicate indices
-                // Laravel: [2 => 'laravel']
+                // CollectionTest::testDuplicatesWithCallback
+                // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
+                // Laravel answers each duplicate's callback result, not the item: [2 => 'laravel']
                 const items = [
                     { framework: "vue" },
                     { framework: "laravel" },
@@ -1496,10 +2788,100 @@ describe("Collection", () => {
                 expect(c).toEqual({ 2: "laravel" });
             });
         });
+
+        it("keeps each duplicate's own key, a list's position or a record's name", () => {
+            const keyed = collect({ a: 1, b: 2, c: 1 }).duplicates();
+            const list = collect(["x", "y", "x"]).duplicates();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-keyed"
+            expect([keyed.keys().all(), keyed.values().all()]).toEqual([
+                ["c"],
+                [1],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-list-first-key"
+            expect([list.keys().all(), list.values().all()]).toEqual([
+                [2],
+                ["x"],
+            ]);
+        });
+
+        it("hands a callback each value and key", () => {
+            const duplicates = collect({ a: 1, b: 2 }).duplicates(
+                (value, key) => (key === "b" ? 1 : value),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-callback-key-arg"
+            expect(duplicates.all()).toEqual({ b: 1 });
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([["b"], [1]]);
+        });
+
+        it("compares loosely, as array_unique's SORT_REGULAR sort does", () => {
+            const duplicates = collect(["a", 0, "b", "0", "a"]).duplicates();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-loose-sort-regular"
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([
+                [3, 4],
+                ["0", "a"],
+            ]);
+        });
+
+        it("appends past the highest position a list's duplicates keep", () => {
+            const pushed = collect(["x", "y", "x"]).duplicates().push("z");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-list-then-push"
+            expect([pushed.keys().all(), pushed.values().all()]).toEqual([
+                [2, 3],
+                ["x", "z"],
+            ]);
+        });
+
+        it("walks mixed types once, keeping the first of each loosely equal run", () => {
+            const duplicates = collect(["abc", "0", false, ""]).duplicates();
+
+            // JS-only: PHP's == is not transitive; array_unique's sorted walk keeps only 'abc' and '0', so PHP also
+            // counts false a duplicate
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-non-transitive-loose"
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([[3], [""]]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const duplicates = collect(
+                new Map([
+                    [2, "a"],
+                    [0, "b"],
+                    [1, "a"],
+                ]),
+            ).duplicates();
+
+            // Ordered-backing gap: PHP walks key 2 first, so the a under key 1 is the duplicate
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-out-of-order"
+            expect([
+                duplicates.keys().all(),
+                duplicates.values().all(),
+            ]).toEqual([[1], ["a"]]);
+        });
+
+        it("keeps the duplicates' own keys, so a list's result is keyed, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 1]).duplicates(), "keyed");
+            expectShape(collect([1, 2]).duplicates(), "keyed");
+            expectShape(collect({ a: 1, b: 1 }).duplicates(), "keyed");
+        });
     });
 
     describe("duplicatesStrict", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testDuplicatesWithStrict
+            // A list's duplicates keep their positions, which are the answer, so this removal does not renumber
             // Laravel: [2 => 1, 5 => 'laravel', 7 => null]
             const c = collect([
                 1,
@@ -1554,10 +2936,17 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({});
         });
+
+        it("keeps the duplicates' own keys, so a list's result is keyed, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 1]).duplicatesStrict(), "keyed");
+            expectShape(collect({ a: 1, b: 1 }).duplicatesStrict(), "keyed");
+        });
     });
 
     describe("except", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testExcept
             const data = collect({
                 first: "Taylor",
                 last: "Otwell",
@@ -1588,16 +2977,135 @@ describe("Collection", () => {
                 email: "taylorotwell@gmail.com",
             });
 
+            // CollectionTest::testExceptSelf
             const data2 = collect({ first: "Taylor", last: "Otwell" });
             expect(data2.except(data2).all()).toEqual({
                 first: "Taylor",
                 last: "Otwell",
             });
         });
+
+        describe("reads its keys as PHP's $keys argument", () => {
+            const person = () =>
+                collect({ first: "Taylor", last: "Otwell", email: "e" });
+
+            it("ignores the arguments after an array of keys", () => {
+                const except = person().except(["first"], "last");
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-array-then-extra-arg"
+                expect(except.keys().all()).toEqual(["last", "email"]);
+                expect(except.values().all()).toEqual(["Otwell", "e"]);
+            });
+
+            it("takes a keyed Collection's values as the keys", () => {
+                const except = person().except(
+                    collect({ x: "first", y: "email" }),
+                );
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-keyed-collection-arg"
+                expect(except.all()).toEqual({ last: "Otwell" });
+                expect(except.keys().all()).toEqual(["last"]);
+                expect(except.values().all()).toEqual(["Otwell"]);
+            });
+
+            it("keeps every item for an empty array of keys", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-empty-array"
+                expect(person().except([]).all()).toEqual(person().all());
+            });
+
+            it("reads a null among the keys as the '' key, where a bare null keeps every item", () => {
+                const blank = () => collect({ "": 1, a: 2 });
+                const except = blank().except([null]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-forget-null-key"
+                expect(blank().except(null).all()).toEqual({ "": 1, a: 2 });
+                expect([except.keys().all(), except.values().all()]).toEqual([
+                    ["a"],
+                    [2],
+                ]);
+                expect(blank().except("a", null).all()).toEqual({});
+                expect(
+                    blank()
+                        .except(collect([null]))
+                        .all(),
+                ).toEqual({ a: 2 });
+                // JS-only: undefined stands for PHP's null.
+                expect(blank().except([undefined]).all()).toEqual({ a: 2 });
+            });
+
+            it("throws array_key_exists()'s TypeError for a later array or collection key, even over no items", () => {
+                const failure = new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                );
+                const pair = collect({ a: 1, b: 2 });
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+                expect(() =>
+                    Reflect.apply(pair.except, pair, ["a", ["b"]]),
+                ).toThrow(failure);
+                expect(() =>
+                    Reflect.apply(pair.except, pair, ["a", collect(["b"])]),
+                ).toThrow(failure);
+                expect(() =>
+                    Reflect.apply(collect([]).except, collect([]), [[["b"]]]),
+                ).toThrow(failure);
+            });
+        });
+
+        it("removes a literal dotted key before reading it as a path", () => {
+            const except = collect({ "a.b": 1, a: { b: 2 } }).except("a.b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-dot-key-literal-first"
+            expect(except.all()).toEqual({ a: { b: 2 } });
+            expect([except.keys().all(), except.values().all()]).toEqual([
+                ["a"],
+                [{ b: 2 }],
+            ]);
+        });
+
+        it("looks a float up by its string form, then removes its integer part, as unset casts it", () => {
+            const except = collect({ "1.5": "a", 1: "b", c: "d" }).except([
+                1.5,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            expect([except.keys().all(), except.values().all()]).toEqual([
+                ["1.5", "c"],
+                ["a", "d"],
+            ]);
+            expect(collect({ "1.5": "a", c: "d" }).except([1.5]).all()).toEqual(
+                {
+                    "1.5": "a",
+                    c: "d",
+                },
+            );
+            expect(
+                collect({ 1: { 5: "x", 6: "y" } })
+                    .except([1.5])
+                    .all(),
+            ).toEqual({ 1: { 6: "y" } });
+        });
+
+        it("reads a numeric string as a list's index", () => {
+            const except = collect(["a", "b", "c"]).except("1");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-list-numeric-string", whose
+            // keys 0 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(except.all()).toEqual(["a", "c"]);
+            expect(except.keys().all()).toEqual([0, 1]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).except(0), "list");
+            expectShape(collect({ a: 1, b: 2 }).except("a"), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).except(["a", "b"]), "keyed");
+        });
     });
 
     describe("filter", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testFilter
             const c = collect([
                 { id: 1, name: "Hello" },
                 { id: 2, name: "World" },
@@ -1691,16 +3199,93 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ 1: "a" });
         });
+
+        it("keeps every object without a callback, however empty", () => {
+            // Class instances stand in for stdClass, ArrayObject and SplObjectStorage: a plain object, a
+            // Map and a Set model PHP arrays here, which are falsy when empty.
+            const kept = collect([
+                new Date(0),
+                new (class {})(),
+                new (class {})(),
+                new (class {})(),
+                "x",
+            ]).filter();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-keeps-empty-objects"
+            expect(kept.count()).toBe(5);
+        });
+
+        it('drops an item whose callback answers "0"', () => {
+            const filtered = collect([1, 2]).filter((value) =>
+                value > 1 ? "0" : "x",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-callback-string-zero"
+            expect(filtered.all()).toEqual([1]);
+            expect(filtered.keys().all()).toEqual([0]);
+            expect(filtered.values().all()).toEqual([1]);
+        });
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().filter((_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                // Ordered-backing gap: PHP calls the callback in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "filter-out-of-order-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
+
+        it.fails(
+            "keeps what a counting callback passes in a Map-built collection's insertion order",
+            () => {
+                let calls = 0;
+                const kept = outOfOrderKeys().filter(() => ++calls <= 2);
+
+                // Ordered-backing gap: PHP's first two calls see c under 2 and a under 0, and keep them in that order
+                // docs/php-parity/task-30-map-order.json, "filter-out-of-order-first-two-visits"
+                expect([kept.keys().all(), kept.values().all()]).toEqual([
+                    [2, 0],
+                    ["c", "a"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).filter((value) => value > 1),
+                "list",
+            );
+            expectShape(collect([0, 1]).filter(), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).filter((value) => value > 1),
+                "keyed",
+            );
+            expectShape(collect({ a: 0, b: 2 }).filter(), "keyed");
+            expectShape(
+                collect({ a: 1 }).filter(() => false),
+                "keyed",
+            );
+        });
     });
 
     describe("first", () => {
         describe("Laravel Tests", () => {
             it("test first returns first item in collection", () => {
+                // CollectionTest::testFirstReturnsFirstItemInCollection
                 const c = collect(["foo", "bar"]);
                 expect(c.first()).toBe("foo");
             });
 
             it("test first with callback", () => {
+                // CollectionTest::testFirstWithCallback
                 const c = collect(["foo", "bar", "baz"]);
                 expect(
                     c.first((value) => {
@@ -1710,6 +3295,7 @@ describe("Collection", () => {
             });
 
             it("test first with callback and default", () => {
+                // CollectionTest::testFirstWithCallbackAndDefault
                 const c = collect(["foo", "bar"]);
                 expect(
                     c.first((value) => {
@@ -1719,6 +3305,7 @@ describe("Collection", () => {
             });
 
             it("test first with default and without callback", () => {
+                // CollectionTest::testFirstWithDefaultAndWithoutCallback
                 const c = collect();
                 expect(c.first(null, "default")).toBe("default");
 
@@ -1743,7 +3330,7 @@ describe("Collection", () => {
         });
 
         it("returns first object item matching callback", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3, d: 4 });
+            const collection = collect({ a: 1, b: 2, c: 3, d: 4 });
             expect(collection.first((value) => value > 2)).toBe(3);
         });
 
@@ -1763,16 +3350,25 @@ describe("Collection", () => {
         });
 
         it("returns default when no match in object", () => {
-            const collection = collect<number>({ a: 1, b: 2, c: 3 });
+            const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.first((value) => value > 5, "default")).toBe(
                 "default",
             );
+        });
+
+        it("answers null when empty, and a stored null over the default", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-first-empty-no-default"
+            expect([
+                collect([]).first(),
+                collect({ a: null }).first(null, "d"),
+            ]).toEqual([null, null]);
         });
     });
 
     describe("flatten", () => {
         describe("Laravel Tests", () => {
             it("test flatten", () => {
+                // CollectionTest::testFlatten
                 // Flat arrays are unaffected
                 const c = collect(["#foo", "#bar", "#baz"]);
                 expect(c.flatten().all()).toEqual(["#foo", "#bar", "#baz"]);
@@ -1823,7 +3419,24 @@ describe("Collection", () => {
                 ]);
             });
 
+            it("test flatten with mixed collection types", () => {
+                // CollectionTest::testFlattenWithMixedCollectionTypes
+                // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-mixed-collection-types"
+                const c = collect([
+                    collect(["#foo", lazyLike(["#bar"])]),
+                    lazyLike(["#baz", collect(["#zap"])]),
+                ]);
+
+                expect(c.flatten().all()).toEqual([
+                    "#foo",
+                    "#bar",
+                    "#baz",
+                    "#zap",
+                ]);
+            });
+
             it("test flatten with depth", () => {
+                // CollectionTest::testFlattenWithDepth
                 // No depth flattens recursively
                 const c = collect([["#foo", ["#bar", ["#baz"]]], "#zap"]);
                 expect(c.flatten().all()).toEqual([
@@ -1857,6 +3470,7 @@ describe("Collection", () => {
             });
 
             it("test flatten ignores keys", () => {
+                // CollectionTest::testFlattenIgnoresKeys
                 // No depth ignores keys
                 const c = collect([
                     "#foo",
@@ -1935,10 +3549,30 @@ describe("Collection", () => {
             expect(fromObject[0]).toBe(map);
             expect(fromObject[1]).toBe(date);
         });
+
+        it.fails(
+            "flattens a Map-built collection in the order it holds its keys",
+            () => {
+                // Ordered-backing gap: PHP flattens in insertion order, the item under key 2 first
+                // docs/php-parity/task-30-map-order.json, "flatten-out-of-order"
+                expect(outOfOrderKeys().flatten().all()).toEqual([
+                    "c",
+                    "a",
+                    "b",
+                ]);
+            },
+        );
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([[1], [2]]).flatten(), "list");
+            expectShape(collect({ a: [1], b: 2 }).flatten(1), "list");
+        });
     });
 
     describe("flip", () => {
         it("Laravel Test", () => {
+            // CollectionTest::testFlip
             const data = collect({ name: "taylor", framework: "laravel" });
             expect(data.flip().all()).toEqual({
                 taylor: "name",
@@ -1952,13 +3586,17 @@ describe("Collection", () => {
                 orange: 2,
             });
 
+            // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
             expect(collect([]).flip().all()).toEqual({});
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-empty"
+            expect(collect([]).flip().toJson()).toBe("[]");
             expect(collect({ name: "taylor" }).flip().all()).toEqual({
                 taylor: "name",
             });
         });
 
         it("skips unsupported values", () => {
+            // CollectionTest::testFlipSkipsUnsupportedValues
             const data = collect({
                 string: "taylor",
                 integer: 1,
@@ -1974,11 +3612,18 @@ describe("Collection", () => {
                 1: "integer",
             });
         });
+
+        it("builds a keyed result, even under the keys 0..n-1, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([0, 1]).flip(), "keyed");
+            expectShape(collect({ a: "x" }).flip(), "keyed");
+        });
     });
 
     describe("forget", () => {
         describe("Laravel Tests", () => {
             it("test forget single key", () => {
+                // CollectionTest::testForgetSingleKey
                 const c = collect(["bar", "qux"]).forget(0).all();
                 expect(c).toEqual(["qux"]);
 
@@ -1989,6 +3634,7 @@ describe("Collection", () => {
             });
 
             it("test forget array of keys", () => {
+                // CollectionTest::testForgetArrayOfKeys
                 const d = collect(["foo", "bar", "baz"]).forget([0, 2]).all();
                 expect(d).toEqual(["bar"]);
 
@@ -1999,6 +3645,7 @@ describe("Collection", () => {
             });
 
             it("test forget collection of keys", () => {
+                // CollectionTest::testForgetCollectionOfKeys
                 const c = collect(["foo", "bar", "baz"]);
                 const res = c.forget(collect([0, 2])).all();
                 expect(res).toEqual(["bar"]);
@@ -2008,40 +3655,132 @@ describe("Collection", () => {
                 expect(res2).toEqual({ name: "taylor" });
             });
         });
-    });
 
-    describe("set", () => {
-        it("sets value by key in object", () => {
-            const collection = collect({ a: 1, b: 2 });
-            collection.set("c", 3);
-            expect(collection.all()).toEqual({ a: 1, b: 2, c: 3 });
+        it("reads a dotted key literally, never as a path", () => {
+            const collection = collect({ a: { b: 1 } }).forget("a.b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-dot-path-is-literal"
+            expect(collection.all()).toEqual({ a: { b: 1 } });
+            expect(collection.keys().all()).toEqual(["a"]);
+            expect(collection.values().all()).toEqual([{ b: 1 }]);
         });
 
-        it("sets value by index in array", () => {
-            const collection = collect([1, 2, 3]);
-            collection.set(1, 4);
-            expect(collection.all()).toEqual([1, 4, 3]);
-        });
+        it("reads a null among the keys as the '' key and unsets a float's integer part, as offsetUnset does", () => {
+            const forgotten = collect({ "": 1, a: 2 }).forget([null]);
 
-        it("sets nested object path using dot notation", () => {
-            const collection = collect({});
-            collection.set("user.profile.name", "Taylor");
-            expect(collection.all()).toEqual({
-                user: { profile: { name: "Taylor" } },
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-forget-null-key"
+            expect(collect({ "": 1, a: 2 }).forget(null).all()).toEqual({
+                "": 1,
+                a: 2,
             });
+            expect([forgotten.keys().all(), forgotten.values().all()]).toEqual([
+                ["a"],
+                [2],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            expect(collect({ "1.5": "a", 1: "b" }).forget([1.5]).all()).toEqual(
+                {
+                    "1.5": "a",
+                },
+            );
         });
 
-        // Note: nested array index via dot paths is not supported by dataSet in this implementation.
+        it("drops a repeated key once", () => {
+            const collection = collect(["a", "b", "c"]).forget([1, 1]);
 
-        it("returns the collection instance for chaining", () => {
-            const collection = collect({});
-            const returned = collection.set("a", 1).set("b.c", 2);
-            expect(returned).toBe(collection);
-            expect(collection.all()).toEqual({ a: 1, b: { c: 2 } });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-repeated-key-on-list"
+            // PHP keeps the gap ({0: "a", 2: "c"}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(collection.all()).toEqual(["a", "c"]);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual(["a", "c"]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).forget(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).forget("a"), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).forget("z"), "keyed");
+        });
+
+        it("reads each entry of a Map-built collection a bounded number of times, however many keys it forgets", () => {
+            const reads = new Map<PropertyKey, number>();
+
+            class Watched extends Collection<number, number> {
+                constructor() {
+                    super(
+                        new Map(
+                            Array.from(
+                                { length: 100 },
+                                (_, index): [number, number] => [
+                                    99 - index,
+                                    index,
+                                ],
+                            ),
+                        ),
+                    );
+                    this.items = new Proxy(this.items, {
+                        getOwnPropertyDescriptor(target, key) {
+                            reads.set(key, (reads.get(key) ?? 0) + 1);
+
+                            return Reflect.getOwnPropertyDescriptor(
+                                target,
+                                key,
+                            );
+                        },
+                    });
+                }
+            }
+
+            const collection = new Watched().forget(
+                Array.from({ length: 50 }, (_, index) => index),
+            );
+            const mostReads = Math.max(...reads.values());
+
+            // JS-only: a bound on the work, so forgetting many keys from a Map-built collection stays linear.
+            expect(mostReads).toBeLessThanOrEqual(2);
+            expect(collection.count()).toBe(50);
         });
     });
 
     describe("get", () => {
+        describe("Laravel Tests", () => {
+            it("test get with null returns null", () => {
+                // CollectionTest::testGetWithNullReturnsNull
+                const data = new Collection([1, 2, 3]);
+                expect(data.get(null)).toBeNull();
+            });
+
+            it("test get with callback as default value", () => {
+                // CollectionTest::testGetWithCallbackAsDefaultValue
+                const data = new Collection({
+                    name: "taylor",
+                    framework: "laravel",
+                });
+                const result = data.get("email", () => "taylor@example.com");
+                expect(result).toBe("taylor@example.com");
+            });
+        });
+
+        it("reads a null key as the empty-string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-null-on-list"
+            expect(collect([1, 2, 3]).get(null)).toBeNull();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-null-empty-string-key"
+            expect(collect({ "": "x" }).get(null)).toBe("x");
+
+            // JS-only: an undefined key reads as null does
+            expect(collect([1, 2, 3]).get(undefined)).toBeNull();
+            expect(collect({ "": "x" }).get(undefined)).toBe("x");
+        });
+
+        it("answers a stored null rather than the default", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-stored-null-beats-default"
+            expect(collect({ a: null }).get("a", "d")).toBeNull();
+
+            // JS-only: a stored undefined is an item, as a stored null is
+            expect(collect({ a: undefined }).get("a", "d")).toBeUndefined();
+        });
+
         it("gets value by key in object", () => {
             const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.get("b")).toBe(2);
@@ -2053,6 +3792,7 @@ describe("Collection", () => {
         });
 
         it("returns default for missing object key", () => {
+            // CollectionTest::testGetWithDefaultValue
             const collection = collect({ a: 1, b: 2, c: 3 });
             expect(collection.get("d", "default")).toBe("default");
         });
@@ -2062,23 +3802,17 @@ describe("Collection", () => {
             expect(collection.get(5, "default")).toBe("default");
         });
 
-        it("get() resolves a literal dotted key before traversing, through the object backing", () => {
-            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::get
-            // — literal dotted key wins".
+        it("get() reads a literal dotted key, through the object backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-has-literal-dotted-key"
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.get("products.desk")).toEqual({ price: 100 });
         });
 
-        it("traverses a nested list with numeric segments, through the object backing", () => {
-            // JS-only: PHP's Collection::get is a literal array_key_exists
-            // lookup, not Arr::get's dot-path traversal; this pins the JS dot-path extension.
-            const collection = collect({
-                products: [{ name: "desk" }, { name: "chair" }],
-            });
-
-            expect(collection.get("products.0.name")).toBe("desk");
-            expect(collection.get("products.1.name")).toBe("chair");
-            expect(collection.get("products.2.name", "none")).toBe("none");
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-26-collection-order.json, "get-dot-path-is-a-literal-key"
+            expect(collect({ a: { b: 1 } }).get("a.b", "fallback")).toBe(
+                "fallback",
+            );
         });
 
         it("returns the default for a non-canonical index on a list backing", () => {
@@ -2090,6 +3824,7 @@ describe("Collection", () => {
     describe("getOrPut", () => {
         describe("Laravel tests", () => {
             it("test get or put", () => {
+                // CollectionTest::testGetOrPut
                 const data = collect({ name: "taylor", email: "foo" });
                 expect(data.getOrPut("name", null)).toBe("taylor");
                 expect(data.getOrPut("email", null)).toBe("foo");
@@ -2110,6 +3845,7 @@ describe("Collection", () => {
             });
 
             it("test get or put with no key", () => {
+                // CollectionTest::testGetOrPutWithNoKey
                 const data = collect(["taylor", "shawn"]);
                 expect(data.getOrPut(null, "dayle")).toBe("dayle");
                 expect(data.getOrPut(null, "john")).toBe("john");
@@ -2125,11 +3861,48 @@ describe("Collection", () => {
                 expect(data2.all()).toEqual({ 0: "taylor", "": "shawn" });
             });
         });
+
+        it("writes a dotted key as one literal key, never reading it as a path", () => {
+            const collection = collect({ a: { b: 1 } });
+            const returned = collection.getOrPut("a.b", 9);
+
+            // docs/php-parity/task-26-collection-order.json, "getOrPut-dot-path-is-a-literal-key"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 9,
+                all: { a: { b: 1 }, "a.b": 9 },
+            });
+            expect(collection.keys().all()).toEqual(["a", "a.b"]);
+            expect(collection.values().all()).toEqual([{ b: 1 }, 9]);
+        });
     });
 
     describe("groupBy", () => {
+        /** Each entry as the probes write it, [key, its PHP type, value], a group as { Collection: its entries }. */
+        const groupPairs = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
+        ): unknown[] => {
+            const values = [...collection.values()];
+
+            return [...collection.keys()].map((key, index) => {
+                const value = values[index];
+
+                return [
+                    key,
+                    isString(key) ? "string" : "integer",
+                    value instanceof Collection
+                        ? { Collection: groupPairs(value) }
+                        : value,
+                ];
+            });
+        };
+
         describe("Laravel Tests", () => {
             it("test group by attribute", () => {
+                // CollectionTest::testGroupByAttribute
                 const data = collect([
                     { rating: 1, url: "1" },
                     { rating: 1, url: "1" },
@@ -2137,7 +3910,7 @@ describe("Collection", () => {
                 ]);
 
                 const resultByRating = data.groupBy("rating");
-                expect(resultByRating.all()).toEqual({
+                expect(resultByRating.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -2146,7 +3919,7 @@ describe("Collection", () => {
                 });
 
                 const resultByUrl = data.groupBy("url");
-                expect(resultByUrl.all()).toEqual({
+                expect(resultByUrl.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -2156,34 +3929,71 @@ describe("Collection", () => {
             });
 
             it("test group by attribute with stringable key", () => {
+                // CollectionTest::testGroupByAttributeWithStringableKey: PHP's anonymous class with a __toString
+                // is a class instance here, since a plain object models an array of group keys.
                 const payload = [
                     { name: new Stringable("Laravel"), url: "1" },
                     { name: new Stringable("Laravel"), url: "1" },
                     {
-                        name: {
+                        name: new (class {
                             toString(): string {
                                 return "Framework";
-                            },
-                        },
+                            }
+                        })(),
                         url: "2",
                     },
                 ];
                 const data = collect(payload);
 
                 const resultByName = data.groupBy("name");
-                expect(resultByName.all()).toEqual({
+                expect(resultByName.toArray()).toEqual({
                     Laravel: [payload[0], payload[1]],
                     Framework: [payload[2]],
                 });
 
                 const resultByUrl = data.groupBy("url");
-                expect(resultByUrl.all()).toEqual({
+                expect(resultByUrl.toArray()).toEqual({
                     1: [payload[0], payload[1]],
                     2: [payload[2]],
                 });
             });
 
+            it("test group by attribute with enum key", () => {
+                // CollectionTest::testGroupByAttributeWithEnumKey
+                const payload = [
+                    { name: TestEnum.from("A"), url: "1" },
+                    { name: TestBackedEnum.from(1), url: "1" },
+                    { name: TestStringBackedEnum.from("A"), url: "2" },
+                ];
+                const data = collect(payload);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-enum-key"
+                expect(data.groupBy("name").toArray()).toEqual({
+                    A: [payload[0], payload[2]],
+                    1: [payload[1]],
+                });
+                expect(data.groupBy("url").toArray()).toEqual({
+                    1: [payload[0], payload[1]],
+                    2: [payload[2]],
+                });
+            });
+
+            it("test group by attribute with backed enum key", () => {
+                // CollectionTest::testGroupByAttributeWithBackedEnumKey
+                const data = collect([
+                    { rating: TestBackedEnum.from(1), url: "1" },
+                    { rating: TestBackedEnum.from(2), url: "1" },
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-backed-enum-key"
+                expect(data.groupBy("rating").toArray()).toEqual({
+                    1: [{ rating: TestBackedEnum.from(1), url: "1" }],
+                    2: [{ rating: TestBackedEnum.from(2), url: "1" }],
+                });
+            });
+
             it("test group by callable", () => {
+                // CollectionTest::testGroupByCallable, with closures standing in for its array callables
                 const data = collect([
                     { rating: 1, url: "1" },
                     { rating: 1, url: "1" },
@@ -2191,7 +4001,7 @@ describe("Collection", () => {
                 ]);
 
                 const resultByRating = data.groupBy((item) => item.rating);
-                expect(resultByRating.all()).toEqual({
+                expect(resultByRating.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -2200,7 +4010,7 @@ describe("Collection", () => {
                 });
 
                 const resultByUrl = data.groupBy((item) => item.url);
-                expect(resultByUrl.all()).toEqual({
+                expect(resultByUrl.toArray()).toEqual({
                     1: [
                         { rating: 1, url: "1" },
                         { rating: 1, url: "1" },
@@ -2210,6 +4020,7 @@ describe("Collection", () => {
             });
 
             it("test group by attribute preserving keys", () => {
+                // CollectionTest::testGroupByAttributePreservingKeys
                 const data = collect({
                     10: { rating: 1, url: "1" },
                     20: { rating: 1, url: "1" },
@@ -2228,10 +4039,11 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have single group", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveSingleGroup
                 const data = collect([
                     { rating: 1, url: "1" },
                     { rating: 1, url: "1" },
@@ -2248,10 +4060,11 @@ describe("Collection", () => {
                     2: [{ rating: 2, url: "2" }],
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have single group preserving keys", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveSingleGroupPreservingKeys
                 const data = collect({
                     10: { rating: 1, url: "1" },
                     20: { rating: 1, url: "1" },
@@ -2270,10 +4083,11 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have multiple groups", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveMultipleGroups
                 const data = collect([
                     { user: 1, roles: ["Role_1", "Role_3"] },
                     { user: 2, roles: ["Role_1", "Role_2"] },
@@ -2292,10 +4106,11 @@ describe("Collection", () => {
                     Role_3: [{ user: 1, roles: ["Role_1", "Role_3"] }],
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by closure where items have multiple groups preserving keys", () => {
+                // CollectionTest::testGroupByClosureWhereItemsHaveMultipleGroupsPreservingKeys
                 const data = collect({
                     10: { user: 1, roles: ["Role_1", "Role_3"] },
                     20: { user: 2, roles: ["Role_1", "Role_2"] },
@@ -2318,10 +4133,11 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by multi-level and closure preserving keys", () => {
+                // CollectionTest::testGroupByMultiLevelAndClosurePreservingKeys
                 const data = collect({
                     10: { user: 1, skilllevel: 1, roles: ["Role_1", "Role_3"] },
                     20: { user: 2, skilllevel: 1, roles: ["Role_1", "Role_2"] },
@@ -2381,10 +4197,11 @@ describe("Collection", () => {
                     },
                 };
 
-                expect(result.all()).toEqual(expected_result);
+                expect(result.toArray()).toEqual(expected_result);
             });
 
             it("test group by null", () => {
+                // CollectionTest::testGroupByNull
                 const payload = [
                     { name: "a", url: "1" },
                     { name: "b", url: null },
@@ -2393,25 +4210,61 @@ describe("Collection", () => {
                 const data = collect(payload);
 
                 const result = data.groupBy("url");
-                expect(result.all()).toEqual({
+                expect(result.toArray()).toEqual({
                     1: [payload[0]],
                     "": [payload[1], payload[2]],
                 });
             });
         });
 
-        it("throw error when no groupBy is undefined", () => {
-            const collection = collect([1, 2, 3]);
-            expect(() => {
-                // @ts-expect-error testing invalid input
-                collection.groupBy([undefined]);
-            }).toThrowError();
+        it("groups by the values themselves when the list of groupings is empty or names null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-empty-and-null-array-arg"
+            const expected = [
+                [
+                    1,
+                    "integer",
+                    {
+                        Collection: [
+                            [0, "integer", 1],
+                            [1, "integer", 1],
+                        ],
+                    },
+                ],
+                [2, "integer", { Collection: [[0, "integer", 2]] }],
+            ];
+
+            expect(groupPairs(collect([1, 2, 1]).groupBy([]))).toEqual(
+                expected,
+            );
+            expect(groupPairs(collect([1, 2, 1]).groupBy([null]))).toEqual(
+                expected,
+            );
+        });
+
+        it("groups by the values themselves when the list of groupings names undefined", () => {
+            // JS-only: undefined is read as PHP's null, so this gives the "null" answer of
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-empty-and-null-array-arg"
+            expect(groupPairs(collect([1, 2, 1]).groupBy([undefined]))).toEqual(
+                [
+                    [
+                        1,
+                        "integer",
+                        {
+                            Collection: [
+                                [0, "integer", 1],
+                                [1, "integer", 1],
+                            ],
+                        },
+                    ],
+                    [2, "integer", { Collection: [[0, "integer", 2]] }],
+                ],
+            );
         });
 
         it("group key is boolean", () => {
             const collection = collect([{ active: true }, { active: false }]);
             const grouped = collection.groupBy("active");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 1: [{ active: true }],
                 0: [{ active: false }],
             });
@@ -2420,16 +4273,17 @@ describe("Collection", () => {
         it("group key is null", () => {
             const collection = collect([{ value: null }, { value: 1 }]);
             const grouped = collection.groupBy("value");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 "": [{ value: null }],
                 1: [{ value: 1 }],
             });
         });
 
         it("group key is undefined", () => {
+            // JS-only: undefined is read as PHP's null, which groups under the "" key
             const collection = collect([{ value: undefined }, { value: 1 }]);
             const grouped = collection.groupBy("value");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 "": [{ value: undefined }],
                 1: [{ value: 1 }],
             });
@@ -2441,27 +4295,135 @@ describe("Collection", () => {
                 { tags: ["tag2", "tag3"] },
             ]);
             const grouped = collection.groupBy("tags");
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 tag1: [{ tags: ["tag1", "tag2"] }],
                 tag2: [{ tags: ["tag1", "tag2"] }, { tags: ["tag2", "tag3"] }],
                 tag3: [{ tags: ["tag2", "tag3"] }],
             });
         });
 
-        it("handles isArray(this.items) branch", () => {
-            // Use array-based collection to trigger array branch
-            const c = collect(["apple", "banana", "apricot"]);
-            const grouped = c.groupBy((item) => item[0]);
-            // get returns the raw array value directly
-            expect(grouped.get("a")).toEqual(["apple", "apricot"]);
-            expect(grouped.get("b")).toEqual(["banana"]);
+        it("hands back each group as a collection", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-groups-are-collections"
+            const grouped = collect([{ r: 1 }, { r: 1 }]).groupBy("r");
+
+            expect(grouped.get(1)).toBeInstanceOf(Collection);
+            expect(grouped.toArray()).toEqual({ 1: [{ r: 1 }, { r: 1 }] });
+            expect(grouped.keys().all()).toEqual([1]);
+            expect(grouped.values().toArray()).toEqual([[{ r: 1 }, { r: 1 }]]);
+
+            const byInitial = collect(["apple", "banana", "apricot"]).groupBy(
+                (item) => item[0],
+            );
+
+            expect(byInitial.get("a")).toBeInstanceOf(Collection);
+            expect(byInitial.get("b")).toBeInstanceOf(Collection);
+            expect(byInitial.toArray()).toEqual({
+                a: ["apple", "apricot"],
+                b: ["banana"],
+            });
+            expect(byInitial.keys().all()).toEqual(["a", "b"]);
+            expect(byInitial.values().toArray()).toEqual([
+                ["apple", "apricot"],
+                ["banana"],
+            ]);
+        });
+
+        it("hands back the groups of a multi-level grouping as collections at every level", () => {
+            const rows = {
+                10: { user: 1, skilllevel: 1, roles: ["Role_1", "Role_3"] },
+                20: { user: 2, skilllevel: 1, roles: ["Role_1", "Role_2"] },
+                30: { user: 3, skilllevel: 2, roles: ["Role_1"] },
+                40: { user: 4, skilllevel: 2, roles: ["Role_2"] },
+            };
+
+            const result = collect(rows).groupBy(
+                ["skilllevel", (item) => item.roles],
+                true,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-multilevel-shape", with each
+            // row where the probe writes its user
+            expect(groupPairs(result)).toEqual([
+                [
+                    1,
+                    "integer",
+                    {
+                        Collection: [
+                            [
+                                "Role_1",
+                                "string",
+                                {
+                                    Collection: [
+                                        [10, "integer", rows[10]],
+                                        [20, "integer", rows[20]],
+                                    ],
+                                },
+                            ],
+                            [
+                                "Role_3",
+                                "string",
+                                { Collection: [[10, "integer", rows[10]]] },
+                            ],
+                            [
+                                "Role_2",
+                                "string",
+                                { Collection: [[20, "integer", rows[20]]] },
+                            ],
+                        ],
+                    },
+                ],
+                [
+                    2,
+                    "integer",
+                    {
+                        Collection: [
+                            [
+                                "Role_1",
+                                "string",
+                                { Collection: [[30, "integer", rows[30]]] },
+                            ],
+                            [
+                                "Role_2",
+                                "string",
+                                { Collection: [[40, "integer", rows[40]]] },
+                            ],
+                        ],
+                    },
+                ],
+            ]);
+        });
+
+        it("keeps a list's own keys in each group when preserving keys", () => {
+            const grouped = collect(["a", "b", "c"]).groupBy(
+                (_value, key) => (key % 2 ? "odd" : "even"),
+                true,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-preserve-keys-list-backing"
+            expect(groupPairs(grouped)).toEqual([
+                [
+                    "even",
+                    "string",
+                    {
+                        Collection: [
+                            [0, "integer", "a"],
+                            [2, "integer", "c"],
+                        ],
+                    },
+                ],
+                ["odd", "string", { Collection: [[1, "integer", "b"]] }],
+            ]);
+            expect(grouped.toArray()).toEqual({
+                even: { 0: "a", 2: "c" },
+                odd: { 1: "b" },
+            });
         });
 
         it("groups items under an empty string key when callback returns null or undefined", () => {
             const c = collect(["apple", "", "banana"]);
-            // Empty string's first char is undefined
+            // JS-only: an empty string's first character is undefined, which is read as PHP's null
             const grouped = c.groupBy((item) => item[0]);
-            expect(grouped.all()).toEqual({
+            expect(grouped.toArray()).toEqual({
                 a: ["apple"],
                 "": [""],
                 b: ["banana"],
@@ -2470,16 +4432,63 @@ describe("Collection", () => {
             // Test with explicit null return
             const c2 = collect([1, 2, 3, 4, 5]);
             const grouped2 = c2.groupBy((item) => (item > 3 ? "big" : null));
-            expect(grouped2.all()).toEqual({
+            expect(grouped2.toArray()).toEqual({
                 big: [4, 5],
                 "": [1, 2, 3],
             });
+        });
+
+        it.fails(
+            "keeps a Map-built collection's keys in each group in the order it holds them",
+            () => {
+                const grouped = collect(
+                    new Map<string | number, string>([
+                        ["x", "p"],
+                        [5, "q"],
+                    ]),
+                ).groupBy(() => "g", true);
+
+                // Ordered-backing gap: PHP keeps a group's keys in insertion order, x before 5
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-preserve-keys-mixed-order"
+                expect(groupPairs(grouped)).toEqual([
+                    [
+                        "g",
+                        "string",
+                        {
+                            Collection: [
+                                ["x", "string", "p"],
+                                [5, "integer", "q"],
+                            ],
+                        },
+                    ],
+                ]);
+            },
+        );
+
+        it("builds keyed groups, each a list unless it keeps keys a list cannot hold, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const grouped = collect([{ id: 0 }, { id: 1 }]).groupBy("id");
+            const preserved = collect(["a", "b"]).groupBy(
+                (value) => value,
+                true,
+            );
+
+            expectShape(grouped, "keyed");
+            grouped.each((group) => expectShape(group, "list"));
+            // The group holding key 0 alone keeps a list's keys; the one holding key 1 alone cannot.
+            preserved.each((group, key) =>
+                expectShape(group, key === "a" ? "list" : "keyed"),
+            );
+            collect({ a: 1 })
+                .groupBy(() => "g", true)
+                .each((group) => expectShape(group, "keyed"));
         });
     });
 
     describe("keyBy", () => {
         describe("Laravel Tests", () => {
             it("test key by attribute", () => {
+                // CollectionTest::testKeyByAttribute
                 const data = collect([
                     { rating: 1, name: "1" },
                     { rating: 2, name: "2" },
@@ -2504,6 +4513,7 @@ describe("Collection", () => {
             });
 
             it("test key by closure", () => {
+                // CollectionTest::testKeyByClosure
                 const data = collect([
                     { firstname: "Taylor", lastname: "Otwell", locale: "US" },
                     { firstname: "Lucas", lastname: "Michot", locale: "FR" },
@@ -2528,6 +4538,7 @@ describe("Collection", () => {
             });
 
             it("test key by object", () => {
+                // CollectionTest::testKeyByObject
                 const data = collect([
                     { firstname: "Taylor", lastname: "Otwell", locale: "US" },
                     { firstname: "Lucas", lastname: "Michot", locale: "FR" },
@@ -2552,6 +4563,7 @@ describe("Collection", () => {
             });
 
             it("test key by null", () => {
+                // CollectionTest::testKeyByNull
                 const data = collect([
                     { rating: 1, name: "1" },
                     { rating: 2, name: null },
@@ -2575,25 +4587,25 @@ describe("Collection", () => {
             });
         });
 
-        it("resolved key is object", () => {
+        it("throws for a plain object key, which PHP cannot store", () => {
             const collection = collect([
                 { id: { name: "John" } },
                 { id: { name: "Jane" } },
             ]);
-            const keyed = collection.keyBy((item) => item.id);
-            expect(keyed.all()).toEqual({
-                '{"name":"John"}': { id: { name: "John" } },
-                '{"name":"Jane"}': { id: { name: "Jane" } },
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-assoc-key"
+            expect(() => collection.keyBy((item) => item.id)).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
 
-        it("resolved key is array", () => {
+        it("throws for an array key, which PHP cannot store", () => {
             const collection = collect([{ id: [1, 2] }, { id: [3, 4] }]);
-            const keyed = collection.keyBy((item) => item.id);
-            expect(keyed.all()).toEqual({
-                "1.2": { id: [1, 2] },
-                "3.4": { id: [3, 4] },
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-array-key"
+            expect(() => collection.keyBy((item) => item.id)).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
 
         it("works with object collection (non-array items)", () => {
@@ -2611,42 +4623,48 @@ describe("Collection", () => {
             });
         });
 
-        it("uses the value property of backed enum objects as the key", () => {
-            // Simulate Laravel backed enum objects (objects with a primitive `value` property)
-            const enumA = { value: "active" };
-            const enumB = { value: "inactive" };
+        it("keys by a string-backed enum case's value", () => {
+            // CollectionTest::testKeyByBackedEnum
             const data = collect([
-                { id: 1, status: enumA },
-                { id: 2, status: enumB },
+                { id: 1, status: TestStringBackedEnum.from("A") },
+                { id: 2, status: TestStringBackedEnum.from("B") },
             ]);
+
             expect(data.keyBy("status").all()).toEqual({
-                active: { id: 1, status: enumA },
-                inactive: { id: 2, status: enumB },
+                A: { id: 1, status: TestStringBackedEnum.from("A") },
+                B: { id: 2, status: TestStringBackedEnum.from("B") },
             });
         });
 
-        it("uses numeric value property of backed enum objects as the key", () => {
-            // Simulate backed enums with integer values (covers isNumber branch)
-            const enumA = { value: 1 };
-            const enumB = { value: 2 };
+        it("keys by an int-backed or a pure enum case's value", () => {
             const data = collect([
-                { id: "a", status: enumA },
-                { id: "b", status: enumB },
+                { id: 1, s: TestBackedEnum.from(2) },
+                { id: 2, s: TestBackedEnum.from(1) },
             ]);
-            expect(data.keyBy("status").all()).toEqual({
-                1: { id: "a", status: enumA },
-                2: { id: "b", status: enumB },
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-enum-keys"
+            expect(
+                data
+                    .keyBy("s")
+                    .map((row) => row.id)
+                    .all(),
+            ).toEqual({ 2: 1, 1: 2 });
+            expect(
+                collect([1])
+                    .keyBy(() => TestEnum.from("A"))
+                    .keys()
+                    .all(),
+            ).toEqual(["A"]);
         });
 
-        it("stringifies objects with a non-primitive value property", () => {
-            // An object with a `value` key whose value is not a string or number
-            // should fall through to JSON.stringify (covers the false branch of the backed-enum check)
-            const keyObj = { value: null };
-            const data = collect([{ id: 1, meta: keyObj }]);
-            expect(data.keyBy("meta").all()).toEqual({
-                '{"value":null}': { id: 1, meta: keyObj },
-            });
+        it("throws for a plain object that only looks like an enum case", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-assoc-key": without an own
+            // string name and a string or number value, a plain object models an array, not a case.
+            const data = collect([{ id: 1, meta: { value: null } }]);
+
+            expect(() => data.keyBy("meta")).toThrow(
+                new TypeError("Cannot access offset of type array on array"),
+            );
         });
 
         it("casts a bool, null or float key the way PHP stores an array offset", () => {
@@ -2672,10 +4690,18 @@ describe("Collection", () => {
                 .all() as Record<symbol, unknown>;
             expect(result[sym]).toEqual({ v: 1 });
         });
+
+        it("builds a keyed result, even under the keys 0..n-1, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ id: 0 }, { id: 1 }]).keyBy("id"), "keyed");
+            expectShape(collect({ a: { id: 1 } }).keyBy("id"), "keyed");
+            expectShape(collect<{ id: number }>([]).keyBy("id"), "keyed");
+        });
     });
 
     describe("has", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testHas
             const data = collect({ id: 1, first: "Hello", second: "World" });
             expect(data.has("first")).toBe(true);
             expect(data.has("third")).toBe(false);
@@ -2708,9 +4734,8 @@ describe("Collection", () => {
             expect(collection.has([0, 5])).toBe(false);
         });
 
-        it("has() resolves a literal dotted key before traversing, through the object backing", () => {
-            // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::has
-            // — literal dotted key".
+        it("has() finds a literal dotted key, through the object backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-has-literal-dotted-key"
             const collection = collect({ "products.desk": { price: 100 } });
             expect(collection.has("products.desk")).toBe(true);
         });
@@ -2723,6 +4748,7 @@ describe("Collection", () => {
         });
 
         it("does not leak Array.prototype through the array backing", () => {
+            // JS-only: a JS array carries a length and methods, which PHP's array never holds as keys
             const collection = collect([1, 2]);
             expect(collection.has("length")).toBe(false);
             expect(collection.has("toString")).toBe(false);
@@ -2734,10 +4760,46 @@ describe("Collection", () => {
             const collection = collect({ "": "some" });
             expect(collection.has([null])).toBe(true);
         });
+
+        it("test has returns valid results", () => {
+            // CollectionTest::testHasReturnsValidResults
+            const data = new Collection({ foo: "one", bar: "two", 1: "three" });
+            expect(data.has("foo")).toBe(true);
+            expect(data.has("foo", "bar", 1)).toBe(true);
+            expect(data.has("foo", "bar", 1, "baz")).toBe(false);
+            expect(data.has("baz")).toBe(false);
+        });
+
+        it("reads a null key as the empty-string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-null-key"
+            expect([
+                collect({ a: 1 }).has(null),
+                collect({ "": 1 }).has(null),
+            ]).toEqual([false, true]);
+        });
+
+        it("answers true for an empty key list, as no key in it is missing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-empty-key-list"
+            expect([collect({ a: 1 }).has([]), collect([]).has([])]).toEqual([
+                true,
+                true,
+            ]);
+        });
+
+        it("reads an array first argument as the whole key list, ignoring the rest", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-array-ignores-extra-args"
+            expect(collect({ first: 1 }).has(["first"], "third")).toBe(true);
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-26-collection-order.json, "has-dot-path-is-a-literal-key"
+            expect(collect({ a: { b: 1 } }).has("a.b")).toBe(false);
+        });
     });
 
     describe("hasAny", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testHasAny
             const data = collect({ id: 1, first: "Hello", second: "World" });
 
             expect(data.hasAny("first")).toBe(true);
@@ -2750,13 +4812,48 @@ describe("Collection", () => {
         });
 
         it("test has any if collection is empty", () => {
-            expect(collect().hasAny("key", "any", [0, 1], "test")).toBe(false);
+            const empty = collect();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-empty-reads-no-key"
+            expect(
+                Reflect.apply(empty.hasAny, empty, [
+                    "key",
+                    "any",
+                    [0, 1],
+                    "test",
+                ]),
+            ).toBe(false);
+        });
+
+        it("reads a null key as the empty-string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-null-key"
+            expect([
+                collect({ "": 1 }).hasAny(null),
+                collect({ a: 1 }).hasAny(null),
+                collect({ "": 1 }).hasAny([null]),
+            ]).toEqual([true, false, true]);
+        });
+
+        it("reads an array first argument as the whole key list, ignoring the rest", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-array-ignores-extra-args"
+            expect(collect({ first: 1 }).hasAny(["third"], "first")).toBe(
+                false,
+            );
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-dot-path-is-literal"
+            expect([
+                collect({ a: { b: 1 } }).hasAny("a.b"),
+                collect({ "a.b": 1 }).hasAny("a.b"),
+            ]).toEqual([false, true]);
         });
     });
 
     describe("implode", () => {
         describe("Laravel Tests", () => {
             it("test implode", () => {
+                // CollectionTest::testImplode
                 const data = collect([
                     { name: "taylor", email: "foo" },
                     { name: "dayle", email: "bar" },
@@ -2800,6 +4897,98 @@ describe("Collection", () => {
                     data5.implode((user) => `${user.name}-${user.email}`, ","),
                 ).toBe("taylor-foo,dayle-bar");
             });
+
+            it("test implode models", () => {
+                // CollectionTest::testImplodeModels, whose Eloquent models a class with a public property stands in for
+                class Model {
+                    email: string;
+
+                    constructor(email: string) {
+                        this.email = email;
+                    }
+                }
+
+                const data = collect([new Model("foo"), new Model("bar")]);
+
+                expect(data.implode("email")).toBe("foobar");
+                expect(data.implode("email", ",")).toBe("foo,bar");
+            });
+        });
+
+        it("plucks a key from class instances, as PHP plucks one from any object but a Stringable", () => {
+            class User {
+                email: string;
+
+                constructor(email: string) {
+                    this.email = email;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-class-instances-by-key"
+            expect(
+                collect([new User("foo"), new User("bar")]).implode(
+                    "email",
+                    ",",
+                ),
+            ).toBe("foo,bar");
+        });
+
+        it("plucks a key from Collection rows, though their toString is their JSON", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-nested-collections-by-key"
+            expect(
+                collect([collect({ a: "x" }), collect({ a: "y" })]).implode(
+                    "a",
+                    ",",
+                ),
+            ).toBe("x,y");
+        });
+
+        it("plucks a key from Map rows and rows without a prototype, as from the arrays they stand for", () => {
+            const bare = (email: string) =>
+                Object.assign(Object.create(null) as { email: string }, {
+                    email,
+                });
+
+            // CollectionTest::testImplode
+            // JS-only: a Map and an object without a prototype each stand for a PHP array, as testImplode's rows are
+            expect([
+                collect([
+                    new Map([["email", "foo"]]),
+                    new Map([["email", "bar"]]),
+                ]).implode("email", ","),
+                collect([bare("foo"), bare("bar")]).implode("email", ","),
+            ]).toEqual(["foo,bar", "foo,bar"]);
+        });
+
+        it("plucks from an object with its own toString, as PHP plucks from any object but its own Stringable", () => {
+            class Label {
+                v: string;
+
+                constructor(v: string) {
+                    this.v = v;
+                }
+
+                toString(): string {
+                    return `S:${this.v}`;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-tostring-objects-are-plucked"
+            expect(collect([new Label("a"), new Label("b")]).implode(",")).toBe(
+                "",
+            );
+            // CollectionTest::testImplode
+            expect(
+                collect([
+                    new Stringable("taylor"),
+                    new Stringable("dayle"),
+                ]).implode(","),
+            ).toBe("taylor,dayle");
+        });
+
+        it("plucks from Date items, as PHP plucks from DateTime ones, which have no __toString", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-date-items-are-plucked"
+            expect(collect([new Date(0), new Date(1)]).implode(", ")).toBe("");
         });
 
         it("converts non-string items to string", () => {
@@ -2823,22 +5012,98 @@ describe("Collection", () => {
             expect(c.implode("name", ", ")).toBe("John, Jane");
         });
 
-        it("uses default value parameter", () => {
-            // Calling implode without arguments triggers the default parameter
-            const c = collect(["a", "b", "c"]);
-            expect(c.implode()).toBe("abc"); // joins without separator
-        });
-
         it("handles object-based collection in joinItems", () => {
             // Test with object-based collection to cover the Object.values branch in joinItems
             const c = collect({ a: "apple", b: "banana", c: "cherry" });
             expect(c.implode(", ")).toBe("apple, banana, cherry");
+        });
+
+        it("casts each piece as PHP's implode() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-scalar-casts"
+            expect(collect([true, false, null, 1.0, 2.5, 0]).implode(",")).toBe(
+                "1,,,1,2.5,0",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-missing-key"
+            expect(collect([{ a: 1 }, { b: 2 }]).implode("a", ",")).toBe("1,");
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-callback-casts"
+            expect(collect([1, 2]).implode((value) => value > 1, ",")).toBe(
+                ",1",
+            );
+        });
+
+        it("prints a float as PHP's (string) cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-float-casts"
+            expect(collect([0.1 + 0.2, 1.0, 1e25, -0.0]).implode(",")).toBe(
+                "0.3,1,1.0E+25,-0",
+            );
+        });
+
+        it("prints an array piece as Array, as PHP's (string) cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-array-pieces"
+            expect([
+                collect([1, [2, 3]]).implode(","),
+                collect(["a", { b: 1 }]).implode(","),
+                collect([1, 2]).implode((value) => [value], ","),
+                collect([{ a: [1] }, { a: 2 }]).implode("a", ","),
+            ]).toEqual(["1,Array", "a,Array", "Array,Array", "Array,2"]);
+            // JS-only: a Map stands in for an array, as a plain object does
+            expect(collect(["a", new Map([["b", 1]])]).implode(",")).toBe(
+                "a,Array",
+            );
+        });
+
+        it("throws PHP's Error for an object piece without its own toString, or a closure", () => {
+            class stdClass {}
+
+            const failure = (type: string) =>
+                new Error(
+                    `Object of class ${type} could not be converted to string`,
+                );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces": a JS Date
+            // names its own class, where PHP's message names DateTime.
+            expect(() => collect([1, new stdClass()]).implode(",")).toThrow(
+                failure("stdClass"),
+            );
+            expect(() => collect([1, new Date(0)]).implode(",")).toThrow(
+                failure("Date"),
+            );
+            expect(() => collect([1, () => 1]).implode(",")).toThrow(
+                failure("Closure"),
+            );
+            expect(() =>
+                collect([1, 2]).implode(() => new stdClass(), ","),
+            ).toThrow(failure("stdClass"));
+            expect(() =>
+                collect([{ a: new stdClass() }]).implode("a", ","),
+            ).toThrow(failure("stdClass"));
+        });
+
+        it("casts a piece with its own toString through it, and a collection through its JSON", () => {
+            class Label {
+                v: string;
+
+                constructor(v: string) {
+                    this.v = v;
+                }
+
+                toString(): string {
+                    return `S:${this.v}`;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces"
+            expect([
+                collect([1, new Label("T")]).implode(","),
+                collect([1, collect([2])]).implode(","),
+            ]).toEqual(["1,S:T", "1,[2]"]);
         });
     });
 
     describe("intersect", () => {
         describe("Laravel Tests", () => {
             it("test intersect null", () => {
+                // CollectionTest::testIntersectNull
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(c.intersect(null).all()).toEqual({});
 
@@ -2847,8 +5112,7 @@ describe("Collection", () => {
             });
 
             it("test intersect collection", () => {
-                // Uses `first_world` (not `first_word`) on the other side — matching
-                // Laravel's actual CollectionTest.php:1787.
+                // CollectionTest::testIntersectCollection, whose operand spells first_world, not first_word
                 const c = collect({ id: 1, first_word: "Hello" });
                 expect(
                     c
@@ -2874,8 +5138,7 @@ describe("Collection", () => {
         });
 
         // docs/php-parity/task-17-second-review.json, "intersect over array items collapses to \"Array\""
-        // PHP casts every array value to the string "Array", so both items match; we compare
-        // object values by identity instead. Documented in the Phase 1 divergence list.
+        // JS-only: PHP casts each array item to the string "Array" and keeps both; an object matches by identity here
         it('keeps object items that are identical, where PHP keeps both via its "Array" cast', () => {
             const shared = { id: 1 };
             expect(
@@ -2884,10 +5147,33 @@ describe("Collection", () => {
                     .all(),
             ).toEqual([shared]);
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersect(["c", "b"]);
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).intersect([2]), "list");
+            expectShape(collect({ a: 1, b: 2 }).intersect([2]), "keyed");
+            // A keyed result emptied of its keys stays a record.
+            expectShape(collect({ a: 1, b: 2 }).intersect(null), "keyed");
+        });
     });
 
     describe("intersect operand handling", () => {
         it("agrees with Arr.intersect on identical object items", () => {
+            // JS-only: an object item matches by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             const collection = new Collection([shared, { id: 2 }])
                 .intersect([shared])
@@ -2898,6 +5184,7 @@ describe("Collection", () => {
         });
 
         it("does not contradict diff about whether an item is present", () => {
+            // JS-only: diff and intersect both match an object item by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             const removedByDiff = new Collection([shared, { id: 2 }])
                 .diff([shared])
@@ -2919,23 +5206,33 @@ describe("Collection", () => {
 
             const arrayable = new ArrayableOperand();
             expect(
-                new Collection({ a: 10, b: 20 })
-                    .intersect(arrayable as never)
-                    .all(),
+                new Collection({ a: 10, b: 20 }).intersect(arrayable).all(),
             ).toEqual({ b: 20 });
         });
 
         it("normalizes a Map operand the way diff does", () => {
+            // JS-only: PHP has no Map; a Map operand stands in for the array it holds
             const map = new Map([["b", 20]]);
             expect(
-                new Collection({ a: 10, b: 20 }).intersect(map as never).all(),
+                new Collection({ a: 10, b: 20 }).intersect(map).all(),
             ).toEqual({ b: 20 });
+        });
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["b"] };
+            const result = collect(["a", "b"]).intersect(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value": PHP's all member casts to 'zzz', since array_intersect
+            // cannot cast a Closure, and a function matches by identity here, so neither matches an item
+            expect(result.all()).toEqual([]);
         });
     });
 
     describe("intersectUsing", () => {
         describe("Laravel Tests", () => {
             it("test intersect using with null", () => {
+                // CollectionTest::testIntersectUsingWithNull
                 const c = collect(["green", "brown", "blue"]);
                 expect(c.intersectUsing(null, strcasecmp).all()).toEqual([]);
 
@@ -2944,6 +5241,7 @@ describe("Collection", () => {
             });
 
             it("test intersect using collection", () => {
+                // CollectionTest::testIntersectUsingCollection
                 const c = collect(["green", "brown", "blue"]);
                 expect(
                     c
@@ -2955,23 +5253,90 @@ describe("Collection", () => {
                 ).toEqual(["green", "brown"]);
             });
         });
+
+        it("reads a comparator's 0 as equal, as PHP's <=> answers", () => {
+            const intersected = collect([1, 2, 3]).intersectUsing(
+                [2, 3],
+                (a, b) => Math.sign(a - b),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-intersectUsing-spaceship-comparator"
+            // PHP keeps the keys ({1: 2, 2: 3}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect(intersected.all()).toEqual([2, 3]);
+            expect(intersected.keys().all()).toEqual([0, 1]);
+            expect(intersected.values().all()).toEqual([2, 3]);
+        });
+
+        it("drops a fraction from a comparator's answer, as PHP's int cast does", () => {
+            const intersected = (answer: number) =>
+                collect([1, 2, 3])
+                    .intersectUsing([2], () => answer)
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-using-fractional-comparator"
+            expect(intersected(0.5)).toEqual([1, 2, 3]);
+            expect(intersected(-0.99)).toEqual([1, 2, 3]);
+            expect(intersected(1.5)).toEqual([]);
+        });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectUsing(
+                    ["C", "B"],
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).intersectUsing([2], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectUsing([2], strcasecmp),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectUsing operand handling", () => {
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 20]]);
             expect(
                 new Collection({ a: 10, b: 20 })
-                    .intersectUsing(map as never, (a, b) => a === b)
+                    .intersectUsing(map, (a, b) => a === b)
                     .all(),
             ).toEqual({ b: 20 });
+        });
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["b"] };
+            const result = collect(["a", "b"]).intersectUsing(
+                operand,
+                (x, y) => (x === y ? 0 : 1),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value"
+            expect(result.all()).toEqual([]);
         });
     });
 
     describe("intersectAssoc", () => {
         describe("Laravel Tests", () => {
             it("test intersect assoc with null", () => {
+                // CollectionTest::testIntersectAssocWithNull
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -2983,6 +5348,7 @@ describe("Collection", () => {
             });
 
             it("test intersect assoc collection", () => {
+                // CollectionTest::testIntersectAssocCollection
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -3020,10 +5386,37 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectAssoc({
+                    2: "c",
+                    1: "b",
+                });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).intersectAssoc([1]), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectAssoc({ a: 1 }),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectAssoc operand handling", () => {
         it("keeps an identical object value under a matching key, like intersect does", () => {
+            // JS-only: an object value matches by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             expect(
                 new Collection({ a: shared })
@@ -3032,39 +5425,36 @@ describe("Collection", () => {
             ).toEqual({ a: shared });
         });
 
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 20]]);
             expect(
-                new Collection({ a: 10, b: 20 })
-                    .intersectAssoc(map as never)
-                    .all(),
+                new Collection({ a: 10, b: 20 }).intersectAssoc(map).all(),
             ).toEqual({ b: 20 });
         });
 
         // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
             expect(
-                new Collection({ a: 0 })
-                    .intersectAssoc({ a: "0" } as never)
-                    .all(),
+                new Collection({ a: 0 }).intersectAssoc({ a: "0" }).all(),
             ).toEqual({ a: 0 });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testIntersectAssocCollection
             // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-collection"
-            expect(
-                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
-                    .intersectAssoc({
-                        all: () => ({
-                            a: "green",
-                            b: "yellow",
-                            0: "blue",
-                            1: "red",
-                        }),
-                    } as never)
-                    .all(),
-            ).toEqual({ a: "green" });
+            const result = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            }).intersectAssoc(
+                collect({ a: "green", b: "yellow", 0: "blue", 1: "red" }),
+            );
+
+            expect(result.all()).toEqual({ a: "green" });
+            expect(result.keys().all()).toEqual(["a"]);
+            expect(result.values().all()).toEqual(["green"]);
         });
 
         it("takes an operand of the other shape, on either backing", () => {
@@ -3077,11 +5467,22 @@ describe("Collection", () => {
                 collect(["a", "b"]).intersectAssoc({ 1: "b" }).all(),
             ).toEqual(["b"]);
         });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1, b: 2 }).intersectAssoc(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({});
+            expect(result.keys().all()).toEqual([]);
+            expect(result.values().all()).toEqual([]);
+        });
     });
 
     describe("intersectAssocUsing", () => {
         describe("Laravel Tests", () => {
             it("test intersect assoc using with null", () => {
+                // CollectionTest::testIntersectAssocUsingWithNull
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -3090,11 +5491,12 @@ describe("Collection", () => {
                 });
 
                 expect(
-                    array1.intersectAssocUsing(null, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(null, strcasecmp).all(),
                 ).toEqual({});
             });
 
             it("test intersect assoc using collection", () => {
+                // CollectionTest::testIntersectAssocUsingCollection
                 const array1 = collect({
                     a: "green",
                     b: "brown",
@@ -3109,7 +5511,7 @@ describe("Collection", () => {
                 });
 
                 expect(
-                    array1.intersectAssocUsing(array2, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(array2, strcasecmp).all(),
                 ).toEqual({ b: "brown" });
             });
         });
@@ -3119,7 +5521,7 @@ describe("Collection", () => {
                 const array1 = collect(["green", "brown", "blue", "red"]);
 
                 expect(
-                    array1.intersectAssocUsing(null, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(null, strcasecmp).all(),
                 ).toEqual([]);
             });
 
@@ -3128,23 +5530,56 @@ describe("Collection", () => {
                 const array2 = collect(["GREEN", "brown", "yellow", "red"]);
 
                 expect(
-                    array1.intersectAssocUsing(array2, strcasecmpKeys).all(),
+                    array1.intersectAssocUsing(array2, strcasecmp).all(),
                 ).toEqual(["brown", "red"]);
             });
+        });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectAssocUsing(
+                    { 2: "c", 1: "b" },
+                    strcasecmp,
+                );
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2, 3]).intersectAssocUsing([1], strcasecmp),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectAssocUsing(
+                    { A: 1 },
+                    strcasecmp,
+                ),
+                "keyed",
+            );
         });
     });
 
     describe("intersectAssocUsing operand handling", () => {
         it("keeps an identical object value when the key callback matches", () => {
+            // JS-only: an object value matches by identity, where PHP compares its "Array" cast
             const shared = { id: 1 };
             expect(
                 new Collection({ a: shared })
-                    .intersectAssocUsing({ A: shared }, strcasecmpKeys)
+                    .intersectAssocUsing({ A: shared }, strcasecmp)
                     .all(),
             ).toEqual({ a: shared });
         });
 
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([
                 ["A", "green"],
@@ -3152,7 +5587,7 @@ describe("Collection", () => {
             ]);
             expect(
                 new Collection({ a: "green", b: "brown" })
-                    .intersectAssocUsing(map as never, strcasecmpKeys)
+                    .intersectAssocUsing(map, strcasecmp)
                     .all(),
             ).toEqual({ a: "green" });
         });
@@ -3161,28 +5596,27 @@ describe("Collection", () => {
         it("matches values by PHP's string cast, like intersectAssoc", () => {
             expect(
                 new Collection({ a: 0 })
-                    .intersectAssocUsing({ a: "0" } as never, (x, y) => x === y)
+                    .intersectAssocUsing({ a: "0" }, (x, y) => x === y)
                     .all(),
             ).toEqual({ a: 0 });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testIntersectAssocUsingCollection
             // docs/php-parity/task-23-obj-release-readiness.json, "C9 intersectAssocUsing strcasecmp"
-            expect(
-                collect({ a: "green", b: "brown", c: "blue", 0: "red" })
-                    .intersectAssocUsing(
-                        {
-                            all: () => ({
-                                a: "GREEN",
-                                B: "brown",
-                                0: "yellow",
-                                1: "red",
-                            }),
-                        } as never,
-                        strcasecmpKeys,
-                    )
-                    .all(),
-            ).toEqual({ b: "brown" });
+            const result = collect({
+                a: "green",
+                b: "brown",
+                c: "blue",
+                0: "red",
+            }).intersectAssocUsing(
+                collect({ a: "GREEN", B: "brown", 0: "yellow", 1: "red" }),
+                strcasecmp,
+            );
+
+            expect(result.all()).toEqual({ b: "brown" });
+            expect(result.keys().all()).toEqual(["b"]);
+            expect(result.values().all()).toEqual(["brown"]);
         });
 
         it("takes an operand of the other shape, on either backing", () => {
@@ -3199,11 +5633,25 @@ describe("Collection", () => {
                     .all(),
             ).toEqual(["b"]);
         });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1, b: 2 }).intersectAssocUsing(
+                operand,
+                strcasecmp,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({});
+            expect(result.keys().all()).toEqual([]);
+            expect(result.values().all()).toEqual([]);
+        });
     });
 
     describe("intersectByKeys", () => {
         describe("Laravel Tests", () => {
             it("test intersect by keys null", () => {
+                // CollectionTest::testIntersectByKeysNull
                 const c = collect({ name: "Mateus", age: 18 });
                 expect(c.intersectByKeys(null).all()).toEqual({});
 
@@ -3212,6 +5660,7 @@ describe("Collection", () => {
             });
 
             it("test intersect by keys", () => {
+                // CollectionTest::testIntersectByKeys
                 const c = collect({ name: "Mateus", age: 18 });
                 expect(
                     c
@@ -3223,6 +5672,7 @@ describe("Collection", () => {
             });
 
             it("test intersect by keys with different values", () => {
+                // CollectionTest::testIntersectByKeys
                 const c = collect({
                     name: "taylor",
                     family: "otwell",
@@ -3241,32 +5691,57 @@ describe("Collection", () => {
                 ).toEqual({ name: "taylor", family: "otwell" });
             });
         });
+
+        it.fails(
+            "keeps a Map-built receiver's order for the items it keeps",
+            () => {
+                const result = outOfOrderKeys().intersectByKeys({
+                    2: "x",
+                    1: "y",
+                });
+
+                // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect([result.keys().all(), result.values().all()]).toEqual([
+                    [2, 1],
+                    ["c", "b"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).intersectByKeys([9]), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).intersectByKeys({ a: 9 }),
+                "keyed",
+            );
+        });
     });
 
     describe("intersectByKeys operand handling", () => {
-        // No PHP analogue: Map has no PHP equivalent, so this is a JS-only capability check.
+        // JS-only: PHP has no Map; a Map operand stands in for the array it holds
         it("normalizes a Map operand the way diff and intersect do", () => {
             const map = new Map([["b", 999]]);
             expect(
-                new Collection({ a: 1, b: 2 })
-                    .intersectByKeys(map as never)
-                    .all(),
+                new Collection({ a: 1, b: 2 }).intersectByKeys(map).all(),
             ).toEqual({ b: 2 });
         });
 
-        it("unwraps a Collection-like operand", () => {
+        it("reads a Collection operand's items", () => {
+            // CollectionTest::testIntersectByKeys
             // docs/php-parity/task-23-obj-release-readiness.json, "C19 intersectByKeys 2"
-            expect(
-                collect({ name: "taylor", family: "otwell", age: 26 })
-                    .intersectByKeys({
-                        all: () => ({
-                            height: 180,
-                            name: "amir",
-                            family: "moharami",
-                        }),
-                    } as never)
-                    .all(),
-            ).toEqual({ name: "taylor", family: "otwell" });
+            const result = collect({
+                name: "taylor",
+                family: "otwell",
+                age: 26,
+            }).intersectByKeys(
+                collect({ height: 180, name: "amir", family: "moharami" }),
+            );
+
+            expect(result.all()).toEqual({ name: "taylor", family: "otwell" });
+            expect(result.keys().all()).toEqual(["name", "family"]);
+            expect(result.values().all()).toEqual(["taylor", "otwell"]);
         });
 
         it("takes an operand of the other shape, on either backing", () => {
@@ -3281,11 +5756,23 @@ describe("Collection", () => {
                 collect([1, 2, 3]).intersectByKeys({ 0: "x", 2: "y" }).all(),
             ).toEqual([1, 3]);
         });
+
+        it("reads a plain object's all member as one of its keys, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ all: 1, b: 2 }).intersectByKeys(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ all: 1 });
+            expect(result.keys().all()).toEqual(["all"]);
+            expect(result.values().all()).toEqual([1]);
+        });
     });
 
     describe("isEmpty", () => {
         describe("Laravel Tests", () => {
-            it("", () => {
+            it("answers for an empty collection and a filled one", () => {
+                // CollectionTest::testEmptyCollectionIsEmpty
+                // CollectionTest::testEmptyCollectionIsNotEmpty
                 const data = collect();
 
                 expect(data.isEmpty()).toBe(true);
@@ -3317,10 +5804,75 @@ describe("Collection", () => {
             const collection = collect({ a: 1 });
             expect(collection.isEmpty()).toBe(false);
         });
+
+        it("counts a null item as an item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-isEmpty-null-item"
+            expect(collect([null]).isEmpty()).toBe(false);
+        });
+
+        it("agrees with count() after a keyed write onto an empty list", () => {
+            const collection = collect([]).put("x", 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-isEmpty-after-put-on-empty-list"
+            expect(collection.isEmpty()).toBe(false);
+            expect(collection.count()).toBe(1);
+        });
+
+        it("agrees with count() on a list with a hole", () => {
+            const holes: number[] = [];
+            holes.length = 1;
+            const collection = new Collection(holes);
+
+            // JS-only: PHP has no sparse array; a hole holds no item, so neither view counts one.
+            expect(collection.isEmpty()).toBe(true);
+            expect(collection.count()).toBe(0);
+        });
+
+        it("agrees with count() on a list whose item follows a hole", () => {
+            const holes: string[] = [];
+            holes[1] = "b";
+            const collection = new Collection(holes);
+
+            // JS-only: PHP has no sparse array; the hole holds no item, but the index after it does.
+            expect(collection.isEmpty()).toBe(false);
+            expect(collection.isNotEmpty()).toBe(true);
+            expect(collection.count()).toBe(1);
+        });
+
+        it("reads a list only up to its first item", () => {
+            const read = new Set<string>();
+            const list = new Proxy(
+                Array.from({ length: 1000 }, (_, index) => index),
+                {
+                    has(target, key) {
+                        read.add(String(key));
+
+                        return Reflect.has(target, key);
+                    },
+                    getOwnPropertyDescriptor(target, key) {
+                        read.add(String(key));
+
+                        return Reflect.getOwnPropertyDescriptor(target, key);
+                    },
+                },
+            );
+
+            class Watched extends Collection<number, number> {
+                constructor() {
+                    super([]);
+                    this.items = list;
+                }
+            }
+
+            // JS-only: a bound on the work, so a loop that asks isEmpty() before each shift() stays linear.
+            expect(new Watched().isEmpty()).toBe(false);
+            expect([...read].filter((key) => /^\d+$/.test(key))).toEqual(["0"]);
+        });
     });
 
     describe("containsOneItem", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContainsOneItem
             expect(collect([]).containsOneItem()).toBe(false);
             expect(collect([1]).containsOneItem()).toBe(true);
             expect(collect([1, 2]).containsOneItem()).toBe(false);
@@ -3363,6 +5915,7 @@ describe("Collection", () => {
 
     describe("containsManyItems", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testContainsManyItems
             expect(collect([]).containsManyItems()).toBe(false);
             expect(collect([1]).containsManyItems()).toBe(false);
             expect(collect([1, 2]).containsManyItems()).toBe(true);
@@ -3389,6 +5942,7 @@ describe("Collection", () => {
         });
 
         it("test with objects", () => {
+            // CollectionTest::testContainsManyItems, over a record
             expect(collect({}).containsManyItems()).toBe(false);
             expect(collect({ a: 1 }).containsManyItems()).toBe(false);
             expect(collect({ a: 1, b: 2 }).containsManyItems()).toBe(true);
@@ -3421,6 +5975,7 @@ describe("Collection", () => {
 
     describe("hasSole", () => {
         it("Laravel tests", () => {
+            // CollectionTest::testHasSole
             const collection = collect([{ age: 2 }, { age: 3 }]);
 
             expect(collection.hasSole()).toBe(false);
@@ -3470,16 +6025,78 @@ describe("Collection", () => {
             expect(c.hasSole("status", "=", "active")).toBe(true);
         });
 
-        it("uses operatorForWhere with non-callable key (path string)", () => {
-            // Test the branch where key is not null and not callable
-            const c = collect([{ active: true }, { active: false }]);
-            // Here "active" is a path key, not a callable - triggers operatorForWhere(key)
-            expect(c.hasSole("active")).toBe(true);
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(collect([{ a: null }, { a: 1 }]).hasSole("a", null)).toBe(
+                true,
+            );
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 1 }]).hasSole("a", undefined),
+            ).toBe(true);
+        });
+
+        it("counts a falsy item when no filter is given", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-hasSole-hasMany-keep-falsy-items"
+            expect([collect([0]).hasSole(), collect([null]).hasSole()]).toEqual(
+                [true, true],
+            );
+        });
+
+        it.fails(
+            "filters a Map-built collection in its insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().hasSole((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP filters in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-filtered-predicates-out-of-order-visits"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
+
+        it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
+            const collection = collect([{ name: "foo" }]);
+            const hasSole = (key: unknown) => () =>
+                Reflect.apply(collection.hasSole, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(hasSole("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect(hasSole("0")).toThrowError(TypeError);
+            expect(hasSole(1)).toThrowError(TypeError);
+        });
+
+        it("counts every item for a lone key PHP compares equal to null", () => {
+            const collection = collect([{ name: "foo" }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect([
+                Reflect.apply(collection.hasSole, collection, [0]),
+                Reflect.apply(collection.hasSole, collection, [""]),
+            ]).toEqual([true, true]);
         });
     });
 
     describe("hasMany", () => {
         it("Laravel tests", () => {
+            // CollectionTest::testHasMany
             const collection = collect([{ age: 2 }, { age: 3 }]);
 
             expect(collection.hasMany()).toBe(true);
@@ -3537,20 +6154,79 @@ describe("Collection", () => {
             expect(c.hasMany("status", "=", "active")).toBe(true);
         });
 
-        it("uses operatorForWhere with non-callable key (path string)", () => {
-            // Test the branch where key is not null and not callable (just a string path)
-            const c = collect([
-                { status: "active" },
-                { status: "active" },
-                { status: "inactive" },
-            ]);
-            // Here "status" is a path key, not a callable - triggers operatorForWhere(key)
-            expect(c.hasMany("status")).toBe(true);
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(
+                collect([{ a: null }, { a: 0 }, { a: 1 }]).hasMany("a", null),
+            ).toBe(true);
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 0 }, { a: 1 }]).hasMany(
+                    "a",
+                    undefined,
+                ),
+            ).toBe(true);
+        });
+
+        it("counts falsy items when no filter is given", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-hasSole-hasMany-keep-falsy-items"
+            expect(collect([0, null]).hasMany()).toBe(true);
+        });
+
+        it.fails(
+            "filters a Map-built collection in its insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().hasMany((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP filters in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-filtered-predicates-out-of-order-visits"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
+
+        it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
+            const collection = collect([{ name: "foo" }, { name: "bar" }]);
+            const hasMany = (key: unknown) => () =>
+                Reflect.apply(collection.hasMany, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(hasMany("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect(hasMany("0")).toThrowError(TypeError);
+            expect(hasMany(1)).toThrowError(TypeError);
+        });
+
+        it("counts every item for a lone key PHP compares equal to null", () => {
+            const collection = collect([{ name: "foo" }, { name: "bar" }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect([
+                Reflect.apply(collection.hasMany, collection, [0]),
+                Reflect.apply(collection.hasMany, collection, [""]),
+            ]).toEqual([true, true]);
         });
     });
 
     describe("join", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testJoin
             expect(collect(["a", "b", "c"]).join(", ")).toBe("a, b, c");
             expect(collect(["a", "b", "c"]).join(", ", " and ")).toBe(
                 "a, b and c",
@@ -3559,10 +6235,80 @@ describe("Collection", () => {
             expect(collect(["a"]).join(", ", " and ")).toBe("a");
             expect(collect([]).join(", ", " and ")).toBe("");
         });
+
+        it("hands a lone item back as it is, an object without its own toString included", () => {
+            class Point {}
+            const point = new Point();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
+            expect(collect([point]).join(", ", " and ")).toBe(point);
+        });
+
+        it("plucks from objects with their own toString by the glue, as implode() does, but joins a Stringable", () => {
+            class Label {
+                v: string;
+
+                constructor(v: string) {
+                    this.v = v;
+                }
+
+                toString(): string {
+                    return `S:${this.v}`;
+                }
+            }
+
+            const labels = collect([new Label("a"), new Label("b")]);
+            const strings = collect([new Stringable("a"), new Stringable("b")]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-tostring-objects-are-plucked"
+            expect([labels.join(","), labels.join(", ", " and ")]).toEqual([
+                "",
+                " and S:b",
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-stringable-items-are-joined"
+            expect([strings.join(","), strings.join(", ", " and ")]).toEqual([
+                "a,b",
+                "a and b",
+            ]);
+        });
+
+        it("casts its last item as PHP's . does, and the rest as implode() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-null-last-item" and
+            // "C32-H-join-bool-items"
+            expect([
+                collect(["a", null]).join(", ", " and "),
+                collect([true, false, true]).join(", ", " and "),
+            ]).toEqual(["a and ", "1,  and 1"]);
+        });
+
+        it("prints a float as PHP's (string) cast does, the last item too", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-float-casts"
+            expect(
+                collect([0.1 + 0.2, 1.0, 1e25, -0.0]).join(", ", " and "),
+            ).toBe("0.3, 1, 1.0E+25 and -0");
+        });
+
+        it("prints an array piece as Array and throws for an object piece, the last item too", () => {
+            class stdClass {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-array-and-object-pieces"
+            expect([
+                collect([1, [2]]).join(", ", " and "),
+                collect([1, [2], 3]).join(", ", " and "),
+            ]).toEqual(["1 and Array", "1, Array and 3"]);
+            expect(() =>
+                collect([1, new stdClass()]).join(", ", " and "),
+            ).toThrow(
+                new Error(
+                    "Object of class stdClass could not be converted to string",
+                ),
+            );
+        });
     });
 
     describe("keys", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testKeys
             const c = collect({ name: "taylor", framework: "laravel" });
             expect(c.keys().all()).toEqual(["name", "framework"]);
 
@@ -3581,6 +6327,7 @@ describe("Collection", () => {
         });
 
         it("reports the same number of keys as values, even with a non-enumerable own property", () => {
+            // JS-only: PHP's array has no entry it hides from iteration
             const items = Object.defineProperty({ a: 1 }, "hidden", {
                 value: 2,
                 enumerable: false,
@@ -3588,11 +6335,18 @@ describe("Collection", () => {
             const collection = collect(items);
             expect(collection.keys().count()).toBe(collection.values().count());
         });
+
+        it("lists a list's keys and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).keys(), "list");
+            expectShape(outOfOrderKeys().keys(), "list");
+        });
     });
 
     describe("last", () => {
         describe("Laravel Tests", () => {
             it("test last returns last item in collection", () => {
+                // CollectionTest::testLastReturnsLastItemInCollection
                 const c = collect(["foo", "bar"]);
                 expect(c.last()).toBe("bar");
 
@@ -3601,6 +6355,7 @@ describe("Collection", () => {
             });
 
             it("test last with callback", () => {
+                // CollectionTest::testLastWithCallback
                 const c = collect([100, 200, 300]);
                 expect(c.last((value) => value < 250)).toBe(200);
 
@@ -3609,7 +6364,8 @@ describe("Collection", () => {
                 expect(c.last((value) => value > 300)).toBeNull();
             });
 
-            it("test last with default and without callback", () => {
+            it("test last with callback and default", () => {
+                // CollectionTest::testLastWithCallbackAndDefault
                 const c = collect(["foo", "bar"]);
                 expect(c.last((value) => value === "baz", "default")).toBe(
                     "default",
@@ -3622,6 +6378,7 @@ describe("Collection", () => {
             });
 
             it("test last with default and without callback", () => {
+                // CollectionTest::testLastWithDefaultAndWithoutCallback
                 const c = collect();
                 expect(c.last(null, "default")).toBe("default");
             });
@@ -3657,20 +6414,30 @@ describe("Collection", () => {
             expect(collection.last(null, "default")).toBe("default");
         });
 
-        it("returns undefined converted to null", () => {
+        it("returns null for an empty collection", () => {
+            // CollectionTest::testLastReturnsLastItemInCollection
             const c = collect([]);
             expect(c.last()).toBeNull();
         });
 
-        it("converts undefined value to null", () => {
-            const c = collect([1, undefined]);
-            expect(c.last()).toBeNull();
+        it("returns a stored undefined as stored, as first() does", () => {
+            // JS-only: PHP has no undefined, so an item holding one comes back unchanged, from either end
+            expect(collect([1, undefined]).last()).toBeUndefined();
+            expect(collect({ a: 1, b: undefined }).last()).toBeUndefined();
+            expect(
+                collect([undefined, 1]).last(
+                    (value) => value === undefined,
+                    "default",
+                ),
+            ).toBeUndefined();
+            expect(collect([undefined, 1]).first()).toBeUndefined();
         });
     });
 
     describe("pluck", () => {
         describe("Laravel Tests", () => {
             it("test pluck with array and object values", () => {
+                // CollectionTest::testPluckWithArrayAndObjectValues
                 const data = collect([
                     { name: "taylor", email: "foo" },
                     { name: "dayle", email: "bar" },
@@ -3683,7 +6450,44 @@ describe("Collection", () => {
                 expect(data.pluck("email").all()).toEqual(["foo", "bar"]);
             });
 
+            it("test pluck with array access values", () => {
+                // CollectionTest::testPluckWithArrayAccessValues
+                class TestArrayAccessImplementation {
+                    readonly #items: Record<string, unknown>;
+
+                    constructor(items: Record<string, unknown>) {
+                        this.#items = items;
+                    }
+
+                    offsetExists(offset: string): boolean {
+                        return Object.hasOwn(this.#items, offset);
+                    }
+
+                    offsetGet(offset: string): unknown {
+                        return this.#items[offset];
+                    }
+                }
+
+                const data = collect([
+                    new TestArrayAccessImplementation({
+                        name: "taylor",
+                        email: "foo",
+                    }),
+                    new TestArrayAccessImplementation({
+                        name: "dayle",
+                        email: "bar",
+                    }),
+                ]);
+
+                expect(data.pluck("email", "name").all()).toEqual({
+                    taylor: "foo",
+                    dayle: "bar",
+                });
+                expect(data.pluck("email").all()).toEqual(["foo", "bar"]);
+            });
+
             it("test pluck with dot notation", () => {
+                // CollectionTest::testPluckWithDotNotation
                 const data = collect([
                     {
                         name: "amir",
@@ -3706,6 +6510,7 @@ describe("Collection", () => {
             });
 
             it("test pluck with closure", () => {
+                // CollectionTest::testPluckWithClosure
                 const data = collect([
                     {
                         name: "amir",
@@ -3736,6 +6541,7 @@ describe("Collection", () => {
             });
 
             it("test pluck duplicate keys exist", () => {
+                // CollectionTest::testPluckDuplicateKeysExist
                 const data = collect([
                     { brand: "Tesla", color: "red" },
                     { brand: "Pagani", color: "white" },
@@ -3747,6 +6553,30 @@ describe("Collection", () => {
                     Tesla: "black",
                     Pagani: "orange",
                 });
+            });
+
+            it.fails("test get pluck value with accessors", () => {
+                // CollectionTest::testGetPluckValueWithAccessors, a class getter standing in for its __get accessor
+                class TestAccessorEloquentTestStub {
+                    readonly #attributes: Record<string, unknown>;
+
+                    constructor(attributes: Record<string, unknown>) {
+                        this.#attributes = attributes;
+                    }
+
+                    get some(): unknown {
+                        return this.#attributes["some"];
+                    }
+                }
+
+                const data = collect([
+                    new TestAccessorEloquentTestStub({ some: "foo" }),
+                    new TestAccessorEloquentTestStub({ some: "bar" }),
+                ]);
+
+                // Deferred: pluck() reads no class getter, the port's stand-in for PHP's __get accessor
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-accessor"
+                expect(data.pluck("some").all()).toEqual(["foo", "bar"]);
             });
         });
 
@@ -3770,6 +6600,37 @@ describe("Collection", () => {
             expect(idedNames.all()).toEqual({ 1: "John", 2: "Jane" });
         });
 
+        it("hands both callbacks each item in the collection's order, the value one first", () => {
+            const seen: string[] = [];
+            const rows = new Collection(
+                new Map([
+                    [2, { n: "c", k: "kc" }],
+                    [0, { n: "a", k: "ka" }],
+                    [1, { n: "b", k: "kb" }],
+                ]),
+            );
+
+            const result = rows.pluck(
+                (item) => {
+                    seen.push(`v:${item.n}`);
+
+                    return item.n;
+                },
+                (item) => {
+                    seen.push(`k:${item.n}`);
+
+                    return item.k;
+                },
+            );
+
+            // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-callback-order"
+            expect(seen).toEqual(["v:c", "k:c", "v:a", "k:a", "v:b", "k:b"]);
+            // docs/php-parity/task-30-map-order.json, "pluck-out-of-order-keyed"
+            expect(result.all()).toEqual({ kc: "c", ka: "a", kb: "b" });
+            expect(result.keys().all()).toEqual(["kc", "ka", "kb"]);
+            expect(result.values().all()).toEqual(["c", "a", "b"]);
+        });
+
         it("plucks wildcard paths the same way for array and object backing", () => {
             // dataPluck routes object input to Obj.pluck and array input to Arr.pluck,
             // and the wildcard target here is a plain object, not a JS array.
@@ -3782,10 +6643,45 @@ describe("Collection", () => {
                 expected,
             );
         });
+
+        it.fails(
+            "plucks a Map-built collection's items in the order it holds them",
+            () => {
+                const rows = collect(
+                    new Map([
+                        [2, { n: "c", k: "kc" }],
+                        [0, { n: "a", k: "ka" }],
+                        [1, { n: "b", k: "kb" }],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP plucks in insertion order, the row under key 2 first
+                // docs/php-parity/task-30-map-order.json, "pluck-out-of-order"
+                expect(rows.pluck("n").all()).toEqual(["c", "a", "b"]);
+            },
+        );
+
+        it("lists the values without a key and keys them with one, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ id: 0, name: "a" }]).pluck("name"), "list");
+            expectShape(
+                collect({ x: { id: 0, name: "a" } }).pluck("name"),
+                "list",
+            );
+            expectShape(
+                collect([{ id: 0, name: "a" }]).pluck("name", "id"),
+                "keyed",
+            );
+            expectShape(
+                collect({ x: { id: 1, name: "a" } }).pluck("name", "id"),
+                "keyed",
+            );
+        });
     });
 
     describe("map", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testMap
             const data = collect([1, 2, 3]);
             const mapped = data.map((item) => item * 2);
             expect(mapped.all()).toEqual([2, 4, 6]);
@@ -3814,11 +6710,38 @@ describe("Collection", () => {
             );
             expect(mapped.all()).toEqual({ a: "a:2", b: "b:4", c: "c:6" });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const mapped = outOfOrderKeys().map(
+                    (value, key) => `${value}!${key}`,
+                );
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "map-out-of-order"
+                expect(mapped.keys().all()).toEqual([2, 0, 1]);
+                expect(mapped.values().all()).toEqual(["c!2", "a!0", "b!1"]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).map((value) => value * 2),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).map((value) => value * 2),
+                "keyed",
+            );
+        });
     });
 
     describe("mapToDictionary", () => {
         describe("Laravel Tests", () => {
             it("test map to dictionary", () => {
+                // CollectionTest::testMapToDictionary
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 2, name: "B" },
@@ -3847,31 +6770,10 @@ describe("Collection", () => {
                     B: ["B", "B"],
                     C: ["C"],
                 });
-
-                const groups3 = data.mapToDictionary((item) => {
-                    return [item.name, item.id];
-                });
-
-                expect(groups3.all()).toEqual({
-                    A: [1],
-                    B: [2, 4],
-                    C: [3],
-                });
-
-                expect(() =>
-                    data.mapToDictionary((item) => {
-                        return [item.name];
-                    }),
-                ).toThrowError();
-
-                expect(() =>
-                    data.mapToDictionary((item) => {
-                        return [item.name, item.id, "error"];
-                    }),
-                ).toThrowError();
             });
 
             it("test map to dictionary with numeric keys", () => {
+                // CollectionTest::testMapToDictionaryWithNumericKeys
                 const data = collect([1, 2, 3, 2, 1]);
 
                 const groups = data.mapToDictionary((item, key) => {
@@ -3894,23 +6796,69 @@ describe("Collection", () => {
                     a: [1, 3],
                     b: [2],
                 });
-
-                const groups3 = data.mapToDictionary((item, key) => {
-                    return [item, key];
-                });
-
-                expect(groups3.all()).toEqual({
-                    1: [0, 4],
-                    2: [1, 3],
-                    3: [2],
-                });
             });
+        });
+
+        it("files only the first pair the callback returns", () => {
+            const dictionary = collect([1, 2]).mapToDictionary((value) => ({
+                a: value,
+                b: value * 10,
+            }));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-multi-pair-takes-first"
+            expect(dictionary.all()).toEqual({ a: [1, 2] });
+            expect(dictionary.keys().all()).toEqual(["a"]);
+            expect(dictionary.values().all()).toEqual([[1, 2]]);
+        });
+
+        it("files a list the callback returns under key 0, its first pair", () => {
+            const rows = collect([
+                { id: 1, name: "A" },
+                { id: 2, name: "B" },
+            ]);
+
+            const pairs = rows.mapToDictionary((row) => [row.name, row.id]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-list-return"
+            expect(pairs.all()).toEqual({ 0: ["A", "B"] });
+            expect(pairs.keys().all()).toEqual([0]);
+            expect(pairs.values().all()).toEqual([["A", "B"]]);
+
+            const singles = rows.mapToDictionary((row) => [row.name]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-one-item-list-return"
+            expect(singles.all()).toEqual({ 0: ["A", "B"] });
+            expect(singles.keys().all()).toEqual([0]);
+            expect(singles.values().all()).toEqual([["A", "B"]]);
+        });
+
+        it("files false under an empty key when the callback returns no pair", () => {
+            const dictionary = collect([1, 2]).mapToDictionary(() => []);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-empty-return"
+            expect(dictionary.all()).toEqual({ "": [false, false] });
+            expect(dictionary.keys().all()).toEqual([""]);
+            expect(dictionary.values().all()).toEqual([[false, false]]);
+        });
+
+        it("builds a keyed dictionary of lists, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const dictionary = collect([1, 2]).mapToDictionary(
+                (value, key) => ({ [key]: value }),
+            );
+
+            expectShape(dictionary, "keyed");
+            expectShape(
+                collect({ a: 1 }).mapToDictionary((value, key) => ({
+                    [key]: value,
+                })),
+                "keyed",
+            );
         });
     });
 
     describe("mapWithKeys", () => {
         describe("Laravel Tests", () => {
             it("test map with keys", () => {
+                // CollectionTest::testMapWithKeys
                 const data = collect([
                     { name: "Blastoise", type: "Water", idx: 9 },
                     { name: "Charmander", type: "Fire", idx: 4 },
@@ -3929,6 +6877,7 @@ describe("Collection", () => {
             });
 
             it("test map with keys integer keys", () => {
+                // CollectionTest::testMapWithKeysIntegerKeys
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 3, name: "B" },
@@ -3943,6 +6892,7 @@ describe("Collection", () => {
             });
 
             it("test map with keys multiple rows", () => {
+                // CollectionTest::testMapWithKeysMultipleRows
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 2, name: "B" },
@@ -3964,9 +6914,13 @@ describe("Collection", () => {
                     3: "C",
                     C: 3,
                 });
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-multiple-rows-order"
+                expect(mapped.keys().all()).toEqual([1, "A", 2, "B", 3, "C"]);
+                expect(mapped.values().all()).toEqual(["A", 1, "B", 2, "C", 3]);
             });
 
             it("test map with keys callback key", () => {
+                // CollectionTest::testMapWithKeysCallbackKey
                 const data = collect(
                     new Map([
                         [3, { id: 1, name: "A" }],
@@ -3981,6 +6935,51 @@ describe("Collection", () => {
 
                 expect(mapped.keys().all()).toEqual([3, 5, 4]);
             });
+
+            it("test map with keys overwriting keys", () => {
+                // CollectionTest::testMapWithKeysOverwritingKeys
+                const data = collect([
+                    { id: 1, name: "A" },
+                    { id: 2, name: "B" },
+                    { id: 1, name: "C" },
+                ]);
+
+                const mapped = data.mapWithKeys((item) => {
+                    return { [item.id]: item.name };
+                });
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-overwriting-keys"
+                expect(mapped.all()).toEqual({ 1: "C", 2: "B" });
+                expect(mapped.keys().all()).toEqual([1, 2]);
+                expect(mapped.values().all()).toEqual(["C", "B"]);
+            });
+        });
+
+        it("walks a collection the callback returns by its items", () => {
+            const mapped = collect([1, 2]).mapWithKeys((value) =>
+                collect({ [`k${value}`]: value }),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-returns-collection"
+            expect(mapped.all()).toEqual({ k1: 1, k2: 2 });
+            expect(mapped.keys().all()).toEqual(["k1", "k2"]);
+            expect(mapped.values().all()).toEqual([1, 2]);
+        });
+
+        it("walks a Map the callback returns in its insertion order", () => {
+            const mapped = collect([1]).mapWithKeys(
+                () =>
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+            );
+
+            // JS-only: PHP has no Map, which stands for the array the callback returns in
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-out-of-order-return"
+            expect(mapped.all()).toEqual({ 2: "c", 0: "a" });
+            expect(mapped.keys().all()).toEqual([2, 0]);
+            expect(mapped.values().all()).toEqual(["c", "a"]);
         });
 
         it("passes each source's own key shape to the callback", () => {
@@ -4003,10 +7002,8 @@ describe("Collection", () => {
             expect(objectSeenKeys).toEqual(["0x10", "1e3"]);
         });
 
-        // Collection.mapWithKeys builds an internal Map to hold PHP-like insertion order
-        // for numeric keys, but that Map must never leak out through all(): PHP has no
-        // Map, so callers must always see one plain container.
         it("never exposes the internal Map through .all(), either backing", () => {
+            // JS-only: the result is built through a Map to keep PHP's key order, which all() must never hand back.
             const fromArray = collect([1, 2]).mapWithKeys((value) => ({
                 [value]: value,
             }));
@@ -4019,27 +7016,55 @@ describe("Collection", () => {
             expect(fromObject.all()).not.toBeInstanceOf(Map);
             expect(fromObject.all()).toEqual({ 1: 1, 2: 2 });
         });
+
+        it("builds a keyed result from a list or a keyed collection, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).mapWithKeys((value, key) => ({ [key]: value })),
+                "keyed",
+            );
+            expectShape(
+                collect({ a: 1 }).mapWithKeys((value, key) => ({
+                    [key]: value,
+                })),
+                "keyed",
+            );
+            expectShape(
+                collect<number>([]).mapWithKeys((value) => ({
+                    [value]: value,
+                })),
+                "keyed",
+            );
+        });
     });
 
     describe("merge", () => {
         describe("Laravel Tests", () => {
             it("test merge null", () => {
+                // CollectionTest::testMergeNull
                 const c = collect({ name: "hello" });
                 expect(c.merge(null).all()).toEqual({ name: "hello" });
             });
 
             it("test merge array", () => {
+                // CollectionTest::testMergeArray
                 const c = collect({ name: "Hello" });
                 expect(c.merge({ id: 1 }).all()).toEqual({
                     name: "Hello",
                     id: 1,
                 });
 
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-scalar-operand"
+                // A scalar is outside merge()'s operand types; PHP's runtime casts it to an array holding it
                 const d = collect(["hello"]);
-                expect(d.merge(1).all()).toEqual(["hello", 1]);
+                expect(Reflect.apply(d.merge, d, [1]).all()).toEqual([
+                    "hello",
+                    1,
+                ]);
             });
 
             it("test merge collection", () => {
+                // CollectionTest::testMergeCollection
                 const c = collect({ name: "Hello" });
                 expect(
                     c.merge(collect({ name: "World", id: 1 })).all(),
@@ -4053,25 +7078,138 @@ describe("Collection", () => {
             });
         });
 
+        it("hands back a new instance for a null operand", () => {
+            const collection = collect([1]);
+            const merged = collection.merge(null);
+            merged.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-null-is-a-new-instance"
+            expect(merged).not.toBe(collection);
+            expect(collection.all()).toEqual([1]);
+            expect(merged.all()).toEqual([1, 2]);
+        });
+
         it("merge object items with array", () => {
-            const c = collect({ a: 1, b: 2 });
-            expect(c.merge([3, 4]).all()).toEqual({
-                "0": 3,
-                "1": 4,
-                a: 1,
-                b: 2,
-            });
+            const merged = collect({ a: 1, b: 2 }).merge([3, 4]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-assoc-then-list"
+            expect(merged.all()).toEqual({ a: 1, b: 2, 0: 3, 1: 4 });
+            expect(merged.keys().all()).toEqual(["a", "b", 0, 1]);
+            expect(merged.values().all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("renumbers the receiver's integer keys in the order it holds them", () => {
+            // A Map holds PHP's ['a' => 1, 5 => 'x'] in order, where a plain object lists the 5 first
+            const merged = collect(
+                new Map<string | number, string | number>([
+                    ["a", 1],
+                    [5, "x"],
+                ]),
+            ).merge(["y"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-int-keyed-record-then-list"
+            expect(merged.all()).toEqual({ a: 1, 0: "x", 1: "y" });
+            expect(merged.keys().all()).toEqual(["a", 0, 1]);
+            expect(merged.values().all()).toEqual([1, "x", "y"]);
+        });
+
+        it("appends an integer key both sides hold, renumbered", () => {
+            const merged = collect({ 5: "a" }).merge({ 5: "b" });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-same-int-key-appends"
+            expect(merged.all()).toEqual(["a", "b"]);
+            expect(merged.keys().all()).toEqual([0, 1]);
+            expect(merged.values().all()).toEqual(["a", "b"]);
+        });
+
+        it("keeps a string key both sides hold in its first place, with the operand's value", () => {
+            const merged = collect({ a: 1, b: 2 }).merge({ c: 3, a: 9 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-string-key-keeps-its-place"
+            expect(merged.all()).toEqual({ a: 9, b: 2, c: 3 });
+            expect(merged.keys().all()).toEqual(["a", "b", "c"]);
+            expect(merged.values().all()).toEqual([9, 2, 3]);
+        });
+
+        it("appends an operand's integer keys in the order it holds them", () => {
+            const operand = () =>
+                new Map([
+                    [3, "x"],
+                    [1, "y"],
+                ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-list-then-out-of-order-int-keys"
+            for (const merged of [
+                collect([1]).merge(operand()),
+                collect([1]).merge(collect(operand())),
+            ]) {
+                expect(merged.all()).toEqual([1, "x", "y"]);
+                expect(merged.keys().all()).toEqual([0, 1, 2]);
+                expect(merged.values().all()).toEqual([1, "x", "y"]);
+            }
+        });
+
+        it("renumbers a Map-built receiver in the order it holds its keys", () => {
+            const merged = collect(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ).merge(["d"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-out-of-order-receiver"
+            expect(merged.all()).toEqual(["c", "a", "b", "d"]);
+            expect(merged.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(merged.values().all()).toEqual(["c", "a", "b", "d"]);
+        });
+
+        it("renumbers integer keys for a null operand too", () => {
+            const merged = collect({ 5: "a", k: "b" }).merge(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-merge-null-renumbers"
+            expect(merged.all()).toEqual({ 0: "a", k: "b" });
+            expect(merged.keys().all()).toEqual([0, "k"]);
+            expect(merged.values().all()).toEqual(["a", "b"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).merge(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data-by-key"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
+        });
+
+        it("renumbers into a list unless a string key makes a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const wide: Record<string, number> = {};
+            const maybeFields = (): { c: number } | null => null;
+
+            expectShape(collect([1, 2]).merge([3]), "list");
+            expectShape(collect({ a: 1 }).merge({ b: 2 }), "keyed");
+            expectShape(collect([1, 2]).merge({ c: 3 }), "keyed");
+            // Integer keys renumber, so a record holding only them merges into a list.
+            expectShape(collect([1, 2]).merge({ 5: 3 }), "list");
+            expectShape(collect({ 5: "a" }).merge(null), "list");
+            // A wide key or a nullable operand may hold no string key, which leaves a list.
+            expectShape(collect(wide).merge([1]), "list");
+            expectShape(collect([1]).merge(maybeFields()), "list");
         });
     });
 
     describe("mergeRecursive", () => {
         describe("Laravel Tests", () => {
             it("test merge recursive null", () => {
+                // CollectionTest::testMergeRecursiveNull
                 const c = collect({ name: "hello" });
                 expect(c.mergeRecursive(null).all()).toEqual({ name: "hello" });
             });
 
             it("test merge recursive array", () => {
+                // CollectionTest::testMergeRecursiveArray
                 const c = collect({ name: "Hello", id: 1 });
                 expect(c.mergeRecursive({ id: 2 }).all()).toEqual({
                     name: "Hello",
@@ -4086,6 +7224,7 @@ describe("Collection", () => {
             });
 
             it("test merge recursive collection", () => {
+                // CollectionTest::testMergeRecursiveCollection
                 const c = collect({
                     name: "Hello",
                     id: 1,
@@ -4102,7 +7241,19 @@ describe("Collection", () => {
             });
         });
 
+        it("hands back a new instance for a null operand", () => {
+            const collection = collect([1]);
+            const merged = collection.mergeRecursive(null);
+            merged.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-null-is-a-new-instance"
+            expect(merged).not.toBe(collection);
+            expect(collection.all()).toEqual([1]);
+            expect(merged.all()).toEqual([1, 2]);
+        });
+
         it("test target is array and source is not", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-list-meets-scalar"
             const target = collect({ a: [1, 2, 3] });
             const source = collect({ a: 4 });
             expect(target.mergeRecursive(source).all()).toEqual({
@@ -4111,6 +7262,7 @@ describe("Collection", () => {
         });
 
         it("test source is array and target is not", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-meets-list"
             const target = collect({ a: 7 });
             const source = collect({ a: [1, 2, 3] });
             expect(target.mergeRecursive(source).all()).toEqual({
@@ -4119,6 +7271,8 @@ describe("Collection", () => {
         });
 
         it("test merging existing keys and adding new keys", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-mergeRecursive-spec-existing-and-new-keys"
             const target = collect({ a: 5, b: [3, 4], c: { z: 5, y: [9, 0] } });
             const source = collect({
                 a: 6,
@@ -4146,15 +7300,15 @@ describe("Collection", () => {
                 { b: 5, c: 6, d: [10, 11], e: { x: 3, z: 4 } },
                 3,
             ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-merging-arrays"
             expect(target.mergeRecursive(source).all()).toEqual([
-                [1, 2],
-                [4, 5, 7, 6, 8],
-                {
-                    b: [4, 5],
-                    c: [5, 6],
-                    d: [8, 9, 10, 11],
-                    e: { x: [1, 3], y: 2, z: 4 },
-                },
+                1,
+                [4, 5, 7],
+                { b: 4, c: 5, d: [8, 9], e: { x: 1, y: 2 } },
+                2,
+                [6, 8],
+                { b: 5, c: 6, d: [10, 11], e: { x: 3, z: 4 } },
                 3,
             ]);
         });
@@ -4162,14 +7316,19 @@ describe("Collection", () => {
         it("test merging arrays when target array is longer than source", () => {
             const target = collect([1, [2, 3, 4], { a: 7, b: 8, c: 9 }]);
             const source = collect([5, [6]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-target-longer"
             expect(target.mergeRecursive(source).all()).toEqual([
-                [1, 5],
-                [2, 3, 4, 6],
+                1,
+                [2, 3, 4],
                 { a: 7, b: 8, c: 9 },
+                5,
+                [6],
             ]);
         });
 
         it("test merging object and arrays", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-object-and-arrays"
             const target = collect({ a: 1, b: [2, 3], c: { x: 4, y: 5 } });
             const source = collect({ a: [6, 7], b: 4, c: { x: [8, 9] } });
             expect(target.mergeRecursive(source).all()).toEqual({
@@ -4180,7 +7339,10 @@ describe("Collection", () => {
 
             const target2 = collect({ a: 1, b: { x: 2, y: 3 }, c: [4, 5] });
             const source2 = collect([[6, 7], 4, { x: [8, 9] }]);
-            expect(target2.mergeRecursive(source2).all()).toEqual({
+            const merged2 = target2.mergeRecursive(source2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-spec-object-then-list"
+            expect(merged2.all()).toEqual({
                 "0": [6, 7],
                 "1": 4,
                 "2": { x: [8, 9] },
@@ -4188,16 +7350,115 @@ describe("Collection", () => {
                 b: { x: 2, y: 3 },
                 c: [4, 5],
             });
+            expect(merged2.keys().all()).toEqual(["a", "b", "c", 0, 1, 2]);
+            expect(merged2.values().all()).toEqual([
+                1,
+                { x: 2, y: 3 },
+                [4, 5],
+                [6, 7],
+                4,
+                { x: [8, 9] },
+            ]);
+        });
+
+        it("appends a list's items at the top level, as it does every integer key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-list-list-appends"
+            expect(
+                collect([1, [2, 3]])
+                    .mergeRecursive([4, [5]])
+                    .all(),
+            ).toEqual([1, [2, 3], 4, [5]]);
+        });
+
+        it("appends a scalar operand as one item", () => {
+            const collection = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-operand"
+            // A scalar is outside mergeRecursive()'s operand types; PHP's runtime casts it to an array holding it
+            expect(
+                Reflect.apply(collection.mergeRecursive, collection, [2]).all(),
+            ).toEqual([1, 2]);
+        });
+
+        it("keeps a record's string keys before the list it appends", () => {
+            const merged = collect({ a: 1, b: 2 }).mergeRecursive([3, 4]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-assoc-then-list"
+            expect(merged.all()).toEqual({ a: 1, b: 2, 0: 3, 1: 4 });
+            expect(merged.keys().all()).toEqual(["a", "b", 0, 1]);
+            expect(merged.values().all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("renumbers integer keys for a null operand too", () => {
+            const merged = collect({ 5: "a", k: "b" }).mergeRecursive(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-null-renumbers"
+            expect(merged.all()).toEqual({ 0: "a", k: "b" });
+            expect(merged.keys().all()).toEqual([0, "k"]);
+            expect(merged.values().all()).toEqual(["a", "b"]);
+        });
+
+        it("merges the values a string key both hold as arrays, a value that is not one joining the other", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-scalar-meets-assoc"
+            expect(
+                collect({ a: 1 })
+                    .mergeRecursive({ a: { x: 1 } })
+                    .get("a"),
+            ).toEqual({ 0: 1, x: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-assoc-meets-scalar"
+            // PHP keeps x before 0, an order a nested plain object cannot hold.
+            expect(
+                collect({ a: { x: 1 } })
+                    .mergeRecursive({ a: 2 })
+                    .get("a"),
+            ).toEqual({ x: 1, 0: 2 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-list-meets-assoc"
+            expect(
+                collect({ a: [1, 2] })
+                    .mergeRecursive({ a: { x: 3 } })
+                    .get("a"),
+            ).toEqual({ 0: 1, 1: 2, x: 3 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-null-meets-scalar"
+            expect(collect({ a: null }).mergeRecursive({ a: 1 }).all()).toEqual(
+                { a: [null, 1] },
+            );
+        });
+
+        it("appends a nested integer key after the highest one held", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-mergeRecursive-nested-int-keys-append"
+            expect(
+                collect({ a: { 5: "p" } })
+                    .mergeRecursive({ a: { 5: "q" } })
+                    .get("a"),
+            ).toEqual({ 5: "p", 6: "q" });
+        });
+
+        it("keeps an object that is not a plain object whole", () => {
+            const first = new Date(0);
+            const second = new Date(86_400_000);
+
+            // JS-only: PHP casts an object to an array of its properties and merges those, where a Date is one value
+            expect(
+                collect({ a: first }).mergeRecursive({ a: second }).get("a"),
+            ).toEqual([first, second]);
+        });
+
+        it("renumbers into a list unless a string key makes a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).mergeRecursive([3]), "list");
+            expectShape(collect({ a: 1 }).mergeRecursive({ a: 2 }), "keyed");
+            // Integer keys renumber, so a record holding only them merges into a list.
+            expectShape(collect({ 5: "a" }).mergeRecursive({ 5: "b" }), "list");
         });
     });
 
     describe("multiply", () => {
         it("Laravel Tests", () => {
-            const c = collect([
-                "Hello",
-                1,
-                { tags: ["a", "b"], role: "admin" },
-            ]);
+            // CollectionTest::testMultiplyCollection
+            const c = collect(["Hello", 1, { tags: ["a", "b"], 0: "admin" }]);
 
             expect(c.multiply(-1).all()).toEqual([]);
             expect(c.multiply(0).all()).toEqual([]);
@@ -4205,28 +7466,98 @@ describe("Collection", () => {
             expect(c.multiply(1).all()).toEqual([
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
             ]);
 
             expect(c.multiply(3).all()).toEqual([
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
                 "Hello",
                 1,
-                { tags: ["a", "b"], role: "admin" },
+                { tags: ["a", "b"], 0: "admin" },
             ]);
+        });
+
+        it("repeats a record's values as a list", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-assoc"
+            expect(collect({ a: 1, b: 2 }).multiply(2).all()).toEqual([
+                1, 2, 1, 2,
+            ]);
+        });
+
+        it("truncates a fractional count, as PHP's int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-fractional-count"
+            expect(collect([1, 2]).multiply(2.5).all()).toEqual([1, 2, 1, 2]);
+        });
+
+        // A push that throws turns an endless repeat into a plain failure, since a count must be refused first
+        class Unrepeatable extends Collection<number, number> {
+            override push(): never {
+                throw new Error("repeated before the count was checked");
+            }
+        }
+
+        const refusedCount = expect.objectContaining({
+            name: "TypeError",
+            message:
+                "Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given",
+        });
+
+        it("throws PHP's TypeError for a NAN or infinite count, before repeating anything", () => {
+            const collection = new Unrepeatable([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-non-finite-count", whose
+            // class the port names without PHP's namespace
+            for (const count of [NaN, Infinity, -Infinity]) {
+                expect(() => collection.multiply(count)).toThrowError(
+                    refusedCount,
+                );
+            }
+        });
+
+        it("throws PHP's TypeError for a count outside PHP's int range, before repeating anything", () => {
+            const collection = new Unrepeatable([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-out-of-int-range-count"
+            for (const count of [1e19, -1e19, 2 ** 63, -(2 ** 63) - 2048]) {
+                expect(() => collection.multiply(count)).toThrowError(
+                    refusedCount,
+                );
+            }
+            expect(collection.multiply(-(2 ** 63)).all()).toEqual([]);
+        });
+
+        it.fails(
+            "repeats a Map-built receiver's values in the order it holds them",
+            () => {
+                // Ordered-backing gap: PHP repeats the values in the receiver's insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect(outOfOrderKeys().multiply(2).all()).toEqual([
+                    "c",
+                    "a",
+                    "b",
+                    "c",
+                    "a",
+                    "b",
+                ]);
+            },
+        );
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).multiply(2), "list");
+            expectShape(collect({ a: 1, b: 2 }).multiply(2), "list");
         });
     });
 
     describe("combine", () => {
         describe("Laravel Tests", () => {
-            // `Arr.combine` used to zip arrays into tuples, so `c.combine([4,5,6])`
-            // here returned `[[1,4],[2,5],[3,6]]` — this test was pinning that bug.
             it("test combine with array", () => {
+                // CollectionTest::testCombineWithArray
                 const c = collect([1, 2, 3]);
                 expect(c.combine([4, 5, 6]).all()).toEqual({
                     1: 4,
@@ -4234,17 +7565,21 @@ describe("Collection", () => {
                     3: 6,
                 });
 
-                const d = collect(["name", "family"]);
-                expect(d.combine(["taylor", "otwell"]).all()).toEqual({
-                    name: "taylor",
-                    family: "otwell",
+                const d = collect(["name", "family"]).combine({
+                    1: "taylor",
+                    2: "otwell",
                 });
+                expect(d.all()).toEqual({ name: "taylor", family: "otwell" });
+                expect(d.keys().all()).toEqual(["name", "family"]);
+                expect(d.values().all()).toEqual(["taylor", "otwell"]);
 
-                const e = collect({ 1: "name", 2: "family" });
-                expect(e.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
-                    name: "taylor",
-                    family: "otwell",
-                });
+                const e = collect({ 1: "name", 2: "family" }).combine([
+                    "taylor",
+                    "otwell",
+                ]);
+                expect(e.all()).toEqual({ name: "taylor", family: "otwell" });
+                expect(e.keys().all()).toEqual(["name", "family"]);
+                expect(e.values().all()).toEqual(["taylor", "otwell"]);
 
                 const f = collect({ 1: "name", 2: "family" });
                 expect(f.combine({ 2: "taylor", 3: "otwell" }).all()).toEqual({
@@ -4254,6 +7589,7 @@ describe("Collection", () => {
             });
 
             it("test combine with collection", () => {
+                // CollectionTest::testCombineWithCollection
                 const c = collect([1, 2, 3]);
                 expect(c.combine(collect([4, 5, 6])).all()).toEqual({
                     1: 4,
@@ -4289,8 +7625,26 @@ describe("Collection", () => {
             const message =
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements";
 
+            // CollectionTest::testCombineWithFewerValuesThanKeysThrows
             expect(() => collect([1, 2]).combine([3])).toThrow(message);
+            // CollectionTest::testCombineWithMoreValuesThanKeysThrows
             expect(() => collect([1]).combine([2, 3])).toThrow(message);
+        });
+
+        it("hands back an empty list for a null operand when there are no keys", () => {
+            const combined = collect([]).combine(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-null-operand-on-empty"
+            expect(combined.all()).toEqual([]);
+            expect(combined.keys().all()).toEqual([]);
+            expect(combined.values().all()).toEqual([]);
+        });
+
+        it("throws for a null operand while there are keys to pair", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-null-operand-throws"
+            expect(() => collect(["a"]).combine(null)).toThrow(
+                "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
+            );
         });
 
         it("casts a null key to the empty string, matching array_combine", () => {
@@ -4333,16 +7687,61 @@ describe("Collection", () => {
                 repo: 1,
             });
         });
+
+        it("reads a plain object's all member as one of its values, never unwrapping it", () => {
+            const operand = { all: () => ["v"] };
+            const result = collect(["k"]).combine(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ k: operand.all });
+            expect(result.keys().all()).toEqual(["k"]);
+            expect(result.values().all()).toEqual([operand.all]);
+        });
+
+        it.fails(
+            "pairs a Map-built operand's values in the order it holds them",
+            () => {
+                const combined = collect(["x", "y"]).combine(
+                    collect(
+                        new Map([
+                            [2, "c"],
+                            [0, "a"],
+                        ]),
+                    ),
+                );
+
+                // Ordered-backing gap: PHP pairs the operand's values in its insertion order, the one under key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-operand-out-of-order"
+                expect([
+                    combined.keys().all(),
+                    combined.values().all(),
+                ]).toEqual([
+                    ["x", "y"],
+                    ["c", "a"],
+                ]);
+            },
+        );
+
+        it("builds a keyed result, or an empty list from no keys, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect(["a", "b"]).combine([1, 2]), "keyed");
+            expectShape(collect({ x: "a" }).combine([1]), "keyed");
+            // Keys 0..n-1 still build a record, and no keys an empty list.
+            expectShape(collect([0, 1]).combine(["x", "y"]), "keyed");
+            expectShape(collect([]).combine([]), "list");
+        });
     });
 
     describe("union", () => {
         describe("Laravel Tests", () => {
             it("test union null", () => {
+                // CollectionTest::testUnionNull
                 const c = collect({ name: "Hello" });
                 expect(c.union(null).all()).toEqual({ name: "Hello" });
             });
 
             it("test union array", () => {
+                // CollectionTest::testUnionArray
                 const c = collect({ name: "Hello" });
                 expect(c.union({ id: 1 }).all()).toEqual({
                     name: "Hello",
@@ -4351,26 +7750,40 @@ describe("Collection", () => {
             });
 
             it("test union collection", () => {
+                // CollectionTest::testUnionCollection
+                // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
                 const c = collect({ name: "Hello" });
-                expect(
-                    c.union(collect({ name: "World", id: 1 })).all(),
-                ).toEqual({ name: "Hello", id: 1 });
+                const united = c.union(collect({ name: "World", id: 1 }));
+
+                expect(united.all()).toEqual({ name: "Hello", id: 1 });
+                expect(united.keys().all()).toEqual(["name", "id"]);
+                expect(united.values().all()).toEqual(["Hello", 1]);
             });
         });
 
-        it("unwraps a Collection-like operand", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection"
-            const c = collect({ name: "Hello" });
-            expect(
-                c
-                    .union({ all: () => ({ name: "World", id: 1 }) } as never)
-                    .all(),
-            ).toEqual({ name: "Hello", id: 1 });
+        it("hands back a new instance for a null operand", () => {
+            const collection = collect([1]);
+            const united = collection.union(null);
+            united.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-union-null-is-a-new-instance"
+            expect(united).not.toBe(collection);
+            expect(collection.all()).toEqual([1]);
+            expect(united.all()).toEqual([1, 2]);
+        });
+
+        it("keeps the receiver's keys for a null operand, where merge() renumbers them", () => {
+            const united = collect({ 5: "a", k: "b" }).union(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-union-null-keeps-keys"
+            expect(united.all()).toEqual({ 5: "a", k: "b" });
+            expect(united.keys().all()).toEqual([5, "k"]);
+            expect(united.values().all()).toEqual(["a", "b"]);
         });
 
         it("lets the left operand win even when its value is undefined", () => {
-            // PHP-verified: ["a"=>null] + ["a"=>1] -> {"a":null}
-            // (docs/php-parity/task-07-pad-union.json).
+            // docs/php-parity/task-07-pad-union.json, "Collection::union"
+            // JS-only: undefined stands in for PHP's null, which the left operand keeps
             const c = collect({ a: undefined });
             const result = c.union({ a: 1, b: 2 }).all();
             expect(result).toEqual({ a: undefined, b: 2 });
@@ -4394,6 +7807,7 @@ describe("Collection", () => {
         });
 
         it("agrees whether array- or object-backed, over the same conceptual data", () => {
+            // JS-only: PHP has one array type, where a list and a record backing must agree over the same entries
             const fromArray = collect([1, 2]);
             const fromObject = collect({ 0: 1, 1: 2 });
 
@@ -4411,6 +7825,54 @@ describe("Collection", () => {
                 2,
                 "z",
             ]);
+        });
+
+        it("keeps the receiver's keys first, then those the operand adds", () => {
+            const united = collect({ a: 1 }).union([5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-union-assoc-then-list"
+            expect(united.all()).toEqual({ a: 1, 0: 5 });
+            expect(united.keys().all()).toEqual(["a", 0]);
+            expect(united.values().all()).toEqual([1, 5]);
+        });
+
+        it("adds an operand's keys in the order it holds them", () => {
+            const united = collect([1, 2, 3]).union(
+                new Map([
+                    [7, "x"],
+                    [3, "y"],
+                ]),
+            );
+
+            // docs/php-parity/task-26-collection-order.json, "order-union-result"
+            expect(united.all()).toEqual({ 0: 1, 1: 2, 2: 3, 7: "x", 3: "y" });
+            expect(united.keys().all()).toEqual([0, 1, 2, 7, 3]);
+            expect(united.values().all()).toEqual([1, 2, 3, "x", "y"]);
+        });
+
+        it("keeps a Map-built receiver's keys in the order it holds them", () => {
+            const united = outOfOrderKeys().union({ 3: "d", k: "e" });
+
+            // docs/php-parity/task-30-map-order.json, "union-out-of-order"
+            expect(united.all()).toEqual({
+                0: "a",
+                1: "b",
+                2: "c",
+                3: "d",
+                k: "e",
+            });
+            expect(united.keys().all()).toEqual([2, 0, 1, 3, "k"]);
+            expect(united.values().all()).toEqual(["c", "a", "b", "d", "e"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).union(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
         });
 
         it("keeps its own items when one is a function stored under an all or toJSON key", () => {
@@ -4441,10 +7903,28 @@ describe("Collection", () => {
                 5: 9,
             });
         });
+
+        it("keeps a record keyed, and a list a list while the operand's keys extend it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).union([3, 4, 5]), "list");
+            expectShape(collect({ a: 1 }).union([5]), "keyed");
+            expectShape(collect([1, 2]).union({ c: 3 }), "keyed");
+            // Integer keys keep a list only while they extend it as 0..n-1.
+            expectShape(collect([1, 2]).union({ 2: "z" }), "list");
+            expectShape(collect([1, 2]).union({ 5: "z" }), "keyed");
+        });
     });
 
     describe("nth", () => {
-        it("Laravel Tests", () => {
+        it("throws PHP's Modulo by zero for a step the int cast wraps to 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-and-split-by-a-count-cast-to-0"
+            expect(() => collect([1, 2, 3]).nth(2 ** 64)).toThrow(
+                new Error("Modulo by zero"),
+            );
+        });
+
+        it("test nth", () => {
+            // CollectionTest::testNth
             // Use Map to preserve insertion order for numeric keys (JavaScript objects auto-sort numeric keys)
             const data = collect(
                 new Map([
@@ -4471,15 +7951,74 @@ describe("Collection", () => {
         });
 
         it("throws exception for invalid step", () => {
+            // CollectionTest::testNthThrowsExceptionForInvalidStep
+            expect(() => {
+                collect([1, 2, 3]).nth(0);
+            }).toThrowError(InvalidArgumentException);
             expect(() => {
                 collect([1, 2, 3]).nth(0);
             }).toThrowError("Step value must be at least 1.");
         });
 
         it("throws exception for negative step", () => {
+            // CollectionTest::testNthThrowsExceptionForNegativeStep
+            expect(() => {
+                collect([1, 2, 3]).nth(-1);
+            }).toThrowError(InvalidArgumentException);
             expect(() => {
                 collect([1, 2, 3]).nth(-1);
             }).toThrowError("Step value must be at least 1.");
+        });
+
+        it("collects a record's every n-th value into a list", () => {
+            const every = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 }).nth(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-assoc"
+            expect(viewsOf(every)).toEqual({
+                all: [1, 3, 5],
+                keys: [0, 1, 2],
+                values: [1, 3, 5],
+            });
+        });
+
+        it("steps as PHP's % does, which drops a fraction from the step", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
+            expect(numbers.nth(1.5).all()).toEqual([1, 2, 3, 4, 5]);
+            expect(numbers.nth(2.5).all()).toEqual([1, 3, 5]);
+            expect(numbers.nth(1e19).all()).toEqual([1]);
+        });
+
+        it("divides by zero for a NAN or infinite step, once there is an item to step over", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
+            for (const step of [NaN, Infinity]) {
+                expect(() => collect([1, 2, 3, 4, 5]).nth(step)).toThrowError(
+                    "Modulo by zero",
+                );
+            }
+
+            expect(collect([]).nth(NaN).all()).toEqual([]);
+        });
+
+        it("slices from its offset as slice() does, dropping a fraction and refusing a NAN", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-counts"
+            expect(numbers.nth(1, 1.5).all()).toEqual([2, 3, 4, 5]);
+
+            // Same row over [1..5], and "C32-G-nth-out-of-order-offset" over PHP's [2 => 'c', 0 => 'a', 1 => 'b']
+            for (const nth of [
+                (offset: number) => numbers.nth(1, offset),
+                (offset: number) => outOfOrderKeys().nth(1, offset),
+            ]) {
+                for (const offset of [NaN, 1e19]) {
+                    expect(() => nth(offset)).toThrowError(TypeError);
+                    expect(() => nth(offset)).toThrowError(
+                        "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                    );
+                }
+            }
         });
 
         it("uses itemsWithOrder when available", () => {
@@ -4508,10 +8047,17 @@ describe("Collection", () => {
             expect(c.nth(2).all()).toEqual([1, 3, 5]);
             expect(c.nth(2, 1).all()).toEqual([2, 4]);
         });
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).nth(2), "list");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).nth(2), "list");
+        });
     });
 
     describe("only", () => {
         it("Laravel Tests", () => {
+            // CollectionTest::testOnly
             const c = collect({
                 first: "Taylor",
                 last: "Otwell",
@@ -4560,11 +8106,148 @@ describe("Collection", () => {
             });
             expect(collect({ a: 1 }).only(null).all()).toEqual({ a: 1 });
         });
+
+        it("keeps a list's own order, not the order of the keys", () => {
+            const only = collect(["a", "b", "c", "d"]).only([3, 1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-list-keys", whose keys 1 and 3
+            // name these items; a list renumbers them, as every removal from a list does
+            expect(only.all()).toEqual(["b", "d"]);
+            expect(only.keys().all()).toEqual([0, 1]);
+        });
+
+        describe("reads its keys as PHP's $keys argument", () => {
+            const person = () =>
+                collect({ first: "Taylor", last: "Otwell", email: "e" });
+
+            it("keeps every item when the first argument is null, whatever follows", () => {
+                const only = person().only(null, "first");
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-null-first-arg"
+                expect(only.all()).toEqual({
+                    first: "Taylor",
+                    last: "Otwell",
+                    email: "e",
+                });
+                expect(only.keys().all()).toEqual(["first", "last", "email"]);
+                expect(only.values().all()).toEqual(["Taylor", "Otwell", "e"]);
+            });
+
+            it("keeps every item for an undefined key, as except() does", () => {
+                // CollectionTest::testOnly
+                // JS-only: undefined stands for PHP's null, which only() answers with every item
+                expect(person().only(undefined).all()).toEqual(person().all());
+            });
+
+            it("ignores the arguments after an array of keys", () => {
+                const only = person().only(["first"], "last");
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-array-then-extra-arg"
+                expect(only.all()).toEqual({ first: "Taylor" });
+                expect(only.keys().all()).toEqual(["first"]);
+                expect(only.values().all()).toEqual(["Taylor"]);
+            });
+
+            it("takes a keyed Collection's values as the keys", () => {
+                const only = person().only(collect({ x: "first", y: "email" }));
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-keyed-collection-arg"
+                expect(only.all()).toEqual({ first: "Taylor", email: "e" });
+                expect(only.keys().all()).toEqual(["first", "email"]);
+                expect(only.values().all()).toEqual(["Taylor", "e"]);
+            });
+
+            it("keeps nothing for an empty array of keys", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-empty-array"
+                expect(person().only([]).all()).toEqual({});
+            });
+
+            it("skips a later key array_flip cannot store: a null, an array or a collection", () => {
+                const odd = collect({ a: 1, b: 2 });
+                const pairList = collect(["x", "y"]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
+                expect(
+                    collect({ null: 1, a: 2 }).only("a", null).all(),
+                ).toEqual({
+                    a: 2,
+                });
+                expect(
+                    Reflect.apply(odd.only, odd, ["a", ["b"]]).all(),
+                ).toEqual({
+                    a: 1,
+                });
+                expect(
+                    Reflect.apply(odd.only, odd, ["a", collect(["b"])]).all(),
+                ).toEqual({ a: 1 });
+                expect(
+                    Reflect.apply(pairList.only, pairList, [0, [1]]).all(),
+                ).toEqual(["x"]);
+            });
+
+            it("skips a later undefined key, as it skips null", () => {
+                // JS-only: undefined stands for PHP's null, which array_flip skips.
+                expect(
+                    collect({ undefined: 1, a: 2 }).only("a", undefined).all(),
+                ).toEqual({ a: 2 });
+            });
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            const literal = collect({ a: { b: 1 }, "a.b": 2 }).only("a.b");
+            const nested = collect({ a: { b: 1, c: 2 } }).only("a.b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-dot-key-literal"
+            expect(literal.all()).toEqual({ "a.b": 2 });
+            expect([literal.keys().all(), literal.values().all()]).toEqual([
+                ["a.b"],
+                [2],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-dot-key-nested-miss"
+            expect(nested.all()).toEqual({});
+            expect([nested.keys().all(), nested.values().all()]).toEqual([
+                [],
+                [],
+            ]);
+        });
+
+        it("hands back a copy for a null key, as except() and select() do", () => {
+            const collection = collect({ a: 1 });
+            const copies = [
+                collection.only(null),
+                collection.except(null),
+                collection.select(null),
+            ];
+
+            for (const copy of copies) {
+                copy.put("b", 2);
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-null-keys-copy"
+            expect([
+                collection.all(),
+                ...copies.map((copy) => copy.all()),
+            ]).toEqual([
+                { a: 1 },
+                { a: 1, b: 2 },
+                { a: 1, b: 2 },
+                { a: 1, b: 2 },
+            ]);
+            expect(collection.keys().all()).toEqual(["a"]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).only(0, 2), "list");
+            expectShape(collect({ a: 1, b: 2 }).only("a"), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).only([]), "keyed");
+        });
     });
 
     describe("select", () => {
         describe("Laravel Tests", () => {
             it("test select with arrays", () => {
+                // CollectionTest::testSelectWithArrays
                 const data = collect([
                     {
                         first: "Taylor",
@@ -4625,18 +8308,65 @@ describe("Collection", () => {
                 ]);
             });
 
-            it("test select with objects", () => {
+            it("test select with array access", () => {
+                // CollectionTest::testSelectWithArrayAccess, whose ArrayAccess rows a Collection stands in for
                 const data = collect([
-                    {
+                    collect({
                         first: "Taylor",
                         last: "Otwell",
                         email: "taylorotwell@gmail.com",
-                    },
-                    {
+                    }),
+                    collect({
                         first: "Jess",
                         last: "Archer",
                         email: "jessarcher@gmail.com",
-                    },
+                    }),
+                ]);
+                const firstAndEmail = [
+                    { first: "Taylor", email: "taylorotwell@gmail.com" },
+                    { first: "Jess", email: "jessarcher@gmail.com" },
+                ];
+
+                expect(data.select(null).all()).toEqual(data.all());
+                expect(data.select(["first", "missing"]).all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+                expect(data.select("first", "missing").all()).toEqual([
+                    { first: "Taylor" },
+                    { first: "Jess" },
+                ]);
+                expect(
+                    data.select(collect(["first", "missing"])).all(),
+                ).toEqual([{ first: "Taylor" }, { first: "Jess" }]);
+                expect(data.select(["first", "email"]).all()).toEqual(
+                    firstAndEmail,
+                );
+                expect(data.select("first", "email").all()).toEqual(
+                    firstAndEmail,
+                );
+                expect(data.select(collect(["first", "email"])).all()).toEqual(
+                    firstAndEmail,
+                );
+            });
+
+            it("test select with objects", () => {
+                // CollectionTest::testSelectWithObjects, whose (object) casts a class instance stands in for
+                class Person {
+                    first: string;
+                    last: string;
+                    email: string;
+
+                    constructor(first: string, last: string, email: string) {
+                        this.first = first;
+                        this.last = last;
+                        this.email = email;
+                    }
+                }
+
+                const data = collect([
+                    new Person("Taylor", "Otwell", "taylorotwell@gmail.com"),
+                    new Person("Jess", "Archer", "jessarcher@gmail.com"),
                 ]);
 
                 expect(data.select(null).all()).toEqual(data.all());
@@ -4689,11 +8419,300 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("selects an item's own keys, never its prototype's", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-prototype-key-names"
+            expect(
+                collect([{ a: 1 }])
+                    .select("toString", "constructor", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("selects a list item by index", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
+            expect(
+                collect([[10, 20, 30]])
+                    .select([0, 2])
+                    .all(),
+            ).toEqual([{ 0: 10, 2: 30 }]);
+        });
+
+        it("selects a Map item by the key PHP stores", () => {
+            const item = new Map<string | number, unknown>([
+                ["a", 1],
+                [1, "x"],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-integer-string-key": a Map
+            // stands for the PHP array
+            expect(collect([item]).select("1", "a").all()).toEqual([
+                { 1: "x", a: 1 },
+            ]);
+        });
+
+        it("reads an ArrayAccess item through its offsets, then a property isset() finds", () => {
+            class Access {
+                a = "prop-a";
+                p = "prop-p";
+                q = null;
+                readonly #items: Record<string, unknown>;
+
+                constructor(items: Record<string, unknown>) {
+                    this.#items = items;
+                }
+
+                offsetExists(offset: string): boolean {
+                    return Object.hasOwn(this.#items, offset);
+                }
+
+                offsetGet(offset: string): unknown {
+                    return this.#items[offset];
+                }
+            }
+            const selected = collect([new Access({ a: "offset-a", n: null })])
+                .select("a", "n", "p", "q", "missing")
+                .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-rows"
+            expect(selected).toEqual([{ a: "offset-a", n: null, p: "prop-p" }]);
+        });
+
+        it("selects a Collection item by its items' keys, never its methods", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-rows"
+            expect(
+                collect([collect({ a: 1, b: 2 })])
+                    .select("a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-method-name"
+            expect(
+                collect([collect({ a: 1 })])
+                    .select("all", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("reads none of a Collection item's own fields, which hold its items and state", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-row-fields"
+            expect(
+                collect([collect({ a: 1 })])
+                    .select("items", "a")
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("throws array_key_exists()'s TypeError for an array key over an array item, and skips it elsewhere", () => {
+            class Row {
+                a = 1;
+                b = 2;
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            expect(() => collect([{ a: 1, b: 2 }]).select("a", ["b"])).toThrow(
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            );
+            expect(collect([new Row()]).select("a", ["b"]).all()).toEqual([
+                { a: 1 },
+            ]);
+            expect(collect([1]).select("a", ["b"]).all()).toEqual([{}]);
+            expect(collect([]).select("a", ["b"]).all()).toEqual([]);
+        });
+
+        it("skips an array key over a Collection item", () => {
+            // JS-only: PHP's has() reads the array as a list of keys; as this item holds them all, offsetGet then
+            // throws for the array itself, where an item missing any of them skips it, as JS does for every item.
+            expect(
+                collect([collect({ a: 1, b: 2 })])
+                    .select("a", ["b"])
+                    .all(),
+            ).toEqual([{ a: 1 }]);
+        });
+
+        it("reads a dotted key literally, never as a path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-dot-path-literal"
+            expect(
+                collect([{ id: 1, details: { age: 30, city: "NY" } }])
+                    .select(["id", "details.age"])
+                    .all(),
+            ).toEqual([{ id: 1 }]);
+        });
+
+        it("selects nothing from a scalar item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-scalar-items"
+            expect(collect([1, "x", null]).select("a").all()).toEqual([
+                {},
+                {},
+                {},
+            ]);
+        });
+
+        it("drops an object's null property, as PHP's isset does, where a plain object's null stays", () => {
+            class Row {
+                a = null;
+                b = 1;
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-null-prop"
+            expect(collect([new Row()]).select("a", "b").all()).toEqual([
+                { b: 1 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-null-value"
+            expect(
+                collect([{ a: null, b: 1 }])
+                    .select("a", "b")
+                    .all(),
+            ).toEqual([{ a: null, b: 1 }]);
+        });
+
+        describe("reads its keys as PHP's $keys argument", () => {
+            it("keeps every item whole when the first argument is null, whatever follows", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-then-key"
+                expect(
+                    collect([{ a: 1, b: 2 }])
+                        .select(null, "a")
+                        .all(),
+                ).toEqual([{ a: 1, b: 2 }]);
+            });
+
+            it("keeps every item whole for an undefined key, as except() does", () => {
+                const data = collect([{ a: 1, b: 2 }]);
+
+                // CollectionTest::testSelectWithArrays
+                // JS-only: undefined stands for PHP's null, which select() answers with every item whole
+                expect(data.select(undefined).all()).toEqual(data.all());
+            });
+
+            it("reads a null among the keys as the '' key, as Arr::exists casts it", () => {
+                const rows = collect([{ "": "e", a: 1 }]);
+                const trailing = rows.select("a", null).all();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-key-cast"
+                expect(rows.select([null, "a"]).all()).toEqual([
+                    { "": "e", a: 1 },
+                ]);
+                expect(trailing).toEqual([{ a: 1, "": "e" }]);
+                expect(Object.keys(trailing[0] ?? {})).toEqual(["a", ""]);
+            });
+
+            it("ignores the arguments after an array of keys", () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-then-extra-arg"
+                expect(
+                    collect([{ first: "T", last: "O" }])
+                        .select(["first"], "last")
+                        .all(),
+                ).toEqual([{ first: "T" }]);
+            });
+
+            it("takes a keyed Collection's values as the keys", () => {
+                const people = collect([{ first: "T", last: "O", email: "e" }]);
+                // A keyed Collection is outside select()'s Enumerable<int, string> type; PHP's runtime reads it anyway
+                const selected = Reflect.apply(people.select, people, [
+                    collect({ x: "first", y: "email" }),
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-keyed-collection-arg"
+                expect(selected.all()).toEqual([{ first: "T", email: "e" }]);
+            });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ a: 1, b: 2 }]).select("a"), "list");
+            expectShape(collect({ x: { a: 1, b: 2 } }).select("a"), "keyed");
+        });
     });
 
     describe("pop", () => {
+        it("takes a fractional count's whole items and every item for NAN, as PHP's loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const list = collect([1, 2, 3, 4]);
+
+            expect(list.pop(2.5).all()).toEqual([4, 3]);
+            expect(list.all()).toEqual([1, 2]);
+            expect(list.keys().all()).toEqual([0, 1]);
+            expect(list.values().all()).toEqual([1, 2]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyed.pop(2.5).all()).toEqual([4, 3]);
+            expect(keyed.all()).toEqual({ a: 1, b: 2 });
+            expect(keyed.keys().all()).toEqual(["a", "b"]);
+            expect(keyed.values().all()).toEqual([1, 2]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = collect([1, 2, 3, 4]);
+
+                expect(takenItems(everything.pop(count))).toEqual([4, 3, 2, 1]);
+                expect(everything.all()).toEqual([]);
+                expect(everything.keys().all()).toEqual([]);
+                expect(everything.values().all()).toEqual([]);
+            }
+        });
+
+        it("pops nothing for a count below 1 and throws range()'s ValueError for one between 1 and 2, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            const list = collect([1, 2, 3, 4]);
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(list.pop(0.5).all()).toEqual([]);
+            expect(() => list.pop(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(list.all()).toEqual([1, 2, 3, 4]);
+            expect(list.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(list.values().all()).toEqual([1, 2, 3, 4]);
+            expect(() => keyed.pop(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+            expect(keyed.keys().all()).toEqual(["a", "b", "c", "d"]);
+            expect(keyed.values().all()).toEqual([1, 2, 3, 4]);
+
+            const one = collect([9]);
+
+            expect(one.pop(1.5).all()).toEqual([9]);
+            expect(one.all()).toEqual([]);
+            expect(collect([]).pop(1.5).all()).toEqual([]);
+        });
+
+        it("takes a fractional or NAN count in the order PHP's array holds integer keys out of order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-and-pop-counts-out-of-order-keys"
+            const outOfOrder = () =>
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                );
+            const partly = outOfOrder();
+
+            expect(partly.pop(2.5).all()).toEqual(["b", "a"]);
+            expect(partly.all()).toEqual({ 2: "c" });
+            expect(partly.keys().all()).toEqual([2]);
+            expect(partly.values().all()).toEqual(["c"]);
+
+            const refused = outOfOrder();
+
+            expect(() => refused.pop(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(refused.keys().all()).toEqual([2, 0, 1]);
+            expect(refused.values().all()).toEqual(["c", "a", "b"]);
+
+            const everything = outOfOrder();
+
+            expect(takenItems(everything.pop(NaN))).toEqual(["b", "a", "c"]);
+            expect(everything.keys().all()).toEqual([]);
+            expect(everything.values().all()).toEqual([]);
+        });
+
         describe("Laravel Tests", () => {
             it("test pop returns and removes last item in collection", () => {
+                // CollectionTest::testPopReturnsAndRemovesLastItemInCollection
                 const c = collect(["foo", "bar"]);
 
                 expect(c.pop()).toBe("bar");
@@ -4701,6 +8720,7 @@ describe("Collection", () => {
             });
 
             it("test pop returns and removes last x items in collection", () => {
+                // CollectionTest::testPopReturnsAndRemovesLastXItemsInCollection
                 const c = collect(["foo", "bar", "baz"]);
 
                 expect(c.pop(2).all()).toEqual(["baz", "bar"]);
@@ -4716,6 +8736,17 @@ describe("Collection", () => {
             expect(c.pop(0).all()).toEqual([]);
             expect(c.pop(-1).all()).toEqual([]);
             expect(c.all()).toEqual(["foo", "bar", "baz"]); // Original collection unchanged
+        });
+
+        it("hands back the value itself for a count of 1", () => {
+            const collection = collect([1, 2, 3]);
+            const returned = collection.pop(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-one-on-list-returns-value"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 3,
+                all: [1, 2],
+            });
         });
 
         it("test pop with count === 1 on array returns single value", () => {
@@ -4787,6 +8818,13 @@ describe("Collection", () => {
             expect(fromArray.count()).toBe(2);
             expect(fromObject.count()).toBe(2);
         });
+
+        it("lists the items a count pops from a list or a keyed collection, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).pop(2), "list");
+            expectShape(outOfOrderKeys().pop(2), "list");
+            expectShape(outOfOrderKeys().pop(0), "list");
+        });
     });
 
     describe("prepend", () => {
@@ -4798,6 +8836,7 @@ describe("Collection", () => {
         });
 
         it("Laravel Tests", () => {
+            // CollectionTest::testPrepend
             const c = collect(["one", "two", "three", "four"]);
             expect(c.prepend("zero").all()).toEqual([
                 "zero",
@@ -4846,26 +8885,67 @@ describe("Collection", () => {
         });
 
         it("becomes object-backed when a list backing is given a key other than 0", () => {
+            const zero = collect(["b", "c"]).prepend("a", 0);
+            const string = collect(["b", "c"]).prepend("a", "k");
+            const one = collect(["b", "c"]).prepend("a", 1);
+
             // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
-            expect(collect(["b", "c"]).prepend("a", 0).all()).toEqual([
-                "a",
-                "c",
+            expect(zero.all()).toEqual(["a", "c"]);
+            expect(string.all()).toEqual({ k: "a", 0: "b", 1: "c" });
+            expect(one.all()).toEqual({ 1: "a", 0: "b" });
+            expect([zero.keys().all(), zero.values().all()]).toEqual([
+                [0, 1],
+                ["a", "c"],
             ]);
-            expect(collect(["b", "c"]).prepend("a", "k").all()).toEqual({
-                k: "a",
-                0: "b",
-                1: "c",
+            expect([string.keys().all(), string.values().all()]).toEqual([
+                ["k", 0, 1],
+                ["a", "b", "c"],
+            ]);
+            expect([one.keys().all(), one.values().all()]).toEqual([
+                [1, 0],
+                ["a", "b"],
+            ]);
+        });
+
+        it("leads with a key it prepends onto a list", () => {
+            const collection = collect(["b", "c"]).prepend("a", "k");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-prepend-string-key-on-list-order"
+            expect({
+                values: collection.values().all(),
+                keys: collection.keys().all(),
+                first: collection.first(),
+                last: collection.last(),
+            }).toEqual({
+                values: ["a", "b", "c"],
+                keys: ["k", 0, 1],
+                first: "a",
+                last: "c",
             });
-            expect(collect(["b", "c"]).prepend("a", 1).all()).toEqual({
-                1: "a",
-                0: "b",
-            });
+        });
+
+        it("keeps a list's shape without a key and makes it keyed with one, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).prepend(0), "list");
+            expectShape(collect([1, 2]).prepend(0, 0), "list");
+            expectShape(collect([1, 2]).prepend(0, "k"), "keyed");
+            expectShape(outOfOrderKeys().prepend("z"), "keyed");
+            expectShape(outOfOrderKeys().prepend("z", "k"), "keyed");
+        });
+
+        it('makes a list keyed for a key that holds null and keeps it a list for one that holds "0", as its type declares', () => {
+            const keyOrNull = (key: string | null): string | null => key;
+
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).prepend(0, keyOrNull(null)), "keyed");
+            expectShape(collect([1, 2]).prepend(0, keyOrNull("0")), "list");
         });
     });
 
     describe("push", () => {
         describe("Laravel Tests", () => {
             it("test push with one item", () => {
+                // CollectionTest::testPushWithOneItem
                 const expected = [
                     4,
                     5,
@@ -4888,6 +8968,7 @@ describe("Collection", () => {
             });
 
             it("test push with multiple items", () => {
+                // CollectionTest::testPushWithMultipleItems
                 const expected = [
                     4,
                     5,
@@ -4966,6 +9047,76 @@ describe("Collection", () => {
             expect(c8.all()).toEqual([1, 2, 3, 4]);
         });
 
+        it("reads the value pushed past a string key last", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-onto-string-keyed-last"
+            expect(collect({ a: 1 }).push("z").last()).toBe("z");
+        });
+
+        it("keeps values pushed past a string key in the order they arrive", () => {
+            const collection = collect({ a: 1 }).push("y", "z");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-many-onto-string-keyed"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({ keys: ["a", 0, 1], values: [1, "y", "z"], last: "z" });
+        });
+
+        it("keeps values pushed past a negative key in the order they arrive", () => {
+            const collection = collect({ "-2": "a" }).push("p", "q", "r");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-many-past-negative-keys-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({
+                keys: [-2, -1, 0, 1],
+                values: ["a", "p", "q", "r"],
+                last: "r",
+            });
+        });
+
+        it("keeps values pushed onto a Map-built collection in the order they arrive", () => {
+            const collection = collect(
+                new Map<string | number, string>([
+                    ["x", "a"],
+                    [-2, "b"],
+                ]),
+            ).push("p", "q");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-many-onto-mixed-keys-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({
+                keys: ["x", -2, -1, 0],
+                values: ["a", "b", "p", "q"],
+                last: "q",
+            });
+        });
+
+        it("keeps values pushed across the last array index in the order they arrive", () => {
+            const collection = collect({ 4294967293: "a", x: "b" }).push(
+                "p",
+                "q",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-push-many-across-the-index-limit-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({
+                keys: [4294967293, "x", 4294967294, 4294967295],
+                values: ["a", "b", "p", "q"],
+                last: "q",
+            });
+        });
+
         describe("push key classification", () => {
             // docs/php-parity/task-17-second-review.json, "push onto a {\"01\"}-keyed array"
             // docs/php-parity/task-17-second-review.json, "push onto a {\"1e2\"}-keyed array"
@@ -4977,11 +9128,9 @@ describe("Collection", () => {
                 ["-1", { "-1": "v", 0: 9 }],
                 ["5", { 5: "v", 6: 9 }],
             ])("classifies a %s key the way PHP does", (key, expected) => {
-                expect(
-                    new Collection({ [key]: "v" } as never)
-                        .push(9 as never)
-                        .all(),
-                ).toEqual(expected);
+                expect(new Collection({ [key]: "v" }).push(9).all()).toEqual(
+                    expected,
+                );
             });
 
             it("classifies keys the same way unshift does", () => {
@@ -4989,14 +9138,10 @@ describe("Collection", () => {
                 // (docs/php-parity/task-23-obj-release-readiness.json, "unshift-negative-int-key").
                 for (const key of ["01", "1e2", ""]) {
                     const pushed = Object.keys(
-                        new Collection({ [key]: "v" } as never)
-                            .push(9 as never)
-                            .all(),
+                        new Collection({ [key]: "v" }).push(9).all(),
                     );
                     const unshifted = Object.keys(
-                        new Collection({ [key]: "v" } as never)
-                            .unshift(9 as never)
-                            .all(),
+                        new Collection({ [key]: "v" }).unshift(9).all(),
                     );
                     expect(pushed.includes(key)).toBe(unshifted.includes(key));
                 }
@@ -5009,14 +9154,20 @@ describe("Collection", () => {
                 const collection = new Collection({
                     "6000000000": "a",
                     "5000000000": "b",
-                } as never);
+                });
 
-                expect(collection.push("NEW" as never).all()).toEqual({
+                expect(collection.push("NEW").all()).toEqual({
                     "6000000000": "a",
                     "5000000000": "b",
                     "6000000001": "NEW",
                 });
             });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).push("x", true), "list");
+            expectShape(outOfOrderKeys().push(1), "keyed");
         });
     });
 
@@ -5076,6 +9227,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test unshift with one item", () => {
+                // CollectionTest::testUnshiftWithOneItem
                 const expected = [
                     "Jonny from Laroe",
                     { who: "Jonny", preposition: "from", where: "Laroe" },
@@ -5098,6 +9250,7 @@ describe("Collection", () => {
             });
 
             it("test unshift with multiple items", () => {
+                // CollectionTest::testUnshiftWithMultipleItems
                 const expected = [
                     "a",
                     "b",
@@ -5202,11 +9355,16 @@ describe("Collection", () => {
             });
         });
 
-        it("mutates the original array in place (array backing aliases the caller's array)", () => {
+        it("leaves the caller's array untouched, as PHP's array is a value", () => {
             const original = [2, 3];
             const c = new Collection(original);
             c.unshift(1);
-            expect(original).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-array-unshift-copies"
+            expect([original, c.all()]).toEqual([
+                [2, 3],
+                [1, 2, 3],
+            ]);
         });
 
         it("prepends an object item as one element, like array_unshift", () => {
@@ -5217,13 +9375,15 @@ describe("Collection", () => {
             });
         });
 
-        it("mutates the caller's object in place, like the array backing", () => {
-            // JS-only: PHP arrays are values; a Collection shares the caller's object, as it already shares an array.
+        it("leaves the caller's object untouched, as it leaves an array", () => {
             const original = { b: 2 };
+            const c = new Collection(original);
+            c.unshift(1);
 
-            new Collection(original).unshift(1);
-
-            expect(original).toEqual({ 0: 1, b: 2 });
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-from-record-unshift-copies"
+            expect([original, c.all()]).toEqual([{ b: 2 }, { 0: 1, b: 2 }]);
+            expect(c.keys().all()).toEqual([0, "b"]);
+            expect(c.values().all()).toEqual([1, 2]);
         });
 
         it("classifies keys like PHP, keeping non-canonical numeric strings", () => {
@@ -5258,11 +9418,18 @@ describe("Collection", () => {
                 new Collection({ "-1": "a", x: "b" }).unshift("z").all(),
             ).toEqual({ 0: "z", 1: "a", x: "b" });
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).unshift("x", true), "list");
+            expectShape(outOfOrderKeys().unshift(1), "keyed");
+        });
     });
 
     describe("concat", () => {
         describe("Laravel Tests", () => {
             it("test concat with array", () => {
+                // CollectionTest::testConcatWithArray
                 const expected = [
                     4,
                     5,
@@ -5278,9 +9445,8 @@ describe("Collection", () => {
                     "Laroe",
                 ];
 
-                let data = collect([4, 5, 6]);
-                data = data.concat(["a", "b", "c"]);
-                data = data.concat({
+                // Each concat widens the item type, so the results chain where PHP reassigns $data.
+                const data = collect([4, 5, 6]).concat(["a", "b", "c"]).concat({
                     who: "Jonny",
                     preposition: "from",
                     where: "Laroe",
@@ -5297,6 +9463,7 @@ describe("Collection", () => {
             });
 
             it("test concat with collection", () => {
+                // CollectionTest::testConcatWithCollection
                 const expected = [
                     4,
                     5,
@@ -5312,29 +9479,62 @@ describe("Collection", () => {
                     "Laroe",
                 ];
 
-                let firstCollection = collect([4, 5, 6]);
                 const secondCollection = collect(["a", "b", "c"]);
                 const thirdCollection = collect({
                     who: "Jonny",
                     preposition: "from",
                     where: "Laroe",
                 });
-                firstCollection = firstCollection.concat(secondCollection);
-                firstCollection = firstCollection.concat(thirdCollection);
+                // Each concat widens the item type, so the results chain where PHP reassigns $firstCollection.
+                const firstCollection = collect([4, 5, 6])
+                    .concat(secondCollection)
+                    .concat(thirdCollection);
                 const actual = firstCollection.concat(thirdCollection).all();
 
                 expect(actual).toEqual(expected);
             });
+        });
+
+        it("appends a Map operand's values in the order it holds them", () => {
+            const operand = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-concat-map-order"
+            for (const concatenated of [
+                collect(["x"]).concat(operand()),
+                collect(["x"]).concat(collect(operand())),
+            ]) {
+                expect(concatenated.all()).toEqual(["x", "c", "a", "b"]);
+                expect(concatenated.keys().all()).toEqual([0, 1, 2, 3]);
+                expect(concatenated.values().all()).toEqual([
+                    "x",
+                    "c",
+                    "a",
+                    "b",
+                ]);
+            }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).concat({ x: "y" }), "list");
+            expectShape(outOfOrderKeys().concat([1]), "keyed");
         });
     });
 
     describe("pull", () => {
         describe("Laravel Tests", () => {
             it("test pull retrieves item from collection", () => {
+                // CollectionTest::testPullRetrievesItemFromCollection
                 const c = collect(["foo", "bar"]);
 
                 expect(c.pull(0)).toBe("foo");
-                expect(c.pull(1)).toBe("bar");
+                // PHP leaves "bar" at key 1; a list backing reindexes where PHP keeps a gap, so it is pulled from 0.
+                expect(c.pull(0)).toBe("bar");
 
                 const c2 = collect(["foo", "bar"]);
 
@@ -5343,14 +9543,17 @@ describe("Collection", () => {
             });
 
             it("test pull removes item from collection", () => {
+                // CollectionTest::testPullRemovesItemFromCollection
                 const c = collect(["foo", "bar"]);
                 c.pull(0);
-                expect(c.all()).toEqual({ 1: "bar" });
-                c.pull(1);
-                expect(c.all()).toEqual({});
+                // PHP leaves "bar" at key 1; a list backing reindexes where PHP keeps a gap, so it is pulled from 0.
+                expect(c.all()).toEqual(["bar"]);
+                c.pull(0);
+                expect(c.all()).toEqual([]);
             });
 
             it("test pull removes item from nested collection", () => {
+                // CollectionTest::testPullRemovesItemFromNestedCollection
                 const nestedCollection = collect([
                     collect([
                         "value",
@@ -5371,6 +9574,7 @@ describe("Collection", () => {
             });
 
             it("test pull returns default", () => {
+                // CollectionTest::testPullReturnsDefault
                 const c = collect([]);
                 const value = c.pull(0, "foo");
                 expect(value).toBe("foo");
@@ -5431,8 +9635,8 @@ describe("Collection", () => {
                 nested: { valid: "data" },
             });
 
-            // A first-level key containing dots must be both retrieved AND removed;
-            // dataGet already resolved it, but dataForget still had to stop traversing.
+            // A key the items hold is read and removed whole, dots and all, before any dot path, as Arr::exists
+            // is asked first.
             const c8b = collect({
                 "joe@example.com": "Joe",
                 "jane@localhost": "Jane",
@@ -5440,10 +9644,11 @@ describe("Collection", () => {
             expect(c8b.pull("joe@example.com")).toBe("Joe");
             expect(c8b.all()).toEqual({ "jane@localhost": "Jane" });
 
-            // Test pulling from array with simple numeric index (already covered but ensuring)
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-string-index-on-list"
+            // PHP keeps the gap ({0: 10, 2: 30}); a list backing reindexes, as a JS array holds no sparse keys.
             const c9 = collect([10, 20, 30]);
             expect(c9.pull(1)).toBe(20);
-            expect(c9.all()).toEqual({ 0: 10, 2: 30 });
+            expect(c9.all()).toEqual([10, 30]);
 
             // Test pulling from mixed object (string and numeric keys)
             const c10 = collect({
@@ -5487,23 +9692,211 @@ describe("Collection", () => {
             expect(c15.pull("y")).toBe("other");
             expect(c15.all()).toEqual({ x: "val" });
 
-            // Test pulling from array with STRING key that is a valid numeric
-            // This covers delete (items as unknown[])[numKey]
-            // When this.items is array BUT key is string (not number type), we enter else branch
-            // but items is still an array
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-string-index-on-list"
             const c16 = collect(["a", "b", "c"]);
-            expect(c16.pull("1")).toBe("b"); // String "1", not number 1
-            expect(c16.all()).toEqual(["a", undefined, "c"]); // Array with deleted element
+            expect(c16.pull("1")).toBe("b");
+            expect(c16.all()).toEqual(["a", "c"]);
         });
 
         it("handles array with string numeric key", () => {
             const c = collect(["a", "b", "c"]);
-            // Pass string "1" instead of number 1 to trigger else branch
-            expect(c.pull("1")).toBe("b");
-            expect(c.all()).toEqual(["a", undefined, "c"]);
+            const returned = c.pull("1");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-string-index-on-list"
+            // PHP keeps the gap ({0: "a", 2: "c"}); a list backing reindexes, as a JS array holds no sparse keys.
+            expect({ returned, all: c.all(), count: c.count() }).toEqual({
+                returned: "b",
+                all: ["a", "c"],
+                count: 2,
+            });
+            expect(c.keys().all()).toEqual([0, 1]);
+            expect(c.values().all()).toEqual(["a", "c"]);
+        });
+
+        it("checks a float key as its string form, then reads and removes it as an integer key", () => {
+            const list = collect(["a", "b", "c"]);
+            const listReturned = list.pull(1.5);
+            const record = collect({ "1.5": "x", 1: "y" });
+            const recordReturned = record.pull(1.5);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-float-key-exists-as-its-string-form"
+            expect({
+                list: { returned: listReturned, all: list.all() },
+                record: { returned: recordReturned, all: record.all() },
+            }).toEqual({
+                list: { returned: null, all: ["a", "b", "c"] },
+                record: { returned: "y", all: { "1.5": "x" } },
+            });
+        });
+
+        it("keeps a list a list when the key is missing", () => {
+            const c = collect(["foo", "bar"]);
+            const returned = [c.pull(2), c.pull(-1)];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-missing-on-list-keeps-list"
+            expect({ returned, all: c.all(), json: c.toJson() }).toEqual({
+                returned: [null, null],
+                all: ["foo", "bar"],
+                json: '["foo","bar"]',
+            });
+            expect(c.keys().all()).toEqual([0, 1]);
+            expect(c.values().all()).toEqual(["foo", "bar"]);
+        });
+
+        it("hands back every item for a null key and removes nothing", () => {
+            const c = collect([1, 2]);
+            const returned = c.pull(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-null-key"
+            expect({ returned, all: c.all() }).toEqual({
+                returned: [1, 2],
+                all: [1, 2],
+            });
+
+            // JS-only: the items come back copied, as PHP hands its array back by value
+            expect(returned).not.toBe(c.all());
+        });
+
+        it("leaves the collections it holds as collections", () => {
+            const c = collect({ a: collect([1]), b: 2 });
+            c.pull("b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-keeps-sibling-collections"
+            expect(c.get("a")).toBeInstanceOf(Collection);
+        });
+
+        it("hands back a collection it holds as that collection", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-returns-stored-collection"
+            expect(collect({ a: collect({ x: 1 }) }).pull("a")).toBeInstanceOf(
+                Collection,
+            );
+        });
+
+        it("pulls a dot path out of a collection it holds", () => {
+            const c = collect({ a: collect({ x: 1, y: 2 }) });
+            const returned = c.pull("a.x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-dot-into-nested-collection"
+            expect({
+                returned,
+                nestedIsCollection: c.get("a") instanceof Collection,
+                toArray: c.toArray(),
+            }).toEqual({
+                returned: 1,
+                nestedIsCollection: true,
+                toArray: { a: { y: 2 } },
+            });
+        });
+
+        it("reads a collection it holds one segment at a time, never by a literal dotted key", () => {
+            const c = collect({ a: collect({ "x.y": 1 }) });
+            const returned = c.pull("a.x.y");
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-dot-path-inside-collection-per-segment"
+            expect({ returned, toArray: c.toArray() }).toEqual({
+                returned: null,
+                toArray: { a: { "x.y": 1 } },
+            });
+        });
+
+        it("pulls through an array into a collection the array holds", () => {
+            const c = collect({ a: { b: collect({ x: 1, y: 2 }) } });
+            const returned = c.pull("a.b.x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-through-array-into-collection"
+            // toArray() leaves a collection an array holds as it is, so the row reads it as JSON encodes it.
+            expect({
+                returned,
+                toArray: JSON.parse(JSON.stringify(c.toArray())),
+            }).toEqual({
+                returned: 1,
+                toArray: { a: { b: { y: 2 } } },
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-through-array-keeps-the-collection"
+            expect(c.get("a")).toEqual({ b: expect.any(Collection) });
+        });
+
+        it("reads an array a held collection holds, but removes nothing from it", () => {
+            const c = collect({ a: collect({ x: { y: 1, z: 2 } }) });
+            const returned = c.pull("a.x.y");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-array-inside-collection-stays"
+            expect({ returned, toArray: c.toArray() }).toEqual({
+                returned: 1,
+                toArray: { a: { x: { y: 1, z: 2 } } },
+            });
+        });
+
+        it("pulls a dot path through a Map an item holds, as through the array it stands for", () => {
+            const pulled = (
+                items: Record<string, unknown>,
+                key: string,
+                defaultValue?: string,
+            ) => {
+                const c = collect(items);
+                const returned = c.pull(key, defaultValue);
+                const held = c.get("a") as Map<unknown, unknown>;
+
+                return {
+                    returned,
+                    keys: [...held.keys()],
+                    values: [...held.values()],
+                };
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-dot-path-through-nested-arrays"
+            expect([
+                pulled(
+                    {
+                        a: new Map([
+                            ["b", 1],
+                            ["c", 2],
+                        ]),
+                    },
+                    "a.b",
+                ),
+                pulled({ a: new Map([["b", { c: 1, d: 2 }]]) }, "a.b.c"),
+                pulled(
+                    {
+                        a: new Map([
+                            [2, "x"],
+                            [0, "y"],
+                            [1, "z"],
+                        ]),
+                    },
+                    "a.2",
+                ),
+                pulled({ a: new Map([["b", 1]]) }, "a.z", "d"),
+            ]).toEqual([
+                { returned: 1, keys: ["c"], values: [2] },
+                { returned: 1, keys: ["b"], values: [{ d: 2 }] },
+                { returned: "x", keys: [0, 1], values: ["y", "z"] },
+                { returned: "d", keys: ["b"], values: [1] },
+            ]);
+        });
+
+        it("changes a copy of a Map an item holds, and keeps the Map when nothing below it is pulled", () => {
+            const held = new Map([["b", { c: 1 }]]);
+            const c = collect({ a: held });
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-pull-dot-path-missing-below-nested-array"
+            expect(c.pull("a.b.z", "d")).toBe("d");
+            expect(c.get("a")).toBe(held);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-dot-path-through-nested-arrays"
+            expect(c.pull("a.b.c")).toBe(1);
+            // JS-only: PHP's array is a value, so the change lands on a copy; the caller's own Map stays whole
+            expect([...held.values()]).toEqual([{ c: 1 }]);
+            expect(c.get("a")).toEqual(new Map([["b", {}]]));
         });
 
         it("ignores __proto__ as final segment in nested pull path", () => {
+            // JS-only: a path segment is an own key, so "__proto__" never reaches Object.prototype
             const c = collect({ a: { b: "value" } });
             c.pull("a.__proto__");
             expect(({} as Record<string, unknown>)["__proto__"]).toBeDefined(); // Object.prototype untouched
@@ -5511,6 +9904,7 @@ describe("Collection", () => {
         });
 
         it("ignores __proto__ as mid-path segment in nested pull path", () => {
+            // JS-only: a path segment is an own key, so "__proto__" never reaches Object.prototype
             const c = collect({ a: { b: "value" } });
             c.pull("__proto__.polluted");
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
@@ -5521,20 +9915,25 @@ describe("Collection", () => {
     describe("put", () => {
         describe("Laravel Tests", () => {
             it("test put", () => {
+                // CollectionTest::testPut
                 const data = collect({ name: "taylor", email: "foo" });
                 data.put("name", "dayle");
                 expect(data.all()).toEqual({ name: "dayle", email: "foo" });
+                expect(data.keys().all()).toEqual(["name", "email"]);
+                expect(data.values().all()).toEqual(["dayle", "foo"]);
             });
 
             it("test put with no key", () => {
+                // CollectionTest::testPutWithNoKey
                 const data = collect(["taylor", "shawn"]);
                 data.put(null, "dayle");
                 expect(data.all()).toEqual(["taylor", "shawn", "dayle"]);
             });
 
             it("test put add item to collection", () => {
-                const data = collect({});
-                expect(data.toArray()).toEqual({});
+                // CollectionTest::testPutAddsItemToCollection
+                const data = new Collection();
+                expect(data.toArray()).toEqual([]);
                 data.put("foo", 1);
                 expect(data.toArray()).toEqual({ foo: 1 });
                 data.put("bar", { nested: "two" });
@@ -5550,12 +9949,40 @@ describe("Collection", () => {
             });
         });
 
-        // docs/php-parity/task-17-second-review.json, "put uses \"length\" as an ordinary key"
-        it('puts a "length" key on an array backing without throwing', () => {
+        it('keeps a "length" key as data on a list backing', () => {
             const collection = new Collection([1, 2]);
-            expect(() =>
-                collection.put("length" as never, 5 as never),
-            ).not.toThrow();
+            collection.put("length", 0);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-length-zero-on-list"
+            expect({
+                all: collection.all(),
+                count: collection.count(),
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                get: collection.get("length"),
+                has: collection.has("length"),
+                last: collection.last(),
+            }).toEqual({
+                all: { 0: 1, 1: 2, length: 0 },
+                count: 3,
+                keys: [0, 1, "length"],
+                values: [1, 2, 0],
+                get: 0,
+                has: true,
+                last: 0,
+            });
+        });
+
+        it.fails("keeps an integer key put after a string key last", () => {
+            const collection = collect({ a: 1 }).put(0, "z");
+
+            // Ordered-backing gap: PHP keeps a key put past the string keys last, 0 after a
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-int-key-onto-string-keyed-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+                last: collection.last(),
+            }).toEqual({ keys: ["a", 0], values: [1, "z"], last: "z" });
         });
 
         // docs/php-parity/task-17-second-review.json: "Arr::set writes a
@@ -5570,17 +9997,35 @@ describe("Collection", () => {
             it.each(["constructor", "prototype", "__proto__"])(
                 "keeps a %s key as own data",
                 (key) => {
-                    expect(
-                        new Collection({}).put(key as never, 5 as never).all(),
-                    ).toEqual({ [key]: 5 });
+                    expect(new Collection({}).put(key, 5).all()).toEqual({
+                        [key]: 5,
+                    });
                 },
             );
+        });
+
+        it("keeps a list a list only for an index inside it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).put(null, 3), "list");
+            expectShape(collect([1, 2]).put(2, 3), "list");
+            expectShape(collect([1, 2]).put(5, 3), "keyed");
+            expectShape(collect([1, 2]).put("x", 3), "keyed");
+            expectShape(outOfOrderKeys().put(3, "d"), "keyed");
+        });
+
+        it("keeps a list a list for a key that holds null and makes it keyed for one that holds a string, as its type declares", () => {
+            const keyOrNull = (key: string | null): string | null => key;
+
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).put(keyOrNull(null), 3), "list");
+            expectShape(collect([1, 2]).put(keyOrNull("x"), 3), "keyed");
         });
     });
 
     describe("random", () => {
         describe("Laravel Tests", () => {
             it("test random", () => {
+                // CollectionTest::testRandom
                 const data = collect([1, 2, 3, 4, 5, 6]);
                 const random = data.random();
                 expect(typeof random).toBe("number");
@@ -5683,6 +10128,7 @@ describe("Collection", () => {
             });
 
             it("test random on empty collection", () => {
+                // CollectionTest::testRandomOnEmptyCollection
                 const data = collect([]);
                 const random = data.random(0);
                 expect(random).toBeInstanceOf(Collection);
@@ -5694,38 +10140,165 @@ describe("Collection", () => {
             });
 
             it("test random on empty collection with no count throws", () => {
-                // Documented at Collection.random's JSDoc: with no count,
-                // one item is requested, and an empty collection cannot
-                // supply it — same error Arr.random raises.
+                // docs/php-parity/task-08-arr-parity.json, "Arr::random on empty", the call random() makes
+                expect(() => collect([]).random()).toThrowError(
+                    InvalidArgumentException,
+                );
                 expect(() => collect([]).random()).toThrowError(
                     "You requested 1 items, but there are only 0 items available.",
                 );
             });
 
             it("test random throws an exception using amount bigger than collection size", () => {
+                // CollectionTest::testRandomThrowsAnExceptionUsingAmountBiggerThanCollectionSize
                 const data = collect([1, 2, 3]);
                 expect(() => {
                     data.random(4);
-                }).toThrowError();
+                }).toThrowError(InvalidArgumentException);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-too-many-count"
+                expect(() => {
+                    data.random(4);
+                }).toThrowError(
+                    "You requested 4 items, but there are only 3 items available.",
+                );
             });
         });
 
-        // Arr.php:971 defaults $preserveKeys = false. Array- and object-backed
-        // Collections must agree, per the unison rule.
-        it("reindexes from zero by default, either backing", () => {
-            const fromArray: Collection<number, number> = collect([
-                10, 20, 30,
-            ]).random(2);
-            expect(fromArray).toBeInstanceOf(Collection);
-            expect(Object.keys(fromArray.all())).toEqual(["0", "1"]);
+        it("hands a count callback the collection and takes the count it answers", () => {
+            const collection = collect([1, 2, 3]);
 
-            const fromObject: Collection<number, string> = collect({
-                one: 10,
-                two: 20,
-                three: 30,
-            }).random(2);
-            expect(fromObject).toBeInstanceOf(Collection);
-            expect(Object.keys(fromObject.all())).toEqual(["0", "1"]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-callable-count"
+            expect(
+                collection
+                    .random((items) => (items instanceof Collection ? 2 : 0))
+                    .count(),
+            ).toBe(2);
+            expect(collection.random(() => 0).all()).toEqual([]);
+            expect(() => collection.random(() => 5)).toThrowError(
+                InvalidArgumentException,
+            );
+            expect(() => collection.random(() => 5)).toThrowError(
+                "You requested 5 items, but there are only 3 items available.",
+            );
+        });
+
+        it("truncates a fractional count, as Arr::random's int cast does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-float-count"
+            expect([
+                collect([1, 2, 3]).random(1.2).count(),
+                collect([1, 2, 3]).random(2.9).count(),
+            ]).toEqual([1, 2]);
+        });
+
+        it("picks nothing for a negative count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-negative-count"
+            expect(collect([1, 2, 3]).random(-1).all()).toEqual([]);
+        });
+
+        it("names an infinite count INF, as PHP prints it, and picks nothing for -INF", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => collection.random(Infinity)).toThrowError(
+                InvalidArgumentException,
+            );
+            expect(() => collection.random(Infinity)).toThrowError(
+                "You requested INF items, but there are only 3 items available.",
+            );
+            expect(collection.random(-Infinity).all()).toEqual([]);
+        });
+
+        it("compares a count that is not numeric as a string, as PHP does", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => collection.random("abc")).toThrowError(
+                InvalidArgumentException,
+            );
+            expect(() => collection.random("abc")).toThrowError(
+                "You requested abc items, but there are only 3 items available.",
+            );
+        });
+
+        it("rejects a NAN count or a string that is not numeric, as pickArrayKeys' int parameter does", () => {
+            const collection = collect([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            expect(() => collection.random(NaN)).toThrowError(TypeError);
+            expect(() => collection.random(NaN)).toThrowError(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            expect(() => collection.random("1x")).toThrowError(TypeError);
+            expect(() => collection.random("1x")).toThrowError(
+                "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
+            );
+        });
+
+        it("picks nothing from an empty collection at a NAN count, as Arr::random's empty guard answers first", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-nan-count-on-empty"
+            expect(collect([]).random(NaN).all()).toEqual([]);
+            expect(
+                collect([])
+                    .random(() => NaN)
+                    .all(),
+            ).toEqual([]);
+        });
+
+        it("reindexes from zero by default into a list, either backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-record-count-is-list"
+            for (const picked of [
+                collect([10, 20, 30]).random(2),
+                collect({ one: 10, two: 20, three: 30 }).random(2),
+            ]) {
+                expect(picked).toBeInstanceOf(Collection);
+                expect(Array.isArray(picked.all())).toBe(true);
+                expect(picked.keys().all()).toEqual([0, 1]);
+            }
+            expect(collect({ a: 1 }).random(0).all()).toEqual([]);
+            // Same row: kept keys that run 0..n-1 in order make a list too.
+            expect(
+                Array.isArray(collect([10, 20, 30]).random(3, true).all()),
+            ).toBe(true);
+        });
+
+        it("keeps string keys when asked to", () => {
+            const data = collect({ a: 1, b: 2, c: 3 });
+            const picked = data.random(3, true);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-preserved-string-keys"
+            expect(picked.all()).toEqual({ a: 1, b: 2, c: 3 });
+            expect(picked.keys().all()).toEqual(["a", "b", "c"]);
+            expect(picked.values().all()).toEqual([1, 2, 3]);
+            expect(Array.isArray(data.random(2, true).all())).toBe(false);
+        });
+
+        it.fails(
+            "picks a Map-built collection whole in its insertion order",
+            () => {
+                const kept = outOfOrderKeys().random(3, true);
+
+                // Ordered-backing gap: PHP picks in insertion order, c before a and b, and keeps the keys 2, 0, 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-out-of-order-full-count"
+                expect([
+                    outOfOrderKeys().random(3).all(),
+                    kept.keys().all(),
+                    kept.values().all(),
+                ]).toEqual([
+                    ["c", "a", "b"],
+                    [2, 0, 1],
+                    ["c", "a", "b"],
+                ]);
+            },
+        );
+
+        it("lists the picks, or keeps the keys it is asked to in either shape, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([10, 20, 30]).random(2), "list");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).random(2), "list");
+            expectShape(collect([10, 20, 30]).random(3, true), "list");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).random(2, true), "keyed");
+            expectShape(collect({ a: 1, b: 2, c: 3 }).random(0, true), "list");
         });
     });
 
@@ -5743,21 +10316,25 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test replace null", () => {
+                // CollectionTest::testReplaceNull
                 const c = collect(["a", "b", "c"]);
                 expect(c.replace(null).all()).toEqual(["a", "b", "c"]);
             });
 
             it("test replace array", () => {
+                // CollectionTest::testReplaceArray
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replace-sparse-int-keyed-replacer"
                 const c = collect(["a", "b", "c"]);
-                expect(c.replace(["d", "e"]).all()).toEqual(["d", "e", "c"]);
-
-                const c2 = collect(["a", "b", "c"]);
-                expect(c2.replace(["d", "e", "f", "g"]).all()).toEqual([
+                expect(c.replace({ 1: "d", 2: "e" }).all()).toEqual([
+                    "a",
                     "d",
                     "e",
-                    "f",
-                    "g",
                 ]);
+
+                const c2 = collect(["a", "b", "c"]);
+                expect(
+                    c2.replace({ 1: "d", 2: "e", 3: "f", 4: "g" }).all(),
+                ).toEqual(["a", "d", "e", "f", "g"]);
 
                 const c3 = collect({ name: "amir", family: "otwell" });
                 expect(c3.replace({ name: "taylor", age: 26 }).all()).toEqual({
@@ -5768,34 +10345,43 @@ describe("Collection", () => {
             });
 
             it("test replace collection", () => {
+                // CollectionTest::testReplaceCollection
                 const c = collect(["a", "b", "c"]);
-                expect(c.replace(collect(["d", "e"])).all()).toEqual([
+                expect(c.replace(collect({ 1: "d", 2: "e" })).all()).toEqual([
+                    "a",
                     "d",
                     "e",
-                    "c",
                 ]);
 
                 const c2 = collect(["a", "b", "c"]);
-                expect(c2.replace(collect(["d", "e", "f", "g"])).all()).toEqual(
-                    ["d", "e", "f", "g"],
+                expect(
+                    c2
+                        .replace(collect({ 1: "d", 2: "e", 3: "f", 4: "g" }))
+                        .all(),
+                ).toEqual(["a", "d", "e", "f", "g"]);
+
+                // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc":
+                // the same replacer as an array, so the same keys in the same order
+                const c3 = collect({ name: "amir", family: "otwell" });
+                const replaced = c3.replace(
+                    collect({ name: "taylor", age: 26 }),
                 );
 
-                const c3 = collect({ name: "amir", family: "otwell" });
-                expect(
-                    c3.replace(collect({ name: "taylor", age: 26 })).all(),
-                ).toEqual({ name: "taylor", family: "otwell", age: 26 });
-            });
-
-            it("unwraps a Collection-like replacer", () => {
-                // docs/php-parity/task-23-obj-release-readiness.json, "C16 replace assoc"
-                const c = collect({ name: "amir", family: "otwell" });
-                expect(
-                    c
-                        .replace({
-                            all: () => ({ name: "taylor", age: 26 }),
-                        } as never)
-                        .all(),
-                ).toEqual({ name: "taylor", family: "otwell", age: 26 });
+                expect(replaced.all()).toEqual({
+                    name: "taylor",
+                    family: "otwell",
+                    age: 26,
+                });
+                expect(replaced.keys().all()).toEqual([
+                    "name",
+                    "family",
+                    "age",
+                ]);
+                expect(replaced.values().all()).toEqual([
+                    "taylor",
+                    "otwell",
+                    26,
+                ]);
             });
         });
 
@@ -5827,6 +10413,64 @@ describe("Collection", () => {
                 0: "x",
             });
         });
+
+        it("keeps the receiver's keys first, then those the replacer adds", () => {
+            const replaced = collect({ a: 1 }).replace(["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replace-assoc-then-list"
+            expect(replaced.all()).toEqual({ a: 1, 0: "x" });
+            expect(replaced.keys().all()).toEqual(["a", 0]);
+            expect(replaced.values().all()).toEqual([1, "x"]);
+        });
+
+        it("adds a replacer's keys in the order it holds them", () => {
+            const replaced = collect([1, 2, 3]).replace(
+                new Map([
+                    [7, "x"],
+                    [3, "y"],
+                ]),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replace-out-of-order-int-keys"
+            expect(replaced.all()).toEqual({
+                0: 1,
+                1: 2,
+                2: 3,
+                7: "x",
+                3: "y",
+            });
+            expect(replaced.keys().all()).toEqual([0, 1, 2, 7, 3]);
+            expect(replaced.values().all()).toEqual([1, 2, 3, "x", "y"]);
+        });
+
+        it("keeps a Map-built receiver's keys in the order it holds them", () => {
+            const replaced = outOfOrderKeys().replace({ 1: "B", 5: "f" });
+
+            // docs/php-parity/task-30-map-order.json, "replace-out-of-order"
+            expect(replaced.all()).toEqual({ 0: "a", 1: "B", 2: "c", 5: "f" });
+            expect(replaced.keys().all()).toEqual([2, 0, 1, 5]);
+            expect(replaced.values().all()).toEqual(["c", "a", "B", "f"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).replace(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
+        });
+
+        it("keeps a record keyed, and a list a list while the operand's keys extend it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).replace([3, 4, 5]), "list");
+            expectShape(collect({ a: 1 }).replace([5]), "keyed");
+            expectShape(collect([1, 2]).replace({ c: 3 }), "keyed");
+            // Integer keys keep a list only while they extend it as 0..n-1.
+            expectShape(collect([1, 2]).replace({ 2: "z" }), "list");
+            expectShape(collect([1, 2]).replace({ 5: "z" }), "keyed");
+        });
     });
 
     describe("replaceRecursive", () => {
@@ -5841,6 +10485,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test replace recursive null", () => {
+                // CollectionTest::testReplaceRecursiveNull
                 const c = collect(["a", "b", ["c", "d"]]);
                 expect(c.replaceRecursive(null).all()).toEqual([
                     "a",
@@ -5850,29 +10495,29 @@ describe("Collection", () => {
             });
 
             it("test replace recursive array", () => {
+                // CollectionTest::testReplaceRecursiveArray
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replaceRecursive-sparse-replacer"
                 const c = collect(["a", "b", ["c", "d"]]);
                 expect(
-                    c.replaceRecursive(["z", "b", ["c", "e"]]).all(),
-                ).toEqual(["z", "b", ["c", "e"]]);
-
-                const c2 = collect(["a", "b", ["c", "d"]]);
-                expect(
-                    c2.replaceRecursive(["z", "b", ["c", "e"], "f"]).all(),
-                ).toEqual(["z", "b", ["c", "e"], "f"]);
-            });
-
-            it("test replace recursive collection", () => {
-                const c = collect(["a", "b", ["c", "d"]]);
-                expect(
-                    c.replaceRecursive(collect(["z", "b", ["c", "e"]])).all(),
+                    c.replaceRecursive({ 0: "z", 2: { 1: "e" } }).all(),
                 ).toEqual(["z", "b", ["c", "e"]]);
 
                 const c2 = collect(["a", "b", ["c", "d"]]);
                 expect(
                     c2
-                        .replaceRecursive(collect(["z", "b", ["c", "e"], "f"]))
+                        .replaceRecursive({ 0: "z", 2: { 1: "e" }, 3: "f" })
                         .all(),
                 ).toEqual(["z", "b", ["c", "e"], "f"]);
+            });
+
+            it("test replace recursive collection", () => {
+                // CollectionTest::testReplaceRecursiveCollection
+                const c = collect(["a", "b", ["c", "d"]]);
+                expect(
+                    c
+                        .replaceRecursive(collect({ 0: "z", 2: { 1: "e" } }))
+                        .all(),
+                ).toEqual(["z", "b", ["c", "e"]]);
             });
         });
 
@@ -5914,14 +10559,60 @@ describe("Collection", () => {
                     .all(),
             ).toEqual({ 0: "z", 1: "b", x: "c" });
         });
+
+        it("keeps the receiver's keys first, then those the replacer adds", () => {
+            const replaced = collect({ a: 1 }).replaceRecursive(["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-replaceRecursive-assoc-then-list"
+            expect(replaced.all()).toEqual({ a: 1, 0: "x" });
+            expect(replaced.keys().all()).toEqual(["a", 0]);
+            expect(replaced.values().all()).toEqual([1, "x"]);
+        });
+
+        it("adds a replacer's keys in the order it holds them", () => {
+            const replaced = collect(["a"]).replaceRecursive(
+                new Map([
+                    [2, "c"],
+                    [1, "b"],
+                ]),
+            );
+
+            // docs/php-parity/task-30-map-order.json, "replaceRecursive-list-out-of-order-operand"
+            expect(replaced.all()).toEqual({ 0: "a", 1: "b", 2: "c" });
+            expect(replaced.keys().all()).toEqual([0, 2, 1]);
+            expect(replaced.values().all()).toEqual(["a", "c", "b"]);
+        });
+
+        it("reads a plain object's all member as one of its entries, never unwrapping it", () => {
+            const operand = { all: () => ({ b: 2 }) };
+            const result = collect({ a: 1 }).replaceRecursive(operand);
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-F-plain-object-all-member-is-data-by-value"
+            expect(result.all()).toEqual({ a: 1, all: operand.all });
+            expect(result.keys().all()).toEqual(["a", "all"]);
+            expect(result.values().all()).toEqual([1, operand.all]);
+        });
+
+        it("keeps a record keyed, and a list a list while the operand's keys extend it, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).replaceRecursive([3, 4, 5]), "list");
+            expectShape(collect({ a: 1 }).replaceRecursive([5]), "keyed");
+            expectShape(collect([1, 2]).replaceRecursive({ c: 3 }), "keyed");
+            // Integer keys keep a list only while they extend it as 0..n-1.
+            expectShape(collect([1, 2]).replaceRecursive({ 2: "z" }), "list");
+            expectShape(collect([1, 2]).replaceRecursive({ 5: "z" }), "keyed");
+        });
     });
 
     describe("reverse", () => {
         describe("Laravel Tests", () => {
-            it("", () => {
+            it("test reverse", () => {
+                // CollectionTest::testReverse
                 const data = collect(["zaeed", "alan"]);
                 const reversed = data.reverse();
 
+                // JS-only: a list cannot hold its keys reversed, so they are renumbered, where PHP keeps 1 then 0
                 expect(reversed.all()).toEqual(["alan", "zaeed"]);
 
                 const data2 = collect({ name: "taylor", framework: "laravel" });
@@ -5931,13 +10622,39 @@ describe("Collection", () => {
                     framework: "laravel",
                     name: "taylor",
                 });
+                expect(reversed2.keys().all()).toEqual(["framework", "name"]);
             });
+        });
+
+        it.fails(
+            "reverses a Map-built collection in the order it holds its items",
+            () => {
+                const reversed = outOfOrderKeys().reverse();
+
+                // Ordered-backing gap: PHP reverses 2 => c, 0 => a, 1 => b into 1 => b, 0 => a, 2 => c
+                // docs/php-parity/task-30-map-order.json, "reverse-out-of-order"
+                expect([
+                    reversed.keys().all(),
+                    reversed.values().all(),
+                ]).toEqual([
+                    [1, 0, 2],
+                    ["b", "a", "c"],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).reverse(), "list");
+            expectShape(collect({ a: 1, b: 2 }).reverse(), "keyed");
+            expectShape(collect({ 5: "a", 6: "b" }).reverse(), "keyed");
         });
     });
 
     describe("search", () => {
         describe("Laravel Tests", () => {
             it("test search returns index of first found item", () => {
+                // CollectionTest::testSearchReturnsIndexOfFirstFoundItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -5954,8 +10671,7 @@ describe("Collection", () => {
                 expect(c.search("bar")).toBe("foo");
                 expect(
                     c.search((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 4;
+                        return compareValues(value, 4) > 0;
                     }),
                 ).toBe(4);
                 expect(
@@ -5966,22 +10682,20 @@ describe("Collection", () => {
             });
 
             it("test search in strict mode", () => {
-                // Note: In JavaScript, we must search for the same array reference
-                // because strict comparison uses === which checks reference equality
-                // for objects and arrays
-                const emptyArray: unknown[] = [];
-                const c = collect([false, 0, 1, emptyArray, ""]);
+                // CollectionTest::testSearchInStrictMode
+                const c = collect([false, 0, 1, [], ""]);
 
                 expect(c.search("false", true)).toBe(false);
                 expect(c.search("1", true)).toBe(false);
                 expect(c.search(false, true)).toBe(0);
                 expect(c.search(0, true)).toBe(1);
                 expect(c.search(1, true)).toBe(2);
-                expect(c.search(emptyArray, true)).toBe(3);
+                expect(c.search([], true)).toBe(3);
                 expect(c.search("", true)).toBe(4);
             });
 
             it("test search returns false when item is not found", () => {
+                // CollectionTest::testSearchReturnsFalseWhenItemIsNotFound
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -5995,8 +10709,10 @@ describe("Collection", () => {
                 expect(c.search("foo")).toBe(false);
                 expect(
                     c.search((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 1 && typeof value === "number";
+                        return (
+                            compareValues(value, 1) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBe(false);
                 expect(
@@ -6006,11 +10722,53 @@ describe("Collection", () => {
                 ).toBe(false);
             });
         });
+
+        it("answers a numeric-string record key as the integer PHP stores it as", () => {
+            const key = collect({ 1: "a", x: "b" }).search("a");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-search-numeric-string-record-key":
+            // PHP's gettype() says integer where typeof says number
+            expect([typeof key, key]).toEqual(["number", 1]);
+        });
+
+        it.fails(
+            "finds the first key holding a value in a Map-built collection's insertion order",
+            () => {
+                const duplicates = collect(
+                    new Map([
+                        [2, "x"],
+                        [0, "x"],
+                        [1, "y"],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP searches in insertion order, so key 2 comes before 0
+                // docs/php-parity/task-30-map-order.json, "search-out-of-order-duplicate-value"
+                expect(duplicates.search("x")).toBe(2);
+            },
+        );
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().search((_value, key) => {
+                    seen.push(key);
+
+                    return false;
+                });
+
+                // Ordered-backing gap: PHP calls the callback in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "search-out-of-order-callback-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("before", () => {
         describe("Laravel Tests", () => {
             it("test before returns item before the given item", () => {
+                // CollectionTest::testBeforeReturnsItemBeforeTheGivenItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -6029,8 +10787,7 @@ describe("Collection", () => {
                 expect(c.before("laravel")).toBe("taylor");
                 expect(
                     c.before((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 4;
+                        return compareValues(value, 4) > 0;
                     }),
                 ).toBe(4);
                 expect(
@@ -6041,6 +10798,7 @@ describe("Collection", () => {
             });
 
             it("test before in strict mode", () => {
+                // CollectionTest::testBeforeInStrictMode
                 const emptyArray: unknown[] = [];
                 const c = collect([false, 0, 1, emptyArray, ""]);
 
@@ -6054,6 +10812,7 @@ describe("Collection", () => {
             });
 
             it("test before returns null when item is not found", () => {
+                // CollectionTest::testBeforeReturnsNullWhenItemIsNotFound
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -6067,8 +10826,10 @@ describe("Collection", () => {
                 expect(c.before("foo")).toBeNull();
                 expect(
                     c.before((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 1 && typeof value === "number";
+                        return (
+                            compareValues(value, 1) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBeNull();
                 expect(
@@ -6079,6 +10840,7 @@ describe("Collection", () => {
             });
 
             it("test before returns null when item on the first item", () => {
+                // CollectionTest::testBeforeReturnsNullWhenItemOnTheFirstitem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -6091,39 +10853,38 @@ describe("Collection", () => {
                 expect(c.before(1)).toBeNull();
                 expect(
                     c.before((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 2 && typeof value === "number";
+                        return (
+                            compareValues(value, 2) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBeNull();
-
-                // In JavaScript, object keys with numeric names are always ordered first,
-                // so we cannot replicate PHP's behavior of ['foo' => 'bar', 1, 2, 3, 4, 5]
-                // where 'foo' would be the first key. Instead, we test with all string keys.
-                const c2 = collect({ a: "first", b: "second", c: "third" });
-                expect(c2.before("first")).toBeNull();
             });
         });
+
+        it.fails(
+            "finds nothing before the item a leading string key holds",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so nothing comes before bar
+                // CollectionTest::testBeforeReturnsNullWhenItemOnTheFirstitem
+                expect(stringKeyFirst().before("bar")).toBeNull();
+            },
+        );
+
+        it.fails(
+            "finds a leading string key's item before the first integer key's",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so bar comes before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-before-after-string-key-first"
+                expect(stringKeyFirst().before(1)).toBe("bar");
+            },
+        );
     });
 
     describe("after", () => {
         describe("Laravel Tests", () => {
             it("test after returns item after the given item", () => {
-                // $c = new $collection([1, 2, 3, 4, 2, 5, 'name' => 'taylor', 'framework' => 'laravel']);
-
-                // $this->assertEquals(2, $c->after(1));
-                // $this->assertEquals(3, $c->after(2));
-                // $this->assertEquals(4, $c->after(3));
-                // $this->assertEquals(2, $c->after(4));
-                // $this->assertEquals('taylor', $c->after(5));
-                // $this->assertEquals('laravel', $c->after('taylor'));
-
-                // $this->assertEquals(4, $c->after(function ($value) {
-                //     return $value > 2;
-                // }));
-                // $this->assertEquals('laravel', $c->after(function ($value) {
-                //     return ! is_numeric($value);
-                // }));
-
+                // CollectionTest::testAfterReturnsItemAfterTheGivenItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -6144,8 +10905,7 @@ describe("Collection", () => {
 
                 expect(
                     c.after((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 2;
+                        return compareValues(value, 2) > 0;
                     }),
                 ).toBe(4);
                 expect(
@@ -6156,6 +10916,7 @@ describe("Collection", () => {
             });
 
             it("test after in strict mode", () => {
+                // CollectionTest::testAfterInStrictMode
                 const emptyArray: unknown[] = [];
                 const c = collect([false, 0, 1, emptyArray, ""]);
 
@@ -6168,6 +10929,7 @@ describe("Collection", () => {
             });
 
             it("test after returns null when item is not found", () => {
+                // CollectionTest::testAfterReturnsNullWhenItemIsNotFound
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -6181,8 +10943,10 @@ describe("Collection", () => {
                 expect(c.after("foo")).toBeNull();
                 expect(
                     c.after((value) => {
-                        // @ts-expect-error - operator < on string | number union
-                        return value < 1 && typeof value === "number";
+                        return (
+                            compareValues(value, 1) < 0 &&
+                            typeof value === "number"
+                        );
                     }),
                 ).toBeNull();
                 expect(
@@ -6193,6 +10957,7 @@ describe("Collection", () => {
             });
 
             it("test after returns null when item on the last item", () => {
+                // CollectionTest::testAfterReturnsNullWhenItemOnTheLastItem
                 const c = collect({
                     0: 1,
                     1: 2,
@@ -6205,21 +10970,131 @@ describe("Collection", () => {
                 expect(c.after("bar")).toBeNull();
                 expect(
                     c.after((value) => {
-                        // @ts-expect-error - operator > on string | number union
-                        return value > 4 && typeof value !== "number";
+                        // PHP 8 orders "bar" above 4 as strings, so this matches the last item
+                        return (
+                            compareValues(value, 4) > 0 &&
+                            typeof value !== "number"
+                        );
                     }),
                 ).toBeNull();
-
-                // In JavaScript, object keys with numeric names are always ordered first,
-                // so we cannot replicate PHP's behavior of ['foo' => 'bar', 1, 2, 3, 4, 5]
-                // where '5' would be the last key. Instead, we test with all string keys.
-                const c2 = collect({ a: "first", b: "second", c: "third" });
-                expect(c2.after("third")).toBeNull();
             });
         });
+
+        it.fails(
+            "finds nothing after the last item when a string key leads",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so nothing comes after 5
+                // CollectionTest::testAfterReturnsNullWhenItemOnTheLastItem
+                expect(stringKeyFirst().after(5)).toBeNull();
+            },
+        );
+
+        it.fails(
+            "finds the first integer key's item after a leading string key's",
+            () => {
+                // Ordered-backing gap: PHP keeps the string key foo first, so 1 comes after bar
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-before-after-string-key-first"
+                expect(stringKeyFirst().after("bar")).toBe(1);
+            },
+        );
     });
 
     describe("shift", () => {
+        it("takes a fractional count's whole items and every item for NAN, as PHP's loop over range() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const list = collect([1, 2, 3, 4]);
+
+            expect(list.shift(2.5).all()).toEqual([1, 2]);
+            expect(list.all()).toEqual([3, 4]);
+            expect(list.keys().all()).toEqual([0, 1]);
+            expect(list.values().all()).toEqual([3, 4]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyed.shift(2.5).all()).toEqual([1, 2]);
+            expect(keyed.all()).toEqual({ c: 3, d: 4 });
+            expect(keyed.keys().all()).toEqual(["c", "d"]);
+            expect(keyed.values().all()).toEqual([3, 4]);
+
+            for (const count of [NaN, Infinity, 1e19]) {
+                const everything = collect([1, 2, 3, 4]);
+
+                expect(takenItems(everything.shift(count))).toEqual([
+                    1, 2, 3, 4,
+                ]);
+                expect(everything.all()).toEqual([]);
+                expect(everything.keys().all()).toEqual([]);
+                expect(everything.values().all()).toEqual([]);
+            }
+
+            const emptied = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(takenItems(emptied.shift(NaN))).toEqual([1, 2, 3, 4]);
+            // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
+            expect(emptied.all()).toEqual({});
+            expect(emptied.keys().all()).toEqual([]);
+            expect(emptied.values().all()).toEqual([]);
+        });
+
+        it("throws range()'s ValueError for a fractional count below 2 and shifts nothing, unless fewer items cap it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            const failure = new Error(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+
+            for (const count of [1.5, 0.5]) {
+                const list = collect([1, 2, 3, 4]);
+                const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+                expect(() => list.shift(count)).toThrow(failure);
+                expect(list.all()).toEqual([1, 2, 3, 4]);
+                expect(list.keys().all()).toEqual([0, 1, 2, 3]);
+                expect(list.values().all()).toEqual([1, 2, 3, 4]);
+                expect(() => keyed.shift(count)).toThrow(failure);
+                expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+                expect(keyed.keys().all()).toEqual(["a", "b", "c", "d"]);
+                expect(keyed.values().all()).toEqual([1, 2, 3, 4]);
+            }
+
+            const one = collect([9]);
+
+            expect(one.shift(1.5).all()).toEqual([9]);
+            expect(one.all()).toEqual([]);
+            expect(collect([]).shift(1.5).all()).toEqual([]);
+        });
+
+        it("takes a fractional or NAN count in the order PHP's array holds integer keys out of order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-and-pop-counts-out-of-order-keys"
+            const outOfOrder = () =>
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                );
+            const partly = outOfOrder();
+
+            expect(partly.shift(2.5).all()).toEqual(["c", "a"]);
+            expect(partly.all()).toEqual({ 0: "b" });
+            expect(partly.keys().all()).toEqual([0]);
+            expect(partly.values().all()).toEqual(["b"]);
+
+            const refused = outOfOrder();
+
+            expect(() => refused.shift(1.5)).toThrow(
+                "range(): Argument #3 ($step) must be less than the range spanned by argument #1 ($start) and argument #2 ($end)",
+            );
+            expect(refused.keys().all()).toEqual([2, 0, 1]);
+            expect(refused.values().all()).toEqual(["c", "a", "b"]);
+
+            const everything = outOfOrder();
+
+            expect(takenItems(everything.shift(NaN))).toEqual(["c", "a", "b"]);
+            expect(everything.keys().all()).toEqual([]);
+            expect(everything.values().all()).toEqual([]);
+        });
+
         it("renumbers a negative integer key on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "shift-negative-int-keys"
             const c = collect({ x: "a", "-1": "b", "-2": "c", y: "d" });
@@ -6230,6 +11105,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test shift returns and removes first item in collection", () => {
+                // CollectionTest::testShiftReturnsAndRemovesFirstItemInCollection
                 const data = collect(["Taylor", "Otwell"]);
 
                 expect(data.shift()).toBe("Taylor");
@@ -6239,6 +11115,7 @@ describe("Collection", () => {
             });
 
             it("test shift returns and removes first x items in collection", () => {
+                // CollectionTest::testShiftReturnsAndRemovesFirstXItemsInCollection
                 const data = collect(["foo", "bar", "baz"]);
 
                 expect(data.shift(2).all()).toEqual(["foo", "bar"]);
@@ -6257,14 +11134,15 @@ describe("Collection", () => {
 
                 expect(() => {
                     collect(["foo", "bar", "baz"]).shift(-1);
-                }).toThrowError();
+                }).toThrowError(InvalidArgumentException);
 
                 expect(() => {
                     collect(["foo", "bar", "baz"]).shift(-2);
-                }).toThrowError();
+                }).toThrowError(InvalidArgumentException);
             });
 
             it("test shift returns null on empty collection", () => {
+                // CollectionTest::testShiftReturnsNullOnEmptyCollection
                 const items = collect([]);
 
                 expect(items.shift()).toBeNull();
@@ -6281,6 +11159,50 @@ describe("Collection", () => {
                 expect(bar?.["text"]).toBe("x");
                 expect(items2.shift()).toBeNull();
             });
+
+            it("test shift many returns empty collection on empty collection", () => {
+                // CollectionTest::testShiftManyReturnsEmptyCollectionOnEmptyCollection
+                expect(collect([]).shift(0)).toEqual(collect([]));
+                expect(collect([]).shift(2)).toEqual(collect([]));
+            });
+        });
+
+        it("answers null from an empty collection for a count of 1, and an empty collection for any other count", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
+            expect(collect([]).shift()).toBeNull();
+            expect(collect([]).shift(1)).toBeNull();
+            expect(collect({}).shift()).toBeNull();
+            expect(new Collection(new Map()).shift()).toBeNull();
+
+            for (const count of [0, 2, 3, 0.5, 1.5, 2.5, NaN, Infinity]) {
+                expect(takenItems(collect([]).shift(count))).toEqual([]);
+                expect(takenItems(collect({}).shift(count))).toEqual([]);
+                expect(
+                    takenItems(new Collection(new Map()).shift(count)),
+                ).toEqual([]);
+            }
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
+            expect(collect(null).shift()).toBeNull();
+            expect(collect(null).shift(2).all()).toEqual([]);
+        });
+
+        it("keeps answering an empty collection once drained, and null for a count of 1", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-drained-then-again"
+            const c = collect([1, 2, 3]);
+
+            expect(c.shift(2).all()).toEqual([1, 2]);
+            expect(c.shift(2).all()).toEqual([3]);
+            expect(c.shift(2).all()).toEqual([]);
+            expect(c.shift()).toBeNull();
+        });
+
+        it("answers an empty collection of the receiver's own class", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-subclass"
+            class Basket<TValue> extends Collection<TValue> {}
+
+            expect(new Basket<number>([]).shift(2)).toBeInstanceOf(Basket);
+            expect(new Basket<number>([]).shift(0)).toBeInstanceOf(Basket);
         });
 
         it("test shift function comprehensive coverage", () => {
@@ -6301,7 +11223,7 @@ describe("Collection", () => {
             expect(shiftedAll.all()).toEqual([100, 200]);
             expect(objCollection3.count()).toBe(0);
 
-            // Test shift with array containing undefined
+            // JS-only: a stored undefined is an item, which shift hands back as it is
             const arrWithUndef = collect([undefined, 1, 2]);
             expect(arrWithUndef.shift()).toBeUndefined();
             expect(arrWithUndef.all()).toEqual([1, 2]);
@@ -6324,6 +11246,27 @@ describe("Collection", () => {
             expect(c.all()).toEqual({}); // Object is now empty
         });
 
+        it("hands back the value itself for a count of 1", () => {
+            const collection = collect([1, 2, 3]);
+            const returned = collection.shift(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-one-on-list-returns-value"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 1,
+                all: [2, 3],
+            });
+        });
+
+        it("throws InvalidArgumentException for a negative count, even on an empty collection", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-negative-on-empty-throws"
+            expect(() => collect([]).shift(-1)).toThrow(
+                InvalidArgumentException,
+            );
+            expect(() => collect([]).shift(-1)).toThrow(
+                "Number of shifted items may not be less than zero.",
+            );
+        });
+
         it("throws from shift on a negative count, either backing", () => {
             expect(() => new Collection([1]).shift(-1)).toThrow(
                 "Number of shifted items may not be less than zero.",
@@ -6332,10 +11275,20 @@ describe("Collection", () => {
                 "Number of shifted items may not be less than zero.",
             );
         });
+
+        it("lists the items a count shifts from a list or a keyed collection, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).shift(2), "list");
+            expectShape(outOfOrderKeys().shift(2), "list");
+            expectShape(outOfOrderKeys().shift(0), "list");
+            expectShape(collect({} as Record<string, number>).shift(2), "list");
+            expectShape(collect({} as Record<string, number>).shift(0), "list");
+        });
     });
 
     describe("shuffle", () => {
         it("test shuffle", () => {
+            // JS-only: CollectionTest has no shuffle test; the draw is random, so only the count and members are pinned
             const data = collect([1, 2, 3, 4, 5, 6]);
             const shuffled = data.shuffle();
 
@@ -6358,11 +11311,40 @@ describe("Collection", () => {
             expect(Object.values(shuffled).sort()).toEqual([1, 2, 3, 4, 5]);
             expect(Object.keys(shuffled)).toEqual(["0", "1", "2", "3", "4"]);
         });
+
+        it("hands back a list whatever keys the items had, as Arr::shuffle does", () => {
+            const pinShuffled = <
+                TValue,
+                TKey extends PropertyKey,
+                TShape extends CollectionShape,
+            >(
+                collection: Collection<TValue, TKey, TShape>,
+                members: TValue[],
+            ) => {
+                const shuffled = collection.shuffle();
+
+                expect(Array.isArray(shuffled.all())).toBe(true);
+                expect(shuffled.count()).toBe(members.length);
+                expect(Object.values(shuffled.all()).sort()).toEqual(members);
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-shuffle-list"
+            pinShuffled(collect({ a: 1, b: 2, c: 3 }), [1, 2, 3]);
+            pinShuffled(outOfOrderKeys(), ["a", "b", "c"]);
+            pinShuffled(collect({ x: 1, 5: 2 }), [1, 2]);
+        });
+
+        it("always builds a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).shuffle(), "list");
+            expectShape(collect({ a: 1, b: 2 }).shuffle(), "list");
+        });
     });
 
     describe("sliding", () => {
         describe("Laravel Tests", () => {
             it("test sliding", () => {
+                // CollectionTest::testSliding
                 // Default parameters: $size = 2, $step = 1
                 expect(Collection.times(0).sliding().toArray()).toEqual([]);
                 expect(Collection.times(1).sliding().toArray()).toEqual([]);
@@ -6442,7 +11424,8 @@ describe("Collection", () => {
                     [3, 4, 5],
                 ]);
 
-                // Ensure keys are preserved, and inner chunks are also collections
+                // The windows are collections too. JS-only: a list's windows are renumbered from 0, where PHP
+                // keeps [[0 => 1, 1 => 2], [1 => 2, 2 => 3]]
                 const chunks = Collection.times(3).sliding();
 
                 expect(chunks.toArray()).toEqual([
@@ -6455,22 +11438,179 @@ describe("Collection", () => {
                 expect(chunks.skip(1).first()).toBeInstanceOf(Collection);
 
                 // Test invalid size parameter (size must be at least 1)
-                expect(() =>
-                    Collection.times(5).sliding(0, 1).toArray(),
-                ).toThrow("Size value must be at least 1.");
-
-                expect(() =>
-                    Collection.times(5).sliding(-1, 1).toArray(),
-                ).toThrow("Size value must be at least 1.");
+                for (const size of [0, -1]) {
+                    expect(() =>
+                        Collection.times(5).sliding(size, 1).toArray(),
+                    ).toThrow(InvalidArgumentException);
+                    expect(() =>
+                        Collection.times(5).sliding(size, 1).toArray(),
+                    ).toThrow("Size value must be at least 1.");
+                }
 
                 // Test invalid step parameter (step must be at least 1)
-                expect(() =>
-                    Collection.times(5).sliding(2, 0).toArray(),
-                ).toThrow("Step value must be at least 1.");
+                for (const step of [0, -1]) {
+                    expect(() =>
+                        Collection.times(5).sliding(2, step).toArray(),
+                    ).toThrow(InvalidArgumentException);
+                    expect(() =>
+                        Collection.times(5).sliding(2, step).toArray(),
+                    ).toThrow("Step value must be at least 1.");
+                }
+            });
+        });
 
-                expect(() =>
-                    Collection.times(5).sliding(2, -1).toArray(),
-                ).toThrow("Step value must be at least 1.");
+        it("keeps a record's keys in each window", () => {
+            const windows = collect({ a: 1, b: 2, c: 3 }).sliding();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-assoc"
+            expect(windows.map((window) => viewsOf(window)).all()).toEqual([
+                { all: { a: 1, b: 2 }, keys: ["a", "b"], values: [1, 2] },
+                { all: { b: 2, c: 3 }, keys: ["b", "c"], values: [2, 3] },
+            ]);
+        });
+
+        it("makes no window for a size over the count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-size-over-count"
+            expect(collect([1, 2, 3]).sliding(5).all()).toEqual([]);
+        });
+
+        it("cuts a Map-built collection's windows in the order it holds its items", () => {
+            const windows = outOfOrderKeys().sliding();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-out-of-order-keys"
+            expect(windows.map((window) => viewsOf(window)).all()).toEqual([
+                { all: { 0: "a", 2: "c" }, keys: [2, 0], values: ["c", "a"] },
+                { all: { 0: "a", 1: "b" }, keys: [0, 1], values: ["a", "b"] },
+            ]);
+        });
+
+        it("reads each entry a bounded number of times, however many windows it cuts", () => {
+            const reads = new Map<PropertyKey, number>();
+            const read = (key: PropertyKey) => {
+                reads.set(key, (reads.get(key) ?? 0) + 1);
+            };
+
+            class Watched extends Collection<number, string | number> {
+                /**
+                 * Count each read of an entry the backing answers from here on.
+                 *
+                 * @returns This collection
+                 */
+                watched(): this {
+                    this.items = new Proxy(this.items, {
+                        has(target, key) {
+                            read(key);
+
+                            return Reflect.has(target, key);
+                        },
+                        getOwnPropertyDescriptor(target, key) {
+                            read(key);
+
+                            return Reflect.getOwnPropertyDescriptor(
+                                target,
+                                key,
+                            );
+                        },
+                    });
+
+                    return this;
+                }
+            }
+
+            const entries = Array.from(
+                { length: 50 },
+                (_, index): [number, number] => [49 - index, index],
+            );
+            const receivers = [
+                new Watched(entries.map(([, value]) => value)),
+                new Watched(
+                    Object.fromEntries(
+                        entries.map(([key, value]) => [`k${key}`, value]),
+                    ),
+                ),
+                new Watched(new Map(entries)),
+            ];
+            const mostReads = receivers.map((receiver) => {
+                reads.clear();
+                receiver.watched().sliding(2);
+
+                return Math.max(...reads.values());
+            });
+
+            // JS-only: a bound on the work, so each window costs the entries it holds, not a reading of them all.
+            expect(Math.max(...mostReads)).toBeLessThanOrEqual(3);
+        });
+
+        it("counts the windows with a fractional size or step, and slices each as slice() does", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+            const windows = (size: number, step?: number) =>
+                numbers
+                    .sliding(size, step)
+                    .map((window) => window.values().all())
+                    .all();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-counts"
+            expect(windows(1.5)).toEqual([[1], [2], [3], [4]]);
+            expect(windows(2.5)).toEqual([
+                [1, 2],
+                [2, 3],
+                [3, 4],
+            ]);
+            expect(windows(2, 1.5)).toEqual([
+                [1, 2],
+                [2, 3],
+                [4, 5],
+            ]);
+            expect(windows(Infinity)).toEqual([]);
+            expect(windows(1e19)).toEqual([]);
+            expect(windows(2, 1e19)).toEqual([[1, 2]]);
+        });
+
+        it("slices its windows from an offset array_slice refuses when the step is infinite", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-counts"
+            for (const collection of [collect([1, 2, 3, 4, 5]), collect([])]) {
+                expect(() => collection.sliding(2, Infinity)).toThrowError(
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                );
+            }
+        });
+
+        it("keeps a subclass, outside and in each window, as static::times does", () => {
+            class Sub extends Collection<number, number> {}
+
+            const windows = new Sub([1, 2, 3]).sliding();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-subclass"
+            expect([
+                windows instanceof Sub,
+                windows.first() instanceof Sub,
+            ]).toEqual([true, true]);
+        });
+
+        it("throws range()'s error for a NAN size or step, as static::times hands the count to range()", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sliding-counts"
+            expect(() => numbers.sliding(NaN)).toThrowError(
+                "range(): Argument #2 ($end) must be a finite number, NAN provided",
+            );
+            expect(() => numbers.sliding(2, NaN)).toThrowError(
+                "range(): Argument #2 ($end) must be a finite number, NAN provided",
+            );
+        });
+
+        it("builds a list of windows, a list's lists and a keyed one's records, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listWindows = collect([1, 2, 3]).sliding(2);
+            const keyedWindows = collect({ a: 1, b: 2, c: 3 }).sliding(2);
+
+            expectShape(listWindows, "list");
+            expectShape(keyedWindows, "list");
+            listWindows.each((window) => {
+                expectShape(window, "list");
+            });
+            keyedWindows.each((window) => {
+                expectShape(window, "keyed");
             });
         });
     });
@@ -6478,6 +11618,7 @@ describe("Collection", () => {
     describe("skip", () => {
         describe("Laravel Tests", () => {
             it("test skip method", () => {
+                // CollectionTest::testSkipMethod
                 const data = collect([1, 2, 3, 4, 5, 6]);
 
                 // Total items to skip is smaller than collection length
@@ -6487,36 +11628,228 @@ describe("Collection", () => {
                 expect(data.skip(10).values().all()).toEqual([]);
             });
         });
+
+        it("skips from the end for a negative count, as slice() does", () => {
+            const skipped = collect([1, 2, 3]).skip(-1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-skip-negative"
+            expect(skipped.values().all()).toEqual([3]);
+            // JS-only: a list is renumbered from 0, where PHP keeps the item's key 2
+            expect(skipped.keys().all()).toEqual([0]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).skip(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).skip(1), "keyed");
+        });
+    });
+
+    describe("skipUntil", () => {
+        describe("Laravel Tests", () => {
+            it("test skip until", () => {
+                // CollectionTest::testSkipUntil
+                let data = collect([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                expect(data.skipUntil(1).values().all()).toEqual([
+                    1, 1, 2, 2, 3, 3, 4, 4,
+                ]);
+                expect(data.skipUntil(3).values().all()).toEqual([3, 3, 4, 4]);
+                expect(data.skipUntil(5).values().all()).toEqual([]);
+
+                data = data.skipUntil((value) => value <= 1).values();
+                expect(data.all()).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                data = data.skipUntil((value) => value >= 3).values();
+                expect(data.all()).toEqual([3, 3, 4, 4]);
+
+                data = data.skipUntil((value) => value >= 5).values();
+                expect(data.all()).toEqual([]);
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const skipped = collect({ a: 1, b: 2, c: 3 }).skipUntil(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-keyed"
+            expect(skipped.all()).toEqual({ b: 2, c: 3 });
+            expect(skipped.keys().all()).toEqual(["b", "c"]);
+            expect(skipped.values().all()).toEqual([2, 3]);
+        });
+
+        it("renumbers a list's keys, as every removal from a list does", () => {
+            const skipped = collect([1, 2, 3, 4]).skipUntil(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // and 3 name these items
+            expect(skipped.all()).toEqual([3, 4]);
+            expect(skipped.keys().all()).toEqual([0, 1]);
+            expect(skipped.values().all()).toEqual([3, 4]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-strict-value"
+            expect(collect(items).skipUntil("3").all()).toEqual([]);
+        });
+
+        it("hands a callback each value and key", () => {
+            const keyed = collect({ a: 1, b: 2, c: 3 }).skipUntil(
+                (_value, key) => key === "b",
+            );
+            const list = collect(["x", "y", "z"]).skipUntil(
+                (_value, key) => key === 1,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-callback-key"
+            expect(keyed.all()).toEqual({ b: 2, c: 3 });
+            expect([keyed.keys().all(), keyed.values().all()]).toEqual([
+                ["b", "c"],
+                [2, 3],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index", whose keys
+            // 1 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(list.all()).toEqual(["y", "z"]);
+            expect([list.keys().all(), list.values().all()]).toEqual([
+                [0, 1],
+                ["y", "z"],
+            ]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const skipped = outOfOrderKeys().skipUntil("a");
+
+            // Ordered-backing gap: PHP walks key 2 first, so skipping until a keeps a and b under keys 0 and 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-out-of-order-keys"
+            expect([skipped.keys().all(), skipped.values().all()]).toEqual([
+                [0, 1],
+                ["a", "b"],
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).skipUntil(2), "list");
+            expectShape(collect({ a: 1, b: 2 }).skipUntil(2), "keyed");
+        });
+    });
+
+    describe("skipWhile", () => {
+        describe("Laravel Tests", () => {
+            it("test skip while", () => {
+                // CollectionTest::testSkipWhile
+                let data = collect([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                expect(data.skipWhile(1).values().all()).toEqual([
+                    2, 2, 3, 3, 4, 4,
+                ]);
+                expect(data.skipWhile(5).values().all()).toEqual([
+                    1, 1, 2, 2, 3, 3, 4, 4,
+                ]);
+                expect(data.skipWhile(2).values().all()).toEqual([
+                    1, 1, 2, 2, 3, 3, 4, 4,
+                ]);
+
+                data = data.skipWhile((value) => value >= 5).values();
+                expect(data.all()).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                data = data.skipWhile((value) => value >= 2).values();
+                expect(data.all()).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+
+                data = data.skipWhile((value) => value < 3).values();
+                expect(data.all()).toEqual([3, 3, 4, 4]);
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const skipped = collect({ a: 1, b: 2, c: 1 }).skipWhile(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-keyed"
+            expect(skipped.all()).toEqual({ b: 2, c: 1 });
+            expect(skipped.keys().all()).toEqual(["b", "c"]);
+            expect(skipped.values().all()).toEqual([2, 1]);
+        });
+
+        it("renumbers a list's keys, as every removal from a list does", () => {
+            const skipped = collect([1, 1, 2, 1]).skipWhile(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // and 3 name these items
+            expect(skipped.all()).toEqual([2, 1]);
+            expect(skipped.keys().all()).toEqual([0, 1]);
+            expect(skipped.values().all()).toEqual([2, 1]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-strict-value"
+            expect(collect(items).skipWhile("1").all()).toEqual([1, 1, 2]);
+        });
+
+        it("hands a callback each value and key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key", whose keys
+            // 1 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(
+                collect(["x", "y", "z"])
+                    .skipWhile((_value, key) => key < 1)
+                    .all(),
+            ).toEqual(["y", "z"]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const skipped = outOfOrderKeys().skipWhile("c");
+
+            // Ordered-backing gap: PHP walks key 2 first, so skipping while c keeps a and b under keys 0 and 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect([skipped.keys().all(), skipped.values().all()]).toEqual([
+                [0, 1],
+                ["a", "b"],
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).skipWhile(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).skipWhile(1), "keyed");
+        });
     });
 
     describe("slice", () => {
         describe("Laravel Tests", () => {
             it("test slice offset", () => {
+                // CollectionTest::testSliceOffset
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(3).values().all()).toEqual([4, 5, 6, 7, 8]);
             });
 
             it("test slice negative offset", () => {
+                // CollectionTest::testSliceNegativeOffset
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-3).values().all()).toEqual([6, 7, 8]);
             });
 
             it("test slice offset and length", () => {
+                // CollectionTest::testSliceOffsetAndLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(3, 3).values().all()).toEqual([4, 5, 6]);
             });
 
             it("test slice offset and negative length", () => {
+                // CollectionTest::testSliceOffsetAndNegativeLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(3, -1).values().all()).toEqual([4, 5, 6, 7]);
             });
 
             it("test slice negative offset and length", () => {
+                // CollectionTest::testSliceNegativeOffsetAndLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-5, 3).values().all()).toEqual([4, 5, 6]);
             });
 
             it("test slice negative offset and negative length", () => {
+                // CollectionTest::testSliceNegativeOffsetAndNegativeLength
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8]);
                 expect(data.slice(-6, -2).values().all()).toEqual([3, 4, 5, 6]);
             });
@@ -6551,11 +11884,50 @@ describe("Collection", () => {
                 new Collection({ a: 1, b: 2, c: 3 }).slice(0, -5).all(),
             ).toEqual({});
         });
+
+        it("drops a fraction from an offset or a length, as array_slice's int parameters do", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts"
+            expect(numbers.slice(1.5).values().all()).toEqual([2, 3, 4, 5]);
+            expect(numbers.slice(-1.5).values().all()).toEqual([5]);
+            expect(numbers.slice(0, 1.5).values().all()).toEqual([1]);
+        });
+
+        it("throws array_slice's TypeError for an offset or a length that is NAN, infinite or beyond PHP's int range", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts"
+            for (const count of [NaN, Infinity, 1e19]) {
+                expect(() => numbers.slice(count)).toThrowError(TypeError);
+                expect(() => numbers.slice(count)).toThrowError(
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                );
+                expect(() => numbers.slice(0, count)).toThrowError(TypeError);
+                expect(() => numbers.slice(0, count)).toThrowError(
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+                );
+            }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).slice(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).slice(0, 1), "keyed");
+        });
     });
 
     describe("split", () => {
+        it("throws PHP's Modulo by zero for a number of groups the int cast wraps to 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-nth-and-split-by-a-count-cast-to-0"
+            expect(() => collect([1, 2, 3]).split(2 ** 64)).toThrow(
+                new Error("Modulo by zero"),
+            );
+        });
+
         describe("Laravel Tests", () => {
             it("test split collection with a divisible count", () => {
+                // CollectionTest::testSplitCollectionWithADivisibleCount
                 const data = collect(["a", "b", "c", "d"]);
                 const split = data.split(2);
 
@@ -6591,6 +11963,7 @@ describe("Collection", () => {
             });
 
             it("test split collection with an undivisable count", () => {
+                // CollectionTest::testSplitCollectionWithAnUndivisableCount
                 const data = collect(["a", "b", "c"]);
                 const split = data.split(2);
 
@@ -6606,6 +11979,7 @@ describe("Collection", () => {
             });
 
             it("test split collection with countless then divisor", () => {
+                // CollectionTest::testSplitCollectionWithCountLessThenDivisor
                 const data = collect(["a"]);
                 const split = data.split(2);
 
@@ -6621,6 +11995,7 @@ describe("Collection", () => {
             });
 
             it("test split collection into three with count of four", () => {
+                // CollectionTest::testSplitCollectionIntoThreeWithCountOfFour
                 const data = collect(["a", "b", "c", "d"]);
                 const split = data.split(3);
 
@@ -6637,6 +12012,7 @@ describe("Collection", () => {
             });
 
             it("test split collection into threee with count of five", () => {
+                // CollectionTest::testSplitCollectionIntoThreeWithCountOfFive
                 const data = collect(["a", "b", "c", "d", "e"]);
                 const split = data.split(3);
 
@@ -6653,6 +12029,7 @@ describe("Collection", () => {
             });
 
             it("test split collection into six with count of ten", () => {
+                // CollectionTest::testSplitCollectionIntoSixWithCountOfTen
                 const data = collect([
                     "a",
                     "b",
@@ -6690,6 +12067,7 @@ describe("Collection", () => {
             });
 
             it("test split empty collection", () => {
+                // CollectionTest::testSplitEmptyCollection
                 const data = collect([]);
                 const split = data.split(2);
 
@@ -6705,15 +12083,155 @@ describe("Collection", () => {
             });
 
             it("throws exception for invalid number of groups", () => {
+                // CollectionTest::testSplitThrowsExceptionForInvalidNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).split(0);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).split(0);
                 }).toThrowError("Number of groups must be at least 1.");
             });
 
             it("throws exception for negative number of groups", () => {
+                // CollectionTest::testSplitThrowsExceptionForNegativeNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).split(-1);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).split(-1);
                 }).toThrowError("Number of groups must be at least 1.");
+            });
+        });
+
+        it("splits as PHP does for a fractional number of groups, whose % drops the fraction", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-counts"
+            expect(
+                numbers
+                    .split(1.5)
+                    .map((group) => group.all())
+                    .all(),
+            ).toEqual([
+                [1, 2, 3],
+                [4, 5],
+            ]);
+            expect(
+                numbers
+                    .split(2.5)
+                    .map((group) => group.all())
+                    .all(),
+            ).toEqual([[1, 2, 3], [4, 5], []]);
+            expect(numbers.split(5.5).all()).toEqual([]);
+        });
+
+        it("divides by zero for a NAN or infinite number of groups, unless the collection is empty", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-counts"
+            expect(() => collect([1, 2, 3, 4, 5]).split(NaN)).toThrowError(
+                "Modulo by zero",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-infinite-groups"
+            expect(() => collect([1, 2, 3]).split(Infinity)).toThrowError(
+                "Modulo by zero",
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-counts"
+            expect(collect([]).split(NaN).all()).toEqual([]);
+            expect(collect([]).split(Infinity).all()).toEqual([]);
+        });
+
+        it("stops once every group left would be empty, however many groups it is asked for", () => {
+            // JS-only: PHP's loop counts up to the number of groups, so split(1e19) never returns
+            expect(
+                collect([1, 2, 3])
+                    .split(1e19)
+                    .map((group) => group.all())
+                    .all(),
+            ).toEqual([[1], [2], [3]]);
+        });
+
+        it("renumbers the integer keys in each group, as array_slice does without preserve_keys", () => {
+            const groups = collect({ 5: "a", 6: "b", 7: "c" }).split(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-int-keys-renumber"
+            expect(groups.map((group) => viewsOf(group)).all()).toEqual([
+                { all: ["a", "b"], keys: [0, 1], values: ["a", "b"] },
+                { all: ["c"], keys: [0], values: ["c"] },
+            ]);
+        });
+
+        it("keeps the string keys in each group", () => {
+            const groups = collect({ a: 1, b: 2, c: 3 }).split(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-assoc-keys"
+            expect(groups.map((group) => viewsOf(group)).all()).toEqual([
+                { all: { a: 1, b: 2 }, keys: ["a", "b"], values: [1, 2] },
+                { all: { c: 3 }, keys: ["c"], values: [3] },
+            ]);
+        });
+
+        it("puts one item in each group when there are more groups than items", () => {
+            const groups = collect([1, 2, 3]).split(5);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-more-groups-than-items"
+            expect(groups.map((group) => viewsOf(group)).all()).toEqual([
+                { all: [1], keys: [0], values: [1] },
+                { all: [2], keys: [0], values: [2] },
+                { all: [3], keys: [0], values: [3] },
+            ]);
+        });
+
+        it("splits a Map-built collection in the order it holds its items", () => {
+            const mixed = collect(
+                new Map<number | string, string>([
+                    [2, "c"],
+                    ["x", "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-split-out-of-order"
+            expect(
+                outOfOrderKeys()
+                    .split(2)
+                    .map((group) => viewsOf(group))
+                    .all(),
+            ).toEqual([
+                { all: ["c", "a"], keys: [0, 1], values: ["c", "a"] },
+                { all: ["b"], keys: [0], values: ["b"] },
+            ]);
+            expect(
+                mixed
+                    .split(2)
+                    .map((group) => viewsOf(group))
+                    .all(),
+            ).toEqual([
+                { all: { 0: "c", x: "a" }, keys: [0, "x"], values: ["c", "a"] },
+                { all: ["b"], keys: [0], values: ["b"] },
+            ]);
+        });
+
+        it("builds a list of groups, each a list unless it holds a string key, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listGroups = collect([1, 2, 3]).split(2);
+            const keyedGroups = collect({ a: 1, b: 2, c: 3 }).split(2);
+            const numberedGroups = collect({ 5: "a", 6: "b", 7: "c" }).split(2);
+            const mixedGroups = collect({ 5: "a", x: "b" }).split(2);
+
+            expectShape(listGroups, "list");
+            expectShape(keyedGroups, "list");
+            expectShape(numberedGroups, "list");
+            expectShape(mixedGroups, "list");
+            listGroups.each((group) => {
+                expectShape(group, "list");
+            });
+            keyedGroups.each((group) => {
+                expectShape(group, "keyed");
+            });
+            numberedGroups.each((group) => {
+                expectShape(group, "list");
+            });
+            mixedGroups.each((group, position) => {
+                expectShape(group, position === 0 ? "list" : "keyed");
             });
         });
     });
@@ -6721,6 +12239,7 @@ describe("Collection", () => {
     describe("splitIn", () => {
         describe("Laravel Tests", () => {
             it("test split in", () => {
+                // CollectionTest::testSplitIn
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
                 const split = data.splitIn(3);
 
@@ -6730,24 +12249,120 @@ describe("Collection", () => {
                 expect(split.get(0)!.values().toArray()).toEqual([1, 2, 3, 4]);
                 expect(split.get(1)!.values().toArray()).toEqual([5, 6, 7, 8]);
                 expect(split.get(2)!.values().toArray()).toEqual([9, 10]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-keeps-keys"
+                expect(split.map((chunk) => chunk.keys().all()).all()).toEqual([
+                    [0, 1, 2, 3],
+                    [4, 5, 6, 7],
+                    [8, 9],
+                ]);
+                expect(split.get(1)?.all()).toEqual({ 4: 5, 5: 6, 6: 7, 7: 8 });
             });
 
             it("throws exception for invalid number of groups", () => {
+                // CollectionTest::testSplitInThrowsExceptionForInvalidNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).splitIn(0);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).splitIn(0);
                 }).toThrowError("Number of groups must be at least 1.");
             });
 
             it("throws exception for negative number of groups", () => {
+                // CollectionTest::testSplitInThrowsExceptionForNegativeNumberOfGroups
+                expect(() => {
+                    collect([1, 2, 3]).splitIn(-1);
+                }).toThrowError(InvalidArgumentException);
                 expect(() => {
                     collect([1, 2, 3]).splitIn(-1);
                 }).toThrowError("Number of groups must be at least 1.");
+            });
+        });
+
+        it("puts one item in each chunk when there are more groups than items, keeping their keys", () => {
+            const chunks = collect([1, 2, 3]).splitIn(5);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-more-groups-than-items"
+            expect(
+                chunks
+                    .map((chunk) => [chunk.keys().all(), chunk.values().all()])
+                    .all(),
+            ).toEqual([
+                [[0], [1]],
+                [[1], [2]],
+                [[2], [3]],
+            ]);
+        });
+
+        it("splits an empty collection into no chunks", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-empty"
+            expect(collect([]).splitIn(2).all()).toEqual([]);
+        });
+
+        it("reads its chunk size through PHP's int cast, which makes NAN 0", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-counts"
+            expect(numbers.splitIn(NaN).all()).toEqual([]);
+            expect(numbers.splitIn(Infinity).all()).toEqual([]);
+            expect(
+                numbers
+                    .splitIn(1.5)
+                    .map((chunk) => chunk.values().all())
+                    .all(),
+            ).toEqual([[1, 2, 3, 4], [5]]);
+            expect(
+                numbers
+                    .splitIn(1e19)
+                    .map((chunk) => chunk.values().all())
+                    .all(),
+            ).toEqual([[1], [2], [3], [4], [5]]);
+        });
+
+        it.fails(
+            "splits a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().splitIn(2);
+
+                // Ordered-backing gap: PHP's first chunk holds 2 => c then 0 => a, and its second 1 => b
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-splitIn-out-of-order"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [
+                        [2, 0],
+                        ["c", "a"],
+                    ],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
+
+        it("builds a list of groups, each a record keeping its keys, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listGroups = collect([1, 2, 3]).splitIn(2);
+            const keyedGroups = collect({ a: 1, b: 2, c: 3 }).splitIn(2);
+
+            expectShape(listGroups, "list");
+            expectShape(keyedGroups, "list");
+            listGroups.each((group) => {
+                expectShape(group, "keyed");
+            });
+            keyedGroups.each((group) => {
+                expectShape(group, "keyed");
             });
         });
     });
 
     describe("sole", () => {
         describe("Laravel Tests", () => {
+            // CollectionTest::testSoleReturnsFirstItemInCollectionIfOnlyOneExists
             it("test sole returns first item in collection if only one exists", () => {
                 const c = collect([{ name: "foo" }, { name: "bar" }]);
 
@@ -6780,8 +12395,20 @@ describe("Collection", () => {
                 expect(() => {
                     c.where("name", "foo").sole();
                 }).toThrowError("2 items were found.");
+
+                let found: MultipleItemsFoundException | null = null;
+                try {
+                    c.where("name", "foo").sole();
+                } catch (error) {
+                    if (error instanceof MultipleItemsFoundException) {
+                        found = error;
+                    }
+                }
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+                expect([found?.count, found?.getCount()]).toEqual([2, 2]);
             });
 
+            // CollectionTest::testSoleReturnsFirstItemInCollectionIfOnlyOneExistsWithCallback
             it("test sole returns first item in collection if only one exists with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
 
@@ -6792,23 +12419,50 @@ describe("Collection", () => {
                 expect(result).toBe("bar");
             });
 
+            // CollectionTest::testSoleThrowsExceptionIfNoItemsExistWithCallback
             it("test sole throws exception if no items exist with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
-                expect(() => {
+                const sole = () =>
                     data.sole((value) => {
                         return value === "invalid";
                     });
-                }).toThrowError();
+
+                expect(sole).toThrowError(ItemNotFoundException);
+                // docs/php-parity/task-23-obj-release-readiness.json, "sole-none"
+                expect(sole).toThrowError(
+                    expect.objectContaining({
+                        name: "ItemNotFoundException",
+                        message: "",
+                    }),
+                );
             });
 
-            it("test solr throws exception if more than one item exists with callback", () => {
+            // CollectionTest::testSoleThrowsExceptionIfMoreThanOneItemExistsWithCallback
+            it("test sole throws exception if more than one item exists with callback", () => {
                 const data = collect(["foo", "bar", "bar"]);
-
-                expect(() => {
+                const sole = () =>
                     data.sole((value) => {
                         return value === "bar";
                     });
-                }).toThrowError();
+
+                expect(sole).toThrowError(MultipleItemsFoundException);
+                expect(sole).toThrowError(
+                    expect.objectContaining({
+                        name: "MultipleItemsFoundException",
+                        message: "2 items were found.",
+                    }),
+                );
+
+                let found: MultipleItemsFoundException | null = null;
+                try {
+                    sole();
+                } catch (error) {
+                    if (error instanceof MultipleItemsFoundException) {
+                        found = error;
+                    }
+                }
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-multiple-items-found-count"
+                expect([found?.count, found?.getCount()]).toEqual([2, 2]);
             });
         });
 
@@ -6831,10 +12485,78 @@ describe("Collection", () => {
                 }),
             );
         });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(collect([{ a: null }, { a: 1 }]).sole("a", null)).toEqual({
+                a: null,
+            });
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: null }, { a: 1 }]).sole("a", undefined),
+            ).toEqual({ a: null });
+        });
+
+        it("throws TypeError for a lone key it cannot call, as PHP's filter() does", () => {
+            const collection = collect([{ name: "foo" }]);
+            const sole = (key: unknown) => () =>
+                Reflect.apply(collection.sole, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(sole("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::filter(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect(sole("0")).toThrowError(TypeError);
+            expect(sole(1)).toThrowError(TypeError);
+        });
+
+        it("answers the sole item for a lone key PHP compares equal to null", () => {
+            const collection = collect([{ name: "foo" }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class"
+            expect([
+                Reflect.apply(collection.sole, collection, [0]),
+                Reflect.apply(collection.sole, collection, [""]),
+            ]).toEqual([{ name: "foo" }, { name: "foo" }]);
+        });
+
+        it.fails(
+            "filters a Map-built collection in its insertion order",
+            () => {
+                const seen: number[] = [];
+                expect(() =>
+                    outOfOrderKeys().sole((_value, key) => {
+                        seen.push(key);
+
+                        return false;
+                    }),
+                ).toThrowError(ItemNotFoundException);
+                let calls = 0;
+
+                // Ordered-backing gap: PHP filters in insertion order, so its first call sees c, under key 2
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-C-filtered-predicates-out-of-order-visits"
+                expect([
+                    seen,
+                    outOfOrderKeys().sole(() => ++calls === 1),
+                ]).toEqual([[2, 0, 1], "c"]);
+            },
+        );
     });
 
     describe("firstOrFail", () => {
         describe("Laravel Tests", () => {
+            // CollectionTest::testFirstOrFailReturnsFirstItemInCollection
             it("test first or fail returns first item in collection", () => {
                 const c = collect([{ name: "foo" }, { name: "bar" }]);
 
@@ -6856,6 +12578,7 @@ describe("Collection", () => {
                 }).toThrowError(ItemNotFoundException);
             });
 
+            // CollectionTest::testFirstOrFailDoesntThrowExceptionIfMoreThanOneItemExists
             it("test first or fail doesnt throw exception if more than one item exists", () => {
                 const c = collect([
                     { name: "foo" },
@@ -6868,6 +12591,7 @@ describe("Collection", () => {
                 });
             });
 
+            // CollectionTest::testFirstOrFailReturnsFirstItemInCollectionIfOnlyOneExistsWithCallback
             it("test first or fail returns first item in collection if only one exists with callback", () => {
                 const data = collect(["foo", "bar", "baz"]);
                 const result = data.firstOrFail((value) => {
@@ -6902,6 +12626,7 @@ describe("Collection", () => {
                 );
             });
 
+            // CollectionTest::testFirstOrFailDoesntThrowExceptionIfMoreThanOneItemExistsWithCallback
             it("test first or fail doesn't throw exception if more than one item exists with callback", () => {
                 const data = collect(["foo", "bar", "bar"]);
 
@@ -6912,6 +12637,7 @@ describe("Collection", () => {
                 ).toBe("bar");
             });
 
+            // CollectionTest::testFirstOrFailStopsIteratingAtFirstMatch
             it("test first or fail stops iterating at first match", () => {
                 const data = collect([
                     () => {
@@ -6956,11 +12682,51 @@ describe("Collection", () => {
                 ).toBeNull();
             });
         });
+
+        it("throws TypeError for a lone key it cannot call, as PHP's first() does", () => {
+            const collection = collect([{ name: "foo" }]);
+            const firstOrFail = (key: unknown) => () =>
+                Reflect.apply(collection.firstOrFail, collection, [key]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-string-key-one-arg-forms-throw" and
+            // "C32-C-lone-key-type-error-message", whose class the port names without PHP's namespace
+            expect(firstOrFail("name")).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::first(): Argument #1 ($callback) must be of type ?callable, string given",
+                }),
+            );
+            expect(firstOrFail(1)).toThrowError(
+                expect.objectContaining({
+                    name: "TypeError",
+                    message:
+                        "Collection::first(): Argument #1 ($callback) must be of type ?callable, int given",
+                }),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-lone-key-forms-by-key-class":
+            // first() takes a null callback only, so even the keys PHP compares equal to null throw
+            expect(firstOrFail(0)).toThrowError(TypeError);
+            expect(firstOrFail("")).toThrowError(TypeError);
+            expect(firstOrFail("0")).toThrowError(TypeError);
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: 1 }, { a: null }]).firstOrFail("a", undefined),
+            ).toEqual({ a: null });
+            expect(() =>
+                collect([{ a: 1 }]).firstOrFail("a", undefined),
+            ).toThrowError(ItemNotFoundException);
+        });
     });
 
     describe("chunk", () => {
         describe("Laravel Tests", () => {
             it("test chunk", () => {
+                // CollectionTest::testChunk
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
                 const chunked = data.chunk(3);
 
@@ -6968,22 +12734,26 @@ describe("Collection", () => {
                 expect(chunked.first()).toBeInstanceOf(Collection);
                 expect(chunked.count()).toBe(4);
                 expect(chunked.get(0)!.values().toArray()).toEqual([1, 2, 3]);
-                expect(chunked.get(3)!.values().toArray()).toEqual([10]);
+                // docs/php-parity/task-24-data-release-readiness.json, "collection-chunk-last-chunk-keys"
+                expect(chunked.get(3)?.all()).toEqual({ 9: 10 });
             });
 
             it("test chunk when given zero as size", () => {
+                // CollectionTest::testChunkWhenGivenZeroAsSize
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
                 expect(data.chunk(0).toArray()).toEqual([]);
             });
 
             it("test chunck when given less than zero", () => {
+                // CollectionTest::testChunkWhenGivenLessThanZero
                 const data = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
                 expect(data.chunk(-1).toArray()).toEqual([]);
             });
 
             it("test chunk preserving keys", () => {
+                // CollectionTest::testChunkPreservingKeys
                 const data = collect({ a: 1, b: 2, c: 3, d: 4, e: 5 });
 
                 expect(data.chunk(2).toArray()).toEqual([
@@ -7001,14 +12771,141 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("numbers each chunk from 0, as a list, when it does not preserve keys", () => {
+            const chunks = collect({ a: 1, b: 2, c: 3 }).chunk(2, false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-assoc-no-preserve"
+            expect(chunks.map((chunk) => viewsOf(chunk)).all()).toEqual([
+                { all: [1, 2], keys: [0, 1], values: [1, 2] },
+                { all: [3], keys: [0], values: [3] },
+            ]);
+        });
+
+        it("drops a fraction from the size, as array_chunk's int parameter does", () => {
+            const numbers = collect([1, 2, 3, 4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-fractional-size"
+            expect(
+                numbers
+                    .chunk(2.5)
+                    .map((chunk) => [chunk.keys().all(), chunk.values().all()])
+                    .all(),
+            ).toEqual([
+                [
+                    [0, 1],
+                    [1, 2],
+                ],
+                [
+                    [2, 3],
+                    [3, 4],
+                ],
+                [[4], [5]],
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            expect(
+                numbers
+                    .chunk(1.5)
+                    .map((chunk) => chunk.values().all())
+                    .all(),
+            ).toEqual([[1], [2], [3], [4], [5]]);
+        });
+
+        it("throws array_chunk's error for a size that drops to 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            expect(() => collect([1, 2, 3, 4, 5]).chunk(0.5)).toThrowError(
+                "array_chunk(): Argument #2 ($length) must be greater than 0",
+            );
+        });
+
+        it("throws array_chunk's TypeError for a size that is NAN, infinite or beyond PHP's int range", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            for (const numbers of [collect([1, 2, 3, 4, 5]), collect([])]) {
+                for (const size of [NaN, Infinity, 1e19]) {
+                    expect(() => numbers.chunk(size)).toThrowError(TypeError);
+                    expect(() => numbers.chunk(size)).toThrowError(
+                        "array_chunk(): Argument #2 ($length) must be of type int, float given",
+                    );
+                }
+            }
+        });
+
+        it("chunks nothing for a size of -INF, as for any size at or below 0", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunk-counts"
+            expect(collect([1, 2, 3, 4, 5]).chunk(-Infinity).all()).toEqual([]);
+        });
+
+        it.fails(
+            "chunks a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().chunk(2);
+
+                // Ordered-backing gap: PHP's first chunk holds 2 => c then 0 => a, and its second 1 => b
+                // docs/php-parity/task-30-map-order.json, "chunk-out-of-order"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [
+                        [2, 0],
+                        ["c", "a"],
+                    ],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
+
+        it.fails(
+            "chunks a Map-built collection's values in the order it holds them when it does not preserve keys",
+            () => {
+                const chunks = outOfOrderKeys().chunk(2, false);
+
+                // Ordered-backing gap: PHP's chunks are the lists [c, a] and [b], in the order the items are held
+                // docs/php-parity/task-30-map-order.json, "chunk-out-of-order-renumbered"
+                expect(chunks.map((chunk) => chunk.all()).all()).toEqual([
+                    ["c", "a"],
+                    ["b"],
+                ]);
+            },
+        );
+
+        it("builds a list of chunks, records keeping their keys or lists without them, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listChunks = collect([1, 2, 3]).chunk(2);
+            const keyedChunks = collect({ a: 1, b: 2, c: 3 }).chunk(2);
+            const listLists = collect([1, 2, 3]).chunk(2, false);
+            const keyedLists = collect({ a: 1, b: 2, c: 3 }).chunk(2, false);
+
+            expectShape(listChunks, "list");
+            expectShape(keyedChunks, "list");
+            expectShape(listLists, "list");
+            expectShape(keyedLists, "list");
+            listChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+            keyedChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+            listLists.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+            keyedLists.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+        });
     });
 
     describe("chunkWhile", () => {
         describe("Laravel Tests", () => {
             // docs/php-parity/task-21-chunk-while-by.json — array-backed chunks are reindexed,
             // so the numeric-key assertions from CollectionTest go through .toArray() on the chunk.
-            // Read chunks with get(n): first()/last() resolve to `unknown`, so calling a method on them fails ts:check.
             it("test chunk while on equal elements", () => {
+                // CollectionTest::testChunkWhileOnEqualElements
                 const data = collect([
                     "A",
                     "A",
@@ -7029,6 +12926,7 @@ describe("Collection", () => {
             });
 
             it("test chunk while on contiguously increasing integers", () => {
+                // CollectionTest::testChunkWhileOnContiguouslyIncreasingIntegers
                 const data = collect([
                     1, 4, 9, 10, 11, 12, 15, 16, 19, 20, 21,
                 ]).chunkWhile(
@@ -7046,6 +12944,7 @@ describe("Collection", () => {
             });
 
             it("test chunk while preserving string keys", () => {
+                // CollectionTest::testChunkWhilePreservingStringKeys
                 const data = collect({
                     a: 1,
                     b: 1,
@@ -7083,11 +12982,105 @@ describe("Collection", () => {
             ]);
         });
 
+        it("hands the callback the chunk it builds, and yields a copy of it", () => {
+            const kept: Array<Collection<number>> = [];
+            const chunks = collect([1, 2, 3]).chunkWhile(
+                (_value, _key, chunk) => {
+                    kept.push(chunk);
+
+                    return true;
+                },
+            );
+            const [first] = kept;
+
+            first?.push(99);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-chunkWhile-kept-chunk"
+            expect({
+                chunks: chunks.map((chunk) => chunk.all()).all(),
+                kept: kept.map((chunk) => chunk.all()),
+            }).toEqual({
+                chunks: [[1, 2, 3]],
+                kept: [
+                    [1, 2, 3, 99],
+                    [1, 2, 3, 99],
+                ],
+            });
+        });
+
+        it("copies each item at most once, however long a chunk runs", () => {
+            let copied = 0;
+
+            class Counted extends Collection<number> {
+                constructor(items?: readonly number[]) {
+                    super(items);
+
+                    // A collection that holds another array than the one it was built from has copied it.
+                    if (this.items !== items) {
+                        copied += this.count();
+                    }
+                }
+            }
+
+            const run = new Counted(
+                Array.from({ length: 100 }, (_, index) => index),
+            );
+
+            copied = 0;
+
+            const chunks = run.chunkWhile(() => true);
+
+            // JS-only: a bound on the work, so a chunk the callback sees grow costs its length, not its length squared.
+            expect(chunks.count()).toBe(1);
+            expect(copied).toBeLessThanOrEqual(100);
+        });
+
         it("returns an empty collection for an empty collection", () => {
             const data = collect([]).chunkWhile(() => true);
 
             expect(data).toBeInstanceOf(Collection);
             expect(data.count()).toBe(0);
+        });
+
+        it.fails(
+            "walks a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().chunkWhile(() => false);
+
+                // Ordered-backing gap: PHP chunks 2 => c first, then 0 => a, then 1 => b
+                // docs/php-parity/task-30-map-order.json, "chunkWhile-out-of-order-never"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [[2], ["c"]],
+                    [[0], ["a"]],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
+
+        it("builds a list of chunks, a list's lists and a keyed one's records, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listChunks = collect([1, 1, 2]).chunkWhile(
+                (value, _key, chunk) => chunk.last() === value,
+            );
+            const keyedChunks = collect({ a: 1, b: 1, c: 2 }).chunkWhile(
+                (value, _key, chunk) => chunk.last() === value,
+            );
+
+            expectShape(listChunks, "list");
+            expectShape(keyedChunks, "list");
+            listChunks.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+            keyedChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
         });
     });
 
@@ -7095,6 +13088,7 @@ describe("Collection", () => {
         describe("Laravel Tests", () => {
             // docs/php-parity/task-21-chunk-while-by.json
             it("test chunk by with callback", () => {
+                // CollectionTest::testChunkByWithCallback
                 const data = collect([1, 1, 2, 2, 3, 3, 3]).chunkBy(
                     (value) => value,
                 );
@@ -7107,6 +13101,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with string key", () => {
+                // CollectionTest::testChunkByWithStringKey
                 const data = collect([
                     { parent: "a", name: "1" },
                     { parent: "a", name: "2" },
@@ -7131,6 +13126,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by preserves keys", () => {
+                // CollectionTest::testChunkByPreservesKeys
                 const data = collect({ a: 1, b: 1, c: 2, d: 2, e: 1 }).chunkBy(
                     (value) => value,
                 );
@@ -7143,6 +13139,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with dot notation", () => {
+                // CollectionTest::testChunkByWithDotNotation
                 const data = collect([
                     { address: { city: "NY" } },
                     { address: { city: "NY" } },
@@ -7155,6 +13152,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with empty collection", () => {
+                // CollectionTest::testChunkByWithEmptyCollection
                 const data = collect([]).chunkBy("key");
 
                 expect(data).toBeInstanceOf(Collection);
@@ -7162,6 +13160,7 @@ describe("Collection", () => {
             });
 
             it("test chunk by with single item", () => {
+                // CollectionTest::testChunkByWithSingleItem
                 const data = collect([{ key: "a" }]).chunkBy("key");
 
                 expect(data).toBeInstanceOf(Collection);
@@ -7223,11 +13222,78 @@ describe("Collection", () => {
             );
             expect(fromObject.get(0)!.toArray()).toEqual({ a: 1, b: 1 });
         });
+
+        it.fails(
+            "walks a Map-built collection in the order it holds its items",
+            () => {
+                const chunks = outOfOrderKeys().chunkBy((value) => value);
+
+                // Ordered-backing gap: PHP chunks 2 => c first, then 0 => a, then 1 => b
+                // docs/php-parity/task-30-map-order.json, "chunkBy-out-of-order"
+                expect(
+                    chunks
+                        .map((chunk) => [
+                            chunk.keys().all(),
+                            chunk.values().all(),
+                        ])
+                        .all(),
+                ).toEqual([
+                    [[2], ["c"]],
+                    [[0], ["a"]],
+                    [[1], ["b"]],
+                ]);
+            },
+        );
+
+        it("builds a list of chunks, a list's lists and a keyed one's records, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const listChunks = collect([1, 1, 2]).chunkBy((value) => value);
+            const keyedChunks = collect({ a: 1, b: 1, c: 2 }).chunkBy(
+                (value) => value,
+            );
+
+            expectShape(listChunks, "list");
+            expectShape(keyedChunks, "list");
+            listChunks.each((chunk) => {
+                expectShape(chunk, "list");
+            });
+            keyedChunks.each((chunk) => {
+                expectShape(chunk, "keyed");
+            });
+        });
     });
 
     describe("sort", () => {
+        it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+            const list = collect([3, 1, 2]).sort((a, b) => a > b);
+
+            expect(list.values().all()).toEqual([1, 2, 3]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 1, 2 and 0
+            expect(list.all()).toEqual([1, 2, 3]);
+            expect(list.keys().all()).toEqual([0, 1, 2]);
+
+            const keyed = collect({ x: 3, y: 1, z: 2 }).sort((a, b) => a > b);
+
+            expect(keyed.all()).toEqual({ y: 1, z: 2, x: 3 });
+            expect(keyed.keys().all()).toEqual(["y", "z", "x"]);
+            expect(keyed.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("casts a comparator answer past PHP's int range to its low 64 bits, so 1e19 sorts backwards", () => {
+            const sorted = collect([3, 1, 2]).sort(
+                (a, b) => Math.sign(a - b) * 1e19,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-past-int-range"
+            expect(sorted.values().all()).toEqual([3, 2, 1]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 0, 2 and 1
+            expect(sorted.keys().all()).toEqual([0, 1, 2]);
+        });
+
         describe("Laravel Tests", () => {
             it("test sort", () => {
+                // CollectionTest::testSort
                 const data = collect([5, 3, 1, 2, 4]).sort();
                 expect(data.values().all()).toEqual([1, 2, 3, 4, 5]);
 
@@ -7253,7 +13319,95 @@ describe("Collection", () => {
                 // Note: JavaScript doesn't have SORT_NATURAL flag like PHP, so we skip this test case
                 // Natural sorting would require a different implementation with localeCompare numeric option
             });
+
+            it("test sort with callback", () => {
+                // CollectionTest::testSortWithCallback
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator"
+                const data = collect([5, 3, 1, 2, 4]).sort((a, b) => a - b);
+
+                expect(Object.values(data.all())).toEqual([1, 2, 3, 4, 5]);
+            });
         });
+
+        it("runs a callback as a comparator of two items, as uasort does", () => {
+            const sorted = collect([5, 3, 1, 2, 4]).sort((a, b) => b - a);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-desc"
+            expect(sorted.values().all()).toEqual([5, 4, 3, 2, 1]);
+            // JS-only: the sort family renumbers integer keys, so a list stays a list
+            expect(sorted.all()).toEqual([5, 4, 3, 2, 1]);
+            expect(sorted.keys().all()).toEqual([0, 1, 2, 3, 4]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-rows"
+            expect(
+                collect([{ n: 2 }, { n: 1 }, { n: 3 }])
+                    .sort((a, b) => a.n - b.n)
+                    .values()
+                    .all(),
+            ).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
+        });
+
+        it("keeps string keys through a comparator sort", () => {
+            const sorted = collect({ a: 3, b: 1, c: 2 }).sort((x, y) => x - y);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-assoc"
+            expect(sorted.all()).toEqual({ b: 1, c: 2, a: 3 });
+            expect(sorted.keys().all()).toEqual(["b", "c", "a"]);
+            expect(sorted.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("casts a comparator's answer to an int, as uasort does, so a fraction or a non-finite answer ties", () => {
+            const numbers = collect([3, 1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-int-cast"
+            expect(
+                numbers
+                    .sort((a, b) => (a - b) / 10)
+                    .values()
+                    .all(),
+            ).toEqual([3, 1, 2]);
+            expect(
+                numbers
+                    .sort((a, b) => Math.sign(a - b) * Infinity)
+                    .values()
+                    .all(),
+            ).toEqual([3, 1, 2]);
+            expect(
+                numbers
+                    .sort(() => NaN)
+                    .values()
+                    .all(),
+            ).toEqual([3, 1, 2]);
+        });
+
+        it("keeps a Map-built collection's ties in the order it holds them", () => {
+            const sorted = collect(
+                new Map([
+                    [2, { n: 1, id: "p" }],
+                    [0, { n: 1, id: "q" }],
+                    [1, { n: 0, id: "r" }],
+                ]),
+            ).sort((a, b) => a.n - b.n);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-out-of-order"
+            expect(sorted.pluck("id").all()).toEqual(["r", "p", "q"]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 1, 2 and 0
+            expect(sorted.keys().all()).toEqual([0, 1, 2]);
+        });
+
+        it.fails(
+            "keeps a string key ahead of an integer one when the comparator puts it there",
+            () => {
+                const sorted = collect({ 0: 1, x: 2 }).sort((a, b) => b - a);
+
+                // Ordered-backing gap: PHP keeps x => 2 ahead of 0 => 1; a plain object lists its integer key first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-desc-mixed-keys"
+                expect([sorted.keys().all(), sorted.values().all()]).toEqual([
+                    ["x", 0],
+                    [2, 1],
+                ]);
+            },
+        );
 
         // task-19-spaceship.json, "Collection::sort orders numeric strings
         // numerically", "Collection::sortDesc ...", "Collection::sortBy(null)
@@ -7287,11 +13441,22 @@ describe("Collection", () => {
                 "10",
             ]);
         });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([3, 1, 2]).sort(), "list");
+            expectShape(collect({ a: 3, b: 1 }).sort(), "keyed");
+            expectShape(
+                collect({ 5: 3, 6: 1 }).sort((a, b) => a - b),
+                "keyed",
+            );
+        });
     });
 
     describe("sortDesc", () => {
         describe("Laravel Tests", () => {
             it("test sort desc", () => {
+                // CollectionTest::testSortDesc
                 const data = collect([5, 3, 1, 2, 4]).sortDesc();
                 expect(data.values().all()).toEqual([5, 4, 3, 2, 1]);
 
@@ -7314,27 +13479,6 @@ describe("Collection", () => {
             });
         });
 
-        it("keeps ties in their original relative order, array backing", () => {
-            // PHP-verified (task-12-regression-pins.json): sortByDesc on this data
-            // gives d,a,c,b. A naive sort().reverse() reverses tie order too: d,c,a,b.
-            const items: Array<{ id: string; k: number }> = [
-                { id: "a", k: 2 },
-                { id: "b", k: 1 },
-                { id: "c", k: 2 },
-                { id: "d", k: 3 },
-            ];
-            const result = new Collection<{ id: string; k: number }, number>(
-                items,
-            ).sortDesc((item) => item.k);
-            const ordered = result.values().all() as Array<{ id: string }>;
-            expect(ordered.map((item) => item.id)).toEqual([
-                "d",
-                "a",
-                "c",
-                "b",
-            ]);
-        });
-
         it("sorts an integer-keyed object instead of silently no-opping", () => {
             // PHP-verified (task-10-pluck-sort.json, "sort/sortDesc/reverse preserve
             // integer keys and their order"): sort_values [1,2,3], sortdesc_values [3,2,1].
@@ -7344,13 +13488,78 @@ describe("Collection", () => {
             expect(c.sortDesc().all()).toEqual({ 0: 3, 1: 2, 2: 1 });
             expect(c.sort().values().all()).toEqual([1, 2, 3]);
         });
+
+        it.fails(
+            "keeps a string key ahead of an integer one when its value is larger",
+            () => {
+                const sorted = collect({ 0: 1, x: 2 }).sortDesc();
+
+                // Ordered-backing gap: PHP keeps x => 2 ahead of 0 => 1; a plain object lists its integer key first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-desc-mixed-keys"
+                expect([sorted.keys().all(), sorted.values().all()]).toEqual([
+                    ["x", 0],
+                    [2, 1],
+                ]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 3, 2]).sortDesc(), "list");
+            expectShape(collect({ a: 1, b: 3 }).sortDesc(), "keyed");
+            expectShape(collect({ 5: 1, 6: 3 }).sortDesc(), "keyed");
+        });
     });
 
     describe("sortBy", () => {
+        it("reads a comparator's answer as uasort() reads the whole closure's, a bool falling back and a fraction tying", () => {
+            type Row = { x: number; y?: number };
+            const tied = (): Row[] => [
+                { x: 1, y: 2 },
+                { x: 1, y: 1 },
+            ];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator"
+            expect(
+                collect<Row>([{ x: 3 }, { x: 1 }, { x: 2 }])
+                    .sortBy([(p: Row, q: Row) => p.x > q.x])
+                    .values()
+                    .all(),
+            ).toEqual([{ x: 1 }, { x: 2 }, { x: 3 }]);
+            expect(
+                collect(tied())
+                    .sortBy([(p: Row, q: Row) => p.x > q.x, "y"])
+                    .values()
+                    .all(),
+            ).toEqual(tied());
+            expect(
+                collect(tied())
+                    .sortBy([() => 0, "y"])
+                    .values()
+                    .all(),
+            ).toEqual([
+                { x: 1, y: 1 },
+                { x: 1, y: 2 },
+            ]);
+            expect(
+                collect(tied())
+                    .sortBy([() => 0.5, "y"])
+                    .values()
+                    .all(),
+            ).toEqual(tied());
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-bool-comparator"
+            expect(
+                collect([3, 1, 2])
+                    .sortByDesc([(a: number, b: number) => a > b])
+                    .values()
+                    .all(),
+            ).toEqual([1, 2, 3]);
+        });
+
         it("orders numbers and numeric strings by value", () => {
-            // Laravel's own test passes SORT_NUMERIC, which this port has no parameter for; its default flag
-            // orders this data the same way. docs/php-parity/task-31-laravel-13-33-sync.json,
-            // "sortBy-many-default-flag-asc", "sortBy-many-default-flag-desc" and "sortBy-key-default-flag"
+            // CollectionTest::testSortByManyWithNumericFlagComparesFractionalValues, without SORT_NUMERIC, which orders
+            // this data the same. docs/php-parity/task-31-laravel-13-33-sync.json, "sortBy-many-default-flag-asc",
+            // "sortBy-many-default-flag-desc" and "sortBy-key-default-flag"
             const prices = collect([
                 { price: 1.5 },
                 { price: "10.5" },
@@ -7382,6 +13591,69 @@ describe("Collection", () => {
                     .values()
                     .all(),
             );
+        });
+
+        it("keeps a Map-built collection's ties in the order it holds them", () => {
+            const rows = () =>
+                collect(
+                    new Map([
+                        [2, { n: 1, id: "p" }],
+                        [0, { n: 1, id: "q" }],
+                        [1, { n: 0, id: "r" }],
+                    ]),
+                );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-out-of-order-ties"
+            expect(rows().sortBy("n").pluck("id").all()).toEqual([
+                "r",
+                "p",
+                "q",
+            ]);
+            expect(rows().sortByDesc("n").pluck("id").all()).toEqual([
+                "p",
+                "q",
+                "r",
+            ]);
+            expect(rows().sortBy(["n"]).pluck("id").all()).toEqual([
+                "r",
+                "p",
+                "q",
+            ]);
+        });
+
+        it.fails(
+            "keeps a string key ahead of an integer one through sortByDesc",
+            () => {
+                const sorted = collect({ 0: 1, x: 2 }).sortByDesc(
+                    (value) => value,
+                );
+
+                // Ordered-backing gap: PHP keeps x => 2 ahead of 0 => 1; a plain object lists its integer key first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-desc-mixed-keys"
+                expect([sorted.keys().all(), sorted.values().all()]).toEqual([
+                    ["x", 0],
+                    [2, 1],
+                ]);
+            },
+        );
+
+        it("keeps ties in their original relative order through sortByDesc", () => {
+            const items = collect([
+                { id: "a", k: 2 },
+                { id: "b", k: 1 },
+                { id: "c", k: 2 },
+                { id: "d", k: 3 },
+            ]);
+
+            // docs/php-parity/task-12-regression-pins.json,
+            // "sortDesc ties fall back to original order, not a full reverse"
+            expect(
+                items
+                    .sortByDesc((item) => item.k)
+                    .pluck("id")
+                    .values()
+                    .all(),
+            ).toEqual(["d", "a", "c", "b"]);
         });
 
         it("keeps all() and values() in agreement over integer keys", () => {
@@ -7428,6 +13700,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test sort by", () => {
+                // CollectionTest::testSortBy
                 const data = collect(["taylor", "dayle"]);
                 const sorted = data.sortBy((x) => x);
 
@@ -7440,6 +13713,7 @@ describe("Collection", () => {
             });
 
             it("test sort by string", () => {
+                // CollectionTest::testSortByString
                 const data = collect([{ name: "taylor" }, { name: "dayle" }]);
                 const sorted = data.sortBy("name");
 
@@ -7458,74 +13732,153 @@ describe("Collection", () => {
             });
 
             it("test sort by callable string", () => {
+                // CollectionTest::testSortByCallableString
                 const data = collect([{ sort: 2 }, { sort: 1 }]);
-                const sorted = data.sortBy("sort");
+                const sorted = data.sortBy([["sort", "asc"]]);
 
-                expect(sorted.values().all()).toEqual([
+                expect(Object.values(sorted.all())).toEqual([
                     { sort: 1 },
                     { sort: 2 },
                 ]);
             });
 
             it("test sort by callable string desc", () => {
-                const data = collect([
+                // CollectionTest::testSortByCallableStringDesc
+                let data = collect([
                     { id: 1, name: "foo" },
                     { id: 2, name: "bar" },
                 ]);
-                const sorted = data.sortByDesc("id");
+                data = data.sortByDesc(["id"]);
+                expect(Object.values(data.all())).toEqual([
+                    { id: 2, name: "bar" },
+                    { id: 1, name: "foo" },
+                ]);
 
-                const data2 = collect([
+                data = collect([
                     { id: 1, name: "foo" },
                     { id: 2, name: "bar" },
                     { id: 2, name: "baz" },
                 ]);
-                const sorted2 = data2.sortByDesc("id");
-
-                expect(sorted.values().all()).toEqual([
+                data = data.sortByDesc(["id"]);
+                expect(Object.values(data.all())).toEqual([
                     { id: 2, name: "bar" },
+                    { id: 2, name: "baz" },
                     { id: 1, name: "foo" },
                 ]);
 
-                expect(sorted2.values().all()).toEqual([
-                    { id: 2, name: "bar" },
+                data = data.sortByDesc(["id", "name"]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-id-then-name"
+                expect(Object.values(data.all())).toEqual([
                     { id: 2, name: "baz" },
+                    { id: 2, name: "bar" },
                     { id: 1, name: "foo" },
                 ]);
             });
 
+            it("test value retriever accepts dot notation", () => {
+                // CollectionTest::testValueRetrieverAcceptsDotNotation
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-dot-path"
+                const c = collect([
+                    { id: 1, foo: { bar: "B" } },
+                    { id: 2, foo: { bar: "A" } },
+                ]).sortBy("foo.bar");
+
+                expect(c.pluck("id").all()).toEqual([2, 1]);
+            });
+
             it("test sort by always returns assoc", () => {
+                // CollectionTest::testSortByAlwaysReturnsAssoc
                 const data = collect({ a: "taylor", b: "dayle" });
                 const sorted = data.sortBy((x) => x);
 
                 expect(sorted.all()).toEqual({ b: "dayle", a: "taylor" });
+                expect(sorted.keys().all()).toEqual(["b", "a"]);
 
                 const data2 = collect(["taylor", "dayle"]);
                 const sorted2 = data2.sortBy((x) => x);
 
-                // PHP-verified ("sortBy/sortByMany over an integer-keyed backing"):
-                // words_all is {"1":"dayle","0":"taylor"}, words_values is
-                // ["dayle","taylor"]. Only the order survives the renumbering here.
-                expect(sorted2.all()).toEqual({ 0: "dayle", 1: "taylor" });
+                // JS-only: the sort family renumbers integer keys, where PHP keeps [1 => 'dayle', 0 => 'taylor']
+                expect(sorted2.all()).toEqual(["dayle", "taylor"]);
 
                 const data3 = collect({ a: { sort: 2 }, b: { sort: 1 } });
-                const sorted3 = data3.sortBy("sort");
+                const sorted3 = data3.sortBy([["sort", "asc"]]);
 
                 expect(sorted3.all()).toEqual({
                     b: { sort: 1 },
                     a: { sort: 2 },
                 });
+                expect(sorted3.keys().all()).toEqual(["b", "a"]);
 
                 const data4 = collect([{ sort: 2 }, { sort: 1 }]);
-                const sorted4 = data4.sortBy("sort");
+                const sorted4 = data4.sortBy([["sort", "asc"]]);
 
-                // Same trade as data2 above: PHP's records_all is
-                // {"1":{"sort":1},"0":{"sort":2}}, records_values is
-                // [{"sort":1},{"sort":2}], and only the order survives here.
-                expect(sorted4.all()).toEqual({
-                    0: { sort: 1 },
-                    1: { sort: 2 },
-                });
+                // JS-only: the sort family renumbers integer keys, where PHP keeps [1 => ['sort' => 1], 0 => ...]
+                expect(sorted4.all()).toEqual([{ sort: 1 }, { sort: 2 }]);
             });
+        });
+
+        it("sorts by what a callback answers for each value and its key", () => {
+            const sorted = collect({ x: 1, a: 2, m: 3 }).sortBy(
+                (_value, key) => key,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-callback-by-key"
+            expect(viewsOf(sorted)).toEqual({
+                all: { a: 2, m: 3, x: 1 },
+                keys: ["a", "m", "x"],
+                values: [2, 3, 1],
+            });
+        });
+
+        it("reads each descriptor's own direction, and sortByDesc turns every path descending", () => {
+            const people = collect([
+                { name: "b", age: 1 },
+                { name: "a", age: 1 },
+                { name: "a", age: 3 },
+                { name: "b", age: 2 },
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-mixed-directions"
+            expect(
+                people
+                    .sortBy([
+                        ["name", "asc"],
+                        ["age", "desc"],
+                    ])
+                    .values()
+                    .all(),
+            ).toEqual([
+                { name: "a", age: 3 },
+                { name: "a", age: 1 },
+                { name: "b", age: 2 },
+                { name: "b", age: 1 },
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-descriptor-mixed-directions"
+            expect(
+                people
+                    .sortByDesc([
+                        ["name", "asc"],
+                        ["age", "desc"],
+                    ])
+                    .values()
+                    .all(),
+            ).toEqual([
+                { name: "b", age: 2 },
+                { name: "b", age: 1 },
+                { name: "a", age: 3 },
+                { name: "a", age: 1 },
+            ]);
+        });
+
+        it("keeps tied items in the order they came", () => {
+            const rows = collect([
+                { k: 1, id: "a" },
+                { k: 0, id: "b" },
+                { k: 1, id: "c" },
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-ties-stable"
+            expect(rows.sortBy("k").pluck("id").all()).toEqual(["b", "a", "c"]);
         });
 
         it("handles null == null comparison", () => {
@@ -7552,6 +13905,7 @@ describe("Collection", () => {
         });
 
         it("supports SortDirection.Descending", () => {
+            // CollectionTest::testSortBy
             const data = collect(["taylor", "dayle"]);
             const sorted = data.sortBy((x) => x, SortDirection.Descending);
             expect(sorted.values().all()).toEqual(["taylor", "dayle"]);
@@ -7570,18 +13924,14 @@ describe("Collection", () => {
                 b: { n: 1 },
                 c: { n: 3 },
             });
-            expect(
-                collection
-                    .sortBy(null as never)
-                    .values()
-                    .all(),
-            ).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }]);
-            expect(
-                collection
-                    .sortBy(null as never)
-                    .values()
-                    .all(),
-            ).toEqual(collection.sort().values().all());
+            expect(collection.sortBy(null).values().all()).toEqual([
+                { n: 1 },
+                { n: 2 },
+                { n: 3 },
+            ]);
+            expect(collection.sortBy(null).values().all()).toEqual(
+                collection.sort().values().all(),
+            );
         });
 
         // docs/php-parity/task-17-second-review.json,
@@ -7596,7 +13946,7 @@ describe("Collection", () => {
                     .sortBy([
                         ["a", "asc"],
                         ["b", "asc"],
-                    ] as never)
+                    ])
                     .values()
                     .all(),
             ).toEqual([
@@ -7617,7 +13967,7 @@ describe("Collection", () => {
                     .sortBy([
                         ["a", "asc"],
                         ["b", "asc"],
-                    ] as never)
+                    ])
                     .values()
                     .all(),
             ).toEqual([
@@ -7625,193 +13975,230 @@ describe("Collection", () => {
                 { a: 1, b: 2 },
             ]);
         });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([3, 1, 2]).sortBy((value) => value),
+                "list",
+            );
+            expectShape(
+                collect({ a: 3, b: 1 }).sortBy((value) => value),
+                "keyed",
+            );
+            expectShape(
+                collect({ 5: 3, 6: 1 }).sortBy([(a, b) => a - b]),
+                "keyed",
+            );
+        });
+
+        it("keeps a list's shape and a keyed one's for sortByDesc() too, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 3, 2]).sortByDesc((value) => value),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 3 }).sortByDesc((value) => value),
+                "keyed",
+            );
+            expectShape(
+                collect({ 5: 1, 6: 3 }).sortByDesc([(a, b) => a - b]),
+                "keyed",
+            );
+        });
     });
 
     describe("sortByMany", () => {
         describe("Laravel Tests", () => {
             it("test sort by many", () => {
-                const data = collect([
+                // CollectionTest::testSortByMany, its default-flag lines: this port takes no sort flags
+                let data = collect([
                     { item: "1" },
                     { item: "10" },
                     { item: 5 },
                     { item: 20 },
                 ]);
 
-                // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
-                // "sortByMany orders mixed numeric strings and ints numerically".
-                // sortByMany compares with <=>, so "10" is 10, not the string.
-                const sorted1 = data.sortBy(["item"]);
-                expect(sorted1.pluck("item").all()).toEqual(["1", 5, "10", 20]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-desc-direction-forms"
+                data = data.sortBy(["item"]);
+                expect(data.pluck("item").all()).toEqual(["1", 5, "10", 20]);
 
-                // Same file, "sortByMany forced descending over the same mixed
-                // items". sortByMany's second parameter applies globally.
-                const sorted1Desc = data.sortByMany(["item"], true);
-                const values = sorted1Desc.values().all() as {
-                    item: string | number;
-                }[];
-                expect(values.map((v) => v.item)).toEqual([20, "10", 5, "1"]);
+                data = data.sortBy([["item", "desc"]]);
+                expect(data.pluck("item").all()).toEqual([20, "10", 5, "1"]);
 
-                // Test natural string sorting with numbers
-                const data2 = collect([
+                data = data.sortBy([["item", false]]);
+                expect(data.pluck("item").all()).toEqual([20, "10", 5, "1"]);
+
+                data = data.sortBy([["item", SortDirection.Descending]]);
+                expect(data.pluck("item").all()).toEqual([20, "10", 5, "1"]);
+
+                const images = collect([
                     { item: "img1" },
                     { item: "img101" },
                     { item: "img10" },
                     { item: "img11" },
                 ]);
 
-                const sorted2 = data2.sortBy(["item"]);
-                // PHP-verified, same probe row: imgs_plucked is
-                // ["img1","img10","img101","img11"]. The old expectation was just the
-                // input order - sortBy could not reorder an integer-keyed backing.
-                expect(sorted2.pluck("item").all()).toEqual([
+                // docs/php-parity/task-10-pluck-sort.json, "sortBy/sortByMany over an integer-keyed backing"
+                expect(images.sortBy(["item"]).pluck("item").all()).toEqual([
                     "img1",
                     "img10",
                     "img101",
                     "img11",
                 ]);
 
-                // Sort descending
-                const sorted2Desc = data2.sortByMany(["item"], true);
-                const values2 = sorted2Desc.values().all() as {
-                    item: string;
-                }[];
-                expect(values2.map((v) => v.item)).toEqual([
-                    "img11",
-                    "img101",
-                    "img10",
+                const mixedCase = collect([
+                    { item: "img1" },
+                    { item: "Img101" },
+                    { item: "img10" },
+                    { item: "Img11" },
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-mixed-case-default-flag"
+                expect(mixedCase.sortBy(["item"]).pluck("item").all()).toEqual([
+                    "Img101",
+                    "Img11",
                     "img1",
+                    "img10",
                 ]);
 
-                // Test multi-level sorting
-                const data3 = collect([
-                    { first: "b", second: 2 },
-                    { first: "a", second: 3 },
-                    { first: "b", second: 1 },
-                    { first: "a", second: 1 },
+                const places = collect([
+                    { item: "Österreich" },
+                    { item: "Oesterreich" },
+                    { item: "Zeta" },
                 ]);
 
-                // Sort by first asc, then second asc
-                const sorted3 = data3.sortBy(["first", "second"]);
-                const values3 = sorted3.values().all();
-                expect(values3).toEqual([
-                    { first: "a", second: 1 },
-                    { first: "a", second: 3 },
-                    { first: "b", second: 1 },
-                    { first: "b", second: 2 },
-                ]); // Sort by first desc, then second desc (global descending)
-                const sorted3Desc = data3.sortByMany(["first", "second"], true);
-                expect(sorted3Desc.values().all()).toEqual([
-                    { first: "b", second: 2 },
-                    { first: "b", second: 1 },
-                    { first: "a", second: 3 },
-                    { first: "a", second: 1 },
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-umlaut-default-flag"
+                expect(places.sortBy(["item"]).pluck("item").all()).toEqual([
+                    "Oesterreich",
+                    "Zeta",
+                    "Österreich",
+                ]);
+            });
+
+            it("test natural sort by many with null", () => {
+                // CollectionTest::testNaturalSortByManyWithNull, without SORT_NATURAL, which orders these the same
+                const itemFoo = { first: "f", second: null };
+                const itemBar = { first: "f", second: "s" };
+                const data = collect([itemFoo, itemBar]).sortBy([
+                    ["first", "desc"],
+                    ["second", "desc"],
                 ]);
 
-                // Test with null values
-                const data4 = collect([
-                    { first: "f", second: null },
-                    { first: "f", second: "s" },
-                    { first: "a", second: "z" },
-                ]);
-
-                // Nulls should sort first in ascending order
-                const sorted4 = data4.sortBy(["first", "second"]);
-                const values4 = sorted4.values().all();
-                expect(values4).toEqual([
-                    { first: "a", second: "z" },
-                    { first: "f", second: null },
-                    { first: "f", second: "s" },
-                ]); // Nulls should sort last in descending order (comes first when values are swapped)
-                const sorted4Desc = data4.sortByMany(["first", "second"], true);
-                expect(sorted4Desc.values().all()).toEqual([
-                    { first: "f", second: "s" },
-                    { first: "f", second: null },
-                    { first: "a", second: "z" },
-                ]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-null-desc-default-flag"
+                expect(data.first()).toEqual(itemBar);
+                expect(data.skip(1).first()).toEqual(itemFoo);
             });
         });
 
-        it("sort by many coverage", () => {
-            // collect([3,1,2])->sortBy([]) keeps [3,1,2]: PHP's usort
-            // comparator falls straight through to `return 0` with no
-            // comparisons to run. Only a non-array argument is rejected.
-            expect(collect([3, 1, 2]).sortBy([]).values().all()).toEqual([
-                3, 1, 2,
+        it("orders by several keys, each ascending, or each descending through sortByDesc", () => {
+            const rows = collect([
+                { first: "b", second: 2 },
+                { first: "a", second: 3 },
+                { first: "b", second: 1 },
+                { first: "a", second: 1 },
             ]);
-            expect(collect([3, 1, 2]).sortByMany([]).values().all()).toEqual([
-                3, 1, 2,
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-two-keys"
+            expect(rows.sortBy(["first", "second"]).values().all()).toEqual([
+                { first: "a", second: 1 },
+                { first: "a", second: 3 },
+                { first: "b", second: 1 },
+                { first: "b", second: 2 },
             ]);
-            expect(() =>
-                collect([{ a: 1 }]).sortByMany(null as unknown as string[]),
-            ).toThrowError("You must provide at least one comparison.");
+            expect(rows.sortByDesc(["first", "second"]).values().all()).toEqual(
+                [
+                    { first: "b", second: 2 },
+                    { first: "b", second: 1 },
+                    { first: "a", second: 3 },
+                    { first: "a", second: 1 },
+                ],
+            );
+        });
 
-            // Test with function comparator returning numbers directly
-            // This tests the path: if (!isString(prop) && isFunction(prop))
-            const data2 = collect([{ value: 10 }, { value: 5 }, { value: 20 }]);
+        it("orders a null below a string, whichever way the keys sort", () => {
+            const rows = collect([
+                { first: "f", second: null },
+                { first: "f", second: "s" },
+                { first: "a", second: "z" },
+            ]);
 
-            const sorted = data2.sortByMany([(a, b) => a.value - b.value]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-null-values"
+            expect(rows.sortBy(["first", "second"]).values().all()).toEqual([
+                { first: "a", second: "z" },
+                { first: "f", second: null },
+                { first: "f", second: "s" },
+            ]);
+            expect(rows.sortByDesc(["first", "second"]).values().all()).toEqual(
+                [
+                    { first: "f", second: "s" },
+                    { first: "f", second: null },
+                    { first: "a", second: "z" },
+                ],
+            );
+        });
 
-            // PHP-verified: vals_plucked [5,10,20] in the same probe row.
-            expect(sorted.pluck("value").all()).toEqual([5, 10, 20]);
-
-            // PHP's nums_all keeps the names, {"1":1,"2":2,"0":3}; renumbering
-            // is what lets the object hold nums_values' order [1,2,3] at all.
-            const arrayData = collect([3, 1, 2]);
-            const sortedArray = arrayData.sortByMany([(a, b) => a - b]);
-            expect(sortedArray.all()).toEqual({
-                "0": 1,
-                "1": 2,
-                "2": 3,
-            });
-
-            // Test continue branch - when first comparison returns 0,
-            // it should continue to next comparison
-            const multiData = collect([
+        it("falls through to the next key on a tie, and keeps the order when every key ties", () => {
+            const firstKeyTies = collect([
                 { primary: "a", secondary: 3 },
                 { primary: "a", secondary: 1 },
                 { primary: "b", secondary: 2 },
             ]);
-            // First comparison by "primary" returns 0 for first two items,
-            // then continues to "secondary"
-            const multiSorted = multiData.sortByMany(["primary", "secondary"]);
-            expect(multiSorted.values().all()).toEqual([
+            const bothKeysTie = collect([
+                { primary: "a", secondary: 1 },
+                { primary: "a", secondary: 1 },
+                { primary: "b", secondary: 2 },
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByMany-two-keys"
+            expect(
+                firstKeyTies.sortBy(["primary", "secondary"]).values().all(),
+            ).toEqual([
                 { primary: "a", secondary: 1 },
                 { primary: "a", secondary: 3 },
                 { primary: "b", secondary: 2 },
             ]);
-
-            // Test return 0 at end of comparisons - when ALL comparisons return 0
-            // This happens when two items are equal on all comparison criteria
-            const equalData = collect([
-                { primary: "a", secondary: 1 },
-                { primary: "a", secondary: 1 }, // Identical to first item
-                { primary: "b", secondary: 2 },
-            ]);
-            const equalSorted = equalData.sortByMany(["primary", "secondary"]);
-            expect(equalSorted.values().all()).toEqual([
+            expect(
+                bothKeysTie.sortBy(["primary", "secondary"]).values().all(),
+            ).toEqual([
                 { primary: "a", secondary: 1 },
                 { primary: "a", secondary: 1 },
                 { primary: "b", secondary: 2 },
             ]);
         });
 
-        it("handles hasNumericKeys false branch", () => {
-            // Object with non-numeric keys
-            const c = collect({ a: { val: 2 }, b: { val: 1 } });
-            const sorted = c.sortByMany(["val"]);
-            expect(sorted.keys().all()).toEqual(["b", "a"]);
+        it("sorts nothing for no comparisons", () => {
+            // docs/php-parity/task-11-final-fixes.json, "sortBy with no comparisons leaves the order alone"
+            expect(collect([3, 1, 2]).sortBy([]).all()).toEqual([3, 1, 2]);
+        });
+
+        it("runs a comparator given among the comparisons", () => {
+            // docs/php-parity/task-10-pluck-sort.json, "sortBy/sortByMany over an integer-keyed backing" (vals_plucked)
+            expect(
+                collect([{ value: 10 }, { value: 5 }, { value: 20 }])
+                    .sortBy([(a, b) => a.value - b.value])
+                    .pluck("value")
+                    .all(),
+            ).toEqual([5, 10, 20]);
+
+            // Same row, nums_values. JS-only: the sort family renumbers integer keys, where nums_all keeps 1, 2, 0
+            expect(
+                collect([3, 1, 2])
+                    .sortBy([(a, b) => a - b])
+                    .all(),
+            ).toEqual([1, 2, 3]);
         });
 
         it("supports per-comparison SortDirection tuple descending", () => {
-            // [PathKey, SortDirection.Descending] — hits isDescComparison = true
             const data = collect([
                 { name: "alice", age: 30 },
                 { name: "bob", age: 25 },
                 { name: "carol", age: 35 },
             ]);
-            const sorted = data.sortByMany([
-                ["name", SortDirection.Descending],
-            ]);
+            const sorted = data.sortBy([["name", SortDirection.Descending]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("name").all()).toEqual([
                 "carol",
                 "bob",
@@ -7820,27 +14207,30 @@ describe("Collection", () => {
         });
 
         it("supports per-comparison SortDirection.Descending string value tuple", () => {
-            // [PathKey, SortDirection.Descending] — string value "Descending", hits isDescComparison = true
             const data = collect([{ val: 10 }, { val: 30 }, { val: 20 }]);
-            const sorted = data.sortByMany([["val", "Descending"]]);
+            const sorted = data.sortBy([["val", "Descending"]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("val").all()).toEqual([30, 20, 10]);
         });
 
         it("supports per-comparison false tuple (descending)", () => {
-            // [PathKey, false] — hits isDescComparison = true (false = descending in PHP convention)
             const data = collect([{ val: 1 }, { val: 3 }, { val: 2 }]);
-            const sorted = data.sortByMany([["val", false]]);
+            const sorted = data.sortBy([["val", false]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("val").all()).toEqual([3, 2, 1]);
         });
 
         it("supports per-comparison SortDirection.Ascending tuple", () => {
-            // [PathKey, SortDirection.Ascending] — hits else → isDescComparison = false
             const data = collect([
                 { name: "carol" },
                 { name: "alice" },
                 { name: "bob" },
             ]);
-            const sorted = data.sortByMany([["name", SortDirection.Ascending]]);
+            const sorted = data.sortBy([["name", SortDirection.Ascending]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().pluck("name").all()).toEqual([
                 "alice",
                 "bob",
@@ -7848,25 +14238,28 @@ describe("Collection", () => {
             ]);
         });
 
-        it("supports per-comparison SortDirection.Ascending string value tuple", () => {
-            // [PathKey, SortDirection.Ascending] — string value "Ascending", hits else → isDescComparison = false
+        it('sorts a direction spelled "Ascending" ascending, since SortDirection.Ascending is that string', () => {
             const data = collect([{ val: 30 }, { val: 10 }, { val: 20 }]);
-            const sorted = data.sortByMany([["val", "Ascending"]]);
+            const sorted = data.sortBy([["val", "Ascending"]]);
+
+            // JS-only: the enum case is the string, which PHP's match sends to its descending default arm
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-string-Ascending-direction"
             expect(sorted.values().pluck("val").all()).toEqual([10, 20, 30]);
         });
 
         it("supports mixed per-comparison directions", () => {
-            // First field ascending, second field descending
             const data = collect([
                 { group: "a", rank: 2 },
                 { group: "a", rank: 1 },
                 { group: "b", rank: 3 },
                 { group: "b", rank: 4 },
             ]);
-            const sorted = data.sortByMany([
+            const sorted = data.sortBy([
                 ["group", SortDirection.Ascending],
                 ["rank", SortDirection.Descending],
             ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
             expect(sorted.values().all()).toEqual([
                 { group: "a", rank: 2 },
                 { group: "a", rank: 1 },
@@ -7876,25 +14269,24 @@ describe("Collection", () => {
         });
 
         it("supports the lowercase 'desc'/'asc' string direction forms", () => {
-            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: a string "desc"
-            // direction sorts descending, since the match arm compares against the enum
-            // and booleans and anything else falls through to descending.
             const data = collect([{ age: 2 }, { age: 10 }]);
-            const desc = data.sortByMany([["age", "desc"]]);
+
+            // docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — string \"desc\" direction sorts descending"
+            const desc = data.sortBy([["age", "desc"]]);
             expect(desc.values().pluck("age").all()).toEqual([10, 2]);
 
-            const asc = data.sortByMany([["age", "asc"]]);
+            // docs/php-parity/task-18-sort-comparator.json, "direction tuple [age,\"asc\"] — string form"
+            const asc = data.sortBy([["age", "asc"]]);
             expect(asc.values().pluck("age").all()).toEqual([2, 10]);
         });
 
         it("falls through an unrecognized direction to descending (default arm)", () => {
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
-            // "Collection::sortBy — unrecognized direction sorts descending (default
-            // arm)".
+            // docs/php-parity/task-10-pluck-sort.json,
+            // "Collection::sortBy — unrecognized direction sorts descending (default arm)"
             const data = collect([{ age: 2 }, { age: 10 }]);
-            const sorted = data.sortByMany([
-                ["age", "BOGUS" as unknown as "asc"],
-            ]);
+            // A direction the types rule out, which PHP's match() sends to its default arm.
+            const sorted = data.sortBy([["age", "BOGUS" as unknown as "asc"]]);
             expect(sorted.values().pluck("age").all()).toEqual([10, 2]);
         });
 
@@ -7907,18 +14299,17 @@ describe("Collection", () => {
             expect(sorted.values().pluck("age").all()).toEqual([2, 10]);
         });
 
-        it("forceDescending overrides a descriptor's own explicit direction, but never a comparator", () => {
-            // Mirrors Collection::sortByDesc rewriting every comparison's direction slot
-            // before sorting (Collection.php:1700-1710): the force parameter overrides
-            // an explicit per-descriptor direction.
+        it("sortByDesc overrides a descriptor's own direction, but never a comparator's", () => {
             const data = collect([{ age: 2 }, { age: 10 }]);
-            const forced = data.sortByMany([["age", "asc"]], true);
+
+            // docs/php-parity/task-18-sort-comparator.json, "sortDesc overrides an explicit \"asc\" direction"
+            const forced = data.sortByDesc([["age", "asc"]]);
             expect(forced.values().pluck("age").all()).toEqual([10, 2]);
 
-            // A comparator function is unaffected by forceDescending.
-            const byAgeAsc = (a: { age: number }, b: { age: number }) =>
-                a.age - b.age;
-            const withComparator = data.sortByMany([byAgeAsc], true);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptor-direction-forms"
+            const withComparator = data.sortByDesc([
+                (a: { age: number }, b: { age: number }) => a.age - b.age,
+            ]);
             expect(withComparator.values().pluck("age").all()).toEqual([2, 10]);
         });
 
@@ -7932,16 +14323,16 @@ describe("Collection", () => {
 
             expect(
                 data
-                    .sortByMany([[byAge]] as never)
+                    .sortBy([[byAge]])
                     .values()
                     .all(),
             ).toEqual([{ age: 1 }, { age: 2 }, { age: 3 }]);
             expect(
                 data
-                    .sortByMany([[byAge]] as never)
+                    .sortBy([[byAge]])
                     .values()
                     .all(),
-            ).toEqual(data.sortByMany([byAge]).values().all());
+            ).toEqual(data.sortBy([byAge]).values().all());
         });
 
         it("sortByDesc forces a bare-key array descriptor descending", () => {
@@ -7956,6 +14347,7 @@ describe("Collection", () => {
     describe("sortKeys", () => {
         describe("Laravel Tests", () => {
             it("test sort keys", () => {
+                // CollectionTest::testSortKeys
                 const data = collect({ b: "dayle", a: "taylor" });
 
                 expect(data.sortKeys().all()).toEqual({
@@ -8006,11 +14398,19 @@ describe("Collection", () => {
             const data4 = collect({ a: 1 });
             expect(data4.sortKeys().all()).toEqual({ a: 1 });
         });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).sortKeys(true), "list");
+            expectShape(collect({ b: 2, a: 1 }).sortKeys(), "keyed");
+            expectShape(collect({ 6: "b", 5: "a" }).sortKeys(), "keyed");
+        });
     });
 
     describe("testSortKeysDesc", () => {
         describe("Laravel Tests", () => {
             it("test sort keys desc", () => {
+                // CollectionTest::testSortKeysDesc
                 const data = collect({ a: "taylor", b: "dayle" });
 
                 expect(data.sortKeysDesc().all()).toEqual({
@@ -8019,11 +14419,30 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).sortKeysDesc(), "list");
+            expectShape(collect({ a: 1, b: 2 }).sortKeysDesc(), "keyed");
+            expectShape(collect({ 5: "a", 6: "b" }).sortKeysDesc(), "keyed");
+        });
     });
 
     describe("testSortKeysUsing", () => {
+        it("sorts the keys by a comparator answering a bool, as uksort() falls back for one", () => {
+            const sorted = collect({ c: 1, a: 2, b: 3 }).sortKeysUsing(
+                (a, b) => a > b,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+            expect(sorted.all()).toEqual({ a: 2, b: 3, c: 1 });
+            expect(sorted.keys().all()).toEqual(["a", "b", "c"]);
+            expect(sorted.values().all()).toEqual([2, 3, 1]);
+        });
+
         describe("Laravel Tests", () => {
             it("test sort keys using", () => {
+                // CollectionTest::testSortKeysUsing
                 const data = collect({ B: "dayle", a: "taylor" });
 
                 expect(data.sortKeysUsing(strnatcasecmp).all()).toEqual({
@@ -8033,14 +14452,59 @@ describe("Collection", () => {
             });
         });
 
+        it("sorts integer keys by the callback, renumbering them over the sorted order", () => {
+            const sorted = collect({ 5: "e", 2: "b", 9: "z" }).sortKeysUsing(
+                (a, b) => Number(b) - Number(a),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-int-keys-desc"
+            expect(sorted.values().all()).toEqual(["z", "e", "b"]);
+            // JS-only: the sort family renumbers integer keys, where PHP keeps 9, 5 and 2
+            expect(sorted.keys().all()).toEqual([0, 1, 2]);
+            expect(sorted.all()).toEqual({ 0: "z", 1: "e", 2: "b" });
+        });
+
         it("keeps array backing", () => {
-            // Covers sortKeysUsing's isArray branch; sortKeys' own array branch
-            // is already covered via sortKeysDesc's packed-list test below.
+            // JS-only: PHP has no backing to keep; a list stays a list, as it does through sortKeys()
             const sorted = new Collection(["a", "b", "c"]).sortKeysUsing(
                 (a, b) => Number(b) - Number(a),
             );
             expect(sorted.all()).toEqual(["c", "b", "a"]);
             expect(Array.isArray(sorted.all())).toBe(true);
+        });
+
+        it("casts the comparator's answer to an int, as uksort() does, so a fraction below 1 ties", () => {
+            const keyed = collect({ c: 1, a: 2, b: 3 });
+            const by = (step: number) => (x: string, y: string) =>
+                x < y ? -step : x > y ? step : 0;
+            const tied = keyed.sortKeysUsing(by(0.5));
+            const sorted = keyed.sortKeysUsing(by(1.5));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-fractional-answers"
+            expect(tied.all()).toEqual({ c: 1, a: 2, b: 3 });
+            expect(tied.keys().all()).toEqual(["c", "a", "b"]);
+            expect(tied.values().all()).toEqual([1, 2, 3]);
+            expect(sorted.all()).toEqual({ a: 2, b: 3, c: 1 });
+            expect(sorted.keys().all()).toEqual(["a", "b", "c"]);
+            expect(sorted.values().all()).toEqual([2, 3, 1]);
+        });
+
+        it("keeps a list's shape and a keyed one's, integer keys included, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).sortKeysUsing((a, b) => b - a),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1, b: 2 }).sortKeysUsing((a, b) =>
+                    b.localeCompare(a),
+                ),
+                "keyed",
+            );
+            expectShape(
+                collect({ 5: "a", 6: "b" }).sortKeysUsing((a, b) => b - a),
+                "keyed",
+            );
         });
     });
 
@@ -8108,6 +14572,90 @@ describe("Collection", () => {
     });
 
     describe("splice", () => {
+        it("drops the fraction from an offset before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets"
+            const list = collect([1, 2, 3, 4]);
+            const removed = list.splice(1.5);
+
+            expect(removed.all()).toEqual([2, 3, 4]);
+            expect(list.all()).toEqual([1]);
+            expect(list.keys().all()).toEqual([0]);
+            expect(list.values().all()).toEqual([1]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+            const fromTheEnd = keyed.splice(-1.5, 1);
+
+            expect(fromTheEnd.all()).toEqual({ d: 4 });
+            expect(fromTheEnd.keys().all()).toEqual(["d"]);
+            expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3 });
+            expect(keyed.keys().all()).toEqual(["a", "b", "c"]);
+            expect(keyed.values().all()).toEqual([1, 2, 3]);
+
+            const keyedOffsetOnly = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyedOffsetOnly.splice(1.5).keys().all()).toEqual([
+                "b",
+                "c",
+                "d",
+            ]);
+            expect(keyedOffsetOnly.keys().all()).toEqual(["a"]);
+            expect(keyedOffsetOnly.values().all()).toEqual([1]);
+        });
+
+        it("drops the fraction from a length before counting a negative one back from the end", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-lengths"
+            const list = collect([1, 2, 3, 4]);
+
+            expect(list.splice(1, -1.5, ["x"]).all()).toEqual([2, 3]);
+            expect(list.all()).toEqual([1, "x", 4]);
+            expect(list.keys().all()).toEqual([0, 1, 2]);
+            expect(list.values().all()).toEqual([1, "x", 4]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+            expect(keyed.splice(1, 1.5, ["x"]).all()).toEqual({ b: 2 });
+            expect(keyed.keys().all()).toEqual(["a", 0, "c", "d"]);
+            expect(keyed.values().all()).toEqual([1, "x", 3, 4]);
+        });
+
+        it("throws array_splice()'s TypeError for an offset or a length no int holds, and splices nothing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
+            for (const value of [NaN, Infinity, -Infinity, 1e19]) {
+                const list = collect([1, 2, 3, 4]);
+                const keyed = collect({ a: 1, b: 2, c: 3, d: 4 });
+
+                expect(() => list.splice(value, 1)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => keyed.splice(value)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #2 ($offset) must be of type int, float given",
+                    ),
+                );
+                expect(() => list.splice(1, value, ["x"])).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(() => keyed.splice(1, value)).toThrow(
+                    new TypeError(
+                        "array_splice(): Argument #3 ($length) must be of type ?int, float given",
+                    ),
+                );
+                expect(list.all()).toEqual([1, 2, 3, 4]);
+                expect(list.keys().all()).toEqual([0, 1, 2, 3]);
+                expect(list.values().all()).toEqual([1, 2, 3, 4]);
+                expect(keyed.all()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+                expect(keyed.keys().all()).toEqual(["a", "b", "c", "d"]);
+                expect(keyed.values().all()).toEqual([1, 2, 3, 4]);
+            }
+        });
+
         it("renumbers negative integer keys on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "splice-negative-int-keys"
             const c = collect({ "-1": "a", x: "b", "-5": "c" });
@@ -8118,6 +14666,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test splice", () => {
+                // CollectionTest::testSplice
                 const data = collect(["foo", "baz"]);
                 data.splice(1);
                 expect(data.all()).toEqual(["foo"]);
@@ -8156,6 +14705,21 @@ describe("Collection", () => {
             expect(removed.all()).toEqual({ b: 2 });
         });
 
+        it("removes to the end for a null length, as array_splice does", () => {
+            const collection = collect([1, 2, 3, 4]);
+            const returned = collection.splice(1, null, ["x"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length"
+            expect({ returned: returned.all(), all: collection.all() }).toEqual(
+                {
+                    returned: [2, 3, 4],
+                    all: [1, "x"],
+                },
+            );
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, "x"]);
+        });
+
         it("splices to the end with a single argument, either backing", () => {
             // PHP branches on func_num_args === 1 (Collection.php:1770) — the one-arg
             // form removes offset -> end for both backings, not nothing.
@@ -8164,21 +14728,97 @@ describe("Collection", () => {
             expect(fromArray.splice(1).all()).toEqual(["z"]);
             expect(fromObject.splice(1).all()).toEqual({ baz: "z" });
         });
+
+        it("splices a keyed collection at the position its items hold, around its string keys", () => {
+            const inserted = collect({ a: 1, b: 2 });
+            const none = inserted.splice(1, 0, ["p", "q"]);
+            const replaced = collect({ a: 1, b: 2, c: 3 });
+            const cut = replaced.splice(1, 1, ["p"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-keyed-order"
+            expect(inserted.all()).toEqual({ a: 1, 0: "p", 1: "q", b: 2 });
+            expect(inserted.keys().all()).toEqual(["a", 0, 1, "b"]);
+            expect(inserted.values().all()).toEqual([1, "p", "q", 2]);
+            expect(inserted.first()).toBe(1);
+            expect(none.values().all()).toEqual([]);
+            expect(replaced.all()).toEqual({ a: 1, 0: "p", c: 3 });
+            expect(replaced.keys().all()).toEqual(["a", 0, "c"]);
+            expect(replaced.values().all()).toEqual([1, "p", 3]);
+            expect(replaced.first()).toBe(1);
+            expect(cut.all()).toEqual({ b: 2 });
+        });
+
+        it("inserts a Map replacement's values in the order it holds them, on either backing", () => {
+            const replacement = () =>
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]);
+
+            const views = <
+                TValue,
+                TKey extends PropertyKey,
+                TShape extends CollectionShape,
+            >(
+                collection: Collection<TValue, TKey, TShape>,
+            ) => ({
+                all: collection.all(),
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+            });
+            const list = collect(["x", "y"]);
+            const listByCollection = collect(["x", "y"]);
+            const keyed = collect({ a: 1, b: 2 });
+            const keyedByCollection = collect({ a: 1, b: 2 });
+
+            list.splice(1, 0, replacement());
+            listByCollection.splice(1, 0, collect(replacement()));
+            keyed.splice(1, 0, replacement());
+            keyedByCollection.splice(1, 0, collect(replacement()));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-replacement-order"
+            for (const spliced of [list, listByCollection]) {
+                expect(views(spliced)).toEqual({
+                    all: ["x", "c", "a", "b", "y"],
+                    keys: [0, 1, 2, 3, 4],
+                    values: ["x", "c", "a", "b", "y"],
+                });
+            }
+
+            for (const spliced of [keyed, keyedByCollection]) {
+                expect(views(spliced)).toEqual({
+                    all: { a: 1, 0: "c", 1: "a", 2: "b", b: 2 },
+                    keys: ["a", 0, 1, 2, "b"],
+                    values: [1, "c", "a", "b", 2],
+                });
+            }
+        });
+
+        it("keeps a list's shape and a keyed one's for the items it removes, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).splice(1), "list");
+            expectShape(outOfOrderKeys().splice(1), "keyed");
+            expectShape(collect({ a: 1, b: 2 }).splice(0, 1), "keyed");
+        });
     });
 
     describe("take", () => {
         describe("Laravel Tests", () => {
             it("test take", () => {
+                // CollectionTest::testTake
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(2).all()).toEqual(["taylor", "dayle"]);
             });
 
             it("test take last", () => {
+                // CollectionTest::testTakeLast
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(-2).all()).toEqual(["dayle", "shawn"]);
             });
 
             it("test take last with limit greater than collection size", () => {
+                // CollectionTest::testTakeLastWithLimitGreaterThanCollectionSize
                 // docs/php-parity/task-31-laravel-13-33-sync.json, "take-negative-past-size"
                 const data = collect(["taylor", "dayle", "shawn"]);
                 expect(data.take(-5).all()).toEqual([
@@ -8188,11 +14828,232 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("takes nothing for a limit of 0", () => {
+            // docs/php-parity/task-24-data-release-readiness.json, "collection-take-zero"
+            expect(collect(["taylor", "dayle", "shawn"]).take(0).all()).toEqual(
+                [],
+            );
+        });
+
+        it("keeps a record's keys when it takes the last items", () => {
+            const taken = collect({ a: 1, b: 2, c: 3 }).take(-2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-take-assoc-negative"
+            expect(viewsOf(taken)).toEqual({
+                all: { b: 2, c: 3 },
+                keys: ["b", "c"],
+                values: [2, 3],
+            });
+        });
+
+        it("drops a fraction from the limit, taking the last items through slice(limit, abs(limit))", () => {
+            const numbers = collect([1, 2, 3, 4, 5, 6]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-take-counts"
+            expect(numbers.take(1.5).values().all()).toEqual([1]);
+            expect(numbers.take(-1.5).values().all()).toEqual([6]);
+        });
+
+        it("throws array_slice's TypeError for a limit that is NAN, infinite or beyond PHP's int range", () => {
+            const numbers = collect([1, 2, 3, 4, 5, 6]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-take-counts"
+            for (const limit of [NaN, Infinity, 1e19]) {
+                expect(() => numbers.take(limit)).toThrowError(TypeError);
+                expect(() => numbers.take(limit)).toThrowError(
+                    "array_slice(): Argument #3 ($length) must be of type ?int, float given",
+                );
+            }
+
+            for (const limit of [-Infinity, -1e19]) {
+                expect(() => numbers.take(limit)).toThrowError(TypeError);
+                expect(() => numbers.take(limit)).toThrowError(
+                    "array_slice(): Argument #2 ($offset) must be of type int, float given",
+                );
+            }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).take(-2), "list");
+            expectShape(collect({ a: 1, b: 2 }).take(1), "keyed");
+        });
+    });
+
+    describe("takeUntil", () => {
+        describe("Laravel Tests", () => {
+            it("test take until using value", () => {
+                // CollectionTest::testTakeUntilUsingValue
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeUntil(3).toArray()).toEqual([1, 2]);
+            });
+
+            it("test take until using callback", () => {
+                // CollectionTest::testTakeUntilUsingCallback
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeUntil((item) => item >= 3).toArray()).toEqual([
+                    1, 2,
+                ]);
+            });
+
+            it("test take until returns all items for unmet value", () => {
+                // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeUntil(99).toArray()).toEqual(data.toArray());
+                expect(data.takeUntil((item) => item >= 99).toArray()).toEqual(
+                    data.toArray(),
+                );
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const taken = collect({ a: 1, b: 2, c: 3 }).takeUntil(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-keyed"
+            expect(taken.all()).toEqual({ a: 1, b: 2 });
+            expect(taken.keys().all()).toEqual(["a", "b"]);
+            expect(taken.values().all()).toEqual([1, 2]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 2, 3, 4];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-strict-value"
+            expect(collect(items).takeUntil("3").all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("hands a callback each value and key", () => {
+            const keyed = collect({ a: 1, b: 2, c: 3 }).takeUntil(
+                (_value, key) => key === "c",
+            );
+            const list = collect(["x", "y", "z"]).takeUntil(
+                (_value, key) => key === 1,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-callback-key"
+            expect(keyed.all()).toEqual({ a: 1, b: 2 });
+            expect([keyed.keys().all(), keyed.values().all()]).toEqual([
+                ["a", "b"],
+                [1, 2],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            expect(list.all()).toEqual(["x"]);
+            expect([list.keys().all(), list.values().all()]).toEqual([
+                [0],
+                ["x"],
+            ]);
+        });
+
+        it("takes nothing from an empty collection", () => {
+            const none: number[] = [];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-empty"
+            expect(collect(none).takeUntil(1).all()).toEqual([]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const taken = outOfOrderKeys().takeUntil("a");
+
+            // Ordered-backing gap: PHP walks key 2 first, so taking until a keeps c under key 2
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect([taken.keys().all(), taken.values().all()]).toEqual([
+                [2],
+                ["c"],
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).takeUntil(2), "list");
+            expectShape(collect({ a: 1, b: 2 }).takeUntil(2), "keyed");
+        });
+    });
+
+    describe("takeWhile", () => {
+        describe("Laravel Tests", () => {
+            it("test take while using value", () => {
+                // CollectionTest::testTakeWhileUsingValue
+                const data = collect([1, 1, 2, 2, 3, 3]);
+
+                expect(data.takeWhile(1).toArray()).toEqual([1, 1]);
+            });
+
+            it("test take while using callback", () => {
+                // CollectionTest::testTakeWhileUsingCallback
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeWhile((item) => item < 3).toArray()).toEqual([
+                    1, 2,
+                ]);
+            });
+
+            it("test take while returns no items for unmet value", () => {
+                // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
+                const data = collect([1, 2, 3, 4]);
+
+                expect(data.takeWhile(2).toArray()).toEqual([]);
+                expect(data.takeWhile((item) => item === 99).toArray()).toEqual(
+                    [],
+                );
+            });
+        });
+
+        it("keeps a keyed collection's keys", () => {
+            const taken = collect({ a: 1, b: 1, c: 2, d: 1 }).takeWhile(1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-keyed"
+            expect(taken.all()).toEqual({ a: 1, b: 1 });
+            expect(taken.keys().all()).toEqual(["a", "b"]);
+            expect(taken.values().all()).toEqual([1, 1]);
+        });
+
+        it("compares the value with PHP's ===", () => {
+            const items: (number | string)[] = [1, 1, 2];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-strict-value"
+            expect(collect(items).takeWhile("1").all()).toEqual([]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-null-value"
+            expect(collect([null, null, 0]).takeWhile(null).all()).toEqual([
+                null,
+                null,
+            ]);
+        });
+
+        it("hands a callback each value and key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key"
+            expect(
+                collect(["x", "y", "z"])
+                    .takeWhile((_value, key) => key < 2)
+                    .all(),
+            ).toEqual(["x", "y"]);
+        });
+
+        it.fails("walks a Map-built collection in its insertion order", () => {
+            const taken = outOfOrderKeys().takeWhile("c");
+
+            // Ordered-backing gap: PHP walks key 2 first, so taking while c keeps c under key 2
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-out-of-order-keys"
+            expect([taken.keys().all(), taken.values().all()]).toEqual([
+                [2],
+                ["c"],
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).takeWhile(1), "list");
+            expectShape(collect({ a: 1, b: 2 }).takeWhile(1), "keyed");
+        });
     });
 
     describe("transform", () => {
         describe("Laravel Tests", () => {
             it("test transform", () => {
+                // CollectionTest::testTransform
                 const data = collect({ first: "taylor", last: "otwell" });
                 data.transform((item, key) => `${key}-${strrev(item)}`);
                 expect(data.all()).toEqual({
@@ -8201,11 +15062,21 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).transform(String), "list");
+            expectShape(
+                outOfOrderKeys().transform((value) => value.length),
+                "keyed",
+            );
+        });
     });
 
     describe("dot", () => {
         describe("Laravel Tests", () => {
             it("test dot", () => {
+                // CollectionTest::testDot
                 const data = Collection.make({
                     name: "Taylor",
                     meta: {
@@ -8252,6 +15123,17 @@ describe("Collection", () => {
             });
         });
 
+        it("keeps a list's keys and values in order, which JSON writes as a list", () => {
+            const dotted = collect(["a", "b"]).dot();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-dot-list-backing"
+            expect(dotted.keys().all()).toEqual([0, 1]);
+            expect(dotted.values().all()).toEqual(["a", "b"]);
+            expect(dotted.toJson()).toBe('["a","b"]');
+            // JS-only: a keyed result keeps its record, where PHP's array with the keys 0 and 1 is a list
+            expect(dotted.all()).toEqual({ 0: "a", 1: "b" });
+        });
+
         it("flattens objects inside an array backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
             expect(
@@ -8272,6 +15154,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests - dotWithDepth", () => {
             it("test dot with depth", () => {
+                // CollectionTest::testDotWithDepth
                 const data = Collection.make({
                     name: "Taylor",
                     meta: {
@@ -8291,11 +15174,30 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const dotted = outOfOrderKeys().dot();
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "dot-out-of-order"
+                expect(dotted.keys().all()).toEqual([2, 0, 1]);
+                expect(dotted.values().all()).toEqual(["c", "a", "b"]);
+            },
+        );
+
+        it("always builds a keyed result, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect(["a", "b"]).dot(), "keyed");
+            expectShape(collect({ a: { b: 1 } }).dot(), "keyed");
+        });
     });
 
     describe("undot", () => {
         describe("Laravel Tests", () => {
             it("test undot", () => {
+                // CollectionTest::testUndot
                 const data = Collection.make({
                     name: "Taylor",
                     "meta.foo": "bar",
@@ -8330,6 +15232,17 @@ describe("Collection", () => {
             });
         });
 
+        it("keeps the keys 0 and 1 and their values in order, which JSON writes as a list", () => {
+            const undotted = collect({ 0: "a", 1: "b" }).undot();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-dot-list-backing"
+            expect(undotted.keys().all()).toEqual([0, 1]);
+            expect(undotted.values().all()).toEqual(["a", "b"]);
+            expect(undotted.toJson()).toBe('["a","b"]');
+            // JS-only: a keyed result keeps its record, where PHP's array with the keys 0 and 1 is a list
+            expect(undotted.all()).toEqual({ 0: "a", 1: "b" });
+        });
+
         it("rebuilds a list from consecutive integer segments starting at 0, through the object backing", () => {
             // PHP-verified: docs/php-parity/task-09-paths.json, "Arr::undot
             // — integer segments rebuild a list".
@@ -8343,11 +15256,31 @@ describe("Collection", () => {
                 user: { languages: ["PHP", "C#"], name: "Taylor" },
             });
         });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const undotted = outOfOrderKeys().undot();
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "undot-out-of-order"
+                expect(undotted.keys().all()).toEqual([2, 0, 1]);
+                expect(undotted.values().all()).toEqual(["c", "a", "b"]);
+            },
+        );
+
+        it("keeps a list a list and expands a keyed one into a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect(["a", "b"]).undot(), "list");
+            expectShape(collect({ "a.b": 1 }).undot(), "keyed");
+            expectShape(collect({ "0.a": 1, "1.b": 2 }).undot(), "keyed");
+        });
     });
 
     describe("unique", () => {
         describe("Laravel Tests", () => {
             it("test unique", () => {
+                // CollectionTest::testUnique
                 const c = collect(["Hello", "World", "World"]);
                 expect(c.unique().all()).toEqual(["Hello", "World"]);
 
@@ -8366,6 +15299,7 @@ describe("Collection", () => {
             });
 
             it("test unique with callback", () => {
+                // CollectionTest::testUniqueWithCallback
                 const c = collect({
                     1: { id: 1, first: "Taylor", last: "Otwell" },
                     2: { id: 2, first: "Taylor", last: "Otwell" },
@@ -8404,11 +15338,97 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-bool-mix"
+                "1, '1', true and 'a'",
+                [1, "1", true, "a"],
+                [1, "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-zero-strings"
+                "'a', 0, 'b' and '0'",
+                ["a", 0, "b", "0"],
+                ["a", 0, "b"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-falsy"
+                "null, 0, '' and false",
+                [null, 0, "", false],
+                [null],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-loose-numeric-strings"
+                "10, '1e1', 'abc', 'ABC' and '10.0'",
+                [10, "1e1", "abc", "ABC", "10.0"],
+                [10, "abc", "ABC"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-arrays-loose"
+                "[1, 2], ['1', 2] and [1, 2]",
+                [
+                    [1, 2],
+                    ["1", 2],
+                    [1, 2],
+                ],
+                [[1, 2]],
+            ],
+        ] as [string, unknown[], unknown[]][])(
+            "keeps the first of each loosely equal value among %s",
+            (_label, items, kept) => {
+                // The row's keys name the kept items; a list renumbers them, as every removal from a list does
+                expect(collect(items).unique().all()).toEqual(kept);
+            },
+        );
+
+        it("keeps a keyed collection's first key for each value", () => {
+            const unique = collect({ a: 1, b: 1, c: 2 }).unique();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-keyed"
+            expect(unique.all()).toEqual({ a: 1, c: 2 });
+            expect(unique.keys().all()).toEqual(["a", "c"]);
+            expect(unique.values().all()).toEqual([1, 2]);
+        });
+
+        it("compares a key's values loosely, a dot path's included", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-key-loose", whose keys 0 and
+            // 3 name these rows; a list renumbers them, as every removal from a list does
+            expect(
+                collect([{ id: 1 }, { id: "1" }, { id: true }, { id: 2 }])
+                    .unique("id")
+                    .all(),
+            ).toEqual([{ id: 1 }, { id: 2 }]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-dot-path", whose keys 0 and 2
+            // name these rows
+            expect(
+                collect([{ a: { b: 1 } }, { a: { b: 1 } }, { a: { b: 2 } }])
+                    .unique("a.b")
+                    .all(),
+            ).toEqual([{ a: { b: 1 } }, { a: { b: 2 } }]);
+        });
+
+        it("walks mixed types once, keeping the first of each loosely equal run", () => {
+            // JS-only: PHP's == is not transitive, and array_unique's sort then drops '' as well
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-non-transitive-loose"
+            expect(collect(["abc", "0", false, ""]).unique().all()).toEqual([
+                "abc",
+                "0",
+                "",
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 1, 2]).unique(), "list");
+            expectShape(collect({ a: 1, b: 1 }).unique(), "keyed");
+        });
     });
 
     describe("values", () => {
         describe("Laravel Tests", () => {
             it("test values", () => {
+                // CollectionTest::testValues
                 const c = collect([
                     { id: 1, name: "Hello" },
                     { id: 2, name: "World" },
@@ -8424,6 +15444,7 @@ describe("Collection", () => {
             });
 
             it("test values reset key", () => {
+                // CollectionTest::testValuesResetKey
                 const data = collect({ 1: "a", 2: "b", 3: "c" });
                 expect(data.values().all()).toEqual(["a", "b", "c"]);
             });
@@ -8438,11 +15459,18 @@ describe("Collection", () => {
             const collection = collect([1, 2, 3]);
             expect(collection.values().all()).toEqual([1, 2, 3]);
         });
+
+        it("lists a list's values and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).values(), "list");
+            expectShape(outOfOrderKeys().values(), "list");
+        });
     });
 
     describe("zip", () => {
         describe("Laravel Tests", () => {
             it("test zip", () => {
+                // CollectionTest::testZip
                 const c = collect([1, 2, 3]).zip(collect([4, 5, 6]));
                 expect(c).toBeInstanceOf(Collection);
                 expect(c.get(0)).toBeInstanceOf(Collection);
@@ -8470,34 +15498,202 @@ describe("Collection", () => {
         it("handles shorter array in list", () => {
             const c = collect([1, 2, 3]);
             const zipped = c.zip([4, 5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-operand-shorter"
             expect(zipped.count()).toBe(3);
-            // Third row: this collection has value, but zipped array is shorter
             expect(zipped.all()[2]?.all()).toEqual([3, null]);
         });
 
         it("handles arrays of different lengths", () => {
             const c = collect(["a", "b"]);
             const zipped = c.zip([1, 2, 3]);
-            // maxLength is 3 (from the longer array)
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-receiver-shorter"
             expect(zipped.count()).toBe(3);
-            // First two have values from both
             expect(zipped.all()[0]?.all()).toEqual(["a", 1]);
             expect(zipped.all()[1]?.all()).toEqual(["b", 2]);
-            // Third: this collection is shorter, only value from zipped array
-            expect(zipped.all()[2]?.all()).toEqual([3]);
+            expect(zipped.all()[2]?.all()).toEqual([null, 3]);
+        });
+
+        it("pads an empty receiver with null", () => {
+            const zipped = collect([]).zip([1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-empty-receiver"
+            expect(zipped.map((row) => row.all()).all()).toEqual([
+                [null, 1],
+                [null, 2],
+            ]);
+        });
+
+        it("pads a record receiver's values with null past its last one", () => {
+            const zipped = collect({ a: 1, b: 2 }).zip({
+                x: "p",
+                y: "q",
+                z: "r",
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-assoc-receiver-longer-operand"
+            expect(zipped.map((row) => row.all()).all()).toEqual([
+                [1, "p"],
+                [2, "q"],
+                [null, "r"],
+            ]);
         });
 
         it("handles object-based items in zip list", () => {
-            // Test with object-based collection to cover Object.values branch
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-assoc-operand"
             const c = collect([1, 2]);
             const zipped = c.zip({ a: "x", b: "y" });
             expect(zipped.count()).toBe(2);
             expect(zipped.all()[0]?.all()).toEqual([1, "x"]);
             expect(zipped.all()[1]?.all()).toEqual([2, "y"]);
         });
+
+        it("pads with null for a null operand", () => {
+            const zipped = collect([1, 2]).zip(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-zip-null-operand"
+            expect(zipped.map((row) => row.all()).all()).toEqual([
+                [1, null],
+                [2, null],
+            ]);
+        });
+
+        it.fails(
+            "zips a Map-built receiver in the order it holds its keys",
+            () => {
+                const zipped = outOfOrderKeys().zip(["x", "y", "z"]);
+
+                // Ordered-backing gap: PHP zips the receiver in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-receiver-out-of-order"
+                expect(zipped.map((row) => row.all()).all()).toEqual([
+                    ["c", "x"],
+                    ["a", "y"],
+                    ["b", "z"],
+                ]);
+            },
+        );
+
+        it.fails(
+            "zips a Map-built operand in the order it holds its keys",
+            () => {
+                const operand = collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                    ]),
+                );
+
+                // Ordered-backing gap: PHP zips the operand in insertion order, key 2 first
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-operand-out-of-order"
+                expect(
+                    collect([1, 2])
+                        .zip(operand)
+                        .map((row) => row.all())
+                        .all(),
+                ).toEqual([
+                    [1, "c"],
+                    [2, "a"],
+                ]);
+            },
+        );
+
+        it("builds a list of lists, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).zip(["a"]), "list");
+            expectShape(collect({ a: 1, b: 2 }).zip({ x: "p" }), "list");
+            collect({ a: 1, b: 2 })
+                .zip(["x"])
+                .each((row) => {
+                    expectShape(row, "list");
+                });
+        });
     });
 
     describe("pad", () => {
+        it("drops a fraction from the size, as array_pad()'s int parameter does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            const list = collect([1, 2, 3]).pad(7.5, 0);
+
+            expect(list.all()).toEqual([1, 2, 3, 0, 0, 0, 0]);
+            expect(list.keys().all()).toEqual([0, 1, 2, 3, 4, 5, 6]);
+            expect(list.values().all()).toEqual([1, 2, 3, 0, 0, 0, 0]);
+
+            const keyed = collect({ a: 1, b: 2, c: 3 }).pad(-7.5, 0);
+
+            expect(keyed.all()).toEqual({
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 0,
+                a: 1,
+                b: 2,
+                c: 3,
+            });
+            expect(keyed.keys().all()).toEqual([0, 1, 2, 3, "a", "b", "c"]);
+            expect(keyed.values().all()).toEqual([0, 0, 0, 0, 1, 2, 3]);
+
+            const unpadded = collect([1, 2, 3]).pad(0.5, 0);
+
+            expect(unpadded.all()).toEqual([1, 2, 3]);
+            expect(unpadded.keys().all()).toEqual([0, 1, 2]);
+            expect(unpadded.values().all()).toEqual([1, 2, 3]);
+        });
+
+        it("pads a fractional size in the order PHP's array holds integer keys out of order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-size-out-of-order-keys"
+            const outOfOrder = () =>
+                collect(
+                    new Map([
+                        [2, "c"],
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                );
+            const after = outOfOrder().pad(4.5, "P");
+            const before = outOfOrder().pad(-4.5, "P");
+
+            // JS-only: a keyed backing keeps its record, whose keys here run 0..3 as PHP's list's do
+            expect(after.all()).toEqual({ 0: "c", 1: "a", 2: "b", 3: "P" });
+            expect(after.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(after.values().all()).toEqual(["c", "a", "b", "P"]);
+            expect(before.all()).toEqual({ 0: "P", 1: "c", 2: "a", 3: "b" });
+            expect(before.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(before.values().all()).toEqual(["P", "c", "a", "b"]);
+            expect(() => outOfOrder().pad(NaN, "P")).toThrow(
+                new TypeError(
+                    "array_pad(): Argument #2 ($length) must be of type int, float given",
+                ),
+            );
+        });
+
+        it("throws array_pad()'s TypeError for a size no int holds, and its ValueError past the maximum array size", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
+                expect(() => collect([1, 2, 3]).pad(size, 0)).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+                expect(() =>
+                    collect({ a: 1, b: 2, c: 3 }).pad(size, 0),
+                ).toThrow(
+                    new TypeError(
+                        "array_pad(): Argument #2 ($length) must be of type int, float given",
+                    ),
+                );
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-far-past-maximum-array-size"
+            for (const size of [1e18, -1e18]) {
+                expect(() => collect([1, 2, 3]).pad(size, 0)).toThrow(
+                    new Error(
+                        "array_pad(): Argument #2 ($length) must not exceed the maximum allowed array size",
+                    ),
+                );
+            }
+        });
+
         it("renumbers a negative integer key on an object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "pad-negative-int-key"
             expect(collect({ "-1": "a", x: "b" }).pad(-4, 0).all()).toEqual({
@@ -8510,6 +15706,7 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test pad", () => {
+                // CollectionTest::testPadPadsArrayWithValue
                 let c = collect([1, 2, 3]);
                 c = c.pad(4, 0);
                 expect(c.all()).toEqual([1, 2, 3, 0]);
@@ -8528,6 +15725,17 @@ describe("Collection", () => {
             });
         });
 
+        it.fails("keeps its padding after a string key", () => {
+            const collection = collect({ 5: "a", x: "b" }).pad(4, 0);
+
+            // Ordered-backing gap: PHP appends the padding after the string key, so x comes before 1 and 2
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-past-a-string-key-order"
+            expect({
+                keys: collection.keys().all(),
+                values: collection.values().all(),
+            }).toEqual({ keys: [0, "x", 1, 2], values: ["a", "b", 0, 0] });
+        });
+
         it("numbers negative pad slots from zero for object-backed collections", () => {
             // PHP-verified: array_pad(["a"=>1,"b"=>2], -5, 0) ->
             // {"0":0,"1":0,"2":0,"a":1,"b":2} (docs/php-parity/task-07-pad-union.json).
@@ -8542,15 +15750,24 @@ describe("Collection", () => {
         });
 
         it("returns a copy even when no padding is needed for object-backed collections", () => {
+            // JS-only: PHP's array_pad hands back a value, so only a JS backing could be shared
             const items = { a: 1, b: 2 };
             const c = collect(items);
             expect(c.pad(2, 0).all()).not.toBe(items);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).pad(4, "x"), "list");
+            expectShape(outOfOrderKeys().pad(5, 0), "keyed");
+            expectShape(collect({ a: 1 }).pad(3, 0), "keyed");
         });
     });
 
     describe("getIterator", () => {
         describe("Laravel Tests", () => {
             it("test iterable", () => {
+                // CollectionTest::testIterable
                 const c = collect(["foo"]);
                 const iterator = c.getIterator();
                 expect(iterator[Symbol.iterator]).toBeDefined();
@@ -8573,11 +15790,40 @@ describe("Collection", () => {
             }
             expect(items).toEqual([1, 2, 3]);
         });
+
+        it("iterates a snapshot, as PHP's ArrayIterator iterates a copy of the items", () => {
+            const collection = collect([1, 2]);
+            const seen: number[] = [];
+
+            for (const value of collection.getIterator()) {
+                seen.push(value);
+
+                if (seen.length < 5) {
+                    collection.push(9);
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-iterator-is-a-snapshot"
+            expect([seen, collection.all()]).toEqual([
+                [1, 2],
+                [1, 2, 9, 9],
+            ]);
+        });
+
+        it("skips a list's holes, which hold no item", () => {
+            const holes: string[] = [];
+            holes[1] = "b";
+
+            // JS-only: PHP has no sparse array; a hole holds no item, as count() says
+            expect([...new Collection(holes).getIterator()]).toEqual(["b"]);
+        });
     });
 
     describe("count", () => {
         describe("Laravel Tests", () => {
             it("test countable", () => {
+                // CollectionTest::testCountable
+                // JS-only: Number(c) and length stand in for PHP's Countable
                 const c = collect(["foo", "bar"]);
                 expect(Number(c)).toBe(2);
                 expect(c).toHaveLength(2);
@@ -8605,9 +15851,26 @@ describe("Collection", () => {
         });
     });
 
+    describe("Symbol.toPrimitive", () => {
+        it("concatenates as its JSON, as PHP's string conversion does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-string-concat-is-json"
+            expect(collect(["foo"]) + "").toBe('["foo"]');
+            expect(`${collect(["foo"])}`).toBe('["foo"]');
+        });
+
+        it("reads as its count where a number is wanted", () => {
+            const collection = collect([1, 2, 3]);
+
+            // JS-only: PHP cannot cast a Collection to a number, but +c and Number(c) read the count here
+            expect(+collection).toBe(3);
+            expect(Number(collection)).toBe(3);
+        });
+    });
+
     describe("countBy", () => {
         describe("Laravel Tests", () => {
             it("test count by standalone", () => {
+                // CollectionTest::testCountByStandalone
                 const c = collect([
                     "foo",
                     "foo",
@@ -8621,22 +15884,45 @@ describe("Collection", () => {
                     bar: 2,
                     foobar: 1,
                 });
+                expect(c.countBy().keys().all()).toEqual([
+                    "foo",
+                    "bar",
+                    "foobar",
+                ]);
+                expect(c.countBy().values().all()).toEqual([3, 2, 1]);
 
                 const d = collect([true, true, false, false, false]);
-                expect(d.countBy().all()).toEqual({ true: 2, false: 3 });
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-bools"
+                expect(d.countBy().all()).toEqual({ 1: 2, 0: 3 });
+                expect(d.countBy().keys().all()).toEqual([1, 0]);
+                expect(d.countBy().values().all()).toEqual([2, 3]);
 
                 const e = collect([1, 5, 1, 5, 5, 1]);
                 expect(e.countBy().all()).toEqual({ 1: 3, 5: 3 });
+                expect(e.countBy().keys().all()).toEqual([1, 5]);
+                expect(e.countBy().values().all()).toEqual([3, 3]);
 
-                const f = collect(["James", "Joe", "Taylor"]);
+                const f = collect([
+                    StaffEnum.from("James"),
+                    StaffEnum.from("Joe"),
+                    StaffEnum.from("Taylor"),
+                ]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-pure-enum"
                 expect(f.countBy().all()).toEqual({
                     James: 1,
                     Joe: 1,
                     Taylor: 1,
                 });
+                expect(f.countBy().keys().all()).toEqual([
+                    "James",
+                    "Joe",
+                    "Taylor",
+                ]);
+                expect(f.countBy().values().all()).toEqual([1, 1, 1]);
             });
 
             it("test count by with key", () => {
+                // CollectionTest::testCountByWithKey
                 const c = collect([
                     { key: "a" },
                     { key: "a" },
@@ -8647,59 +15933,90 @@ describe("Collection", () => {
                     { key: "b" },
                 ]);
                 expect(c.countBy("key").all()).toEqual({ a: 4, b: 3 });
+                expect(c.countBy("key").keys().all()).toEqual(["a", "b"]);
+                expect(c.countBy("key").values().all()).toEqual([4, 3]);
+
+                const d = collect([
+                    { key: TestBackedEnum.from(1) },
+                    { key: TestBackedEnum.from(2) },
+                    { key: TestBackedEnum.from(2) },
+                ]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-key-backed-enum"
+                expect(d.countBy("key").all()).toEqual({ 1: 1, 2: 2 });
+                expect(d.countBy("key").keys().all()).toEqual([1, 2]);
+                expect(d.countBy("key").values().all()).toEqual([1, 2]);
             });
 
             it("test count by with callback", () => {
-                const c = collect([
-                    "apple",
-                    "apricot",
-                    "banana",
-                    "blueberry",
-                    "cherry",
-                ]);
-                expect(c.countBy((item) => item.charAt(0)).all()).toEqual({
+                // CollectionTest::testCountableByWithCallback
+                const c = collect(["alice", "aaron", "bob", "carla"]);
+                expect(c.countBy((name) => name.charAt(0)).all()).toEqual({
                     a: 2,
-                    b: 2,
+                    b: 1,
                     c: 1,
                 });
+
+                const d = collect([1, 2, 3, 4, 5]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-bool"
+                expect(d.countBy((i) => i % 2 === 0).all()).toEqual({
+                    1: 2,
+                    0: 3,
+                });
+
+                const e = collect(["A", "A", "B", "A"] as const);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-string-enum"
+                expect(
+                    e.countBy((i) => TestStringBackedEnum.from(i)).all(),
+                ).toEqual({ A: 3, B: 1 });
             });
         });
 
-        it("handles object/array result as key", () => {
+        it("throws for a plain object result, which PHP cannot count under", () => {
             const c = collect([{ type: "a" }, { type: "b" }, { type: "a" }]);
-            // When callback returns an object, it should be JSON stringified
-            const result = c.countBy((item) => ({ t: item.type }));
-            expect(result.all()).toEqual({
-                '{"t":"a"}': 2,
-                '{"t":"b"}': 1,
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-assoc-key"
+            expect(() => c.countBy((item) => ({ t: item.type }))).toThrow(
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            );
         });
 
-        it("handles array result as key", () => {
+        it("throws for an array result, which PHP cannot count under", () => {
             const c = collect([
                 [1, 2],
                 [1, 2],
                 [3, 4],
             ]);
-            const result = c.countBy((item) => item);
-            expect(result.all()).toEqual({
-                "[1,2]": 2,
-                "[3,4]": 1,
-            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-array-key"
+            expect(() => c.countBy((item) => item)).toThrow(
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            );
         });
 
         it("counts null and undefined keys under an empty string key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-null-key"
             const c = collect([{ url: null }, { url: "a" }, {}]);
             expect(c.countBy("url").all()).toEqual({
                 "": 2,
                 a: 1,
             });
         });
+
+        it("builds a keyed result, even under the keys 0..n-1, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([0, 1, 1]).countBy(), "keyed");
+            expectShape(collect({ a: 1 }).countBy(), "keyed");
+        });
     });
 
     describe("add", () => {
         describe("Laravel Tests", () => {
             it("test add", () => {
+                // CollectionTest::testAdd
                 const c = collect([]);
                 c.add(1);
                 expect(c.values().all()).toEqual([1]);
@@ -8723,7 +16040,9 @@ describe("Collection", () => {
                     [],
                     "name",
                 ]);
-                c.add(3, 0);
+                c.put(0, 3);
+
+                // docs/php-parity/task-26-collection-order.json, "order-put-existing-key"
                 expect(c.values().all()).toEqual([
                     3,
                     2,
@@ -8736,39 +16055,8 @@ describe("Collection", () => {
             });
         });
 
-        it("test add to objects", () => {
-            const c = collect({});
-            c.add(1, "a");
-            expect(c.all()).toEqual({ a: 1 });
-            c.add(2, "b");
-            expect(c.all()).toEqual({ a: 1, b: 2 });
-            c.add("", "c");
-            expect(c.all()).toEqual({ a: 1, b: 2, c: "" });
-            c.add(null, "d");
-            expect(c.all()).toEqual({ a: 1, b: 2, c: "", d: null });
-            c.add(false, "e");
-            expect(c.all()).toEqual({ a: 1, b: 2, c: "", d: null, e: false });
-            c.add([], "f");
-            expect(c.all()).toEqual({
-                a: 1,
-                b: 2,
-                c: "",
-                d: null,
-                e: false,
-                f: [],
-            });
-            c.add("name", "g");
-            expect(c.all()).toEqual({
-                a: 1,
-                b: 2,
-                c: "",
-                d: null,
-                e: false,
-                f: [],
-                g: "name",
-            });
-            c.add(5, "a");
-            expect(c.all()).toEqual({
+        it("appends at 0 onto a backing whose keys are all strings", () => {
+            const c = collect({
                 a: 5,
                 b: 2,
                 c: "",
@@ -8780,7 +16068,7 @@ describe("Collection", () => {
             c.add("home");
 
             // docs/php-parity/task-26-collection-order.json,
-            // "append-key-with-no-integer-key-is-zero": no integer key means the append lands on 0,
+            // "append-key-with-no-integer-key-is-zero": no integer key means the append lands on 0, and last,
             // whatever else the backing holds — here seven string keys instead of the row's one.
             expect(c.all()).toEqual({
                 a: 5,
@@ -8792,12 +16080,73 @@ describe("Collection", () => {
                 g: "name",
                 0: "home",
             });
+            expect(c.keys().all()).toEqual([
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "g",
+                0,
+            ]);
+            expect(c.values().all()).toEqual([
+                5,
+                2,
+                "",
+                null,
+                false,
+                [],
+                "name",
+                "home",
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).add("x"), "list");
+            expectShape(outOfOrderKeys().add(1), "keyed");
+        });
+    });
+
+    describe("toBase", () => {
+        it("returns a base Collection holding a subclass's items", () => {
+            class Sub extends Collection<number, number> {}
+
+            const base = Sub.make([1, 2]).toBase();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toBase-is-base-class"
+            expect([base.constructor, base.all()]).toEqual([
+                Collection,
+                [1, 2],
+            ]);
+        });
+
+        it("copies the items rather than sharing them", () => {
+            class Sub extends Collection<number, number> {}
+
+            const sub = Sub.make([1, 2]);
+            const base = sub.toBase();
+            base.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toBase-copies"
+            expect([sub.all(), base.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).toBase(), "list");
+            expectShape(outOfOrderKeys().toBase(), "keyed");
         });
     });
 
     describe("offsetExists", () => {
         describe("Laravel Tests", () => {
             it("test offsetExists", () => {
+                // CollectionTest::testArrayAccessOffsetExists
                 const c = collect({ a: "foo", b: "bar", c: null });
                 expect(c.offsetExists("a")).toBe(true);
                 expect(c.offsetExists("b")).toBe(true);
@@ -8808,12 +16157,50 @@ describe("Collection", () => {
                 expect(d.offsetExists(1)).toBe(true);
                 expect(d.offsetExists(2)).toBe(false);
             });
+
+            it("test behaves like an array with array access", () => {
+                // CollectionTest::testBehavesLikeAnArrayWithArrayAccess
+                const list = new Collection(["foo", null]);
+                expect(list.offsetExists(0)).toBe(true);
+                expect(list.offsetExists(1)).toBe(false);
+                expect(list.offsetExists(1000)).toBe(false);
+                expect(list.offsetGet(0)).toBe("foo");
+                expect(list.offsetGet(1)).toBeNull();
+
+                const record = new Collection({ k1: "foo", k2: null });
+                expect(record.offsetExists("k1")).toBe(true);
+                expect(record.offsetExists("k2")).toBe(false);
+                expect(record.offsetExists("k3")).toBe(false);
+                expect(record.offsetGet("k1")).toBe("foo");
+                expect(record.offsetGet("k2")).toBeNull();
+            });
+        });
+
+        it("answers true for every falsy value that is not null, as isset does", () => {
+            const collection = collect([0, false, "", [], "0"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetExists-falsy-values"
+            expect(
+                [0, 1, 2, 3, 4].map((key) => collection.offsetExists(key)),
+            ).toEqual([true, true, true, true, true]);
+        });
+
+        it("answers true for a zero value on a record", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetExists-zero-on-record"
+            expect(collect({ a: 0 }).offsetExists("a")).toBe(true);
+        });
+
+        it("answers false for a member a plain object or an array inherits", () => {
+            // JS-only: PHP's array inherits no members, so only an own key can be set.
+            expect(collect({ a: 1 }).offsetExists("toString")).toBe(false);
+            expect(collect([1, 2]).offsetExists("length")).toBe(false);
         });
     });
 
     describe("offsetGet", () => {
         describe("Laravel Tests", () => {
             it("test offset get", () => {
+                // CollectionTest::testArrayAccessOffsetGet
                 const c = collect({ a: "foo", b: "bar" });
                 expect(c.offsetGet("a")).toBe("foo");
                 expect(c.offsetGet("b")).toBe("bar");
@@ -8822,20 +16209,86 @@ describe("Collection", () => {
                 expect(d.offsetGet(0)).toBe("foo");
                 expect(d.offsetGet(1)).toBe("bar");
             });
+
+            it("test offset access", () => {
+                // CollectionTest::testOffsetAccess
+                const c = new Collection({ name: "taylor" });
+                expect(c.offsetGet("name")).toBe("taylor");
+                c.offsetSet("name", "dayle");
+                expect(c.offsetGet("name")).toBe("dayle");
+                expect(c.offsetExists("name")).toBe(true);
+                c.offsetUnset("name");
+                expect(c.offsetExists("name")).toBe(false);
+                c.offsetSet(null, "jason");
+                expect(c.offsetGet(0)).toBe("jason");
+            });
+        });
+
+        it("misses a member a plain object inherits", () => {
+            const record = collect({ a: 1 });
+
+            // JS-only: a miss is undefined (PHP: null, with a warning)
+            expect(record.offsetGet("toString")).toBeUndefined();
+            expect(record.offsetGet("constructor")).toBeUndefined();
+            expect(record.offsetGet("__proto__")).toBeUndefined();
+        });
+
+        it("reads an own __proto__ key as the item it holds", () => {
+            const record = collect(Object.fromEntries([["__proto__", 5]]));
+
+            // docs/php-parity/task-16-final-review.json,
+            // '"__proto__" is an ordinary array key in every keyed Collection result'
+            expect(record.offsetGet("__proto__")).toBe(5);
+        });
+
+        it("misses a list's length and its methods", () => {
+            const list = collect([1, 2]);
+
+            // JS-only: a miss is undefined (PHP: null, with a warning)
+            expect(list.offsetGet("length")).toBeUndefined();
+            expect(list.offsetGet("map")).toBeUndefined();
+        });
+
+        it("misses exactly where get() falls back to its default", () => {
+            const sentinel = Symbol("default");
+            const recordKeys = [
+                "toString",
+                "constructor",
+                "__proto__",
+                "a",
+                "b",
+            ];
+            const listKeys = ["length", "map", 0, 2];
+            const record = collect({ a: 1 });
+            const list = collect([1, 2]);
+
+            // JS-only: a miss is undefined (PHP: null, with a warning)
+            expect(
+                recordKeys.map((key) => record.offsetGet(key) === undefined),
+            ).toEqual([true, true, true, false, true]);
+            expect(
+                recordKeys.map((key) => record.get(key, sentinel) === sentinel),
+            ).toEqual([true, true, true, false, true]);
+            expect(
+                listKeys.map((key) => list.offsetGet(key) === undefined),
+            ).toEqual([true, true, false, true]);
+            expect(
+                listKeys.map((key) => list.get(key, sentinel) === sentinel),
+            ).toEqual([true, true, false, true]);
         });
     });
 
     describe("offsetSet", () => {
         describe("Laravel Tests", () => {
             it("test offsetSet", () => {
-                // TODO figure out how to test based on indexes directly on Collection like PHP does
-                // $c = new Collection(['foo', 'foo']);
+                // CollectionTest::testArrayAccessOffsetSet
+                const d = collect(["foo", "foo"]);
 
-                // $c->offsetSet(1, 'bar');
-                // $this->assertSame('bar', $c[1]);
+                d.offsetSet(1, "bar");
+                expect(d.offsetGet(1)).toBe("bar");
 
-                // $c->offsetSet(null, 'qux');
-                // $this->assertSame('qux', $c[2]);
+                d.offsetSet(null, "qux");
+                expect(d.offsetGet(2)).toBe("qux");
 
                 const c = collect({ a: "foo", b: "foo" });
 
@@ -8845,17 +16298,9 @@ describe("Collection", () => {
                 c.offsetSet(null, "qux");
 
                 // docs/php-parity/task-26-collection-order.json,
-                // "append-key-with-no-integer-key-is-zero": the PHP case above is a list, but this
-                // backing has no integer key, so the append lands on 0 — never on the count, 2.
+                // "append-key-with-no-integer-key-is-zero": unlike the list above, this backing has no
+                // integer key, so the append lands on 0 — never on the count, 2.
                 expect(c.get(0)).toBe("qux");
-
-                const d = collect(["foo", "foo"]);
-
-                d.offsetSet(1, "bar");
-                expect(d.get(1)).toBe("bar");
-
-                d.offsetSet(null, "qux");
-                expect(d.get(2)).toBe("qux");
             });
         });
     });
@@ -8863,6 +16308,7 @@ describe("Collection", () => {
     describe("offsetUnset", () => {
         describe("Laravel Tests", () => {
             it("test offsetUnset", () => {
+                // CollectionTest::testArrayAccessOffsetUnset
                 const c = collect({ a: "foo", b: "bar" });
                 c.offsetUnset("b");
                 expect(c.offsetExists("b")).toBe(false);
@@ -8872,16 +16318,38 @@ describe("Collection", () => {
                 expect(d.offsetExists(1)).toBe(false);
             });
         });
+
+        it("leaves a list untouched for a negative key", () => {
+            const collection = collect(["a", "b", "c"]);
+            collection.offsetUnset(-1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetUnset-negative-on-list"
+            expect(collection.all()).toEqual(["a", "b", "c"]);
+            expect(collection.keys().all()).toEqual([0, 1, 2]);
+            expect(collection.values().all()).toEqual(["a", "b", "c"]);
+        });
+
+        it("leaves a list untouched for a string key", () => {
+            const collection = collect(["a", "b", "c"]);
+            collection.offsetUnset("x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetUnset-string-on-list"
+            expect(collection.all()).toEqual(["a", "b", "c"]);
+            expect(collection.keys().all()).toEqual([0, 1, 2]);
+            expect(collection.values().all()).toEqual(["a", "b", "c"]);
+        });
     });
 
     describe("make", () => {
         describe("Laravel Tests", () => {
             it("test make method", () => {
+                // CollectionTest::testMakeMethod
                 const data = Collection.make("foo");
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test make method from null", () => {
+                // CollectionTest::testMakeMethodFromNull
                 const data = Collection.make(null);
                 expect(data.all()).toEqual([]);
 
@@ -8890,12 +16358,15 @@ describe("Collection", () => {
             });
 
             it("test make method from collection", () => {
+                // CollectionTest::testMakeMethodFromCollection
                 const firstCollection = Collection.make({ foo: "bar" });
                 const secondCollection = Collection.make(firstCollection);
                 expect(secondCollection.all()).toEqual({ foo: "bar" });
             });
 
             it("test make method from array", () => {
+                // CollectionTest::testMakeMethodFromArray
+                // CollectionTest::testConstructMakeFromObject
                 const data = Collection.make({ foo: "bar" });
                 expect(data.all()).toEqual({ foo: "bar" });
 
@@ -8903,21 +16374,39 @@ describe("Collection", () => {
                 expect(data2.all()).toEqual(["foo", "bar"]);
             });
         });
+
+        it("copies a collection's items rather than sharing them", () => {
+            const a = collect([1]);
+            const b = Collection.make(a);
+            b.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-make-collection-copies"
+            expect([a.all(), b.all()]).toEqual([[1], [1, 2]]);
+        });
+
+        it("makes a list from a list and a keyed collection from a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.make([1, 2]), "list");
+            expectShape(Collection.make({ a: 1, b: 2 }), "keyed");
+        });
     });
 
     describe("wrap", () => {
         describe("Laravel Tests", () => {
             it("test wrap with scalar", () => {
+                // CollectionTest::testWrapWithScalar
                 const data = Collection.wrap("foo");
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test wrap with array", () => {
+                // CollectionTest::testWrapWithArray
                 const data = Collection.wrap(["foo"]);
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test wrap with arrayable", () => {
+                // CollectionTest::testWrapWithArrayable
                 class TestArrayableObject {
                     toArray() {
                         return ["arrayable"];
@@ -8930,6 +16419,7 @@ describe("Collection", () => {
             });
 
             it("test wrap with jsonable", () => {
+                // CollectionTest::testWrapWithJsonable
                 class TestJsonableObject {
                     toJSON() {
                         return JSON.stringify(["jsonable"]);
@@ -8942,6 +16432,7 @@ describe("Collection", () => {
             });
 
             it("test wrap with json serialize", () => {
+                // CollectionTest::testWrapWithJsonSerialize
                 class TestJsonSerializeObject {
                     toJSON() {
                         return JSON.stringify(["jsonserialize"]);
@@ -8954,12 +16445,14 @@ describe("Collection", () => {
             });
 
             it("test wrap with collection class", () => {
+                // CollectionTest::testWrapWithCollectionClass
                 const innerCollection = Collection.make(["foo"]);
                 const data = Collection.wrap(innerCollection);
                 expect(data.all()).toEqual(["foo"]);
             });
 
             it("test wrap with collection sub class", () => {
+                // CollectionTest::testWrapWithCollectionSubclass
                 class TestCollectionSubclass extends Collection<
                     unknown,
                     string
@@ -8971,20 +16464,69 @@ describe("Collection", () => {
                 expect(data).toBeInstanceOf(TestCollectionSubclass);
             });
         });
+
+        it("copies a collection's items into a new instance", () => {
+            const a = collect([1]);
+            const b = Collection.wrap(a);
+            b.push(2);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-collection-copies"
+            expect([a.all(), b.all(), a === b]).toEqual([[1], [1, 2], false]);
+        });
+
+        it("takes a plain object's entries as the items, as PHP takes an array's", () => {
+            const collection = Collection.wrap({ a: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-assoc-array"
+            expect(collection.all()).toEqual({ a: 1 });
+            expect(collection.keys().all()).toEqual(["a"]);
+            expect(collection.values().all()).toEqual([1]);
+        });
+
+        it("takes a Map's entries as the items, as the constructor does", () => {
+            const collection = Collection.wrap(new Map([["a", 1]]));
+
+            // JS-only: a Map stands in for a keyed PHP array, which wrap() hands to the constructor as it is
+            expect(collection.all()).toEqual({ a: 1 });
+            expect(collection.keys().all()).toEqual(["a"]);
+            expect(collection.values().all()).toEqual([1]);
+        });
+
+        it("builds an empty collection from null or undefined", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-null"
+            expect(Collection.wrap(null).all()).toEqual([]);
+
+            // JS-only: undefined is read as PHP's null
+            expect(Collection.wrap(undefined).all()).toEqual([]);
+        });
+
+        it("wraps false, which is no array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-wrap-false"
+            expect(Collection.wrap(false).all()).toEqual([false]);
+        });
+
+        it("takes a list's shape or a record's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.wrap([1, 2]), "list");
+            expectShape(Collection.wrap({ a: 1 }), "keyed");
+        });
     });
 
     describe("unwrap", () => {
         describe("Laravel Tests", () => {
             it("test unwrap collection", () => {
+                // CollectionTest::testUnwrapCollection
                 const data = new Collection(["foo"]);
                 expect(Collection.unwrap(data)).toEqual(["foo"]);
             });
 
             it("test unwrap collection with array", () => {
+                // CollectionTest::testUnwrapCollectionWithArray
                 expect(Collection.unwrap(["foo"])).toEqual(["foo"]);
             });
 
             it("test unwrap collection with scalar", () => {
+                // CollectionTest::testUnwrapCollectionWithScalar
                 expect(Collection.unwrap("foo")).toBe("foo");
             });
         });
@@ -8993,31 +16535,54 @@ describe("Collection", () => {
     describe("empty", () => {
         describe("Laravel Tests", () => {
             it("test empty method", () => {
+                // CollectionTest::testEmptyMethod
                 const c = Collection.empty();
                 expect(c.count()).toBe(0);
                 expect(c.all()).toEqual([]);
-
-                const d = Collection.empty(false);
-                expect(d.count()).toBe(0);
-                expect(d.all()).toEqual({});
             });
 
             it("test empty collection is empty", () => {
+                // CollectionTest::testEmptyCollectionIsEmpty
                 const c = new Collection();
                 expect(c.isEmpty()).toBe(true);
             });
 
             it("test empty collection is not empty", () => {
+                // CollectionTest::testEmptyCollectionIsNotEmpty
                 const c = new Collection(["foo", "bar"]);
                 expect(c.isEmpty()).toBe(false);
                 expect(c.isNotEmpty()).toBe(true);
             });
         });
+
+        it("builds an empty list even when handed false", () => {
+            const collection = Reflect.apply(Collection.empty, Collection, [
+                false,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-empty-extra-argument-is-ignored"
+            expect(collection.all()).toEqual([]);
+        });
+
+        it("builds the list its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.empty(), "list");
+        });
     });
 
     describe("times", () => {
+        it("throws range()'s ValueError for a count past the maximum array size before it builds an item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-past-maximum-array-size"
+            expect(() => Collection.times(1e19)).toThrow(
+                new Error(
+                    "The supplied range exceeds the maximum array size by 9999999998926258176.0 elements: start=1.0, end=10000000000000000000.0, step=1.0. Max size: 1073741824",
+                ),
+            );
+        });
+
         describe("Laravel Tests", () => {
             it("test times method", () => {
+                // CollectionTest::testTimesMethod
                 const two = Collection.times(2, (number) => {
                     return `slug-${number}`;
                 });
@@ -9037,11 +16602,40 @@ describe("Collection", () => {
                 expect(range.all()).toEqual([1, 2, 3, 4, 5]);
             });
         });
+
+        it("throws range()'s error for a count that is not finite, and builds nothing below one", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-non-finite-count"
+            expect(() => Collection.times(NaN)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, NAN provided",
+                ),
+            );
+            expect(() => Collection.times(Infinity)).toThrow(
+                new Error(
+                    "range(): Argument #2 ($end) must be a finite number, INF provided",
+                ),
+            );
+            expect(Collection.times(-Infinity).all()).toEqual([]);
+        });
+
+        it("counts to the whole part of a fractional count", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-times-fractional-count"
+            expect(Collection.times(2.7).all()).toEqual([1, 2]);
+        });
+
+        it("builds the list its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                Collection.times(2, (count) => count * 2),
+                "list",
+            );
+        });
     });
 
     describe("fromJson", () => {
         describe("Laravel Tests", () => {
             it("test from json", () => {
+                // CollectionTest::testFromJson
                 const json = JSON.stringify({ foo: "bar", baz: "quz" });
 
                 const instance = Collection.fromJson(json);
@@ -9049,11 +16643,47 @@ describe("Collection", () => {
                 expect(instance.all()).toEqual({ foo: "bar", baz: "quz" });
             });
         });
+
+        it("builds an empty collection from invalid JSON, as json_decode gives null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-invalid-is-empty"
+            expect(Collection.fromJson("{bad").all()).toEqual([]);
+        });
+
+        it("wraps a decoded scalar and builds nothing from JSON null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-scalar-is-wrapped"
+            expect(Collection.fromJson("5").all()).toEqual([5]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-null-is-empty"
+            expect(Collection.fromJson("null").all()).toEqual([]);
+        });
+
+        it("decodes a JSON array as a list", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-list"
+            expect(Collection.fromJson('["a","b"]').all()).toEqual(["a", "b"]);
+        });
+
+        it.fails(
+            "keeps a decoded object's integer keys in their order in the JSON",
+            () => {
+                const collection = Collection.fromJson('{"2":"a","1":"b"}');
+
+                // Ordered-backing gap: PHP's json_decode keeps the keys in document order, 2 before 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-fromJson-integer-keys-out-of-order"
+                expect(collection.keys().all()).toEqual([2, 1]);
+            },
+        );
+
+        it("builds a list or a record, the shapes its type leaves open", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(Collection.fromJson("[1, 2]"), "list");
+            expectShape(Collection.fromJson('{"a": 1}'), "keyed");
+        });
     });
 
     describe("avg", () => {
         describe("Laravel Tests", () => {
             it("test getting avg items from collection", () => {
+                // CollectionTest::testGettingAvgItemsFromCollection, but for its ->avg->foo proxies, not ported
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
                 expect(
                     c.avg((item) => {
@@ -9110,26 +16740,31 @@ describe("Collection", () => {
             });
         });
 
-        it("ignores NaN values when calculating average", () => {
-            // Test with non-numeric string values that result in NaN
-            const c = collect([
-                { foo: 10 },
-                { foo: "not a number" },
-                { foo: 20 },
-            ]);
-            // NaN values should be skipped, so average of 10 and 20 is 15
-            expect(c.avg("foo")).toBe(15);
+        it("throws PHP's TypeError for a non-numeric string", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-non-numeric-string"
+            expect(() => collect([10, "house", 20]).avg()).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
+            expect(() =>
+                collect([
+                    { foo: 10 },
+                    { foo: "not a number" },
+                    { foo: 20 },
+                ]).avg("foo"),
+            ).toThrow(new TypeError("Unsupported operand types: int + string"));
+        });
 
-            // Test with all NaN values
-            const d = collect([{ foo: "abc" }, { foo: "xyz" }]);
-            // All values result in NaN, so count is 0 and avg returns null
-            expect(d.avg("foo")).toBeNull();
+        it("hands the callback the key as well as the value", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-callback-arity" counts PHP's one
+            // JS-only: the key is an extra argument, which never changes what a callback PHP accepts answers
+            expect(collect({ a: 1 }).avg((...args) => args.length)).toBe(2);
         });
     });
 
     describe("average", () => {
         describe("Laravel Tests", () => {
             it("test average method", () => {
+                // CollectionTest::testGettingAvgItemsFromCollection, through the average() alias
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
                 expect(
                     c.average((item) => {
@@ -9149,17 +16784,17 @@ describe("Collection", () => {
                     { foo: null },
                     { foo: "house" },
                 ]);
-                expect(
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-non-numeric-string"
+                expect(() =>
                     d.average((item) => {
                         return item.foo;
                     }),
-                ).toBe(15);
-                expect(d.average("foo")).toBe(15);
-                expect(
-                    d.average((item) => {
-                        return item.foo;
-                    }),
-                ).toBe(15);
+                ).toThrow(
+                    new TypeError("Unsupported operand types: int + string"),
+                );
+                expect(() => d.average("foo")).toThrow(
+                    new TypeError("Unsupported operand types: int + string"),
+                );
 
                 const e = collect([{ foo: 10 }, { foo: 20 }]);
                 expect(e.average("foo")).toBe(15);
@@ -9198,19 +16833,24 @@ describe("Collection", () => {
                 { val: 20 },
                 { val: undefined },
             ]);
-            // Should only average 10 and 20
+            // JS-only: undefined stands for a value PHP does not have, so it is skipped with null
             expect(c.average("val")).toBe(15);
         });
 
-        it("handles non-numeric values", () => {
+        it("throws PHP's TypeError for a non-numeric value", () => {
             const c = collect([{ val: 10 }, { val: "not a number" }]);
-            expect(c.average("val")).toBe(10);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-avg-non-numeric-string"
+            expect(() => c.average("val")).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
         });
     });
 
     describe("some", () => {
         describe("Laravel Tests", () => {
             it("test some", () => {
+                // CollectionTest::testSome
                 const c = collect([1, 3, 5]);
 
                 expect(c.some(1)).toBe(true);
@@ -9225,6 +16865,11 @@ describe("Collection", () => {
                         return value > 5;
                     }),
                 ).toBe(false);
+
+                const rows = collect([{ v: 1 }, { v: 3 }, { v: 5 }]);
+
+                expect(rows.some("v", 1)).toBe(true);
+                expect(rows.some("v", 2)).toBe(false);
 
                 const d = collect(["date", "class", { foo: 50 }]);
 
@@ -9258,15 +16903,58 @@ describe("Collection", () => {
             });
         });
 
-        it("uses default key parameter", () => {
-            // Calling some without key triggers the default parameter = null
-            // which makes contains check if any value loosely equals null (PHP-style)
-            // In PHP loose equality, null == 0 == '' == false == []
-            const withPHPFalsy = collect([1, 2, 0, 4]); // 0 loosely equals null in PHP
-            expect(withPHPFalsy.some()).toBe(true); // 0 loosely equals null
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value-others"
+            expect([
+                collect([{ a: null }, { a: 1 }]).some("a", null),
+                collect([{ a: 1 }]).some("a", null),
+            ]).toEqual([true, false]);
 
-            const withoutPHPFalsy = collect([1, 2, 3, 4]);
-            expect(withoutPHPFalsy.some()).toBe(false); // no PHP-falsy values
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                collect([{ a: null }, { a: 1 }]).some("a", undefined),
+                collect([{ a: 1 }]).some("a", undefined),
+            ]).toEqual([true, false]);
+        });
+    });
+
+    describe("dump", () => {
+        it("test dump", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            try {
+                new Collection([1, 2, 3]).dump("one", "two");
+
+                // CollectionTest::testDump
+                expect(log.mock.calls).toEqual([[[1, 2, 3], "one", "two"]]);
+            } finally {
+                log.mockRestore();
+            }
+        });
+
+        it("returns the collection it dumped", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            try {
+                const collection = collect([1]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-dump-returns-same-instance"
+                expect(collection.dump()).toBe(collection);
+            } finally {
+                log.mockRestore();
+            }
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+            try {
+                // JS-only: the type declares the shape, which the backing all() hands out must match
+                expectShape(collect([1, 2]).dump(), "list");
+                expectShape(outOfOrderKeys().dump(), "keyed");
+            } finally {
+                log.mockRestore();
+            }
         });
     });
 
@@ -9285,26 +16973,34 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test each", () => {
-                const c = collect([1, 2, { foo: "bar" }, { bam: "baz" }]);
+                // CollectionTest::testEach
+                const original = { 0: 1, 1: 2, foo: "bar", bam: "baz" };
+                const c = collect(original);
 
-                let result: unknown[] = [];
+                let result: Record<PropertyKey, unknown> = {};
+                const keys: PropertyKey[] = [];
                 c.each((item, key) => {
                     result[key] = item;
+                    keys.push(key);
                 });
-                expect(result).toEqual([1, 2, { foo: "bar" }, { bam: "baz" }]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-mixed-keys"
+                expect(result).toEqual(original);
+                expect(keys).toEqual([0, 1, "foo", "bam"]);
 
-                result = [];
+                result = {};
                 c.each((item, key) => {
                     result[key] = item;
-                    if (typeof key === "string") {
+                    if (isString(key)) {
                         return false;
                     }
                     return;
                 });
-                expect(result).toEqual([1, 2, { foo: "bar" }]);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-stop-on-string-key"
+                expect(result).toEqual({ 0: 1, 1: 2, foo: "bar" });
             });
 
             it("test each spread", () => {
+                // CollectionTest::testEachSpread
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
@@ -9344,11 +17040,39 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it.fails(
+            "walks a Map-built collection in the order it holds its keys",
+            () => {
+                const keys: PropertyKey[] = [];
+
+                outOfOrderKeys().each((_value, key) => {
+                    keys.push(key);
+                });
+
+                // Ordered-backing gap: PHP's foreach walks the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-out-of-order-keys"
+                expect(keys).toEqual([2, 0, 1]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).each(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).each(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("eachSpread", () => {
         describe("Laravel Tests", () => {
             it("test each spread", () => {
+                // CollectionTest::testEachSpread
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
@@ -9408,6 +17132,8 @@ describe("Collection", () => {
         });
 
         it("spreads scalar items and passes index last", () => {
+            // JS-only: PHP throws "Cannot use a scalar value as an array" for a scalar row, per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-scalar-row"
             const c = collect([10, 20]);
             const args: unknown[] = [];
             c.eachSpread((value, key) => {
@@ -9419,30 +17145,133 @@ describe("Collection", () => {
             ]);
         });
 
-        it("passes plain objects as single arg and index last", () => {
-            const obj1 = { x: 1 };
-            const obj2 = { y: 2 };
-            const c = collect([obj1, obj2]);
-            const args: unknown[] = [];
-            c.eachSpread((value, key) => {
-                args.push([value, key]);
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-null-row"
+            const seen: unknown[] = [];
+
+            collect([null, [1]]).eachSpread((...args) => {
+                seen.push(args);
             });
-            expect(args).toEqual([
-                [obj1, 0],
-                [obj2, 1],
+            collect({ x: null }).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([[0], [1, 1], ["x"]]);
+        });
+
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-int-keyed-row"
+            const seen: unknown[] = [];
+
+            collect([{ 5: "a", 7: "b" }, {}]).eachSpread((...args) => {
+                seen.push(args);
+            });
+            collect({ x: { 5: "a", 7: "b" } }).eachSpread((...args) => {
+                seen.push(args);
+            });
+            collect([
+                new Map([
+                    [5, "a"],
+                    [7, "b"],
+                ]),
+            ]).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([
+                ["a", "b", 0],
+                [1],
+                ["a", "b", "x"],
+                ["a", "b", 0],
             ]);
         });
 
-        it("handles nested Collection of objects", () => {
-            const c = collect([collect({ a: 1 }), collect({ b: 2 })]);
-            const args: unknown[] = [];
-            c.eachSpread((value, key) => {
-                args.push([value, key]);
+        it("spreads the values of a Collection row holding a record, as PHP unpacks its integer keys", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-eachSpread-int-keyed-collection-row"
+            const seen: unknown[] = [];
+
+            collect([collect({ 5: "a", 7: "b" })]).eachSpread((...args) => {
+                seen.push(args);
             });
-            expect(args).toEqual([
-                [{ a: 1 }, 0],
-                [{ b: 2 }, 1],
+            collect({ x: collect({ 5: "a", 7: "b" }) }).eachSpread(
+                (...args) => {
+                    seen.push(args);
+                },
+            );
+
+            expect(seen).toEqual([
+                ["a", "b", 0],
+                ["a", "b", "x"],
             ]);
+        });
+
+        it("reads a Collection-like row's items through all()", () => {
+            // JS-only: the port reads any non-plain object with all() as a Collection; PHP rejects any object that is
+            // not ArrayAccess, per docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-eachSpread-object-row"
+            const seen: unknown[] = [];
+            const row = new (class {
+                all() {
+                    return [1, "a"];
+                }
+            })();
+
+            collect([row]).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([[1, "a", 0]]);
+        });
+
+        it("spreads a string-keyed plain object row's values, on a list and on a keyed collection", () => {
+            // JS-only: PHP throws "Cannot use positional argument after named argument during unpacking", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-string-keyed-row"
+            const seen: unknown[] = [];
+
+            collect([{ x: 1 }, { y: 2 }]).eachSpread((...args) => {
+                seen.push(args);
+            });
+            collect({ p: { a: 1, b: 2 } }).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([
+                [1, 0],
+                [2, 1],
+                [1, 2, "p"],
+            ]);
+        });
+
+        it("spreads a string-keyed Collection row's values", () => {
+            // JS-only: PHP throws "Cannot use positional argument after named argument during unpacking", per
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-eachSpread-string-keyed-collection-row"
+            const seen: unknown[] = [];
+
+            collect([collect({ a: 1 }), collect({ b: 2 })]).eachSpread(
+                (...args) => {
+                    seen.push(args);
+                },
+            );
+
+            expect(seen).toEqual([
+                [1, 0],
+                [2, 1],
+            ]);
+        });
+
+        it("passes any other object row whole", () => {
+            // JS-only: PHP throws "Cannot use object of type DateTime as array", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-eachSpread-object-row"
+            const date = new Date(0);
+            const seen: unknown[] = [];
+
+            collect([date]).eachSpread((...args) => {
+                seen.push(args);
+            });
+
+            expect(seen).toEqual([[date, 0]]);
         });
 
         it("uses object keys when collection has string keys", () => {
@@ -9471,11 +17300,24 @@ describe("Collection", () => {
             });
             expect(seen).toEqual([]);
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([[1, 2]]).eachSpread(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ x: [1, 2] }).eachSpread(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("every", () => {
         describe("Laravel Tests", () => {
             it("test every", () => {
+                // CollectionTest::testEvery
                 const c = collect([]);
                 expect(c.every("key", "value")).toBe(true);
                 expect(
@@ -9486,6 +17328,16 @@ describe("Collection", () => {
 
                 const d = collect([{ age: 18 }, { age: 20 }, { age: 20 }]);
                 expect(d.every("age", 18)).toBe(false);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-two-args-key-value"
+                expect(
+                    collect([{ age: 18 }, { age: 18 }]).every("age", 18),
+                ).toBe(true);
+                expect(
+                    collect([{ status: "active" }, { status: "active" }]).every(
+                        "status",
+                        "active",
+                    ),
+                ).toBe(true);
                 expect(d.every("age", ">=", 18)).toBe(true);
                 expect(
                     d.every((item) => {
@@ -9520,25 +17372,63 @@ describe("Collection", () => {
             expect(c.every((v) => v > 2)).toBe(false);
         });
 
-        it("uses default key parameter", () => {
-            // Calling every without key triggers the default parameter = null
-            // which makes valueRetriever return item itself (check truthiness)
-            const truthy = collect([1, 2, "hello", true]);
-            expect(truthy.every()).toBe(true);
-
-            const withFalsy = collect([1, 2, "", true]);
-            expect(withFalsy.every()).toBe(false);
-        });
-
         it("uses operatorForWhere when operator provided", () => {
             const c = collect([{ status: "active" }, { status: "active" }]);
             expect(c.every("status", "=", "active")).toBe(true);
         });
+
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-two-args-null-value"
+            expect([
+                collect([{ x: null }, { x: null }]).every("x", null),
+                collect([{ x: 1 }]).every("x", null),
+            ]).toEqual([true, false]);
+
+            // JS-only: an explicit undefined stands for PHP's null, so it is a second argument too
+            expect([
+                collect([{ x: null }, { x: null }]).every("x", undefined),
+                collect([{ x: 1 }]).every("x", undefined),
+            ]).toEqual([true, false]);
+        });
+
+        it("compares loosely for a null operator, as PHP's switch falls to its default arm", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-null-operator"
+            expect([
+                collect([{ x: 5 }, { x: "5" }]).every("x", null, 5),
+                collect([{ x: 5 }, { x: 6 }]).every("x", null, 5),
+            ]).toEqual([true, false]);
+        });
+
+        it("judges a path's value, or the item itself, by PHP truthiness", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-path-php-falsy"
+            expect([
+                collect([{ a: "0" }]).every("a"),
+                collect([{ a: [] }]).every("a"),
+                collect(["0"]).every(null),
+            ]).toEqual([false, false, false]);
+        });
+
+        it.fails(
+            "calls a callback in a Map-built collection's insertion order",
+            () => {
+                const seen: number[] = [];
+                outOfOrderKeys().every((_value, key) => {
+                    seen.push(key);
+
+                    return true;
+                });
+
+                // Ordered-backing gap: PHP walks the keys in insertion order, key 2 before 0 and 1
+                // docs/php-parity/task-27-carried-fixes.json, "every-out-of-order-key-order"
+                expect(seen).toEqual([2, 0, 1]);
+            },
+        );
     });
 
     describe("firstWhere", () => {
         describe("Laravel Tests", () => {
             it("test first where", () => {
+                // CollectionTest::testFirstWhere
                 const data = collect([
                     { material: "paper", type: "book" },
                     { material: "rubber", type: "gasket" },
@@ -9565,9 +17455,23 @@ describe("Collection", () => {
                     ),
                 ).toBeNull();
                 expect(
-                    // @ts-expect-error - intentionally accessing nonexistent property
-                    data.firstWhere((value) => value.nonexistent === "key"),
+                    data.firstWhere(
+                        (value) => Reflect.get(value, "nonexistent") === "key",
+                    ),
                 ).toBeNull();
+            });
+
+            it("test first where using enum", () => {
+                // CollectionTest::testFirstWhereUsingEnum, whose unit enum cases are their names here
+                const data = collect([
+                    { id: 1, name: StaffEnum.Taylor },
+                    { id: 2, name: StaffEnum.Joe },
+                    { id: 3, name: StaffEnum.James },
+                ]);
+
+                expect(data.firstWhere("name", "Taylor")?.id).toBe(1);
+                expect(data.firstWhere("name", StaffEnum.Joe)?.id).toBe(2);
+                expect(data.firstWhere("name", StaffEnum.James)?.id).toBe(3);
             });
         });
 
@@ -9576,18 +17480,26 @@ describe("Collection", () => {
             expect(c.firstWhere("id", ">=", 2)).toEqual({ id: 2 });
         });
 
-        it("uses default key parameter", () => {
-            // Calling firstWhere without key triggers the default parameter = null
-            // which makes operatorForWhere return items based on truthiness
-            const c = collect([0, "", null, "hello", 42]);
-            const first = c.firstWhere();
-            expect(first).toBe("hello");
+        it("reads a null second argument as the value the key must equal", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value"
+            expect(
+                collect([{ a: 1 }, { a: null }]).firstWhere("a", null),
+            ).toEqual({ a: null });
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-two-args-null-value":
+            // PHP's answer for a null second argument. JS-only: an explicit undefined stands for that null
+            expect(
+                collect([{ a: 1 }, { a: null }]).firstWhere("a", undefined),
+            ).toEqual({ a: null });
         });
     });
 
     describe("value", () => {
         describe("Laravel Tests", () => {
             it("test value", () => {
+                // CollectionTest::testValue
                 const c = collect([
                     { id: 1, name: "Hello" },
                     { id: 2, name: "World" },
@@ -9606,7 +17518,19 @@ describe("Collection", () => {
                 expect(d.where("id", 2).value("pivot.value")).toBe("bar");
             });
 
+            it("test value using enum", () => {
+                // CollectionTest::testValueUsingEnum, whose unit enum cases are their names here
+                const c = collect([
+                    { id: 1, name: StaffEnum.Taylor },
+                    { id: 2, name: StaffEnum.Joe },
+                ]);
+
+                expect(c.value("name")).toBe(StaffEnum.Taylor);
+                expect(c.where("id", 2).value("name")).toBe(StaffEnum.Joe);
+            });
+
             it("test value with negative value", () => {
+                // CollectionTest::testValueWithNegativeValue
                 const c = collect([
                     { id: 1, balance: 0 },
                     { id: 2, balance: 200 },
@@ -9642,6 +17566,7 @@ describe("Collection", () => {
             });
 
             it("test value with objects", () => {
+                // CollectionTest::testValueWithObjects
                 const c = collect([
                     { id: 1 },
                     { id: 2, balance: "" },
@@ -9659,57 +17584,120 @@ describe("Collection", () => {
                 expect(d.value("balance.value")).toBe(0);
             });
         });
+
+        it("resolves the default when no item holds the key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-value-default"
+            expect([
+                collect([{ a: 1 }]).value("b", () => "d"),
+                collect([{ a: 1 }]).value("b", "d"),
+                collect([]).value("a"),
+            ]).toEqual(["d", "d", null]);
+        });
+
+        it("answers null for a null key whatever the default, as data_get() hands back its null target", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-value-null-key"
+            expect([
+                collect([{ a: 1 }]).value(null),
+                collect([{ a: 1 }]).value(null, "d"),
+                collect([{ a: 1 }]).value(null, () => "lazy"),
+                collect([]).value(null, "d"),
+            ]).toEqual([null, null, null, null]);
+
+            // JS-only: an undefined key stands for PHP's null
+            expect(collect([{ a: 1 }]).value(undefined, "d")).toBeNull();
+        });
     });
 
     describe("ensure", () => {
         describe("Laravel Tests", () => {
             it("test ensure for scalar", () => {
+                // CollectionTest::testEnsureForScalar
                 const data = collect([1, 2, 3]);
-                data.ensure("number");
+                data.ensure("int");
 
                 const data2 = collect([1, 2, 3, "foo"]);
-                expect(() => {
-                    data2.ensure("number");
-                }).toThrowError();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-scalar-message"
+                expect(() => data2.ensure("int")).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [int] items, but 'string' found at position 3.",
+                    ),
+                );
             });
 
             it("test ensure for objects", () => {
-                const data = collect([{}, {}, {}]);
-                data.ensure("object");
+                // CollectionTest::testEnsureForObjects
+                class stdClass {}
 
-                const data2 = collect([{}, {}, {}, collect([])]);
-                expect(() => {
-                    data2.ensure("object");
-                }).toThrowError();
+                const data = collect([
+                    new stdClass(),
+                    new stdClass(),
+                    new stdClass(),
+                ]);
+                data.ensure(stdClass);
+
+                const data2 = collect([
+                    new stdClass(),
+                    new stdClass(),
+                    new stdClass(),
+                    Collection.name,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-class-message"
+                expect(() => data2.ensure(stdClass)).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [stdClass] items, but 'string' found at position 3.",
+                    ),
+                );
             });
 
             it("test ensure for inheritance", () => {
-                const data = collect([new Error(), new Error()]);
-                data.ensure("object");
+                // CollectionTest::testEnsureForInheritance
+                const data = collect([new TypeError(), new RangeError()]);
+                data.ensure(Error);
 
-                const wrongType = collect([]);
-                const data2 = collect([new Error(), new Error(), wrongType]);
-                expect(() => {
-                    data2.ensure("object");
-                }).toThrowError();
+                const wrongType = new Collection();
+                const data2 = collect([
+                    new TypeError(),
+                    new RangeError(),
+                    wrongType,
+                ]);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-inheritance-message"
+                // JS-only: Error roots JavaScript's errors where Throwable roots PHP's, and a class has no namespace
+                expect(() => data2.ensure(Error)).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [Error] items, but 'Collection' found at position 2.",
+                    ),
+                );
             });
 
             it("test ensure for multiple types", () => {
+                // CollectionTest::testEnsureForMultipleTypes
                 const data = collect([new Error(), 123]);
-                data.ensure(["object", "number"]);
+                data.ensure([Error, "int"]);
 
-                const wrongType = collect([]);
+                const wrongType = new Collection();
                 const data2 = collect([new Error(), new Error(), wrongType]);
-                expect(() => {
-                    data2.ensure(["object", "number"]);
-                }).toThrowError();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-multiple-message"
+                // JS-only: Error stands in for PHP's Throwable, and a class has no namespace
+                expect(() => data2.ensure([Error, "int"])).toThrow(
+                    new UnexpectedValueException(
+                        "Collection should only include [Error, int] items, but 'Collection' found at position 2.",
+                    ),
+                );
             });
         });
 
         it("handles object type values", () => {
             const c = collect(["hello", "world"]);
-            // Type as object with type names as values
-            expect(() => c.ensure({ first: "string" })).not.toThrow();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-assoc-types"
+            expect(c.ensure({ first: "string" }).all()).toEqual([
+                "hello",
+                "world",
+            ]);
         });
 
         it("handles instanceof check", () => {
@@ -9717,13 +17705,243 @@ describe("Collection", () => {
                 constructor(public value: number) {}
             }
             const c = collect([new MyClass(1), new MyClass(2)]);
+
+            // CollectionTest::testEnsureForObjects
             expect(() => c.ensure(MyClass)).not.toThrow();
+        });
+
+        it("accepts an instance of a subclass of the class it names", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-subclass-passes"
+            expect(collect([new Child()]).ensure(Parent).count()).toBe(1);
+        });
+
+        it("accepts an object whose class it names as a string", () => {
+            class Child {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-class-name-string"
+            expect(collect([new Child()]).ensure("Child").count()).toBe(1);
+        });
+
+        it("matches a class named as a string only exactly, where the class itself takes subclasses", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // JS-only: PHP's instanceof resolves a class name to take its subclasses; JavaScript cannot resolve one
+            expect(() => collect([new Child()]).ensure("Parent")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [Parent] items, but 'Child' found at position 0.",
+                ),
+            );
+            expect(collect([new Child()]).ensure(Parent).count()).toBe(1);
+        });
+
+        it("accepts null for the null type", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-null-passes"
+            expect(collect([null]).ensure("null").all()).toEqual([null]);
+        });
+
+        it("accepts a plain object for the array type, as the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-array-accepts-assoc"
+            expect(
+                collect([{ a: 1 }])
+                    .ensure("array")
+                    .count(),
+            ).toBe(1);
+        });
+
+        it("names a null item null, as get_debug_type does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-array-rejects-null"
+            expect(() => collect([null]).ensure("array")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [array] items, but 'null' found at position 0.",
+                ),
+            );
+        });
+
+        it("returns the collection it checked", () => {
+            const collection = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-returns-same-instance"
+            expect(collection.ensure("int")).toBe(collection);
+        });
+
+        it("prints a string key's position as PHP's %d does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-keyed-position"
+            expect(() => collect({ a: 1, b: "x" }).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'string' found at position 0.",
+                ),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-numeric-prefix-key-position"
+            expect(() => collect({ "3x": "a" }).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'string' found at position 3.",
+                ),
+            );
+        });
+
+        it("names what it found as get_debug_type does, a plain object as an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-debug-type-names"
+            expect(() => collect([1]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'int' found at position 0.",
+                ),
+            );
+            expect(() => collect([1.5]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'float' found at position 0.",
+                ),
+            );
+            expect(() => collect([NaN]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'float' found at position 0.",
+                ),
+            );
+            expect(() => collect([true]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'bool' found at position 0.",
+                ),
+            );
+            expect(() => collect([{ a: 1 }]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'array' found at position 0.",
+                ),
+            );
+        });
+
+        it("accepts JavaScript's own type names beside PHP's", () => {
+            // JS-only: number, boolean, symbol, bigint, function and undefined are JavaScript's type names
+            expect(collect([1, 1.5]).ensure("number").count()).toBe(2);
+            expect(collect([true]).ensure("boolean").count()).toBe(1);
+            expect(
+                collect([Symbol("s")])
+                    .ensure("symbol")
+                    .count(),
+            ).toBe(1);
+            expect(collect([1n]).ensure("bigint").count()).toBe(1);
+            expect(
+                collect([() => 1])
+                    .ensure("function")
+                    .count(),
+            ).toBe(1);
+        });
+
+        it("takes the object type as any object but null and an array", () => {
+            // JS-only: PHP has no object type name; a Collection is an object like any other
+            expect(
+                collect([{}, new Date(0), new Collection()])
+                    .ensure("object")
+                    .count(),
+            ).toBe(3);
+            expect(() => collect([null]).ensure("object")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [object] items, but 'null' found at position 0.",
+                ),
+            );
+            expect(() => collect([[1]]).ensure("object")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [object] items, but 'array' found at position 0.",
+                ),
+            );
+        });
+
+        it("reads undefined as null, and as its own undefined type", () => {
+            // JS-only: undefined is read as PHP's null
+            expect(collect([undefined]).ensure("null").count()).toBe(1);
+            expect(collect([undefined]).ensure("undefined").count()).toBe(1);
+        });
+
+        it("names a closure and an anonymous class as get_debug_type() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-ensure-closure-and-anonymous-class-names"
+            expect(() => collect([new (class {})()]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'class@anonymous' found at position 0.",
+                ),
+            );
+            expect(() => collect([() => 1]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'Closure' found at position 0.",
+                ),
+            );
+            expect(
+                collect([() => 1])
+                    .ensure("Closure")
+                    .count(),
+            ).toBe(1);
+        });
+
+        it("names an instance of an anonymous subclass after the class it extends, as get_debug_type() does", () => {
+            class Parent {}
+            class Child extends Parent {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-ensure-anonymous-subclass-name"
+            expect(() =>
+                collect([new (class extends Parent {})()]).ensure("int"),
+            ).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'Parent@anonymous' found at position 0.",
+                ),
+            );
+            expect(() =>
+                collect([new (class extends Child {})()]).ensure("int"),
+            ).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'Child@anonymous' found at position 0.",
+                ),
+            );
+        });
+
+        it("names a number past PHP's int range, or -0, float, as get_debug_type() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            expect(() => collect([1e19]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'float' found at position 0.",
+                ),
+            );
+            expect(() => collect([-0]).ensure("int")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [int] items, but 'float' found at position 0.",
+                ),
+            );
+        });
+
+        it("names what PHP has no type for by its JavaScript type", () => {
+            const orphan: unknown = Object.create(Object.create(null));
+
+            // JS-only: a symbol, a bigint and an object with no class have no PHP type name
+            expect(() => collect([orphan]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'object' found at position 0.",
+                ),
+            );
+            expect(() => collect([Symbol("s")]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'symbol' found at position 0.",
+                ),
+            );
+            expect(() => collect([1n]).ensure("string")).toThrow(
+                new UnexpectedValueException(
+                    "Collection should only include [string] items, but 'bigint' found at position 0.",
+                ),
+            );
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).ensure("int"), "list");
+            expectShape(outOfOrderKeys().ensure("string"), "keyed");
         });
     });
 
     describe("mapSpread", () => {
         describe("Laravel Tests", () => {
             it("test map spread", () => {
+                // CollectionTest::testMapSpread
                 const c = collect([
                     [1, "a"],
                     [2, "b"],
@@ -9751,6 +17969,19 @@ describe("Collection", () => {
             });
         });
 
+        it("spreads a scalar row as a lone value, then its key", () => {
+            // JS-only: PHP throws "Cannot use a scalar value as an array" for a scalar row, per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-scalar-row"
+            expect(
+                collect([10, 20])
+                    .mapSpread((...values) => values)
+                    .all(),
+            ).toEqual([
+                [10, 0],
+                [20, 1],
+            ]);
+        });
+
         it("spreads a list row and appends the key, through the object backing", () => {
             // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-tuples", "mapSpread-tuples-key"
             const result = collect({ x: [1, "a"], y: [2, "b"] }).mapSpread(
@@ -9768,11 +17999,128 @@ describe("Collection", () => {
                 y: "2-b-y",
             });
         });
+
+        it("hands a null row's key alone, as appending the key makes the row an array", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-null-row"
+            expect(
+                collect([null, [1]])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([[0], [1, 1]]);
+
+            const keyed = collect({ x: null }).mapSpread((...args) => args);
+
+            expect(keyed.all()).toEqual({ x: ["x"] });
+            expect(keyed.keys().all()).toEqual(["x"]);
+            expect(keyed.values().all()).toEqual([["x"]]);
+        });
+
+        it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-int-keyed-row", "list"
+            expect(
+                collect([{ 5: "a", 7: "b" }, {}])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([["a", "b", 0], [1]]);
+            expect(
+                collect([
+                    new Map([
+                        [5, "a"],
+                        [7, "b"],
+                    ]),
+                ])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([["a", "b", 0]]);
+        });
+
+        it("spreads the values of a Collection row holding a record, as PHP unpacks its integer keys", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-E-mapSpread-int-keyed-collection-row"
+            expect(
+                collect([collect({ 5: "a", 7: "b" })])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([["a", "b", 0]]);
+
+            const keyed = collect({ x: collect({ 5: "a", 7: "b" }) }).mapSpread(
+                (...args) => args,
+            );
+
+            expect(keyed.all()).toEqual({ x: ["a", "b", "x"] });
+            expect(keyed.keys().all()).toEqual(["x"]);
+            expect(keyed.values().all()).toEqual([["a", "b", "x"]]);
+        });
+
+        it("spreads a string-keyed Collection row's values", () => {
+            // JS-only: PHP throws "Cannot use positional argument after named argument during unpacking", per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-string-keyed-collection-row"
+            expect(
+                collect([collect({ a: 1, b: 2 })])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([[1, 2, 0]]);
+        });
+
+        it("spreads a plain object row's values, never calling its all member", () => {
+            // JS-only: PHP throws on a string-keyed row, per
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-string-keyed-row"
+            const all = () => [1, 2];
+
+            expect(
+                collect([{ all }])
+                    .mapSpread((...args) => args)
+                    .all(),
+            ).toEqual([[all, 0]]);
+        });
+
+        it("spreads a plain object row's values on a keyed collection, as on a list", () => {
+            // JS-only: PHP throws "Unknown named parameter $name" on a string-keyed row, per
+            // docs/php-parity/task-23-obj-release-readiness.json, "mapSpread-assoc-rows"
+            const result = collect({ x: { a: 1, b: 2 } }).mapSpread(
+                (...args) => args,
+            );
+
+            expect(result.all()).toEqual({ x: [1, 2, "x"] });
+            expect(result.keys().all()).toEqual(["x"]);
+            expect(result.values().all()).toEqual([[1, 2, "x"]]);
+        });
+
+        it.fails(
+            "keeps a Map-built collection's keys in the order it holds them",
+            () => {
+                const mapped = collect(
+                    new Map([
+                        [2, ["c", 1]],
+                        [0, ["a", 2]],
+                        [1, ["b", 3]],
+                    ]),
+                ).mapSpread((...values) => values.join(""));
+
+                // Ordered-backing gap: PHP keeps the keys in insertion order, 2 before 0 and 1
+                // docs/php-parity/task-30-map-order.json, "mapSpread-out-of-order"
+                expect(mapped.keys().all()).toEqual([2, 0, 1]);
+                expect(mapped.values().all()).toEqual(["c12", "a20", "b31"]);
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([[1, 2]]).mapSpread((first, second) => first + second),
+                "list",
+            );
+            expectShape(
+                collect({ x: [1, 2] }).mapSpread((first) => first),
+                "keyed",
+            );
+        });
     });
 
     describe("mapToGroups", () => {
         describe("Laravel Tests", () => {
             it("test map to groups", () => {
+                // CollectionTest::testMapToGroups
                 const data = collect([
                     { id: 1, name: "A" },
                     { id: 2, name: "B" },
@@ -9790,6 +18138,7 @@ describe("Collection", () => {
             });
 
             it("test map to groups with numeric keys", () => {
+                // CollectionTest::testMapToGroupsWithNumericKeys
                 const data = collect([1, 2, 3, 2, 1]);
 
                 const groups = data.mapToGroups((item, key) => {
@@ -9804,11 +18153,28 @@ describe("Collection", () => {
                 expect(data.all()).toEqual([1, 2, 3, 2, 1]);
             });
         });
+
+        it("builds keyed groups, each a list, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const groups = collect([1, 2, 3]).mapToGroups((value) => ({
+                [value % 2]: value,
+            }));
+
+            expectShape(groups, "keyed");
+            groups.each((group) => expectShape(group, "list"));
+            expectShape(
+                collect({ a: 1 }).mapToGroups((value, key) => ({
+                    [key]: value,
+                })),
+                "keyed",
+            );
+        });
     });
 
     describe("flatMap", () => {
         describe("Laravel Tests", () => {
             it("test flat map", () => {
+                // CollectionTest::testFlatMap
                 const data = collect([
                     {
                         name: "taylor",
@@ -9832,11 +18198,47 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("returns a list from a record receiver whose callback returns lists", () => {
+            const flattened = collect({ a: 1, b: 2 }).flatMap((value) => [
+                value,
+                value * 10,
+            ]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-flatMap-record-receiver"
+            expect(flattened.all()).toEqual([1, 10, 2, 20]);
+            expect(flattened.keys().all()).toEqual([0, 1, 2, 3]);
+            expect(flattened.values().all()).toEqual([1, 10, 2, 20]);
+        });
+
+        it("joins lists into a list and records into a record, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).flatMap((value) => [value, value]),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).flatMap((value) => [value]),
+                "list",
+            );
+            expectShape(
+                collect([1, 2]).flatMap((value) => ({ [`k${value}`]: value })),
+                "keyed",
+            );
+            // An empty collection gives a list, whatever its callback would return.
+            expectShape(
+                collect<number>([]).flatMap((value) => ({
+                    [`k${value}`]: value,
+                })),
+                "list",
+            );
+        });
     });
 
     describe("mapInto", () => {
         describe("Laravel Tests", () => {
             it("test map into", () => {
+                // CollectionTest::testMapInto
                 const data = collect(["first", "second"]);
 
                 const mapped = data.mapInto(TestCollectionMapIntoObject);
@@ -9848,12 +18250,82 @@ describe("Collection", () => {
                 expect(mapped.get(0)!.value).toBe("first");
                 expect(mapped.get(1)!.value).toBe("second");
             });
+
+            it("test map into with int backed enums", () => {
+                // CollectionTest::testMapIntoWithIntBackedEnums
+                const data = collect([1, 2]).mapInto(TestBackedEnum);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-backed-enums": each
+                // from() builds a new case object, so a case compares by value where PHP's is the same instance
+                expect(data.get(0)).toEqual(TestBackedEnum.from(1));
+                expect(data.get(1)).toEqual(TestBackedEnum.from(2));
+                expect(data.pluck("name").all()).toEqual(["A", "B"]);
+            });
+
+            it("test map into with string backed enums", () => {
+                // CollectionTest::testMapIntoWithStringBackedEnums
+                const data = collect(["A", "B"]).mapInto(TestStringBackedEnum);
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-backed-enums"
+                expect(data.get(0)).toEqual(TestStringBackedEnum.from("A"));
+                expect(data.get(1)).toEqual(TestStringBackedEnum.from("B"));
+                expect(data.pluck("name").all()).toEqual(["A", "B"]);
+            });
+        });
+
+        it("builds a pure enum definition as it would a class, which throws", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-pure-enum"
+            // JS-only: a definition is no class, so the error is a TypeError, not PHP's "Cannot instantiate enum"
+            expect(() => collect(["A"]).mapInto(TestEnum)).toThrow(TypeError);
+            expect(() => collect(["A"]).mapInto(TestEnum)).toThrow(
+                "is not a constructor",
+            );
+        });
+
+        it("hands the class each value and its key", () => {
+            class RecordsArguments {
+                public args: unknown[];
+
+                constructor(...args: unknown[]) {
+                    this.args = args;
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-constructor-args"
+            expect(
+                collect(["first", "second"])
+                    .mapInto(RecordsArguments)
+                    .map((object) => object.args)
+                    .all(),
+            ).toEqual([
+                ["first", 0],
+                ["second", 1],
+            ]);
+            const keyed = collect({ x: "first" })
+                .mapInto(RecordsArguments)
+                .map((object) => object.args);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapInto-constructor-args-assoc"
+            expect(keyed.all()).toEqual({ x: ["first", "x"] });
+            expect(keyed.keys().all()).toEqual(["x"]);
+            expect(keyed.values().all()).toEqual([["first", "x"]]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            class Wrapper {
+                constructor(readonly value: number) {}
+            }
+
+            expectShape(collect([1, 2]).mapInto(Wrapper), "list");
+            expectShape(collect({ a: 1 }).mapInto(Wrapper), "keyed");
         });
     });
 
     describe("min", () => {
         describe("Laravel Tests", () => {
             it("test min", () => {
+                // CollectionTest::testGettingMinItemsFromCollection, but for its ->min->foo proxies, not ported
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
 
                 expect(c.min((item) => item.foo)).toBe(10);
@@ -9882,11 +18354,64 @@ describe("Collection", () => {
                 expect(i.min()).toBeNull();
             });
         });
+
+        it("compares numeric strings as numbers, as PHP's < does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-numeric-strings"
+            expect(collect(["10", "9", "8"]).min()).toBe("8");
+        });
+
+        it("skips a null item, and undefined with it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-null-items"
+            expect([
+                collect([null, 3, 1]).min(),
+                collect([null]).min(),
+            ]).toEqual([1, null]);
+            // JS-only: undefined stands for PHP's null, so it is skipped with it
+            expect([
+                collect([undefined, 3, 1]).min(),
+                collect([undefined]).min(),
+            ]).toEqual([1, null]);
+        });
+
+        it("compares other strings as text, and never throws", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
+            expect(collect(["b", "a", "c"]).min()).toBe("a");
+        });
+
+        it("keeps the first of two arrays neither orders, as PHP's < does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-uncomparable-arrays"
+            expect([
+                collect([[1], { a: 1 }]).min(),
+                collect([{ a: 1 }, [1]]).min(),
+            ]).toEqual([[1], { a: 1 }]);
+        });
+
+        it("hands the callback the value alone, as PHP does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
+            expect(collect({ a: 1 }).min((...args) => args.length)).toBe(1);
+        });
+
+        it.fails(
+            "keeps the value it meets first through a tie, walking a Map-built collection in order",
+            () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-out-of-order-tie"
+                // Ordered-backing gap: PHP meets the '1' under key 2 first and keeps it through its tie with key 0's 1
+                expect(
+                    collect(
+                        new Map<number, string | number>([
+                            [2, "1"],
+                            [0, 1],
+                        ]),
+                    ).min(),
+                ).toBe("1");
+            },
+        );
     });
 
     describe("max", () => {
         describe("Laravel Tests", () => {
             it("test max", () => {
+                // CollectionTest::testGettingMaxItemsFromCollection, but for its ->max->foo proxies, not ported
                 const c = collect([{ foo: 10 }, { foo: 20 }]);
 
                 expect(c.max((item) => item.foo)).toBe(20);
@@ -9913,11 +18438,84 @@ describe("Collection", () => {
             expect(collect([3, 1, 2]).max()).toBe(3);
             expect(collect([{ foo: 20 }, { foo: 10 }]).max("foo")).toBe(20);
         });
+
+        it("compares numeric strings as numbers, as PHP's > does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-numeric-strings"
+            expect(collect(["10", "9", "8"]).max()).toBe("10");
+        });
+
+        it("skips a null item, and undefined with it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-null-items"
+            expect([
+                collect([null, 3, 1]).max(),
+                collect([null]).max(),
+            ]).toEqual([3, null]);
+            // JS-only: undefined stands for PHP's null, so it is skipped with it
+            expect([
+                collect([undefined, 3, 1]).max(),
+                collect([undefined]).max(),
+            ]).toEqual([3, null]);
+        });
+
+        it("gives way to the next value after a null callback answer, and undefined with it", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-null-callback-answers"
+            expect([
+                collect([1, 2]).max(() => null),
+                collect([1, 2]).max((value) => (value === 1 ? null : 0)),
+            ]).toEqual([null, 0]);
+            // JS-only: undefined stands for PHP's null, so it is read as null
+            expect([
+                collect([1, 2]).max(() => undefined),
+                collect([1, 2]).max((value) => (value === 1 ? undefined : 0)),
+            ]).toEqual([null, 0]);
+        });
+
+        it("compares other strings as text, and never throws", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-strings"
+            expect(collect(["b", "a", "c"]).max()).toBe("c");
+        });
+
+        it("keeps the first of two arrays neither orders, as PHP's > does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-uncomparable-arrays"
+            expect([
+                collect([[1], { a: 1 }]).max(),
+                collect([{ a: 1 }, [1]]).max(),
+            ]).toEqual([[1], { a: 1 }]);
+        });
+
+        it("hands the callback the value alone, as PHP does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-callback-arity"
+            expect(collect({ a: 1 }).max((...args) => args.length)).toBe(1);
+        });
+
+        it.fails(
+            "keeps the value it meets first through a tie, walking a Map-built collection in order",
+            () => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-min-max-out-of-order-tie"
+                // Ordered-backing gap: PHP meets the '1' under key 2 first and keeps it through its tie with key 0's 1
+                expect(
+                    collect(
+                        new Map<number, string | number>([
+                            [2, "1"],
+                            [0, 1],
+                        ]),
+                    ).max(),
+                ).toBe("1");
+            },
+        );
+
+        it("reads a dot path through each item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-max-dot-path"
+            expect(collect([{ a: { b: 3 } }, { a: { b: 7 } }]).max("a.b")).toBe(
+                7,
+            );
+        });
     });
 
     describe("forPage", () => {
         describe("Laravel Tests", () => {
             it("test paginate", () => {
+                // CollectionTest::testPaginate
                 const c = collect(["one", "two", "three", "four"]);
                 expect(c.forPage(0, 2).all()).toEqual(["one", "two"]);
                 expect(c.forPage(1, 2).all()).toEqual(["one", "two"]);
@@ -9925,11 +18523,38 @@ describe("Collection", () => {
                 expect(c.forPage(3, 2).all()).toEqual([]);
             });
         });
+
+        it("reads a page below 1 as the first, and a page size of 0 or below as array_slice reads it", () => {
+            const c = collect(["one", "two", "three", "four"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-forPage-edges"
+            expect(c.forPage(-1, 2).all()).toEqual(["one", "two"]);
+            expect(c.forPage(2, 0).all()).toEqual([]);
+            expect(c.forPage(1, -1).all()).toEqual(["one", "two", "three"]);
+        });
+
+        it("keeps a record's keys on its page", () => {
+            const page = collect({ a: 1, b: 2, c: 3 }).forPage(2, 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-forPage-assoc"
+            expect(viewsOf(page)).toEqual({
+                all: { b: 2 },
+                keys: ["b"],
+                values: [2],
+            });
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2, 3]).forPage(2, 2), "list");
+            expectShape(collect({ a: 1, b: 2 }).forPage(1, 1), "keyed");
+        });
     });
 
     describe("partition", () => {
         describe("Laravel Tests", () => {
             it("test partition", () => {
+                // CollectionTest::testPartition
                 const data = collect(Collection.range(1, 10));
 
                 const [firstPartition, secondPartition] = data
@@ -9945,6 +18570,7 @@ describe("Collection", () => {
             });
 
             it("test partition callback with key", () => {
+                // CollectionTest::testPartitionCallbackWithKey
                 const data = collect(["zero", "one", "two", "three"]);
 
                 const [even, odd] = data
@@ -9958,6 +18584,7 @@ describe("Collection", () => {
             });
 
             it("test partition by key", () => {
+                // CollectionTest::testPartitionByKey
                 const courses = collect([
                     { free: true, title: "Basic" },
                     { free: false, title: "Premium" },
@@ -9974,6 +18601,7 @@ describe("Collection", () => {
             });
 
             it("test partition with operators", () => {
+                // CollectionTest::testPartitionWithOperators
                 const data = collect([
                     { name: "Tim", age: 17 },
                     { name: "Agatha", age: 62 },
@@ -10007,6 +18635,7 @@ describe("Collection", () => {
             });
 
             it("test partition preserves keys", () => {
+                // CollectionTest::testPartitionPreservesKeys
                 const courses = collect({
                     a: { free: true },
                     b: { free: false },
@@ -10025,6 +18654,7 @@ describe("Collection", () => {
             });
 
             it("test partition empty collection", () => {
+                // CollectionTest::testPartitionEmptyCollection
                 const data = collect();
 
                 expect(
@@ -10051,44 +18681,142 @@ describe("Collection", () => {
             expect(inactive.all()).toEqual([{ status: "inactive" }]);
         });
 
-        it("uses default key parameter", () => {
-            // Calling partition without key triggers the default parameter = null
-            // which makes valueRetriever return item itself (partition by truthiness)
-            const c = collect([1, 0, "", "hello", null, true, false]);
-            const [truthy, falsy] = c.partition();
-            expect(truthy.values().all()).toEqual([1, "hello", true]);
-            expect(falsy.values().all()).toEqual([0, "", null, false]);
+        it("compares with PHP's != for that operator", () => {
+            const [passed, failed] = collect([
+                { v: 1 },
+                { v: "1" },
+                { v: 2 },
+            ]).partition("v", "!=", 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-not-equal-operator", whose
+            // keys [2] and [0, 1] name these rows; a list half renumbers its keys, as every removal from a list does
+            expect([passed.pluck("v").all(), failed.pluck("v").all()]).toEqual([
+                [2],
+                [1, "1"],
+            ]);
+        });
+
+        it("reads each half by index, as PHP's $partition[0] and [1] read them", () => {
+            const halves = collect({ a: 1, b: 2 }).partition(
+                (value) => value > 1,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-offset-get"
+            expect([halves[0].all(), halves[1].all()]).toEqual([
+                { b: 2 },
+                { a: 1 },
+            ]);
+            expect([
+                halves[0].keys().all(),
+                halves[0].values().all(),
+                halves[1].keys().all(),
+                halves[1].values().all(),
+            ]).toEqual([["b"], [2], ["a"], [1]]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-outer-keys"
+            expect(halves.keys().all()).toEqual([0, 1]);
+            // JS-only: an index reads the items, as offsetGet() does, and is no own enumerable key of the collection
+            expect(Object.keys(halves)).not.toContain("0");
+        });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            const rows = () => collect([{ v: null }, { v: 0 }, { v: 1 }]);
+            const [passed, failed] = rows().partition("v", null);
+            const [passedUndefined, failedUndefined] = rows().partition(
+                "v",
+                undefined,
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-two-arg-null", whose keys
+            // [0, 1] and [2] name these rows; a list half renumbers its keys, as every removal from a list does
+            expect([passed.pluck("v").all(), failed.pluck("v").all()]).toEqual([
+                [null, 0],
+                [1],
+            ]);
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect([
+                passedUndefined.pluck("v").all(),
+                failedUndefined.pluck("v").all(),
+            ]).toEqual([[null, 0], [1]]);
+        });
+
+        it("partitions the items themselves by PHP truthiness for a null key", () => {
+            const [passed, failed] = collect([
+                1,
+                0,
+                "",
+                "a",
+                null,
+                [],
+                "0",
+            ]).partition(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-null-key-truthiness"
+            expect([passed.values().all(), failed.values().all()]).toEqual([
+                [1, "a"],
+                [0, "", null, [], "0"],
+            ]);
+        });
+
+        it("counts every object as passing for a null key, however empty", () => {
+            const [passed, failed] = collect([
+                new Date(0),
+                new (class {})(),
+            ]).partition(null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-null-empty-objects"
+            expect([passed.count(), failed.count()]).toEqual([2, 0]);
+        });
+
+        it("compares with a false value rather than testing the path's truthiness", () => {
+            const [passed, failed] = collect([
+                { v: false },
+                { v: 0 },
+                { v: null },
+                { v: 1 },
+            ]).partition("v", false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-bool-false-two-arg", whose
+            // keys [0, 1, 2] and [3] name these rows; a list half renumbers its keys, as every removal from a list does
+            expect([passed.pluck("v").all(), failed.pluck("v").all()]).toEqual([
+                [false, 0, null],
+                [1],
+            ]);
+        });
+
+        it("lists the two halves, each keeping its receiver's shape, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            const [passed, failed] = collect([1, 2]).partition(
+                (value) => value > 1,
+            );
+            const [kept, rest] = collect({ a: 1, b: 2 }).partition(
+                (value) => value > 1,
+            );
+
+            expectShape(
+                collect([1, 2]).partition((value) => value > 1),
+                "list",
+            );
+            expectShape(passed, "list");
+            expectShape(failed, "list");
+            expectShape(kept, "keyed");
+            expectShape(rest, "keyed");
         });
     });
 
     describe("percentage", () => {
         describe("Laravel Tests", () => {
             it("test percentage with flat collection", () => {
+                // CollectionTest::testPercentageWithFlatCollection
                 const c = collect([1, 1, 2, 2, 2, 3]);
 
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 1)?.toFixed(2) || "0",
-                    ),
-                ).toBe(33.33);
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 2)?.toFixed(2) || "0",
-                    ),
-                ).toBe(50.0);
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 3)?.toFixed(2) || "0",
-                    ),
-                ).toBe(16.67);
-                expect(
-                    parseFloat(
-                        c.percentage((value) => value === 5)?.toFixed(2) || "0",
-                    ),
-                ).toBe(0.0);
+                expect(c.percentage((value) => value === 1)).toBe(33.33);
+                expect(c.percentage((value) => value === 2)).toBe(50.0);
+                expect(c.percentage((value) => value === 3)).toBe(16.67);
+                expect(c.percentage((value) => value === 5)).toBe(0.0);
             });
 
-            it("test percetage with nested collection", () => {
+            it("test percentage with nested collection", () => {
+                // CollectionTest::testPercentageWithNestedCollection
                 const c = collect([
                     { name: "Taylor", foo: "foo" },
                     { name: "Nuno", foo: "bar" },
@@ -10096,53 +18824,101 @@ describe("Collection", () => {
                     { name: "Jess", foo: "baz" },
                 ]);
 
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "foo")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(25.0);
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "bar")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(50.0);
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "baz")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(25.0);
-                expect(
-                    parseFloat(
-                        c
-                            .percentage((value) => value.foo === "test")
-                            ?.toFixed(2) || "0",
-                    ),
-                ).toBe(0.0);
+                expect(c.percentage((value) => value.foo === "foo")).toBe(25.0);
+                expect(c.percentage((value) => value.foo === "bar")).toBe(50.0);
+                expect(c.percentage((value) => value.foo === "baz")).toBe(25.0);
+                expect(c.percentage((value) => value.foo === "test")).toBe(0.0);
             });
 
             it("test percentage returns null for empty collections", () => {
+                // CollectionTest::testPercentageReturnsNullForEmptyCollections
                 const c = collect([]);
 
                 expect(c.percentage((value) => value === 1)).toBeNull();
             });
         });
+
+        it("rounds up from the double nearest the midpoint, as PHP's round() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-fp-below-half" and
+            // "C32-H-percentage-fp-just-below-half-rounds-up"
+            expect([
+                Collection.range(1, 2000).percentage((value) => value <= 9, 1),
+                Collection.range(1, 2000).percentage((value) => value <= 3, 1),
+            ]).toEqual([0.4, 0.2]);
+        });
+
+        it("rounds past fifteen places as PHP's round() does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-beyond-double-digits"
+            // and "C32-H-percentage-scaled-just-short-of-whole"
+            expect([
+                Collection.range(1, 9).percentage((value) => value === 1, 15),
+                Collection.range(1, 35).percentage((value) => value <= 3, 15),
+            ]).toEqual([11.11111111111111, 8.571428571428573]);
+        });
+
+        it("rounds to tens for a negative precision, and past the largest power of ten a double holds", () => {
+            const c = collect([1, 1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-precision-zero-and-negative"
+            // and "C32-H-percentage-extreme-precision"
+            expect([
+                c.percentage((value) => value === 1, 0),
+                c.percentage((value) => value === 1, -1),
+                c.percentage((value) => value === 1, -400),
+                c.percentage((value) => value === 1, 400),
+                c.percentage((value) => value === 5, 400),
+            ]).toEqual([67, 70, 0, 66.66666666666666, 0]);
+        });
+
+        it("drops a fraction from the precision, as PHP's int parameter does", () => {
+            const c = collect([1, 1, 2]);
+            const percentage = (precision: number) =>
+                c.percentage((value) => value === 1, precision);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-fractional-precision"
+            expect([1.5, -1.5, 2.9, -0, 0.5].map(percentage)).toEqual([
+                66.7, 70, 66.67, 67, 67,
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-precision-bounds"
+            expect([-(2 ** 63), 2 ** 63 - 1024].map(percentage)).toEqual([
+                0, 66.66666666666666,
+            ]);
+        });
+
+        it("throws PHP's TypeError for a NAN, infinite or out-of-range precision, even with no items", () => {
+            const refused = new TypeError(
+                "Collection::percentage(): Argument #2 ($precision) must be of type int, float given",
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-percentage-non-int-precision", whose
+            // class the port names without PHP's namespace
+            for (const precision of [
+                NaN,
+                Infinity,
+                -Infinity,
+                1e19,
+                -1e19,
+                2 ** 63,
+            ]) {
+                expect(() =>
+                    collect([1, 1, 2]).percentage(
+                        (value) => value === 1,
+                        precision,
+                    ),
+                ).toThrow(refused);
+            }
+            expect(() =>
+                collect([]).percentage((value) => value === 1, NaN),
+            ).toThrow(refused);
+        });
     });
 
     describe("sum", () => {
         describe("Laravel Tests", () => {
-            it("test sum from from collection", () => {
+            it("test getting sum from collection", () => {
+                // CollectionTest::testGettingSumFromCollection
                 const c = collect([{ foo: 50 }, { foo: 50 }]);
-                expect(
-                    c.sum((item) => {
-                        return item.foo;
-                    }),
-                ).toBe(100);
+                expect(c.sum("foo")).toBe(100);
 
                 const d = collect([{ foo: 50 }, { foo: 50 }]);
                 expect(
@@ -10153,20 +18929,90 @@ describe("Collection", () => {
             });
 
             it("test can sum values without a callback", () => {
+                // CollectionTest::testCanSumValuesWithoutACallback
                 const c = collect([1, 2, 3, 4, 5]);
                 expect(c.sum()).toBe(15);
             });
 
             it("test getting sum from empty collection", () => {
+                // CollectionTest::testGettingSumFromEmptyCollection
                 const c = collect();
                 expect(c.sum("foo")).toBe(0);
             });
+        });
+
+        it("reads a dot path through each item", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-dot-path"
+            expect(collect([{ a: { b: 1 } }, { a: { b: 2 } }]).sum("a.b")).toBe(
+                3,
+            );
+        });
+
+        it("adds numeric strings as numbers, as PHP's + does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-numeric-strings",
+            // "C32-H-sum-float-strings" and "C32-H-sum-key-numeric-strings"
+            expect([
+                collect(["1", "2", "3"]).sum(),
+                collect(["1.5", "2"]).sum(),
+                collect([{ foo: "4" }, { foo: "2" }]).sum("foo"),
+            ]).toEqual([6, 3.5, 6]);
+        });
+
+        it("adds the number a string leads with, as PHP's + does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-leading-numeric-string"
+            expect(collect([1, "2abc"]).sum()).toBe(3);
+        });
+
+        it("adds null as nothing and a boolean as 0 or 1, as PHP's + does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-null-and-bools"
+            expect([
+                collect([1, null, 2]).sum(),
+                collect([true, true, false]).sum(),
+            ]).toEqual([3, 2]);
+        });
+
+        it("throws PHP's TypeError for a value its + cannot add", () => {
+            class stdClass {}
+
+            // Items that are not scalars are outside sum()'s types without a callback; PHP throws for them at runtime
+            const sumOf = (items: unknown[]) => () => {
+                const collection = collect(items);
+
+                return Reflect.apply(collection.sum, collection, []);
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-non-numeric-string"
+            expect(() => collect([1, "a"]).sum()).toThrow(
+                new TypeError("Unsupported operand types: int + string"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-array-items"
+            expect(sumOf([[1], [2]])).toThrow(
+                new TypeError("Unsupported operand types: int + array"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-object-item"
+            expect(sumOf([new stdClass()])).toThrow(
+                new TypeError("Unsupported operand types: int + stdClass"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-float-total-non-numeric-string"
+            expect(() => collect([1.5, "a"]).sum()).toThrow(
+                new TypeError("Unsupported operand types: float + string"),
+            );
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-sum-closure-item"
+            expect(sumOf([1, () => 1])).toThrow(
+                new TypeError("Unsupported operand types: int + Closure"),
+            );
+        });
+
+        it("reads undefined as PHP's null, which adds nothing", () => {
+            // JS-only: undefined stands for a value PHP does not have, and is read as its null
+            expect(collect([1, undefined, 2]).sum()).toBe(3);
         });
     });
 
     describe("whenEmpty", () => {
         describe("Laravel Tests", () => {
             it("test when empty", () => {
+                // CollectionTest::testWhenEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenEmpty(() => {
@@ -10177,9 +19023,7 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom"]);
 
-                let emptyData = collect();
-
-                emptyData = emptyData.whenEmpty((col) => {
+                const emptyData = collect().whenEmpty((col) => {
                     return col.concat(["adam"]);
                 });
 
@@ -10187,6 +19031,7 @@ describe("Collection", () => {
             });
 
             it("test when empty default", () => {
+                // CollectionTest::testWhenEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenEmpty(
@@ -10201,11 +19046,35 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "taylor"]);
             });
         });
+
+        it("hands the callback true as the condition, and answers what it returns", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-whenEmpty-callback-receives-true" and
+            // "C32-H-whenEmpty-scalar-return"
+            expect([
+                collect().whenEmpty((_collection, empty) =>
+                    JSON.stringify(empty),
+                ),
+                collect().whenEmpty(() => "scalar"),
+            ]).toEqual(["true", "scalar"]);
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).whenEmpty(() => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).whenEmpty(() => null),
+                "keyed",
+            );
+        });
     });
 
     describe("whenNotEmpty", () => {
         describe("Laravel Tests", () => {
             it("test when not empty", () => {
+                // CollectionTest::testWhenNotEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenNotEmpty((col) => {
@@ -10214,9 +19083,7 @@ describe("Collection", () => {
 
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
 
-                let emptyData = collect();
-
-                emptyData = emptyData.whenNotEmpty((col) => {
+                const emptyData = collect().whenNotEmpty((col) => {
                     return col.concat(["adam"]);
                 });
 
@@ -10224,6 +19091,7 @@ describe("Collection", () => {
             });
 
             it("test when not empty default", () => {
+                // CollectionTest::testWhenNotEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.whenNotEmpty(
@@ -10238,10 +19106,33 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
         });
+
+        it("hands the default false as the condition", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-whenNotEmpty-default-receives-false"
+            expect(
+                collect().whenNotEmpty(
+                    () => "cb",
+                    (_collection, notEmpty) => JSON.stringify(notEmpty),
+                ),
+            ).toBe("false");
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).whenNotEmpty(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).whenNotEmpty(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("unless", () => {
         it("calls callback when value is falsy", () => {
+            // CollectionTest::testUnless, its falsy condition
             const data = collect([1, 2, 3]);
 
             const result = data.unless(false, (col) => {
@@ -10252,6 +19143,7 @@ describe("Collection", () => {
         });
 
         it("returns self when value is truthy and no defaultCallback", () => {
+            // CollectionTest::testUnless, its truthy condition
             const data = collect([1, 2, 3]);
 
             const result = data.unless(true, (col) => {
@@ -10262,7 +19154,7 @@ describe("Collection", () => {
         });
 
         it("calls defaultCallback when value is truthy", () => {
-            // This test covers the defaultCallback branch when value is truthy
+            // CollectionTest::testUnlessDefault
             const data = collect([1, 2, 3]);
 
             const result = data.unless(
@@ -10285,20 +19177,20 @@ describe("Collection", () => {
             expect(result.all()).toEqual([2, 4, 6]);
         });
 
-        it("returns self when callback is null", () => {
+        it("throws PHP's error for a null callback on the branch it takes", () => {
             const c = collect([1, 2, 3]);
-            const result = c.unless(false, null);
-            expect(result.all()).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-unless-null-callback-throws"
+            expect(() => Reflect.apply(c.unless, c, [false, null])).toThrow(
+                new Error("Value of type null is not callable"),
+            );
         });
 
-        it("calls defaultCallback when value is truthy", () => {
-            const c = collect([1, 2, 3]);
-            const result = c.unless(
-                true,
-                (col) => col.map((x) => x * 2),
-                (col) => col.map((x) => x + 10),
-            );
-            expect(result.all()).toEqual([11, 12, 13]);
+        it("keeps the collection when the branch with a null callback is not taken", () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-unless-null-callback-untaken"
+            expect(Reflect.apply(c.unless, c, [true, null])).toBe(c);
         });
 
         it("returns self when defaultCallback returns null", () => {
@@ -10311,15 +19203,6 @@ describe("Collection", () => {
             expect(result.all()).toEqual([1, 2, 3]);
         });
 
-        it("resolves value from function", () => {
-            const c = collect([1, 2, 3]);
-            const result = c.unless(
-                () => false, // Resolves to false (falsy), so callback is called
-                (col) => col.map((x) => x * 2),
-            );
-            expect(result.all()).toEqual([2, 4, 6]);
-        });
-
         it("returns self when callback returns null", () => {
             const c = collect([1, 2, 3]);
             // callback returns null, so ?? this should be triggered
@@ -10329,22 +19212,44 @@ describe("Collection", () => {
 
         it("returns self when callback returns undefined", () => {
             const c = collect([1, 2, 3]);
-            // callback returns undefined, so ?? this should be triggered
+            // JS-only: undefined stands for the null that PHP's ?? $this replaces
             const result = c.unless(false, () => undefined);
             expect(result.all()).toEqual([1, 2, 3]);
         });
 
-        it("uses default callback parameter when not provided", () => {
-            const c = collect([1, 2, 3]);
-            // Calling unless with only value (callback defaults to null)
-            const result = c.unless(false);
-            expect(result.all()).toEqual([1, 2, 3]);
+        it('calls the callback for a "0" or [] condition', () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-unless-php-falsy-values"
+            expect([
+                collect([1]).unless("0", () => "called"),
+                collect([1]).unless([], () => "called"),
+            ]).toEqual(["called", "called"]);
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).unless(false, () => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unless(false, () => undefined),
+                "keyed",
+            );
+            expectShape(
+                collect([1, 2]).unless(true, () => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unless(true, () => null),
+                "keyed",
+            );
         });
     });
 
     describe("unlessEmpty", () => {
         describe("Laravel Tests", () => {
             it("test unless empty", () => {
+                // CollectionTest::testUnlessEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessEmpty((col) => {
@@ -10363,6 +19268,7 @@ describe("Collection", () => {
             });
 
             it("test unless empty default", () => {
+                // CollectionTest::testUnlessEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessEmpty(
@@ -10377,11 +19283,24 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "adam"]);
             });
         });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).unlessEmpty(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unlessEmpty(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("unlessNotEmpty", () => {
         describe("Laravel Tests", () => {
             it("test unless not empty", () => {
+                // CollectionTest::testUnlessNotEmpty
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessNotEmpty(() => {
@@ -10400,6 +19319,7 @@ describe("Collection", () => {
             });
 
             it("test unless not empty default", () => {
+                // CollectionTest::testUnlessNotEmptyDefault
                 const data = collect(["michael", "tom"]);
 
                 const result = data.unlessNotEmpty(
@@ -10414,11 +19334,24 @@ describe("Collection", () => {
                 expect(result.all()).toEqual(["michael", "tom", "taylor"]);
             });
         });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).unlessNotEmpty(() => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).unlessNotEmpty(() => null),
+                "keyed",
+            );
+        });
     });
 
     describe("where", () => {
         describe("Laravel Tests", () => {
             it("test where", () => {
+                // CollectionTest::testWhere
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10480,7 +19413,12 @@ describe("Collection", () => {
                 ]);
                 expect(c.where("v", ">", 3).values().all()).toEqual([{ v: 4 }]);
 
-                const object = { foo: "bar" };
+                // A class instance stands in for PHP's (object) cast, where a plain object would model an array
+                class StdObject {
+                    foo = "bar";
+                }
+
+                const object = new StdObject();
 
                 expect(c.where("v", object).values().all()).toEqual([]);
 
@@ -10590,11 +19528,84 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("reads an explicit undefined second argument as PHP's null", () => {
+            const rows = collect([{ a: 1 }, { b: 2 }]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-missing-key-null"
+            expect(rows.where("missing", null).keys().all()).toEqual([0, 1]);
+            // JS-only: an explicit undefined stands for PHP's null, so it counts as a second argument
+            expect(rows.where("missing", undefined).keys().all()).toEqual([
+                0, 1,
+            ]);
+        });
+
+        it("keeps no item whose value is an object when given only a key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-one-arg-empty-object": Laravel
+            // answers "=" false for a lone object before comparing, so no truthiness is judged
+            expect(
+                collect([{ v: new Date(0) }, { v: new (class {})() }])
+                    .where("v")
+                    .count(),
+            ).toBe(0);
+        });
+
+        it("judges a lone key's value by PHP truthiness", () => {
+            const kept = collect([
+                { v: 1 },
+                { v: "a" },
+                { v: 0 },
+                { v: "0" },
+                { v: "" },
+                { v: null },
+                { v: [] },
+                { v: true },
+                { v: false },
+            ]).where("v");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-one-arg-truthiness", whose
+            // keys [0, 1, 7] name these rows; a list renumbers them, as every removal from a list does
+            expect(kept.pluck("v").all()).toEqual([1, "a", true]);
+        });
+
+        it("compares the item itself for a null key", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-null-key-items", whose keys 2
+            // and 3 name these items; a list renumbers them, as every removal from a list does
+            expect(collect([1, 2, 3, 4]).where(null, ">", 2).all()).toEqual([
+                3, 4,
+            ]);
+        });
+
+        it("compares with null loosely, as PHP's = does", () => {
+            const kept = collect([
+                { v: 0 },
+                { v: "" },
+                { v: false },
+                { v: null },
+                { v: "0" },
+                { v: [] },
+                { v: "a" },
+            ]).where("v", "=", null);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-eq-null-loose", whose keys
+            // [0, 1, 2, 3, 5] name these rows; a list renumbers them, as every removal from a list does
+            expect(kept.pluck("v").all()).toEqual([0, "", false, null, []]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([{ v: 1 }, { v: 2 }]).where("v", 1), "list");
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).where("v", 1),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNull", () => {
         describe("Laravel Tests", () => {
             it("test where null", () => {
+                // CollectionTest::testWhereNull
                 const data = collect([
                     { name: "Taylor" },
                     { name: null },
@@ -10609,16 +19620,33 @@ describe("Collection", () => {
             });
 
             it("test where null without key", () => {
+                // CollectionTest::testWhereNullWithoutKey
                 const collection = collect([1, null, 3, "null", false, true]);
 
                 expect(collection.whereNull().all()).toEqual([null]);
             });
+        });
+
+        it("keeps a keyed collection's null items under their keys", () => {
+            const kept = collect({ a: null, b: 0, c: null }).whereNull();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNull-keyed"
+            expect(kept.all()).toEqual({ a: null, c: null });
+            expect(kept.keys().all()).toEqual(["a", "c"]);
+            expect(kept.values().all()).toEqual([null, null]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, null]).whereNull(), "list");
+            expectShape(collect({ a: 1, b: null }).whereNull(), "keyed");
         });
     });
 
     describe("whereNotNull", () => {
         describe("Laravel Tests", () => {
             it("test where not null", () => {
+                // CollectionTest::testWhereNotNull
                 const originalData = [
                     { name: "Taylor" },
                     { name: null },
@@ -10639,6 +19667,7 @@ describe("Collection", () => {
             });
 
             it("test where not null without key", () => {
+                // CollectionTest::testWhereNotNullWithoutKey
                 const data = collect([1, null, 3, "null", false, true]);
 
                 expect(data.whereNotNull().all()).toEqual([
@@ -10650,11 +19679,30 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("reads a dot path's value", () => {
+            const kept = collect([
+                { a: { b: null } },
+                { a: { b: 0 } },
+                { a: {} },
+            ]).whereNotNull("a.b");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotNull-dot-path", whose key 1
+            // names this row; a list renumbers it, as every removal from a list does
+            expect(kept.all()).toEqual([{ a: { b: 0 } }]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, null]).whereNotNull(), "list");
+            expectShape(collect({ a: 1, b: null }).whereNotNull(), "keyed");
+        });
     });
 
     describe("whereStrict", () => {
         describe("Laravel Tests", () => {
             it("test where strict", () => {
+                // CollectionTest::testWhereStrict
                 const c = collect([{ v: 3 }, { v: "3" }]);
 
                 expect(c.whereStrict("v", 3).values().all()).toEqual([
@@ -10662,11 +19710,35 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("compares an array by value, as PHP's === does", () => {
+            const kept = collect([
+                { v: [1, 2] },
+                { v: ["1", "2"] },
+                { v: [2, 1] },
+            ]).whereStrict("v", [1, 2]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-strict-array-by-value"
+            expect(kept.all()).toEqual([{ v: [1, 2] }]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: "1" }]).whereStrict("v", 1),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: "1" } }).whereStrict("v", 1),
+                "keyed",
+            );
+        });
     });
 
     describe("whereIn", () => {
         describe("Laravel Tests", () => {
             it("test where in", () => {
+                // CollectionTest::testWhereIn
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10690,11 +19762,126 @@ describe("Collection", () => {
                 ).toEqual([{ v: 1 }]);
             });
         });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-null-loose"
+                "null",
+                [0, "", false, null, "0", "a", []],
+                [null],
+                [0, "", false, null, []],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-numeric-string-loose"
+                '"1e1"',
+                [10, "10", "1e1", "010", "x"],
+                ["1e1"],
+                [10, "10", "1e1", "010"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-true-loose"
+                "true",
+                ["x", 1, 0, "", null, "0", [1]],
+                [true],
+                ["x", 1, [1]],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-array-loose"
+                "[1, 2]",
+                [
+                    [1, 2],
+                    ["1", "2"],
+                    [2, 1],
+                ],
+                [[1, 2]],
+                [
+                    [1, 2],
+                    ["1", "2"],
+                ],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-numbers-and-strings-loose"
+                "numbers, numeric strings and plain strings",
+                [
+                    1,
+                    "1",
+                    "1.0",
+                    2,
+                    "02",
+                    3,
+                    "3",
+                    4,
+                    "ABC",
+                    "abc",
+                    0.5,
+                    ".5",
+                    "5",
+                ],
+                [1, "2", " 3", "4 ", "abc", "0.5"],
+                [1, "1", "1.0", 2, "02", 3, "3", 4, "abc", 0.5, ".5"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-D-whereIn-integer-strings-past-2-53-loose"
+                "an integer string past 2^53",
+                [
+                    9007199254740992,
+                    "9007199254740993",
+                    "9007199254740993.0",
+                    "9007199254740992",
+                ],
+                ["9007199254740993"],
+                ["9007199254740993", "9007199254740993.0"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-inf-loose"
+                '"INF" and "1e999"',
+                [Infinity, "INF", "1e999", "1e1000", "inf"],
+                ["INF", "1e999"],
+                [Infinity, "INF", "1e999"],
+            ],
+        ] as [string, unknown[], unknown[], unknown[]][])(
+            "keeps the items PHP's in_array finds loosely equal to %s",
+            (_label, values, set, kept) => {
+                const filtered = collect(values.map((v) => ({ v }))).whereIn(
+                    "v",
+                    set,
+                );
+
+                // The row's keys name the kept items; a list renumbers them, as every removal from a list does
+                expect(filtered.pluck("v").all()).toEqual(kept);
+                expect(filtered.keys().all()).toEqual(kept.map((_, i) => i));
+            },
+        );
+
+        it("takes a keyed Collection's values", () => {
+            const filtered = collect([1, 2, 3, 4].map((v) => ({ v }))).whereIn(
+                "v",
+                collect({ a: 1, b: 3 }),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-collection-values", whose
+            // keys 0 and 2 name these rows; a list renumbers them, as every removal from a list does
+            expect(filtered.pluck("v").all()).toEqual([1, 3]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereIn("v", [2]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereIn("v", [2]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereInStrict", () => {
         describe("Laravel Tests", () => {
             it("test where in strict", () => {
+                // CollectionTest::testWhereInStrict
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10709,11 +19896,46 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("compares an array by value, as PHP's === does", () => {
+            const filtered = collect([
+                { v: [1, 2] },
+                { v: ["1", "2"] },
+            ]).whereInStrict("v", [[1, 2]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInStrict-array"
+            expect(filtered.all()).toEqual([{ v: [1, 2] }]);
+            expect(filtered.keys().all()).toEqual([0]);
+        });
+
+        it("compares scalars by type and value, as PHP's === does, so NAN matches nothing", () => {
+            const filtered = collect(
+                [1, "1", 2, "2", null, false, NaN].map((v) => ({ v })),
+            ).whereInStrict("v", [1, "2", null, NaN]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInStrict-scalars", whose keys
+            // 0, 3 and 4 name these rows; a list renumbers them, as every removal from a list does
+            expect(filtered.pluck("v").all()).toEqual([1, "2", null]);
+            expect(filtered.keys().all()).toEqual([0, 1, 2]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereInStrict("v", [2]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereInStrict("v", [2]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereBetween", () => {
         describe("Laravel Tests", () => {
             it("test where between", () => {
+                // CollectionTest::testBetween
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10739,11 +19961,66 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("takes the first and the last of the values as the bounds", () => {
+            const rows = (values: unknown[]) =>
+                collect(values.map((v) => ({ v })));
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-three-values", whose
+            // keys [1, 2, 3] name these rows; a list renumbers them, as every removal from a list does
+            expect(
+                rows([0, 1, 2, 3, 4, 5, 6])
+                    .whereBetween("v", [1, 5, 3])
+                    .pluck("v")
+                    .all(),
+            ).toEqual([1, 2, 3]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-keyed-values"
+            expect(
+                rows([0, 1, 2, 3, 4])
+                    .whereBetween("v", { max: 3, min: 1 })
+                    .all(),
+            ).toEqual([]);
+        });
+
+        it("compares null and false as PHP's >= and <= do", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-null-item", whose keys
+            // [0, 1, 2, 4] name these rows; a list renumbers them, as every removal from a list does
+            expect(
+                collect([null, 0, 1, "", false].map((v) => ({ v })))
+                    .whereBetween("v", [0, 2])
+                    .pluck("v")
+                    .all(),
+            ).toEqual([null, 0, 1, false]);
+        });
+
+        it("takes a Collection's values as the bounds", () => {
+            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps no item
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereBetween-collection-values"
+            expect(
+                collect([0, 1, 2, 3, 4].map((v) => ({ v })))
+                    .whereBetween("v", collect([1, 3]))
+                    .pluck("v")
+                    .all(),
+            ).toEqual([1, 2, 3]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 5 }]).whereBetween("v", [2, 6]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 5 } }).whereBetween("v", [2, 6]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNotBetween", () => {
         describe("Laravel Tests", () => {
             it("test where not between", () => {
+                // CollectionTest::testWhereNotBetween
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10800,11 +20077,63 @@ describe("Collection", () => {
                 collect(mixed).whereBetween("v", ["1", "5"]).pluck("v").all(),
             ).toEqual(["1", 5]);
         });
+
+        it("takes a Collection's values as the bounds", () => {
+            // JS-only: PHP 8.5 deprecates reset() and end() on an object, so its call keeps every item
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotBetween-collection-values"
+            expect(
+                collect([0, 1, 2, 3, 4].map((v) => ({ v })))
+                    .whereNotBetween("v", collect([1, 3]))
+                    .pluck("v")
+                    .all(),
+            ).toEqual([0, 4]);
+        });
+
+        it("reads its bounds once, however many items it filters", () => {
+            let lengthReads = 0;
+            const bounds = new Proxy([2, 4], {
+                get(target, key, receiver) {
+                    if (key === "length") {
+                        lengthReads += 1;
+                    }
+
+                    return Reflect.get(target, key, receiver);
+                },
+            });
+            const kept = collect([
+                { v: 1 },
+                { v: 2 },
+                { v: 3 },
+                { v: "3" },
+                { v: 4 },
+            ]).whereNotBetween("v", bounds);
+
+            // CollectionTest::testWhereNotBetween
+            expect(kept.values().all()).toEqual([{ v: 1 }]);
+            // JS-only: a bound on the work, so the bounds are read once, not once per item.
+            expect(lengthReads).toBe(1);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 5 }]).whereNotBetween("v", [2, 6]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 5 } }).whereNotBetween(
+                    "v",
+                    [2, 6],
+                ),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNotIn", () => {
         describe("Laravel Tests", () => {
             it("test where not in", () => {
+                // CollectionTest::testWhereNotIn
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10827,11 +20156,61 @@ describe("Collection", () => {
                 ).toEqual([{ v: 4 }]);
             });
         });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotIn-null-loose"
+                "null",
+                [0, "", false, null, "0", "a", []],
+                [null],
+                ["0", "a"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotIn-true-loose"
+                "true",
+                ["x", 1, 0, "", null, "0", [1]],
+                [true],
+                [0, "", null, "0"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-D-whereNotIn-numbers-and-strings-loose"
+                "a number and a plain string",
+                [1, "1", "abc", "ABC", 2, true],
+                [1, "abc"],
+                ["ABC", 2],
+            ],
+        ] as [string, unknown[], unknown[], unknown[]][])(
+            "drops the items PHP's in_array finds loosely equal to %s",
+            (_label, values, set, kept) => {
+                const filtered = collect(values.map((v) => ({ v }))).whereNotIn(
+                    "v",
+                    set,
+                );
+
+                // The row's keys name the kept items; a list renumbers them, as every removal from a list does
+                expect(filtered.pluck("v").all()).toEqual(kept);
+                expect(filtered.keys().all()).toEqual(kept.map((_, i) => i));
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereNotIn("v", [1]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereNotIn("v", [1]),
+                "keyed",
+            );
+        });
     });
 
     describe("whereNotInStrict", () => {
         describe("Laravel Tests", () => {
             it("test where not in strict", () => {
+                // CollectionTest::testWhereNotInStrict
                 const c = collect([
                     { v: 1 },
                     { v: 2 },
@@ -10847,31 +20226,68 @@ describe("Collection", () => {
                 ]);
             });
         });
+
+        it("compares an array by value, as PHP's === does", () => {
+            const filtered = collect([
+                { v: [1, 2] },
+                { v: ["1", "2"] },
+            ]).whereNotInStrict("v", [[1, 2]]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereNotInStrict-array", whose key 1
+            // names this row; a list renumbers it, as every removal from a list does
+            expect(filtered.all()).toEqual([{ v: ["1", "2"] }]);
+            expect(filtered.keys().all()).toEqual([0]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([{ v: 1 }, { v: 2 }]).whereNotInStrict("v", [1]),
+                "list",
+            );
+            expectShape(
+                collect({ x: { v: 1 }, y: { v: 2 } }).whereNotInStrict(
+                    "v",
+                    [1],
+                ),
+                "keyed",
+            );
+        });
     });
 
     describe("whereInstanceOf", () => {
         describe("Laravel Tests", () => {
             it("test where instance of", () => {
+                // CollectionTest::testWhereInstanceOf, whose stdClass and Str these two classes stand in for
+                class StdClass {}
+                class Str {}
+
                 const c = collect([
-                    {},
-                    {},
-                    collect([]),
-                    {},
-                    new Stringable("example"),
+                    new StdClass(),
+                    new StdClass(),
+                    collect(),
+                    new StdClass(),
+                    new Str(),
                 ]);
 
-                expect(
-                    (c.whereInstanceOf(Object).all() as unknown[]).length,
-                ).toBe(5);
-
-                expect(
-                    (c.whereInstanceOf([Collection]).all() as unknown[]).length,
-                ).toBe(1);
-
-                expect(
-                    (c.whereInstanceOf([Stringable]).all() as unknown[]).length,
-                ).toBe(1);
+                expect(c.whereInstanceOf(StdClass).count()).toBe(3);
+                expect(c.whereInstanceOf([StdClass, Str]).count()).toBe(4);
             });
+        });
+
+        it("keeps every object for Object, which no PHP class matches", () => {
+            const c = collect([
+                {},
+                {},
+                collect([]),
+                {},
+                new Stringable("example"),
+            ]);
+
+            // JS-only: every JS object, a plain one included, is an instance of Object
+            expect(c.whereInstanceOf(Object).count()).toBe(5);
+            expect(c.whereInstanceOf([Collection]).count()).toBe(1);
+            expect(c.whereInstanceOf([Stringable]).count()).toBe(1);
         });
 
         it("handles array of types", () => {
@@ -10884,18 +20300,39 @@ describe("Collection", () => {
         });
 
         it("handles object of types", () => {
-            class A {}
-            class B {}
-            class C {}
-            const c = collect([new A(), new B(), new C()]);
-            const result = c.whereInstanceOf({ first: A, second: B });
-            expect(result.count()).toBe(2);
+            class StdClass {}
+            class ArrayObject {}
+            class SplStack {}
+            const kept = collect([
+                new StdClass(),
+                new ArrayObject(),
+                new SplStack(),
+            ]).whereInstanceOf({ a: StdClass, b: SplStack });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereInstanceOf-assoc-types", whose
+            // keys 0 and 2 name these items; a list renumbers them, as every removal from a list does
+            expect(kept.count()).toBe(2);
+            expect(kept.first()).toBeInstanceOf(StdClass);
+            expect(kept.last()).toBeInstanceOf(SplStack);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([new Date(0), "x"]).whereInstanceOf(Date),
+                "list",
+            );
+            expectShape(
+                collect({ a: "x", b: new Date(0) }).whereInstanceOf(Date),
+                "keyed",
+            );
         });
     });
 
     describe("pipe", () => {
         describe("Laravel Tests", () => {
             it("test pipe", () => {
+                // CollectionTest::testPipe
                 const data = collect([1, 2, 3]);
 
                 expect(
@@ -10905,11 +20342,28 @@ describe("Collection", () => {
                 ).toBe(6);
             });
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).pipe((collection) => collection),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).pipe((collection) => collection),
+                "keyed",
+            );
+            expectShape(
+                collect({ a: 1 }).pipe((collection) => collection.values()),
+                "list",
+            );
+        });
     });
 
     describe("pipeInto", () => {
         describe("Laravel Tests", () => {
             it("test pipe into", () => {
+                // CollectionTest::testPipeInto
                 const data = collect(["first", "second"]);
 
                 class TestCollectionMapIntoObject {
@@ -10929,6 +20383,7 @@ describe("Collection", () => {
     describe("pipeThrough", () => {
         describe("Laravel Tests", () => {
             it("test pipe through", () => {
+                // CollectionTest::testPipeThrough
                 const data = collect([1, 2, 3]);
 
                 const result = data.pipeThrough([
@@ -10942,6 +20397,42 @@ describe("Collection", () => {
 
                 expect(result).toBe(15);
             });
+        });
+
+        it("hands each callback what the one before it returned", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-pipeThrough-order"
+            expect(
+                collect(["a"]).pipeThrough([
+                    (data) => data.push("b"),
+                    (data) => data.implode(""),
+                    (value) => value.toUpperCase(),
+                ]),
+            ).toBe("AB");
+        });
+
+        it("answers the collection itself for no callbacks", () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-pipeThrough-empty-returns-receiver"
+            expect(c.pipeThrough([])).toBe(c);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).pipeThrough([]), "list");
+            expectShape(collect({ a: 1 }).pipeThrough([]), "keyed");
+            expectShape(
+                collect([1, 2]).pipeThrough([
+                    (collection) => collection.filter(() => true),
+                ]),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).pipeThrough([
+                    (collection) => collection.filter(() => true),
+                ]),
+                "keyed",
+            );
         });
     });
 
@@ -10965,29 +20456,68 @@ describe("Collection", () => {
 
         describe("Laravel Tests", () => {
             it("test reduce", () => {
+                // CollectionTest::testReduce
                 const data = collect([1, 2, 3]);
 
+                // The carry starts as PHP's null, which its + reads as 0
                 expect(
                     data.reduce((carry, element) => {
-                        return carry + element;
+                        return (carry ?? 0) + element;
                     }),
                 ).toBe(6);
 
                 expect(
                     data.reduce((carry, element, key) => {
-                        return carry + element + key;
+                        return (carry ?? 0) + element + key;
                     }),
                 ).toBe(9);
 
                 const data2 = collect({ foo: "bar", baz: "qux" });
 
-                // Using initial value is the clean approach when you need all keys processed
+                // PHP's .= reads the null carry as "", where JS's + would write "null"
                 expect(
                     data2.reduce((carry, element, key) => {
-                        return carry + key + element;
-                    }, ""),
+                        return (carry ?? "") + key + element;
+                    }),
                 ).toBe("foobarbazqux");
             });
+        });
+
+        it("seeds the carry with null and hands the callback every item", () => {
+            const seen: unknown[] = [];
+
+            collect([10, 20, 30]).reduce((carry, value, key) => {
+                seen.push([carry, value, key]);
+
+                return value;
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-no-initial-trace"
+            expect(seen).toEqual([
+                [null, 10, 0],
+                [10, 20, 1],
+                [20, 30, 2],
+            ]);
+        });
+
+        it("hands a lone item to the callback with a null carry", () => {
+            // The carry's type is fixed before the callback's return is read, so the pair's type is named
+            const pair = collect([5]).reduce<[unknown, number]>(
+                (carry, value) => [carry, value],
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-no-initial-single"
+            expect(pair).toEqual([null, 5]);
+        });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
+            expect(
+                outOfOrderKeys().reduce(
+                    (carry, value, key) => `${carry}${key}${value}`,
+                    "",
+                ),
+            ).toBe("2c0a1b");
         });
 
         describe("empty collection behaviour", () => {
@@ -10995,13 +20525,13 @@ describe("Collection", () => {
                 // docs/php-parity/task-24-data-release-readiness.json, "reduce-empty-no-initial"
                 expect(
                     collect([] as number[]).reduce(
-                        (carry, value) => carry + value,
+                        (carry, value) => (carry ?? 0) + value,
                     ),
                 ).toBeNull();
 
                 expect(
                     collect({} as Record<string, number>).reduce(
-                        (carry, value) => carry + value,
+                        (carry, value) => (carry ?? 0) + value,
                     ),
                 ).toBeNull();
             });
@@ -11034,8 +20564,8 @@ describe("Collection", () => {
     describe("reduceInto", () => {
         describe("Laravel Tests", () => {
             it("test reduce into", () => {
-                // PHP mutates primitives by reference; in JS the callback
-                // returns the new accumulator value instead
+                // CollectionTest::testReduceInto
+                // JS-only: PHP writes a primitive accumulator through its reference; here the callback returns it
                 const data = collect([1, 2, 3]);
 
                 expect(
@@ -11069,6 +20599,7 @@ describe("Collection", () => {
 
         describe("mutating the accumulator in place", () => {
             it("keeps the accumulator when the callback returns undefined", () => {
+                // JS-only: PHP ignores what the callback returns; here only undefined leaves the accumulator in place
                 const grouped = collect([1, 2, 3, 4]).reduceInto(
                     { even: [] as number[], odd: [] as number[] },
                     (result, value) => {
@@ -11100,11 +20631,24 @@ describe("Collection", () => {
                 ).toEqual([]);
             });
         });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            const pieces = outOfOrderKeys().reduceInto(
+                [] as string[],
+                (result, value, key) => {
+                    result.push(`${key}${value}`);
+                },
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
+            expect(pieces.join("")).toBe("2c0a1b");
+        });
     });
 
     describe("reduceSpread", () => {
         describe("Laravel Tests", () => {
             it("test reduce spread", () => {
+                // CollectionTest::testReduceSpread, whose PHP_INT_MIN and PHP_INT_MAX the safe integers stand in for
                 const data = collect([-1, 0, 1, 2, 3, 4, 5]);
 
                 const [sum, max, min] = data.reduceSpread(
@@ -11126,20 +20670,97 @@ describe("Collection", () => {
             });
 
             it("test reduce spread throws an exception if reducer does not return an array", () => {
+                // CollectionTest::testReduceSpreadThrowsAnExceptionIfReducerDoesNotReturnAnArray
                 const data = collect([1]);
 
-                expect(() => {
-                    // @ts-expect-error - intentionally passing wrong callback type
-                    data.reduceSpread(() => {
-                        return false;
-                    }, null);
-                }).toThrow(Error);
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-throws-boolean"
+                expect(() =>
+                    Reflect.apply(data.reduceSpread, data, [() => false, null]),
+                ).toThrow(
+                    new UnexpectedValueException(
+                        "Collection::reduceSpread expects reducer to return an array, but got a 'boolean' instead.",
+                    ),
+                );
             });
+        });
+
+        it("names the type its reducer returned as PHP's gettype() does", () => {
+            const data = collect([1]);
+            const returning = (value: unknown) => () =>
+                Reflect.apply(data.reduceSpread, data, [() => value, null]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-throws-integer",
+            // "C32-H-reduceSpread-throws-double", "C32-H-reduceSpread-throws-null",
+            // "C32-H-reduceSpread-throws-string" and "C32-H-reduceSpread-throws-object"
+            expect(returning(5)).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'integer' instead.",
+                ),
+            );
+            expect(returning(1.5)).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'double' instead.",
+                ),
+            );
+            expect(returning(null)).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'NULL' instead.",
+                ),
+            );
+            expect(returning("x")).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'string' instead.",
+                ),
+            );
+            expect(returning(new (class {})())).toThrow(
+                new UnexpectedValueException(
+                    "Collection::reduceSpread expects reducer to return an array, but got a 'object' instead.",
+                ),
+            );
+        });
+
+        it("names the subclass it was called on in its message, as class_basename(static::class) does", () => {
+            // Named as the probe's own subclass, which PHP's message prints
+            class C32ASub extends Collection<number, number> {}
+
+            const data = new C32ASub([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-subclass-message"
+            expect(() =>
+                Reflect.apply(data.reduceSpread, data, [() => false, null]),
+            ).toThrow(
+                new UnexpectedValueException(
+                    "C32ASub::reduceSpread expects reducer to return an array, but got a 'boolean' instead.",
+                ),
+            );
+        });
+
+        it("answers the initial values for an empty collection, without calling the reducer", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-empty"
+            expect(
+                collect([]).reduceSpread(
+                    () => {
+                        throw new Error("called");
+                    },
+                    1,
+                    2,
+                ),
+            ).toEqual([1, 2]);
+        });
+
+        it("walks a Map-built collection in its insertion order", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduce-family-out-of-order"
+            expect(
+                outOfOrderKeys().reduceSpread(
+                    (carry, value, key) => [`${carry}${String(key)}${value}`],
+                    "",
+                ),
+            ).toEqual(["2c0a1b"]);
         });
     });
 
     describe("reduceWithKeys", () => {
-        describe("Laravel Tests", () => {
+        describe("reducing with the keys and an initial value", () => {
             it("test reduce with keys", () => {
                 const data = collect({ a: 1, b: 2, c: 3 });
 
@@ -11199,13 +20820,9 @@ describe("Collection", () => {
     describe("reject", () => {
         describe("Laravel Tests", () => {
             it("test reject removes elements passing truth test", () => {
+                // CollectionTest::testRejectRemovesElementsPassingTruthTest
                 const c = collect(["foo", "bar"]);
-                expect(
-                    c
-                        .reject((v) => v === "bar")
-                        .values()
-                        .all(),
-                ).toEqual(["foo"]);
+                expect(c.reject("bar").values().all()).toEqual(["foo"]);
 
                 const d = collect(["foo", "bar"]);
                 expect(
@@ -11216,20 +20833,10 @@ describe("Collection", () => {
                 ).toEqual(["foo"]);
 
                 const e = collect(["foo", null]);
-                expect(
-                    e
-                        .reject((v) => v === null)
-                        .values()
-                        .all(),
-                ).toEqual(["foo"]);
+                expect(e.reject(null).values().all()).toEqual(["foo"]);
 
                 const f = collect(["foo", "bar"]);
-                expect(
-                    f
-                        .reject((v) => v === "baz")
-                        .values()
-                        .all(),
-                ).toEqual(["foo", "bar"]);
+                expect(f.reject("baz").values().all()).toEqual(["foo", "bar"]);
 
                 const g = collect(["foo", "bar"]);
                 expect(
@@ -11247,6 +20854,7 @@ describe("Collection", () => {
             });
 
             it("test reject without an argument removes truthy values", () => {
+                // CollectionTest::testRejectWithoutAnArgumentRemovesTruthyValues
                 const data1 = collect([false, true, collect(), 0]);
                 expect(data1.reject().values().all()).toEqual([false, 0]);
 
@@ -11293,11 +20901,85 @@ describe("Collection", () => {
             const data7 = collect({ a: "foo", b: "bar", c: "foo" });
             expect(data7.reject("foo").all()).toEqual({ b: "bar" });
         });
+
+        it("keeps the PHP-falsy items without an argument", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-none-php-falsy"
+            expect(
+                collect([[], "0", 0.0, "a", "", null, true])
+                    .reject()
+                    .values()
+                    .all(),
+            ).toEqual([[], "0", 0, "", null]);
+        });
+
+        it("rejects every object without an argument, however empty", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-none-empty-objects"
+            expect(
+                collect([new Date(0), new (class {})()])
+                    .reject()
+                    .count(),
+            ).toBe(0);
+        });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-false-loose"
+                "false",
+                [null, 0, "", "a", [], true, false],
+                false,
+                ["a", true],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-null-loose"
+                "null",
+                [0, "", false, [], "a", "0"],
+                null,
+                ["a", "0"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-zero-loose"
+                "0",
+                ["a", "0", 0, null, false, "", "0.0"],
+                0,
+                ["a", ""],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-numeric-string-loose"
+                '"1"',
+                [1, "01", "1.0", true, "1e0", "x"],
+                "1",
+                ["x"],
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-reject-array-value"
+                "[1, 2]",
+                [[1, 2], [2, 1], ["1", "2"], "x"],
+                [1, 2],
+                [[2, 1], "x"],
+            ],
+        ] as [string, unknown[], unknown, unknown[]][])(
+            "rejects the items loosely equal to %s",
+            (_label, items, value, kept) => {
+                expect(collect(items).reject(value).values().all()).toEqual(
+                    kept,
+                );
+            },
+        );
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).reject(1), "list");
+            expectShape(
+                collect({ a: 1, b: 2 }).reject((value) => value > 1),
+                "keyed",
+            );
+        });
     });
 
     describe("tap", () => {
         describe("Laravel Tests", () => {
             it("test tap", () => {
+                // CollectionTest::testTap
                 const data = collect([1, 2, 3]);
 
                 const fromTap: number[] = [];
@@ -11315,11 +20997,24 @@ describe("Collection", () => {
                 expect(data.all()).toEqual([1, 2, 3]);
             });
         });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).tap(() => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).tap(() => undefined),
+                "keyed",
+            );
+        });
     });
 
     describe("uniqueStrict", () => {
         describe("Laravel Tests", () => {
             it("test unique strict", () => {
+                // CollectionTest::testUniqueStrict
                 const c = collect([
                     { id: "0", name: "zero" },
                     { id: "00", name: "double zero" },
@@ -11351,11 +21046,39 @@ describe("Collection", () => {
             ]);
             expect(Object.keys(result.all()[1] as object)).toEqual(["y", "x"]);
         });
+
+        it("compares arrays by value and scalars by type, as PHP's === does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-arrays-strict"
+            expect(
+                collect([
+                    [1, 2],
+                    ["1", 2],
+                    [1, 2],
+                ])
+                    .uniqueStrict()
+                    .all(),
+            ).toEqual([
+                [1, 2],
+                ["1", 2],
+            ]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-strict-null-key", whose keys
+            // [0, 1, 3] name these items; a list renumbers them, as every removal from a list does
+            expect(collect([1, "1", 1, true]).unique(null, true).all()).toEqual(
+                [1, "1", true],
+            );
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, "1", 1]).uniqueStrict(), "list");
+            expectShape(collect({ a: 1, b: 1 }).uniqueStrict(), "keyed");
+        });
     });
 
     describe("collect", () => {
         describe("Laravel Tests", () => {
             it("test collect", () => {
+                // CollectionTest::testCollect
                 const data = Collection.make({
                     a: 1,
                     b: 2,
@@ -11371,10 +21094,39 @@ describe("Collection", () => {
                 });
             });
         });
+
+        it("copies the items into the new collection", () => {
+            const a = collect([1, 2]);
+            const b = a.collect();
+            b.push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-collect-method-copies"
+            expect([a.all(), b.all()]).toEqual([
+                [1, 2],
+                [1, 2, 3],
+            ]);
+        });
+
+        it("returns the base class from a subclass", () => {
+            class Tagged extends Collection<number, number> {}
+
+            const result = Tagged.make([1]).collect();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-collect-method-returns-base-class"
+            expect(result.constructor).toBe(Collection);
+            expect(result.all()).toEqual([1]);
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).collect(), "list");
+            expectShape(outOfOrderKeys().collect(), "keyed");
+        });
     });
 
     describe("toArray", () => {
         it("test to array", () => {
+            // CollectionTest::testToArrayCallsToArrayOnEachItemInCollection
             const data = Collection.make({ a: 1, b: 2, c: 3 });
 
             expect(data.toArray()).toEqual({ a: 1, b: 2, c: 3 });
@@ -11428,6 +21180,15 @@ describe("Collection", () => {
 
             expect(data7.toArray()).toEqual({ a: { test: "value" }, b: 2 });
         });
+
+        it("keeps a plain-object item as data, whatever toArray member it holds", () => {
+            const toArray = () => [9];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toArray-plain-item-members-are-data"
+            expect(collect([{ toArray, b: 2 }]).toArray()).toEqual([
+                { toArray, b: 2 },
+            ]);
+        });
     });
 
     describe("jsonSerialize", () => {
@@ -11441,14 +21202,86 @@ describe("Collection", () => {
                     "baz",
                 ]);
 
+                // CollectionTest::testJsonSerialize
                 expect(c.jsonSerialize()).toEqual([
-                    [{ foo: "bar" }],
+                    { foo: "bar" },
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",
                     "baz",
                 ]);
             });
+
+            it("test json serialize calls to array or json serialize on each item in collection", () => {
+                class JsonItem {
+                    jsonSerialize() {
+                        return "foo.json";
+                    }
+                }
+
+                class ArrayItem {
+                    toArray() {
+                        return "bar.array";
+                    }
+                }
+
+                const c = new Collection([new JsonItem(), new ArrayItem()]);
+
+                // CollectionTest::testJsonSerializeCallsToArrayOrJsonSerializeOnEachItemInCollection
+                expect(c.jsonSerialize()).toEqual(["foo.json", "bar.array"]);
+            });
+        });
+
+        it("serializes an item by its jsonSerialize() before its toArray()", () => {
+            class ArrayableAndJsonSerializable {
+                toArray() {
+                    return { from: "toArray" };
+                }
+
+                jsonSerialize() {
+                    return { from: "jsonSerialize" };
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-jsonSerialize-prefers-jsonSerialize-over-toArray"
+            expect(
+                collect([new ArrayableAndJsonSerializable()]).jsonSerialize(),
+            ).toEqual([{ from: "jsonSerialize" }]);
+        });
+
+        it("serializes an item by its toJson() before its toArray()", () => {
+            class ArrayableAndJsonable {
+                toArray() {
+                    return { from: "toArray" };
+                }
+
+                toJson() {
+                    return '{"from":"toJson"}';
+                }
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-jsonSerialize-prefers-toJson-over-toArray"
+            expect(
+                collect([new ArrayableAndJsonable()]).jsonSerialize(),
+            ).toEqual([{ from: "toJson" }]);
+        });
+
+        it("keeps an object that converts through none of them as that very object", () => {
+            class Plain {}
+
+            const item = new Plain();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-other-object-is-kept"
+            expect(collect([item]).jsonSerialize()[0]).toBe(item);
+        });
+
+        it("keeps the keys of a keyed collection", () => {
+            const c = collect({ a: new TestArrayableObject(), b: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-keyed"
+            expect(c.jsonSerialize()).toEqual({ a: { foo: "bar" }, b: 1 });
         });
 
         it("jsonSerialize handles Jsonable with toJSON only", () => {
@@ -11459,6 +21292,8 @@ describe("Collection", () => {
             }
 
             const c = collect([new ToJSONOnly()]);
+
+            // JS-only: toJSON is JavaScript's own serialization hook, which PHP has no counterpart for
             expect(c.jsonSerialize()).toEqual([{ foo: "bar" }]);
         });
 
@@ -11470,7 +21305,9 @@ describe("Collection", () => {
             }
 
             const c = collect([new BadJsonable()]);
-            expect(c.jsonSerialize()).toEqual(["not-json"]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-invalid-jsonable-is-null"
+            expect(c.jsonSerialize()).toEqual([null]);
         });
 
         it("jsonSerialize handles Jsonable toJson returning object", () => {
@@ -11481,6 +21318,8 @@ describe("Collection", () => {
             }
 
             const c = collect([new ToJsonReturnsObject()]);
+
+            // JS-only: PHP's toJson() returns a string; any other answer is taken as already decoded
             expect(c.jsonSerialize()).toEqual([{ x: 1, y: "z" }]);
         });
 
@@ -11496,14 +21335,38 @@ describe("Collection", () => {
             ];
 
             const c = collect(input);
+
+            // JS-only: undefined has no PHP counterpart
             expect(c.jsonSerialize()).toEqual(input);
         });
 
-        //
+        it("keeps a plain-object item as data, whatever conversion members it holds", () => {
+            const toArray = () => [9];
+            const toJson = () => "[1]";
+            const jsonSerialize = () => 1;
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-jsonSerialize-plain-item-members-are-data"
+            expect(
+                collect([
+                    { toArray, toJson, jsonSerialize, b: 2 },
+                ]).jsonSerialize(),
+            ).toEqual([{ toArray, toJson, jsonSerialize, b: 2 }]);
+        });
+
+        it("keeps a plain object's toJSON member as data, for JSON.stringify to call", () => {
+            const toJSON = () => "x";
+            const collection = collect([{ toJSON, b: 2 }]);
+
+            // JS-only: toJSON is JavaScript's own serialization hook, which PHP has no counterpart for
+            expect(collection.jsonSerialize()).toEqual([{ toJSON, b: 2 }]);
+            expect(collection.toJson()).toBe('["x"]');
+        });
     });
 
     describe("toJson", () => {
         it("toJson returns serialized items by default", () => {
+            // CollectionTest::testToJsonEncodesTheJsonSerializeResult
             const c = collect([
                 new TestArrayableObject(),
                 new TestJsonableObject(),
@@ -11513,9 +21376,11 @@ describe("Collection", () => {
             ]);
 
             const json = c.toJson();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-php-fixtures"
             expect(json).toBe(
                 JSON.stringify([
-                    [{ foo: "bar" }],
+                    { foo: "bar" },
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",
@@ -11525,6 +21390,7 @@ describe("Collection", () => {
         });
 
         it("toJson supports pretty printing with space", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1 }, { b: 2 }]);
             const json = c.toJson(undefined, 2);
             expect(json).toBe(
@@ -11533,6 +21399,7 @@ describe("Collection", () => {
         });
 
         it("toJson with array replacer filters keys", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const replacer: (string | number)[] = ["b"]; // keep only key 'b'
             const json = c.toJson(replacer);
@@ -11540,6 +21407,7 @@ describe("Collection", () => {
         });
 
         it("toJson with function replacer transforms values", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const replacer = (key: string, value: unknown) => {
                 if (key === "b" && typeof value === "number") {
@@ -11552,15 +21420,122 @@ describe("Collection", () => {
         });
 
         it("toJson with null replacer behaves like no replacer", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const jsonNull = c.toJson(null);
             const jsonDefault = c.toJson();
             expect(jsonNull).toBe(jsonDefault);
         });
+
+        it("writes / and non-ASCII characters as they are", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-escapes-slash-and-unicode"
+            // JS-only: PHP escapes / and non-ASCII characters; JSON.stringify writes them as they are
+            expect(collect(["a/b", "é"]).toJson()).toBe('["a/b","é"]');
+        });
+
+        it("encodes keys 0..n-1 in order as a JSON list, whatever the backing", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-toJson-integer-keys-in-order-are-a-list"
+            expect(collect({ 0: "a", 1: "b" }).toJson()).toBe('["a","b"]');
+            expect(collect({ 0: "a", 1: "b" }).jsonSerialize()).toEqual([
+                "a",
+                "b",
+            ]);
+            expect(
+                collect(
+                    new Map([
+                        [0, "a"],
+                        [1, "b"],
+                    ]),
+                ).toJson(),
+            ).toBe('["a","b"]');
+        });
+
+        it("encodes integer keys that do not start at 0 as a JSON object", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-toJson-integer-keys-from-one-are-an-object"
+            expect(collect({ 1: "a", 2: "b" }).toJson()).toBe(
+                '{"1":"a","2":"b"}',
+            );
+        });
+
+        it("encodes keys 0 and 1 in the wrong order as a JSON object", () => {
+            const collection = collect(
+                new Map([
+                    [1, "b"],
+                    [0, "a"],
+                ]),
+            );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-toJson-list-keys-out-of-order-are-an-object"
+            expect(JSON.parse(collection.toJson())).toEqual({ 1: "b", 0: "a" });
+            expect(Array.isArray(collection.jsonSerialize())).toBe(false);
+        });
+
+        it("encodes a keyed collection emptied of its items as []", () => {
+            const collection = collect({ a: 1 }).forget("a");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-emptied-keyed-is-a-list"
+            expect(collection.toJson()).toBe("[]");
+            expect(collection.jsonSerialize()).toEqual([]);
+        });
+
+        it("encodes a list with a hole as an object of the indexes it holds", () => {
+            const holes: string[] = [];
+            holes[1] = "b";
+
+            // JS-only: PHP has no sparse array; a hole holds no item, so the keys are not 0..n-1
+            expect(new Collection(holes).toJson()).toBe('{"1":"b"}');
+        });
+
+        it.fails("encodes integer keys in the order PHP keeps them", () => {
+            const collection = collect(
+                new Map([
+                    [2, "a"],
+                    [1, "b"],
+                ]),
+            );
+
+            // Ordered-backing gap: PHP writes the keys in insertion order, 2 before 1
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toJson-integer-keys-out-of-order"
+            expect(collection.toJson()).toBe('{"2":"a","1":"b"}');
+        });
+
+        it.fails("encodes a key pushed past a string key last", () => {
+            const collection = collect({ a: 1 }).push("z");
+
+            // Ordered-backing gap: PHP writes the pushed key after the string key, a before 0
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-push-onto-string-keyed-toJson"
+            expect(collection.toJson()).toBe('{"a":1,"0":"z"}');
+        });
+    });
+
+    describe("toJSON", () => {
+        it("lets JSON.stringify encode the items, as json_encode encodes a JsonSerializable", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-json-encode-collection"
+            expect(JSON.stringify(collect([1, 2]))).toBe("[1,2]");
+        });
+
+        it("encodes a collection nested in other data by its items", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-json-encode-nested-collection"
+            expect(JSON.stringify({ users: collect([{ id: 1 }]) })).toBe(
+                '{"users":[{"id":1}]}',
+            );
+        });
+
+        it("returns what jsonSerialize() returns", () => {
+            const c = collect({ a: new TestArrayableObject(), b: 1 });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-keyed"
+            // JS-only: toJSON is JavaScript's name for the hook PHP's JsonSerializable calls jsonSerialize
+            expect(c.toJSON()).toEqual({ a: { foo: "bar" }, b: 1 });
+        });
     });
 
     describe("toPrettyJson", () => {
         it("returns pretty-printed JSON by default (4 spaces)", () => {
+            // CollectionTest::testToPrettyJsonEncodesTheJsonSerializeResult
             const c = collect([
                 new TestArrayableObject(),
                 new TestJsonableObject(),
@@ -11570,9 +21545,11 @@ describe("Collection", () => {
             ]);
 
             const pretty = c.toPrettyJson();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-jsonSerialize-php-fixtures"
             const expected = JSON.stringify(
                 [
-                    [{ foo: "bar" }],
+                    { foo: "bar" },
                     { foo: "bar" },
                     { foo: "bar" },
                     "foobar",
@@ -11586,6 +21563,7 @@ describe("Collection", () => {
         });
 
         it("supports custom indentation spaces", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1 }, { b: 2 }]);
             const pretty2 = c.toPrettyJson(undefined, 2);
             const pretty4 = c.toPrettyJson(undefined, 4);
@@ -11599,6 +21577,7 @@ describe("Collection", () => {
         });
 
         it("supports array replacer to filter keys", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([
                 { a: 1, b: 2 },
                 { b: 3, c: 4 },
@@ -11609,6 +21588,7 @@ describe("Collection", () => {
         });
 
         it("supports function replacer to transform values", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const replacer = (key: string, value: unknown) => {
                 if (key === "b" && typeof value === "number") {
@@ -11622,15 +21602,30 @@ describe("Collection", () => {
         });
 
         it("null replacer behaves like no replacer", () => {
+            // JS-only: JSON.stringify's replacer and space stand in for json_encode's flags
             const c = collect([{ a: 1, b: 2 }, { b: 3 }]);
             const prettyNull = c.toPrettyJson(null, 2);
             const prettyDefault = c.toPrettyJson(undefined, 2);
             expect(prettyNull).toBe(prettyDefault);
         });
+
+        it("indents by four spaces a level, as JSON_PRETTY_PRINT does", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toPrettyJson-list"
+            expect(collect([1, [2]]).toPrettyJson()).toBe(
+                "[\n    1,\n    [\n        2\n    ]\n]",
+            );
+        });
+
+        it("prints an empty collection as []", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-toPrettyJson-empty"
+            expect(collect().toPrettyJson()).toBe("[]");
+            expect(collect({}).toPrettyJson()).toBe("[]");
+        });
     });
 
     describe("toString", () => {
         it("toString returns same output as toJson()", () => {
+            // CollectionTest::testCastingToStringJsonEncodesTheToArrayResult
             const c = collect([
                 new TestArrayableObject(),
                 new TestJsonableObject(),
@@ -11650,11 +21645,59 @@ describe("Collection", () => {
             expect(c.toString()).toBe(expected);
         });
 
-        it("toString reflects changes after set operations", () => {
+        it("toString reflects changes after put operations", () => {
             const c = collect({ a: 1 });
-            c.set("b", 2);
-            const expected = JSON.stringify({ a: 1, b: 2 });
-            expect(c.toString()).toBe(expected);
+            c.put("b", 2);
+
+            // CollectionTest::testCastingToStringJsonEncodesTheToArrayResult
+            expect(c.toString()).toBe('{"a":1,"b":2}');
+        });
+    });
+
+    describe("escapeWhenCastingToString", () => {
+        it("escapes the JSON a string conversion gives, as Laravel's e() does", () => {
+            const collection = collect(["<b>"]).escapeWhenCastingToString();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-to-string"
+            expect(String(collection)).toBe("[&quot;&lt;b&gt;&quot;]");
+            expect(collection.toString()).toBe("[&quot;&lt;b&gt;&quot;]");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-concat"
+            expect(collection + "").toBe("[&quot;&lt;b&gt;&quot;]");
+        });
+
+        it("escapes an ampersand and a single quote too, an entity included", () => {
+            const collection = collect([
+                "&'<>&amp;",
+            ]).escapeWhenCastingToString();
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-A-escape-when-casting-to-string-all-characters"
+            expect(String(collection)).toBe(
+                "[&quot;&amp;&#039;&lt;&gt;&amp;amp;&quot;]",
+            );
+        });
+
+        it("stops escaping when handed false", () => {
+            const collection = collect(["<b>"])
+                .escapeWhenCastingToString()
+                .escapeWhenCastingToString(false);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-to-string-off"
+            expect(String(collection)).toBe('["<b>"]');
+        });
+
+        it("leaves toJson() unescaped", () => {
+            const collection = collect(["<b>"]).escapeWhenCastingToString();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-escape-when-casting-leaves-toJson"
+            expect(collection.toJson()).toBe('["<b>"]');
+        });
+
+        it("keeps a list's shape and a keyed one's, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(collect([1, 2]).escapeWhenCastingToString(), "list");
+            expectShape(outOfOrderKeys().escapeWhenCastingToString(), "keyed");
         });
     });
 
@@ -11678,7 +21721,27 @@ describe("Collection", () => {
     });
 
     describe("when", () => {
+        it("test when", () => {
+            // CollectionTest::testWhen
+            let data = collect(["michael", "tom"]);
+
+            data = data.when("adam", (collection, newName) => {
+                return collection.concat([newName]);
+            });
+
+            expect(data.toArray()).toEqual(["michael", "tom", "adam"]);
+
+            data = collect(["michael", "tom"]);
+
+            data = data.when(false, (collection) => {
+                return collection.concat(["adam"]);
+            });
+
+            expect(data.toArray()).toEqual(["michael", "tom"]);
+        });
+
         it("calls defaultCallback when value is falsy", () => {
+            // CollectionTest::testWhenDefault
             const c = collect([1, 2, 3]);
             const result = c.when(
                 false,
@@ -11688,10 +21751,20 @@ describe("Collection", () => {
             expect(result.all()).toEqual([11, 12, 13]);
         });
 
-        it("returns self when callback is null", () => {
+        it("throws PHP's error for a null callback on the branch it takes", () => {
             const c = collect([1, 2, 3]);
-            const result = c.when(true, null);
-            expect(result.all()).toEqual([1, 2, 3]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-null-callback-throws"
+            expect(() => Reflect.apply(c.when, c, [true, null])).toThrow(
+                new Error("Value of type null is not callable"),
+            );
+        });
+
+        it("keeps the collection when the branch with a null callback is not taken", () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-unless-null-callback-untaken"
+            expect(Reflect.apply(c.when, c, [false, null])).toBe(c);
         });
 
         it("returns self when no callbacks match", () => {
@@ -11709,7 +21782,7 @@ describe("Collection", () => {
 
         it("returns self when callback returns undefined", () => {
             const c = collect([1, 2, 3]);
-            // callback returns undefined, so ?? this should be triggered
+            // JS-only: undefined stands for the null that PHP's ?? $this replaces
             const result = c.when(true, () => undefined);
             expect(result.all()).toEqual([1, 2, 3]);
         });
@@ -11746,16 +21819,102 @@ describe("Collection", () => {
             expect(result.all()).toEqual([1, 2, 3]);
         });
 
-        it("uses default callback parameter when not provided (default branch)", () => {
-            const c = collect([1, 2, 3]);
-            // Calling when with only value (callback defaults to null)
-            const result = c.when(true);
-            expect(result.all()).toEqual([1, 2, 3]);
+        it('skips the callback for a "0" or [] condition', () => {
+            const c = collect([1]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-php-falsy-values"
+            expect([
+                c.when("0", () => "called") === c,
+                c.when([], () => "called") === c,
+            ]).toEqual([true, true]);
+        });
+
+        it("hands the default the value, and answers a callback's scalar as it is", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-default-receives-value" and
+            // "C32-H-when-callback-returns-scalar"
+            expect([
+                collect([1]).when(
+                    0,
+                    () => "cb",
+                    (_collection, value) => JSON.stringify(value),
+                ),
+                collect([1]).when(true, () => false),
+                collect([1]).when(true, () => 42),
+            ]).toEqual(["0", false, 42]);
+        });
+
+        it("calls a closure value with the collection, but never a string that names a function", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-when-closure-value" and
+            // "C32-H-when-callable-string-value-not-invoked"
+            expect([
+                collect([1, 2]).when(
+                    (collection) => collection.count(),
+                    (_collection, value) => value * 10,
+                ),
+                collect([1]).when("strlen", (_collection, value) => value),
+            ]).toEqual([20, "strlen"]);
+        });
+
+        it("keeps a list's shape and a keyed one's when it answers itself, as its type declares", () => {
+            // JS-only: the type declares the shape, which the backing all() hands out must match
+            expectShape(
+                collect([1, 2]).when(true, () => undefined),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).when(true, () => undefined),
+                "keyed",
+            );
+            expectShape(
+                collect([1, 2]).when(false, () => null),
+                "list",
+            );
+            expectShape(
+                collect({ a: 1 }).when(false, () => null),
+                "keyed",
+            );
         });
     });
 
     describe("getArrayableItems", () => {
+        it("test get arrayable items", () => {
+            // CollectionTest::testGetArrayableItems
+            const data = new Collection();
+
+            expect(data["getRawItems"](new TestArrayableObject())).toEqual({
+                foo: "bar",
+            });
+            expect(data["getRawItems"](new TestJsonableObject())).toEqual({
+                foo: "bar",
+            });
+            expect(data["getRawItems"](new TestJsonSerializeObject())).toEqual({
+                foo: "bar",
+            });
+            expect(
+                data["getRawItems"](
+                    new TestJsonSerializeWithScalarValueObject(),
+                ),
+            ).toEqual(["foo"]);
+
+            // Only the iterated items are the subject's own objects; jsonSerialize() would rebuild them.
+            const subject = [{}, {}];
+            const array = data["getRawItems"](
+                new TestTraversableAndJsonSerializableObject(subject),
+            );
+            expect(array).toEqual(subject);
+            expect(array[0]).toBe(subject[0]);
+            expect(array[1]).toBe(subject[1]);
+
+            expect(data["getRawItems"](new Collection({ foo: "bar" }))).toEqual(
+                { foo: "bar" },
+            );
+            expect(data["getRawItems"]({ foo: "bar" })).toEqual({
+                foo: "bar",
+            });
+        });
+
         it("handles hasNumericKeys for order preservation", () => {
+            // JS-only: a Map stands in for a PHP array whose integer keys are out of order
             // Create a Map with numeric keys to trigger the hasNumericKeys branch
             const map = new Map<number, string>();
             map.set(2, "two");
@@ -11768,6 +21927,7 @@ describe("Collection", () => {
         });
 
         it("handles Map with non-numeric keys (false branch)", () => {
+            // JS-only: a Map stands in for a keyed PHP array
             // Create a Map with string keys to trigger the hasNumericKeys=false branch
             const map = new Map<string, number>();
             map.set("b", 2);
@@ -11800,8 +21960,12 @@ describe("Collection", () => {
             ]);
 
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -12233,8 +22397,12 @@ describe("Collection", () => {
             ]);
 
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -12284,7 +22452,7 @@ describe("Collection", () => {
                 "fallback",
             );
 
-            // JS-only: PHP's `value()` unwraps a Closure default; so does this port's.
+            // docs/php-parity/task-23-obj-release-readiness.json, "first-assoc-closure-default"
             expect(
                 collect(outOfOrder()).first(
                     () => false,
@@ -12396,12 +22564,12 @@ describe("Collection", () => {
             });
         });
 
-        it("set appends a new key last and updates an existing one in place", () => {
-            const added = collect(outOfOrder());
-            added.set("k", "z");
+        it("offsetSet appends a new key last and updates an existing one in place", () => {
+            // offsetSet() takes the collection's own key type, so this one names the string key it will gain.
+            const added = new Collection<string, string | number>(outOfOrder());
+            added.offsetSet("k", "z");
 
-            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key".
-            // PHP has no Collection::set, so the row records `$c['k'] = 'z'` instead.
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-new-key"
             expect(views(added)).toEqual({
                 all: { 0: "a", 1: "b", 2: "c", k: "z" },
                 values: ["c", "a", "b", "z"],
@@ -12409,10 +22577,9 @@ describe("Collection", () => {
             });
 
             const updated = collect(outOfOrder());
-            updated.set(0, "z");
+            updated.offsetSet(0, "z");
 
-            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key".
-            // PHP has no Collection::set, so the row records `$c[0] = 'z'` instead.
+            // docs/php-parity/task-26-collection-order.json, "order-array-set-existing-key"
             expect(views(updated)).toEqual({
                 all: { 0: "z", 1: "b", 2: "c" },
                 values: ["c", "z", "b"],
@@ -12421,12 +22588,266 @@ describe("Collection", () => {
         });
     });
 
+    // Each row pins all seven views its probe records: a key that only some of them see is the failure.
+    describe("keyed writes onto a list backing", () => {
+        /** The seven views each probe row records, read at the key the row wrote. */
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
+            key: string | number,
+        ) => ({
+            all: collection.all(),
+            count: collection.count(),
+            keys: collection.keys().all(),
+            values: collection.values().all(),
+            get: collection.get(key),
+            has: collection.has(key),
+            last: collection.last(),
+        });
+
+        it("put keeps a string key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            collection.put("x", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-on-list"
+            expect(views(collection, "x")).toEqual({
+                all: { 0: 1, 1: 2, x: 3 },
+                count: 3,
+                keys: [0, 1, "x"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("offsetSet keeps a string key after the list's own keys", () => {
+            // offsetSet() takes the collection's own key type, so this one names the string key it will gain.
+            const collection = new Collection<
+                number,
+                string | number,
+                "list" | "keyed"
+            >([1, 2]);
+            collection.offsetSet("x", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offsetSet-string-key-on-list"
+            expect(views(collection, "x")).toEqual({
+                all: { 0: 1, 1: 2, x: 3 },
+                count: 3,
+                keys: [0, 1, "x"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("getOrPut keeps a string key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            const returned = collection.getOrPut("x", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-getOrPut-string-key-on-list"
+            expect({ returned, ...views(collection, "x") }).toEqual({
+                returned: 3,
+                all: { 0: 1, 1: 2, x: 3 },
+                count: 3,
+                keys: [0, 1, "x"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("getOrPut computes a missing key once on an empty collection", () => {
+            const collection = collect();
+            let calls = 0;
+            const next = () => `v${++calls}`;
+
+            const first = collection.getOrPut("k", next);
+            const second = collection.getOrPut("k", next);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-getOrPut-memoizes-on-empty"
+            expect({ first, second, calls, all: collection.all() }).toEqual({
+                first: "v1",
+                second: "v1",
+                calls: 1,
+                all: { k: "v1" },
+            });
+            expect(collection.keys().all()).toEqual(["k"]);
+            expect(collection.values().all()).toEqual(["v1"]);
+        });
+
+        it("put keeps a string key on an empty collection", () => {
+            const collection = collect();
+            collection.put("foo", 1);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-on-empty"
+            expect(views(collection, "foo")).toEqual({
+                all: { foo: 1 },
+                count: 1,
+                keys: ["foo"],
+                values: [1],
+                get: 1,
+                has: true,
+                last: 1,
+            });
+        });
+
+        it("put keeps an integer key past the end without filling the gap", () => {
+            const collection = collect([1, 2]);
+            collection.put(5, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-gap-int-key-on-list"
+            expect(views(collection, 5)).toEqual({
+                all: { 0: 1, 1: 2, 5: 3 },
+                count: 3,
+                keys: [0, 1, 5],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("put keeps a negative key after the list's own keys", () => {
+            const collection = collect([1, 2]);
+            collection.put(-1, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-negative-key-on-list"
+            expect(views(collection, -1)).toEqual({
+                all: { 0: 1, 1: 2, "-1": 3 },
+                count: 3,
+                keys: [0, 1, -1],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("put keeps a non-canonical integer string as a string key", () => {
+            const collection = collect([1, 2]);
+            collection.put("01", 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-non-canonical-int-string-on-list"
+            expect(views(collection, "01")).toEqual({
+                all: { 0: 1, 1: 2, "01": 3 },
+                count: 3,
+                keys: [0, 1, "01"],
+                values: [1, 2, 3],
+                get: 3,
+                has: true,
+                last: 3,
+            });
+        });
+
+        it("put truncates a float key to the index it overwrites", () => {
+            const collection = collect([1, 2]);
+            collection.put(1.5, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-float-key-on-list"
+            expect(collection.all()).toEqual([1, 3]);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, 3]);
+            expect(collection.count()).toBe(2);
+        });
+
+        it("put casts a boolean key to the index it overwrites", () => {
+            const collection = collect([1, 2]);
+            collection.put(true, 3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-bool-key-on-list"
+            expect(collection.all()).toEqual([1, 3]);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, 3]);
+            expect(collection.count()).toBe(2);
+        });
+
+        it("shift after a string-key put renumbers only the integer keys", () => {
+            const collection = collect([1, 2]);
+            collection.put("x", 3);
+            const returned = collection.shift();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-shift"
+            expect({ returned, all: collection.all() }).toEqual({
+                returned: 1,
+                all: { 0: 2, x: 3 },
+            });
+            expect(collection.keys().all()).toEqual([0, "x"]);
+            expect(collection.values().all()).toEqual([2, 3]);
+        });
+
+        it("push after a string-key put appends last", () => {
+            const collection = collect([1, 2]).put("x", 3).push(4);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-push"
+            expect(collection.all()).toEqual({ 0: 1, 1: 2, x: 3, 2: 4 });
+            expect(collection.keys().all()).toEqual([0, 1, "x", 2]);
+            expect(collection.values().all()).toEqual([1, 2, 3, 4]);
+        });
+
+        it("push after a key named like a method appends last, as data", () => {
+            const collection = collect([1, 2]).put("push", 9).push(3);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-method-name-then-push"
+            expect(collection.all()).toEqual({ 0: 1, 1: 2, push: 9, 2: 3 });
+            expect(collection.keys().all()).toEqual([0, 1, "push", 2]);
+            expect(collection.values().all()).toEqual([1, 2, 9, 3]);
+        });
+
+        it("pop after a string-key put takes the string key's value", () => {
+            const collection = collect([1, 2]);
+            collection.put("x", 3);
+            const returned = collection.pop();
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-pop"
+            expect(returned).toBe(3);
+            expect(collection.keys().all()).toEqual([0, 1]);
+            expect(collection.values().all()).toEqual([1, 2]);
+            expect(collection.toJson()).toBe("[1,2]");
+
+            // JS-only: the backing stays a record once a string key was written, where PHP's array is a list again
+            expect(collection.all()).toEqual({ 0: 1, 1: 2 });
+        });
+
+        it("rebuilds a list with a hole without inventing an item for the hole", () => {
+            const items: string[] = [];
+            items[1] = "b";
+            const collection = new Collection(items);
+            collection.put("x", "c");
+
+            // JS-only: PHP has no sparse array; a hole holds no item, so the keyed backing gains none there.
+            expect(collection.all()).toStrictEqual({ 1: "b", x: "c" });
+            expect(collection.keys().all()).toEqual([1, "x"]);
+            expect(collection.values().all()).toEqual(["b", "c"]);
+            expect(collection.count()).toBe(2);
+        });
+
+        it("transform after a string-key put maps the string key too", () => {
+            const collection = collect([1, 2]).put("x", 3);
+            collection.transform((value) => value * 10);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-string-key-then-transform"
+            expect(collection.all()).toEqual({ 0: 10, 1: 20, x: 30 });
+            expect(collection.keys().all()).toEqual([0, 1, "x"]);
+            expect(collection.values().all()).toEqual([10, 20, 30]);
+        });
+    });
+
     // `add` appended at the COUNT, which is not a free key: on `{x: 1, 3: 'b', y: 2}` the
     // count is 3, so the append overwrote an entry that was already there.
     describe("a null key appends where PHP's $array[] = does", () => {
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -12452,9 +22873,26 @@ describe("Collection", () => {
             // docs/php-parity/task-26-collection-order.json, "append-key-skips-an-occupied-slot"
             expect(collection.all()).toEqual({ x: 1, 3: "b", y: 2, 4: "z" });
 
-            // JS-only: a plain object iterates its integer keys first, so the views read them first.
-            expect(collection.values().all()).toEqual(["b", "z", 1, 2]);
-            expect(collection.keys().all()).toEqual([3, 4, "x", "y"]);
+            // JS-only: the object literal already holds 3 ahead of x, as a plain object sorts its integer keys first;
+            // the appended key still lands last.
+            expect(collection.values().all()).toEqual(["b", 1, 2, "z"]);
+            expect(collection.keys().all()).toEqual([3, "x", "y", 4]);
+
+            const ordered = collect(
+                new Map<string | number, string | number>([
+                    ["x", 1],
+                    [3, "b"],
+                    ["y", 2],
+                ]),
+            );
+            ordered.add("z");
+
+            // docs/php-parity/task-26-collection-order.json, "append-key-skips-an-occupied-slot"
+            expect(views(ordered)).toEqual({
+                all: { x: 1, 3: "b", y: 2, 4: "z" },
+                values: [1, "b", 2, "z"],
+                keys: ["x", 3, "y", 4],
+            });
         });
 
         it("a backing with no integer key appends at 0", () => {
@@ -12462,7 +22900,11 @@ describe("Collection", () => {
             collection.add("z");
 
             // docs/php-parity/task-26-collection-order.json, "append-key-with-no-integer-key-is-zero"
-            expect(collection.all()).toEqual({ a: 1, 0: "z" });
+            expect(views(collection)).toEqual({
+                all: { a: 1, 0: "z" },
+                values: [1, "z"],
+                keys: ["a", 0],
+            });
         });
 
         it("an empty object backing appends at 0", () => {
@@ -12521,14 +22963,28 @@ describe("Collection", () => {
             });
         });
 
-        it("floors the next key at 0 where PHP counts on from a negative one", () => {
+        it("counts on from a negative key, as PHP 8.3 does", () => {
             const collection = collect({ "-3": "a" });
             collection.add("z");
 
-            // docs/php-parity/task-26-collection-order.json, "append-key-after-a-negative-key" —
-            // PHP 8.3+ writes -2 there. A negative key is not integer-like to `isIntegerLikeKey`,
-            // so this floors at 0: a divergence, but never an overwrite, since 0 is not in use.
-            expect(collection.all()).toEqual({ "-3": "a", 0: "z" });
+            // docs/php-parity/task-26-collection-order.json, "append-key-after-a-negative-key"
+            expect(views(collection)).toEqual({
+                all: { "-3": "a", "-2": "z" },
+                values: ["a", "z"],
+                keys: [-3, -2],
+            });
+        });
+
+        it("counts on from the highest key held now, not the highest ever held", () => {
+            const collection = collect({ 5: "a", 6: "b" }).forget(6).push("x");
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-max-int-key-then-push"
+            // JS-only: PHP remembers the largest integer key ever used; a plain object cannot
+            expect(views(collection)).toEqual({
+                all: { 5: "a", 6: "x" },
+                values: ["a", "x"],
+                keys: [5, 6],
+            });
         });
     });
 
@@ -12536,8 +22992,12 @@ describe("Collection", () => {
     // read-only call wrote the receiver a fresh view built from somebody else's keys.
     describe("reading an operand never writes the receiver's ordered view", () => {
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -12565,12 +23025,9 @@ describe("Collection", () => {
             expect(views(collection)).toEqual(untouched);
         });
 
-        it("diff leaves the receiver's three views alone", () => {
+        it("diff against a Map operand leaves the receiver's three views alone", () => {
             const collection = collect([1, 2, 3]);
-
-            // `diff`'s operand type takes a Collection, not a bare Map; the Collection
-            // built from one carries the same ordered view, so it pins the same defect.
-            collection.diff(collect(operand()));
+            collection.diff(operand());
 
             // docs/php-parity/task-26-collection-order.json, "order-diff-leaves-the-receiver-alone"
             expect(views(collection)).toEqual(untouched);
@@ -12630,6 +23087,61 @@ describe("Collection", () => {
                 keys: [0, 2],
             });
         });
+
+        it("drops a symbol key from the receiver and from a Map operand in every set operation", () => {
+            const marker = Symbol("marker");
+            const receiver = () =>
+                collect(
+                    new Map<string | symbol, unknown>([
+                        ["a", 1],
+                        [marker, "s"],
+                    ]),
+                );
+            const operand = () =>
+                new Map<number | symbol, unknown>([
+                    [3, "x"],
+                    [marker, "t"],
+                    [1, "y"],
+                ]);
+
+            // JS-only: PHP has no symbol key, so each set operation reads only the keys a PHP array can hold,
+            // and the order its integer keys come in survives
+            const renumbered = {
+                all: { a: 1, 0: "x", 1: "y" },
+                values: [1, "x", "y"],
+                keys: ["a", 0, 1],
+            };
+            const kept = {
+                all: { a: 1, 3: "x", 1: "y" },
+                values: [1, "x", "y"],
+                keys: ["a", 3, 1],
+            };
+            const results = [
+                ["merge", receiver().merge(operand()), renumbered],
+                [
+                    "mergeRecursive",
+                    receiver().mergeRecursive(operand()),
+                    renumbered,
+                ],
+                ["union", receiver().union(operand()), kept],
+                ["replace", receiver().replace(operand()), kept],
+                [
+                    "replaceRecursive",
+                    receiver().replaceRecursive(operand()),
+                    kept,
+                ],
+            ] as const;
+
+            for (const [name, result, expected] of results) {
+                expect({
+                    name,
+                    symbols: Object.getOwnPropertySymbols(result.all()),
+                    all: result.all(),
+                    values: result.values().all(),
+                    keys: result.keys().all(),
+                }).toEqual({ name, symbols: [], ...expected });
+            }
+        });
     });
 
     // `concat` and `join` built their working copy with `newInstance(this.items)`, which
@@ -12645,8 +23157,12 @@ describe("Collection", () => {
             ]);
 
         /** The three views every probe row records, in one comparable object. */
-        const views = <TValue, TKey extends PropertyKey>(
-            collection: Collection<TValue, TKey>,
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
         ) => ({
             all: collection.all(),
             values: collection.values().all(),
@@ -12694,10 +23210,12 @@ describe("Collection", () => {
 
             expect(result.all()).not.toBe(receiver.all());
 
-            // docs/php-parity/task-27-carried-fixes.json, "concat-keyed-result" —
-            // PHP holds `['a' => 1, 'b' => 2, 0 => 'z']`, and a JS object iterates its
-            // integer keys first, so only the ENTRIES can match, not their order.
-            expect(result.all()).toEqual({ a: 1, b: 2, 0: "z" });
+            // docs/php-parity/task-27-carried-fixes.json, "concat-keyed-result"
+            expect(views(result)).toEqual({
+                all: { a: 1, b: 2, 0: "z" },
+                values: [1, 2, "z"],
+                keys: ["a", "b", 0],
+            });
 
             // docs/php-parity/task-27-carried-fixes.json, "concat-list-result"
             expect(views(collect([1, 2, 3]).concat(["z"]))).toEqual({
@@ -12816,7 +23334,7 @@ describe("Collection", () => {
             constructor(
                 items?:
                     | TValue[]
-                    | Record<TKey, TValue>
+                    | NoInfer<Record<TKey, TValue>>
                     | Collection<TValue, TKey>,
                 tag: string = "",
             ) {
@@ -12824,18 +23342,23 @@ describe("Collection", () => {
                 this.tag = tag;
             }
 
-            protected override newInstance<TItems = unknown>(
-                items?: TItems,
-            ): this {
+            protected override newInstance<
+                TNewValue,
+                TNewKey extends PropertyKey,
+                TNewShape extends CollectionShape,
+            >(
+                items: DataItems<TNewValue, TNewKey>,
+            ): Collection<TNewValue, TNewKey, TNewShape> {
                 const Ctor = this.constructor as new (
-                    items?: TItems,
+                    items: DataItems<TNewValue, TNewKey>,
                     tag?: string,
-                ) => this;
+                ) => Collection<TNewValue, TNewKey, TNewShape>;
                 return new Ctor(items, this.tag);
             }
         }
 
         it("preserves subclass type and extra state through filter", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12847,6 +23370,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through filter returning empty", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12857,6 +23381,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through reject", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12867,17 +23392,19 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through map", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
             );
             const mapped = collection.map((v) => v * 2);
             expect(mapped).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(mapped.tag).toBe("my-tag");
+            expect(mapped).toHaveProperty("tag", "my-tag");
             expect(mapped.all()).toEqual([2, 4, 6, 8, 10]);
         });
 
         it("preserves subclass type through values", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12885,10 +23412,12 @@ describe("Collection", () => {
             const filtered = collection.filter((v) => v > 3);
             const values = filtered.values();
             expect(values).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(values.tag).toBe("my-tag");
+            // values() is typed as a base collection, since it may change the key type; the instance is the subclass.
+            expect(values).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through unique", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const duped = new TestCollectionWithExtraState(
                 [1, 1, 2, 2, 3],
                 "u-tag",
@@ -12899,18 +23428,18 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through keys", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
             );
             const keys = collection.keys();
             expect(keys).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((keys as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(keys).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through sort", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12921,6 +23450,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through slice", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12931,33 +23461,32 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through chunk (outer and inner)", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
             );
             const chunks = collection.chunk(2);
             expect(chunks).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(
-                (chunks as unknown as TestCollectionWithExtraState).tag,
-            ).toBe("my-tag");
+            expect(chunks).toHaveProperty("tag", "my-tag");
             const first = chunks.first();
             expect(first).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((first as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(first).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through merge", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
             );
             const merged = collection.merge([6, 7]);
             expect(merged).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(merged.tag).toBe("my-tag");
+            expect(merged).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through diff", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -12968,34 +23497,31 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through partition", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
             );
             const [pass, fail] = collection.partition((v) => v > 3);
             expect(pass).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((pass as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(pass).toHaveProperty("tag", "my-tag");
             expect(fail).toBeInstanceOf(TestCollectionWithExtraState);
-            expect((fail as unknown as TestCollectionWithExtraState).tag).toBe(
-                "my-tag",
-            );
+            expect(fail).toHaveProperty("tag", "my-tag");
         });
 
         it("preserves subclass type through pluck", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const assoc = new TestCollectionWithExtraState(
                 [{ name: "Taylor" }, { name: "Nuno" }],
                 "p-tag",
             );
             const plucked = assoc.pluck("name");
             expect(plucked).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(
-                (plucked as unknown as TestCollectionWithExtraState).tag,
-            ).toBe("p-tag");
+            expect(plucked).toHaveProperty("tag", "p-tag");
         });
 
         it("preserves subclass type through reverse", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
@@ -13006,6 +23532,7 @@ describe("Collection", () => {
         });
 
         it("preserves subclass type through flatten", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const nested = new TestCollectionWithExtraState(
                 [
                     [1, 2],
@@ -13015,17 +23542,124 @@ describe("Collection", () => {
             );
             const flat = nested.flatten();
             expect(flat).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(flat.tag).toBe("f-tag");
+            expect(flat).toHaveProperty("tag", "f-tag");
         });
 
         it("preserves subclass type through pad", () => {
+            // CollectionTest::testNewInstanceIsUsedByCollectionMethods
             const collection = new TestCollectionWithExtraState(
                 [1, 2, 3, 4, 5],
                 "my-tag",
             );
             const padded = collection.pad(7, 0);
             expect(padded).toBeInstanceOf(TestCollectionWithExtraState);
-            expect(padded.tag).toBe("my-tag");
+            // pad() is typed as a base collection, since it may widen the types; the instance is the subclass.
+            expect(padded).toHaveProperty("tag", "my-tag");
+        });
+
+        it("preserves subclass type and extra state through groupBy, at every level", () => {
+            const levels: unknown[] = [];
+            let level: unknown = new TestCollectionWithExtraState(
+                [{ a: 1, b: "x" }],
+                "my-tag",
+            ).groupBy(["a", "b"]);
+
+            while (level instanceof Collection) {
+                levels.push(level);
+                level = level.first();
+            }
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-groups-keep-subclass"
+            expect(levels).toHaveLength(3);
+            for (const each of levels) {
+                expect(each).toBeInstanceOf(TestCollectionWithExtraState);
+                expect(each).toHaveProperty("tag", "my-tag");
+            }
+        });
+
+        it("test static factory methods forward extra arguments", () => {
+            // CollectionTest::testStaticFactoryMethodsForwardExtraArguments
+            const made = TestCollectionWithExtraState.make(
+                [1, 2, 3],
+                "make-tag",
+            );
+            expect(made).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(made).toHaveProperty("tag", "make-tag");
+            expect(made.all()).toEqual([1, 2, 3]);
+
+            const wrapped = TestCollectionWithExtraState.wrap(
+                [4, 5],
+                "wrap-tag",
+            );
+            expect(wrapped).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(wrapped).toHaveProperty("tag", "wrap-tag");
+            expect(wrapped.all()).toEqual([4, 5]);
+
+            const empty = TestCollectionWithExtraState.empty("empty-tag");
+            expect(empty).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(empty).toHaveProperty("tag", "empty-tag");
+            expect(empty.all()).toEqual([]);
+
+            const range = TestCollectionWithExtraState.range(
+                1,
+                3,
+                1,
+                "range-tag",
+            );
+            expect(range).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(range).toHaveProperty("tag", "range-tag");
+            expect(range.all()).toEqual([1, 2, 3]);
+
+            const times = TestCollectionWithExtraState.times(
+                3,
+                (i) => i * 10,
+                "times-tag",
+            );
+            expect(times).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(times).toHaveProperty("tag", "times-tag");
+            expect(times.all()).toEqual([10, 20, 30]);
+
+            const timesZero = TestCollectionWithExtraState.times(
+                0,
+                null,
+                "zero-tag",
+            );
+            expect(timesZero).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(timesZero).toHaveProperty("tag", "zero-tag");
+            expect(timesZero.all()).toEqual([]);
+
+            const json = TestCollectionWithExtraState.fromJson(
+                '["a","b"]',
+                512,
+                0,
+                "json-tag",
+            );
+            expect(json).toBeInstanceOf(TestCollectionWithExtraState);
+            expect(json).toHaveProperty("tag", "json-tag");
+            expect(json.all()).toEqual(["a", "b"]);
+        });
+
+        it("keeps the calling subclass in every static factory", () => {
+            class Sub extends Collection<unknown, PropertyKey> {}
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-static-factories-keep-subclass"
+            expect({
+                make: Sub.make([1]).constructor,
+                wrap: Sub.wrap([1]).constructor,
+                empty: Sub.empty().constructor,
+                range: Sub.range(1, 3).constructor,
+                times: Sub.times(3).constructor,
+                "times-callback": Sub.times(3, (i) => i * 10).constructor,
+                fromJson: Sub.fromJson("[1]").constructor,
+            }).toEqual({
+                make: Sub,
+                wrap: Sub,
+                empty: Sub,
+                range: Sub,
+                times: Sub,
+                "times-callback": Sub,
+                fromJson: Sub,
+            });
         });
     });
 
@@ -13520,19 +24154,18 @@ describe("Collection", () => {
         });
 
         it("get and has, either backing", () => {
-            // JS-only: both resolve a dot path, where PHP's are a literal array_key_exists
-            // ("get-dot-path-is-a-literal-key" / "has-dot-path-is-a-literal-key" in
-            // docs/php-parity/task-26-collection-order.json). Recorded, not settled: see get's docblock.
+            // docs/php-parity/task-26-collection-order.json, "get-dot-path-is-a-literal-key"
             expect(new Collection({ a: { b: 1 } }).get("a.b", "fallback")).toBe(
-                1,
+                "fallback",
             );
-            expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(true);
 
-            // JS-only: PHP's getOrPut writes a second, literal "a.b" key and answers 9
-            // ("getOrPut-dot-path-is-a-literal-key" in the same file); this reads the path instead.
+            // docs/php-parity/task-26-collection-order.json, "has-dot-path-is-a-literal-key"
+            expect(new Collection({ a: { b: 1 } }).has("a.b")).toBe(false);
+
+            // docs/php-parity/task-26-collection-order.json, "getOrPut-dot-path-is-a-literal-key"
             const nested = new Collection({ a: { b: 1 } });
-            expect(nested.getOrPut("a.b", 9)).toBe(1);
-            expect(nested.all()).toEqual({ a: { b: 1 } });
+            expect(nested.getOrPut("a.b", 9)).toBe(9);
+            expect(nested.all()).toEqual({ a: { b: 1 }, "a.b": 9 });
 
             expect(new Collection(nums()).get(2)).toBe(30);
             expect(new Collection(numsObj()).get(2)).toBe(30);
@@ -13547,29 +24180,40 @@ describe("Collection", () => {
         });
 
         it("pull, either backing (Collection's own implementation)", () => {
-            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}
-            // — unset, not array_splice, so nothing is renumbered.
+            // collect([10,20,30,40])->pull(1) -> 20, leaving {0:10,2:30,3:40}: the record keeps those keys,
+            // and a list backing reindexes where PHP keeps a gap ("C32-B-pull-string-index-on-list").
             const fromArray = new Collection(nums());
             const fromObject = new Collection(numsObj());
 
             expect(fromArray.pull(1)).toBe(20);
             expect(fromObject.pull(1)).toBe(20);
-            expect(entriesOf(fromObject.all())).toEqual([
-                ["0", 10],
-                ["2", 30],
-                ["3", 40],
-            ]);
-            expect(Object.values(fromArray.all())).toEqual([10, 30, 40]);
+            agree(
+                fromArray.all(),
+                fromObject.all(),
+                [
+                    ["0", 10],
+                    ["1", 30],
+                    ["2", 40],
+                ],
+                [
+                    ["0", 10],
+                    ["2", 30],
+                    ["3", 40],
+                ],
+            );
         });
 
-        it("undot, either backing", () => {
+        it("undot, a list given dotted keys by put and the record it becomes", () => {
             // Arr::undot(['0'=>'a','1.0'=>'b','1.1'=>'c']) -> ['a',['b','c']].
-            const flatArray = Object.assign(["a"], { "1.0": "b", "1.1": "c" });
-            const flatObject = { "0": "a", "1.0": "b", "1.1": "c" };
+            // A list cannot hold a dotted key, so put rebuilds it as keyed; both halves then undot the same record.
+            const keyedList = new Collection(["a"])
+                .put("1.0", "b")
+                .put("1.1", "c");
+            const record = { "0": "a", "1.0": "b", "1.1": "c" };
 
             agree(
-                new Collection(flatArray).undot().all(),
-                new Collection(flatObject).undot().all(),
+                keyedList.undot().all(),
+                new Collection(record).undot().all(),
                 [
                     ["0", "a"],
                     ["1", ["b", "c"]],
@@ -13650,6 +24294,2006 @@ describe("Collection", () => {
             );
         });
     });
+
+    describe("item paths read like data_get", () => {
+        /** The rows as a list, or keyed "x", "y" and "z" in order. */
+        const backed = (keyed: boolean, rows: unknown[]) =>
+            new Collection<unknown, PropertyKey, "list" | "keyed">(
+                keyed
+                    ? Object.fromEntries(
+                          rows.map((row, index) => [
+                              ["x", "y", "z"][index],
+                              row,
+                          ]),
+                      )
+                    : rows,
+            );
+
+        /** Three Collection rows, "k" => b, a, b and "v" => 1, 2, 3, as a list or keyed "x", "y" and "z". */
+        const collectionRows = (keyed: boolean) =>
+            backed(keyed, [
+                collect({ k: "b", v: 1 }),
+                collect({ k: "a", v: 2 }),
+                collect({ k: "b", v: 3 }),
+            ]) as Collection<Collection<string | number, string>, PropertyKey>;
+
+        it.each([
+            [
+                "where reads a dot path through the item, never a literal dotted key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) =>
+                    backed(keyed, [
+                        { a: { b: 1 } },
+                        { a: { b: 2 } },
+                        { "a.b": 2 },
+                    ])
+                        .where("a.b", 2)
+                        .values()
+                        .all(),
+                { list: [{ a: { b: 2 } }], keyed: [{ a: { b: 2 } }] },
+            ],
+            [
+                "where expands a wildcard in the path",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) =>
+                    backed(keyed, [
+                        { a: [{ b: 1 }, { b: 2 }] },
+                        { a: [{ b: 3 }] },
+                    ])
+                        .where("a.*.b", [1, 2])
+                        .values()
+                        .all(),
+                {
+                    list: [{ a: [{ b: 1 }, { b: 2 }] }],
+                    keyed: [{ a: [{ b: 1 }, { b: 2 }] }],
+                },
+            ],
+            [
+                "pluck reads a dot path through the item, never a literal dotted key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing"
+                (keyed: boolean) =>
+                    backed(keyed, [{ "a.b": 1, a: { b: 2 } }])
+                        .pluck("a.b")
+                        .all(),
+                { list: [2], keyed: [2] },
+            ],
+            [
+                "value reads a dot path through the item, never a literal dotted key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-D-data-get-literal-dotted-key"
+                (keyed: boolean) =>
+                    backed(keyed, [{ "a.b": 1, a: { b: 2 } }]).value("a.b"),
+                { list: 2, keyed: 2 },
+            ],
+            [
+                "value finds no item for a path that only a literal dotted key would match",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-D-data-get-literal-dotted-key"
+                (keyed: boolean) =>
+                    backed(keyed, [{ "a.b": 1 }]).value("a.b", "miss"),
+                { list: "miss", keyed: "miss" },
+            ],
+            [
+                "keyBy reads an array path one segment at a time",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-E-keyBy-array-path"
+                (keyed: boolean) =>
+                    backed(keyed, [{ a: { b: "z" } }])
+                        .keyBy(["a", "b"])
+                        .keys()
+                        .all(),
+                { list: ["z"], keyed: ["z"] },
+            ],
+            [
+                "keyBy keys an array path that reaches no value under the empty string",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing" and
+                // "C32-E-keyBy-array-path"
+                (keyed: boolean) =>
+                    backed(keyed, [{ id: 1, name: "John" }])
+                        .keyBy(["id", "name"])
+                        .keys()
+                        .all(),
+                { list: [""], keyed: [""] },
+            ],
+        ] as [
+            string,
+            (keyed: boolean) => unknown,
+            { list: unknown; keyed: unknown },
+        ][])("%s", (_name, run, expected) => {
+            expect(run(false)).toEqual(expected.list);
+            expect(run(true)).toEqual(expected.keyed);
+        });
+
+        it.each([
+            [
+                "contains reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows-by-backing"
+                (keyed: boolean) => collectionRows(keyed).contains("k", "a"),
+                { list: true, keyed: true },
+            ],
+            [
+                "where reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) =>
+                    collectionRows(keyed).where("k", "b").pluck("v").all(),
+                { list: [1, 3], keyed: [1, 3] },
+            ],
+            [
+                "firstWhere reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows-by-backing"
+                (keyed: boolean) =>
+                    collectionRows(keyed).firstWhere("k", "a")?.all(),
+                { list: { k: "a", v: 2 }, keyed: { k: "a", v: 2 } },
+            ],
+            [
+                "value reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows-by-backing"
+                (keyed: boolean) => collectionRows(keyed).value("v"),
+                { list: 1, keyed: 1 },
+            ],
+            [
+                "pluck reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-collection-rows"
+                (keyed: boolean) => [
+                    collectionRows(keyed).pluck("v").all(),
+                    collectionRows(keyed).pluck("v", "k").all(),
+                ],
+                {
+                    list: [[1, 2, 3], { b: 3, a: 2 }],
+                    keyed: [[1, 2, 3], { b: 3, a: 2 }],
+                },
+            ],
+            [
+                "sortBy reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed).sortBy("k").pluck("v").all(),
+                { list: [2, 1, 3], keyed: [2, 1, 3] },
+            ],
+            [
+                "sortBy reads each descriptor's path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-descriptors-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .sortBy([
+                            ["k", "asc"],
+                            ["v", "desc"],
+                        ])
+                        .pluck("v")
+                        .all(),
+                { list: [2, 3, 1], keyed: [2, 3, 1] },
+            ],
+            [
+                "groupBy reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .groupBy("k")
+                        .map((group) => collect(group).pluck("v").all())
+                        .all(),
+                { list: { b: [1, 3], a: [2] }, keyed: { b: [1, 3], a: [2] } },
+            ],
+            [
+                "keyBy reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .keyBy("k")
+                        .map((row) => row.offsetGet("v"))
+                        .all(),
+                { list: { b: 3, a: 2 }, keyed: { b: 3, a: 2 } },
+            ],
+            [
+                "unique reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-unique-collection-rows"
+                (keyed: boolean) => [
+                    collectionRows(keyed).unique("k").keys().all(),
+                    collectionRows(keyed).unique("k").pluck("v").all(),
+                ],
+                {
+                    list: [
+                        [0, 1],
+                        [1, 2],
+                    ],
+                    keyed: [
+                        ["x", "y"],
+                        [1, 2],
+                    ],
+                },
+            ],
+            [
+                "duplicates reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-duplicates-collection-rows"
+                (keyed: boolean) => [
+                    collectionRows(keyed).duplicates("k").keys().all(),
+                    collectionRows(keyed).duplicates("k").values().all(),
+                ],
+                { list: [[2], ["b"]], keyed: [["z"], ["b"]] },
+            ],
+            [
+                "partition reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-partition-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed)
+                        .partition("k", "b")
+                        .all()
+                        .map((half) => half.pluck("v").all()),
+                { list: [[1, 3], [2]], keyed: [[1, 3], [2]] },
+            ],
+            [
+                "whereIn, whereNotIn and whereNotBetween read a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-filtered-values"
+                (keyed: boolean) => [
+                    collectionRows(keyed).whereIn("k", ["a"]).pluck("v").all(),
+                    collectionRows(keyed)
+                        .whereNotIn("k", ["a"])
+                        .pluck("v")
+                        .all(),
+                    collectionRows(keyed)
+                        .whereNotBetween("v", [2, 2])
+                        .pluck("v")
+                        .all(),
+                ],
+                {
+                    list: [[2], [1, 3], [1, 3]],
+                    keyed: [[2], [1, 3], [1, 3]],
+                },
+            ],
+            [
+                "containsStrict reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-in-collection-rows"
+                (keyed: boolean) =>
+                    collectionRows(keyed).containsStrict("k", "a"),
+                { list: true, keyed: true },
+            ],
+            [
+                "implode reads a path through Collection rows",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-collection-rows-by-backing"
+                (keyed: boolean) => collectionRows(keyed).implode("k", ","),
+                { list: "b,a,b", keyed: "b,a,b" },
+            ],
+        ] as [
+            string,
+            (keyed: boolean) => unknown,
+            { list: unknown; keyed: unknown },
+        ][])("%s", (_name, run, expected) => {
+            expect(run(false)).toEqual(expected.list);
+            expect(run(true)).toEqual(expected.keyed);
+        });
+
+        /** The same three rows as Maps, which stand for the PHP arrays of C32-D-array-rows-by-backing. */
+        const mapRows = (keyed: boolean) =>
+            backed(keyed, [
+                new Map<string, string | number>([
+                    ["k", "b"],
+                    ["v", 1],
+                ]),
+                new Map<string, string | number>([
+                    ["k", "a"],
+                    ["v", 2],
+                ]),
+                new Map<string, string | number>([
+                    ["k", "b"],
+                    ["v", 3],
+                ]),
+            ]) as Collection<Map<string, string | number>, PropertyKey>;
+
+        it.each([
+            [
+                "contains",
+                (keyed: boolean) => mapRows(keyed).contains("k", "a"),
+                true,
+            ],
+            [
+                "where",
+                (keyed: boolean) =>
+                    mapRows(keyed).where("k", "b").pluck("v").all(),
+                [1, 3],
+            ],
+            [
+                "firstWhere",
+                (keyed: boolean) => {
+                    const row = mapRows(keyed).firstWhere("k", "a");
+
+                    return row && Object.fromEntries(row);
+                },
+                { k: "a", v: 2 },
+            ],
+            ["value", (keyed: boolean) => mapRows(keyed).value("v"), 1],
+            [
+                "pluck",
+                (keyed: boolean) => [
+                    mapRows(keyed).pluck("v").all(),
+                    mapRows(keyed).pluck("v", "k").all(),
+                ],
+                [[1, 2, 3], { b: 3, a: 2 }],
+            ],
+            [
+                "sortBy",
+                (keyed: boolean) => mapRows(keyed).sortBy("k").pluck("v").all(),
+                [2, 1, 3],
+            ],
+            [
+                "groupBy",
+                (keyed: boolean) =>
+                    mapRows(keyed)
+                        .groupBy("k")
+                        .map((group) => collect(group).pluck("v").all())
+                        .all(),
+                { b: [1, 3], a: [2] },
+            ],
+            [
+                "keyBy",
+                (keyed: boolean) =>
+                    mapRows(keyed)
+                        .keyBy("k")
+                        .map((row) => row.get("v"))
+                        .all(),
+                { b: 3, a: 2 },
+            ],
+            [
+                "whereIn",
+                (keyed: boolean) =>
+                    mapRows(keyed).whereIn("k", ["a"]).pluck("v").all(),
+                [2],
+            ],
+        ] as [string, (keyed: boolean) => unknown, unknown][])(
+            "%s reads a path through Map rows, as through the arrays they stand for",
+            (_method, run, expected) => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-rows-by-backing"
+                expect(run(false)).toEqual(expected);
+                expect(run(true)).toEqual(expected);
+            },
+        );
+
+        it("reads a single Collection row through contains, where, firstWhere and value", () => {
+            const rows = () => collect([collect({ v: 1 })]);
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-rows"
+            expect([
+                rows().contains("v", 1),
+                rows().where("v", 1).count(),
+                rows().firstWhere("v", 1)?.all(),
+                rows().value("v"),
+            ]).toEqual([true, 1, { v: 1 }, 1]);
+        });
+
+        it("plucks a key out of Collection rows", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-collections"
+            expect(
+                collect([collect({ a: 1 }), collect({ a: 2 })])
+                    .pluck("a")
+                    .all(),
+            ).toEqual([1, 2]);
+        });
+
+        it("where keeps the key of each item a path matches", () => {
+            // A record holding a list's own keys keeps them, where a list backing reindexes after a removal.
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-dot-path"
+            expect(
+                collect({
+                    0: { a: { b: 1 } },
+                    1: { a: { b: 2 } },
+                    2: { "a.b": 2 },
+                })
+                    .where("a.b", 2)
+                    .keys()
+                    .all(),
+            ).toEqual([1]);
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-where-wildcard-path"
+            expect(
+                collect({
+                    0: { a: [{ b: 1 }, { b: 2 }] },
+                    1: { a: [{ b: 3 }] },
+                })
+                    .where("a.*.b", [1, 2])
+                    .keys()
+                    .all(),
+            ).toEqual([0]);
+        });
+
+        it("reads the item itself for a null path", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-whereIn-null-key"
+            expect(
+                collect([1, 2, 3]).whereIn(null, [1, 3]).values().all(),
+            ).toEqual([1, 3]);
+        });
+
+        it("takes the first Collection row that holds the key, even when it holds null", () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-value-collection-row-null"
+            expect(
+                collect([collect({ v: null }), collect({ v: 1 })]).value(
+                    "v",
+                    "def",
+                ),
+            ).toBeNull();
+        });
+    });
+
+    describe("callbacks receive PHP's integer keys", () => {
+        /** The keys a method hands its callback over ["a", "b"] and over { 1: "a", x: "b" }, in order. */
+        const keysSeen = (
+            run: (
+                collection: Collection<string, PropertyKey, CollectionShape>,
+                note: (key: PropertyKey) => void,
+            ) => void,
+        ): PropertyKey[][] =>
+            [["a", "b"], { 1: "a", x: "b" }].map((items) => {
+                const seen: PropertyKey[] = [];
+
+                run(
+                    new Collection<string, PropertyKey, CollectionShape>(items),
+                    (key) => {
+                        seen.push(key);
+                    },
+                );
+
+                return seen;
+            });
+
+        it.each([
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-every-callback-key-types"
+                "every",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.every((_value, key) => {
+                        note(key);
+
+                        return true;
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-mixed-keys"
+                "each",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.each((_value, key) => {
+                        note(key);
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-callback-key-type"
+                "groupBy",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.groupBy((_value, key) => {
+                        note(key);
+
+                        return "g";
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-callback-key-type"
+                "countBy",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.countBy((_value, key) => {
+                        note(key);
+
+                        return "g";
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-callback-key-types-list"
+                // and "C32-G-sortBy-callback-key-types-int-keys"
+                "sortBy",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.sortBy((value, key) => {
+                        note(key);
+
+                        return value;
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-reduceSpread-list-key-type"
+                "reduceSpread",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.reduceSpread((carry, _value, key) => {
+                        note(key);
+
+                        return [carry];
+                    }, null);
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapWithKeys-callback-key-type"
+                "mapWithKeys",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.mapWithKeys((value, key) => {
+                        note(key);
+
+                        return { [value]: value };
+                    });
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-callback-key-type"
+                "keyBy",
+                (
+                    collection: Collection<
+                        string,
+                        PropertyKey,
+                        CollectionShape
+                    >,
+                    note: (key: PropertyKey) => void,
+                ) => {
+                    collection.keyBy((value, key) => {
+                        note(key);
+
+                        return value;
+                    });
+                },
+            ],
+        ])("%s hands its callback PHP's integer keys", (_method, run) => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-callback-key-types-sweep"
+            expect(keysSeen(run)).toEqual([
+                [0, 1],
+                [1, "x"],
+            ]);
+        });
+
+        it("sortKeysUsing compares PHP's integer keys", () => {
+            const compared = keysSeen((collection, note) => {
+                collection.sortKeysUsing((a, b) => {
+                    note(a);
+                    note(b);
+
+                    return String(a).localeCompare(String(b));
+                });
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortKeysUsing-key-types" and
+            // "C32-E-callback-key-types-sweep", which list the distinct keys compared, sorted
+            expect(
+                compared.map((keys) =>
+                    [...new Set(keys)].sort((a, b) =>
+                        String(a).localeCompare(String(b)),
+                    ),
+                ),
+            ).toEqual([
+                [0, 1],
+                [1, "x"],
+            ]);
+        });
+
+        it("containsStrict, search, hasSole, sole and firstOrFail hand their callbacks PHP's integer keys", () => {
+            const collection = collect({ 1: "a", x: "b" });
+            const keysSeen = (
+                run: (
+                    callback: (value: string, key: PropertyKey) => boolean,
+                ) => void,
+            ): PropertyKey[] => {
+                const keys: PropertyKey[] = [];
+
+                run((_value, key) => {
+                    keys.push(key);
+
+                    return false;
+                });
+
+                return keys;
+            };
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-C-callback-key-types-numeric-string-record"
+            expect({
+                containsStrict: keysSeen((callback) => {
+                    collection.containsStrict(callback);
+                }),
+                search: keysSeen((callback) => {
+                    collection.search(callback);
+                }),
+                hasSole: keysSeen((callback) => {
+                    collection.hasSole(callback);
+                }),
+                sole: keysSeen((callback) => {
+                    expect(() => collection.sole(callback)).toThrow(
+                        ItemNotFoundException,
+                    );
+                }),
+                firstOrFail: keysSeen((callback) => {
+                    expect(() => collection.firstOrFail(callback)).toThrow(
+                        ItemNotFoundException,
+                    );
+                }),
+            }).toEqual({
+                containsStrict: [1, "x"],
+                search: [1, "x"],
+                hasSole: [1, "x"],
+                sole: [1, "x"],
+                firstOrFail: [1, "x"],
+            });
+        });
+
+        it("each hands its callback an integer key for an array or object item too", () => {
+            const seen: PropertyKey[] = [];
+
+            collect([{ a: 1 }, { b: 2 }]).each((_value, key) => {
+                seen.push(key);
+            });
+            collect({ 5: { a: 1 } }).each((_value, key) => {
+                seen.push(key);
+            });
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-each-key-type-array-items"
+            expect(seen).toEqual([0, 1, 5]);
+        });
+    });
+
+    describe("computed keys follow PHP's array-key rules", () => {
+        /** An object with its own toString, as PHP's anonymous class with a __toString. */
+        const framework = () =>
+            new (class {
+                toString(): string {
+                    return "Framework";
+                }
+            })();
+
+        it.each([
+            [
+                "keyBy casts a Stringable or an object with its own toString to its string",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-stringable-keys"
+                () => [
+                    collect([1]).keyBy(framework).keys().all(),
+                    collect([1])
+                        .keyBy(() => new Stringable("Lara"))
+                        .keys()
+                        .all(),
+                ],
+                [["Framework"], ["Lara"]],
+            ],
+            [
+                "groupBy truncates a float key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-float-key"
+                () =>
+                    collect([1, 2])
+                        .groupBy(() => 1.5)
+                        .toArray(),
+                { 1: [1, 2] },
+            ],
+            [
+                "groupBy files an item under each value of a plain object it returns",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-assoc-return"
+                () =>
+                    collect([1, 2])
+                        .groupBy((x) => ({ p: x, q: "z" }))
+                        .toArray(),
+                { 1: [1], z: [1, 2], 2: [2] },
+            ],
+            [
+                "countBy truncates a float",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-float"
+                () => collect([1.5, 1.7, 2.5]).countBy().all(),
+                { 1: 2, 2: 1 },
+            ],
+            [
+                "pluck casts a key closure's bool or float result",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-closure-casts"
+                () => [
+                    collect([{ v: "x" }, { v: "y" }])
+                        .pluck("v", (row) => row.v === "x")
+                        .all(),
+                    collect([{ v: "x" }])
+                        .pluck("v", () => 1.5)
+                        .all(),
+                ],
+                [{ 1: "x", 0: "y" }, { 1: "x" }],
+            ],
+            [
+                "pluck casts a key path's null, bool or float value",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+                () =>
+                    collect([
+                        { k: null, v: "n" },
+                        { k: true, v: "t" },
+                        { k: false, v: "f" },
+                        { k: 1.5, v: "fl" },
+                    ])
+                        .pluck("v", "k")
+                        .all(),
+                { "": "n", 1: "fl", 0: "f" },
+            ],
+            [
+                "pluck casts a Stringable or an object with its own toString to its string",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-stringable-key" and
+                // "C32-E-pluck-tostring-key"
+                () => [
+                    collect([{ v: 1 }])
+                        .pluck("v", () => new Stringable("Lara"))
+                        .all(),
+                    collect([{ v: 1 }])
+                        .pluck("v", framework)
+                        .all(),
+                ],
+                [{ Lara: 1 }, { Framework: 1 }],
+            ],
+            [
+                "pluck keys by a unit enum case's name",
+                // JS-only: a unit enum case is its name, a plain string, so pluck keys by it where PHP's case throws.
+                () =>
+                    collect([{ v: 1 }])
+                        .pluck("v", () => TestEnum.A)
+                        .all(),
+                { A: 1 },
+            ],
+            [
+                "mode counts a bool under the integer key PHP stores it as",
+                // docs/php-parity/task-31-laravel-13-33-sync.json, "mode-bools"
+                () => collect([true, true, false]).mode(),
+                [1],
+            ],
+            [
+                "mode truncates a float",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-float-items"
+                () => collect([1.5, 1.7, 2.5]).mode(),
+                [1],
+            ],
+            [
+                "mode counts a unit enum case by its name",
+                // JS-only: a unit enum case is its name, a plain string, so mode counts it where PHP's case throws.
+                () => collect([TestEnum.A, TestEnum.A, "z"]).mode(),
+                ["A"],
+            ],
+        ] as [string, () => unknown, unknown][])(
+            "%s",
+            (_name, run, expected) => {
+                expect(run()).toEqual(expected);
+            },
+        );
+
+        it.each([
+            [
+                "keyBy throws an Error for an object without its own toString",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-date-key": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([1]).keyBy(() => new Date(0)),
+                new Error(
+                    "Object of class Date could not be converted to string",
+                ),
+            ],
+            [
+                "groupBy throws for an array key among the keys it gets back",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-nested-array-key"
+                () => collect([1]).groupBy(() => [[1, 2]]),
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            ],
+            [
+                "groupBy throws for a plain object key among the keys it gets back",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-nested-assoc-key"
+                () => collect([1]).groupBy(() => [{ a: 1 }]),
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            ],
+            [
+                "groupBy throws for a Date key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-date-key"
+                () => collect([1]).groupBy(() => new Date(0)),
+                new TypeError(
+                    "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+                ),
+            ],
+            [
+                "countBy throws for a Date",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-date-key": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([1]).countBy(() => new Date(0)),
+                new TypeError(
+                    "Cannot access offset of type Date in isset or empty",
+                ),
+            ],
+            [
+                "countBy throws for a Stringable, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-stringable-key": the
+                // message names the class as JS does, without PHP's Illuminate\Support namespace.
+                () => collect([1]).countBy(() => new Stringable("Lara")),
+                new TypeError(
+                    "Cannot access offset of type Stringable in isset or empty",
+                ),
+            ],
+            [
+                "countBy throws for an object with its own toString, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-tostring-key"
+                () => collect([1]).countBy(framework),
+                new TypeError(
+                    "Cannot access offset of type class@anonymous in isset or empty",
+                ),
+            ],
+            [
+                "pluck throws for an array key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key"
+                () => collect([{ v: 1 }]).pluck("v", () => [1, 2]),
+                new TypeError("Cannot access offset of type array on array"),
+            ],
+            [
+                "pluck throws for a plain object key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-assoc-key"
+                () => collect([{ v: 1 }]).pluck("v", () => ({ a: 1 })),
+                new TypeError("Cannot access offset of type array on array"),
+            ],
+            [
+                "pluck throws for a Date key",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-date-key": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([{ v: 1 }]).pluck("v", () => new Date(0)),
+                new TypeError("Cannot access offset of type Date on array"),
+            ],
+            [
+                "pluck throws for a closure key, which PHP names Closure",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key"
+                () => collect([{ v: 1 }]).pluck("v", () => () => 1),
+                new TypeError("Cannot access offset of type Closure on array"),
+            ],
+            [
+                "pluck throws for an anonymous subclass's instance as a key, naming the class it extends",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-anonymous-subclass-key"
+                () => {
+                    class Parent {}
+
+                    return collect([{ v: 1 }]).pluck(
+                        "v",
+                        () => new (class extends Parent {})(),
+                    );
+                },
+                new TypeError(
+                    "Cannot access offset of type Parent@anonymous on array",
+                ),
+            ],
+            [
+                "pluck throws for an enum case key, which it does not unwrap",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a
+                // plain object here, so the message names the array it models where PHP names the enum's class.
+                () =>
+                    collect([{ v: 1 }]).pluck("v", () =>
+                        TestBackedEnum.from(2),
+                    ),
+                new TypeError("Cannot access offset of type array on array"),
+            ],
+            [
+                "mode throws for array items",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-array-items"
+                () => collect([[1], [1]]).mode(),
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for plain object items",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-assoc-items"
+                () => collect([{ a: 1 }, { a: 1 }]).mode(),
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for Date items",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-date-items": a JS Date
+                // names its own class, where PHP's message names DateTime.
+                () => collect([new Date(0), new Date(0)]).mode(),
+                new TypeError(
+                    "Cannot access offset of type Date in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for enum case items, which it does not unwrap",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-enum-items": a case is a
+                // plain object here, so the message names the array it models where PHP names the enum's class.
+                () =>
+                    collect([
+                        TestBackedEnum.from(2),
+                        TestBackedEnum.from(2),
+                    ]).mode(),
+                new TypeError(
+                    "Cannot access offset of type array in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for Stringable items, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-stringable-items": the
+                // message names the class as JS does, without PHP's Illuminate\Support namespace.
+                () =>
+                    collect([
+                        new Stringable("Lara"),
+                        new Stringable("Lara"),
+                    ]).mode(),
+                new TypeError(
+                    "Cannot access offset of type Stringable in isset or empty",
+                ),
+            ],
+            [
+                "mode throws for items with their own toString, which it does not cast",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-mode-tostring-items"
+                () => {
+                    const item = framework();
+
+                    return collect([item, item]).mode();
+                },
+                new TypeError(
+                    "Cannot access offset of type class@anonymous in isset or empty",
+                ),
+            ],
+        ] as [string, () => unknown, Error][])("%s", (_name, run, failure) => {
+            expect(run).toThrow(failure);
+        });
+
+        /** The three views a keyed result pins: its entries, its keys in order and its values in order. */
+        const views = <
+            TValue,
+            TKey extends PropertyKey,
+            TShape extends CollectionShape,
+        >(
+            collection: Collection<TValue, TKey, TShape>,
+        ) => ({
+            all: collection.toArray(),
+            keys: collection.keys().all(),
+            values: collection.values().toArray(),
+        });
+
+        it.each([
+            [
+                "keyBy keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-int-key-order"
+                () => collect([{ id: 3 }, { id: 1 }, { id: 2 }]).keyBy("id"),
+                {
+                    all: { 3: { id: 3 }, 1: { id: 1 }, 2: { id: 2 } },
+                    keys: [3, 1, 2],
+                    values: [{ id: 3 }, { id: 1 }, { id: 2 }],
+                },
+            ],
+            [
+                "groupBy keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-int-key-order"
+                () => collect([{ r: 2 }, { r: 1 }, { r: 2 }]).groupBy("r"),
+                {
+                    all: { 2: [{ r: 2 }, { r: 2 }], 1: [{ r: 1 }] },
+                    keys: [2, 1],
+                    values: [[{ r: 2 }, { r: 2 }], [{ r: 1 }]],
+                },
+            ],
+            [
+                "groupBy keeps the order its bool keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-groupBy-bool-key-order"
+                () =>
+                    collect([{ a: true }, { a: false }, { a: true }]).groupBy(
+                        "a",
+                    ),
+                {
+                    all: { 1: [{ a: true }, { a: true }], 0: [{ a: false }] },
+                    keys: [1, 0],
+                    values: [[{ a: true }, { a: true }], [{ a: false }]],
+                },
+            ],
+            [
+                "countBy keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-int-key-order"
+                () => collect([3, 1, 3]).countBy(),
+                { all: { 3: 2, 1: 1 }, keys: [3, 1], values: [2, 1] },
+            ],
+            [
+                "pluck keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-int-key-order"
+                () =>
+                    collect([
+                        { id: 3, n: "c" },
+                        { id: 1, n: "a" },
+                        { id: 2, n: "b" },
+                    ]).pluck("n", "id"),
+                {
+                    all: { 3: "c", 1: "a", 2: "b" },
+                    keys: [3, 1, 2],
+                    values: ["c", "a", "b"],
+                },
+            ],
+            [
+                "mapToDictionary keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToDictionary-int-key-order"
+                () =>
+                    collect([3, 1, 3, 2]).mapToDictionary((value, key) => ({
+                        [value]: key,
+                    })),
+                {
+                    all: { 3: [0, 2], 1: [1], 2: [3] },
+                    keys: [3, 1, 2],
+                    values: [[0, 2], [1], [3]],
+                },
+            ],
+            [
+                "mapToGroups keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapToGroups-int-key-order"
+                () =>
+                    collect([3, 1, 3]).mapToGroups((value, key) => ({
+                        [value]: key,
+                    })),
+                {
+                    all: { 3: [0, 2], 1: [1] },
+                    keys: [3, 1],
+                    values: [[0, 2], [1]],
+                },
+            ],
+            [
+                "flip keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-flip-int-key-order"
+                () => collect({ x: 3, y: 1 }).flip(),
+                { all: { 3: "x", 1: "y" }, keys: [3, 1], values: ["x", "y"] },
+            ],
+            [
+                "flip keeps its order past the values it skips",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-flip-int-key-order"
+                () =>
+                    collect({
+                        string: "taylor",
+                        integer: 1,
+                        null: null,
+                        false: false,
+                        true: true,
+                        float: 1.5,
+                        array: [],
+                        object: {},
+                    }).flip(),
+                {
+                    all: { taylor: "string", 1: "integer" },
+                    keys: ["taylor", 1],
+                    values: ["string", "integer"],
+                },
+            ],
+            [
+                "collapseWithKeys keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-collapseWithKeys-int-key-order"
+                () =>
+                    collect([
+                        { 1: "a" },
+                        { 3: "c" },
+                        { 2: "b" },
+                        "drop",
+                    ]).collapseWithKeys(),
+                {
+                    all: { 1: "a", 3: "c", 2: "b" },
+                    keys: [1, 3, 2],
+                    values: ["a", "c", "b"],
+                },
+            ],
+            [
+                "combine keeps the order its integer keys arrive in",
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-combine-int-key-order"
+                () => collect([3, 1, 2]).combine(["c", "a", "b"]),
+                {
+                    all: { 3: "c", 1: "a", 2: "b" },
+                    keys: [3, 1, 2],
+                    values: ["c", "a", "b"],
+                },
+            ],
+        ] as [
+            string,
+            () => Collection<unknown, PropertyKey>,
+            { all: unknown; keys: unknown; values: unknown },
+        ][])("%s", (_name, run, expected) => {
+            expect(views(run())).toEqual(expected);
+        });
+
+        it.each([
+            [
+                "groupBy",
+                () =>
+                    collect([{ k: "s" }, { k: 5 }])
+                        .groupBy("k")
+                        .keys()
+                        .all(),
+            ],
+            ["countBy", () => collect(["s", 5]).countBy().keys().all()],
+            [
+                "keyBy",
+                () =>
+                    collect([{ k: "s" }, { k: 5 }])
+                        .keyBy("k")
+                        .keys()
+                        .all(),
+            ],
+            [
+                "pluck",
+                () =>
+                    collect([
+                        { k: "s", v: 1 },
+                        { k: 5, v: 2 },
+                    ])
+                        .pluck("v", "k")
+                        .keys()
+                        .all(),
+            ],
+            [
+                "mapToDictionary",
+                () =>
+                    collect(["s", 5])
+                        .mapToDictionary((value) => ({ [value]: value }))
+                        .keys()
+                        .all(),
+            ],
+            [
+                "collapseWithKeys",
+                () =>
+                    collect([{ s: 1 }, { 5: 2 }])
+                        .collapseWithKeys()
+                        .keys()
+                        .all(),
+            ],
+            ["flip", () => collect(["s", 5]).flip().keys().all()],
+        ] as [string, () => PropertyKey[]][])(
+            "%s keeps a string key produced before an integer key first",
+            (_method, run) => {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-mixed-key-order"
+                expect(run()).toEqual(["s", 5]);
+            },
+        );
+
+        it.each([
+            [
+                "mapWithKeys",
+                () =>
+                    collect<string>([]).mapWithKeys((value) => ({
+                        [value]: value,
+                    })),
+            ],
+            ["groupBy", () => collect<string>([]).groupBy("x")],
+            ["countBy", () => collect<string>([]).countBy()],
+            ["keyBy", () => collect<string>([]).keyBy("x")],
+            ["flip", () => collect<string>([]).flip()],
+        ] as [
+            string,
+            () => Collection<unknown, PropertyKey, CollectionShape>,
+        ][])(
+            "%s writes an empty result as PHP's empty array",
+            (_method, run) => {
+                const result = run();
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyed-results-empty"
+                expect(result.toJson()).toBe("[]");
+                expect(result.keys().all()).toEqual([]);
+                expect(result.values().all()).toEqual([]);
+                // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
+                expect(result.all()).toEqual({});
+            },
+        );
+
+        it.each([
+            [
+                "keyBy",
+                () =>
+                    new Collection(
+                        new Map([
+                            [2, { id: 5 }],
+                            [0, { id: 4 }],
+                        ]),
+                    )
+                        .keyBy("id")
+                        .keys()
+                        .all(),
+                [5, 4],
+            ],
+            [
+                "groupBy",
+                () =>
+                    new Collection(
+                        new Map([
+                            [2, { g: 5 }],
+                            [0, { g: 4 }],
+                        ]),
+                    )
+                        .groupBy("g")
+                        .keys()
+                        .all(),
+                [5, 4],
+            ],
+            [
+                "countBy",
+                () =>
+                    new Collection(
+                        new Map([
+                            [2, 5],
+                            [0, 4],
+                        ]),
+                    )
+                        .countBy()
+                        .keys()
+                        .all(),
+                [5, 4],
+            ],
+            [
+                "mapToDictionary",
+                () => {
+                    const dictionary = new Collection(
+                        new Map([
+                            [2, 5],
+                            [0, 4],
+                        ]),
+                    ).mapToDictionary((value, key) => ({ [value]: key }));
+
+                    return [dictionary.keys().all(), dictionary.values().all()];
+                },
+                [
+                    [5, 4],
+                    [[2], [0]],
+                ],
+            ],
+            [
+                "flip",
+                () => {
+                    const flipped = new Collection(
+                        new Map([
+                            [2, "x"],
+                            [0, "y"],
+                            [1, "x"],
+                        ]),
+                    ).flip();
+
+                    return [flipped.keys().all(), flipped.values().all()];
+                },
+                [
+                    ["x", "y"],
+                    [1, 0],
+                ],
+            ],
+        ] as [string, () => unknown, unknown][])(
+            "%s reads a Map-built collection in the order it holds its keys",
+            (_method, run, expected) => {
+                // docs/php-parity/task-32-collection-release-readiness.json,
+                // "C32-E-keyed-results-out-of-order-receiver"
+                expect(run()).toEqual(expected);
+            },
+        );
+
+        it("combine pairs a Map-built collection's values in the order it holds them", () => {
+            const combined = new Collection(
+                new Map([
+                    [2, "c"],
+                    [0, "a"],
+                    [1, "b"],
+                ]),
+            ).combine(["x", "y", "z"]);
+
+            // docs/php-parity/task-30-map-order.json, "combine-out-of-order"
+            expect(combined.all()).toEqual({ c: "x", a: "y", b: "z" });
+            expect(combined.keys().all()).toEqual(["c", "a", "b"]);
+            expect(combined.values().all()).toEqual(["x", "y", "z"]);
+        });
+
+        it("keeps a Map key's type as PHP stores it, as an integer only when canonical", () => {
+            const keys = new Collection(
+                new Map([
+                    ["1.5", "a"],
+                    ["Infinity", "b"],
+                    ["-1", "c"],
+                    ["01", "d"],
+                    ["1e3", "e"],
+                    ["10", "f"],
+                    ["1e+21", "g"],
+                ]),
+            )
+                .keys()
+                .all();
+
+            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            expect(keys).toEqual([
+                "1.5",
+                "Infinity",
+                -1,
+                "01",
+                "1e3",
+                10,
+                "1e+21",
+            ]);
+        });
+    });
+
+    describe("keyed access refuses a key no PHP array can hold", () => {
+        class stdClass {}
+
+        const list = () => collect(["a", "b"]);
+        const keyed = () => collect({ a: 1, b: 2 });
+        /** Each key PHP cannot store, and the type its messages name; a plain object stands in for an array. */
+        const illegal: [string, unknown][] = [
+            ["array", ["a"]],
+            ["array", { a: 1 }],
+            ["stdClass", new stdClass()],
+            ["Closure", () => 1],
+        ];
+        const keyExists = new TypeError(
+            "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
+        );
+        it("throws from put() and offsetSet() before writing anything", () => {
+            for (const [type, key] of illegal) {
+                const failure = new TypeError(
+                    `Cannot access offset of type ${type} on array`,
+                );
+                const [listed, keys] = [list(), keyed()];
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-put-illegal-key"
+                expect(() =>
+                    Reflect.apply(listed.put, listed, [key, 9]),
+                ).toThrow(failure);
+                expect(() => Reflect.apply(keys.put, keys, [key, 9])).toThrow(
+                    failure,
+                );
+                expect(() =>
+                    Reflect.apply(listed.offsetSet, listed, [key, 9]),
+                ).toThrow(failure);
+                expect(() =>
+                    Reflect.apply(keys.offsetSet, keys, [key, 9]),
+                ).toThrow(failure);
+                expect([listed.all(), keys.all()]).toEqual([
+                    ["a", "b"],
+                    { a: 1, b: 2 },
+                ]);
+            }
+        });
+
+        it("throws array_key_exists()'s TypeError from get() and getOrPut()", () => {
+            for (const [, key] of illegal) {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-get-illegal-key"
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.get, collection, [key]),
+                    ).toThrow(keyExists);
+                    expect(() =>
+                        Reflect.apply(collection.getOrPut, collection, [
+                            key,
+                            9,
+                        ]),
+                    ).toThrow(keyExists);
+                }
+            }
+        });
+
+        it("throws array_key_exists()'s TypeError from has() once it reaches the key, as array_all() does", () => {
+            const [listed, keys] = [list(), keyed()];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-has-illegal-key"
+            expect(() => Reflect.apply(listed.has, listed, [[["a"]]])).toThrow(
+                keyExists,
+            );
+            expect(() => Reflect.apply(keys.has, keys, [[["a"]]])).toThrow(
+                keyExists,
+            );
+            expect(() =>
+                Reflect.apply(listed.has, listed, [[0, ["b"]]]),
+            ).toThrow(keyExists);
+            expect(() => Reflect.apply(keys.has, keys, [["a", ["b"]]])).toThrow(
+                keyExists,
+            );
+            expect(Reflect.apply(listed.has, listed, [["zz", ["b"]]])).toBe(
+                false,
+            );
+            expect(Reflect.apply(keys.has, keys, [["zz", ["b"]]])).toBe(false);
+        });
+
+        it("throws array_key_exists()'s TypeError from hasAny() once it reaches the key, as array_any() does", () => {
+            const [listed, keys, empty] = [list(), keyed(), collect([])];
+
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-hasAny-illegal-key"
+            expect(() =>
+                Reflect.apply(listed.hasAny, listed, [[["a"]]]),
+            ).toThrow(keyExists);
+            expect(() => Reflect.apply(keys.hasAny, keys, [[["a"]]])).toThrow(
+                keyExists,
+            );
+            expect(Reflect.apply(listed.hasAny, listed, [[0, ["b"]]])).toBe(
+                true,
+            );
+            expect(Reflect.apply(keys.hasAny, keys, [["a", ["b"]]])).toBe(true);
+            expect(() =>
+                Reflect.apply(listed.hasAny, listed, [["zz", ["b"]]]),
+            ).toThrow(keyExists);
+            expect(() =>
+                Reflect.apply(keys.hasAny, keys, [["zz", ["b"]]]),
+            ).toThrow(keyExists);
+            expect(Reflect.apply(empty.hasAny, empty, [[["a"]]])).toBe(false);
+        });
+
+        it("throws from forget() after unsetting the keys before it, as PHP's loop does", () => {
+            for (const [type, key] of illegal) {
+                const failure = new TypeError(
+                    `Cannot unset offset of type ${type} on array`,
+                );
+
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-forget-illegal-key"
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.forget, collection, [[key]]),
+                    ).toThrow(failure);
+                }
+            }
+
+            const [listed, keys] = [list(), keyed()];
+
+            expect(() =>
+                Reflect.apply(listed.forget, listed, [[0, ["b"]]]),
+            ).toThrow(
+                new TypeError("Cannot unset offset of type array on array"),
+            );
+            expect(() =>
+                Reflect.apply(keys.forget, keys, [["a", ["b"]]]),
+            ).toThrow(
+                new TypeError("Cannot unset offset of type array on array"),
+            );
+            // PHP keeps the list's key 1; a list backing reindexes, as a JS array holds no sparse keys.
+            expect([listed.all(), keys.all()]).toEqual([["b"], { b: 2 }]);
+        });
+
+        it("throws from offsetGet(), offsetExists() and offsetUnset(), each with its own message", () => {
+            for (const [type, key] of illegal) {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-offset-illegal-key"
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.offsetGet, collection, [key]),
+                    ).toThrow(
+                        new TypeError(
+                            `Cannot access offset of type ${type} on array`,
+                        ),
+                    );
+                    expect(() =>
+                        Reflect.apply(collection.offsetExists, collection, [
+                            key,
+                        ]),
+                    ).toThrow(
+                        new TypeError(
+                            `Cannot access offset of type ${type} in isset or empty`,
+                        ),
+                    );
+                    expect(() =>
+                        Reflect.apply(collection.offsetUnset, collection, [
+                            key,
+                        ]),
+                    ).toThrow(
+                        new TypeError(
+                            `Cannot unset offset of type ${type} on array`,
+                        ),
+                    );
+                }
+            }
+        });
+
+        it("throws array_key_exists()'s TypeError from pull()", () => {
+            for (const [, key] of illegal) {
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pull-illegal-key"
+                for (const collection of [list(), keyed()]) {
+                    expect(() =>
+                        Reflect.apply(collection.pull, collection, [key]),
+                    ).toThrow(keyExists);
+                }
+            }
+        });
+    });
+
+    describe("callbacks and conditions are judged by PHP truthiness", () => {
+        /** The items "a" and "b" (or "a" alone), as a list or keyed "x" and "y". */
+        const items = (keyed: boolean, one = false) =>
+            collect(
+                keyed
+                    ? one
+                        ? { x: "a" }
+                        : { x: "a", y: "b" }
+                    : one
+                      ? ["a"]
+                      : ["a", "b"],
+            );
+
+        /** A result the way the probe's pairs() records it: a list's values, any other keys as [key, value] pairs. */
+        const pairs = (result: unknown): unknown => {
+            if (!(result instanceof Collection)) {
+                return result;
+            }
+
+            const keys = result.keys().all() as PropertyKey[];
+            const values = (result.values().all() as unknown[]).map(pairs);
+
+            return keys.every((key, index) => key === index)
+                ? values
+                : keys.map((key, index) => [key, values[index]]);
+        };
+
+        /** What `run` answers, or the name of the exception it throws, as the probe records one. */
+        const outcome = (run: () => unknown): unknown => {
+            try {
+                return run();
+            } catch (error) {
+                return (error as Error).name;
+            }
+        };
+
+        // PHP casts "0" and [] to false, and every object to true, however empty.
+        const answers = ["0", [], new Date(0), new (class {})()];
+
+        /** The same expected answers for the list and the keyed backing. */
+        const both = <T>(answer: T) => ({ list: answer, keyed: answer });
+
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+        it.each([
+            [
+                "filter",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).filter(callback)),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                "where",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).where(callback)),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                "reject",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).reject(callback)),
+                {
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [],
+                        [],
+                    ],
+                },
+            ],
+            [
+                "first",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).first(callback),
+                both([null, null, "a", "a"]),
+            ],
+            [
+                "last",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).last(callback),
+                both([null, null, "b", "b"]),
+            ],
+            [
+                "firstWhere",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).firstWhere(callback),
+                both([null, null, "a", "a"]),
+            ],
+            [
+                "firstOrFail",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).firstOrFail(callback),
+                both([
+                    "ItemNotFoundException",
+                    "ItemNotFoundException",
+                    "a",
+                    "a",
+                ]),
+            ],
+            [
+                "sole",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed, true).sole(callback),
+                both([
+                    "ItemNotFoundException",
+                    "ItemNotFoundException",
+                    "a",
+                    "a",
+                ]),
+            ],
+            [
+                "every",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).every(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "some",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).some(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "contains",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).contains(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "doesntContain",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).doesntContain(callback),
+                both([true, true, false, false]),
+            ],
+            [
+                "containsStrict",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).containsStrict(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "doesntContainStrict",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).doesntContainStrict(callback),
+                both([true, true, false, false]),
+            ],
+            [
+                "search",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).search(callback),
+                { list: [false, false, 0, 0], keyed: [false, false, "x", "x"] },
+            ],
+            [
+                // The probe's before callback answers for "b" only, so a match has an item before it.
+                "before",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).before((value) =>
+                        value === "b" ? callback() : false,
+                    ),
+                both([null, null, "a", "a"]),
+            ],
+            [
+                "after",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).after(callback),
+                both([null, null, "b", "b"]),
+            ],
+            [
+                "hasSole",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed, true).hasSole(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "containsOneItem",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed, true).containsOneItem(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "hasMany",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).hasMany(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "containsManyItems",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).containsManyItems(callback),
+                both([false, false, true, true]),
+            ],
+            [
+                "partition",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).partition(callback)),
+                {
+                    list: [
+                        [[], ["a", "b"]],
+                        [[], ["a", "b"]],
+                        [["a", "b"], []],
+                        [["a", "b"], []],
+                    ],
+                    keyed: [
+                        [
+                            [],
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                        ],
+                        [
+                            [],
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                        ],
+                        [
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                            [],
+                        ],
+                        [
+                            [
+                                ["x", "a"],
+                                ["y", "b"],
+                            ],
+                            [],
+                        ],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "skipUntil",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).skipUntil(callback)),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "skipWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).skipWhile(callback)),
+                {
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [],
+                        [],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "takeUntil",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).takeUntil(callback)),
+                {
+                    list: [["a", "b"], ["a", "b"], [], []],
+                    keyed: [
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [],
+                        [],
+                    ],
+                },
+            ],
+            [
+                // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+                "takeWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    pairs(items(keyed).takeWhile(callback)),
+                {
+                    list: [[], [], ["a", "b"], ["a", "b"]],
+                    keyed: [
+                        [],
+                        [],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                        [
+                            ["x", "a"],
+                            ["y", "b"],
+                        ],
+                    ],
+                },
+            ],
+            [
+                // The probe records each chunk's values.
+                "chunkWhile",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed)
+                        .chunkWhile(callback)
+                        .map((chunk) => chunk.values().all())
+                        .all(),
+                both([
+                    [["a"], ["b"]],
+                    [["a"], ["b"]],
+                    [["a", "b"]],
+                    [["a", "b"]],
+                ]),
+            ],
+            [
+                "percentage",
+                (callback: () => unknown, keyed: boolean) =>
+                    items(keyed).percentage(callback),
+                both([0, 0, 100, 100]),
+            ],
+        ] as [
+            string,
+            (callback: () => unknown, keyed: boolean) => unknown,
+            { list: unknown[]; keyed: unknown[] },
+        ][])(
+            "%s judges its callback's result by PHP truthiness on either backing",
+            (_name, run, expected) => {
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, false)),
+                    ),
+                ).toEqual(expected.list);
+                expect(
+                    answers.map((answer) =>
+                        outcome(() => run(() => answer, true)),
+                    ),
+                ).toEqual(expected.keyed);
+            },
+        );
+
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness",
+        // which records whether the callback ran
+        it.each([
+            [
+                "when",
+                (condition: unknown, keyed: boolean) => {
+                    let called = false;
+
+                    items(keyed).when(condition, () => {
+                        called = true;
+                    });
+
+                    return called;
+                },
+                both([false, false, true, true]),
+            ],
+            [
+                "unless",
+                (condition: unknown, keyed: boolean) => {
+                    let called = false;
+
+                    items(keyed).unless(condition, () => {
+                        called = true;
+                    });
+
+                    return called;
+                },
+                both([true, true, false, false]),
+            ],
+        ] as [
+            string,
+            (condition: unknown, keyed: boolean) => unknown,
+            { list: unknown[]; keyed: unknown[] },
+        ][])(
+            "%s judges its condition by PHP truthiness on either backing",
+            (_name, run, expected) => {
+                expect(answers.map((answer) => run(answer, false))).toEqual(
+                    expected.list,
+                );
+                expect(answers.map((answer) => run(answer, true))).toEqual(
+                    expected.keyed,
+                );
+            },
+        );
+
+        it("first and last judge their callback's result by PHP truthiness on a Map-built backing", () => {
+            const ordered = () =>
+                collect(
+                    new Map([
+                        [2, "a"],
+                        [0, "b"],
+                    ]),
+                );
+
+            // docs/php-parity/task-32-collection-release-readiness.json,
+            // "C32-C-ordered-first-last-callback-php-truthiness"
+            expect({
+                first: answers.map((answer) => ordered().first(() => answer)),
+                last: answers.map((answer) => ordered().last(() => answer)),
+            }).toEqual({
+                first: [null, null, "a", "a"],
+                last: [null, null, "b", "b"],
+            });
+        });
+
+        it('finds no match for a callback answering "0" or []', () => {
+            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-callback-php-truthiness"
+            expect({
+                contains: collect([1]).contains(() => "0"),
+                first: collect([1, 2]).first(() => "0"),
+                "first-array": collect([1, 2]).first(() => []),
+                search: collect([1, 2]).search(() => "0"),
+                every: collect([1, 2]).every(() => "0"),
+                hasSole: collect([1]).hasSole(() => "0"),
+                hasMany: collect([1, 2]).hasMany(() => []),
+            }).toEqual({
+                contains: false,
+                first: null,
+                "first-array": null,
+                search: false,
+                every: false,
+                hasSole: false,
+                hasMany: false,
+            });
+        });
+    });
 });
 
 // Only JSON.parse produces a real own enumerable "__proto__" key; a literal
@@ -13683,7 +26327,8 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             () =>
                 new Collection(JSON.parse('{"__proto__":{"k":"z"}}'))
                     .groupBy("k", true)
-                    .all()["z"],
+                    .get("z")
+                    ?.all(),
         ],
         [
             "groupBy (nested)",
@@ -13698,19 +26343,6 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
             () =>
                 new Collection([{ n: "__proto__", i: 1 }])
                     .mapToDictionary((item) => ({ [item.n]: item.i }))
-                    .all(),
-        ],
-        [
-            "mapToDictionary (tuple)",
-            () =>
-                new Collection([1])
-                    .mapToDictionary(
-                        () =>
-                            ["__proto__", 1] as unknown as Record<
-                                string,
-                                number
-                            >,
-                    )
                     .all(),
         ],
         [
@@ -13801,9 +26433,8 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
         });
     });
 
-    // Unlike every row above, the hostile input here is the KEY ARGUMENT, not the
-    // data, so it reaches the array-backed write that `put`/`offsetSet`/`getOrPut`
-    // all forward into. The result stays an array, so its prototype is Array's.
+    // Unlike every row above, the hostile input here is the KEY ARGUMENT, not the data, so it
+    // reaches the keyed write that `put`/`offsetSet`/`getOrPut` share on a list backing.
     describe.each([
         [
             "put",
@@ -13833,9 +26464,19 @@ describe("computed-key writes treat __proto__ as data, not a prototype", () => {
 
             const items = collection.all();
 
-            expect(Object.getPrototypeOf(items)).toBe(Array.prototype);
+            expect(Object.getPrototypeOf(items)).toBe(Object.prototype);
             expect(Object.hasOwn(items as object, "__proto__")).toBe(true);
-            expect(collection.map((value) => value).all()).toEqual([1, 2]);
+            expect(collection.map((value) => value).all()).toEqual({
+                0: 1,
+                1: 2,
+                ["__proto__"]: { polluted: true },
+            });
+            expect(collection.keys().all()).toEqual([0, 1, "__proto__"]);
+            expect(collection.values().all()).toEqual([
+                1,
+                2,
+                { polluted: true },
+            ]);
         });
     });
 

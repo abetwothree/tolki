@@ -1,0 +1,885 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.34.0-30-g023c99482c"
+    },
+    "probes": [
+        {
+            "label": "shift-empty-counts",
+            "php": "shift() and shift($count) on collect([]) for 0, 1, 2, 3, 0.5, 1.5, 2.5, NAN and INF: what it returns and what is left",
+            "value": {
+                "none": {
+                    "returned": null,
+                    "left": []
+                },
+                "0": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "1": {
+                    "returned": null,
+                    "left": []
+                },
+                "2": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "3": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "0.5": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "1.5": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "2.5": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "NAN": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "INF": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                }
+            }
+        },
+        {
+            "label": "shift-null-backed-counts",
+            "php": "shift(), shift(0) and shift(2) on new Collection(null)",
+            "value": {
+                "none": {
+                    "returned": null,
+                    "left": []
+                },
+                "0": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                },
+                "2": {
+                    "returned": {
+                        "collection": []
+                    },
+                    "left": []
+                }
+            }
+        },
+        {
+            "label": "shift-empty-subclass",
+            "php": "get_class() of shift(2) and shift(0) on an empty subclass of Collection",
+            "value": {
+                "2": "Task33Basket",
+                "0": "Task33Basket"
+            }
+        },
+        {
+            "label": "shift-drained-then-again",
+            "php": "$c = collect([1, 2, 3]); $c->shift(2) three times, then $c->shift()",
+            "value": [
+                {
+                    "collection": [
+                        1,
+                        2
+                    ]
+                },
+                {
+                    "collection": [
+                        3
+                    ]
+                },
+                {
+                    "collection": []
+                },
+                null
+            ]
+        },
+        {
+            "label": "collapse-lazy-list",
+            "php": "Arr::collapse([[1], new LazyCollection([2, 3]), collect([4])])",
+            "value": [
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "collapse-lazy-nested-kept",
+            "php": "Arr::collapse([new LazyCollection([[1, 2], new LazyCollection([3])])])",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                {
+                    "lazy": [
+                        3
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "collapse-lazy-assoc-outer",
+            "php": "Arr::collapse(['x' => [1], 'y' => new LazyCollection([2, 3]), 'z' => collect([4])])",
+            "value": [
+                1,
+                2,
+                3,
+                4
+            ]
+        },
+        {
+            "label": "collapse-lazy-keyed",
+            "php": "Arr::collapse(['first' => ['a' => 1], 'second' => new LazyCollection(['b' => 2, 'a' => 3])])",
+            "value": [
+                [
+                    "a",
+                    3
+                ],
+                [
+                    "b",
+                    2
+                ]
+            ]
+        },
+        {
+            "label": "flatten-lazy-list",
+            "php": "Arr::flatten([new LazyCollection(['#foo', ['#bar']]), ['#baz', new LazyCollection(['#zap'])]])",
+            "value": [
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap"
+            ]
+        },
+        {
+            "label": "flatten-lazy-depth-1",
+            "php": "Arr::flatten([new LazyCollection([1, [2, [3]]]), [4, new LazyCollection([5])]], 1)",
+            "value": [
+                1,
+                [
+                    2,
+                    [
+                        3
+                    ]
+                ],
+                4,
+                {
+                    "lazy": [
+                        5
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "flatten-lazy-depth-2",
+            "php": "Arr::flatten([new LazyCollection([1, [2, [3]]]), [4, new LazyCollection([5, [6]])]], 2)",
+            "value": [
+                1,
+                2,
+                [
+                    3
+                ],
+                4,
+                5,
+                [
+                    6
+                ]
+            ]
+        },
+        {
+            "label": "flatten-lazy-assoc",
+            "php": "Arr::flatten(['a' => new LazyCollection(['x' => '#foo', 'y' => ['#bar']]), 'b' => ['c' => '#baz', 'd' => new LazyCollection(['#zap'])]])",
+            "value": [
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap"
+            ]
+        },
+        {
+            "label": "collapse-mixed-collection-types",
+            "php": "(new Collection([new Collection([1, 2]), new LazyCollection([3, 4]), [5]]))->collapse()->all()",
+            "value": [
+                1,
+                2,
+                3,
+                4,
+                5
+            ]
+        },
+        {
+            "label": "collapseWithKeys-mixed-collection-types",
+            "php": "(new Collection([new Collection(['a' => 1, 'b' => 2]), new LazyCollection(['b' => 3, 'c' => 4])]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    3
+                ],
+                [
+                    "c",
+                    4
+                ]
+            ]
+        },
+        {
+            "label": "flatten-mixed-collection-types",
+            "php": "(new Collection([new Collection(['#foo', new LazyCollection(['#bar'])]), new LazyCollection(['#baz', new Collection(['#zap'])])]))->flatten()->all()",
+            "value": [
+                "#foo",
+                "#bar",
+                "#baz",
+                "#zap"
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-lists",
+            "php": "(new Collection([new LazyCollection([1, 2]), [3]]))->collapseWithKeys()",
+            "value": [
+                3,
+                2
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-only",
+            "php": "(new Collection([new LazyCollection(['a' => 1]), new LazyCollection(['a' => 2, 'b' => 3])]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    2
+                ],
+                [
+                    "b",
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-then-array",
+            "php": "(new Collection([new LazyCollection(['a' => 1, 'b' => 2]), ['b' => 9]]))->collapseWithKeys()",
+            "value": [
+                [
+                    "a",
+                    1
+                ],
+                [
+                    "b",
+                    9
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-lazy-int-keys",
+            "php": "(new Collection([[5 => 'a'], new LazyCollection([5 => 'b', 6 => 'c'])]))->collapseWithKeys()",
+            "value": [
+                [
+                    5,
+                    "b"
+                ],
+                [
+                    6,
+                    "c"
+                ]
+            ]
+        },
+        {
+            "label": "collapseWithKeys-array-item-all-member-is-data",
+            "php": "(new Collection([['all' => fn () => ['z' => 9], 'b' => 2]]))->collapseWithKeys()->keys()->all()",
+            "value": [
+                "all",
+                "b"
+            ]
+        },
+        {
+            "label": "collapseWithKeys-null-item",
+            "php": "(new Collection([null, ['a' => 1]]))->collapseWithKeys(), then (new Collection([null]))->collapseWithKeys()",
+            "value": [
+                [
+                    [
+                        "a",
+                        1
+                    ]
+                ],
+                []
+            ]
+        },
+        {
+            "label": "finish-cases",
+            "php": "Str::finish($value, $cap) for each [$value, $cap], recorded as [$value, $cap, result]",
+            "value": [
+                [
+                    "ab",
+                    "bc",
+                    "abbc"
+                ],
+                [
+                    "abbcbc",
+                    "bc",
+                    "abbc"
+                ],
+                [
+                    "abcbbcbc",
+                    "bc",
+                    "abcbbc"
+                ],
+                [
+                    "test/string",
+                    "/",
+                    "test/string/"
+                ],
+                [
+                    "test/string/",
+                    "/",
+                    "test/string/"
+                ],
+                [
+                    "test/string//",
+                    "/",
+                    "test/string/"
+                ],
+                [
+                    "test/string",
+                    "",
+                    "test/string"
+                ],
+                [
+                    "",
+                    "",
+                    ""
+                ],
+                [
+                    "",
+                    "/",
+                    "/"
+                ],
+                [
+                    "///",
+                    "/",
+                    "/"
+                ],
+                [
+                    "a.b..",
+                    ".",
+                    "a.b."
+                ],
+                [
+                    "a$$",
+                    "$",
+                    "a$"
+                ],
+                [
+                    "x[[",
+                    "[",
+                    "x["
+                ],
+                [
+                    "x\\\\",
+                    "\\",
+                    "x\\"
+                ],
+                [
+                    "a\u00f1\u00f1\u00f1",
+                    "\u00f1",
+                    "a\u00f1"
+                ],
+                [
+                    "\ud83d\ude00\ud83d\ude00",
+                    "\ud83d\ude00",
+                    "\ud83d\ude00"
+                ],
+                [
+                    "a",
+                    "abc",
+                    "aabc"
+                ],
+                [
+                    "a/b/c",
+                    "/",
+                    "a/b/c/"
+                ],
+                [
+                    "aaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "aaaa",
+                    "aa",
+                    "aa"
+                ],
+                [
+                    "aaaaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "abab",
+                    "ab",
+                    "ab"
+                ]
+            ]
+        },
+        {
+            "label": "finish-long-interior-run",
+            "php": "Str::finish(str_repeat('/', 100000).'x', '/') === str_repeat('/', 100000).'x/'",
+            "value": true
+        },
+        {
+            "label": "finish-long-interior-run-then-caps",
+            "php": "Str::finish(str_repeat('/', 100000).'x//', '/'): PCRE gives up on the run, so only the cap comes back",
+            "value": "/"
+        },
+        {
+            "label": "start-cases",
+            "php": "Str::start($value, $prefix) for each [$value, $prefix], recorded as [$value, $prefix, result]",
+            "value": [
+                [
+                    "test/string",
+                    "/",
+                    "/test/string"
+                ],
+                [
+                    "/test/string",
+                    "/",
+                    "/test/string"
+                ],
+                [
+                    "//test/string",
+                    "/",
+                    "/test/string"
+                ],
+                [
+                    "test/string",
+                    "",
+                    "test/string"
+                ],
+                [
+                    "",
+                    "",
+                    ""
+                ],
+                [
+                    "",
+                    "/",
+                    "/"
+                ],
+                [
+                    "///",
+                    "/",
+                    "/"
+                ],
+                [
+                    "..a.b",
+                    ".",
+                    ".a.b"
+                ],
+                [
+                    "$$a",
+                    "$",
+                    "$a"
+                ],
+                [
+                    "[[x",
+                    "[",
+                    "[x"
+                ],
+                [
+                    "\u00f1\u00f1\u00f1z",
+                    "\u00f1",
+                    "\u00f1z"
+                ],
+                [
+                    "\ud83d\ude00\ud83d\ude00x",
+                    "\ud83d\ude00",
+                    "\ud83d\ude00x"
+                ],
+                [
+                    "a",
+                    "abc",
+                    "abca"
+                ],
+                [
+                    "aaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "aaaa",
+                    "aa",
+                    "aa"
+                ],
+                [
+                    "aaaaa",
+                    "aa",
+                    "aaa"
+                ],
+                [
+                    "abab",
+                    "ab",
+                    "ab"
+                ]
+            ]
+        },
+        {
+            "label": "start-long-run",
+            "php": "Str::start('x'.str_repeat('/', 100000), '/') === '/x'.str_repeat('/', 100000)",
+            "value": true
+        },
+        {
+            "label": "start-long-leading-run",
+            "php": "Str::start(str_repeat('/', 100000).'x', '/'): PCRE gives up on the run, so only the prefix comes back",
+            "value": "/"
+        },
+        {
+            "label": "trim-long-interior-run",
+            "php": "StrTest::testTrimAndRtrimHandleLongInteriorWhitespaceRuns: its two long comparisons as booleans, its four short results as they are",
+            "value": {
+                "trim": true,
+                "rtrim": true,
+                "trim-run": "",
+                "rtrim-run": "",
+                "trim-mixed": "a b c",
+                "rtrim-mixed": " a  b"
+            }
+        },
+        {
+            "label": "trim-charlist-long-interior-run",
+            "php": "Str::trim($x.'['.$x.'y'.$x, 'x') === '['.$x.'y' for $x = str_repeat('x', 120000)",
+            "value": true
+        },
+        {
+            "label": "rtrim-charlist-long-interior-run",
+            "php": "Str::rtrim($x.'['.$x.'y'.$x, 'x') === $x.'['.$x.'y' for $x = str_repeat('x', 120000)",
+            "value": true
+        },
+        {
+            "label": "limit-long-interior-run",
+            "php": "Str::limit() past a run of 100000 spaces: plain === $s.'x...', and with preserveWords === 'x'.$s.'x...'",
+            "value": {
+                "plain": true,
+                "preserve-words": true
+            }
+        },
+        {
+            "label": "limit-preserve-words-no-whitespace",
+            "php": "Str::limit(str_repeat('x', 200000), 100000, '...', true) === str_repeat('x', 100000).'...'",
+            "value": true
+        },
+        {
+            "label": "trim-default-characters",
+            "php": "every code point Str::trim() removes by default, as hex ranges; ltrim and rtrim remove the same ones",
+            "value": {
+                "count": 65,
+                "ranges": [
+                    "0000",
+                    "0009-000D",
+                    "0020",
+                    "0085",
+                    "00A0",
+                    "00AD",
+                    "034F",
+                    "061C",
+                    "115F-1160",
+                    "1680",
+                    "17B4-17B5",
+                    "180E",
+                    "2000-200F",
+                    "2028-2029",
+                    "202F",
+                    "205F-2065",
+                    "206A-206F",
+                    "2800",
+                    "3000",
+                    "3164",
+                    "FEFF",
+                    "FFA0",
+                    "1D159",
+                    "1D173-1D17A",
+                    "E0020"
+                ],
+                "ltrim-and-rtrim-agree": true
+            }
+        },
+        {
+            "label": "trim-cases",
+            "php": "Str::trim($value, $charlist) for each [$value, $charlist], a null charlist being the default, recorded as [$value, $charlist, result]",
+            "value": [
+                [
+                    " foo bar ",
+                    "",
+                    " foo bar "
+                ],
+                [
+                    "  hello  ",
+                    "",
+                    "  hello  "
+                ],
+                [
+                    " foo bar ",
+                    " ",
+                    "foo bar"
+                ],
+                [
+                    "-foo  bar_",
+                    "-_",
+                    "foo  bar"
+                ],
+                [
+                    "\n                foo bar\n            ",
+                    null,
+                    "foo bar"
+                ],
+                [
+                    "\n                foo\n                bar\n            ",
+                    null,
+                    "foo\n                bar"
+                ],
+                [
+                    "\n    hello\n    world\n",
+                    null,
+                    "hello\n    world"
+                ],
+                [
+                    "    line1\nline2\n",
+                    null,
+                    "line1\nline2"
+                ],
+                [
+                    "  first\n  second\n  third\n",
+                    null,
+                    "first\n  second\n  third"
+                ],
+                [
+                    "   \n   \n   ",
+                    null,
+                    ""
+                ],
+                [
+                    "hello\nworld",
+                    null,
+                    "hello\nworld"
+                ],
+                [
+                    "\u0085a\u0085",
+                    null,
+                    "a"
+                ],
+                [
+                    "-^a^-",
+                    "^-",
+                    "a"
+                ],
+                [
+                    "\\a\\",
+                    "\\",
+                    "a"
+                ],
+                [
+                    "[[[hello]]]",
+                    "[]",
+                    "hello"
+                ],
+                [
+                    "\ud83d\ude00a\ud83d\ude00",
+                    "\ud83d\ude00",
+                    "a"
+                ],
+                [
+                    "\u4f60\u597d\u4f60\u597dhello\u4f60\u597d\u4f60\u597d",
+                    "\u4f60\u597d",
+                    "hello"
+                ],
+                [
+                    "\ud834\udd59a\udb40\udc20\ud834\udd73",
+                    null,
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "ltrim-cases",
+            "php": "Str::ltrim($value, $charlist) for each [$value, $charlist], a null charlist being the default, recorded as [$value, $charlist, result]",
+            "value": [
+                [
+                    "  hello",
+                    "",
+                    "  hello"
+                ],
+                [
+                    "  hello ",
+                    null,
+                    "hello "
+                ],
+                [
+                    "  hello  ",
+                    null,
+                    "hello  "
+                ],
+                [
+                    "  hello   ",
+                    null,
+                    "hello   "
+                ],
+                [
+                    "  hello \n",
+                    null,
+                    "hello \n"
+                ],
+                [
+                    "  hello \t",
+                    null,
+                    "hello \t"
+                ],
+                [
+                    "\u0085a\u0085",
+                    null,
+                    "a\u0085"
+                ],
+                [
+                    "\n foo bar \n",
+                    null,
+                    "foo bar \n"
+                ],
+                [
+                    "\u0000 foo bar \u0000",
+                    null,
+                    "foo bar \u0000"
+                ]
+            ]
+        },
+        {
+            "label": "rtrim-cases",
+            "php": "Str::rtrim($value, $charlist) for each [$value, $charlist], a null charlist being the default, recorded as [$value, $charlist, result]",
+            "value": [
+                [
+                    "hello  ",
+                    "",
+                    "hello  "
+                ],
+                [
+                    "line1\nline2   ",
+                    null,
+                    "line1\nline2"
+                ],
+                [
+                    "line1\n    line2\n        ",
+                    null,
+                    "line1\n    line2"
+                ],
+                [
+                    "hello\n    world\n      ",
+                    null,
+                    "hello\n    world"
+                ],
+                [
+                    "line1\n\nline2\n   ",
+                    null,
+                    "line1\n\nline2"
+                ],
+                [
+                    "\u0085a\u0085",
+                    null,
+                    "\u0085a"
+                ],
+                [
+                    "a\ud834\udd59\udb40\udc20",
+                    null,
+                    "a"
+                ],
+                [
+                    "a\ud83d\ude00\ud83d\ude00b\ud83d\ude00",
+                    "\ud83d\ude00",
+                    "a\ud83d\ude00\ud83d\ude00b"
+                ],
+                [
+                    "a]]",
+                    "]",
+                    "a"
+                ]
+            ]
+        },
+        {
+            "label": "trim-charlist-range-not-ported",
+            "php": "Str::trim('abcxcba', 'a..c'): PHP reads a..c as the range a to c",
+            "value": "x"
+        },
+        {
+            "label": "excerpt-two-spaces-before-phrase",
+            "php": "Str::excerpt('This is  my name', 'my'), then with ['radius' => 3]",
+            "value": [
+                "This is  my name",
+                "...s  my na..."
+            ]
+        },
+        {
+            "label": "finish-start-non-string-arguments",
+            "php": "Str::finish() and Str::start() given a cap, prefix or value that is no string: an int, true, null, a Stringable",
+            "value": {
+                "finish-int-cap-present": "a5",
+                "finish-int-cap-absent": "a5",
+                "finish-true-cap": "a1",
+                "finish-null-cap": "a",
+                "finish-stringable-cap": "a/",
+                "finish-stringable-value": "a/",
+                "stringable-finish-stringable-cap": "a/",
+                "start-null-prefix": "a",
+                "start-int-prefix-present": "5a",
+                "start-int-prefix-absent": "5a",
+                "start-stringable-prefix": "/a",
+                "start-stringable-value": "/a",
+                "stringable-start-stringable-prefix": "/a"
+            }
+        },
+        {
+            "label": "stringable-trim-empty-charlist",
+            "php": "(string) Str::of('  hello  ')->trim(''), ->ltrim('') and ->rtrim('')",
+            "value": [
+                "  hello  ",
+                "  hello  ",
+                "  hello  "
+            ]
+        },
+        {
+            "label": "excerpt-space-then-tab-before-phrase",
+            "php": "Str::excerpt(\"foo \\tbar\", \"bar\")",
+            "value": "foo \tbar"
+        },
+        {
+            "label": "toBoolean-wrapped-in-whitespace",
+            "php": "Str::of($value)->toBoolean() for \" true \", \"\\u{0085}true\" and \"\\u{00A0}true\": filter_var() trims ASCII whitespace only",
+            "value": [
+                true,
+                false,
+                false
+            ]
+        }
+    ]
+}

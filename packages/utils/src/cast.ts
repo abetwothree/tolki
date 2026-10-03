@@ -1,17 +1,21 @@
 import {
     isArray,
     isBoolean,
+    isFiniteNumber,
     isFunction,
     isIterable,
     isMap,
     isNull,
     isNumber,
     isObject,
+    isPhpAccessible,
+    isPlainObject,
     isUndefined,
     isWeakMap,
     isWeakSet,
 } from "./guards";
-import { defineKey, isPhpArrayKey, keyedEntries } from "./keys";
+import { defineKey, hasOwnToString, isPhpArrayKey, keyedEntries } from "./keys";
+import { phpDebugType } from "./reflect";
 
 /** PHP's default `precision` ini setting: the significant digits its `(string)` cast prints for a float. */
 const PHP_FLOAT_PRECISION = 14;
@@ -251,10 +255,11 @@ export function getAccessibleValues<T>(data: ReadonlyArray<T> | unknown): T[] {
  * call `all()`, else `toArray()`, else `toJSON()`, and repeat on the result.
  *
  * @param items - The operand to unwrap
- * @returns The first value in the chain that exposes none of those methods
+ * @returns The first value in the chain that is not a class instance exposing one of those methods
  */
 function unwrapArrayable(items: unknown): unknown {
-    if (!isObject(items)) {
+    // A plain object models a PHP array, so an `all`, `toArray` or `toJSON` member is data, not an interface.
+    if (isPlainObject(items) || !isObject(items)) {
         return items;
     }
 
@@ -270,15 +275,16 @@ function unwrapArrayable(items: unknown): unknown {
 /**
  * Normalize a set-operation operand the way Laravel's
  * `EnumeratesValues::getArrayableItems()` does: nullish becomes an empty array,
- * an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`, an
- * iterable spreads, a plain object contributes its values, anything else
- * becomes a one-element array.
+ * an Enumerable/Arrayable-like class instance unwraps via `all()`/`toArray()`/`toJSON()`,
+ * an iterable spreads, a plain object contributes its values whatever members it
+ * has, anything else becomes a one-element array.
  *
  * @param items - The operand to normalize
  * @returns The operand's values, in iteration order
  *
  * @example
  * arrayableValues({ x: 20 }); -> [20]
+ * arrayableValues(collect([20])); -> [20]
  */
 export function arrayableValues<T>(items: unknown): T[] {
     const unwrapped = unwrapArrayable(items);
@@ -309,15 +315,16 @@ export function arrayableValues<T>(items: unknown): T[] {
 
 /**
  * Normalize a keyed operand the way Laravel's `getArrayableItems()` does:
- * nullish becomes `{}`, an Enumerable/Arrayable-like object unwraps via `all()`/`toArray()`/`toJSON()`,
+ * nullish becomes `{}`, an Enumerable/Arrayable-like class instance unwraps via `all()`/`toArray()`/`toJSON()`,
  * a Map or other iterable becomes an object, a list becomes an index-keyed object, and a WeakMap or
  * WeakSet, whose entries can't be read, becomes `{}`. A Map's keys are cast as PHP casts an array key.
+ * A plain object is returned as it is, whatever members it has.
  *
  * @param items - The operand to normalize
  * @returns The operand's entries as a plain object
  *
  * @example
- * arrayableItems({ all: () => ({ a: 1 }) }); -> { a: 1 }
+ * arrayableItems(collect({ a: 1 })); -> { a: 1 }
  * arrayableItems(new Map([[1, "a"], ["1", "b"]])); -> { 1: "b" }
  */
 export function arrayableItems(items: unknown): Record<string, unknown> {
@@ -374,4 +381,84 @@ export function cssListItemToString(value: unknown): string {
     }
 
     return String(value);
+}
+
+/**
+ * Read a number PHP passes to an int parameter, which drops a fraction as PHP's coercion does.
+ *
+ * @param value - The number passed where PHP declares an int
+ * @param message - The TypeError message PHP gives for a number no int can hold
+ * @returns The number without its fraction
+ * @throws TypeError when the number is NAN, infinite or outside PHP's 64-bit int range
+ *
+ * @example
+ * phpIntArgument(7.5, "array_pad(): Argument #2 ($length) must be of type int, float given"); -> 7
+ * phpIntArgument(NaN, "array_pad(): Argument #2 ($length) must be of type int, float given"); -> throws TypeError
+ */
+export function phpIntArgument(value: number, message: string): number {
+    // PHP_INT_MAX (2^63 - 1) rounds up to 2^63 as a double, so the upper bound is exclusive.
+    if (!isFiniteNumber(value) || value < -(2 ** 63) || value >= 2 ** 63) {
+        throw new TypeError(message);
+    }
+
+    return Math.trunc(value);
+}
+
+/**
+ * Cast a number to an int as PHP's `(int)` cast does, as it also reads a comparator's answer and the operands of `%`.
+ *
+ * @param value - The number to cast
+ * @returns The number without its fraction; past PHP's 64-bit int range its low 64 bits as PHP 8 keeps them, and 0 for
+ * NAN or an infinity
+ *
+ * @example
+ * phpIntCast(2.7); -> 2
+ * phpIntCast(1e19); -> -8446744073709551616
+ * phpIntCast(NaN); -> 0
+ */
+export function phpIntCast(value: number): number {
+    if (!isFiniteNumber(value)) {
+        return 0;
+    }
+
+    const truncated = Math.trunc(value);
+
+    if (truncated >= -(2 ** 63) && truncated < 2 ** 63) {
+        return truncated === 0 ? 0 : truncated;
+    }
+
+    // A double past 2^63 is a multiple of 2^11, so its low 64 bits fit a double exactly.
+    return Number(BigInt.asIntN(64, BigInt(truncated)));
+}
+
+/**
+ * Cast a value to a string as PHP's `(string)` cast does, as `implode()` casts each piece and `.` its operands.
+ *
+ * @param value - The value to cast
+ * @returns "Array" for an array or what stands for one, an object's own toString, else toPhpKeyString()'s cast of a
+ * scalar: true to "1", false and null to "", a float to 14 digits
+ * @throws Error `Object of class X could not be converted to string` for any other object and for a closure
+ *
+ * @example
+ * phpStringCast([1, 2]); -> "Array"
+ * phpStringCast(true); -> "1"
+ * phpStringCast(() => 1); -> throws Error("Object of class Closure could not be converted to string")
+ */
+export function phpStringCast(value: unknown): string {
+    // PHP prints an array as "Array", with a warning the port cannot raise.
+    if (isPhpAccessible(value)) {
+        return "Array";
+    }
+
+    if (hasOwnToString(value)) {
+        return String(value.toString());
+    }
+
+    if (isObject(value) || isFunction(value)) {
+        throw new Error(
+            `Object of class ${phpDebugType(value)} could not be converted to string`,
+        );
+    }
+
+    return toPhpKeyString(value);
 }

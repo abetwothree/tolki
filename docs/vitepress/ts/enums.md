@@ -217,10 +217,14 @@ export type UserStatusKind = "Active" | "Inactive";
 
 The file takes the new name too (`user-status.ts`), and models that use the enum refer to it as `UserStatusType`. The attribute takes these parameters:
 
-| Parameter     | Type     | Description                                                                     |
-| ------------- | -------- | ------------------------------------------------------------------------------- |
-| `name`        | `string` | The TypeScript const name. Use it to avoid a name collision between namespaces. |
-| `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                 |
+| Parameter     | Type     | Description                                                                                                                                                                                                         |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | `string` | The TypeScript const name. Use it when two enums in one namespace publish the same name, or when a [route file](./routing.md#what-the-props-expression-can-be) uses two same-named enums from different namespaces. |
+| `description` | `string` | A JSDoc comment. It takes priority over any PHPDoc description.                                                                                                                                                     |
+
+::: warning An Enum Named Like Another Enum's Type
+An enum `Role` publishes the type `RoleType`. A second enum named `RoleType` in the same namespace publishes a const with that name, and the two can't share a barrel file or a global namespace. `ts:publish` warns when it finds such a pair. Rename one of them with `#[TsEnum]`. In two different namespaces this pair is fine, because a file that imports both gets an alias for one.
+:::
 
 ### `#[TsCase]`
 

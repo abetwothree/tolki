@@ -8,11 +8,14 @@ import {
     collapse as arrCollapse,
     combine as arrCombine,
     contains as arrContains,
+    containsStrict as arrContainsStrict,
     crossJoin as arrCrossJoin,
     diff as arrDiff,
     diffAssoc as arrDiffAssoc,
     diffAssocUsing as arrDiffAssocUsing,
+    diffKeys as arrDiffKeys,
     diffKeysUsing as arrDiffKeysUsing,
+    diffUsing as arrDiffUsing,
     divide as arrDivide,
     dot as arrDot,
     every as arrEvery,
@@ -35,6 +38,7 @@ import {
     intersectAssoc as arrIntersectAssoc,
     intersectAssocUsing as arrIntersectAssocUsing,
     intersectByKeys as arrIntersectByKeys,
+    intersectUsing as arrIntersectUsing,
     join as arrJoin,
     keyBy as arrKeyBy,
     keys as arrKeys,
@@ -60,6 +64,8 @@ import {
     set as arrSet,
     shift as arrShift,
     shuffle as arrShuffle,
+    skipUntil as arrSkipUntil,
+    skipWhile as arrSkipWhile,
     slice as arrSlice,
     sole as arrSole,
     some as arrSome,
@@ -70,6 +76,8 @@ import {
     splice as arrSplice,
     string as arrString,
     take as arrTake,
+    takeUntil as arrTakeUntil,
+    takeWhile as arrTakeWhile,
     toCssClasses as arrToCssClasses,
     toCssStyles as arrToCssStyles,
     undot as arrUndot,
@@ -88,11 +96,14 @@ import {
     collapse as objCollapse,
     combine as objCombine,
     contains as objContains,
+    containsStrict as objContainsStrict,
     crossJoin as objCrossJoin,
     diff as objDiff,
     diffAssoc as objDiffAssoc,
     diffAssocUsing as objDiffAssocUsing,
+    diffKeys as objDiffKeys,
     diffKeysUsing as objDiffKeysUsing,
+    diffUsing as objDiffUsing,
     divide as objDivide,
     dot as objDot,
     every as objEvery,
@@ -115,6 +126,7 @@ import {
     intersectAssoc as objIntersectAssoc,
     intersectAssocUsing as objIntersectAssocUsing,
     intersectByKeys as objIntersectByKeys,
+    intersectUsing as objIntersectUsing,
     join as objJoin,
     keyBy as objKeyBy,
     keys as objKeys,
@@ -143,6 +155,8 @@ import {
     set as objSet,
     shift as objShift,
     shuffle as objShuffle,
+    skipUntil as objSkipUntil,
+    skipWhile as objSkipWhile,
     slice as objSlice,
     sole as objSole,
     some as objSome,
@@ -153,6 +167,8 @@ import {
     splice as objSplice,
     string as objString,
     take as objTake,
+    takeUntil as objTakeUntil,
+    takeWhile as objTakeWhile,
     toCssClasses as objToCssClasses,
     toCssStyles as objToCssStyles,
     undot as objUndot,
@@ -163,6 +179,7 @@ import {
     whereNotNull as objWhereNotNull,
 } from "@tolki/obj";
 import type {
+    ArrayItems,
     DataItems,
     MapData,
     MapEntryKey,
@@ -176,6 +193,7 @@ import {
     isFunction,
     isMap,
     isNull,
+    isPhpFalsy,
     isUndefined,
     keyedEntries,
     looseEqual,
@@ -705,9 +723,8 @@ export function dataUnion<TValue>(
                 ? listWhenIndexed(merged, result, operand)
                 : merged;
         },
-        // Array.from, as toIndexedRecord uses for the other three list backings: a
-        // TRAILING hole declares no own key, so arr.union alone would shorten the answer
-        // where the dense list it stands for keeps its length.
+        // Array.from, as the list backings of prepend, replace and replaceRecursive are read: a TRAILING hole
+        // declares no own key, so arr.union alone would shorten the answer where the dense list keeps its length.
         arrUnion(Array.from(toPositionalBacking(backing) as ArrayLike<TValue>)),
     );
 }
@@ -1171,8 +1188,8 @@ export const dataSelect = dispatch(
  * -> {key_0: 2, key_1: 4}
  * dataMapWithKeys(new Map([[2, 'c'], [0, 'a']]), (value, key) => [`k${key}`, value]); -> {k2: 'c', k0: 'a'}
  */
-// The tuple row comes first: one row taking `[K, V] | Record<K, V>` would read a tuple as a record
-// too, and infer V as the union of every member the array has.
+// Each tuple row comes before its record row: one row taking `[K, V] | Record<K, V>` would read a tuple as a
+// record too, and infer V as the union of every member the array has.
 export function dataMapWithKeys<
     TMap,
     TMapWithKeysKey extends PropertyKey,
@@ -1195,19 +1212,52 @@ export function dataMapWithKeys<
         key: MapEntryKey<TMap>,
     ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
+// A list's rows answer as arr.mapWithKeys does, handing the callback an index; a keyed backing's, as obj's does.
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysKey extends PropertyKey,
+    TMapWithKeysValue,
+>(
+    data: ArrayItems<TValue>,
+    callback: (
+        value: TValue,
+        index: number,
+    ) => readonly [TMapWithKeysKey, TMapWithKeysValue],
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysValue,
+    TMapWithKeysKey extends string = string,
+>(
+    data: ArrayItems<TValue>,
+    callback: (
+        value: TValue,
+        index: number,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
+export function dataMapWithKeys<
+    TValue,
+    TMapWithKeysKey extends PropertyKey,
+    TMapWithKeysValue,
+    TKey extends PropertyKey = PropertyKey,
+>(
+    data: Record<TKey, TValue>,
+    callback: (
+        value: TValue,
+        key: TKey,
+    ) => readonly [TMapWithKeysKey, TMapWithKeysValue],
+): Record<TMapWithKeysKey, TMapWithKeysValue>;
 export function dataMapWithKeys<
     TValue,
     TMapWithKeysValue,
     TKey extends PropertyKey = PropertyKey,
     TMapWithKeysKey extends PropertyKey = PropertyKey,
 >(
-    data: DataItems<TValue, TKey>,
+    data: Record<TKey, TValue>,
     callback: (
         value: TValue,
         key: TKey,
-    ) =>
-        | [TMapWithKeysKey, TMapWithKeysValue]
-        | Record<TMapWithKeysKey, TMapWithKeysValue>,
+    ) => Record<TMapWithKeysKey, TMapWithKeysValue>,
 ): Record<TMapWithKeysKey, TMapWithKeysValue>;
 export function dataMapWithKeys<
     TValue,
@@ -1284,9 +1334,9 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  *
  * @param data - The data to prepend to
  * @param value - The value to prepend
- * @param rest - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
+ * @param key - The key; omit it to unshift under key 0, as `Arr::prepend` does with two arguments.
  * A list given any key but 0 comes back as an object, as PHP's `[$key => $value] + $list` is keyed
- * @returns Data with prepended value
+ * @returns Data with prepended value, matching the delegate's own result
  *
  * @example
  *
@@ -1294,45 +1344,7 @@ export const dataMapSpread = dispatch(arrMapSpread, objMapSpread);
  * dataPrepend({b: 2, c: 3}, 1, 'a'); -> {a: 1, b: 2, c: 3}
  * dataPrepend(new Map([[2, 'c'], [0, 'a']]), 'z'); -> {0: 'z', 1: 'c', 2: 'a'}
  */
-// A Map always comes back as the plain record obj.prepend builds, keyed as PHP stores each key.
-export function dataPrepend<TMap, V>(
-    data: MapData<TMap>,
-    value: V,
-    ...rest: [key?: PropertyKey | null]
-): Record<string, MapEntryValue<TMap> | V>;
-export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    value: TValue,
-    ...rest: [key?: PropertyKey | null]
-): DataItems<TValue, TKey>;
-export function dataPrepend<TValue, TKey extends PropertyKey = PropertyKey>(
-    data: DataItems<TValue, TKey>,
-    value: TValue,
-    ...rest: [key?: PropertyKey | null]
-): DataItems<TValue, TKey> {
-    // Not a dispatch pair: `arr.prepend` takes `key?: number` and returns `TValue[]`, so it cannot express PHP's keyed
-    // answer.
-    if (isKeyedData(data)) {
-        return objPrepend(
-            data as Record<TKey, TValue>,
-            value,
-            ...rest,
-        ) as DataItems<TValue, TKey>;
-    }
-
-    const backing = toPositionalBacking(data) as TValue[];
-
-    if (rest.length === 0) {
-        return arrPrepend(backing, value) as DataItems<TValue>;
-    }
-
-    // [$key => $value] + $list starts with the key, so it stays a list only when the key casts to 0.
-    const prepended = objPrepend(toIndexedRecord(backing), value, ...rest);
-
-    return (
-        phpArrayKey(rest[0]) === 0 ? Object.values(prepended) : prepended
-    ) as DataItems<TValue, TKey>;
-}
+export const dataPrepend = dispatch(arrPrepend, objPrepend);
 
 /**
  * Pull and remove a value from data.
@@ -1416,14 +1428,14 @@ function searchableEntries<TValue>(items: unknown): [string, TValue][] {
  */
 function searchEntries<TValue, TKey extends PropertyKey>(
     entries: readonly [string, TValue][],
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean,
 ): TKey | number | false {
     for (const [key, item] of entries) {
         const actualKey = phpArrayKey(key) as TKey;
 
         if (isFunction(value)) {
-            if (value(item, actualKey)) {
+            if (!isPhpFalsy(value(item, actualKey))) {
                 return actualKey;
             }
 
@@ -1475,31 +1487,31 @@ export function dataSearch<TMap>(
         | MapEntryValue<TMap>
         | string
         | number
-        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
     strict?: boolean,
 ): MapEntryKey<TMap> | false;
 // Overload: list backing, whose key is the index
 export function dataSearch<TValue>(
     items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    value: TValue | string | number | ((item: TValue, key: number) => unknown),
     strict?: boolean,
 ): number | false;
 // Overload: keyed backing, whose numeric-string key comes back as a number
 export function dataSearch<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TKey | number | false;
 // Overload: the package's own canonical input, whose list half answers an index
 export function dataSearch<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TKey | number | false;
 // Implementation
 export function dataSearch<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean = false,
 ): TKey | number | false {
     return searchEntries(searchableEntries<TValue>(items), value, strict);
@@ -1531,31 +1543,31 @@ export function dataBefore<TMap>(
         | MapEntryValue<TMap>
         | string
         | number
-        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
     strict?: boolean,
 ): MapEntryValue<TMap> | null;
 // Overload: list backing, whose key is the index
 export function dataBefore<TValue>(
     items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    value: TValue | string | number | ((item: TValue, key: number) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: keyed backing, whose key is the record's own
 export function dataBefore<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: the package's own canonical input, which either half satisfies
 export function dataBefore<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Implementation
 export function dataBefore<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean = false,
 ): TValue | null {
     // Read ONCE: a generator is single-use, and the search and the position lookup must walk the same entries.
@@ -1605,31 +1617,31 @@ export function dataAfter<TMap>(
         | MapEntryValue<TMap>
         | string
         | number
-        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => boolean),
+        | ((item: MapEntryValue<TMap>, key: MapEntryKey<TMap>) => unknown),
     strict?: boolean,
 ): MapEntryValue<TMap> | null;
 // Overload: list backing, whose key is the index
 export function dataAfter<TValue>(
     items: readonly TValue[],
-    value: TValue | string | number | ((item: TValue, key: number) => boolean),
+    value: TValue | string | number | ((item: TValue, key: number) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: keyed backing, whose key is the record's own
 export function dataAfter<TValue, TKey extends PropertyKey>(
     items: Record<TKey, TValue>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Overload: the package's own canonical input, which either half satisfies
 export function dataAfter<TValue, TKey extends PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict?: boolean,
 ): TValue | null;
 // Implementation
 export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
     items: DataItems<TValue, TKey>,
-    value: TValue | string | number | ((item: TValue, key: TKey) => boolean),
+    value: TValue | string | number | ((item: TValue, key: TKey) => unknown),
     strict: boolean = false,
 ): TValue | null {
     // Read ONCE: a generator is single-use, and the search and the position lookup must walk the same entries.
@@ -1656,14 +1668,15 @@ export function dataAfter<TValue, TKey extends PropertyKey = PropertyKey>(
 /**
  * Get and remove the first N items from the data, mutating it in place.
  *
- * An empty source returns null for any count, and otherwise a count of zero returns an empty array.
- * A Map is shifted from the start of its insertion order.
+ * A count of zero returns an empty array. An empty source returns null for a count of 1 and an empty array for any
+ * other. A Map is shifted from the start of its insertion order.
  *
  * @param items - The data to shift from. Mutated in place for an array or record backing; a Map,
  * Set or generator backing is copied first, so the write lands on the copy and is discarded.
- * @param count - Number of items to shift
- * @returns The shifted item(s), or null if the source had nothing to shift.
- * @throws Error if count is negative.
+ * @param count - Number of items to shift; a fraction is dropped, and NAN shifts every item
+ * @returns The shifted item when count is 1, or null if there was none; an array of the shifted items otherwise.
+ * @throws InvalidArgumentException if count is negative.
+ * @throws Error for a fraction below 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -1765,6 +1778,42 @@ export const dataShuffle = dispatch(
     toPositionalBacking,
     toKeyedData,
 );
+
+/**
+ * Skip items in the data until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to skip items of
+ * @param value - The value to skip until, or a callback answering whether an item meets the condition
+ * @returns The items from the first that meets the condition on, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataSkipUntil([1, 2, 3, 4], 3); -> [3, 4]
+ * dataSkipUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'b'); -> {b: 2, c: 3}
+ * dataSkipUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {0: 'a', 1: 'b'}
+ */
+export const dataSkipUntil = dispatch(arrSkipUntil, objSkipUntil);
+
+/**
+ * Skip items in the data while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to skip items of
+ * @param value - The value to skip while items equal it, or a callback answering whether an item meets the condition
+ * @returns The items from the first that fails the condition on, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataSkipWhile([1, 1, 2, 1], 1); -> [2, 1]
+ * dataSkipWhile({a: 1, b: 2, c: 1}, 1); -> {b: 2, c: 1}
+ * dataSkipWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {0: 'a', 1: 'b'}
+ */
+export const dataSkipWhile = dispatch(arrSkipWhile, objSkipWhile);
 
 /**
  * Slice the underlying data items
@@ -1890,11 +1939,13 @@ export const dataSortRecursiveDesc = dispatch(
  *
  * @param data - The data to splice. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
- * @param offset - The starting index
- * @param length - The number of items to remove. Defaults to everything
- * from offset to the end.
+ * @param offset - The starting index; a fraction is dropped
+ * @param length - The number of items to remove, a fraction dropped. Null or none removes everything
+ * from offset to the end, as array_splice()'s ?int length reads null.
  * @param replacement - The items to insert
  * @returns The removed items.
+ * @throws TypeError when the offset or the length is NAN, infinite or outside PHP's int range, which array_splice()
+ * refuses.
  *
  * @example
  *
@@ -1907,6 +1958,42 @@ export const dataSplice = dispatch(
     toPositionalBacking,
     copyKeyedData,
 );
+
+/**
+ * Take items in the data until the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to take items from
+ * @param value - The value to take until, or a callback answering whether an item meets the condition
+ * @returns The items before the first that meets the condition, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataTakeUntil([1, 2, 3, 4], 3); -> [1, 2]
+ * dataTakeUntil({a: 1, b: 2, c: 3}, (value, key) => key === 'c'); -> {a: 1, b: 2}
+ * dataTakeUntil(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'a'); -> {2: 'c'}
+ */
+export const dataTakeUntil = dispatch(arrTakeUntil, objTakeUntil);
+
+/**
+ * Take items in the data while the given condition is met.
+ *
+ * A value is compared with PHP's `===`; a callback is handed each value and key, and PHP truthiness judges its answer.
+ * A Map is walked in its insertion order.
+ *
+ * @param data - The data to take items from
+ * @param value - The value to take while items equal it, or a callback answering whether an item meets the condition
+ * @returns The items before the first that fails the condition, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataTakeWhile([1, 1, 2, 2, 3, 3], 1); -> [1, 1]
+ * dataTakeWhile({a: 1, b: 1, c: 2, d: 1}, 1); -> {a: 1, b: 1}
+ * dataTakeWhile(new Map([[2, 'c'], [0, 'a'], [1, 'b']]), 'c'); -> {2: 'c'}
+ */
+export const dataTakeWhile = dispatch(arrTakeWhile, objTakeWhile);
 
 /**
  * Get a string value from data.
@@ -2145,9 +2232,11 @@ export const dataReverse = dispatch(arrReverse, objReverse);
  * each value lands on the key PHP's padded array gives it.
  *
  * @param data - The data to pad
- * @param size - The desired size
+ * @param size - The desired size; a fraction is dropped
  * @param value - The value to pad with
  * @returns Padded data
+ * @throws TypeError when the size is NAN, infinite or outside PHP's int range, as array_pad() refuses it.
+ * @throws Error when the size is past PHP's maximum array size, as array_pad()'s ValueError.
  *
  * @example
  *
@@ -2331,6 +2420,31 @@ export const dataLast = dispatch(arrLast, objLast, streamPositionalData);
 export const dataContains = dispatch(arrContains, objContains);
 
 /**
+ * Determine if data contains a value, using strict comparison.
+ *
+ * A Map is read in its insertion order, so a callback is handed its keys in the order PHP
+ * walks the array, and the keys PHP stores as one (`1` and `"1"`) hold only the last value.
+ *
+ * @param data - The data to search
+ * @param key - The value to search for, a callback, or the dot path to compare when `value` is given; the path takes
+ * no `*` wildcard, where PHP's `data_get` reads one
+ * @param value - The value the path must strictly equal
+ * @returns True if a match is found, false otherwise
+ *
+ * @example
+ *
+ * dataContainsStrict([1, 3, 5, '02'], '02'); -> true
+ * dataContainsStrict([1, 3, 5, '02'], 2); -> false
+ * dataContainsStrict({ a: 1, b: null }, (value) => value === null); -> true
+ * dataContainsStrict([{ tags: ['a', 'b'] }], 'tags', ['a', 'b']); -> true
+ * dataContainsStrict([{ user: { id: 2 } }], 'user.id', 2); -> true
+ */
+export const dataContainsStrict = dispatch(
+    arrContainsStrict,
+    objContainsStrict,
+);
+
+/**
  * Get the differences between data collections.
  *
  * Both backings normalize `other` through `arrayableValues`, so a mismatched
@@ -2370,6 +2484,49 @@ export const dataDiff = dispatch(
 export const dataDiffAssoc = dispatch(
     arrDiffAssoc,
     objDiffAssoc,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+/**
+ * Get the items whose keys are not present in the given other data.
+ *
+ * `other` is read by its own keys, so a list holds its indexes and never its `length`. A list's survivors renumber.
+ *
+ * @param data - The source data
+ * @param other - The data whose keys to diff against
+ * @returns Data holding the items whose key `other` lacks, matching the delegate's own result
+ *
+ * @example
+ *
+ * dataDiffKeys({id: 1, first_word: 'Hello'}, {id: 123, foo_bar: 'Hello'}); -> {first_word: 'Hello'}
+ * dataDiffKeys([1, 2, 3], [9, 9]); -> [3]
+ */
+export const dataDiffKeys = dispatch(
+    arrDiffKeys,
+    objDiffKeys,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+/**
+ * Get the items whose value is not present in the given other data, comparing with the callback.
+ *
+ * The callback reports whether two values are equal. A list's survivors renumber.
+ *
+ * @param data - The source data
+ * @param other - The data to diff against
+ * @param callback - Function that reports whether a value of `data` equals a value of `other`
+ * @returns Data holding the items no value of `other` equals, matching the delegate's own result
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataDiffUsing(['green', 'brown', 'blue'], ['GREEN', 'yellow'], strcasecmp); -> ['brown', 'blue']
+ */
+export const dataDiffUsing = dispatch(
+    arrDiffUsing,
+    objDiffUsing,
     toPositionalBacking,
     toKeyedData,
 );
@@ -2446,8 +2603,9 @@ export const dataPluck = dispatch(arrPluck, objPluck);
  *
  * @param data - The data to pop from. Mutated in place for an array or record backing; a Map, Set
  * or generator backing is copied first, so the write lands on the copy and is discarded.
- * @param count - The number of items to pop
+ * @param count - The number of items to pop; a fraction is dropped, and NAN pops every item
  * @returns The popped item(s), or null if the source had nothing to pop.
+ * @throws Error for a fraction between 1 and 2 that the items do not cap, as PHP's range() throws its ValueError.
  *
  * @example
  *
@@ -2477,6 +2635,28 @@ export const dataPop = dispatch(
 export const dataIntersect = dispatch(
     arrIntersect,
     objIntersect,
+    toPositionalBacking,
+    toKeyedData,
+);
+
+/**
+ * Intersect the data with the given items, comparing values with the callback.
+ *
+ * The callback reports whether two values are equal.
+ *
+ * @param data - The original data
+ * @param items - The items to intersect with
+ * @param callback - Function that reports whether a value of `data` equals a value of `items`
+ * @returns Data holding the items some value of `items` equals, matching the delegate's own result
+ *
+ * @example
+ *
+ * const strcasecmp = (a: unknown, b: unknown) => String(a).toLowerCase() === String(b).toLowerCase();
+ * dataIntersectUsing({a: 'green', b: 'brown'}, {A: 'GREEN'}, strcasecmp); -> {a: 'green'}
+ */
+export const dataIntersectUsing = dispatch(
+    arrIntersectUsing,
+    objIntersectUsing,
     toPositionalBacking,
     toKeyedData,
 );

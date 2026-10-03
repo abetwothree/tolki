@@ -15,6 +15,7 @@ import {
 
 declare const nullableB: { b: number } | null;
 declare const maybeCount: number | undefined;
+declare const oneOrTwo: 1 | 2;
 declare const literalKeyMap: Map<"a" | 2, number>;
 
 describe("obj mutation type tests", () => {
@@ -27,7 +28,7 @@ describe("obj mutation type tests", () => {
 
         it("return a list for a literal count other than 1", () => {
             expectTypeOf(Obj.pop(abc, 2)).toEqualTypeOf<number[]>();
-            expectTypeOf(Obj.shift(abc, 2)).toEqualTypeOf<number[] | null>();
+            expectTypeOf(Obj.shift(abc, 2)).toEqualTypeOf<number[]>();
         });
 
         it("cover both shapes for a widened count", () => {
@@ -41,9 +42,30 @@ describe("obj mutation type tests", () => {
             >();
         });
 
-        it("return null for non-object data", () => {
-            expectTypeOf(Obj.shift(numberList, 2)).toEqualTypeOf<null>();
-            expectTypeOf(Obj.pop(null)).toEqualTypeOf<null | never[]>();
+        it("return null, or an empty list for a count other than 1, for non-object data", () => {
+            const count: number = 2;
+
+            expectTypeOf(Obj.pop(null)).toEqualTypeOf<null>();
+            expectTypeOf(Obj.shift(numberList)).toEqualTypeOf<null>();
+            expectTypeOf(Obj.shift(numberList, 1)).toEqualTypeOf<null>();
+            expectTypeOf(Obj.pop(numberList, 2)).toEqualTypeOf<never[]>();
+            expectTypeOf(Obj.shift(numberList, 2)).toEqualTypeOf<never[]>();
+            expectTypeOf(Obj.shift(null, 0)).toEqualTypeOf<never[]>();
+            expectTypeOf(Obj.pop(numberList, count)).toEqualTypeOf<
+                null | never[]
+            >();
+            expectTypeOf(Obj.shift(numberList, maybeCount)).toEqualTypeOf<
+                null | never[]
+            >();
+        });
+
+        it("keep null for non-object data when a count's type includes 1", () => {
+            expectTypeOf(Obj.pop(numberList, oneOrTwo)).toEqualTypeOf<
+                null | never[]
+            >();
+            expectTypeOf(Obj.shift(numberList, oneOrTwo)).toEqualTypeOf<
+                null | never[]
+            >();
         });
 
         it("keep the typed rows for a forwarded `number | undefined` count", () => {
@@ -64,29 +86,23 @@ describe("obj mutation type tests", () => {
             expectTypeOf(Obj.pop(numberMap)).toEqualTypeOf<number | null>();
             expectTypeOf(Obj.shift(numberMap)).toEqualTypeOf<number | null>();
             expectTypeOf(Obj.pop(numberMap, 2)).toEqualTypeOf<number[]>();
-            expectTypeOf(Obj.shift(numberMap, 2)).toEqualTypeOf<
-                number[] | null
-            >();
+            expectTypeOf(Obj.shift(numberMap, 2)).toEqualTypeOf<number[]>();
             expectTypeOf(Obj.pop(numberMap, count)).toEqualTypeOf<
                 number | number[] | null
             >();
             expectTypeOf(Obj.shift(numberMap, maybeCount)).toEqualTypeOf<
                 number | number[] | null
             >();
-            // Not the non-object row, which answers that nothing was popped.
-            expectTypeOf(Obj.pop(numberMap)).not.toEqualTypeOf<
-                null | never[]
-            >();
-            expectTypeOf(Obj.shift(numberMap, 2)).not.toEqualTypeOf<null>();
+            // Not the non-object rows, which answer that nothing was popped.
+            expectTypeOf(Obj.pop(numberMap)).not.toEqualTypeOf<null>();
+            expectTypeOf(Obj.shift(numberMap, 2)).not.toEqualTypeOf<never[]>();
         });
 
         it("take a Map typed read-only, as they take a readonly record, and write through it", () => {
             const readonlyMap: ReadonlyMap<string, number> = numberMap;
 
             expectTypeOf(Obj.pop(readonlyMap)).toEqualTypeOf<number | null>();
-            expectTypeOf(Obj.shift(readonlyMap, 2)).toEqualTypeOf<
-                number[] | null
-            >();
+            expectTypeOf(Obj.shift(readonlyMap, 2)).toEqualTypeOf<number[]>();
         });
 
         it("return a union of Maps' values, and unknown for a Map in any other union", () => {
@@ -94,9 +110,9 @@ describe("obj mutation type tests", () => {
                 string | number | null
             >();
             expectTypeOf(Obj.shift(mapUnion, 2)).toEqualTypeOf<
-                (string | number)[] | null
+                (string | number)[]
             >();
-            // Not the non-object row's `null | never[]`: the Map's values are removed and returned.
+            // Not the non-object rows' `null` or `never[]`: the Map's values are removed and returned.
             expectTypeOf(Obj.pop(maybeMap)).toEqualTypeOf<unknown>();
             expectTypeOf(Obj.shift(maybeMap)).toEqualTypeOf<unknown>();
             expectTypeOf(Obj.pop(mapOrList, 2)).toEqualTypeOf<unknown>();

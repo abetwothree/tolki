@@ -1114,7 +1114,7 @@ import { limit } from "@tolki/str";
 
 const result = limit("The quick brown fox jumps over the lazy dog", 20);
 
-// result is "The quick brown fox "
+// result is "The quick brown fox..."
 ```
 
 You may pass a third argument to specify the string to append to the truncated string (defaults to an ellipsis):
@@ -1122,9 +1122,13 @@ You may pass a third argument to specify the string to append to the truncated s
 ```javascript
 import { limit } from "@tolki/str";
 
-const result = limit("The quick brown fox jumps over the lazy dog", 20, "...");
+const result = limit(
+  "The quick brown fox jumps over the lazy dog",
+  20,
+  " (...)",
+);
 
-// result is "The quick brown fox..."
+// result is "The quick brown fox (...)"
 ```
 
 You may also pass a fourth argument to indicate whether to avoid cutting off words (defaults to false):
@@ -2307,6 +2311,20 @@ const result = trim(" foo bar ");
 // result is "foo bar"
 ```
 
+To trim other characters instead of whitespace, pass them as a second argument. `ltrim` and `rtrim` take it too. An empty string trims nothing, not even whitespace:
+
+```javascript
+import { trim } from "@tolki/str";
+
+const result = trim("-foo  bar_", "-_");
+
+// result is "foo  bar"
+
+const result2 = trim(" foo bar ", "");
+
+// result2 is " foo bar "
+```
+
 <FnTry
   :fn="trim"
   :args="[
@@ -2323,7 +2341,7 @@ import { ltrim } from "@tolki/str";
 
 const result = ltrim("  foo bar  ");
 
-// result is "foo bar   "
+// result is "foo bar  "
 ```
 
 <FnTry
@@ -2686,10 +2704,12 @@ If no string is provided, a Stringable class instance with an empty string will 
 ```javascript
 import { str } from "@tolki/str";
 
-const result = str().snake("FooBar");
+const result = str().append("FooBar").snake();
 
 // result is a Stringable class instance representing "foo_bar"
 ```
+
+`str()` always returns a Stringable, so pass it the string you want to work on, as in `str("FooBar").snake()`, or call the standalone function, `snake("FooBar")`. Laravel's `str()` with no argument forwards a call such as `str()->snake('FooBar')` to `Str::snake()`, but this package's `str()` does not.
 
 ### of
 

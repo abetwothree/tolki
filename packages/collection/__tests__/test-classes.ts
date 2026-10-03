@@ -1,16 +1,16 @@
 import type {
-    Arrayable,
     IteratorAggregate,
     Jsonable,
     JsonSerializable,
 } from "@tolki/types";
+import { isArray } from "@tolki/utils";
 
 /**
  * Test class that implements Arrayable interface
  */
-export class TestArrayableObject implements Arrayable<unknown> {
-    toArray(): unknown[] {
-        return [{ foo: "bar" }];
+export class TestArrayableObject {
+    toArray(): Record<string, string> {
+        return { foo: "bar" };
     }
 }
 
@@ -45,22 +45,44 @@ export class TestJsonSerializeWithScalarValueObject implements JsonSerializable 
  * Test class that implements both IteratorAggregate and JsonSerializable interfaces
  */
 export class TestTraversableAndJsonSerializableObject
-    implements IteratorAggregate<unknown, number>, JsonSerializable
+    implements
+        IteratorAggregate<unknown, PropertyKey>,
+        Iterable<unknown>,
+        JsonSerializable
 {
-    public items: unknown[];
+    public items: unknown[] | Record<string, unknown>;
 
-    constructor(items: unknown[] = []) {
+    constructor(items: unknown[] | Record<string, unknown> = []) {
         this.items = items;
     }
 
-    *getIterator(): IterableIterator<[number, unknown]> {
-        for (let i = 0; i < this.items.length; i++) {
-            yield [i, this.items[i]];
-        }
+    *getIterator(): IterableIterator<[PropertyKey, unknown]> {
+        yield* isArray(this.items)
+            ? this.items.entries()
+            : Object.entries(this.items);
+    }
+
+    *[Symbol.iterator](): IterableIterator<unknown> {
+        yield* Object.values(this.items);
     }
 
     jsonSerialize(): unknown {
         return JSON.parse(JSON.stringify(this.items));
+    }
+}
+
+/**
+ * Test class whose iteration and jsonSerialize() disagree, so a collection built from it shows which one won
+ */
+export class TestIterableWithDifferentJsonSerializeObject
+    implements Iterable<string>, JsonSerializable
+{
+    *[Symbol.iterator](): IterableIterator<string> {
+        yield "iterated";
+    }
+
+    jsonSerialize(): string[] {
+        return ["serialized"];
     }
 }
 

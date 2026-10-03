@@ -400,14 +400,14 @@ describe("arr subsets type tests", () => {
     describe("interface-typed rows", () => {
         it("keys an interface-typed row list by its own row type", () => {
             expectTypeOf(Arr.keyBy(interfaceRows, "id")).toEqualTypeOf<
-                Record<string, InterfaceRow>
+                Record<number, InterfaceRow>
             >();
         });
 
         it("keys an interface-typed row list with a callback", () => {
             expectTypeOf(
                 Arr.keyBy(interfaceRows, (row) => row.name),
-            ).toEqualTypeOf<Record<string, InterfaceRow>>();
+            ).toEqualTypeOf<Record<string | number, InterfaceRow>>();
         });
 
         it("plucks a literal path off interface-typed rows", () => {

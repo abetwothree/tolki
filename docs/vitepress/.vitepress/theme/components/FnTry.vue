@@ -251,6 +251,7 @@ function formatResult(value: unknown): string {
   background: transparent;
   padding: 0;
   color: var(--vp-c-text-1);
+  white-space: pre-wrap;
   word-break: break-word;
 }
 </style>

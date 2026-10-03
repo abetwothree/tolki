@@ -22,8 +22,8 @@ const INVISIBLE_CHAR_CLASS: string = (() => {
  * @returns The default character class as a string.
  */
 function defaultClass(): string {
-    // JS \s covers standard whitespace; add invisible class and explicit NUL (\u0000)
-    return `\\s${INVISIBLE_CHAR_CLASS}\\u0000`;
+    // PHP's \s also matches NEL (U+0085) under its u modifier, which JS's \s leaves out; NUL is Laravel's own addition.
+    return `\\s\\u0085${INVISIBLE_CHAR_CLASS}\\u0000`;
 }
 
 /**
@@ -37,134 +37,89 @@ function escapeForClass(s: string): string {
 }
 
 /**
- * Compute the base and tail indentation of a multiline string.
+ * Remove the trailing run of characters in a character class.
  *
- * @param value - The multiline string.
- * @returns An object containing baseIndent and tailIndent.
+ * @param value - The string to strip.
+ * @param characterClass - The body of the character class, as a regex fragment for the 'u' flag.
+ * @returns The string without its trailing run.
  */
-function computeIndents(value: string): {
-    baseIndent: number;
-    tailIndent: number;
-} {
-    let baseIndent = 0;
-    const origLines = value.split(/\r?\n/);
-    for (const ln of origLines) {
-        if (!/\S/.test(ln)) {
-            continue; // skip empty/whitespace-only
+function stripEnd(value: string, characterClass: string): string {
+    const last = new RegExp(`[${characterClass}]$`, "u");
+    let end = value.length;
+
+    // Reading one character at a time, at most two UTF-16 units, keeps this linear: a `[...]+$` pattern retries
+    // from every character of an interior run.
+    while (end > 0) {
+        const match = last.exec(value.slice(Math.max(end - 2, 0), end));
+
+        if (match === null) {
+            break;
         }
-        const m = ln.match(/^[ \t]*/);
-        baseIndent = m![0]!.length;
-        break;
+
+        end -= match[0].length;
     }
 
-    const lastLine = origLines[origLines.length - 1]!;
-    const tailMatch = lastLine.match(/^[ \t]*/);
-    const tailIndent = tailMatch![0]!.length;
+    return value.slice(0, end);
+}
 
-    return { baseIndent, tailIndent };
+/**
+ * Remove the leading run of characters in a character class.
+ *
+ * @param value - The string to strip.
+ * @param characterClass - The body of the character class, as a regex fragment for the 'u' flag.
+ * @returns The string without its leading run.
+ */
+function stripStart(value: string, characterClass: string): string {
+    return value.replace(new RegExp(`^[${characterClass}]+`, "u"), "");
+}
+
+/**
+ * Get the character class that `trim`, `ltrim` and `rtrim` remove.
+ *
+ * @param charlist - The characters to remove, or null for whitespace and invisible characters.
+ * @returns The body of the character class. An empty charlist gives an empty class, which matches nothing, as in PHP.
+ */
+function trimmedClass(charlist: string | null): string {
+    return charlist === null ? defaultClass() : escapeForClass(charlist);
 }
 
 /**
  * Remove all whitespace from both ends of a string.
  *
  * @param value - The string to trim.
- * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @param charlist - Optional list of characters to trim instead of whitespace; an empty string trims nothing.
  * @returns The trimmed string.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#trim
  */
 export function trim(value: string, charlist: string | null = null): string {
-    if (charlist == null || charlist === "") {
-        const { baseIndent, tailIndent } = computeIndents(value);
+    const characterClass = trimmedClass(charlist);
 
-        const cls = defaultClass();
-        const re = new RegExp(`^[${cls}]+|[${cls}]+$`, "gu");
-        let out = value.replace(re, "");
-
-        const delta = Math.max(0, baseIndent - tailIndent);
-        if (delta > 0 && out.includes("\n")) {
-            const pad = " ".repeat(delta);
-            out = out
-                .split(/\r?\n/)
-                .map((ln, i) => (i === 0 || /^\s*$/.test(ln) ? ln : pad + ln))
-                .join("\n");
-        }
-
-        return out.length !== value.length ? out : value.trim();
-    }
-
-    const re = new RegExp(
-        `^[${escapeForClass(charlist)}]+|[${escapeForClass(charlist)}]+$`,
-        "gu",
-    );
-
-    return value.replace(re, "");
+    return stripEnd(stripStart(value, characterClass), characterClass);
 }
 
 /**
  * Remove all whitespace from the beginning of a string.
  *
  * @param value - The string to trim.
- * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @param charlist - Optional list of characters to trim instead of whitespace; an empty string trims nothing.
  * @returns The left-trimmed string.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#ltrim
  */
 export function ltrim(value: string, charlist: string | null = null): string {
-    if (charlist == null || charlist === "") {
-        const cls = defaultClass();
-        const re = new RegExp(`^[${cls}]+`, "gu");
-        let out = value.replace(re, "");
-
-        // Test-driven tweak: remove a single ASCII space when followed by a trailing control
-        const ctrlTail = String.raw` (?:\n|\r|\t|\v|\x00)$`;
-        out = out.replace(new RegExp(ctrlTail, "u"), "");
-
-        // If original ended with exactly two ASCII spaces (but not three+), collapse them after left-trim
-        if (value.endsWith("  ") && !value.endsWith("   ")) {
-            out = out.replace(/ {2}$/u, "");
-        }
-
-        return out.length !== value.length ? out : value.trimStart();
-    }
-
-    const re = new RegExp(`^[${escapeForClass(charlist)}]+`, "gu");
-
-    return value.replace(re, "");
+    return stripStart(value, trimmedClass(charlist));
 }
 
 /**
  * Remove all whitespace from the end of a string.
  *
  * @param value - The string to trim.
- * @param charlist - Optional list of characters to trim instead of whitespace.
+ * @param charlist - Optional list of characters to trim instead of whitespace; an empty string trims nothing.
  * @returns The right-trimmed string.
  *
  * @see https://tolki.abe.dev/strings/string-utilities-list.html#rtrim
  */
 export function rtrim(value: string, charlist: string | null = null): string {
-    if (charlist == null || charlist === "") {
-        const cls = defaultClass();
-        const re = new RegExp(`[${cls}]+$`, "gu");
-        let out = value.replace(re, "");
-
-        // Multiline indentation compensation (template literal parity)
-        if (out.includes("\n")) {
-            const { baseIndent, tailIndent } = computeIndents(value);
-            const delta = Math.max(0, tailIndent - baseIndent);
-            if (delta > 0) {
-                const pad = " ".repeat(delta);
-                out = out
-                    .split(/\r?\n/)
-                    .map((ln) => (/\S/.test(ln) ? pad + ln : ln))
-                    .join("\n");
-            }
-        }
-
-        return out.length !== value.length ? out : value.trimEnd();
-    }
-
-    const re = new RegExp(`[${escapeForClass(charlist)}]+$`, "gu");
-
-    return value.replace(re, "");
+    return stripEnd(value, trimmedClass(charlist));
 }

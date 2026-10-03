@@ -205,21 +205,28 @@ importers:
 
   packages/collection:
     dependencies:
-      "@tolki/arr":
-        specifier: workspace:^
-        version: link:../arr
       "@tolki/data":
         specifier: workspace:^
         version: link:../data
       "@tolki/enum":
         specifier: workspace:^
         version: link:../enum
+      "@tolki/path":
+        specifier: workspace:^
+        version: link:../path
       "@tolki/types":
         specifier: workspace:^
         version: link:../types
       "@tolki/utils":
         specifier: workspace:^
         version: link:../utils
+    devDependencies:
+      "@tolki/arr":
+        specifier: workspace:^
+        version: link:../arr
+      "@tolki/str":
+        specifier: workspace:^
+        version: link:../str
 
   packages/data:
     dependencies:

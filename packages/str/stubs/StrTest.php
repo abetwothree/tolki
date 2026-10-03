@@ -559,6 +559,8 @@ class SupportStrTest extends TestCase
         $this->assertSame('/test/string', Str::start('test/string', '/'));
         $this->assertSame('/test/string', Str::start('/test/string', '/'));
         $this->assertSame('/test/string', Str::start('//test/string', '/'));
+        $this->assertSame('test/string', Str::start('test/string', ''));
+        $this->assertSame('', Str::start('', ''));
     }
 
     public function testFlushCache()
@@ -581,6 +583,11 @@ class SupportStrTest extends TestCase
         $this->assertSame('abbc', Str::finish('ab', 'bc'));
         $this->assertSame('abbc', Str::finish('abbcbc', 'bc'));
         $this->assertSame('abcbbc', Str::finish('abcbbcbc', 'bc'));
+        $this->assertSame('test/string/', Str::finish('test/string', '/'));
+        $this->assertSame('test/string/', Str::finish('test/string/', '/'));
+        $this->assertSame('test/string/', Str::finish('test/string//', '/'));
+        $this->assertSame('test/string', Str::finish('test/string', ''));
+        $this->assertSame('', Str::finish('', ''));
     }
 
     public function testWrap()
@@ -1186,6 +1193,18 @@ class SupportStrTest extends TestCase
             $this->assertSame("{$char} foo bar", Str::rtrim("{$char} foo bar {$char}"));
             $this->assertSame(rtrim("{$char} foo bar {$char}"), Str::rtrim("{$char} foo bar {$char}"));
         }
+    }
+
+    public function testTrimAndRtrimHandleLongInteriorWhitespaceRuns()
+    {
+        $run = str_repeat(" \u{200B}\t", 20000);
+
+        $this->assertSame("[{$run}x", Str::trim("{$run}[{$run}x{$run}"));
+        $this->assertSame("{$run}[{$run}x", Str::rtrim("{$run}[{$run}x{$run}"));
+        $this->assertSame('', Str::trim($run));
+        $this->assertSame('', Str::rtrim($run));
+        $this->assertSame('a b c', Str::trim(" a b c\u{00A0}\u{FEFF}\n"));
+        $this->assertSame(' a  b', Str::rtrim(" a  b \u{3000}\r\n"));
     }
 
     public function testSquish()

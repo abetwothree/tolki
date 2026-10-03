@@ -16,6 +16,9 @@ import {
     unionItems,
 } from "./fixtures";
 
+/** A depth the caller may leave out, which flattens every level. */
+declare const maybeDepth: number | undefined;
+
 /** A non-literal default, so `TDefault` infers the same on both sides of a pin. */
 const fallback: string = "fallback";
 
@@ -66,6 +69,61 @@ describe("data slicing type tests", () => {
             );
             expectTypeOf(Data.dataSlice(abc, 1, 1)).toEqualTypeOf(
                 Obj.slice(abc, 1, 1),
+            );
+        });
+    });
+
+    describe("dataSkipUntil, dataSkipWhile, dataTakeUntil and dataTakeWhile", () => {
+        it("match arr for a list", () => {
+            expectTypeOf(Data.dataSkipUntil(numberList, 1)).toEqualTypeOf(
+                Arr.skipUntil(numberList, 1),
+            );
+            expectTypeOf(Data.dataSkipWhile(numberList, 1)).toEqualTypeOf(
+                Arr.skipWhile(numberList, 1),
+            );
+            expectTypeOf(Data.dataTakeUntil(numberList, 1)).toEqualTypeOf(
+                Arr.takeUntil(numberList, 1),
+            );
+            expectTypeOf(
+                Data.dataTakeWhile(readonlyNumberList, 1),
+            ).toEqualTypeOf(Arr.takeWhile(readonlyNumberList, 1));
+        });
+
+        it("match obj for a record", () => {
+            expectTypeOf(Data.dataSkipUntil(abc, 1)).toEqualTypeOf(
+                Obj.skipUntil(abc, 1),
+            );
+            expectTypeOf(Data.dataSkipWhile(abc, 1)).toEqualTypeOf(
+                Obj.skipWhile(abc, 1),
+            );
+            expectTypeOf(Data.dataTakeUntil(abc, 1)).toEqualTypeOf(
+                Obj.takeUntil(abc, 1),
+            );
+            expectTypeOf(Data.dataTakeWhile(abc, 1)).toEqualTypeOf(
+                Obj.takeWhile(abc, 1),
+            );
+        });
+
+        it("type a callback from the delegate each backing reaches", () => {
+            // The callbacks are inline and unannotated on purpose: an annotation would supply the types they assert.
+            const skipped = Data.dataSkipUntil([1, 2], (value, index) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(index).toEqualTypeOf<number>();
+
+                return true;
+            });
+            expectTypeOf(skipped).toEqualTypeOf(
+                Arr.skipUntil([1, 2], () => true),
+            );
+
+            const taken = Data.dataTakeWhile({ a: 1 }, (value, key) => {
+                expectTypeOf(value).toEqualTypeOf<number>();
+                expectTypeOf(key).toEqualTypeOf<"a">();
+
+                return true;
+            });
+            expectTypeOf(taken).toEqualTypeOf(
+                Obj.takeWhile({ a: 1 }, () => true),
             );
         });
     });
@@ -348,6 +406,18 @@ describe("data slicing type tests", () => {
             );
         });
 
+        it("matches arr.flatten for a list nested more than one level deep", () => {
+            const deep = [[1, [2, [3, { a: "x" }]]]];
+
+            expectTypeOf(Data.dataFlatten(deep)).toEqualTypeOf(
+                Arr.flatten(deep),
+            );
+            // Stated too: the pin above would still hold if both sides stopped one level down.
+            expectTypeOf(Data.dataFlatten(deep)).toEqualTypeOf<
+                (number | string)[]
+            >();
+        });
+
         it("matches each backing at a bounded depth", () => {
             // The default depth is Infinity, a settled contract, so a bounded depth
             // is pinned separately to prove the argument reaches both delegates.
@@ -357,6 +427,41 @@ describe("data slicing type tests", () => {
             expectTypeOf(Data.dataFlatten(nestedRecord, 1)).toEqualTypeOf(
                 Obj.flatten(nestedRecord, 1),
             );
+            // Stated too: the pins above would still hold if both sides answered the same wrong values.
+            expectTypeOf(Data.dataFlatten(nestedList, 1)).toEqualTypeOf<
+                number[]
+            >();
+            expectTypeOf(Data.dataFlatten(nestedRecord, 1)).toEqualTypeOf<
+                ({ x: number } | { y: string } | number | string)[]
+            >();
+        });
+
+        it("matches arr.flatten for a list a depth may stop inside", () => {
+            const deep = [[[1]]];
+
+            expectTypeOf(Data.dataFlatten(deep, 2)).toEqualTypeOf(
+                Arr.flatten(deep, 2),
+            );
+            expectTypeOf(Data.dataFlatten(deep, 2)).toEqualTypeOf<
+                (number | number[])[]
+            >();
+        });
+
+        it("matches each backing for a depth that may be missing", () => {
+            expectTypeOf(
+                Data.dataFlatten(nestedList, maybeDepth),
+            ).toEqualTypeOf(Arr.flatten(nestedList, maybeDepth));
+            expectTypeOf(
+                Data.dataFlatten(nestedList, maybeDepth),
+            ).toEqualTypeOf<number[]>();
+            // obj's depth rows take a number, so a depth that may be missing reaches its widest row.
+            const widest = Obj.flatten(nestedRecord, maybeDepth);
+            expectTypeOf(
+                Data.dataFlatten(nestedRecord, maybeDepth),
+            ).toEqualTypeOf<typeof widest>();
+            expectTypeOf(
+                Data.dataFlatten(nestedRecord, maybeDepth),
+            ).toEqualTypeOf<unknown[]>();
         });
     });
 
@@ -379,6 +484,19 @@ describe("data slicing type tests", () => {
 
             const flattened = Data.dataFlatten(unionItems);
             expectTypeOf(flattened).toEqualTypeOf(Obj.flatten(unionItems));
+
+            expectTypeOf(Data.dataSkipUntil(unionItems, 1)).toEqualTypeOf(
+                Obj.skipUntil(unionItems, 1),
+            );
+            expectTypeOf(Data.dataSkipWhile(unionItems, 1)).toEqualTypeOf(
+                Obj.skipWhile(unionItems, 1),
+            );
+            expectTypeOf(Data.dataTakeUntil(unionItems, 1)).toEqualTypeOf(
+                Obj.takeUntil(unionItems, 1),
+            );
+            expectTypeOf(Data.dataTakeWhile(unionItems, 1)).toEqualTypeOf(
+                Obj.takeWhile(unionItems, 1),
+            );
         });
 
         it("answers dataFirst and dataLast from obj, and still covers the list half", () => {
@@ -462,6 +580,22 @@ describe("data slicing type tests", () => {
                 typeof widest
             >();
         });
+
+        it("types a Map on dataSkipUntil, dataSkipWhile, dataTakeUntil and dataTakeWhile from obj's widest row", () => {
+            const widest = Obj.skipUntil(opaque, 1);
+            expectTypeOf(Data.dataSkipUntil(numberMap, 1)).toEqualTypeOf<
+                typeof widest
+            >();
+            expectTypeOf(Data.dataSkipWhile(numberMap, 1)).toEqualTypeOf<
+                typeof widest
+            >();
+            expectTypeOf(Data.dataTakeUntil(numberMap, 1)).toEqualTypeOf<
+                typeof widest
+            >();
+            expectTypeOf(Data.dataTakeWhile(numberMap, 1)).toEqualTypeOf<
+                typeof widest
+            >();
+        });
     });
 
     describe("inputs a Record<PropertyKey, unknown> constraint would reject", () => {
@@ -486,6 +620,21 @@ describe("data slicing type tests", () => {
         it("accepts a class instance", () => {
             expectTypeOf(Data.dataTake(box, 2)).toEqualTypeOf(Obj.take(box, 2));
             expectTypeOf(Data.dataFirst(box)).toEqualTypeOf(Obj.first(box));
+            expectTypeOf(Data.dataSkipUntil(box, 1)).toEqualTypeOf(
+                Obj.skipUntil(box, 1),
+            );
+        });
+
+        it("accepts an interface-typed record for the skip and take functions", () => {
+            expectTypeOf(Data.dataSkipWhile(settings, 1)).toEqualTypeOf(
+                Obj.skipWhile(settings, 1),
+            );
+            expectTypeOf(Data.dataTakeUntil(settings, 1)).toEqualTypeOf(
+                Obj.takeUntil(settings, 1),
+            );
+            expectTypeOf(Data.dataTakeWhile(settings, 1)).toEqualTypeOf(
+                Obj.takeWhile(settings, 1),
+            );
         });
     });
 });

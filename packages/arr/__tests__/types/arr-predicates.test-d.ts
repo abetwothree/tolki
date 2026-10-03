@@ -324,6 +324,20 @@ describe("arr predicate type tests", () => {
         });
     });
 
+    describe("containsStrict", () => {
+        it("takes a callback answering something other than a boolean on its callback row", () => {
+            // The type argument drops the untyped fallback row, so only the callback row can accept this call.
+            expectTypeOf(
+                Arr.containsStrict<string>(["a", "b"], (value, index) => {
+                    expectTypeOf(value).toEqualTypeOf<string>();
+                    expectTypeOf(index).toEqualTypeOf<number>();
+
+                    return "0";
+                }),
+            ).toEqualTypeOf<boolean>();
+        });
+    });
+
     describe("partition", () => {
         it("returns a tuple of two same-typed arrays", () => {
             const result = Arr.partition([1, 2, 3, 4], (value, index) => {

@@ -1,5 +1,5 @@
 import type { PathKey, SortSpec } from "@tolki/types";
-import { createSortSpecComparator } from "@tolki/utils";
+import { createSortSpecComparator, phpSortComparator } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
 type Row = { age: number };
@@ -13,6 +13,22 @@ const comparatorFor = (spec: SortSpec<Row>, forceDescending = false) =>
     createSortSpecComparator(readOwnKey)<Row>(spec, forceDescending);
 
 describe("createSortSpecComparator", () => {
+    it("hands a comparator descriptor back as it is, answering the bool it gives", () => {
+        const greater = (a: number, b: number) => a > b;
+
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator": PHP reads the
+        // bool when uasort() gets it, so the descriptor's own answer passes through untouched
+        expect(createSortSpecComparator(readOwnKey)(greater, false)).toBe(
+            greater,
+        );
+        expect(
+            createSortSpecComparator(readOwnKey)<number>(
+                [greater] as never,
+                false,
+            )(2, 1),
+        ).toBe(true);
+    });
+
     it("reads every descriptor key through the injected resolver", () => {
         const seen: PathKey[] = [];
         const comparator = createSortSpecComparator((item, key) => {
@@ -77,5 +93,66 @@ describe("createSortSpecComparator", () => {
         const byAge = (a: Row, b: Row) => a.age - b.age;
 
         expect(comparatorFor([byAge] as never, true)).toBe(byAge);
+    });
+});
+
+describe("phpSortComparator", () => {
+    it("casts a number past PHP's int range to its low 64 bits, so 1e19 sorts backwards and 2**64 ties", () => {
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-past-int-range"
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator(
+                    (a: number, b: number) => Math.sign(a - b) * 1e19,
+                ),
+            ),
+        ).toEqual([3, 2, 1]);
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator(
+                    (a: number, b: number) => Math.sign(a - b) * 2 ** 64,
+                ),
+            ),
+        ).toEqual([3, 1, 2]);
+    });
+
+    it("sorts by a comparator answering a bool, as PHP's usort() falls back for one", () => {
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+        expect(
+            [3, 1, 2].sort(phpSortComparator((a: number, b: number) => a > b)),
+        ).toEqual([1, 2, 3]);
+        expect(
+            [3, 1, 2].sort(phpSortComparator((a: number, b: number) => a < b)),
+        ).toEqual([3, 2, 1]);
+        expect(
+            [5, 3, 9, 1, 7, 2, 8].sort(
+                phpSortComparator((a: number, b: number) => a > b),
+            ),
+        ).toEqual([1, 2, 3, 5, 7, 8, 9]);
+        expect([3, 1, 2].sort(phpSortComparator(() => false))).toEqual([
+            3, 1, 2,
+        ]);
+    });
+
+    it("casts a number to an int, so a fraction below 1, NAN or an infinity ties", () => {
+        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-int-cast"
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator((a: number, b: number) => (a - b) / 10),
+            ),
+        ).toEqual([3, 1, 2]);
+        expect(
+            [3, 1, 2].sort(
+                phpSortComparator(
+                    (a: number, b: number) => Math.sign(a - b) * Infinity,
+                ),
+            ),
+        ).toEqual([3, 1, 2]);
+        expect([3, 1, 2].sort(phpSortComparator(() => NaN))).toEqual([3, 1, 2]);
+        // CollectionTest::testSortWithCallback
+        expect(
+            [5, 3, 1, 2, 4].sort(
+                phpSortComparator((a: number, b: number) => a - b),
+            ),
+        ).toEqual([1, 2, 3, 4, 5]);
     });
 });

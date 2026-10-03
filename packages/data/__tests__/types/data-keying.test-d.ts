@@ -14,12 +14,22 @@ import {
     numberMapAsRecord,
     opaque,
     readonlyNumberList,
+    type Row,
     rowList,
     rowsById,
     settings,
     unionItems,
     unionRows,
 } from "./fixtures";
+
+/** A row whose list and record may be empty, which dot keeps whole as leaves. */
+interface Tagged {
+    tags: string[];
+    meta: Record<string, number>;
+}
+
+declare const taggedList: Tagged[];
+declare const taggedById: Record<"r1", Tagged>;
 
 /** Not a fixture: the dotted keys are what undot reads, and only these two blocks need them. */
 const dottedRecord = { "a.b": 1, "a.c": 2 };
@@ -33,18 +43,38 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataKeyBy(rowList, "id")).toEqualTypeOf(
                 Arr.keyBy(rowList, "id"),
             );
+            // Stated too: the pin above would still hold if both sides answered the same wrong key.
+            expectTypeOf(Data.dataKeyBy(rowList, "id")).toEqualTypeOf<
+                Record<number, Row>
+            >();
+        });
+
+        it("matches arr.keyBy for a list given a callback", () => {
+            expectTypeOf(
+                Data.dataKeyBy(rowList, (row) => row.name),
+            ).toEqualTypeOf(Arr.keyBy(rowList, (row) => row.name));
+            expectTypeOf(
+                Data.dataKeyBy(rowList, (row) => row.name),
+            ).toEqualTypeOf<Record<string | number, Row>>();
         });
 
         it("matches obj.keyBy for a record", () => {
             expectTypeOf(Data.dataKeyBy(rowsById, "id")).toEqualTypeOf(
                 Obj.keyBy(rowsById, "id"),
             );
+            // Stated too: the pin above would still hold if both sides answered the same wrong key.
+            expectTypeOf(Data.dataKeyBy(rowsById, "id")).toEqualTypeOf<
+                Record<number, Row>
+            >();
         });
 
         it("matches obj.keyBy for a record given a callback", () => {
             expectTypeOf(
                 Data.dataKeyBy(rowsById, (row) => row.id),
             ).toEqualTypeOf(Obj.keyBy(rowsById, (row) => row.id));
+            expectTypeOf(
+                Data.dataKeyBy(rowsById, (row) => row.name),
+            ).toEqualTypeOf<Record<string | number, Row>>();
         });
     });
 
@@ -99,12 +129,55 @@ describe("data keying type tests", () => {
             expectTypeOf(Data.dataDot(nestedRecord, "p", 1)).toEqualTypeOf(
                 Obj.dot(nestedRecord, "p", 1),
             );
+            // Stated too: the pin above would still hold if both sides answered the same wrong values.
+            expectTypeOf(Data.dataDot(nestedRecord, "p", 1)).toEqualTypeOf<
+                Record<string, { x: number } | { y: string } | number | string>
+            >();
+        });
+
+        it("matches arr.dot for a list of records, whose leaves are the records' values", () => {
+            expectTypeOf(Data.dataDot(rowList)).toEqualTypeOf(Arr.dot(rowList));
+            expectTypeOf(Data.dataDot(rowList)).toEqualTypeOf<
+                Record<string, number | string>
+            >();
+            expectTypeOf(Data.dataDot([{ a: 1 }])).toEqualTypeOf<
+                Record<string, number>
+            >();
+        });
+
+        it("keeps a list or record that may be empty as a leaf on each backing, as the walk keeps an empty one", () => {
+            expectTypeOf(Data.dataDot(taggedList)).toEqualTypeOf(
+                Arr.dot(taggedList),
+            );
+            expectTypeOf(Data.dataDot(taggedList)).toEqualTypeOf<
+                Record<
+                    string,
+                    string | string[] | number | Record<string, number>
+                >
+            >();
+            expectTypeOf(Data.dataDot(taggedById)).toEqualTypeOf(
+                Obj.dot(taggedById),
+            );
+            // obj types every depth in one row, so the row itself may be a value too.
+            expectTypeOf(Data.dataDot(taggedById)).toEqualTypeOf<
+                Record<
+                    string,
+                    Tagged | string | string[] | number | Record<string, number>
+                >
+            >();
         });
 
         it("matches arr.dot for a list given a prefix and a depth", () => {
             expectTypeOf(Data.dataDot(nestedList, "p", 1)).toEqualTypeOf(
                 Arr.dot(nestedList, "p", 1),
             );
+            expectTypeOf(Data.dataDot(nestedList, "p", 1)).toEqualTypeOf<
+                Record<string, number | number[]>
+            >();
+            // A depth may stop at an object item's inner record, which is then a value.
+            expectTypeOf(Data.dataDot([{ a: { b: 1 } }], "", 1)).toEqualTypeOf<
+                Record<string, { a: { b: number } } | { b: number } | number>
+            >();
         });
     });
 

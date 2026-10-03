@@ -820,6 +820,18 @@ describe("Str tests", () => {
                 }),
             ).toBe("...ere xyz");
         });
+
+        it("keeps the spacing in front of the phrase", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "excerpt-two-spaces-before-phrase"
+            expect(Str.excerpt("This is  my name", "my")).toBe(
+                "This is  my name",
+            );
+            expect(Str.excerpt("This is  my name", "my", { radius: 3 })).toBe(
+                "...s  my na...",
+            );
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "excerpt-space-then-tab-before-phrase"
+            expect(Str.excerpt("foo \tbar", "bar")).toBe("foo \tbar");
+        });
     });
 
     describe("finish", () => {
@@ -827,6 +839,63 @@ describe("Str tests", () => {
             expect(Str.finish("ab", "bc")).toBe("abbc");
             expect(Str.finish("abbcbc", "bc")).toBe("abbc");
             expect(Str.finish("abcbbcbc", "bc")).toBe("abcbbc");
+            expect(Str.finish("test/string", "/")).toBe("test/string/");
+            expect(Str.finish("test/string/", "/")).toBe("test/string/");
+            expect(Str.finish("test/string//", "/")).toBe("test/string/");
+            expect(Str.finish("test/string", "")).toBe("test/string");
+            expect(Str.finish("", "")).toBe("");
+        });
+
+        it("drops every trailing cap, whatever characters it holds", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-cases"
+            expect(Str.finish("", "/")).toBe("/");
+            expect(Str.finish("///", "/")).toBe("/");
+            expect(Str.finish("a.b..", ".")).toBe("a.b.");
+            expect(Str.finish("a$$", "$")).toBe("a$");
+            expect(Str.finish("x[[", "[")).toBe("x[");
+            expect(Str.finish("x\\\\", "\\")).toBe("x\\");
+            expect(Str.finish("añññ", "ñ")).toBe("añ");
+            expect(Str.finish("😀😀", "😀")).toBe("😀");
+            expect(Str.finish("a", "abc")).toBe("aabc");
+            expect(Str.finish("a/b/c", "/")).toBe("a/b/c/");
+        });
+
+        it("reads a cap that overlaps itself from the end", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-cases"
+            expect(Str.finish("aaa", "aa")).toBe("aaa");
+            expect(Str.finish("aaaa", "aa")).toBe("aa");
+            expect(Str.finish("aaaaa", "aa")).toBe("aaa");
+            expect(Str.finish("abab", "ab")).toBe("ab");
+        });
+
+        it("stays fast over a long run of the cap inside the string", () => {
+            const run = "/".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-long-interior-run"
+            expect(Str.finish(`${run}x`, "/")).toBe(`${run}x/`);
+            // JS-only: PHP's own pattern runs out of stack here and answers "/" alone
+            // ("finish-long-interior-run-then-caps"); this port still caps the string it was given.
+            expect(Str.finish(`${run}x//`, "/")).toBe(`${run}x/`);
+        }, 2000);
+
+        it("casts a cap or a value that is no string as PHP does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-start-non-string-arguments"
+            const finish = (...args: unknown[]): unknown =>
+                Reflect.apply(Str.finish, undefined, args);
+
+            // The first case answers "5" without the cast, and the Stringable value below would never return.
+            expect(finish("a5", 5)).toBe("a5");
+            expect(finish("a", 5)).toBe("a5");
+            expect(finish("a1", true)).toBe("a1");
+            expect(finish("a", null)).toBe("a");
+            expect(finish("a/", Str.of("/"))).toBe("a/");
+            expect(finish(Str.of("a/"), "/")).toBe("a/");
+
+            const capped = Str.of("a/");
+
+            expect(
+                String(Reflect.apply(capped.finish, capped, [Str.of("/")])),
+            ).toBe("a/");
         });
     });
 
@@ -1134,6 +1203,25 @@ describe("Str tests", () => {
             expect(Str.limit("The PHP", 5, "...", true)).toBe("The...");
             expect(Str.limit("Hello world", 5, "...", true)).toBe("Hello...");
         });
+
+        it("stays fast over a long run of spaces inside the limit", () => {
+            const run = " ".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "limit-long-interior-run"
+            expect(Str.limit(`${run}x${run}x`, 200_001)).toBe(`${run}x...`);
+            expect(Str.limit(`${run}x${run}x y`, 200_001, "...", true)).toBe(
+                `x${run}x...`,
+            );
+        }, 2000);
+
+        it("stays fast when the cut holds no whitespace to cut back to", () => {
+            const word = "x".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "limit-preserve-words-no-whitespace"
+            expect(Str.limit(`${word}${word}`, 100_000, "...", true)).toBe(
+                `${word}...`,
+            );
+        }, 2000);
 
         it("limit when value length equals limit", () => {
             // Exactly at limit returns unchanged
@@ -3070,6 +3158,57 @@ describe("Str tests", () => {
             expect(Str.start("test/string", "/")).toBe("/test/string");
             expect(Str.start("/test/string", "/")).toBe("/test/string");
             expect(Str.start("//test/string", "/")).toBe("/test/string");
+            expect(Str.start("test/string", "")).toBe("test/string");
+            expect(Str.start("", "")).toBe("");
+        });
+
+        it("drops every leading prefix, whatever characters it holds", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-cases"
+            expect(Str.start("", "/")).toBe("/");
+            expect(Str.start("///", "/")).toBe("/");
+            expect(Str.start("..a.b", ".")).toBe(".a.b");
+            expect(Str.start("$$a", "$")).toBe("$a");
+            expect(Str.start("[[x", "[")).toBe("[x");
+            expect(Str.start("ñññz", "ñ")).toBe("ñz");
+            expect(Str.start("😀😀x", "😀")).toBe("😀x");
+            expect(Str.start("a", "abc")).toBe("abca");
+        });
+
+        it("reads a prefix that overlaps itself from the start", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-cases"
+            expect(Str.start("aaa", "aa")).toBe("aaa");
+            expect(Str.start("aaaa", "aa")).toBe("aa");
+            expect(Str.start("aaaaa", "aa")).toBe("aaa");
+            expect(Str.start("abab", "ab")).toBe("ab");
+        });
+
+        it("stays fast over a long run of the prefix", () => {
+            const run = "/".repeat(100_000);
+
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-long-run"
+            expect(Str.start(`x${run}`, "/")).toBe(`/x${run}`);
+            // JS-only: PHP's own pattern runs out of stack on a run this long and answers "/" alone
+            // ("start-long-leading-run"); this port still starts the string it was given.
+            expect(Str.start(`${run}x`, "/")).toBe("/x");
+        }, 2000);
+
+        it("casts a prefix or a value that is no string as PHP does", () => {
+            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-start-non-string-arguments"
+            const start = (...args: unknown[]): unknown =>
+                Reflect.apply(Str.start, undefined, args);
+
+            // The first case answers "nulla" without the cast, and most of the cases below it would never return.
+            expect(start("a", null)).toBe("a");
+            expect(start("5a", 5)).toBe("5a");
+            expect(start("a", 5)).toBe("5a");
+            expect(start("/a", Str.of("/"))).toBe("/a");
+            expect(start(Str.of("/a"), "/")).toBe("/a");
+
+            const started = Str.of("/a");
+
+            expect(
+                String(Reflect.apply(started.start, started, [Str.of("/")])),
+            ).toBe("/a");
         });
     });
 
