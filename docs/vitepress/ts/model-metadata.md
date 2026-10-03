@@ -9,7 +9,7 @@ A [model interface](./models.md) is type-only and disappears at compile time. A 
 Model metadata is its own publishing feature:
 
 - **Separate settings**: the feature is configured under `model_metadata.*` and is off by default. `models.enabled` and `--only-models` control model interfaces only. `model_metadata.enabled` and `--only-model-metadata` control companions, and `--only-functional` includes them.
-- **The same models**: the feature finds the same models as model publishing, and inherits `models.included`, `models.excluded` and `models.additional_directories` unless you set the matching `model_metadata.*` key. A value you set wins, even an empty array.
+- **The same models**: the feature finds the same models as model publishing, and inherits `models.included`, `models.excluded` and `models.additional_directories` unless you set the matching `model_metadata.*` key. A value you set wins, even an empty array. A model published only because [another model relates to it](./models.md#related-models-outside-your-directories) gets no companion.
 - **One provider call per model**: the provider's `provide(Model $model)` receives a model instance from the container, not a record from the database, and returns the payload. The package runs `provide()` to get the values, and reads its docblock and code to type them. See [How Each Key Is Typed](#how-each-key-is-typed).
 - **One file per model**: `{model}_meta.ts` is written beside the model interface, and the namespace's `index.ts` barrel exports it. See [Barrels](#barrels).
 

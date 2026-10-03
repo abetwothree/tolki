@@ -228,7 +228,7 @@ The table above is the default map. A relation class that isn't in the map is al
 
 ## What Gets Published: Hidden Attributes, Write-Only Accessors
 
-Not every attribute Eloquent knows about reaches the generated interface. Hidden attributes and write-only accessors follow their own rules.
+Not every attribute Eloquent knows about reaches the generated interface. Hidden attributes, write-only accessors and relations that share an attribute's name follow their own rules.
 
 ### Hidden Attributes
 
@@ -277,6 +277,18 @@ class Order extends Model
 ```
 
 `trackingCode` publishes as `tracking_code: string | null` in `OrderMutators`, and `searchIndex` doesn't appear. A write-only accessor on a real column, such as one that normalizes a value on save, publishes as that column in the main `{Model}` interface, not as a mutator.
+
+### A Relation Named Like a Column or Accessor
+
+A relation can share its published name with a column or an accessor, such as a `supervisor` column beside a `supervisor()` relation. A model's JSON has one `supervisor` key, and a loaded relation takes it. The combined `{Model}All` interface does the same, and leaves the attribute's key out:
+
+```typescript
+export interface DepotAll extends Omit<Depot, "supervisor">, DepotRelations {}
+```
+
+`Depot` and `DepotRelations` each keep their own `supervisor`, so the interface you choose still says which value you have. The `model-full` template and the [global declaration file](./publishing.md#global-declaration-file) publish only the relation's line.
+
+A relation's `_count` and `_exists` properties follow the same rule. When a column or an accessor already has that name, such as an `orders_count` counter-cache column, it keeps its own type and isn't published a second time.
 
 ## Model Attributes
 
@@ -892,7 +904,7 @@ Models use the same include and exclude settings as enums and resources:
 ],
 ```
 
-A relation that points at a model outside `included`, or at an `excluded` model, is left out of the relations interface, and a `morphTo()` union drops those models too.
+A relation that points at a model outside `included`, or at an `excluded` model, is left out of the relations interface, and a `morphTo()` union drops those models too. A model outside your directories that nothing excludes is published instead. See [Related Models Outside Your Directories](#related-models-outside-your-directories).
 
 `#[TsExclude]` on the model class excludes the whole model. On an accessor or relation method, it excludes only that property:
 
@@ -918,6 +930,22 @@ class User extends Model
 See [Excluding Content](./excluding-content.md) for how `#[TsExclude]` works across models, enums, resources and routes.
 
 The [model metadata](./model-metadata.md#filtering-excluding) feature inherits these three settings unless you set the matching `model_metadata.*` key.
+
+### Related Models Outside Your Directories
+
+A relation can point at a model the package was never told to publish, such as a vendor package's model, or one in a directory that isn't in `additional_directories`. The package publishes that model too, along with the models it relates to in turn, so the relation's import resolves. The `Notifiable` trait is the common case: it relates `User` to Laravel's `DatabaseNotification`, which is published to `illuminate/notifications/database-notification.ts` with no config.
+
+A related model is published this way only when:
+
+- it isn't in `excluded`, and it's in `included` when you set that list
+- its class doesn't carry `#[TsExclude]`
+- its table or view exists
+
+Otherwise the relation is left out, like a relation to an excluded model. In an app that never created the `notifications` table, `UserRelations` has no `notifications` property.
+
+The package reads each relation on a blank model. A relation that can't be read that way, such as one that reads another model's attribute, is left out of its model, and `ts:publish` names it in a warning. A related model the package can't read at all is left out with a warning too.
+
+A model published this way gets its interfaces and nothing else. It has no [model metadata](./model-metadata.md) file, and the [Vite plugin](./vite-plugin.md) doesn't republish it when its file changes. Add its class or directory to `additional_directories` to get both.
 
 ## Casing
 
