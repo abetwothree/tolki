@@ -940,9 +940,10 @@ A related model is published this way only when:
 - it isn't in `excluded`, and it's in `included` when you set that list
 - its class doesn't carry `#[TsExclude]`
 - its table or view exists
-- the package can inspect it: when reading its relations throws, as one built from another model's attribute can, `ts:publish` leaves it out and names it in a warning
 
 Otherwise the relation is left out, like a relation to an excluded model. In an app that never created the `notifications` table, `UserRelations` has no `notifications` property.
+
+The package reads each relation on a blank model. A relation that can't be read that way, such as one that reads another model's attribute, is left out of its model, and `ts:publish` names it in a warning. A related model the package can't read at all is left out with a warning too.
 
 A model published this way gets its interfaces and nothing else. It has no [model metadata](./model-metadata.md) file, and the [Vite plugin](./vite-plugin.md) doesn't republish it when its file changes. Add its class or directory to `additional_directories` to get both.
 
