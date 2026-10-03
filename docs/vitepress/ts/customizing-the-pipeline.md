@@ -145,6 +145,8 @@ public function collect(): Collection; // concrete
 
 `collect()` scans the default directory plus the `additional_directories` and `included` settings. It keeps the classes your `classFilter()` accepts, then drops anything listed in `excluded` or marked `#[TsExclude]`. A custom collector usually implements only the three abstract methods.
 
+`accepts()` answers whether a class the scan didn't find would still be published if it were named. The package asks it before it publishes a [related model](./models.md#related-models-outside-your-directories) that sits outside your directories. If your collector overrides `collect()` to narrow its list, override `accepts()` to match, or the models your list relates to are published too.
+
 ::: warning Collectors Cache Each Directory's Class List
 A collector reads each directory once per PHP process and reuses that list. `ts:publish` clears the cache at the start of every run, so a publish always sees the files on disk.
 
