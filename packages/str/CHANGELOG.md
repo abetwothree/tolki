@@ -1,5 +1,26 @@
 # @tolki/str
 
+## 1.7.0
+
+### Minor Changes
+
+- 2def62c: `trim()`, `ltrim()` and `rtrim()` now return what Laravel's `Str::trim()`, `Str::ltrim()` and `Str::rtrim()` return in several cases where they differed.
+  - **Breaking:** passing an empty string as the characters to trim, such as `trim(value, "")` or `of(value).trim("")`, now trims nothing, as in PHP. To trim whitespace, pass `null` or leave the argument out.
+  - `ltrim()` no longer removes whitespace from the end of the string; use `trim()` to strip both ends. `ltrim("  hello  ")` returned `"hello"` and now returns `"hello  "`.
+  - `trim()` and `rtrim()` no longer add spaces to the start of the lines of multi-line text.
+  - All three now also remove the next-line character (U+0085), which PHP counts as whitespace. `squish()`, `excerpt()` and `of(value).toBoolean()` use them, so the same applies there.
+  - `excerpt()` now keeps the spaces in front of the matched phrase: `excerpt("This is  my name", "my")` returns `"This is  my name"`, where it returned `"This ismy name"`.
+
+### Patch Changes
+
+- fe180ea: `finish()` no longer becomes slow when a long run of the cap comes before the end of the string, such as tens of thousands of slashes followed by other text. It now takes time in proportion to the string's length, following a similar change in Laravel; `finish()` and `start()` return the same results as before.
+- 2146460: `trim()`, `rtrim()` and `limit()` no longer become very slow when a long run of whitespace comes before the end of the string. On one machine, `trim()` took about 20 seconds and `rtrim()` about 40 on text with runs of 60,000 whitespace characters; both now take a few milliseconds, following a fix in Laravel.
+  - `trim()` and `rtrim()` also no longer slow down on a long run of the characters you ask them to trim.
+  - With `preserveWords` turned on, `limit()` also no longer slows down when the text it keeps is long and has no whitespace at all, such as one 100,000-character word.
+
+- Updated dependencies [682a07c]
+  - @tolki/utils@1.5.0
+
 ## 1.6.0
 
 ### Minor Changes
