@@ -154,7 +154,7 @@ Laravel's conditional methods publish optional properties (`?`), because the key
 | `$this->whenPivotLoadedAs('accessor', 'table')`           | The pivot is loaded under a custom accessor | `unknown`                                                                                                                     |
 | `$this->transform($value, $callback)`                     | `$value` is filled                          | `$callback`'s return type                                                                                                     |
 
-To see when `whenLoaded()`, and a resource built around a relation, add `| null`, read [Nullable Relations](#nullable-relations).
+To see when `whenLoaded()` or a resource built around a relation adds `| null`, read [Nullable Relations](#nullable-relations).
 
 #### `unless()` Is `when()` With the Condition Negated
 
@@ -190,7 +190,7 @@ An explicit `null` counts as a default, because Laravel checks whether you passe
 A default always makes the property required, but two cases leave its type as it was:
 
 - **A default the package can't type**: the value's type stands alone. This covers an expression or closure the package can't read.
-- **A value the package can't type**: the property publishes `unknown`, which already covers any default. This covers `whenPivotLoaded()` and `whenPivotLoadedAs()`, and a `whenHas()` or `whenAppended()` value the package can't type.
+- **A value the package can't type**: the property publishes `unknown`, which already covers any default. This includes `whenPivotLoaded()`, `whenPivotLoadedAs()`, and a `whenHas()` or `whenAppended()` value the package can't type.
 
 Laravel calls a default closure with no arguments, except in `transform()`. A closure default that requires a parameter would throw if it ran, so the package leaves it out of the type:
 
@@ -226,7 +226,7 @@ The closure's return type becomes the property's type:
 'has_comments' => $this->whenExistsLoaded('comments', fn ($exists) => $exists), // has_comments?: boolean
 ```
 
-Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure for any function but `count` works the same way, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
+Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure for any function other than `count` works the same way, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
 
 #### `whenHas()`, `whenAppended()`, and `whenExistsLoaded()` Type From the Value You Pass
 
@@ -289,9 +289,9 @@ An aggregate whose function is a literal other than `'count'` adds `| null`, bec
 'revenue' => $this->whenAggregated('orderItems', 'total_price', 'sum', null, 0), // revenue: number | null
 ```
 
-The published type follows the database connection of the machine that runs `ts:publish`. A `SUM()` of a decimal column publishes `number | null` from SQLite and `string | null` from MySQL. Publish against the database driver your app runs in production. The [generation cache](./generating-cache.md) rebuilds everything when `database.default` changes, or when a connection's driver does, including a driver that its `url` names.
+The published type follows the database connection of the machine that runs `ts:publish`. A `SUM()` of a decimal column publishes `number | null` from SQLite and `string | null` from MySQL. Publish against the database driver your app runs in production. The [generation cache](./generating-cache.md) rebuilds everything when `database.default` or a connection's driver changes, including a driver that the connection's `url` names.
 
-To publish one type on every driver, cast the attribute on the parent model. Laravel applies your model's casts to an aggregate attribute, but it never applies the related model's casts there, and it casts no aggregate on its own except `withExists()`:
+To publish one type on every driver, cast the attribute on the parent model:
 
 ```php
 class Product extends Model
@@ -304,6 +304,8 @@ class Product extends Model
     }
 }
 ```
+
+Laravel applies your model's casts to an aggregate attribute, but it never applies the related model's casts there. It casts no aggregate on its own except `withExists()`.
 
 Pick a cast whose published type matches what Laravel returns, such as `integer` or `float`. A `decimal:2` cast publishes `number`, though Laravel returns a decimal cast as a string. The package can't see a cast you add at query time with `withCasts()`.
 
@@ -384,7 +386,7 @@ See [Response Shape](./enum-api-resource.md#response-shape) on the Enum API Reso
 
 `EnumResource::collection()` does the same for a list, and publishes `AsEnum<typeof Status>[]`.
 
-The enum can also come from a local variable, or the whole `EnumResource` from a helper method on the resource. Both publish the same `AsEnum` type:
+The enum can also come from a local variable, and the whole `EnumResource` can come from a helper method on the resource. Both publish the same `AsEnum` type:
 
 ```php
 public function toArray(Request $request): array
@@ -482,7 +484,7 @@ Each method decides whether its properties are required:
 | `$this->mergeUnless($condition, [...])`      | Optional (`?`), included when `$condition` is false                                                                                 |
 | `$this->mergeWhen($condition, [...], [...])` | The second array merges when `$condition` is false. A key both arrays set is required, with both types. A key one sets is optional. |
 
-`mergeUnless()` takes a default the same way. Either array can be a closure instead, which Laravel calls with no arguments:
+`mergeUnless()` takes a default the same way. Either array can be a closure instead, which Laravel calls with no arguments.
 
 ```php
 $this->mergeWhen($this->paid_at !== null, [
@@ -502,7 +504,7 @@ paid_by?: number;
 awaiting_payment?: boolean;
 ```
 
-When the package can't type a key's value in one array, the key takes its type from the other array, as a ternary does, even when that value is a plain `null`.
+When the package can't type a key's value in one array, the key takes its type from the other array, as a ternary does. That holds even when the other array's value is a plain `null`.
 
 A closure can return a different array on each path. A `return []` inside a `merge()` closure merges nothing, so the keys its other returns set publish optional:
 
@@ -994,10 +996,10 @@ Each kind of property follows its own rule:
 
 - **Columns**: every column, typed from its database type and cast.
 - **Accessors**: only the accessors the model lists in `$appends`. An accessor it doesn't append never reaches the response, so it isn't published.
-- **Relations**: each relation is optional, because Laravel writes it only once it's loaded. Its key follows the model's `$snakeAttributes` setting, snake_case by default, so `ownedTeams()` publishes `owned_teams`. The [`models.relationship_case`](./casing-configuration.md#models-relationship-case) setting doesn't apply here. A relation to a model the package doesn't publish, and a `morphTo` it can't type, are left out.
-- **A key a relation shares with a column**: a loaded relation replaces the column's value, so the key is required, and its type unions both.
+- **Relations**: each relation is optional, because Laravel writes it only once it's loaded. Its key follows the model's `$snakeAttributes` setting, snake_case by default, so `ownedTeams()` publishes `owned_teams`. The [`models.relationship_case`](./casing-configuration.md#models-relationship-case) setting doesn't apply here. The package leaves out a relation to a model it doesn't publish, and a `morphTo` it can't type.
+- **A key a relation shares with a column**: a loaded relation replaces the column's value, so the key is required, and its type is the union of both.
 
-`$hidden` and `$visible` follow the `models.exclude_hidden` setting, as [`exclude_hidden` and Attribute Filters](#exclude-hidden-and-attribute-filters) describes. With it off, the default, `$hidden` columns such as `password` still publish, and `$visible` is ignored. With it on, the resource follows Laravel's rule. When `$visible` lists anything, only those keys stay, a relation by its method name, and then anything `$hidden` lists drops out.
+`$hidden` and `$visible` follow the `models.exclude_hidden` setting, as [`exclude_hidden` and Attribute Filters](#exclude-hidden-and-attribute-filters) describes. With it off, the default, `$hidden` columns such as `password` still publish, and `$visible` is ignored. With it on, the resource follows Laravel's rule. When `$visible` lists anything, only those keys stay, a relation by its method name. Then anything `$hidden` lists drops out.
 
 The package reads your model's class, not a request. A change you make for one request, such as `makeHidden()`, `makeVisible()`, `setAppends()`, or a `select()` that loads fewer columns, doesn't reach the interface.
 
@@ -1601,7 +1603,7 @@ The unwrapped collection becomes an alias:
 export type PostFlatCollection = PostResource[];
 ```
 
-A collection with no `toArray()` that extends another collection reads the list above on its own class. It inherits the parent's `$collects` property and its `$wrap`, but not a `#[Collects]` attribute, because PHP attributes aren't inherited:
+A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` attribute, because PHP attributes aren't inherited:
 
 ```php
 class HandoverCollection extends ResourceCollection
@@ -1626,7 +1628,7 @@ export interface HandoverDigestCollection {
 ```
 
 ::: warning Delete the `toArray()` Stub
-`php artisan make:resource` writes `return parent::toArray($request);` into a new collection. A collection that keeps that `toArray()` publishes an empty interface, or, when it extends another collection, that collection's resource. Delete the stub. It only repeats the inherited method, and without it the collection publishes as this section describes.
+`php artisan make:resource` writes `return parent::toArray($request);` into a new collection. A collection that keeps that `toArray()` publishes an empty interface. When it extends another collection, it publishes that collection's resource instead. Delete the stub. It only repeats the inherited method, and without it the collection publishes as this section describes.
 :::
 
 ### Key-Preserving Collections
@@ -1789,7 +1791,7 @@ For example, a `BelongsTo` relation with a nullable foreign key:
 
 The property publishes `user?: User | null`: optional because of `whenLoaded()`, and nullable because of the foreign key.
 
-The `| null` follows the relation into the other ways you can send it. Here `parent` is a `BelongsTo` relation with a nullable `parent_id`, and `children` is a `HasMany` relation:
+The `| null` also applies to the other ways you can send the relation. Here `parent` is a `BelongsTo` relation with a nullable `parent_id`, and `children` is a `HasMany` relation:
 
 ```php
 'parent_name' => $this->whenLoaded('parent', fn ($parent) => $parent->name),
@@ -1821,7 +1823,7 @@ Each `| null` comes from what Laravel does at runtime:
 
 `$this->parent->toResource()`, without the `?`, publishes `CategoryResource` with no `| null`, because PHP throws an error when `parent` is `null`.
 
-A resource built directly around a relation gets the `| null` only when the package can type that relation. A relation the model doesn't declare, a relation to a model the package doesn't publish, and a `morphTo` with no resolvable target publish without it. Inside a `whenLoaded()` closure, the relation's own rule applies instead, so `$this->whenLoaded('parent', fn ($parent) => CategoryResource::make($parent))` publishes `CategoryResource | null` whenever `parent` can load `null`. There, a relation the model doesn't declare counts as one that can load `null` while `nullable_relations` is on.
+A resource built directly around a relation gets the `| null` only when the package can type that relation. A relation the model doesn't declare, a relation to a model the package doesn't publish, and a `morphTo` with no resolvable target publish without it. Inside a `whenLoaded()` closure, the relation's own rule applies instead, so `$this->whenLoaded('parent', fn ($parent) => CategoryResource::make($parent))` publishes `CategoryResource | null` whenever `parent` can load `null`. In that closure, a relation the model doesn't declare counts as one that can load `null` while `nullable_relations` is on.
 
 To turn off nullable relation detection everywhere:
 
