@@ -142,6 +142,48 @@ A spread helper that builds its keys by interpolation, such as `"{$name}_tag"`, 
 
 When an event has `broadcastWith()`, including one inherited from a parent class or a trait, only that method shapes the payload. The public properties aren't read. A key it renames, computes or drops shows up exactly that way. `['team' => $this->teamId, 'kind' => 'message', 'count' => count($this->items)]` becomes `{ team: number; kind: string; count: number }`, with no `teamId`.
 
+`broadcastWith()` can also build its array in a variable and return it. A key it writes on only some paths, such as inside an `if`, is optional:
+
+```php
+class ManifestAssembled implements ShouldBroadcast
+{
+    public function __construct(
+        public int $parcelId,
+        public string $carrier,
+        public bool $express = false,
+    ) {}
+
+    public function broadcastWith(): array
+    {
+        $payload = ['parcelId' => $this->parcelId, 'carrier' => $this->carrier];
+
+        if ($this->express) {
+            $payload['priority'] = 'express';
+        }
+
+        return $payload;
+    }
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('manifests');
+    }
+}
+```
+
+The `priority` key publishes optional:
+
+```typescript
+/** @see App\Events\ManifestAssembled */
+export interface ManifestAssembled {
+  parcelId: number;
+  carrier: string;
+  priority?: string;
+}
+```
+
+[Building the Array in a Variable](./api-resources.md#building-the-array-in-a-variable) on the API Resources page lists the writes the package follows.
+
 ## Model & Enum-Aware Properties
 
 A property typed as an Eloquent model or a PHP enum resolves to the type the rest of the package uses for it. The file imports that type for you:

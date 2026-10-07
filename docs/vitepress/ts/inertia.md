@@ -9,7 +9,7 @@ This page covers shared data. A route's own page props, meaning the `component` 
 With `inertia.enabled` on (the default), the package builds the file from your middleware:
 
 - **Finding the middleware**: the package searches `inertia.inertia_middleware_path`, or `app_path()` when that isn't set, for a class that extends `Inertia\Middleware`. If it finds none, it writes no file. If your app has more than one such class, point `inertia.inertia_middleware_path` at the directory that holds the one you want.
-- **Reading `share()`**: every key's value is typed from your code, without handling a real request.
+- **Reading `share()`**: every key's value is typed from your code, without handling a real request. A `share()` that a trait supplies is read too, and so is one that builds its array in a variable and returns it. A key that the variable gets on only some paths, such as inside an `if`, is optional.
 - **Parent middleware**: a `...parent::share($request)` spread and `array_merge(parent::share($request), [...])` are both read, all the way up your middleware's parent classes. A later key overrides an earlier one and keeps the earlier one's position, as PHP does.
 - **`$request->user()`**: typed through your live auth config, from `auth.defaults.guard` to that guard's provider to the provider's `model`. The prop becomes `User | null`, and the file imports the model's type for you. `auth()->user()`, `auth()->id()`, `Auth::user()` and `Auth::id()` resolve the same way.
 - **Request helpers**: `$request->url()`, `fullUrl()`, `path()`, `integer()`, `boolean()`, `string()`, `cookie()` and `hasCookie()` are typed from Laravel's own signatures.

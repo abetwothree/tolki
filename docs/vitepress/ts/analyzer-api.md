@@ -8,6 +8,8 @@ To change what `ts:publish` itself does, replace one of its stages instead. See 
 
 `analyze()` reads what a method returns: nested arrays, conditionals, closures, and method calls. It works on any class, whether or not it's a resource. A property read or a method call is typed from the class of the value you call it on, such as `$this->author->name` or a local variable.
 
+Laravel's conditional methods, such as `$this->when()` and `$this->whenLoaded()`, belong to `JsonResource`, so `analyze()` reads them that way only on a resource. On any other class, `$this->when()` is that class's own method. Laravel's `Conditionable::when()`, which events and other classes can use, returns the callback's result or the object itself. The package doesn't type that, so the key comes back `unknown`, as it does in a publish. Write such a key as a ternary, or type it with a `#[TsCasts]` on the method.
+
 This example analyzes a service class's `toPayload()` method:
 
 ```php
@@ -97,7 +99,7 @@ If you leave the third argument `null`, all three properties come back empty.
 
 ### Broadcast Events
 
-`analyze($event, 'broadcastWith')` returns the payload the package publishes for that event, as [Broadcast Data](./broadcast-events.md#broadcast-data) describes. A `broadcastWith()` inherited from a parent class counts, as it does when Laravel dispatches the event. The result doesn't include two things a publish adds on top: the event's class-level `#[TsCasts]` overrides, and `Partial<Model>` for a model property.
+`analyze($event, 'broadcastWith')` returns the payload the package publishes for that event, as [Broadcast Data](./broadcast-events.md#broadcast-data) describes. A `broadcastWith()` inherited from a parent class or supplied by a trait counts, as it does when Laravel dispatches the event. The result doesn't include two things a publish adds on top: the event's class-level `#[TsCasts]` overrides, and `Partial<Model>` for a model property.
 
 An event with no `broadcastWith()` anywhere in its class hierarchy is published from its public properties. `analyze()` never falls back to them, so on such an event it returns an empty result, imports included. Only `ts:publish` produces that shape.
 
