@@ -190,7 +190,9 @@ An explicit `null` counts as a default, because Laravel checks whether you passe
 A default always makes the property required, but two cases leave its type as it was:
 
 - **A default the package can't type**: the value's type stands alone. This covers an expression or closure the package can't read.
-- **A value the package can't type**: for `when()`, `unless()`, `whenHas()`, `whenAppended()`, `whenPivotLoaded()`, and `whenPivotLoadedAs()`, the property publishes `unknown`, which already covers any default. `whenExistsLoaded()`, `whenCounted()`, and `whenAggregated()` keep their `boolean` or aggregate type for such a value instead, and the default joins that type.
+- **A value the package can't type**: for `when()`, `unless()`, `whenHas()`, `whenAppended()`, `whenPivotLoaded()`, and `whenPivotLoadedAs()`, the property publishes `unknown`, which already covers any default.
+
+`whenExistsLoaded()`, `whenCounted()`, and `whenAggregated()` keep their `boolean` or aggregate type for such a value instead, and the default joins that type.
 
 Laravel calls a default closure with no arguments, except in `transform()`. A closure default that requires a parameter would throw if it ran, so the package leaves it out of the type:
 
@@ -971,7 +973,7 @@ A subclass of `LabelResource` with no `toArray()` of its own publishes the same 
 
 ### JsonResource Base Delegation
 
-A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, its appended accessors, and its relations, each relation an optional key. These follow the keys Laravel's `Model::toArray()` writes, with the differences below. This resource has no `toArray()`:
+A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, its appended accessors, and its relations, each relation an optional key. These follow the keys Laravel's `Model::toArray()` writes, with the differences below. A subclass of Laravel's `JsonApiResource` (12.45 and later, and 13) is the exception: Laravel sends it as a JSON:API document, which the package doesn't type, so leave it out with `#[TsExclude]`. This resource has no `toArray()`:
 
 ```php
 /**
@@ -1609,7 +1611,7 @@ The unwrapped collection becomes an alias:
 export type PostFlatCollection = PostResource[];
 ```
 
-A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` attribute, because PHP attributes aren't inherited. When the child names no resource at all, Laravel sends the plain models, but the package publishes the parent's resource, or an empty interface when the parent's `$wrap` is `null`. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
+A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` or `#[PreserveKeys]` attribute, because PHP attributes aren't inherited. When the child names no resource at all, Laravel sends the plain models, but the package publishes the parent's resource, or an empty interface when the parent's `$wrap` is `null`. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
 
 ```php
 class HandoverCollection extends ResourceCollection
@@ -1828,6 +1830,8 @@ Each `| null` comes from what Laravel does at runtime:
 - **A nullsafe call**: `?->` returns `null` when the relation is `null`.
 
 `$this->parent->toResource()`, without the `?`, publishes `CategoryResource` with no `| null`, because PHP throws an error when `parent` is `null`.
+
+A `when()`, ternary, `mergeWhen()`, `transform()`, or earlier `return` that rules out a `null` `parent` drops the `| null`, so `$this->when($this->parent, fn () => CategoryResource::make($this->parent))` publishes `CategoryResource`, while a check on `parent_id` keeps it, because a soft-deleted parent still loads as `null`.
 
 A resource built directly around a relation gets the `| null` only when the package can type that relation. A relation the model doesn't declare, a relation to a model the package doesn't publish, and a `morphTo` with no resolvable target publish without it. Inside a `whenLoaded()` closure, the relation's own rule applies instead, so `$this->whenLoaded('parent', fn ($parent) => CategoryResource::make($parent))` publishes `CategoryResource | null` whenever `parent` can load `null`. In that closure, a relation the model doesn't declare counts as one that can load `null` while `nullable_relations` is on.
 
