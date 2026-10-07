@@ -1831,7 +1831,7 @@ Each `| null` comes from what Laravel does at runtime:
 
 `$this->parent->toResource()`, without the `?`, publishes `CategoryResource` with no `| null`, because PHP throws an error when `parent` is `null`.
 
-A `when()`, ternary, `mergeWhen()`, `transform()`, or earlier `return` that rules out a `null` `parent` drops the `| null`, so `$this->when($this->parent, fn () => CategoryResource::make($this->parent))` publishes `CategoryResource`, while a check on `parent_id` keeps it, because a soft-deleted parent still loads as `null`.
+A `when()`, ternary, `mergeWhen()`, `transform()`, `if` block or earlier `return` that rules out a `null` `parent` by testing `$this->parent` itself, for truthiness, against `null`, with `isset()` or with one `instanceof`, drops the `| null` from what it guards, so `$this->when($this->parent, fn () => CategoryResource::make($this->parent))` publishes `CategoryResource`, while a check on `parent_id` keeps it, because a soft-deleted parent still loads as `null`.
 
 A resource built directly around a relation gets the `| null` only when the package can type that relation. A relation the model doesn't declare, a relation to a model the package doesn't publish, and a `morphTo` with no resolvable target publish without it. Inside a `whenLoaded()` closure, the relation's own rule applies instead, so `$this->whenLoaded('parent', fn ($parent) => CategoryResource::make($parent))` publishes `CategoryResource | null` whenever `parent` can load `null`. In that closure, a relation the model doesn't declare counts as one that can load `null` while `nullable_relations` is on.
 
