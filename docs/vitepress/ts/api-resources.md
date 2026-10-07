@@ -138,21 +138,21 @@ status: StatusType;
 
 Laravel's conditional methods publish optional properties (`?`), because the key can be missing from the response. Passing a default argument makes the property required, because the key is then always present. See [Passing a Default Argument](#passing-a-default-argument).
 
-| Method                                                    | Includes the key when                       | Published type                                                                                                                |
-| --------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `$this->when($condition, $value)`                         | `$condition` is true                        | `$value`'s type                                                                                                               |
-| `$this->unless($condition, $value)`                       | `$condition` is false                       | `$value`'s type                                                                                                               |
-| `$this->whenHas('attribute', $value)`                     | The attribute is present                    | `$value`'s type, or `unknown` when the package can't type it                                                                  |
-| `$this->whenAppended('attribute', $value)`                | The accessor is appended                    | `$value`'s type, or `unknown` when the package can't type it                                                                  |
-| `$this->whenNotNull($value)`                              | `$value` isn't `null`                       | `$value`'s type without `null`                                                                                                |
-| `$this->whenNull($value)`                                 | `$value` is `null`                          | `null`                                                                                                                        |
-| `$this->whenLoaded('relation')`                           | The relation is loaded                      | The relation's type                                                                                                           |
-| `$this->whenCounted('relation')`                          | The count is loaded                         | `number`                                                                                                                      |
-| `$this->whenAggregated('relation', 'column', 'function')` | The aggregate is loaded                     | The aggregate's type, with `\| null` unless the function is `count`. See [Typing `whenAggregated()`](#typing-whenaggregated). |
-| `$this->whenExistsLoaded('relation', $value)`             | The existence flag is loaded                | `$value`'s type, else `boolean`                                                                                               |
-| `$this->whenPivotLoaded('table')`                         | The pivot is loaded                         | `unknown`                                                                                                                     |
-| `$this->whenPivotLoadedAs('accessor', 'table')`           | The pivot is loaded under a custom accessor | `unknown`                                                                                                                     |
-| `$this->transform($value, $callback)`                     | `$value` is filled                          | `$callback`'s return type                                                                                                     |
+| Method                                                    | Includes the key when                       | Published type                                                                                                                         |
+| --------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `$this->when($condition, $value)`                         | `$condition` is true                        | `$value`'s type                                                                                                                        |
+| `$this->unless($condition, $value)`                       | `$condition` is false                       | `$value`'s type                                                                                                                        |
+| `$this->whenHas('attribute', $value)`                     | The attribute is present                    | `$value`'s type, or `unknown` when the package can't type it                                                                           |
+| `$this->whenAppended('attribute', $value)`                | The accessor is appended                    | `$value`'s type, or `unknown` when the package can't type it                                                                           |
+| `$this->whenNotNull($value)`                              | `$value` isn't `null`                       | `$value`'s type without `null`                                                                                                         |
+| `$this->whenNull($value)`                                 | `$value` is `null`                          | `null`                                                                                                                                 |
+| `$this->whenLoaded('relation')`                           | The relation is loaded                      | The relation's type                                                                                                                    |
+| `$this->whenCounted('relation')`                          | The count is loaded                         | `number`                                                                                                                               |
+| `$this->whenAggregated('relation', 'column', 'function')` | The aggregate is loaded                     | The aggregate's type. It adds `\| null` except for a count and the other cases in [Typing `whenAggregated()`](#typing-whenaggregated). |
+| `$this->whenExistsLoaded('relation', $value)`             | The existence flag is loaded                | `$value`'s type, else `boolean`                                                                                                        |
+| `$this->whenPivotLoaded('table')`                         | The pivot is loaded                         | `unknown`                                                                                                                              |
+| `$this->whenPivotLoadedAs('accessor', 'table')`           | The pivot is loaded under a custom accessor | `unknown`                                                                                                                              |
+| `$this->transform($value, $callback)`                     | `$value` is filled                          | `$callback`'s return type                                                                                                              |
 
 To see when `whenLoaded()` or a resource built around a relation adds `| null`, read [Nullable Relations](#nullable-relations).
 
@@ -190,7 +190,7 @@ An explicit `null` counts as a default, because Laravel checks whether you passe
 A default always makes the property required, but two cases leave its type as it was:
 
 - **A default the package can't type**: the value's type stands alone. This covers an expression or closure the package can't read.
-- **A value the package can't type**: the property publishes `unknown`, which already covers any default. This includes `whenPivotLoaded()`, `whenPivotLoadedAs()`, and a `whenHas()` or `whenAppended()` value the package can't type.
+- **A value the package can't type**: for `when()`, `unless()`, `whenHas()`, `whenAppended()`, `whenPivotLoaded()`, and `whenPivotLoadedAs()`, the property publishes `unknown`, which already covers any default. `whenExistsLoaded()`, `whenCounted()`, and `whenAggregated()` keep their `boolean` or aggregate type for such a value instead, and the default joins that type.
 
 Laravel calls a default closure with no arguments, except in `transform()`. A closure default that requires a parameter would throw if it ran, so the package leaves it out of the type:
 
@@ -206,16 +206,16 @@ A closure whose parameter has its own default, such as `fn ($notes = '') => strl
 
 When you pass a closure as the value, its first parameter holds whatever Laravel calls it with:
 
-| Method                                                            | The closure's first parameter holds                                                                                                                                 |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `whenLoaded()`                                                    | The loaded relation, never `null`: a model, a list of models, or the models a `morphTo` can hold                                                                    |
-| `whenHas()`                                                       | The attribute's value                                                                                                                                               |
-| `whenExistsLoaded()`                                              | The relation's `{relation}_exists` flag, a `boolean`                                                                                                                |
-| `whenCounted()`, and `whenAggregated()` with the `count` function | The count, a `number`                                                                                                                                               |
-| `whenAggregated()` with any other function                        | The aggregate, never `null`                                                                                                                                         |
-| `transform()`                                                     | The value you pass as its first argument                                                                                                                            |
-| `when()`, `unless()`                                              | No value, since Laravel passes none. A closure that requires a parameter throws `ArgumentCountError` whenever the condition holds, and `ts:publish` warns about it. |
-| `whenAppended()`                                                  | No value, since Laravel passes none                                                                                                                                 |
+| Method                                                            | The closure's first parameter holds                                                                                                                              |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `whenLoaded()`                                                    | The loaded relation, never `null`: a model, a list of models, or the models a `morphTo` can hold                                                                 |
+| `whenHas()`                                                       | The attribute's value                                                                                                                                            |
+| `whenExistsLoaded()`                                              | The relation's `{relation}_exists` flag, a `boolean`                                                                                                             |
+| `whenCounted()`, and `whenAggregated()` with the `count` function | The count, a `number`                                                                                                                                            |
+| `whenAggregated()` with any other function                        | The aggregate, never `null`                                                                                                                                      |
+| `transform()`                                                     | The value you pass as its first argument                                                                                                                         |
+| `when()`, `unless()`                                              | No value, since Laravel passes none. A closure that requires a parameter throws `ArgumentCountError` whenever Laravel calls it, and `ts:publish` warns about it. |
+| `whenAppended()`                                                  | No value, since Laravel passes none                                                                                                                              |
 
 When Laravel passes no value, a parameter with a default holds that default's type.
 
@@ -226,7 +226,7 @@ The closure's return type becomes the property's type:
 'has_comments' => $this->whenExistsLoaded('comments', fn ($exists) => $exists), // has_comments?: boolean
 ```
 
-Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure for any function other than `count` works the same way, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
+Here `author` is a relation that can't load `null`. When a relation is loaded as `null`, Laravel returns `null` without calling the closure, so a relation that can load `null` publishes `author_name?: string | null`. A `whenAggregated()` closure works the same way when its function is a string literal other than `'count'`, because SQL returns `NULL` for that aggregate over no rows. So `fn ($max) => ['max' => $max]` publishes `{ max: number } | null`, unless an accessor or `@property` on your model types the attribute without `null`. See [Nullable Relations](#nullable-relations) for which relations can load `null`.
 
 #### `whenHas()`, `whenAppended()`, and `whenExistsLoaded()` Type From the Value You Pass
 
@@ -281,7 +281,13 @@ This happens only when Laravel receives a `null` in that slot: a literal `null`,
 2. A built-in cast that your model declares for the attribute.
 3. What your database driver returns for the related column.
 
-An aggregate whose function is a literal other than `'count'` adds `| null`, because SQL returns `NULL` for an aggregate over no rows. A count publishes `number`, and so does an aggregate whose function the call passes in a variable. An accessor whose getter turns the `null` into a value, such as `$value ?? 0`, publishes without it. On SQLite, for example:
+Most aggregates add `| null`, because SQL returns `NULL` for an aggregate over no rows. Three cases publish without it:
+
+- **A count**: `whenAggregated()` with `'count'` publishes `number`, as `whenCounted()` does.
+- **A function that isn't a string literal**: a function the call passes in a variable or a constant publishes `number`.
+- **A declaration without `null`**: an accessor or `@property` whose type leaves out `null`, such as a getter that returns `$value ?? 0`, publishes that type.
+
+On SQLite, for example:
 
 ```php
 'last_sold_at' => $this->whenAggregated('orderItems', 'created_at', 'max'),  // last_sold_at?: string | null
@@ -327,7 +333,7 @@ Reference another resource with `::make()`, `::collection()`, or `new`. The prop
 'owner' => UserResource::make($this->user),
 ```
 
-Here `user` is a `BelongsTo` relation with a nullable foreign key, so the `author`, `tags`, and `owner` properties publish:
+Here `user` is a `BelongsTo` relation with a nullable foreign key, so `author` and `owner` add `| null`. The `author`, `tags`, and `owner` properties publish:
 
 ```typescript
 author?: UserResource | null;
@@ -965,7 +971,7 @@ A subclass of `LabelResource` with no `toArray()` of its own publishes the same 
 
 ### JsonResource Base Delegation
 
-A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, its appended accessors, and its relations, each relation an optional key. These are the keys Laravel's `Model::toArray()` writes, except that `$hidden` and `$visible` apply only while `models.exclude_hidden` is on:
+A resource with no `toArray()`, or whose `toArray()` returns `parent::toArray($request)`, publishes the backing model's columns, its appended accessors, and its relations, each relation an optional key. These follow the keys Laravel's `Model::toArray()` writes, with the differences below. This resource has no `toArray()`:
 
 ```php
 /**
@@ -999,7 +1005,7 @@ Each kind of property follows its own rule:
 - **Relations**: each relation is optional, because Laravel writes it only once it's loaded. Its key follows the model's `$snakeAttributes` setting, snake_case by default, so `ownedTeams()` publishes `owned_teams`. The [`models.relationship_case`](./casing-configuration.md#models-relationship-case) setting doesn't apply here. The package leaves out a relation to a model it doesn't publish, and a `morphTo` it can't type.
 - **A key a relation shares with a column**: a loaded relation replaces the column's value, so the key is required, and its type is the union of both.
 
-`$hidden` and `$visible` follow the `models.exclude_hidden` setting, as [`exclude_hidden` and Attribute Filters](#exclude-hidden-and-attribute-filters) describes. With it off, the default, `$hidden` columns such as `password` still publish, and `$visible` is ignored. With it on, the resource follows Laravel's rule. When `$visible` lists anything, only those keys stay, a relation by its method name. Then anything `$hidden` lists drops out.
+`$hidden` and `$visible` follow the `models.exclude_hidden` setting, as [`exclude_hidden` and Attribute Filters](#exclude-hidden-and-attribute-filters) describes. With it off, the default, `$hidden` columns such as `password` still publish, and `$visible` is ignored. With it on, the resource follows Laravel's rule. When `$visible` lists anything, only those keys stay, and then anything `$hidden` lists drops out. In both lists, Laravel matches a relation by its method name, such as `ownedTeams`, not by its `owned_teams` key.
 
 The package reads your model's class, not a request. A change you make for one request, such as `makeHidden()`, `makeVisible()`, `setAppends()`, or a `select()` that loads fewer columns, doesn't reach the interface.
 
@@ -1205,7 +1211,7 @@ These rules decide each key:
 - **A key written more than once**: the key takes the type of its last write. `+=` adds only the keys the array doesn't have yet, and assigning a whole new array drops the keys written before it.
 - **Other `return` statements**: the variable counts as one branch beside the method's other returns, so a `return []` guard, or a returned array literal that leaves a key out, makes that key optional.
 
-The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, a nested key such as `$data['meta']['label']`, or `unset()`. To type the keys those writes set, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts).
+The package doesn't follow `$data[] = ...`, a key computed at runtime such as `$data[$key]`, a nested key such as `$data['meta']['label']`, or `unset()`. It also reads the method in one pass. A key written after an early `return $data;` publishes required when that write always runs, though the early return sends the array without it. In either case, return an array literal on each path, or list the keys with [`#[TsCasts]`](#overriding-property-types-with-tscasts), which can also mark a key optional.
 
 ### Return Branches and `@return` Shapes
 
@@ -1603,7 +1609,7 @@ The unwrapped collection becomes an alias:
 export type PostFlatCollection = PostResource[];
 ```
 
-A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` attribute, because PHP attributes aren't inherited:
+A collection with no `toArray()` that extends another collection applies the list above to its own class. It inherits the parent's `$collects` property and `$wrap`, but not a `#[Collects]` attribute, because PHP attributes aren't inherited. When the child names no resource at all, Laravel sends the plain models, but the package publishes the parent's resource, or an empty interface when the parent's `$wrap` is `null`. Set `$collects` on the child to name its resource, as `HandoverDigestCollection` does:
 
 ```php
 class HandoverCollection extends ResourceCollection
