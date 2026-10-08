@@ -30,6 +30,7 @@ The whole cache clears, and the next run rebuilds everything, when any of these 
 
 - **The package version**: after you upgrade or downgrade the package.
 - **Your config**: any `ts-publish` setting outside the `cache` block. The order of keys doesn't matter.
+- **Your database driver**: `database.default`, a connection's driver, or the driver that its `url` names.
 - **The signing key**: `cache.key`, or `app.key` when `cache.key` isn't set.
 
 Classes you delete from your app drop out of the cache on the next run.
