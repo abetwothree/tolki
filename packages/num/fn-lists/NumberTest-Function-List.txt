@@ -1,7 +1,7 @@
 
 Analyzing file: packages/num/stubs/NumberTest.php
 
-Found 24 function(s):
+Found 25 function(s):
 
 METHOD DECLARATIONS:
   public testDefaultLocale() [line 11]
@@ -22,10 +22,11 @@ METHOD DECLARATIONS:
   public testToHuman() [line 225]
   public testSummarize() [line 303]
   public testPairs() [line 382]
-  public testPairsThrowsWhenByIsZero() [line 398]
-  public testPairsWithNegativeByWorksLikePositive() [line 405]
-  public testTrim() [line 410]
-  public testParse() [line 425]
-  public testParseInt() [line 437]
-  public testParseFloat() [line 452]
+  public testPairsIncludesUpperBoundWhenItStartsANewPair() [line 398]
+  public testPairsThrowsWhenByIsZero() [line 408]
+  public testPairsWithNegativeByWorksLikePositive() [line 415]
+  public testTrim() [line 420]
+  public testParse() [line 435]
+  public testParseInt() [line 447]
+  public testParseFloat() [line 462]
 
