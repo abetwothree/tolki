@@ -1,6 +1,6 @@
 # Cache Generation
 
-After the first full publish, `ts:publish` reuses the previous output of every class whose source hasn't changed, including the files the class depends on. The cache is on by default. It clears itself when you upgrade the package or change your output-affecting config.
+After the first full publish, `ts:publish` reuses the previous output of every class whose source hasn't changed, including the files the class depends on. The cache is on by default. It clears itself when you upgrade the package, change your output-affecting config, or edit a template `ts:publish` renders.
 
 The cache settings live in the `cache` block of `config/ts-publish.php`:
 
@@ -21,7 +21,7 @@ The cache settings live in the `cache` block of `config/ts-publish.php`:
 
 The package reuses a class's cached output only while nothing it depends on has changed. It rebuilds the class when any of these change:
 
-- **Its PHP files**: the class's own file, or any PHP file the package read to generate it, including parent classes, traits, interfaces, and related models.
+- **Its PHP files**: the class's own file, or any PHP file the package read to generate it, including parent classes, traits, interfaces, related models, and every enum, service, cast, value object, or helper function whose declared types it used.
 - **Its routes**: for a controller, any route that points at it, including its URI, HTTP methods, name, domain, controller method, and middleware. Adding or removing a route counts too, so you don't need `--fresh` after editing routes.
 - **Its metadata**: for a [model metadata](./model-metadata.md#cache) companion, the provider class, or the values it returns for that model. A new morph map alias set in a service provider counts.
 - **Its output files**: if you delete a file the class wrote on an earlier run, the class is rebuilt even though its source didn't change.
@@ -30,22 +30,23 @@ The whole cache clears, and the next run rebuilds everything, when any of these 
 
 - **The package version**: after you upgrade or downgrade the package.
 - **Your config**: any `ts-publish` setting outside the `cache` block. The order of keys doesn't matter.
+- **Your templates**: the template each cached feature renders from its [`*.template` key](./customizing-the-pipeline.md#publishing-and-editing-templates), and each view that template includes by name. Publishing an unedited copy doesn't count, but editing or deleting one does.
 - **Your database driver**: `database.default`, a connection's driver, or the driver that its `url` names.
 - **The signing key**: `cache.key`, or `app.key` when `cache.key` isn't set.
 
 Classes you delete from your app drop out of the cache on the next run.
 
-::: warning Partial Runs Drop the Skipped Features
-A run limited by an `--only-*` flag keeps cache entries only for the features it publishes. The next full run rebuilds the features it skipped. This includes the `--only-functional` run the [Vite plugin](./vite-plugin.md#production-builds) makes on `vite build`.
-:::
+A run limited by an `--only-*` flag, including the `--only-functional` run the [Vite plugin](./vite-plugin.md#production-builds) makes on `vite build`, keeps the cache of the features it skips. With `--fresh`, such a run still clears the whole cache.
 
 ## What the Cache Can't Detect
 
 Some changes don't touch any file the cache tracks. The cache misses these:
 
 - **Database schema changes**: a model's columns come from your database, not a source file. The automatic post-migration republish always runs with `--fresh`, so it picks up the new schema. If you change the schema another way, run `php artisan ts:publish --fresh`.
-- **Edits to published templates**: the cache doesn't track Blade views, so a class whose PHP hasn't changed keeps its old output. After you edit a [published template](./customizing-the-pipeline.md#publishing-and-editing-templates), run `php artisan ts:publish --fresh`.
+- **A view your template includes by a computed name**: the cache doesn't track a view included through a variable, as in `@include($name)`, or a Blade component such as `<x-alert />`. After you edit one, run `php artisan ts:publish --fresh`.
 - **Edits to generated files**: if you edit a generated `.ts` file by hand without changing its source, the cache doesn't notice and won't overwrite it. Run `php artisan ts:publish --fresh`, or delete the file, to restore it.
+- **A class that didn't exist at the last publish**: if your code names a class before it exists, creating the class later doesn't rebuild the classes that name it. Run `php artisan ts:publish --fresh` after you create it.
+- **A long-running worker after a deploy**: a queue or Octane worker that runs `ts:publish` keeps the PHP it loaded, so after a deploy it publishes types from your old code and caches them. Restart your workers after a deploy, as you would for any PHP change. If a worker published before you restarted it, run `php artisan ts:publish --fresh`.
 - **Values that can't be serialized**: if your `ts-publish` config holds a value such as a closure, every run rebuilds everything. A model metadata provider that returns such a value rebuilds its companions on every run.
 
 ## Forcing a Full Rebuild
