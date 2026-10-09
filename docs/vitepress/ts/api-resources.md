@@ -315,7 +315,7 @@ class Product extends Model
 
 Laravel applies your model's casts to an aggregate attribute, but it never applies the related model's casts there. It casts no aggregate on its own except `withExists()`.
 
-Pick a cast whose published type matches what Laravel returns, such as `integer` or `float`. A `decimal:2` cast publishes `number`, though Laravel returns a decimal cast as a string. The package can't see a cast you add at query time with `withCasts()`.
+A cast publishes the type Laravel returns for it, so `integer` and `float` publish `number`, and `decimal:2` publishes `string`. The package can't see a cast you add at query time with `withCasts()`.
 
 ### Nested Resources
 
@@ -550,6 +550,18 @@ A closure or an arrow function in value position is typed from what it returns:
 
 This works wherever a value goes, including `when()`, `whenLoaded()`, `whenNotNull()`, `merge()`, and `mergeWhen()`.
 
+A first-class callable, such as `$this->label(...)` or `UserResource::make(...)`, creates a closure. Where Laravel calls the value, as `when()`, `whenLoaded()` and the other conditional methods do, it publishes what the call returns:
+
+```php
+'label' => $this->when($request->has('label'), $this->label(...)),        // label?: string
+'supervisor' => $this->whenLoaded('supervisor', UserResource::make(...)), // supervisor?: UserResource | null
+'length' => strlen(...),                                                  // length: Record<string, never>
+```
+
+As a plain value, nothing calls it, and Laravel sends the `Closure` as `{}`, so a first-class callable there, like `length` above, publishes `Record<string, never>`. `ts:publish` warns about such a callable and names its line. Call the function instead, as in `'length' => strlen($this->name)`.
+
+`ts:publish` doesn't analyze a class again while the [generation cache](./generating-cache.md) holds it, so a warning may not repeat on the next run. Run `php artisan ts:publish --fresh` to list every warning.
+
 ## Method Calls, Variables, and Collections
 
 Values you compute in `toArray()` get types too: method calls, property reads on other objects, local variables, and collection chains.
@@ -590,7 +602,11 @@ export interface PostResource {
 
 A property read works the same way. Once `$post` holds a `Post`, `$post?->author?->name` publishes `string | null`. A value object's public property takes its declared type, so `$this->stats?->views` publishes `number | null`. A `?->` adds `| null` to the result once, however many steps use it.
 
-Some of Laravel's own methods declare loose types, so the package reads the model instead. `getKey()` publishes the model's key type, `number` or `string`, and `modelKeys()` publishes a list of it. That's why `comment_ids` above is `number[]`.
+Some of Laravel's own methods declare loose types, so the package reads the model instead. `getKey()` publishes the model's key type, `number` or `string`, and `modelKeys()` publishes a list of it. That's why `comment_ids` above is `number[]`. `resolveRouteBinding()` publishes the model you call it on, or `null`, so `$this->author?->resolveRouteBinding($this->user_id)` publishes `User | null`.
+
+A method that returns a plain PHP `DateTime` or `DateTimeImmutable` publishes `{ date: string; timezone_type: number; timezone: string }`, the object `json_encode()` writes for it. A Carbon date publishes `string`, or `Date` under `timestamps_as_date`. The `now()` and `today()` helpers return one, so they publish the same type, and `str($value)` and `url($path)` publish `string`.
+
+A method that returns the base `Model` class, `Illuminate\Foundation\Auth\User`, an abstract model, or a model that isn't published, such as one in `models.excluded`, publishes `unknown`, because no published file has a type for it. Declare the concrete model as the return type, such as `: Order`, to type the value.
 
 #### Methods Declared as a Bare `array`
 
@@ -852,7 +868,7 @@ export interface PostResource {
 These helpers and methods publish as follows:
 
 - **`all()` and `values()`**: a collection and the array behind it both publish `X[]`, so `all()` changes nothing. A method that breaks sequential keys, such as `filter()`, `sortBy()`, or `keyBy()`, adds a `Record<string, X>` arm, because `json_encode()` writes such a collection as an object. `values()` restores sequential keys and removes that arm.
-- **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`.
+- **`collect()`**: the element type comes from the argument, and the `map()` parameter holds that element, which is why `$word` above is a `string`. On its own, `collect([...])` publishes the list or object its array encodes as, such as `number[]` for `collect([1, 2])` or `{ title: string }` for `collect(['title' => $this->title])`. `collect()` with no argument publishes `never[]`.
 - **`data_get()`**: `data_get($target, 'a.b')` publishes what `$target?->a?->b` would. A default joins the type instead of removing `null`, because `data_get()` returns the default only when the key is missing, not when its value is `null`.
 - **Typed `map()` parameters**: a model type hint on a `map()` parameter types every read through it, chained and nullsafe reads included, when you call `map()` on a variable such as a local or a `whenLoaded()` parameter. With `$rows = $this->resource->getRelation('comments')`, `$rows->map(fn (Comment $comment) => $comment->user?->name ?: null)->all()` publishes `(string | null)[]`. A relation chain such as `$this->comments->map(...)` uses the relation's model the same way. On a `collect(...)` root, or on a `map()` called straight on a method's result, such as `$this->resource->getRelation('comments')->map(...)`, the parameter holds no model, so reads through it publish `unknown`.
 
