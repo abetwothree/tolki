@@ -5829,7 +5829,7 @@ describe("Arr", () => {
         });
 
         it("returns empty when a negative length exceeds the remaining tail", () => {
-            // PHP-verified in docs/php-parity/Arr/array.json.
+            // PHP-verified in docs/php-parity/Php/array_slice.json, "slice over-negative length clamps to empty".
             expect(Arr.slice([1, 2, 3], 0, -5)).toEqual([]);
             expect(Arr.slice([1, 2, 3], -5, -5)).toEqual([]);
         });
@@ -6107,7 +6107,7 @@ describe("Arr", () => {
 
     describe("sort", () => {
         it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
-            // docs/php-parity/Arr/sort.json, "C32-G-sortBy-bool-comparator"
+            // docs/php-parity/Collection/sortBy.json, "C32-G-sortBy-bool-comparator"
             // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
             expect(
                 Arr.sort([3, 1, 2], [(a: number, b: number) => a > b]),
@@ -6433,7 +6433,7 @@ describe("Arr", () => {
 
     describe("sortDesc", () => {
         it("sorts by a comparator answering a bool, which the descending direction never reverses", () => {
-            // docs/php-parity/Arr/sortDesc.json, "C32-G-sortByDesc-bool-comparator"
+            // docs/php-parity/Collection/sortByDesc.json, "C32-G-sortByDesc-bool-comparator"
             // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
             expect(
                 Arr.sortDesc([3, 1, 2], [(a: number, b: number) => a > b]),
@@ -7782,20 +7782,20 @@ describe("Arr", () => {
 
         it.each([
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "chunkWhile",
                 (callback: () => unknown) =>
                     Arr.chunkWhile(["a", "b"], callback),
                 [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]], [["a", "b"]]],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "first",
                 (callback: () => unknown) => Arr.first(["a", "b"], callback),
                 [null, null, "a", "a"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness",
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness",
                 // whose keyed answers a Map gives, as the array it stands for
                 "first over a Map",
                 (callback: () => unknown) =>
@@ -7809,7 +7809,7 @@ describe("Arr", () => {
                 [null, null, "a", "a"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "last",
                 (callback: () => unknown) => Arr.last(["a", "b"], callback),
                 [null, null, "b", "b"],
@@ -7822,7 +7822,7 @@ describe("Arr", () => {
                 [null, null, "b", "b"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "every",
                 (callback: () => unknown) => Arr.every(["a", "b"], callback),
                 [false, false, true, true],
@@ -7835,7 +7835,7 @@ describe("Arr", () => {
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "some",
                 (callback: () => unknown) => Arr.some(["a", "b"], callback),
                 [false, false, true, true],
@@ -7848,25 +7848,25 @@ describe("Arr", () => {
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "sole",
                 (callback: () => unknown) => Arr.sole(["a"], callback),
                 ["ItemNotFoundException", "ItemNotFoundException", "a", "a"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "where",
                 (callback: () => unknown) => Arr.where(["a", "b"], callback),
                 [[], [], ["a", "b"], ["a", "b"]],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "reject",
                 (callback: () => unknown) => Arr.reject(["a", "b"], callback),
                 [["a", "b"], ["a", "b"], [], []],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "partition",
                 (callback: () => unknown) =>
                     Arr.partition(["a", "b"], callback),
@@ -7878,13 +7878,13 @@ describe("Arr", () => {
                 ],
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "contains",
                 (callback: () => unknown) => Arr.contains(["a", "b"], callback),
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "filter",
                 (callback: () => unknown) => Arr.filter(["a", "b"], callback),
                 [[], [], ["a", "b"], ["a", "b"]],

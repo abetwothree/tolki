@@ -178,14 +178,14 @@ describe("Utils", () => {
 
     describe("phpArrayKey", () => {
         it("turns canonical decimal integer strings into numbers", () => {
-            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Collection/keys.json, "K1 keys of numeric-looking string keys"
             expect(Utils.phpArrayKey("10")).toBe(10);
             expect(Utils.phpArrayKey("-1")).toBe(-1);
             expect(Utils.phpArrayKey("0")).toBe(0);
         });
 
         it("keeps every other string as it is", () => {
-            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys",
+            // docs/php-parity/Collection/keys.json, "K1 keys of numeric-looking string keys",
             // docs/php-parity/Collection/chunkWhile.json, "K2 chunkWhile callback key types"
             for (const key of ["01", "1.5", "1e3", " 1", "Infinity", "1e+21"]) {
                 expect(Utils.phpArrayKey(key)).toBe(key);
@@ -244,7 +244,7 @@ describe("Utils", () => {
         });
 
         it("casts a numeric string the way PHP stores an array key", () => {
-            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Collection/keys.json, "K1 keys of numeric-looking string keys"
             expect(Utils.phpComputedKey("10")).toBe(10);
             expect(Utils.phpComputedKey("-1")).toBe(-1);
             expect(Utils.phpComputedKey("1.5")).toBe("1.5");
@@ -511,7 +511,7 @@ describe("Utils", () => {
         it("casts every Map key the way PHP casts an array key", () => {
             // docs/php-parity/Arr/every.json, "every-numeric-string-keys-callback-order",
             // "every-true-key-callback-order", "every-null-key-callback-order", "every-float-key-callback-order"
-            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Collection/keys.json, "K1 keys of numeric-looking string keys"
             // PHP hands a callback 2, 1, "" and 1 for the "2", true, null and 1.5 keys; "01" stays a string.
             expect(
                 Utils.keyedEntries(

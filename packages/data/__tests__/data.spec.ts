@@ -11486,7 +11486,7 @@ describe("Data", () => {
 
         it.each([
             [
-                // docs/php-parity/Collection/filter.json,
+                // docs/php-parity/Collection/callback-truthiness.json,
                 // "C32-C-collection-callback-php-truthiness", which records each chunk's values
                 "dataChunkWhile",
                 (callback: () => unknown, keyed: boolean) =>
@@ -11509,21 +11509,21 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataFirst",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataFirst(items(keyed), callback),
                 { list: [null, null, "a", "a"], keyed: [null, null, "a", "a"] },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataLast",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataLast(items(keyed), callback),
                 { list: [null, null, "b", "b"], keyed: [null, null, "b", "b"] },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataEvery",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataEvery(items(keyed), callback),
@@ -11533,7 +11533,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataSome",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataSome(items(keyed), callback),
@@ -11543,7 +11543,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataSole",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataSole(items(keyed, true), callback),
@@ -11563,7 +11563,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataWhere",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataWhere(items(keyed), callback),
@@ -11573,7 +11573,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataReject",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataReject(items(keyed), callback),
@@ -11583,7 +11583,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "dataPartition",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataPartition(items(keyed), callback),
@@ -11603,7 +11603,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "dataContains",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataContains(items(keyed), callback),
@@ -11613,7 +11613,7 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "dataFilter",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataFilter(items(keyed), callback),
@@ -11623,14 +11623,14 @@ describe("Data", () => {
                 },
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "dataSearch",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataSearch(items(keyed), callback),
                 { list: [false, false, 0, 0], keyed: [false, false, "x", "x"] },
             ],
             [
-                // docs/php-parity/Collection/filter.json,
+                // docs/php-parity/Collection/callback-truthiness.json,
                 // "C32-C-collection-callback-php-truthiness", whose before callback answers for "b" only
                 "dataBefore",
                 (callback: () => unknown, keyed: boolean) =>
@@ -11640,7 +11640,7 @@ describe("Data", () => {
                 { list: [null, null, "a", "a"], keyed: [null, null, "a", "a"] },
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "dataAfter",
                 (callback: () => unknown, keyed: boolean) =>
                     Data.dataAfter(items(keyed), callback),

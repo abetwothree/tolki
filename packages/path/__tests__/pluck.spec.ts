@@ -227,7 +227,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("answers false once a segment reaches a scalar", () => {
-            // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing":
+            // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-by-backing":
             // value('a.b', 'miss') over ['a.b' => 1] finds no item, since 'a' holds no array.
             expect(Path.hasPluckPath({ "a.b": 1 }, ["a", "b"])).toBe(false);
         });

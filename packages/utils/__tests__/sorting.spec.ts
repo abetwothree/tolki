@@ -16,7 +16,7 @@ describe("createSortSpecComparator", () => {
     it("hands a comparator descriptor back as it is, answering the bool it gives", () => {
         const greater = (a: number, b: number) => a > b;
 
-        // docs/php-parity/Arr/sort.json, "C32-G-sortBy-bool-comparator": PHP reads the
+        // docs/php-parity/Collection/sortBy.json, "C32-G-sortBy-bool-comparator": PHP reads the
         // bool when uasort() gets it, so the descriptor's own answer passes through untouched
         expect(createSortSpecComparator(readOwnKey)(greater, false)).toBe(
             greater,

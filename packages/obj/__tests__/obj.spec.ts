@@ -3353,7 +3353,7 @@ describe("Obj", () => {
         });
 
         it("reports canonical integer keys as numbers and keeps every other key a string", () => {
-            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Collection/keys.json, "K1 keys of numeric-looking string keys"
             // JS hoists the canonical index "10" to the front; PHP keeps insertion order.
             expect(
                 Obj.keys({
@@ -8835,7 +8835,7 @@ describe("Obj", () => {
                 (a: number, b: number) => a > b,
             ]);
 
-            // docs/php-parity/Arr/sort.json, "C32-G-sortBy-bool-comparator"
+            // docs/php-parity/Collection/sortBy.json, "C32-G-sortBy-bool-comparator"
             expect(Object.keys(sorted)).toEqual(["a", "b", "c"]);
             expect(Object.values(sorted)).toEqual([1, 2, 3]);
         });
@@ -8912,9 +8912,9 @@ describe("Obj", () => {
             });
 
             it("renumbers integer-like keys instead of silently no-opping", () => {
-                // Same file, "sort/sortDesc/reverse preserve integer keys and their
-                // order": sort_values [1,2,3], sortdesc_values [3,2,1]. JS re-sorts
-                // integer keys, so the order survives only if they are renumbered.
+                // docs/php-parity/Collection/sort.json, "sort/sortDesc/reverse preserve integer keys and their order":
+                // sort_values [1,2,3], sortdesc_values [3,2,1]. JS re-sorts integer keys, so the order survives
+                // only if they are renumbered.
                 expect(Object.values(Obj.sort({ 0: 3, 1: 1, 2: 2 }))).toEqual([
                     1, 2, 3,
                 ]);
@@ -8939,7 +8939,7 @@ describe("Obj", () => {
             });
 
             it("leaves negative integer keys alone, as reverse does", () => {
-                // Same file, "negative integer keys under the sort/reverse family":
+                // docs/php-parity/Php/array_reverse.json, "negative integer keys under the sort/reverse family":
                 // asort([-1=>'b',-2=>'a','x'=>'c']) -> {"-2":"a","-1":"b","x":"c"}. JS
                 // never re-sorts negative keys, so leaving them alone IS the PHP answer.
                 const source = Object.create(null) as Record<string, string>;
@@ -9478,7 +9478,7 @@ describe("Obj", () => {
                 (a: number, b: number) => a > b,
             ]);
 
-            // docs/php-parity/Arr/sortDesc.json, "C32-G-sortByDesc-bool-comparator"
+            // docs/php-parity/Collection/sortByDesc.json, "C32-G-sortByDesc-bool-comparator"
             expect(Object.keys(sorted)).toEqual(["a", "b", "c"]);
             expect(Object.values(sorted)).toEqual([1, 2, 3]);
         });
@@ -12770,7 +12770,7 @@ describe("Obj", () => {
 
         it.each([
             [
-                // docs/php-parity/Collection/filter.json,
+                // docs/php-parity/Collection/callback-truthiness.json,
                 // "C32-C-collection-callback-php-truthiness", which records each chunk's values
                 "chunkWhile",
                 (callback: () => unknown) =>
@@ -12780,55 +12780,55 @@ describe("Obj", () => {
                 [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]], [["a", "b"]]],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "first",
                 (callback: () => unknown) =>
                     Obj.first({ x: "a", y: "b" }, callback),
                 [null, null, "a", "a"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "last",
                 (callback: () => unknown) =>
                     Obj.last({ x: "a", y: "b" }, callback),
                 [null, null, "b", "b"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "every",
                 (callback: () => unknown) =>
                     Obj.every({ x: "a", y: "b" }, callback),
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "some",
                 (callback: () => unknown) =>
                     Obj.some({ x: "a", y: "b" }, callback),
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "sole",
                 (callback: () => unknown) => Obj.sole({ x: "a" }, callback),
                 ["ItemNotFoundException", "ItemNotFoundException", "a", "a"],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "where",
                 (callback: () => unknown) =>
                     Obj.where({ x: "a", y: "b" }, callback),
                 [{}, {}, { x: "a", y: "b" }, { x: "a", y: "b" }],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "reject",
                 (callback: () => unknown) =>
                     Obj.reject({ x: "a", y: "b" }, callback),
                 [{ x: "a", y: "b" }, { x: "a", y: "b" }, {}, {}],
             ],
             [
-                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/callback-truthiness.json, "C32-C-arr-callback-php-truthiness"
                 "partition",
                 (callback: () => unknown) =>
                     Obj.partition({ x: "a", y: "b" }, callback),
@@ -12840,14 +12840,14 @@ describe("Obj", () => {
                 ],
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "contains",
                 (callback: () => unknown) =>
                     Obj.contains({ x: "a", y: "b" }, callback),
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
                 "filter",
                 (callback: () => unknown) =>
                     Obj.filter({ x: "a", y: "b" }, callback),

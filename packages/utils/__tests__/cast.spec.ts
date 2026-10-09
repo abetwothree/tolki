@@ -467,7 +467,7 @@ describe("Utils", () => {
 
         it("throws a TypeError with PHP's message for NAN, an infinity or a number past PHP's int range", () => {
             // docs/php-parity/Collection/slice.json, "C32-G-slice-counts" and
-            // docs/php-parity/Php/array_map.json, "C32-F-multiply-out-of-int-range-count"
+            // docs/php-parity/Collection/multiply.json, "C32-F-multiply-out-of-int-range-count"
             for (const value of [NaN, Infinity, -Infinity, 1e19, 2 ** 63]) {
                 expect(() => Utils.phpIntArgument(value, message)).toThrow(
                     new TypeError(message),
@@ -476,8 +476,8 @@ describe("Utils", () => {
         });
 
         it("accepts every number PHP holds as an int, down to -2^63", () => {
-            // docs/php-parity/Php/array_map.json, "C32-F-multiply-out-of-int-range-count"
-            // and "C32-H-percentage-precision-bounds"
+            // docs/php-parity/Collection/multiply.json, "C32-F-multiply-out-of-int-range-count";
+            // docs/php-parity/Collection/percentage.json, "C32-H-percentage-precision-bounds"
             expect(Utils.phpIntArgument(-(2 ** 63), message)).toBe(-(2 ** 63));
             expect(Utils.phpIntArgument(9223372036854774784, message)).toBe(
                 9223372036854774784,

@@ -439,7 +439,7 @@ describe("Collection", () => {
             const b = new Collection(a);
             b.push(3);
 
-            // docs/php-parity/Collection/push.json, "C32-A-construct-from-collection-copies"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-from-collection-copies"
             expect([a.all(), b.all()]).toEqual([
                 [1, 2],
                 [1, 2, 3],
@@ -451,7 +451,7 @@ describe("Collection", () => {
             const collection = new Collection(items);
             collection.push(3);
 
-            // docs/php-parity/Collection/push.json, "C32-A-construct-from-array-copies"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-from-array-copies"
             expect([items, collection.all()]).toEqual([
                 [1, 2],
                 [1, 2, 3],
@@ -463,7 +463,7 @@ describe("Collection", () => {
             const collection = new Collection(items);
             collection.put("b", 2);
 
-            // docs/php-parity/Collection/put.json, "C32-A-construct-from-record-put-copies"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-from-record-put-copies"
             expect([items, collection.all()]).toEqual([
                 { a: 1 },
                 { a: 1, b: 2 },
@@ -544,7 +544,7 @@ describe("Collection", () => {
                 }
             }
 
-            // docs/php-parity/Collection/push.json, "C32-A-iterator-is-a-snapshot"
+            // docs/php-parity/Collection/getIterator.json, "C32-A-iterator-is-a-snapshot"
             expect([seen, collection.all()]).toEqual([
                 [1, 2],
                 [1, 2, 9, 9],
@@ -2083,7 +2083,7 @@ describe("Collection", () => {
             "walks a Map-built receiver in the order it holds its keys",
             () => {
                 // Ordered-backing gap: PHP walks the receiver in insertion order, key 2 first
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect(outOfOrderKeys().crossJoin(["x"]).all()).toEqual([
                     ["c", "x"],
                     ["a", "x"],
@@ -2177,7 +2177,7 @@ describe("Collection", () => {
                 const result = outOfOrderKeys().diff(["a"]);
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -2312,7 +2312,7 @@ describe("Collection", () => {
                 const result = outOfOrderKeys().diffUsing(["A"], strcasecmp);
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -2504,7 +2504,7 @@ describe("Collection", () => {
                 const result = outOfOrderKeys().diffAssoc({ 0: "a" });
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -2596,7 +2596,7 @@ describe("Collection", () => {
                 const result = outOfOrderKeys().diffKeys({ 0: "x" });
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -2677,7 +2677,7 @@ describe("Collection", () => {
                 );
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -3588,7 +3588,7 @@ describe("Collection", () => {
 
             // JS-only: an empty keyed result keeps its record, which JSON writes as PHP's []
             expect(collect([]).flip().all()).toEqual({});
-            // docs/php-parity/Collection/mapWithKeys.json, "C32-E-keyed-results-empty"
+            // docs/php-parity/Collection/keyed-results.json, "C32-E-keyed-results-empty"
             expect(collect([]).flip().toJson()).toBe("[]");
             expect(collect({ name: "taylor" }).flip().all()).toEqual({
                 taylor: "name",
@@ -5154,7 +5154,7 @@ describe("Collection", () => {
                 const result = outOfOrderKeys().intersect(["c", "b"]);
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -5288,7 +5288,7 @@ describe("Collection", () => {
                 );
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -5396,7 +5396,7 @@ describe("Collection", () => {
                 });
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -5544,7 +5544,7 @@ describe("Collection", () => {
                 );
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -5701,7 +5701,7 @@ describe("Collection", () => {
                 });
 
                 // Ordered-backing gap: PHP keeps the items in the receiver's insertion order, key 2 before 1
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect([result.keys().all(), result.values().all()]).toEqual([
                     [2, 1],
                     ["c", "b"],
@@ -7492,7 +7492,7 @@ describe("Collection", () => {
         });
 
         it("truncates a fractional count, as PHP's int parameter does", () => {
-            // docs/php-parity/Php/array_map.json, "C32-F-multiply-fractional-count"
+            // docs/php-parity/Collection/multiply.json, "C32-F-multiply-fractional-count"
             expect(collect([1, 2]).multiply(2.5).all()).toEqual([1, 2, 1, 2]);
         });
 
@@ -7512,7 +7512,7 @@ describe("Collection", () => {
         it("throws PHP's TypeError for a NAN or infinite count, before repeating anything", () => {
             const collection = new Unrepeatable([1, 2]);
 
-            // docs/php-parity/Php/array_map.json, "C32-F-multiply-non-finite-count", whose
+            // docs/php-parity/Collection/multiply.json, "C32-F-multiply-non-finite-count", whose
             // class the port names without PHP's namespace
             for (const count of [NaN, Infinity, -Infinity]) {
                 expect(() => collection.multiply(count)).toThrowError(
@@ -7524,7 +7524,7 @@ describe("Collection", () => {
         it("throws PHP's TypeError for a count outside PHP's int range, before repeating anything", () => {
             const collection = new Unrepeatable([1, 2]);
 
-            // docs/php-parity/Php/array_map.json, "C32-F-multiply-out-of-int-range-count"
+            // docs/php-parity/Collection/multiply.json, "C32-F-multiply-out-of-int-range-count"
             for (const count of [1e19, -1e19, 2 ** 63, -(2 ** 63) - 2048]) {
                 expect(() => collection.multiply(count)).toThrowError(
                     refusedCount,
@@ -7537,7 +7537,7 @@ describe("Collection", () => {
             "repeats a Map-built receiver's values in the order it holds them",
             () => {
                 // Ordered-backing gap: PHP repeats the values in the receiver's insertion order, key 2 first
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect(outOfOrderKeys().multiply(2).all()).toEqual([
                     "c",
                     "a",
@@ -9362,7 +9362,7 @@ describe("Collection", () => {
             const c = new Collection(original);
             c.unshift(1);
 
-            // docs/php-parity/Collection/unshift.json, "C32-A-construct-from-array-unshift-copies"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-from-array-unshift-copies"
             expect([original, c.all()]).toEqual([
                 [2, 3],
                 [1, 2, 3],
@@ -9382,7 +9382,7 @@ describe("Collection", () => {
             const c = new Collection(original);
             c.unshift(1);
 
-            // docs/php-parity/Collection/unshift.json, "C32-A-construct-from-record-unshift-copies"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-from-record-unshift-copies"
             expect([original, c.all()]).toEqual([{ b: 2 }, { 0: 1, b: 2 }]);
             expect(c.keys().all()).toEqual([0, "b"]);
             expect(c.values().all()).toEqual([1, 2]);
@@ -13523,7 +13523,7 @@ describe("Collection", () => {
                 { x: 1, y: 1 },
             ];
 
-            // docs/php-parity/Arr/sort.json, "C32-G-sortBy-bool-comparator"
+            // docs/php-parity/Collection/sortBy.json, "C32-G-sortBy-bool-comparator"
             expect(
                 collect<Row>([{ x: 3 }, { x: 1 }, { x: 2 }])
                     .sortBy([(p: Row, q: Row) => p.x > q.x])
@@ -13551,7 +13551,7 @@ describe("Collection", () => {
                     .values()
                     .all(),
             ).toEqual(tied());
-            // docs/php-parity/Arr/sortDesc.json, "C32-G-sortByDesc-bool-comparator"
+            // docs/php-parity/Collection/sortByDesc.json, "C32-G-sortByDesc-bool-comparator"
             expect(
                 collect([3, 1, 2])
                     .sortByDesc([(a: number, b: number) => a > b])
@@ -13563,7 +13563,7 @@ describe("Collection", () => {
         it("orders numbers and numeric strings by value", () => {
             // CollectionTest::testSortByManyWithNumericFlagComparesFractionalValues, without SORT_NUMERIC, which orders
             // this data the same. docs/php-parity/Collection/sortBy.json, "sortBy-many-default-flag-asc",
-            // "sortBy-many-default-flag-desc" and docs/php-parity/Collection/pluck.json, "sortBy-key-default-flag"
+            // "sortBy-many-default-flag-desc" and docs/php-parity/Collection/sortBy.json, "sortBy-key-default-flag"
             const prices = collect([
                 { price: 1.5 },
                 { price: "10.5" },
@@ -13881,7 +13881,7 @@ describe("Collection", () => {
                 { k: 1, id: "c" },
             ]);
 
-            // docs/php-parity/Collection/pluck.json, "C32-G-sortBy-ties-stable"
+            // docs/php-parity/Collection/sortBy.json, "C32-G-sortBy-ties-stable"
             expect(rows.sortBy("k").pluck("id").all()).toEqual(["b", "a", "c"]);
         });
 
@@ -15569,7 +15569,7 @@ describe("Collection", () => {
                 const zipped = outOfOrderKeys().zip(["x", "y", "z"]);
 
                 // Ordered-backing gap: PHP zips the receiver in insertion order, key 2 first
-                // docs/php-parity/Collection/diff.json, "C32-F-receiver-out-of-order"
+                // docs/php-parity/Collection/set-operations.json, "C32-F-receiver-out-of-order"
                 expect(zipped.map((row) => row.all()).all()).toEqual([
                     ["c", "x"],
                     ["a", "y"],
@@ -15807,7 +15807,7 @@ describe("Collection", () => {
                 }
             }
 
-            // docs/php-parity/Collection/push.json, "C32-A-iterator-is-a-snapshot"
+            // docs/php-parity/Collection/getIterator.json, "C32-A-iterator-is-a-snapshot"
             expect([seen, collection.all()]).toEqual([
                 [1, 2],
                 [1, 2, 9, 9],
@@ -16384,7 +16384,7 @@ describe("Collection", () => {
             const b = Collection.make(a);
             b.push(2);
 
-            // docs/php-parity/Collection/push.json, "C32-A-make-collection-copies"
+            // docs/php-parity/Collection/make.json, "C32-A-make-collection-copies"
             expect([a.all(), b.all()]).toEqual([[1], [1, 2]]);
         });
 
@@ -18879,11 +18879,11 @@ describe("Collection", () => {
             const percentage = (precision: number) =>
                 c.percentage((value) => value === 1, precision);
 
-            // docs/php-parity/Php/array_map.json, "C32-H-percentage-fractional-precision"
+            // docs/php-parity/Collection/percentage.json, "C32-H-percentage-fractional-precision"
             expect([1.5, -1.5, 2.9, -0, 0.5].map(percentage)).toEqual([
                 66.7, 70, 66.67, 67, 67,
             ]);
-            // docs/php-parity/Php/array_map.json, "C32-H-percentage-precision-bounds"
+            // docs/php-parity/Collection/percentage.json, "C32-H-percentage-precision-bounds"
             expect([-(2 ** 63), 2 ** 63 - 1024].map(percentage)).toEqual([
                 0, 66.66666666666666,
             ]);
@@ -18894,7 +18894,7 @@ describe("Collection", () => {
                 "Collection::percentage(): Argument #2 ($precision) must be of type int, float given",
             );
 
-            // docs/php-parity/Php/array_map.json, "C32-H-percentage-non-int-precision", whose
+            // docs/php-parity/Collection/percentage.json, "C32-H-percentage-non-int-precision", whose
             // class the port names without PHP's namespace
             for (const precision of [
                 NaN,
@@ -21188,7 +21188,7 @@ describe("Collection", () => {
         it("keeps a plain-object item as data, whatever toArray member it holds", () => {
             const toArray = () => [9];
 
-            // docs/php-parity/Php/array_keys.json, "C32-A-toArray-plain-item-members-are-data"
+            // docs/php-parity/Collection/toArray.json, "C32-A-toArray-plain-item-members-are-data"
             expect(collect([{ toArray, b: 2 }]).toArray()).toEqual([
                 { toArray, b: 2 },
             ]);
@@ -23646,7 +23646,7 @@ describe("Collection", () => {
         it("keeps the calling subclass in every static factory", () => {
             class Sub extends Collection<unknown, PropertyKey> {}
 
-            // docs/php-parity/Php/range.json, "C32-A-static-factories-keep-subclass"
+            // docs/php-parity/Collection/static-factories.json, "C32-A-static-factories-keep-subclass"
             expect({
                 make: Sub.make([1]).constructor,
                 wrap: Sub.wrap([1]).constructor,
@@ -24324,7 +24324,7 @@ describe("Collection", () => {
         it.each([
             [
                 "where reads a dot path through the item, never a literal dotted key",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-filtered-values"
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-filtered-values"
                 (keyed: boolean) =>
                     backed(keyed, [
                         { a: { b: 1 } },
@@ -24338,7 +24338,7 @@ describe("Collection", () => {
             ],
             [
                 "where expands a wildcard in the path",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-filtered-values"
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-filtered-values"
                 (keyed: boolean) =>
                     backed(keyed, [
                         { a: [{ b: 1 }, { b: 2 }] },
@@ -24354,7 +24354,7 @@ describe("Collection", () => {
             ],
             [
                 "pluck reads a dot path through the item, never a literal dotted key",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing"
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-by-backing"
                 (keyed: boolean) =>
                     backed(keyed, [{ "a.b": 1, a: { b: 2 } }])
                         .pluck("a.b")
@@ -24363,7 +24363,7 @@ describe("Collection", () => {
             ],
             [
                 "value reads a dot path through the item, never a literal dotted key",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing" and
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-by-backing" and
                 // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-literal-dotted-key"
                 (keyed: boolean) =>
                     backed(keyed, [{ "a.b": 1, a: { b: 2 } }]).value("a.b"),
@@ -24371,7 +24371,7 @@ describe("Collection", () => {
             ],
             [
                 "value finds no item for a path that only a literal dotted key would match",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing" and
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-by-backing" and
                 // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-literal-dotted-key"
                 (keyed: boolean) =>
                     backed(keyed, [{ "a.b": 1 }]).value("a.b", "miss"),
@@ -24379,7 +24379,7 @@ describe("Collection", () => {
             ],
             [
                 "keyBy reads an array path one segment at a time",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing" and
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-by-backing" and
                 // docs/php-parity/Collection/keyBy.json, "C32-E-keyBy-array-path"
                 (keyed: boolean) =>
                     backed(keyed, [{ a: { b: "z" } }])
@@ -24390,7 +24390,7 @@ describe("Collection", () => {
             ],
             [
                 "keyBy keys an array path that reaches no value under the empty string",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing" and
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-by-backing" and
                 // docs/php-parity/Collection/keyBy.json, "C32-E-keyBy-array-path"
                 (keyed: boolean) =>
                     backed(keyed, [{ id: 1, name: "John" }])
@@ -24417,7 +24417,7 @@ describe("Collection", () => {
             ],
             [
                 "where reads a path through Collection rows",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-filtered-values"
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-filtered-values"
                 (keyed: boolean) =>
                     collectionRows(keyed).where("k", "b").pluck("v").all(),
                 { list: [1, 3], keyed: [1, 3] },
@@ -24526,7 +24526,7 @@ describe("Collection", () => {
             ],
             [
                 "whereIn, whereNotIn and whereNotBetween read a path through Collection rows",
-                // docs/php-parity/Collection/where.json, "C32-D-item-paths-filtered-values"
+                // docs/php-parity/Collection/item-paths.json, "C32-D-item-paths-filtered-values"
                 (keyed: boolean) => [
                     collectionRows(keyed).whereIn("k", ["a"]).pluck("v").all(),
                     collectionRows(keyed)
@@ -24880,7 +24880,7 @@ describe("Collection", () => {
                 },
             ],
         ])("%s hands its callback PHP's integer keys", (_method, run) => {
-            // docs/php-parity/Collection/every.json, "C32-E-callback-key-types-sweep"
+            // docs/php-parity/Collection/callback-key-types.json, "C32-E-callback-key-types-sweep"
             expect(keysSeen(run)).toEqual([
                 [0, 1],
                 [1, "x"],
@@ -24898,8 +24898,8 @@ describe("Collection", () => {
             });
 
             // docs/php-parity/Collection/sortKeysUsing.json, "C32-G-sortKeysUsing-key-types" and
-            // docs/php-parity/Collection/every.json, "C32-E-callback-key-types-sweep", which list the distinct keys
-            // compared, sorted
+            // docs/php-parity/Collection/callback-key-types.json, "C32-E-callback-key-types-sweep", which list the
+            // distinct keys compared, sorted
             expect(
                 compared.map((keys) =>
                     [...new Set(keys)].sort((a, b) =>
@@ -25477,7 +25477,7 @@ describe("Collection", () => {
         ] as [string, () => PropertyKey[]][])(
             "%s keeps a string key produced before an integer key first",
             (_method, run) => {
-                // docs/php-parity/Collection/groupBy.json, "C32-E-keyed-results-mixed-key-order"
+                // docs/php-parity/Collection/keyed-results.json, "C32-E-keyed-results-mixed-key-order"
                 expect(run()).toEqual(["s", 5]);
             },
         );
@@ -25502,7 +25502,7 @@ describe("Collection", () => {
             (_method, run) => {
                 const result = run();
 
-                // docs/php-parity/Collection/mapWithKeys.json, "C32-E-keyed-results-empty"
+                // docs/php-parity/Collection/keyed-results.json, "C32-E-keyed-results-empty"
                 expect(result.toJson()).toBe("[]");
                 expect(result.keys().all()).toEqual([]);
                 expect(result.values().all()).toEqual([]);
@@ -25592,7 +25592,7 @@ describe("Collection", () => {
         ] as [string, () => unknown, unknown][])(
             "%s reads a Map-built collection in the order it holds its keys",
             (_method, run, expected) => {
-                // docs/php-parity/Collection/keyBy.json,
+                // docs/php-parity/Collection/keyed-results.json,
                 // "C32-E-keyed-results-out-of-order-receiver"
                 expect(run()).toEqual(expected);
             },
@@ -25628,7 +25628,7 @@ describe("Collection", () => {
                 .keys()
                 .all();
 
-            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Collection/keys.json, "K1 keys of numeric-looking string keys"
             expect(keys).toEqual([
                 "1.5",
                 "Infinity",
@@ -25862,7 +25862,7 @@ describe("Collection", () => {
         /** The same expected answers for the list and the keyed backing. */
         const both = <T>(answer: T) => ({ list: answer, keyed: answer });
 
-        // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
+        // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness"
         it.each([
             [
                 "filter",
@@ -26213,7 +26213,7 @@ describe("Collection", () => {
             },
         );
 
-        // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness",
+        // docs/php-parity/Collection/callback-truthiness.json, "C32-C-collection-callback-php-truthiness",
         // which records whether the callback ran
         it.each([
             [

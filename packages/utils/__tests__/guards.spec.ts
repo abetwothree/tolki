@@ -580,7 +580,7 @@ describe("Utils", () => {
     describe("isPhpNumeric", () => {
         // toCssClasses/toCssStyles used `!isNaN(Number(key))` for PHP's is_numeric,
         // which disagreed with real PHP on four of five probed edge cases. PHP-verified
-        // in docs/php-parity/Arr/only.json.
+        // in docs/php-parity/Php/is_numeric.json, "is_numeric matrix for CSS-helper keys".
         it("returns true for real PHP-numeric strings", () => {
             expect(Utils.isPhpNumeric("1e3")).toBe(true);
             expect(Utils.isPhpNumeric(" 42")).toBe(true);
