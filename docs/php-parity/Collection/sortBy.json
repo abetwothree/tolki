@@ -309,6 +309,17 @@
             ]
         },
         {
+            "label": "sortBy-key-default-flag",
+            "php": "sortBy('price')->pluck('price')->values()",
+            "value": [
+                1.2,
+                1.5,
+                1.9,
+                "10.2",
+                "10.5"
+            ]
+        },
+        {
             "label": "C32-G-sortBy-callback-key-types-list",
             "php": "(new Collection([10, 20]))->sortBy(fn ($v, $k) => ...) recording [gettype($k), $k]",
             "value": [
@@ -374,6 +385,15 @@
                     "name": "b",
                     "age": 1
                 }
+            ]
+        },
+        {
+            "label": "C32-G-sortBy-ties-stable",
+            "php": "sortBy('k') over [k=1 a, k=0 b, k=1 c] ->pluck('id')",
+            "value": [
+                "b",
+                "a",
+                "c"
             ]
         },
         {
@@ -518,6 +538,63 @@
                         1
                     ]
                 ]
+            }
+        },
+        {
+            "label": "C32-G-sortBy-bool-comparator",
+            "php": "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator",
+            "value": {
+                "alone": [
+                    {
+                        "x": 1
+                    },
+                    {
+                        "x": 2
+                    },
+                    {
+                        "x": 3
+                    }
+                ],
+                "ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "x": 1,
+                        "y": 1
+                    }
+                ],
+                "zero ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 1
+                    },
+                    {
+                        "x": 1,
+                        "y": 2
+                    }
+                ],
+                "fraction ahead of y": [
+                    {
+                        "x": 1,
+                        "y": 2
+                    },
+                    {
+                        "x": 1,
+                        "y": 1
+                    }
+                ],
+                "Arr::sort list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sort keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
             }
         },
         {

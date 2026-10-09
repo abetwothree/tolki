@@ -12,21 +12,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
 probe('C22 diffKeysUsing', '(new Collection([\'id\' => 1, \'first_word\' => \'Hello\']))->diffKeysUsing(new Collection([\'ID\' => 123, \'foo_bar\' => \'Hello\']), \'strcasecmp\')->all()', fn () => (new Collection(['id' => 1, 'first_word' => 'Hello']))->diffKeysUsing(new Collection(['ID' => 123, 'foo_bar' => 'Hello']), 'strcasecmp')->all());
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 probe('callback-key diffKeysUsing', 'Collection([1 => "a", "x" => "b"])->diffKeysUsing([1 => "z"], $cmp)', function () {
     $seen = [];
     (new Collection([1 => 'a', 'x' => 'b']))->diffKeysUsing([1 => 'z'], function ($a, $b) use (&$seen) {

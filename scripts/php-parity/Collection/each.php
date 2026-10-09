@@ -19,25 +19,6 @@ use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
 use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
-
-// whereIn / whereNotIn: in_array's loose == is PHP's, not JS's
-$vs = fn (array $values) => new Collection(array_map(fn ($v) => ['v' => $v], $values));
 probe('C32-E-each-mixed-keys', "collect([1, 2, 'foo' => 'bar', 'bam' => 'baz'])->each(copy)", function () { $r = []; (new Collection([1, 2, 'foo' => 'bar', 'bam' => 'baz']))->each(function ($v, $k) use (&$r) { $r[] = [$k, gettype($k), $v]; }); return $r; });
 probe('C32-E-each-stop-on-string-key', "same, returning false on the first string key", function () { $r = []; (new Collection([1, 2, 'foo' => 'bar', 'bam' => 'baz']))->each(function ($v, $k) use (&$r) { $r[] = [$k, gettype($k), $v]; if (is_string($k)) { return false; } }); return $r; });
 probe('C32-E-each-key-type-array-items', "collect([['a' => 1], ['b' => 2]])->each(gettype(\$k)) and collect([5 => ['a' => 1]])", function () { $r = []; (new Collection([['a' => 1], ['b' => 2]]))->each(function ($v, $k) use (&$r) { $r[] = gettype($k); }); (new Collection([5 => ['a' => 1]]))->each(function ($v, $k) use (&$r) { $r[] = gettype($k); }); return $r; });

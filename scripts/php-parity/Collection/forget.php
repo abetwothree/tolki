@@ -32,11 +32,6 @@ probe('order-forget-many', '$c = collect(base); $c->forget([0, 1])', function ()
 
     return d8Views($c);
 });
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-forget-dot-path-is-literal', "collect(['a' => ['b' => 1]])->forget('a.b')->all()", fn () => collect(['a' => ['b' => 1]])->forget('a.b')->all());
 probe('C32-B-forget-max-int-key-then-push', "collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')->all()", fn () => collect([5 => 'a', 6 => 'b'])->forget(6)->push('x')->all());
 probe('C32-B-forget-repeated-key-on-list', "collect(['a', 'b', 'c'])->forget([1, 1])->all()", fn () => collect(['a', 'b', 'c'])->forget([1, 1])->all());

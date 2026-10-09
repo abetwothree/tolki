@@ -70,21 +70,6 @@ probe('chunkBy callback receives the index too (list)', '[1,1,1] chunkBy(index =
 probe('chunkBy outer keys are a list', "['a'=>1,'b'=>2] chunkBy(identity) keys",
     fn () => (new Collection(['a' => 1, 'b' => 2]))->chunkBy(fn ($v) => $v)->keys()->toArray());
 probe('L7 chunkBy single item assoc', '(new Collection([\'x\' => [\'key\' => \'a\']]))->chunkBy(\'key\')->map->all()->all()', fn () => (new Collection(['x' => ['key' => 'a']]))->chunkBy('key')->map->all()->all());
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 
 // ==== Task 11 fix group C: pins for behaviour changes nothing pinned yet
 probe('chunkBy-noncanonical-key-type', "(new Collection(['01' => 'a', 'x' => 'b']))->chunkBy(fn (\$v, \$k) => [gettype(\$k), \$k]): the key on each call", function () {

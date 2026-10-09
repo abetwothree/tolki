@@ -31,6 +31,40 @@
             ]
         },
         {
+            "label": "K1 keys of numeric-looking string keys",
+            "php": "array_map(fn ($k) => [gettype($k), $k], (new Collection(['1.5' => 'a', 'Infinity' => 'b', '-1' => 'c', '01' => 'd', '1e3' => 'e', '10' => 'f', '1e+21' => 'g']))->keys()->all())",
+            "value": [
+                [
+                    "string",
+                    "1.5"
+                ],
+                [
+                    "string",
+                    "Infinity"
+                ],
+                [
+                    "integer",
+                    -1
+                ],
+                [
+                    "string",
+                    "01"
+                ],
+                [
+                    "string",
+                    "1e3"
+                ],
+                [
+                    "integer",
+                    10
+                ],
+                [
+                    "string",
+                    "1e+21"
+                ]
+            ]
+        },
+        {
             "label": "keys-out-of-order",
             "php": "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->keys()",
             "value": [

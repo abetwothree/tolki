@@ -33,6 +33,61 @@
             "value": 11.11111111111111
         },
         {
+            "label": "C32-H-percentage-fractional-precision",
+            "php": "array_map([$c, 'percentage'], [$cb], [$precision]) on [1, 1, 2] with $cb = fn ($v) => $v === 1, for 1.5, -1.5, 2.9, -0.0 and 0.5",
+            "value": {
+                "1.5": 66.7,
+                "-1.5": 70,
+                "2.9": 66.67,
+                "-0.0": 67,
+                "0.5": 67
+            }
+        },
+        {
+            "label": "C32-H-percentage-precision-bounds",
+            "php": "array_map([$c, 'percentage'], [$cb], [$precision]) on [1, 1, 2] for -2**63 and the largest float below 2**63",
+            "value": {
+                "-2**63": 0,
+                "below 2**63": 66.66666666666666
+            }
+        },
+        {
+            "label": "C32-H-percentage-non-int-precision",
+            "php": "array_map([$c, 'percentage'], [$cb], [$precision]) on [1, 1, 2] for NAN, INF, -INF, 1e19, -1e19 and 2**63, and on [] for NAN: the class and message thrown",
+            "value": {
+                "items": {
+                    "NAN": [
+                        "TypeError",
+                        "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                    ],
+                    "INF": [
+                        "TypeError",
+                        "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                    ],
+                    "-INF": [
+                        "TypeError",
+                        "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                    ],
+                    "1e19": [
+                        "TypeError",
+                        "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                    ],
+                    "-1e19": [
+                        "TypeError",
+                        "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                    ],
+                    "2**63": [
+                        "TypeError",
+                        "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                    ]
+                },
+                "empty": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::percentage(): Argument #2 ($precision) must be of type int, float given"
+                ]
+            }
+        },
+        {
             "label": "C32-H-percentage-extreme-precision",
             "php": "[percentage(=== 1, -400), percentage(=== 1, 400), percentage(=== 5, 400)] on [1, 1, 2]",
             "value": [

@@ -12,9 +12,6 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
-// ---- forget
-$f = function ($array, $keys) { Arr::forget($array, $keys); return $array; };
-
 // ---- keyBy
 probe('keyBy-assoc-rows', "Arr::keyBy(['x'=>['id'=>'123','data'=>'abc'],'y'=>['id'=>'345','data'=>'def'],'z'=>['id'=>'498','data'=>'hgi']], 'id')", fn () => Arr::keyBy(['x' => ['id' => '123', 'data' => 'abc'], 'y' => ['id' => '345', 'data' => 'def'], 'z' => ['id' => '498', 'data' => 'hgi']], 'id'));
 // ---- callback key types: PHP hands a callback an integer key as an int

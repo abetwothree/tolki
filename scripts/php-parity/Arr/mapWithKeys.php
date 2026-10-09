@@ -43,24 +43,6 @@ $keyTypes = function (callable $run, mixed $result = true): array {
 $intKeyed = [1 => 'a', 'x' => 'b'];
 probe('callback-key mapWithKeys', 'Arr::mapWithKeys([1 => "a", "x" => "b"], $cb)', fn () => $keyTypes(fn ($cb) => Arr::mapWithKeys($intKeyed, $cb), ['k' => 'v']));
 
-/** Render a probe result as its JSON shape plus the PHP type of every top-level key. */
-$d4Shape = fn (array $array): array => [
-    'json' => json_decode(json_encode($array, JSON_UNESCAPED_SLASHES), true),
-    'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
-];
-
-// ==== fix-round-1 Group H: the own-property channel. PHP holds '01', '' and '-1' as real
-// ==== array keys, so the write is readable again and survives the other helpers; the port
-// ==== stores them as the list's own properties, which only some helpers carry.
-$h1Shape = function (array $a) {
-    $keys = [];
-    foreach (array_keys($a) as $k) {
-        $keys[] = gettype($k) . ':' . $k;
-    }
-
-    return ['json' => $a, 'keys' => $keys];
-};
-
 // ==== Task D6 Step 4b: what mapWithKeys does with a LIST return (the PHP equivalent of a
 // ==== JavaScript [key, value] tuple). Both wrap the same foreach over the returned array.
 probe('d6-map-with-keys-list-return', "Arr::mapWithKeys(['a' => 1, 'b' => 2], fn (\$v, \$k) => [\"key_\$k\", \$v * 2])", function () {

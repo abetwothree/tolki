@@ -9,16 +9,8 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
-use Illuminate\Tests\Support\TestArrayableObject;
-use Illuminate\Tests\Support\TestJsonSerializeObject;
-use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
-use Illuminate\Tests\Support\TestJsonableObject;
-use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
-use Symfony\Component\VarDumper\VarDumper;
 
 // Keeps PHP's deprecation notices off stdout, where they would corrupt emit()'s JSON.
 error_reporting(E_ALL & ~E_DEPRECATED);
@@ -206,13 +198,5 @@ probe('sort-collision-loose-ties', "Arr::sort([1 => '1', 0 => 1, '1' => '01'])",
 // The rows are arrays here; in JS the same rows as Maps cannot be read by path (see the tests).
 probe('sort-out-of-order-rows-by-path', "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], 'n')", fn () => arrayablePairs(Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], 'n')));
 probe('sort-out-of-order-rows-by-descriptor', "Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], [['n', 'asc']])", fn () => arrayablePairs(Arr::sort([2 => ['n' => 1], 0 => ['n' => 0]], [['n', 'asc']])));
-probe('C32-G-sortBy-bool-comparator', "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator", fn () => [
-    'alone' => @(new Collection([['x' => 3], ['x' => 1], ['x' => 2]]))->sortBy([fn ($p, $q) => $p['x'] > $q['x']])->values()->all(),
-    'ahead of y' => @(new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => $p['x'] > $q['x'], 'y'])->values()->all(),
-    'zero ahead of y' => (new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => 0, 'y'])->values()->all(),
-    'fraction ahead of y' => @(new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => 0.5, 'y'])->values()->all(),
-    'Arr::sort list' => @Arr::sort([3, 1, 2], [fn ($a, $b) => $a > $b]),
-    'Arr::sort keyed' => @Arr::sort(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
-]);
 
 emit();

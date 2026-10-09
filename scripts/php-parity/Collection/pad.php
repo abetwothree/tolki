@@ -57,30 +57,9 @@ probe('pad-out-of-order-no-op', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b'])
 probe('pad-mixed-grow-right', "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->pad(5, 'P')", fn () => arrayablePairs((new Collection(MIXED))->pad(5, 'P')->all()));
 probe('pad-mixed-grow-left', "(new Collection(['x' => 1, 0 => 2, 'y' => 3]))->pad(-5, 'P')", fn () => arrayablePairs((new Collection(MIXED))->pad(-5, 'P')->all()));
 probe('pad-collision-grow-right', "(new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->pad(3, 'P')", fn () => arrayablePairs((new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->pad(3, 'P')->all()));
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-pad-past-a-string-key-order', "\$c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); keys/values", function () { $c = collect([5 => 'a', 'x' => 'b'])->pad(4, 0); return ['keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
 
-// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
-$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
-
 $keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
-
-// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
-// of items over a NAN; range() refuses a float end less than one step from 1
-$takeOutcome = function (string $method, array $items, $count) {
-    $c = collect($items);
-    $returned = c32c_outcome(function () use ($c, $method, $count) {
-        $result = $c->$method($count);
-
-        return $result instanceof Collection ? $result->all() : $result;
-    });
-
-    return ['returned' => $returned, 'all' => $c->all()];
-};
 
 // array_pad() and array_splice() read their counts as int parameters: a fraction is dropped (with a deprecation,
 // silenced here), and a float no int can hold is refused before anything changes

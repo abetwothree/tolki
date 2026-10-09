@@ -38,21 +38,6 @@ probe('has-empty-key-list', "Arr::has(['' => 'some'], [''])", fn () => Arr::has(
 probe('has-empty-key-missing', "Arr::has([], '')", fn () => Arr::has([], ''));
 probe('has-empty-key-list-missing', "Arr::has([], [''])", fn () => Arr::has([], ['']));
 probe('has-null-key-nonempty-assoc', "Arr::has(['a' => 1], [null, 'a'])", fn () => Arr::has(['a' => 1], [null, 'a']));
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 
 // ---- a non-canonical index string is a string key, so a list never holds it (get-through-list-leading-zero)
 $nonCanonicalIndices = ['01', ' 1', '1e0', '+1', '0x1', '-0', '1 '];

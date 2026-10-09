@@ -1,0 +1,418 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-C-collection-callback-php-truthiness",
+            "php": "each callback method over new Collection(c32c_items(list | keyed)), sole / hasSole / containsOneItem over its first item alone, with a callback answering '0', [] and new DateTime('@0'); before's callback answers it for 'b' only, chunkWhile records each chunk's values, when / unless take it as the condition and record whether fn () => 'called' ran",
+            "value": {
+                "list": {
+                    "filter": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "where": [
+                        [],
+                        [],
+                        [
+                            "a",
+                            "b"
+                        ]
+                    ],
+                    "reject": [
+                        [
+                            "a",
+                            "b"
+                        ],
+                        [
+                            "a",
+                            "b"
+                        ],
+                        []
+                    ],
+                    "first": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "last": [
+                        null,
+                        null,
+                        "b"
+                    ],
+                    "firstWhere": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "firstOrFail": [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a"
+                    ],
+                    "sole": [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a"
+                    ],
+                    "every": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "some": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "contains": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "doesntContain": [
+                        true,
+                        true,
+                        false
+                    ],
+                    "containsStrict": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "doesntContainStrict": [
+                        true,
+                        true,
+                        false
+                    ],
+                    "search": [
+                        false,
+                        false,
+                        0
+                    ],
+                    "before": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "after": [
+                        null,
+                        null,
+                        "b"
+                    ],
+                    "hasSole": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "containsOneItem": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "hasMany": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "containsManyItems": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "partition": [
+                        [
+                            [],
+                            [
+                                "a",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [],
+                            [
+                                "a",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "a",
+                                "b"
+                            ],
+                            []
+                        ]
+                    ],
+                    "chunkWhile": [
+                        [
+                            [
+                                "a"
+                            ],
+                            [
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "a"
+                            ],
+                            [
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "a",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "percentage": [
+                        0,
+                        0,
+                        100
+                    ],
+                    "when": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "unless": [
+                        true,
+                        true,
+                        false
+                    ]
+                },
+                "keyed": {
+                    "filter": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "where": [
+                        [],
+                        [],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "reject": [
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "x",
+                                "a"
+                            ],
+                            [
+                                "y",
+                                "b"
+                            ]
+                        ],
+                        []
+                    ],
+                    "first": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "last": [
+                        null,
+                        null,
+                        "b"
+                    ],
+                    "firstWhere": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "firstOrFail": [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a"
+                    ],
+                    "sole": [
+                        "ItemNotFoundException",
+                        "ItemNotFoundException",
+                        "a"
+                    ],
+                    "every": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "some": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "contains": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "doesntContain": [
+                        true,
+                        true,
+                        false
+                    ],
+                    "containsStrict": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "doesntContainStrict": [
+                        true,
+                        true,
+                        false
+                    ],
+                    "search": [
+                        false,
+                        false,
+                        "x"
+                    ],
+                    "before": [
+                        null,
+                        null,
+                        "a"
+                    ],
+                    "after": [
+                        null,
+                        null,
+                        "b"
+                    ],
+                    "hasSole": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "containsOneItem": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "hasMany": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "containsManyItems": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "partition": [
+                        [
+                            [],
+                            [
+                                [
+                                    "x",
+                                    "a"
+                                ],
+                                [
+                                    "y",
+                                    "b"
+                                ]
+                            ]
+                        ],
+                        [
+                            [],
+                            [
+                                [
+                                    "x",
+                                    "a"
+                                ],
+                                [
+                                    "y",
+                                    "b"
+                                ]
+                            ]
+                        ],
+                        [
+                            [
+                                [
+                                    "x",
+                                    "a"
+                                ],
+                                [
+                                    "y",
+                                    "b"
+                                ]
+                            ],
+                            []
+                        ]
+                    ],
+                    "chunkWhile": [
+                        [
+                            [
+                                "a"
+                            ],
+                            [
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "a"
+                            ],
+                            [
+                                "b"
+                            ]
+                        ],
+                        [
+                            [
+                                "a",
+                                "b"
+                            ]
+                        ]
+                    ],
+                    "percentage": [
+                        0,
+                        0,
+                        100
+                    ],
+                    "when": [
+                        false,
+                        false,
+                        true
+                    ],
+                    "unless": [
+                        true,
+                        true,
+                        false
+                    ]
+                }
+            }
+        }
+    ]
+}

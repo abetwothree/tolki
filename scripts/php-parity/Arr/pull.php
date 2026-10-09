@@ -24,21 +24,6 @@ probe('pull-nested-dotted-key', "Arr::pull(\$a=['emails'=>['joe@example.com'=>'J
     $v = Arr::pull($a, 'emails.joe@example.com');
     return ['value' => $v, 'array' => $a];
 });
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 probe('pull-list-non-canonical-index', "\$a = ['x', 'y']; Arr::pull(\$a, '01', 'd')", function () {
     $a = ['x', 'y'];
     $value = Arr::pull($a, '01', 'd');

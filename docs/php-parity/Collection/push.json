@@ -61,65 +61,6 @@
             }
         },
         {
-            "label": "C32-A-construct-from-collection-copies",
-            "php": "$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]",
-            "value": [
-                [
-                    1,
-                    2
-                ],
-                [
-                    1,
-                    2,
-                    3
-                ]
-            ]
-        },
-        {
-            "label": "C32-A-construct-from-array-copies",
-            "php": "$arr = [1, 2]; $c = new Collection($arr); $c->push(3); [$arr, $c->all()]",
-            "value": [
-                [
-                    1,
-                    2
-                ],
-                [
-                    1,
-                    2,
-                    3
-                ]
-            ]
-        },
-        {
-            "label": "C32-A-make-collection-copies",
-            "php": "$a = collect([1]); $b = Collection::make($a); $b->push(2); [$a->all(), $b->all()]",
-            "value": [
-                [
-                    1
-                ],
-                [
-                    1,
-                    2
-                ]
-            ]
-        },
-        {
-            "label": "C32-A-iterator-is-a-snapshot",
-            "php": "$c = collect([1, 2]); foreach ($c as $v) { $seen[] = $v; if (count($seen) < 5) { $c->push(9); } } [$seen, $c->all()]",
-            "value": [
-                [
-                    1,
-                    2
-                ],
-                [
-                    1,
-                    2,
-                    9,
-                    9
-                ]
-            ]
-        },
-        {
             "label": "C32-B-push-onto-string-keyed-last",
             "php": "collect(['a' => 1])->push('z')->last()",
             "value": "z"

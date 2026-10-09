@@ -1,0 +1,115 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "\"__proto__\" is an ordinary array key in every keyed Collection result",
+            "php": "collect([[\"k\"=>\"__proto__\"]])->keyBy(\"k\")",
+            "value": {
+                "keyBy": {
+                    "__proto__": {
+                        "k": "__proto__",
+                        "v": 1
+                    }
+                },
+                "groupBy": {
+                    "__proto__": [
+                        {
+                            "k": "__proto__"
+                        }
+                    ]
+                },
+                "groupBy_preserve_keys": {
+                    "z": {
+                        "__proto__": {
+                            "k": "z"
+                        }
+                    }
+                },
+                "countBy": {
+                    "__proto__": 1
+                },
+                "mapToDictionary": {
+                    "__proto__": [
+                        1
+                    ]
+                },
+                "sortKeys": {
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "a": 1,
+                    "c": 3
+                },
+                "sortKeysUsing": {
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "a": 1,
+                    "c": 3
+                },
+                "unshift": {
+                    "0": 9,
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "mergeRecursive": {
+                    "z": 1,
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "mergeRecursive_nested": {
+                    "z": {
+                        "q": 1,
+                        "__proto__": {
+                            "polluted": true
+                        }
+                    }
+                },
+                "diffAssoc": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "diffKeys": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "diffUsing": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                },
+                "duplicates": {
+                    "__proto__": 1
+                },
+                "offsetSet": {
+                    "a": 1,
+                    "__proto__": 2
+                },
+                "pull_leaves_the_rest": {
+                    "a": 1,
+                    "__proto__": {
+                        "polluted": true
+                    },
+                    "c": 3
+                }
+            }
+        }
+    ]
+}

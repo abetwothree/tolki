@@ -1,0 +1,19 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-toArray-plain-item-members-are-data",
+            "php": "$item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; [array_keys($item), $item['b']]",
+            "value": [
+                [
+                    "toArray",
+                    "b"
+                ],
+                2
+            ]
+        }
+    ]
+}

@@ -40,12 +40,6 @@ $d4Shape = fn (array $array): array => [
     'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
 ];
 
-$d4Set = function (array $array, string $key) use ($d4Shape): array {
-    Arr::set($array, $key, 'V');
-
-    return $d4Shape($array);
-};
-
 probe('forget-record-key-cast', "Arr::forget(['a'=>['x','y','z']], 'a.'.\$seg) for \$seg in '01','1','-1','1.5',''", function () use ($d4Segments, $d4Shape) {
     return array_combine($d4Segments, array_map(function ($s) use ($d4Shape) {
         $array = ['a' => ['x', 'y', 'z']];

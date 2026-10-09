@@ -5,17 +5,6 @@
     },
     "probes": [
         {
-            "label": "sortBy-key-default-flag",
-            "php": "sortBy('price')->pluck('price')->values()",
-            "value": [
-                1.2,
-                1.5,
-                1.9,
-                "10.2",
-                "10.5"
-            ]
-        },
-        {
             "label": "C32-E-pluck-accessor",
             "php": "collect([accessor(some=foo), accessor(some=bar)])->pluck('some')",
             "value": [
@@ -189,15 +178,6 @@
                     ]
                 ]
             }
-        },
-        {
-            "label": "C32-G-sortBy-ties-stable",
-            "php": "sortBy('k') over [k=1 a, k=0 b, k=1 c] ->pluck('id')",
-            "value": [
-                "b",
-                "a",
-                "c"
-            ]
         }
     ]
 }

@@ -172,6 +172,93 @@
                     "count": 1
                 }
             }
+        },
+        {
+            "label": "C32-A-construct-from-collection-copies",
+            "php": "$a = collect([1, 2]); $b = new Collection($a); $b->push(3); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-array-copies",
+            "php": "$arr = [1, 2]; $c = new Collection($arr); $c->push(3); [$arr, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
+        },
+        {
+            "label": "C32-A-construct-from-record-put-copies",
+            "php": "$arr = ['a' => 1]; $c = new Collection($arr); $c->put('b', 2); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "a": 1
+                },
+                "all": {
+                    "a": 1,
+                    "b": 2
+                },
+                "keys": [
+                    "a",
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-record-unshift-copies",
+            "php": "$arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); caller/all/keys/values",
+            "value": {
+                "caller": {
+                    "b": 2
+                },
+                "all": {
+                    "0": 1,
+                    "b": 2
+                },
+                "keys": [
+                    0,
+                    "b"
+                ],
+                "values": [
+                    1,
+                    2
+                ]
+            }
+        },
+        {
+            "label": "C32-A-construct-from-array-unshift-copies",
+            "php": "$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]",
+            "value": [
+                [
+                    2,
+                    3
+                ],
+                [
+                    1,
+                    2,
+                    3
+                ]
+            ]
         }
     ]
 }

@@ -36,21 +36,6 @@ probe('D5 combine null/bool/float keys', '(new Collection([\'k\' => null|true|fa
     'float' => (new Collection(['k' => 1.5]))->combine([1])->all(),
     'numstr' => (new Collection(['k' => '7']))->combine([1])->all(),
 ]);
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 
 // ---- array_combine keys a float by its (string) cast: INF, -0, 14 digits rounded half to even, E notation
 probe('combine-float-keys', "@(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.98]))->combine(range(1, 17)): the keys", fn () => @(new Collection([INF, -INF, NAN, -0.0, 1.5, -1.5, 1e21, 1.5e300, 1.5e-7, 0.00001, 0.0001, 0.1 + 0.2, 1 / 3, 10000000000000.5, 10000000000001.5, 5e-324, 99999999999999.98]))->combine(range(1, 17))->keys()->all());
@@ -69,18 +54,6 @@ probe('d7-combine-scalar-backing', "(new Collection(5))->combine(['x']), (new Co
     'null' => (new Collection(null))->combine([])->all(),
 ]);
 probe('d7-combine-traversable-backing', "(new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])", fn () => (new Collection(new ArrayIterator(['k1', 'k2'])))->combine(['x', 'y'])->all());
-
-/** Render a probe result as its JSON shape plus the PHP type of every top-level key. */
-$d4Shape = fn (array $array): array => [
-    'json' => json_decode(json_encode($array, JSON_UNESCAPED_SLASHES), true),
-    'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
-];
-
-$d4Set = function (array $array, string $key) use ($d4Shape): array {
-    Arr::set($array, $key, 'V');
-
-    return $d4Shape($array);
-};
 
 // ==== Task D6 Step 5 (F-17): the two combine keys the type prints differently from PHP.
 probe('d6-combine-key-cast-minus-zero-and-1e19', "(new Collection([-0.0, 1e19]))->combine([1, 2]): the keys as PHP stores them", function () {

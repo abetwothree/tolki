@@ -9,16 +9,8 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
-use Illuminate\Tests\Support\TestArrayableObject;
-use Illuminate\Tests\Support\TestJsonSerializeObject;
-use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
-use Illuminate\Tests\Support\TestJsonableObject;
-use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
-use Symfony\Component\VarDumper\VarDumper;
 
 // Keeps PHP's deprecation notices off stdout, where they would corrupt emit()'s JSON.
 error_reporting(E_ALL & ~E_DEPRECATED);
@@ -49,10 +41,5 @@ probe('sortDesc-out-of-order-ties-descriptor', "Arr::sortDesc([2 => ['n' => 1, '
 probe('sortDesc-collision-loose-ties', "Arr::sortDesc([1 => '1', 0 => 1, '1' => '01'])", fn () => arrayablePairs(Arr::sortDesc([1 => '1', 0 => 1, '1' => '01'])));
 probe('sortDesc-out-of-order-rows-by-path', "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], 'n')", fn () => arrayablePairs(Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], 'n')));
 probe('sortDesc-out-of-order-rows-by-descriptor', "Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], [['n', 'asc']])", fn () => arrayablePairs(Arr::sortDesc([2 => ['n' => 0], 0 => ['n' => 1]], [['n', 'asc']])));
-probe('C32-G-sortByDesc-bool-comparator', "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses", fn () => [
-    'sortByDesc' => @(new Collection([3, 1, 2]))->sortByDesc([fn ($a, $b) => $a > $b])->values()->all(),
-    'Arr::sortDesc list' => @Arr::sortDesc([3, 1, 2], [fn ($a, $b) => $a > $b]),
-    'Arr::sortDesc keyed' => @Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
-]);
 
 emit();

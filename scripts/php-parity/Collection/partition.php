@@ -20,33 +20,6 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
-
-// whereIn / whereNotIn: in_array's loose == is PHP's, not JS's
-$vs = fn (array $values) => new Collection(array_map(fn ($v) => ['v' => $v], $values));
-
 // partition
 probe('C32-D-partition-null-key-truthiness', "(new Collection([1, 0, '', 'a', null, [], '0']))->partition(null)", fn () => array_map(fn ($p) => pairs($p->values()), (new Collection([1, 0, '', 'a', null, [], '0']))->partition(null)->all()));
 probe('C32-D-partition-two-arg-null', "(new Collection([['v' => null], ['v' => 0], ['v' => 1]]))->partition('v', null)", fn () => array_map(fn ($p) => $p->keys()->all(), (new Collection([['v' => null], ['v' => 0], ['v' => 1]]))->partition('v', null)->all()));

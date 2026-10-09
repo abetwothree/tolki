@@ -19,22 +19,6 @@ use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
 use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
 probe('C32-G-sortKeysUsing-key-types', "(new Collection(['a', 'b', 'c']))->sortKeysUsing(fn (\$a, \$b) => ...) recording gettype of each key", function () {
     $seen = [];
     (new Collection(['a', 'b', 'c']))->sortKeysUsing(function ($a, $b) use (&$seen) {

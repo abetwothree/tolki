@@ -20,14 +20,6 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
 // --- ensure (message parity; the class is UnexpectedValueException)
 probe('C32-A-ensure-scalar-message', "collect([1, 2, 3, 'foo'])->ensure('int')", fn () => collect([1, 2, 3, 'foo'])->ensure('int'));
 probe('C32-A-ensure-class-message', 'collect([new stdClass, new stdClass, new stdClass, Collection::class])->ensure(stdClass::class)', fn () => collect([new stdClass, new stdClass, new stdClass, Collection::class])->ensure(stdClass::class));

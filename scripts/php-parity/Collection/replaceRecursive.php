@@ -52,21 +52,6 @@ probe('C24 replaceRecursive list fixture', '(new Collection([\'a\', \'b\', [\'c\
 probe('D7 replaceRecursive nested list replaced by offset map', '(new Collection([\'k\' => [\'c\', \'d\']]))->replaceRecursive([\'k\' => [1 => \'e\']])->all()', fn () => (new Collection(['k' => ['c', 'd']]))->replaceRecursive(['k' => [1 => 'e']])->all());
 probe('R1 replaceRecursive nested map replaced by list', '(new Collection([\'k\' => [0 => \'c\', 1 => \'d\']]))->replaceRecursive([\'k\' => [\'x\']])->all()', fn () => (new Collection(['k' => [0 => 'c', 1 => 'd']]))->replaceRecursive(['k' => ['x']])->all());
 probe('replaceRecursive-list-with-assoc', "(new Collection(['k' => ['c']]))->replaceRecursive(['k' => ['x' => 1]])", fn () => (new Collection(['k' => ['c']]))->replaceRecursive(['k' => ['x' => 1]])->all());
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 
 // ---- replaceRecursive recurses only when both values are arrays; an object is a leaf
 probe('replaceRecursive-list-element-map', "(new Collection(['y' => [1, 2]]))->replaceRecursive(['y' => [[1 => 'x']]])", fn () => (new Collection(['y' => [1, 2]]))->replaceRecursive(['y' => [[1 => 'x']]])->all());
@@ -102,42 +87,6 @@ probe('replaceRecursive-list-mixed-key-replacer', "(new Collection(['a','b']))->
 probe('replaceRecursive-traversable-backing', "collect(gen(1,2))->replaceRecursive([0 => 9])", fn () => (new Collection(traversable()))->replaceRecursive([0 => 9])->all());
 probe('replaceRecursive-list-out-of-order-operand', "(new Collection(['a']))->replaceRecursive([2 => 'c', 1 => 'b'])", fn () => arrayablePairs((new Collection(['a']))->replaceRecursive([2 => 'c', 1 => 'b'])->all()));
 probe('replaceRecursive-list-in-order-operand', "(new Collection(['a']))->replaceRecursive([1 => 'b', 2 => 'c'])", fn () => arrayablePairs((new Collection(['a']))->replaceRecursive([1 => 'b', 2 => 'c'])->all()));
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
-$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
-
-$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
-
-// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
-// of items over a NAN; range() refuses a float end less than one step from 1
-$takeOutcome = function (string $method, array $items, $count) {
-    $c = collect($items);
-    $returned = c32c_outcome(function () use ($c, $method, $count) {
-        $result = $c->$method($count);
-
-        return $result instanceof Collection ? $result->all() : $result;
-    });
-
-    return ['returned' => $returned, 'all' => $c->all()];
-};
-$spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
-    $c = collect($items);
-    $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
-
-    return ['removed' => $removed] + $keysAndValues($c);
-};
 
 // ---- Family F ------------------------------------------------------------
 

@@ -117,11 +117,6 @@ mutation('pop-mixed', "\$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); \$c->
 mutation('pop-mixed-count-2', "\$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); \$c->pop(2)", MIXED, fn (Collection $c) => $c->pop(2));
 mutation('pop-collision', "\$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); \$c->pop()", [1 => 'a', 'x' => 'b', '1' => 'c'], fn (Collection $c) => $c->pop());
 mutation('pop-collision-three-times', "\$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); [\$c->pop(), \$c->pop(), \$c->pop()]", [1 => 'a', 'x' => 'b', '1' => 'c'], fn (Collection $c) => [$c->pop(), $c->pop(), $c->pop()]);
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-pop-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->pop(1)", function () { $c = collect([1, 2, 3]); return ['returned' => $c->pop(1), 'all' => $c->all()]; });
 
 emit();

@@ -12,8 +12,6 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Number;
-use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use Illuminate\Tests\Support\TestArrayableObject;
 use Illuminate\Tests\Support\TestJsonSerializeObject;
@@ -22,9 +20,6 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-// sortBy over numbers and numeric strings: SORT_NUMERIC (laravel/framework#61699) and the default flag agree here.
-$prices = fn () => new Collection([['price' => 1.5], ['price' => '10.5'], ['price' => 1.2], ['price' => '10.2'], ['price' => 1.9]]);
-probe('sortBy-key-default-flag', "sortBy('price')->pluck('price')->values()", fn () => $prices()->sortBy('price')->pluck('price')->values()->all());
 probe('C32-E-pluck-accessor', "collect([accessor(some=foo), accessor(some=bar)])->pluck('some')", fn () => (new Collection([new C32E_Accessor(['some' => 'foo']), new C32E_Accessor(['some' => 'bar'])]))->pluck('some')->all());
 probe('C32-E-pluck-int-key-order', "collect([['id'=>3,'n'=>'c'],['id'=>1,'n'=>'a'],['id'=>2,'n'=>'b']])->pluck('n', 'id')", fn () => c32e_pairs((new Collection([['id' => 3, 'n' => 'c'], ['id' => 1, 'n' => 'a'], ['id' => 2, 'n' => 'b']]))->pluck('n', 'id')));
 probe('C32-E-pluck-key-path-casts', "@collect([k=null, k=true, k=false, k=1.5])->pluck('v', 'k')", fn () => c32e_pairs(@(new Collection([['k' => null, 'v' => 'n'], ['k' => true, 'v' => 't'], ['k' => false, 'v' => 'f'], ['k' => 1.5, 'v' => 'fl']]))->pluck('v', 'k')));
@@ -43,7 +38,5 @@ probe('C32-E-pluck-tostring-key', "(new Collection([['v' => 1]]))->pluck('v', fn
 probe('C32-E-pluck-closure-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => fn () => 1)->all());
 probe('C32-E-pluck-anonymous-subclass-key', "(new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})", fn () => (new Collection([['v' => 1]]))->pluck('v', fn () => new class extends C32AParent {})->all());
 probe('C32-E-pluck-nested-array-row', "(new Collection([['n' => 1]]))->pluck('n') and ->pluck('*')", fn () => ['path' => (new Collection([['n' => 1]]))->pluck('n')->all(), 'wildcard' => (new Collection([['n' => 1]]))->pluck('*')->all()]);
-probe('C32-G-sortBy-ties-stable', "sortBy('k') over [k=1 a, k=0 b, k=1 c] ->pluck('id')",
-    fn () => (new Collection([['k' => 1, 'id' => 'a'], ['k' => 0, 'id' => 'b'], ['k' => 1, 'id' => 'c']]))->sortBy('k')->pluck('id')->all());
 
 emit();

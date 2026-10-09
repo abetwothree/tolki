@@ -25,11 +25,6 @@ probe('collection-get-list-non-canonical-index', "(new Collection(['x', 'y']))->
 // ==== F-15: Collection's key lookups are a literal array_key_exists, never a dot path.
 // ==== Recorded so the JS extension is documented against ground truth, not settled here.
 probe('get-dot-path-is-a-literal-key', "collect(['a' => ['b' => 1]])->get('a.b', 'fallback')", fn () => collect(['a' => ['b' => 1]])->get('a.b', 'fallback'));
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-get-null-on-list', "collect([1, 2, 3])->get(null)", fn () => collect([1, 2, 3])->get(null));
 probe('C32-B-get-null-empty-string-key', "collect(['' => 'x'])->get(null)", fn () => collect(['' => 'x'])->get(null));
 probe('C32-B-get-stored-null-beats-default', "collect(['a' => null])->get('a', 'd')", fn () => collect(['a' => null])->get('a', 'd'));

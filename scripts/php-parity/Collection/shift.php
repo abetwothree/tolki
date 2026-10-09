@@ -123,11 +123,6 @@ mutation('shift-mixed-count-2', "\$c = new Collection(['x' => 1, 0 => 2, 'y' => 
 mutation('shift-collision', "\$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); \$c->shift()", [1 => 'a', 'x' => 'b', '1' => 'c'], fn (Collection $c) => $c->shift());
 // A count of 0 returns before the items are touched, so the out-of-order keys stay as they are.
 mutation('shift-out-of-order-count-0', "\$c = new Collection([2 => 'c', 0 => 'a']); \$c->shift(0)", [2 => 'c', 0 => 'a'], fn (Collection $c) => $c->shift(0));
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-shift-negative-on-empty-throws', "collect([])->shift(-1)", fn () => collect([])->shift(-1));
 probe('C32-B-shift-one-on-list-returns-value', "\$c = collect([1, 2, 3]); \$c->shift(1)", function () { $c = collect([1, 2, 3]); return ['returned' => $c->shift(1), 'all' => $c->all()]; });
 

@@ -788,63 +788,6 @@
                     ]
                 ]
             ]
-        },
-        {
-            "label": "C32-G-sortBy-bool-comparator",
-            "php": "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator",
-            "value": {
-                "alone": [
-                    {
-                        "x": 1
-                    },
-                    {
-                        "x": 2
-                    },
-                    {
-                        "x": 3
-                    }
-                ],
-                "ahead of y": [
-                    {
-                        "x": 1,
-                        "y": 2
-                    },
-                    {
-                        "x": 1,
-                        "y": 1
-                    }
-                ],
-                "zero ahead of y": [
-                    {
-                        "x": 1,
-                        "y": 1
-                    },
-                    {
-                        "x": 1,
-                        "y": 2
-                    }
-                ],
-                "fraction ahead of y": [
-                    {
-                        "x": 1,
-                        "y": 2
-                    },
-                    {
-                        "x": 1,
-                        "y": 1
-                    }
-                ],
-                "Arr::sort list": {
-                    "1": 1,
-                    "2": 2,
-                    "0": 3
-                },
-                "Arr::sort keyed": {
-                    "a": 1,
-                    "b": 2,
-                    "c": 3
-                }
-            }
         }
     ]
 }

@@ -23,21 +23,6 @@ probe('exists-no-dot-traversal-miss', "Arr::exists(['user' => ['name' => 'John']
 probe('exists-null-key-empty-string', "Arr::exists(['' => 1], null)", fn () => Arr::exists(['' => 1], null));
 probe('exists-float-key', "Arr::exists(['1.5' => 1], 1.5)", fn () => Arr::exists(['1.5' => 1], 1.5));
 probe('exists-literal-dotted', "Arr::exists(['user.name' => 'John'], 'user.name')", fn () => Arr::exists(['user.name' => 'John'], 'user.name'));
-// ---- callback key types: PHP hands a callback an integer key as an int
-$keyTypes = function (callable $run, mixed $result = true): array {
-    $seen = [];
-
-    try {
-        $run(function ($value, $key) use (&$seen, $result) {
-            $seen[] = gettype($key);
-
-            return $result;
-        });
-    } catch (\Throwable) {
-    }
-
-    return $seen;
-};
 
 // ---- Arr::exists on a list is array_key_exists: only a canonical integer key (or a float that casts to one) exists
 probe('exists-list-non-canonical-keys', "Arr::exists([1, 2, 3], \$k) for '', ' ', '01', ' 1', '1e0', '0x1', '-0', '1.0'", function () {

@@ -5,6 +5,22 @@
     },
     "probes": [
         {
+            "label": "C32-A-iterator-is-a-snapshot",
+            "php": "$c = collect([1, 2]); foreach ($c as $v) { $seen[] = $v; if (count($seen) < 5) { $c->push(9); } } [$seen, $c->all()]",
+            "value": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    2,
+                    9,
+                    9
+                ]
+            ]
+        },
+        {
             "label": "C32-A-iterate-integer-keys-out-of-order",
             "php": "foreach (collect([2 => 'a', 1 => 'b']) as $v) { $seen[] = $v; }",
             "value": [

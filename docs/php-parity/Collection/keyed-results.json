@@ -1,0 +1,99 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-E-keyed-results-empty",
+            "php": "collect([])->mapWithKeys(...), ->groupBy('x'), ->countBy(), ->keyBy('x'), ->flip()",
+            "value": {
+                "mapWithKeys": [],
+                "groupBy": [],
+                "countBy": [],
+                "keyBy": [],
+                "flip": []
+            }
+        },
+        {
+            "label": "C32-E-keyed-results-mixed-key-order",
+            "php": "a string key produced before an int key: groupBy/countBy/keyBy/pluck/mapToDictionary/collapseWithKeys/flip ->keys()",
+            "value": {
+                "groupBy": [
+                    "s",
+                    5
+                ],
+                "countBy": [
+                    "s",
+                    5
+                ],
+                "keyBy": [
+                    "s",
+                    5
+                ],
+                "pluck": [
+                    "s",
+                    5
+                ],
+                "mapToDictionary": [
+                    "s",
+                    5
+                ],
+                "collapseWithKeys": [
+                    "s",
+                    5
+                ],
+                "flip": [
+                    "s",
+                    5
+                ]
+            }
+        },
+        {
+            "label": "C32-E-keyed-results-out-of-order-receiver",
+            "php": "a receiver whose integer keys run 2, 0: keyBy('id'), groupBy('g') and countBy() keys, mapToDictionary(fn => [$v => $k]), and flip() over 'x', 'y', 'x'",
+            "value": {
+                "keyBy": [
+                    5,
+                    4
+                ],
+                "groupBy": [
+                    5,
+                    4
+                ],
+                "countBy": [
+                    5,
+                    4
+                ],
+                "mapToDictionary": [
+                    [
+                        5,
+                        "integer",
+                        [
+                            2
+                        ]
+                    ],
+                    [
+                        4,
+                        "integer",
+                        [
+                            0
+                        ]
+                    ]
+                ],
+                "flip": [
+                    [
+                        "x",
+                        "string",
+                        1
+                    ],
+                    [
+                        "y",
+                        "string",
+                        0
+                    ]
+                ]
+            }
+        }
+    ]
+}

@@ -13,6 +13,57 @@
                 1,
                 2
             ]
+        },
+        {
+            "label": "C32-F-multiply-fractional-count",
+            "php": "array_map([collect([1, 2]), 'multiply'], [2.5])[0]",
+            "value": [
+                1,
+                2,
+                1,
+                2
+            ]
+        },
+        {
+            "label": "C32-F-multiply-non-finite-count",
+            "php": "array_map([collect([1, 2]), 'multiply'], [$count]) for NAN, INF and -INF: the class and message thrown",
+            "value": {
+                "NAN": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "INF": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "-INF": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ]
+            }
+        },
+        {
+            "label": "C32-F-multiply-out-of-int-range-count",
+            "php": "array_map([collect([1, 2]), 'multiply'], [$count]) for 1e19, -1e19, 2**63, -2**63 and the float below -2**63: the answer, or the class and message thrown",
+            "value": {
+                "1e19": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "-1e19": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "2**63": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ],
+                "-2**63": [],
+                "below -2**63": [
+                    "TypeError",
+                    "Illuminate\\Support\\Collection::multiply(): Argument #1 ($multiplier) must be of type int, float given"
+                ]
+            }
         }
     ]
 }

@@ -31,5 +31,10 @@ probe('C32-G-sortByDesc-descriptor-mixed-directions', "sortByDesc([['name', 'asc
     fn () => (new Collection([['name' => 'b', 'age' => 1], ['name' => 'a', 'age' => 1], ['name' => 'a', 'age' => 3], ['name' => 'b', 'age' => 2]]))->sortByDesc([['name', 'asc'], ['age', 'desc']])->values()->all());
 probe('C32-G-sortByDesc-id-then-name', "sortByDesc(['id'])->sortByDesc(['id', 'name']) (testSortByCallableStringDesc)",
     fn () => (new Collection([['id' => 1, 'name' => 'foo'], ['id' => 2, 'name' => 'bar'], ['id' => 2, 'name' => 'baz']]))->sortByDesc(['id'])->sortByDesc(['id', 'name'])->values()->all());
+probe('C32-G-sortByDesc-bool-comparator', "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses", fn () => [
+    'sortByDesc' => @(new Collection([3, 1, 2]))->sortByDesc([fn ($a, $b) => $a > $b])->values()->all(),
+    'Arr::sortDesc list' => @Arr::sortDesc([3, 1, 2], [fn ($a, $b) => $a > $b]),
+    'Arr::sortDesc keyed' => @Arr::sortDesc(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
+]);
 
 emit();

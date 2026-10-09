@@ -122,56 +122,7 @@ probe('sortBy-many-numeric-flag-asc', "sortBy([['price', 'asc']], SORT_NUMERIC)-
 probe('sortBy-many-numeric-flag-desc', "sortBy([['price', 'desc']], SORT_NUMERIC)->pluck('price')->values()", fn () => $prices()->sortBy([['price', 'desc']], SORT_NUMERIC)->pluck('price')->values()->all());
 probe('sortBy-many-default-flag-asc', "sortBy([['price', 'asc']])->pluck('price')->values()", fn () => $prices()->sortBy([['price', 'asc']])->pluck('price')->values()->all());
 probe('sortBy-many-default-flag-desc', "sortBy([['price', 'desc']])->pluck('price')->values()", fn () => $prices()->sortBy([['price', 'desc']])->pluck('price')->values()->all());
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
-$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
-
-$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
-
-// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
-// of items over a NAN; range() refuses a float end less than one step from 1
-$takeOutcome = function (string $method, array $items, $count) {
-    $c = collect($items);
-    $returned = c32c_outcome(function () use ($c, $method, $count) {
-        $result = $c->$method($count);
-
-        return $result instanceof Collection ? $result->all() : $result;
-    });
-
-    return ['returned' => $returned, 'all' => $c->all()];
-};
-$spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
-    $c = collect($items);
-    $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
-
-    return ['removed' => $removed] + $keysAndValues($c);
-};
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
-
-// whereIn / whereNotIn: in_array's loose == is PHP's, not JS's
-$vs = fn (array $values) => new Collection(array_map(fn ($v) => ['v' => $v], $values));
+probe('sortBy-key-default-flag', "sortBy('price')->pluck('price')->values()", fn () => $prices()->sortBy('price')->pluck('price')->values()->all());
 
 // ---- Family G ------------------------------------------------------------
 
@@ -208,6 +159,8 @@ probe('C32-G-sortBy-callback-by-key', "(new Collection(['x' => 1, 'a' => 2, 'm' 
     fn () => $pairs((new Collection(['x' => 1, 'a' => 2, 'm' => 3]))->sortBy(fn ($v, $k) => $k)));
 probe('C32-G-sortBy-descriptor-mixed-directions', "sortBy([['name', 'asc'], ['age', 'desc']]) over four people",
     fn () => (new Collection([['name' => 'b', 'age' => 1], ['name' => 'a', 'age' => 1], ['name' => 'a', 'age' => 3], ['name' => 'b', 'age' => 2]]))->sortBy([['name', 'asc'], ['age', 'desc']])->values()->all());
+probe('C32-G-sortBy-ties-stable', "sortBy('k') over [k=1 a, k=0 b, k=1 c] ->pluck('id')",
+    fn () => (new Collection([['k' => 1, 'id' => 'a'], ['k' => 0, 'id' => 'b'], ['k' => 1, 'id' => 'c']]))->sortBy('k')->pluck('id')->all());
 probe('C32-G-sortBy-string-Ascending-direction', "sortBy([['n', 'Ascending']]) - a plain string, not the enum",
     fn () => (new Collection([['n' => 2], ['n' => 1], ['n' => 3]]))->sortBy([['n', 'Ascending']])->pluck('n')->all());
 probe('C32-G-sortByMany-mixed-case-default-flag', "sortBy(['item']) over img1/Img101/img10/Img11 (testSortByMany, default flag)",
@@ -233,6 +186,14 @@ probe('C32-G-sortBy-descriptors-collection-rows', "c32c_rows(list | keyed)->sort
 
 // Ties and groups over integer keys out of order, which only a Map-built collection holds in JS.
 $gTies = [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']];
+probe('C32-G-sortBy-bool-comparator', "sortBy() with a comparator answering a bool, alone and ahead of 'y', sortBy() with one answering 0.5 ahead of 'y', and Arr::sort() with a bool comparator", fn () => [
+    'alone' => @(new Collection([['x' => 3], ['x' => 1], ['x' => 2]]))->sortBy([fn ($p, $q) => $p['x'] > $q['x']])->values()->all(),
+    'ahead of y' => @(new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => $p['x'] > $q['x'], 'y'])->values()->all(),
+    'zero ahead of y' => (new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => 0, 'y'])->values()->all(),
+    'fraction ahead of y' => @(new Collection([['x' => 1, 'y' => 2], ['x' => 1, 'y' => 1]]))->sortBy([fn ($p, $q) => 0.5, 'y'])->values()->all(),
+    'Arr::sort list' => @Arr::sort([3, 1, 2], [fn ($a, $b) => $a > $b]),
+    'Arr::sort keyed' => @Arr::sort(['c' => 3, 'a' => 1, 'b' => 2], [fn ($a, $b) => $a > $b]),
+]);
 probe('C32-G-sortBy-out-of-order-ties', "sortBy('n'), sortByDesc('n') and sortBy(['n']) over [2 => ['n' => 1, 'id' => 'p'], 0 => ['n' => 1, 'id' => 'q'], 1 => ['n' => 0, 'id' => 'r']]: the ids in order", fn () => [
     'sortBy' => (new Collection($gTies))->sortBy('n')->pluck('id')->all(),
     'sortByDesc' => (new Collection($gTies))->sortByDesc('n')->pluck('id')->all(),

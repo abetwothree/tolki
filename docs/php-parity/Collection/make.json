@@ -1,0 +1,21 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "C32-A-make-collection-copies",
+            "php": "$a = collect([1]); $b = Collection::make($a); $b->push(2); [$a->all(), $b->all()]",
+            "value": [
+                [
+                    1
+                ],
+                [
+                    1,
+                    2
+                ]
+            ]
+        }
+    ]
+}

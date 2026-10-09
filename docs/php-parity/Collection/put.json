@@ -91,27 +91,6 @@
             }
         },
         {
-            "label": "C32-A-construct-from-record-put-copies",
-            "php": "$arr = ['a' => 1]; $c = new Collection($arr); $c->put('b', 2); caller/all/keys/values",
-            "value": {
-                "caller": {
-                    "a": 1
-                },
-                "all": {
-                    "a": 1,
-                    "b": 2
-                },
-                "keys": [
-                    "a",
-                    "b"
-                ],
-                "values": [
-                    1,
-                    2
-                ]
-            }
-        },
-        {
             "label": "C32-A-isEmpty-after-put-on-empty-list",
             "php": "collect([])->put('x', 1)->isEmpty()",
             "value": false

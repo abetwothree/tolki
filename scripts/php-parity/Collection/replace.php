@@ -111,42 +111,6 @@ probe('replace-two-item-list-out-of-order-operand', "(new Collection(['a', 'b'])
 probe('replace-two-item-list-in-order-operand', "(new Collection(['a', 'b']))->replace([2 => 'c', 3 => 'd'])", fn () => arrayablePairs((new Collection(['a', 'b']))->replace([2 => 'c', 3 => 'd'])->all()));
 probe('replace-two-item-list-out-of-order-existing-keys', "(new Collection(['a', 'b']))->replace([1 => 'B', 0 => 'A'])", fn () => arrayablePairs((new Collection(['a', 'b']))->replace([1 => 'B', 0 => 'A'])->all()));
 probe('replace-out-of-order', "(new Collection([2 => 'c', 0 => 'a', 1 => 'b']))->replace([1 => 'B', 5 => 'f'])", fn () => arrayablePairs((new Collection(OUT_OF_ORDER))->replace([1 => 'B', 5 => 'f'])->all()));
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
-$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
-
-$keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
-
-// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
-// of items over a NAN; range() refuses a float end less than one step from 1
-$takeOutcome = function (string $method, array $items, $count) {
-    $c = collect($items);
-    $returned = c32c_outcome(function () use ($c, $method, $count) {
-        $result = $c->$method($count);
-
-        return $result instanceof Collection ? $result->all() : $result;
-    });
-
-    return ['returned' => $returned, 'all' => $c->all()];
-};
-$spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
-    $c = collect($items);
-    $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));
-
-    return ['removed' => $removed] + $keysAndValues($c);
-};
 
 // ---- Family F ------------------------------------------------------------
 

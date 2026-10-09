@@ -56,12 +56,6 @@ $d4Shape = fn (array $array): array => [
     'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
 ];
 
-$d4Set = function (array $array, string $key) use ($d4Shape): array {
-    Arr::set($array, $key, 'V');
-
-    return $d4Shape($array);
-};
-
 // Arr::undot keeps a non-canonical key a string key, at the top level and inside a path.
 probe('undot-noncanonical-index', "Arr::undot(['01' => 'a']) and Arr::undot(['0.01' => 'a'])", function () use ($d4Shape) {
     return ['top level' => $d4Shape(Arr::undot(['01' => 'a'])), 'nested' => $d4Shape(Arr::undot(['0.01' => 'a'])[0])];

@@ -34,29 +34,6 @@ probe('except-single-dot-path', "Arr::except(['name'=>'taylor','framework'=>['la
 // makes a second call with the key as a string; "except-int-key" only covers the int form.
 probe('except-string-key', "Arr::except([1 => 'hAz', 2 => 'x'], '2')", fn () => Arr::except([1 => 'hAz', 2 => 'x'], '2'));
 probe('except-out-of-order', "Arr::except([2 => 'c', 0 => 'a', 1 => 'b'], [0])", fn () => arrayablePairs(Arr::except(OUT_OF_ORDER, [0])));
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
 probe('C32-D-array-key-type-error', "except('a', ['b']) and except('a', new Collection(['b'])) over ['a' => 1, 'b' => 2], Arr::except([], [['b']]), and select('a', ['b']) over an array row, an object row, a scalar row and no rows", fn () => array_map(function (callable $run) {
     try {
         return pairs($run());

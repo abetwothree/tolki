@@ -271,42 +271,6 @@
                     "b"
                 ]
             ]
-        },
-        {
-            "label": "C32-A-construct-from-record-unshift-copies",
-            "php": "$arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); caller/all/keys/values",
-            "value": {
-                "caller": {
-                    "b": 2
-                },
-                "all": {
-                    "0": 1,
-                    "b": 2
-                },
-                "keys": [
-                    0,
-                    "b"
-                ],
-                "values": [
-                    1,
-                    2
-                ]
-            }
-        },
-        {
-            "label": "C32-A-construct-from-array-unshift-copies",
-            "php": "$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]",
-            "value": [
-                [
-                    2,
-                    3
-                ],
-                [
-                    1,
-                    2,
-                    3
-                ]
-            ]
         }
     ]
 }

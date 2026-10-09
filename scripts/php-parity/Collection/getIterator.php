@@ -20,6 +20,21 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
+// --- iteration (foreach reads getIterator(), an ArrayIterator over a copy of the items)
+probe('C32-A-iterator-is-a-snapshot', '$c = collect([1, 2]); foreach ($c as $v) { $seen[] = $v; if (count($seen) < 5) { $c->push(9); } } [$seen, $c->all()]', function () {
+    $c = collect([1, 2]);
+    $seen = [];
+
+    foreach ($c as $v) {
+        $seen[] = $v;
+
+        if (count($seen) < 5) {
+            $c->push(9);
+        }
+    }
+
+    return [$seen, $c->all()];
+});
 probe('C32-A-iterate-integer-keys-out-of-order', "foreach (collect([2 => 'a', 1 => 'b']) as \$v) { \$seen[] = \$v; }", function () {
     $seen = [];
 

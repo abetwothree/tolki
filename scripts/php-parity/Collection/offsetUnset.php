@@ -26,11 +26,6 @@ probe('order-offsetUnset', '$c = collect(base); $c->offsetUnset(0)', function ()
 
     return d8Views($c);
 });
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-offsetUnset-negative-on-list', "\$c = collect(['a', 'b', 'c']); \$c->offsetUnset(-1); \$c->all()", function () { $c = collect(['a', 'b', 'c']); $c->offsetUnset(-1); return $c->all(); });
 probe('C32-B-offsetUnset-string-on-list', "\$c = collect(['a', 'b', 'c']); \$c->offsetUnset('x'); \$c->all()", function () { $c = collect(['a', 'b', 'c']); $c->offsetUnset('x'); return $c->all(); });
 

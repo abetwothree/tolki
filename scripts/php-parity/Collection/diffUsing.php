@@ -29,22 +29,6 @@ probe('d6-diff-using', "(new Collection(['a' => 'green', 'b' => 'brown', 'c' => 
     ];
 });
 
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
-
 // *Using: PHP's comparator contract is an int (0 = equal)
 probe('C32-F-diffUsing-spaceship-comparator', 'collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)', fn () => collect([1, 2, 3])->diffUsing([2], fn ($a, $b) => $a <=> $b)->all());
 probe('C32-F-diffUsing-list-keeps-keys', "collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')", fn () => collect(['a', 'b', 'c'])->diffUsing(['a'], 'strcasecmp')->all());

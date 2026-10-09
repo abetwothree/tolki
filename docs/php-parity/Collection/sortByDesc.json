@@ -63,6 +63,27 @@
                     "name": "foo"
                 }
             ]
+        },
+        {
+            "label": "C32-G-sortByDesc-bool-comparator",
+            "php": "sortByDesc() and Arr::sortDesc() with a comparator answering a bool, which the descending direction never reverses",
+            "value": {
+                "sortByDesc": [
+                    1,
+                    2,
+                    3
+                ],
+                "Arr::sortDesc list": {
+                    "1": 1,
+                    "2": 2,
+                    "0": 3
+                },
+                "Arr::sortDesc keyed": {
+                    "a": 1,
+                    "b": 2,
+                    "c": 3
+                }
+            }
         }
     ]
 }

@@ -35,24 +35,6 @@ $keyTypes = function (callable $run, mixed $result = true): array {
 };
 probe('callback-key mapSpread', 'Arr::mapSpread([1 => ["a"], "x" => ["b"]], fn ($v, $k) => ...)', fn () => $keyTypes(fn ($cb) => Arr::mapSpread([1 => ['a'], 'x' => ['b']], $cb)));
 
-/** Render a probe result as its JSON shape plus the PHP type of every top-level key. */
-$d4Shape = fn (array $array): array => [
-    'json' => json_decode(json_encode($array, JSON_UNESCAPED_SLASHES), true),
-    'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
-];
-
-// ==== fix-round-1 Group H: the own-property channel. PHP holds '01', '' and '-1' as real
-// ==== array keys, so the write is readable again and survives the other helpers; the port
-// ==== stores them as the list's own properties, which only some helpers carry.
-$h1Shape = function (array $a) {
-    $keys = [];
-    foreach (array_keys($a) as $k) {
-        $keys[] = gettype($k) . ':' . $k;
-    }
-
-    return ['json' => $a, 'keys' => $keys];
-};
-
 // ==== Task D6 Step 3 (F-14): a Collection row is spread through its ITEMS, because
 // ==== `$chunk[] = $key` appends to the Collection and `...$chunk` walks the Traversable.
 probe('d6-map-spread-collection-row', "\$rows = [new Collection([1, 'a'])]; Arr::mapSpread(\$rows, fn (\$n, \$c, \$k) => \"\$n-\$c-\$k\")", function () {

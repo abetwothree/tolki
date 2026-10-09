@@ -44,11 +44,6 @@ probe('order-prepend-with-existing-key', "\$c = collect(base); \$c->prepend('x',
 
     return d8Views($c);
 });
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-prepend-string-key-on-list-order', "\$c = collect(['b', 'c'])->prepend('a', 'k'); values/keys/first/last", function () { $c = collect(['b', 'c'])->prepend('a', 'k'); return ['values' => $c->values()->all(), 'keys' => $c->keys()->all(), 'first' => $c->first(), 'last' => $c->last()]; });
 
 emit();

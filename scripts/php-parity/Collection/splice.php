@@ -151,18 +151,6 @@ mutation('splice-mixed-replacement', "\$c = new Collection(['x' => 1, 0 => 2, 'y
 mutation('splice-string-keys-out-of-order-replacement', "\$c = new Collection(['k' => 'K', 'j' => 'J']); \$c->splice(0, 1, [2 => 'c', 0 => 'a', 1 => 'b'])", ['k' => 'K', 'j' => 'J'], fn (Collection $c) => $c->splice(0, 1, OUT_OF_ORDER));
 mutation('splice-collision-offset-length', "\$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); \$c->splice(0, 1)", [1 => 'a', 'x' => 'b', '1' => 'c'], fn (Collection $c) => $c->splice(0, 1));
 mutation('splice-out-of-order-replacement-collision', "\$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); \$c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r'])", OUT_OF_ORDER, fn (Collection $c) => $c->splice(1, 1, [1 => 'p', 'x' => 'q', '1' => 'r']));
-$rangeOutcome = function (array $arguments) {
-    try {
-        return Collection::range(...$arguments)->all();
-    } catch (\Throwable $e) {
-        return [get_class($e), $e->getMessage()];
-    }
-};
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-splice-null-length', "\$c = collect([1, 2, 3, 4]); \$c->splice(1, null, ['x'])", function () { $c = collect([1, 2, 3, 4]); $r = $c->splice(1, null, ['x']); return ['returned' => $r->all(), 'all' => $c->all()]; });
 
 // splice: a keyed backing and a replacement, each in the order PHP's array holds it
@@ -180,23 +168,7 @@ probe('C32-B-splice-replacement-order', "splice(1, 0, [2 => 'c', 0 => 'a', 1 => 
     return ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
 }, [['x', 'y'], ['a' => 1, 'b' => 2]]));
 
-// keys no PHP array can hold: each call over a list and a keyed backing, and what each holds after
-$overBackings = fn (callable $call) => array_map(fn (Collection $c) => ['outcome' => c32c_outcome(fn () => $call($c)), 'all' => $c->all()], [collect(['a', 'b']), collect(['a' => 1, 'b' => 2])]);
-
 $keysAndValues = fn (Collection $c) => ['keys' => $c->keys()->all(), 'values' => $c->values()->all()];
-
-// shift() and pop() take their items one by one over range(1, min($count, count())), and PHP's min() answers the count
-// of items over a NAN; range() refuses a float end less than one step from 1
-$takeOutcome = function (string $method, array $items, $count) {
-    $c = collect($items);
-    $returned = c32c_outcome(function () use ($c, $method, $count) {
-        $result = $c->$method($count);
-
-        return $result instanceof Collection ? $result->all() : $result;
-    });
-
-    return ['returned' => $returned, 'all' => $c->all()];
-};
 $spliceOutcome = function (array $items, array $arguments) use ($keysAndValues) {
     $c = collect($items);
     $removed = c32c_outcome(fn () => $keysAndValues(@$c->splice(...$arguments)));

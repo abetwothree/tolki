@@ -9,16 +9,8 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
-use Illuminate\Tests\Support\TestArrayableObject;
-use Illuminate\Tests\Support\TestJsonSerializeObject;
-use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
-use Illuminate\Tests\Support\TestJsonableObject;
-use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
-use Symfony\Component\VarDumper\VarDumper;
 
 probe('X5 unshift mutates and renumbers integer keys', 'collect([10,20,30,40])->unshift(1,2)', function () {
     $c = new Collection(nums());
@@ -98,7 +90,5 @@ probe('unshift-out-of-order-after', "\$c = new Collection([2 => 'c', 0 => 'a', 1
 probe('unshift-out-of-order-two-values-after', "\$c = new Collection([2 => 'c', 0 => 'a', 1 => 'b']); \$c->unshift('U', 'V'); \$c->all()", fn () => arrayablePairs((new Collection(OUT_OF_ORDER))->unshift('U', 'V')->all()));
 probe('unshift-mixed-after', "\$c = new Collection(['x' => 1, 0 => 2, 'y' => 3]); \$c->unshift('U'); \$c->all()", fn () => arrayablePairs((new Collection(MIXED))->unshift('U')->all()));
 probe('unshift-collision-after', "\$c = new Collection([1 => 'a', 'x' => 'b', '1' => 'c']); \$c->unshift('U'); \$c->all()", fn () => arrayablePairs((new Collection([1 => 'a', 'x' => 'b', '1' => 'c']))->unshift('U')->all()));
-probe('C32-A-construct-from-record-unshift-copies', "\$arr = ['b' => 2]; \$c = new Collection(\$arr); \$c->unshift(1); caller/all/keys/values", function () { $arr = ['b' => 2]; $c = new Collection($arr); $c->unshift(1); return ['caller' => $arr, 'all' => $c->all(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all()]; });
-probe('C32-A-construct-from-array-unshift-copies', '$arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); [$arr, $c->all()]', function () { $arr = [2, 3]; $c = new Collection($arr); $c->unshift(1); return [$arr, $c->all()]; });
 
 emit();

@@ -57,17 +57,6 @@
             }
         },
         {
-            "label": "C32-E-keyed-results-empty",
-            "php": "collect([])->mapWithKeys(...), ->groupBy('x'), ->countBy(), ->keyBy('x'), ->flip()",
-            "value": {
-                "mapWithKeys": [],
-                "groupBy": [],
-                "countBy": [],
-                "keyBy": [],
-                "flip": []
-            }
-        },
-        {
             "label": "C32-E-mapWithKeys-out-of-order-return",
             "php": "collect([1])->mapWithKeys(fn () => [2 => 'c', 0 => 'a'])",
             "value": [

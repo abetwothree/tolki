@@ -293,40 +293,6 @@
             }
         },
         {
-            "label": "C32-E-keyed-results-mixed-key-order",
-            "php": "a string key produced before an int key: groupBy/countBy/keyBy/pluck/mapToDictionary/collapseWithKeys/flip ->keys()",
-            "value": {
-                "groupBy": [
-                    "s",
-                    5
-                ],
-                "countBy": [
-                    "s",
-                    5
-                ],
-                "keyBy": [
-                    "s",
-                    5
-                ],
-                "pluck": [
-                    "s",
-                    5
-                ],
-                "mapToDictionary": [
-                    "s",
-                    5
-                ],
-                "collapseWithKeys": [
-                    "s",
-                    5
-                ],
-                "flip": [
-                    "s",
-                    5
-                ]
-            }
-        },
-        {
             "label": "C32-E-groupBy-collection-rows",
             "php": "c32c_rows(list | keyed)->groupBy('k'): each group's 'v' values",
             "value": {

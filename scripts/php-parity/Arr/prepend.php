@@ -47,18 +47,6 @@ probe('prepend-list-with-key', "Arr::prepend(['b', 'c'], 'a', 0), (..., 1), (...
     'collection-one' => (new Collection(['b', 'c']))->prepend('a', 1)->all(),
 ]);
 
-/** Render a probe result as its JSON shape plus the PHP type of every top-level key. */
-$d4Shape = fn (array $array): array => [
-    'json' => json_decode(json_encode($array, JSON_UNESCAPED_SLASHES), true),
-    'keys' => array_map(fn ($k) => gettype($k) . ':' . $k, array_keys($array)),
-];
-
-$d4Set = function (array $array, string $key) use ($d4Shape): array {
-    Arr::set($array, $key, 'V');
-
-    return $d4Shape($array);
-};
-
 // ==== Task D6 citation audit: prepend onto an EXISTING integer key of a keyed array, and
 // ==== the list form of the nested-list descend the row above records for a keyed one.
 probe('d6-prepend-existing-integer-key', "Arr::prepend([1 => 'a', 'b' => 2], 'z', 1)", function () {

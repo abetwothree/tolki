@@ -20,25 +20,6 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
-$c32KeysSeen = function (callable $run, bool $answer = false): array {
-    $seen = [];
-    $run(function ($v, $k) use (&$seen, $answer) {
-        $seen[] = [gettype($k), $k];
-
-        return $answer;
-    });
-
-    return $seen;
-};
-
-// whereIn / whereNotIn: in_array's loose == is PHP's, not JS's
-$vs = fn (array $values) => new Collection(array_map(fn ($v) => ['v' => $v], $values));
-
 // duplicates(): keys of the duplicate are the whole point
 probe('C32-D-duplicates-keyed', "(new Collection(['a' => 1, 'b' => 2, 'c' => 1]))->duplicates()", fn () => pairs((new Collection(['a' => 1, 'b' => 2, 'c' => 1]))->duplicates()));
 probe('C32-D-duplicates-list-first-key', "(new Collection(['x', 'y', 'x']))->duplicates()->keys()", fn () => (new Collection(['x', 'y', 'x']))->duplicates()->keys()->all());

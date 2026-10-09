@@ -9,16 +9,8 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Stringable;
-use Illuminate\Tests\Support\TestArrayableObject;
-use Illuminate\Tests\Support\TestJsonSerializeObject;
-use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
-use Illuminate\Tests\Support\TestJsonableObject;
-use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
-use Symfony\Component\VarDumper\VarDumper;
 
 // --- first / last on assoc
 probe('first-assoc-no-match', "Arr::first(['a' => 100, 'b' => 200, 'c' => 300], fn (\$v) => \$v > 300)", fn () => Arr::first(['a' => 100, 'b' => 200, 'c' => 300], fn ($v) => $v > 300));
@@ -66,16 +58,5 @@ probe('first-out-of-order-callback-order', "Arr::first([2 => 'c', 0 => 'a', 1 =>
 // null is '' and 1.5 is 1. The array literals are written as a PHP user would write them.
 probe('first-collision', "Arr::first([1 => 'a', '1' => 'b'])", fn () => Arr::first([1 => 'a', '1' => 'b']));
 probe('first-true-key-collision', "Arr::first([1 => 'a', true => 'b'])", fn () => Arr::first([1 => 'a', true => 'b']));
-
-probe('C32-C-arr-callback-php-truthiness', "Arr::first / last / every / some / sole / where / reject / partition over c32c_items(list | keyed), sole over its first item alone, with a callback answering '0', [] and new DateTime('@0')", fn () => array_map(fn (bool $keyed) => [
-    'first' => c32c_truthiness(fn ($cb) => Arr::first(c32c_items($keyed), $cb)),
-    'last' => c32c_truthiness(fn ($cb) => Arr::last(c32c_items($keyed), $cb)),
-    'every' => c32c_truthiness(fn ($cb) => Arr::every(c32c_items($keyed), $cb)),
-    'some' => c32c_truthiness(fn ($cb) => Arr::some(c32c_items($keyed), $cb)),
-    'sole' => c32c_truthiness(fn ($cb) => Arr::sole(c32c_items($keyed, true), $cb)),
-    'where' => c32c_truthiness(fn ($cb) => Arr::where(c32c_items($keyed), $cb)),
-    'reject' => c32c_truthiness(fn ($cb) => Arr::reject(c32c_items($keyed), $cb)),
-    'partition' => c32c_truthiness(fn ($cb) => Arr::partition(c32c_items($keyed), $cb)),
-], ['list' => false, 'keyed' => true]));
 
 emit();

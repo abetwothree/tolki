@@ -34,11 +34,6 @@ probe('order-pull', '$c = collect(base); $returned = $c->pull(0)', function () {
 
     return ['returned' => $returned] + d8Views($c);
 });
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-pull-string-index-on-list', "\$c = collect(['a', 'b', 'c']); \$c->pull('1')", function () { $c = collect(['a', 'b', 'c']); return ['returned' => $c->pull('1'), 'all' => $c->all(), 'count' => $c->count()]; });
 probe('C32-B-pull-missing-on-list-keeps-list', "\$c = collect(['foo', 'bar']); \$c->pull(2); \$c->pull(-1)", function () { $c = collect(['foo', 'bar']); $a = $c->pull(2); $b = $c->pull(-1); return ['returned' => [$a, $b], 'all' => $c->all(), 'json' => $c->toJson()]; });
 probe('C32-B-pull-keeps-sibling-collections', "\$c = collect(['a' => collect([1]), 'b' => 2]); \$c->pull('b')", function () { $c = collect(['a' => collect([1]), 'b' => 2]); $c->pull('b'); return $c->get('a') instanceof Collection; });

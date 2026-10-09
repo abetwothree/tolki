@@ -19,11 +19,6 @@ use Illuminate\Tests\Support\TestJsonSerializeWithScalarValueObject;
 use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
-
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
 probe('C32-B-hasAny-null-key', "[collect(['' => 1])->hasAny(null), collect(['a' => 1])->hasAny(null), collect(['' => 1])->hasAny([null])]", fn () => [collect(['' => 1])->hasAny(null), collect(['a' => 1])->hasAny(null), collect(['' => 1])->hasAny([null])]);
 probe('C32-B-hasAny-dot-path-is-literal', "[collect(['a' => ['b' => 1]])->hasAny('a.b'), collect(['a.b' => 1])->hasAny('a.b')]", fn () => [collect(['a' => ['b' => 1]])->hasAny('a.b'), collect(['a.b' => 1])->hasAny('a.b')]);
 

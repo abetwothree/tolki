@@ -88,11 +88,6 @@ probe('containsStrict-null-first-callback', "(new Collection([null, 'a']))->cont
 probe('containsStrict-out-of-order-callback-keys', "keys a false-answering containsStrict callback sees on [2 => 'c', 0 => 'a', 1 => 'b']", fn () => containsStrictKeysSeen(new Collection([2 => 'c', 0 => 'a', 1 => 'b']), fn () => false));
 probe('containsStrict-stops-at-first-match', "keys an is_null callback sees on ['a', null, 'c']", fn () => containsStrictKeysSeen(new Collection(['a', null, 'c']), fn ($v) => is_null($v)));
 
-// ---- Family B ------------------------------------------------------------
-
-// ---- Family B: keyed access & mutation (C32-B-*) ----
-$views = fn (Collection $c, $k) => ['all' => $c->all(), 'count' => $c->count(), 'keys' => $c->keys()->all(), 'values' => $c->values()->all(), 'get' => $c->get($k), 'has' => $c->has($k), 'last' => $c->last()];
-
 $c32KeysSeen = function (callable $run, bool $answer = false): array {
     $seen = [];
     $run(function ($v, $k) use (&$seen, $answer) {

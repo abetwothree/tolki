@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Ground truth for PHP's range().
+ * Ground truth for the static factories a Collection subclass inherits.
  */
 
 declare(strict_types=1);
