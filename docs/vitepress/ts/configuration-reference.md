@@ -30,8 +30,8 @@ Each entry maps a type name to the TypeScript type it publishes, and it wins ove
 
 - An entry for a cast, such as `'decimal:2'`, overrides that cast's rule. An entry named like both a cast and a column type, such as `'timestamp'` or `'decimal'`, applies to both, and a `'decimal'` entry covers every `decimal:N` cast.
 - An entry for a column type, such as `'decimal'` or `'numeric'`, publishes that type on every database driver, for the column and for its `MIN()` and `MAX()` aggregates. `SUM()` and `AVG()` still follow the driver.
-- A `DateTime` entry is read as the `datetime` column and cast type, because keys are matched case-insensitively. PHP's `DateTime` class keeps the object `json_encode()` writes for it. An entry for `DateTimeImmutable` does retype that class.
-- A `Carbon\Carbon` entry retypes `Carbon\Carbon`, `CarbonInterface` and a subclass with no entry of its own, and the dates a cast class or a new-style accessor returns. `CarbonImmutable` and `Illuminate\Support\Carbon`, which `now()` and `today()` return, follow their own entries, and so do date columns and date casts, such as `'datetime'`. A date type with no entry follows `timestamps_as_date`.
+- A `DateTime` entry is read as the `datetime` column and cast type, because keys are matched case-insensitively. PHP's `DateTime` class keeps the object `json_encode()` writes for it, but a `DateTime` that a cast class or a new-style accessor returns takes the entry, because Laravel serializes that date as it does a `datetime` column. An entry for `DateTimeImmutable` does retype that class.
+- A `Carbon\Carbon` entry retypes `Carbon\Carbon`, `CarbonInterface` and a subclass with no entry of its own, and a date a cast class or a new-style accessor returns whose class has no entry of its own. `CarbonImmutable` and `Illuminate\Support\Carbon`, which `now()` and `today()` return, follow their own entries, and so do date columns and date casts, such as `'datetime'`. A date type with no entry follows `timestamps_as_date`.
 
 ```php
 'custom_ts_mappings' => [
