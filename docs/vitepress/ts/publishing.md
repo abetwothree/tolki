@@ -192,7 +192,7 @@ Every run except a `--source` or `--preview=true` run writes these files when th
 - The collected files manifest, which always lists the files of every enabled feature
 - The globals and JSON files
 
-A partial run keeps the classes of the features it skips in the globals and JSON files, as the last run that published them left them. With the cache off, or with `--fresh`, it rewrites them without those features.
+A partial run keeps the classes of the features it skips in the globals and JSON files, as the last run that published them left them. With the cache off, or with nothing cached for those features (the first publish, `--fresh`, or a change to your config, templates or the package version), it rewrites them without those features.
 
 ## Output Files
 
