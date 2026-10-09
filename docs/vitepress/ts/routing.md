@@ -363,6 +363,7 @@ These expressions are typed:
 - **Inertia v2 prop wrappers**: `defer()`, `optional()` and `lazy()` type as the value they wrap and make the key optional, since a partial reload can leave it out. `always()`, `merge()` and `deepMerge()` type as the value they wrap.
 - **API resources and resource collections**, typed from what they wrap, including a `#[PreserveKeys]` collection's keyed `data` member.
 - **A props array assigned from a ternary**, or props built whole by a method on an injected service, as in `Inertia::render('Posts/Show', $this->service->build())`.
+- **Closures and first-class callables**: Inertia calls a callable prop, so `fn () => $this->label()` and `$this->label(...)` are both typed from what the call returns. In props that another class's method or a controller helper method builds, a first-class callable publishes `Record<string, never>` and `ts:publish` warns, even though Inertia does call it. Use a closure there.
 
 ::: warning Two Enums With the Same Class Name
 If two enums in different namespaces share a class name, such as `App\Enums\Status` and `App\Billing\Status`, both publish as `StatusType`. A route file whose props use both imports `StatusType` twice, and TypeScript rejects it as a duplicate identifier. Rename one with `#[TsEnum]` to keep them apart.
