@@ -336,6 +336,10 @@ const result = pairs(25, 10);
 const result2 = pairs(25, 10, 0, 0);
 
 // result2 is [[0, 10], [10, 20], [20, 25]]
+
+const result3 = pairs(20, 10);
+
+// result3 is [[0, 9], [10, 19], [20, 20]]
 ```
 
 <FnTry
