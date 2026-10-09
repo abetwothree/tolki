@@ -549,8 +549,9 @@ export function pairs(
     by = Math.abs(by);
 
     const output: [number, number][] = [];
+    let lower = start;
 
-    for (let lower = start; lower < to; lower += by) {
+    for (; lower < to; lower += by) {
         let upper = lower + by - offset;
 
         if (upper > to) {
@@ -558,6 +559,12 @@ export function pairs(
         }
 
         output.push([lower, upper]);
+    }
+
+    const last = output.at(-1);
+
+    if (last !== undefined && lower === to && last[1] < to) {
+        output.push([lower, to]);
     }
 
     return output;

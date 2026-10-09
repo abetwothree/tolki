@@ -615,88 +615,180 @@ describe("Number", () => {
         expect(Num.clamp(-10, 1, 5)).toBe(1);
     });
 
-    it("pairs", () => {
-        expect(Num.pairs(25, 10, 0, 0)).toEqual([
-            [0, 10],
-            [10, 20],
-            [20, 25],
-        ]);
-        expect(Num.pairs(25, 10, 0, 1)).toEqual([
-            [0, 9],
-            [10, 19],
-            [20, 25],
-        ]);
-        expect(Num.pairs(25, 10, 1, 0)).toEqual([
-            [1, 11],
-            [11, 21],
-            [21, 25],
-        ]);
-        expect(Num.pairs(25, 10, 1, 1)).toEqual([
-            [1, 10],
-            [11, 20],
-            [21, 25],
-        ]);
-        expect(Num.pairs(2500, 1000, 0, 0)).toEqual([
-            [0, 1000],
-            [1000, 2000],
-            [2000, 2500],
-        ]);
-        expect(Num.pairs(2500, 1000, 0, 1)).toEqual([
-            [0, 999],
-            [1000, 1999],
-            [2000, 2500],
-        ]);
-        expect(Num.pairs(2500, 1000, 1, 0)).toEqual([
-            [1, 1001],
-            [1001, 2001],
-            [2001, 2500],
-        ]);
-        expect(Num.pairs(2500, 1000, 1, 1)).toEqual([
-            [1, 1000],
-            [1001, 2000],
-            [2001, 2500],
-        ]);
-        expect(Num.pairs(10, 2.5, 0, 0)).toEqual([
-            [0, 2.5],
-            [2.5, 5.0],
-            [5.0, 7.5],
-            [7.5, 10.0],
-        ]);
-        expect(Num.pairs(10, 2.5, 0, 0.5)).toEqual([
-            [0, 2.0],
-            [2.5, 4.5],
-            [5.0, 7.0],
-            [7.5, 9.5],
-        ]);
-        expect(Num.pairs(10, 2.5, 0.5, 0)).toEqual([
-            [0.5, 3.0],
-            [3.0, 5.5],
-            [5.5, 8.0],
-            [8.0, 10],
-        ]);
-        expect(Num.pairs(10, 2.5, 0.5, 0.5)).toEqual([
-            [0.5, 2.5],
-            [3.0, 5.0],
-            [5.5, 7.5],
-            [8.0, 10.0],
-        ]);
+    describe("pairs", () => {
+        it("splits the given number into pairs of min/max values", () => {
+            expect(Num.pairs(25, 10, 0, 0)).toEqual([
+                [0, 10],
+                [10, 20],
+                [20, 25],
+            ]);
+            expect(Num.pairs(25, 10, 0, 1)).toEqual([
+                [0, 9],
+                [10, 19],
+                [20, 25],
+            ]);
+            expect(Num.pairs(25, 10, 1, 0)).toEqual([
+                [1, 11],
+                [11, 21],
+                [21, 25],
+            ]);
+            expect(Num.pairs(25, 10, 1, 1)).toEqual([
+                [1, 10],
+                [11, 20],
+                [21, 25],
+            ]);
+            expect(Num.pairs(2500, 1000, 0, 0)).toEqual([
+                [0, 1000],
+                [1000, 2000],
+                [2000, 2500],
+            ]);
+            expect(Num.pairs(2500, 1000, 0, 1)).toEqual([
+                [0, 999],
+                [1000, 1999],
+                [2000, 2500],
+            ]);
+            expect(Num.pairs(2500, 1000, 1, 0)).toEqual([
+                [1, 1001],
+                [1001, 2001],
+                [2001, 2500],
+            ]);
+            expect(Num.pairs(2500, 1000, 1, 1)).toEqual([
+                [1, 1000],
+                [1001, 2000],
+                [2001, 2500],
+            ]);
+            expect(Num.pairs(10, 2.5, 0, 0)).toEqual([
+                [0, 2.5],
+                [2.5, 5.0],
+                [5.0, 7.5],
+                [7.5, 10.0],
+            ]);
+            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-float-step-with-offset"
+            expect(Num.pairs(10, 2.5, 0, 0.5)).toEqual([
+                [0, 2.0],
+                [2.5, 4.5],
+                [5.0, 7.0],
+                [7.5, 9.5],
+                [10.0, 10],
+            ]);
+            expect(Num.pairs(10, 2.5, 0.5, 0)).toEqual([
+                [0.5, 3.0],
+                [3.0, 5.5],
+                [5.5, 8.0],
+                [8.0, 10],
+            ]);
+            expect(Num.pairs(10, 2.5, 0.5, 0.5)).toEqual([
+                [0.5, 2.5],
+                [3.0, 5.0],
+                [5.5, 7.5],
+                [8.0, 10.0],
+            ]);
 
-        // Test case where range exactly divides - upper never exceeds to
-        // This covers the branch where `upper <= to` (the `if (upper > to)` is false)
-        expect(Num.pairs(20, 10, 0, 0)).toEqual([
-            [0, 10],
-            [10, 20],
-        ]);
+            // Test case where range exactly divides - upper never exceeds to
+            // This covers the branch where `upper <= to` (the `if (upper > to)` is false)
+            expect(Num.pairs(20, 10, 0, 0)).toEqual([
+                [0, 10],
+                [10, 20],
+            ]);
 
-        // Test with default parameters (start=0, offset=1) to cover parameter default branches
-        expect(Num.pairs(25, 10)).toEqual([
-            [0, 9],
-            [10, 19],
-            [20, 25],
-        ]);
+            // Test with default parameters (start=0, offset=1) to cover parameter default branches
+            expect(Num.pairs(25, 10)).toEqual([
+                [0, 9],
+                [10, 19],
+                [20, 25],
+            ]);
+        });
 
-        expect(() => Num.pairs(100, 0)).toThrow();
-        expect(Num.pairs(100, 10)).toEqual(Num.pairs(100, -10));
+        it("includes the upper bound when it starts a new pair", () => {
+            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-upper-bound-starts-a-pair",
+            // "pairs-past-the-upper-bound", "pairs-upper-bound-from-a-start", "pairs-upper-bound-already-closed",
+            // "pairs-empty-range" and "pairs-start-past-to"
+            expect(Num.pairs(20, 10)).toEqual([
+                [0, 9],
+                [10, 19],
+                [20, 20],
+            ]);
+            expect(Num.pairs(21, 10)).toEqual([
+                [0, 9],
+                [10, 19],
+                [20, 21],
+            ]);
+            expect(Num.pairs(10, 3, 1)).toEqual([
+                [1, 3],
+                [4, 6],
+                [7, 9],
+                [10, 10],
+            ]);
+            expect(Num.pairs(20, 10, 0, 0)).toEqual([
+                [0, 10],
+                [10, 20],
+            ]);
+            expect(Num.pairs(0, 10)).toEqual([]);
+            expect(Num.pairs(5, 10, 10)).toEqual([]);
+        });
+
+        it("closes on the upper bound as Laravel does for negative values, offsets and float steps", () => {
+            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-start-equals-to", "pairs-single-step",
+            // "pairs-negative-by-upper-bound", "pairs-negative-start", "pairs-negative-range", "pairs-offset-past-by",
+            // "pairs-negative-offset" and "pairs-float-step-lands-on-to"
+            expect(Num.pairs(10, 5, 10)).toEqual([]);
+            expect(Num.pairs(10, 10)).toEqual([
+                [0, 9],
+                [10, 10],
+            ]);
+            expect(Num.pairs(20, -10)).toEqual([
+                [0, 9],
+                [10, 19],
+                [20, 20],
+            ]);
+            expect(Num.pairs(0, 10, -20)).toEqual([
+                [-20, -11],
+                [-10, -1],
+                [0, 0],
+            ]);
+            expect(Num.pairs(-10, 5, -20)).toEqual([
+                [-20, -16],
+                [-15, -11],
+                [-10, -10],
+            ]);
+            expect(Num.pairs(20, 10, 0, 15)).toEqual([
+                [0, -5],
+                [10, 5],
+                [20, 20],
+            ]);
+            expect(Num.pairs(20, 10, 0, -5)).toEqual([
+                [0, 15],
+                [10, 20],
+            ]);
+            expect(Num.pairs(1, 0.25)).toEqual([
+                [0, -0.75],
+                [0.25, -0.5],
+                [0.5, -0.25],
+                [0.75, 0],
+                [1, 1],
+            ]);
+        });
+
+        it("adds no closing pair when the last step passes the upper bound", () => {
+            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-steps-past-to" and
+            // "pairs-float-step-drifts-past-to"
+            expect(Num.pairs(9.5, 10)).toEqual([[0, 9]]);
+
+            const drifted = Num.pairs(1, 0.1);
+
+            expect(drifted).toHaveLength(11);
+            expect(drifted.at(-1)).toEqual([
+                0.9999999999999999, 0.09999999999999987,
+            ]);
+        });
+
+        it("throws when by is zero", () => {
+            expect(() => Num.pairs(100, 0)).toThrow();
+        });
+
+        it("treats a negative by like a positive one", () => {
+            expect(Num.pairs(100, 10)).toEqual(Num.pairs(100, -10));
+        });
     });
 
     it("trim", () => {
