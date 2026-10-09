@@ -169,7 +169,7 @@ An instance or static method's value publishes as `json_encode()` writes it, whi
 A value that `json_encode()` can't write, such as `NAN` or a string that isn't valid UTF-8, publishes as `null`.
 
 ::: warning Arrays With Out-of-Order Integer Keys
-An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item before one it keeps. An `EnumResource` response sends the same value as a list, so `ts:publish` warns about the method. Wrap the array in `array_values()` to publish and send a list:
+An array whose integer keys don't count up from 0 in order publishes as an object keyed by those numbers, because that's how `json_encode()` writes it. `array_filter()` keeps each item's key, so it returns such an array whenever it removes an item before one it keeps. An `EnumResource` response sends the same value as a list, so `ts:publish` warns about the method. Keys that are numeric strings, such as `'01'`, are re-indexed the same way. Wrap the array in `array_values()` to publish and send a list, or use keys that aren't numeric to publish and send an object:
 
 ```php
 #[TsEnumMethod]
