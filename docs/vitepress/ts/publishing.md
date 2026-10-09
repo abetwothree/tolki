@@ -192,9 +192,7 @@ Every run except a `--source` or `--preview=true` run writes these files when th
 - The collected files manifest, which always lists the files of every enabled feature
 - The globals and JSON files
 
-::: warning The Globals and JSON Files Follow the Run
-The globals and JSON files list only the classes the current run publishes. A partial run, including the `--only-functional` run the Vite plugin makes on `vite build`, rewrites them without the features it skipped. Run a full `ts:publish` to restore them.
-:::
+A partial run keeps the classes of the features it skips in the globals and JSON files, as the last run that published them left them. With the cache off, or with `--fresh`, it rewrites them without those features.
 
 ## Output Files
 
