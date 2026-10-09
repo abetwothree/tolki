@@ -651,7 +651,7 @@ export function operatorMatch(
 ): boolean {
     const operands = [retrieved, value];
     // A plain object models a PHP ARRAY here, not a stdClass, so `is_object` does not count
-    // it; a class instance, a Date or a Map does (task-24, "r4-object-scalar-guard").
+    // it; a class instance, a Date or a Map does (docs/php-parity/Collection/contains.json, "r4-object-scalar-guard").
     const isPhpObject = (item: unknown): item is object =>
         isObject(item) && !isPlainObject(item);
     // PHP counts a string or a `\Stringable`. An own `toString` is what `__toString` looks
@@ -665,9 +665,9 @@ export function operatorMatch(
         return ["!=", "<>", "!=="].includes(operator);
     }
 
-    // NAN orders with nothing, yet `NAN <=> 1` is 1, not 0 (task-24, "raw spaceship").
-    // Against a bool or null PHP casts both sides to bool first, so NAN does order there
-    // (task-24, "r4-nan-bool-null-table": `NAN <=> true` is 0 and `NAN <=> null` is 1).
+    // NAN orders with nothing, yet `NAN <=> 1` is 1, not 0; against a bool or null PHP casts both sides to bool first,
+    // so `NAN <=> true` is 0 and `NAN <=> null` is 1 (docs/php-parity/Collection/contains.json,
+    // "r4-nan-bool-null-table", and the "raw spaceship" cells of "r3-operator-table").
     const castsToBool =
         isBoolean(retrieved) ||
         isBoolean(value) ||
@@ -677,7 +677,7 @@ export function operatorMatch(
         !castsToBool && (isNaNValue(retrieved) || isNaNValue(value));
     // PHP orders with its own rules, not JavaScript's: null casts to a bool (or to "" against
     // a string) and two numeric strings compare numerically, so `-1 > null` and `"10" > "9"`
-    // both hold there. compareValues is that rule (task-24, "r3-operator-table").
+    // both hold there. compareValues is that rule (docs/php-parity/Collection/contains.json, "r3-operator-table").
     const ordered = (holds: (sign: number) => boolean): boolean =>
         !uncomparable && holds(compareValues(retrieved, value));
 
@@ -693,9 +693,9 @@ export function operatorMatch(
             return ordered((sign) => sign <= 0);
         case ">=":
             return ordered((sign) => sign >= 0);
-        // PHP's `===` compares an array by value — same keys, same order, same types —
-        // and only a real object by identity. strictEqual is that rule; JS's own `===`
-        // would call every pair of equal arrays unequal (task-24, "r4-strict-operators").
+        // PHP's `===` compares an array by value — same keys, same order, same types — and only a real object by
+        // identity. strictEqual is that rule; JS's own `===` would call every pair of equal arrays unequal
+        // (docs/php-parity/Collection/contains.json, "r4-strict-operators").
         case "===":
             return strictEqual(retrieved, value);
         case "!==":

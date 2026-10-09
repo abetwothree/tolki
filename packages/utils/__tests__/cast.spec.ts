@@ -101,7 +101,7 @@ describe("Utils", () => {
 
     it("arrayableValues", () => {
         // The EnumeratesValues::getArrayableItems() rule the diff/intersect
-        // operands share. PHP-verified in docs/php-parity/task-16-final-review.json
+        // operands share. PHP-verified in docs/php-parity/Collection/diff.json
         // ("diff accepts an operand of any shape").
         expect(Utils.arrayableValues([1, 2])).toEqual([1, 2]);
         expect(Utils.arrayableValues({ x: 20, y: 30 })).toEqual([20, 30]);
@@ -117,7 +117,7 @@ describe("Utils", () => {
 
     describe("arrayableValues unwrapping", () => {
         it("unwraps a class instance exposing all(), like Enumerable", () => {
-            // docs/php-parity/task-17-second-review.json, "diff with a Collection operand"
+            // docs/php-parity/Collection/diff.json, "diff with a Collection operand"
             class Enumerable {
                 all() {
                     return [10, 20];
@@ -128,7 +128,7 @@ describe("Utils", () => {
         });
 
         it("unwraps a class instance exposing toArray(), like Arrayable", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-arrayable-keyed"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-arrayable-keyed"
             class Arrayable {
                 toArray() {
                     return { foo: "bar" };
@@ -144,8 +144,9 @@ describe("Utils", () => {
         });
 
         it("reads a Map as the PHP array it stands for: in order, one value per PHP key", () => {
-            // docs/php-parity/task-30-map-order.json, "values-out-of-order", "first-collision"
-            // PHP keeps [2 => 'c', 0 => 'a'] in that order, and [1 => 'a', '1' => 'b'] is the one entry [1 => 'b'].
+            // docs/php-parity/Collection/values.json, "values-out-of-order", docs/php-parity/Arr/first.json,
+            // "first-collision" PHP keeps [2 => 'c', 0 => 'a'] in that order, and [1 => 'a', '1' => 'b'] is the one
+            // entry [1 => 'b'].
             expect(
                 Utils.arrayableValues(
                     new Map<unknown, string>([
@@ -159,7 +160,7 @@ describe("Utils", () => {
         });
 
         it("unwraps a class instance exposing toJSON(), like JsonSerializable", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-construct-jsonserializable"
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-jsonserializable"
             class JsonSerializable {
                 toJSON() {
                     return { foo: "bar" };
@@ -191,9 +192,9 @@ describe("Utils", () => {
         });
 
         it("reads a plain object's all, toArray or toJSON member as one of its values, never unwrapping it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data";
-            // task-26-collection-order.json, "plain-object-toArray-member-as-an-operand-is-never-unwrapped";
-            // task-23-obj-release-readiness.json, "union-function-valued-member"
+            // docs/php-parity/Collection/intersectByKeys.json, "C32-F-plain-object-all-member-is-data";
+            // docs/php-parity/Collection/intersect.json, "plain-object-toArray-member-as-an-operand-is-never-unwrapped"
+            // docs/php-parity/Collection/union.json, "union-function-valued-member"
             const all = () => [9];
             const toArray = () => [9];
             const toJSON = () => [9];
@@ -222,8 +223,8 @@ describe("Utils", () => {
 
     describe("arrayableItems", () => {
         it("unwraps Enumerable- and Arrayable-like class instances", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "C18 union collection";
-            // task-32-collection-release-readiness.json, "C32-A-construct-arrayable-keyed"
+            // docs/php-parity/Collection/union.json, "C18 union collection";
+            // docs/php-parity/Collection/__construct.json, "C32-A-construct-arrayable-keyed"
             class Enumerable {
                 all() {
                     return { name: "Hello", id: 1 };
@@ -246,7 +247,7 @@ describe("Utils", () => {
         });
 
         it("keeps a plain object's all, toArray or toJSON member as one of its entries, never unwrapping it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-plain-object-all-member-is-data"
+            // docs/php-parity/Collection/intersectByKeys.json, "C32-F-plain-object-all-member-is-data"
             const all = () => [9];
             const toArray = () => [9];
             const toJSON = () => [9];
@@ -272,8 +273,8 @@ describe("Utils", () => {
         });
 
         it("keys a Map as PHP casts an array key, so 1 and '1' land on one key", () => {
-            // docs/php-parity/task-30-map-order.json, "first-true-key-collision", "every-null-key-callback-order"
-            // PHP stores true under 1, keeping the last value, and null under "".
+            // docs/php-parity/Arr/first.json, "first-true-key-collision", docs/php-parity/Arr/every.json,
+            // "every-null-key-callback-order" PHP stores true under 1, keeping the last value, and null under "".
             expect(
                 Utils.arrayableItems(
                     new Map<unknown, string>([
@@ -314,7 +315,7 @@ describe("Utils", () => {
 
     describe("toPhpKeyString", () => {
         it("casts null, undefined and false to the empty string and true to '1'", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            // docs/php-parity/Collection/combine.json, "D5 combine null/bool/float keys"
             // JS-only: PHP has no undefined; toPhpKeyString casts it like null.
             expect(Utils.toPhpKeyString(null)).toBe("");
             expect(Utils.toPhpKeyString(undefined)).toBe("");
@@ -323,13 +324,13 @@ describe("Utils", () => {
         });
 
         it("stringifies numbers and strings", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            // docs/php-parity/Collection/combine.json, "D5 combine null/bool/float keys"
             expect(Utils.toPhpKeyString(1.5)).toBe("1.5");
             expect(Utils.toPhpKeyString("7")).toBe("7");
         });
 
         it("prints a float the way PHP's (string) cast does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            // docs/php-parity/Collection/combine.json, "combine-float-keys"
             const floats = [
                 Infinity,
                 -Infinity,
@@ -372,7 +373,7 @@ describe("Utils", () => {
         });
 
         it("prints an integer in PHP's int range exactly, even past 2^53", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "combine-large-int-key"
+            // docs/php-parity/Collection/combine.json, "combine-large-int-key"
             expect(Utils.toPhpKeyString(2 ** 62)).toBe("4611686018427387904");
             expect(Utils.toPhpKeyString(-7)).toBe("-7");
         });
@@ -380,7 +381,7 @@ describe("Utils", () => {
 
     describe("phpStringCast", () => {
         it("casts an array, or a plain object or a Map that stands for one, to Array", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-array-pieces"
+            // docs/php-parity/Collection/implode.json, "C32-H-implode-array-pieces"
             expect(
                 [[2, 3], { b: 1 }, new Map([[1, 2]])].map((value) =>
                     Utils.phpStringCast(value),
@@ -389,7 +390,7 @@ describe("Utils", () => {
         });
 
         it("casts a scalar as PHP's (string) cast does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-bool-items",
+            // docs/php-parity/Collection/join.json, "C32-H-join-bool-items",
             // "C32-H-join-null-last-item" and "C32-H-join-float-casts"
             expect(
                 [true, false, null, 0.1 + 0.2, 1e25, -0, "x"].map((value) =>
@@ -405,7 +406,7 @@ describe("Utils", () => {
                 }
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces": a JS Date
+            // docs/php-parity/Collection/implode.json, "C32-H-implode-object-pieces": a JS Date
             // names its own class, where PHP's message names DateTime.
             expect(Utils.phpStringCast(new Label())).toBe("S:T");
             expect(() => Utils.phpStringCast(new Date(0))).toThrow(
@@ -423,7 +424,7 @@ describe("Utils", () => {
 
     describe("phpIntCast", () => {
         it("drops a fraction, keeps a number past PHP's int range to its low 64 bits, and reads NAN or INF as 0", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-int-cast-past-int-range": the row
+            // docs/php-parity/Php/int-cast.json, "C32-G-int-cast-past-int-range": the row
             // writes each int as its digits, which BigInt compares exactly
             for (const [value, digits] of [
                 [1e19, "-8446744073709551616"],
@@ -458,15 +459,15 @@ describe("Utils", () => {
             "array_slice(): Argument #2 ($offset) must be of type int, float given";
 
         it("drops a fraction toward zero, as PHP's int parameter does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts"
+            // docs/php-parity/Collection/slice.json, "C32-G-slice-counts"
             expect(Utils.phpIntArgument(1.5, message)).toBe(1);
             expect(Utils.phpIntArgument(-1.5, message)).toBe(-1);
             expect(Utils.phpIntArgument(7, message)).toBe(7);
         });
 
         it("throws a TypeError with PHP's message for NAN, an infinity or a number past PHP's int range", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-slice-counts" and
-            // "C32-F-multiply-out-of-int-range-count"
+            // docs/php-parity/Collection/slice.json, "C32-G-slice-counts" and
+            // docs/php-parity/Php/array_map.json, "C32-F-multiply-out-of-int-range-count"
             for (const value of [NaN, Infinity, -Infinity, 1e19, 2 ** 63]) {
                 expect(() => Utils.phpIntArgument(value, message)).toThrow(
                     new TypeError(message),
@@ -475,7 +476,7 @@ describe("Utils", () => {
         });
 
         it("accepts every number PHP holds as an int, down to -2^63", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-F-multiply-out-of-int-range-count"
+            // docs/php-parity/Php/array_map.json, "C32-F-multiply-out-of-int-range-count"
             // and "C32-H-percentage-precision-bounds"
             expect(Utils.phpIntArgument(-(2 ** 63), message)).toBe(-(2 ** 63));
             expect(Utils.phpIntArgument(9223372036854774784, message)).toBe(

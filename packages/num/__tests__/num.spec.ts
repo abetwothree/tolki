@@ -153,7 +153,7 @@ describe("Number", () => {
         });
 
         it("does not print a negative zero", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "format-negative-zero", "format-rounds-to-zero",
+            // docs/php-parity/Number/format.json, "format-negative-zero", "format-rounds-to-zero",
             // "format-rounds-to-zero-one-digit", "format-keeps-sign", "format-default-precision",
             // "format-max-precision-rounds-to-zero" and "format-rounds-to-zero-de"
             expect(Num.format(-0.0)).toBe("0");
@@ -202,7 +202,7 @@ describe("Number", () => {
         });
 
         it("parses integers past 32 bits", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "parseInt-past-int32", "parseInt-past-int32-negative"
+            // docs/php-parity/Number/parseInt.json, "parseInt-past-int32", "parseInt-past-int32-negative"
             // and "parseInt-max-safe-integer". PHP's own test parses PHP_INT_MAX, which a JS number cannot hold.
             expect(Num.parseInt("3,000,000,000")).toBe(3000000000);
             expect(Num.parseInt("-3,000,000,000")).toBe(-3000000000);
@@ -367,7 +367,7 @@ describe("Number", () => {
         });
 
         it("does not print a negative zero", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "percentage-rounds-to-zero",
+            // docs/php-parity/Number/percentage.json, "percentage-rounds-to-zero",
             // "percentage-rounds-to-zero-one-digit", "percentage-keeps-sign-one-digit", "percentage-keeps-sign"
             // and "percentage-max-precision-rounds-to-zero"
             expect(Num.percentage(-0.4)).toBe("0%");
@@ -418,7 +418,7 @@ describe("Number", () => {
         });
 
         it("does not print a negative zero", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "currency-rounds-to-zero", "currency-float-noise",
+            // docs/php-parity/Number/currency.json, "currency-rounds-to-zero", "currency-float-noise",
             // "currency-rounds-to-zero-no-digits", "currency-keeps-sign", "currency-negative-zero"
             // and "currency-rounds-to-zero-eur-de"
             expect(Num.currency(-0.001)).toBe("$0.00");
@@ -470,7 +470,7 @@ describe("Number", () => {
         });
 
         it("does not print a negative zero", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "fileSize-rounds-to-zero" and "fileSize-negative-zero"
+            // docs/php-parity/Number/fileSize.json, "fileSize-rounds-to-zero" and "fileSize-negative-zero"
             expect(Num.fileSize(-0.4)).toBe("0 B");
             expect(Num.fileSize(-0)).toBe("0 B");
         });
@@ -664,7 +664,7 @@ describe("Number", () => {
                 [5.0, 7.5],
                 [7.5, 10.0],
             ]);
-            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-float-step-with-offset"
+            // docs/php-parity/Number/pairs.json, "pairs-float-step-with-offset"
             expect(Num.pairs(10, 2.5, 0, 0.5)).toEqual([
                 [0, 2.0],
                 [2.5, 4.5],
@@ -701,7 +701,7 @@ describe("Number", () => {
         });
 
         it("includes the upper bound when it starts a new pair", () => {
-            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-upper-bound-starts-a-pair",
+            // docs/php-parity/Number/pairs.json, "pairs-upper-bound-starts-a-pair",
             // "pairs-past-the-upper-bound", "pairs-upper-bound-from-a-start", "pairs-upper-bound-already-closed",
             // "pairs-empty-range" and "pairs-start-past-to"
             expect(Num.pairs(20, 10)).toEqual([
@@ -729,7 +729,7 @@ describe("Number", () => {
         });
 
         it("closes on the upper bound as Laravel does for negative values, offsets and float steps", () => {
-            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-start-equals-to", "pairs-single-step",
+            // docs/php-parity/Number/pairs.json, "pairs-start-equals-to", "pairs-single-step",
             // "pairs-negative-by-upper-bound", "pairs-negative-start", "pairs-negative-range", "pairs-offset-past-by",
             // "pairs-negative-offset" and "pairs-float-step-lands-on-to"
             expect(Num.pairs(10, 5, 10)).toEqual([]);
@@ -771,7 +771,7 @@ describe("Number", () => {
         });
 
         it("adds no closing pair when the last step passes the upper bound", () => {
-            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-steps-past-to" and
+            // docs/php-parity/Number/pairs.json, "pairs-steps-past-to" and
             // "pairs-float-step-drifts-past-to"
             expect(Num.pairs(9.5, 10)).toEqual([[0, 9]]);
 
@@ -784,7 +784,7 @@ describe("Number", () => {
         });
 
         it("throws InvalidArgumentException when by is zero, as Laravel does", () => {
-            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-by-zero"
+            // docs/php-parity/Number/pairs.json, "pairs-by-zero"
             expect(() => Num.pairs(100, 0)).toThrow(InvalidArgumentException);
             expect(() => Num.pairs(100, 0)).toThrow(
                 "The $by argument must not be zero.",

@@ -73,7 +73,7 @@ class Point {
 describe("Path Pluck Functions", () => {
     describe("resolvePluckPath", () => {
         it("reads a named segment through an Enumerable's items", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-collection-target"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-collection-target"
             expect(
                 Path.resolvePluckPath(new ItemsTarget({ a: { b: 1 } }), [
                     "a",
@@ -83,7 +83,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("expands a wildcard over an Enumerable's items", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-collection-target"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-collection-target"
             expect(
                 Path.resolvePluckPath(
                     new ItemsTarget([
@@ -96,14 +96,14 @@ describe("Path Pluck Functions", () => {
         });
 
         it("never reads an Enumerable's own fields as its items", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-collection-target"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-collection-target"
             expect(
                 Path.resolvePluckPath(new ItemsTarget({ a: 1 }), ["items"]),
             ).toBeNull();
         });
 
         it("reads an ArrayAccess through offsetExists and offsetGet", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-arrayaccess-target"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-arrayaccess-target"
             const target = new AccessTarget({ a: 1, n: null });
 
             expect(Path.resolvePluckPath(target, ["a"])).toBe(1);
@@ -111,7 +111,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("judges an ArrayAccess's offsetExists answer by PHP truthiness", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-offset-exists-php-truthiness"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-offset-exists-php-truthiness"
             expect(
                 answers.map((answer) =>
                     Path.resolvePluckPath(
@@ -123,7 +123,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("reads a plain object's own keys, whatever members it has", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data":
+            // docs/php-parity/Collection/collapse.json, "C32-E-array-item-all-member-is-data":
             // a plain object models a PHP array, so an `all` or `offsetGet` member is data, not an interface.
             const item = {
                 all: () => ({ a: "from all" }),
@@ -136,14 +136,14 @@ describe("Path Pluck Functions", () => {
         });
 
         it("reads an array path's dotted segment as one literal key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-array-path-dotted-segment"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-array-path-dotted-segment"
             expect(
                 Path.resolvePluckPath({ "a.b": 1, a: { b: 2 } }, ["a.b"]),
             ).toBe(1);
         });
 
         it("reads a Map's entries, as the array it stands for", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-array-row"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-nested-array-row"
             expect(Path.resolvePluckPath(new Map([["n", 1]]), ["n"])).toBe(1);
             expect(
                 Path.resolvePluckPath(
@@ -160,7 +160,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("expands a wildcard over a Map's values", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-nested-array-row"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-nested-array-row"
             expect(Path.resolvePluckPath(new Map([["n", 1]]), ["*"])).toEqual([
                 1,
             ]);
@@ -174,7 +174,7 @@ describe("Path Pluck Functions", () => {
 
     describe("hasPluckPath", () => {
         it("finds a key an Enumerable holds, even when it holds null", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-collection-target"
+            // docs/php-parity/Helpers/data_has.json, "C32-D-data-has-collection-target"
             expect(Path.hasPluckPath(new ItemsTarget({ v: null }), ["v"])).toBe(
                 true,
             );
@@ -187,7 +187,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("asks an ArrayAccess that is not Enumerable through offsetExists", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-arrayaccess-target"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-arrayaccess-target"
             const target = new AccessTarget({ a: 1, n: null });
 
             expect(Path.hasPluckPath(target, ["n"])).toBe(false);
@@ -195,7 +195,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("judges an ArrayAccess's offsetExists answer by PHP truthiness", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-offset-exists-php-truthiness"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-offset-exists-php-truthiness"
             expect(
                 answers.map((answer) =>
                     Path.hasPluckPath(new AnsweringTarget({ a: 1 }, answer), [
@@ -206,7 +206,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("finds a key an array or an object holds, even when it holds null", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-array-and-object-targets"
+            // docs/php-parity/Helpers/data_has.json, "C32-D-data-has-array-and-object-targets"
             expect(Path.hasPluckPath({ a: null }, ["a"])).toBe(true);
             expect(Path.hasPluckPath([10, 20], ["1"])).toBe(true);
             expect(Path.hasPluckPath([10], ["01"])).toBe(false);
@@ -215,19 +215,19 @@ describe("Path Pluck Functions", () => {
         });
 
         it("finds a key a Map holds, even when it holds null, as the array it stands for", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-array-and-object-targets"
+            // docs/php-parity/Helpers/data_has.json, "C32-D-data-has-array-and-object-targets"
             expect(Path.hasPluckPath(new Map([["a", null]]), ["a"])).toBe(true);
             expect(Path.hasPluckPath(new Map([[1, 10]]), ["1"])).toBe(true);
             expect(Path.hasPluckPath(new Map([[0, 10]]), ["01"])).toBe(false);
         });
 
         it("answers false for no path at all", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-collection-target"
+            // docs/php-parity/Helpers/data_has.json, "C32-D-data-has-collection-target"
             expect(Path.hasPluckPath({ a: 1 }, [])).toBe(false);
         });
 
         it("answers false once a segment reaches a scalar", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-item-paths-by-backing":
+            // docs/php-parity/Collection/where.json, "C32-D-item-paths-by-backing":
             // value('a.b', 'miss') over ['a.b' => 1] finds no item, since 'a' holds no array.
             expect(Path.hasPluckPath({ "a.b": 1 }, ["a", "b"])).toBe(false);
         });
@@ -235,7 +235,7 @@ describe("Path Pluck Functions", () => {
 
     describe("readPluckKey", () => {
         it("tells a key that holds null from a missing one", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-has-array-and-object-targets"
+            // docs/php-parity/Helpers/data_has.json, "C32-D-data-has-array-and-object-targets"
             expect(Path.readPluckKey({ a: null }, "a")).toEqual([true, null]);
             expect(Path.readPluckKey({ a: 1 }, "b")).toEqual([
                 false,
@@ -244,7 +244,7 @@ describe("Path Pluck Functions", () => {
         });
 
         it("reads an ArrayAccess that is not Enumerable through offsetExists", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-data-get-arrayaccess-target"
+            // docs/php-parity/Helpers/data_get.json, "C32-D-data-get-arrayaccess-target"
             const target = new AccessTarget({ a: 1, n: null });
 
             expect(Path.readPluckKey(target, "a")).toEqual([true, 1]);

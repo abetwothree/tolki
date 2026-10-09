@@ -139,7 +139,7 @@ describe("obj write type tests", () => {
         });
 
         it("replaces an existing integer key without collapsing the record", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/prepend.json,
             // "d6-prepend-existing-integer-key" (key 1) and "r3-prepend-extra-keys",
             // "existing-integer-key-2" (key 2). PHP lists the prepended key first; JS
             // enumerates an integer-like key in ascending order, so only the values move.
@@ -153,7 +153,7 @@ describe("obj write type tests", () => {
         });
 
         it("types a float key as the integer key PHP truncates it to", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-key-cast":
+            // docs/php-parity/Arr/prepend.json, "prepend-key-cast":
             // @Arr::prepend(['a' => 1, 1 => 'x'], 'v', 1.5) -> {"1": "v", "a": 1}.
             expectTypeOf(
                 Obj.prepend({ a: 1, 1: "x" }, "v", 1.5),
@@ -167,7 +167,7 @@ describe("obj write type tests", () => {
         });
 
         it("keeps a float that truncates to minus zero on the wide-number row", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/prepend.json,
             // "r3-prepend-extra-keys", "negative-float-above-minus-one": PHP stores key
             // int:0 for -0.5. JS-only from there on: "-0" names no TypeScript literal
             // type, so the row stays as wide as it was before truncation was modelled.

@@ -23,7 +23,7 @@ describe("Utils", () => {
     });
 
     describe("compareValues follows PHP's array comparison rule", () => {
-        // docs/php-parity/task-25-spaceship-arrays.json, "spaceship on arrays of
+        // docs/php-parity/Php/spaceship.json, "spaceship on arrays of
         // different length, shorter on the left", "... longer on the left",
         // "spaceship where the longer array holds the smaller elements" and
         // "spaceship on an empty array and a one-element array"
@@ -34,7 +34,7 @@ describe("Utils", () => {
             expect(Utils.compareValues([], [1])).toBe(-1);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on two empty arrays". A plain
+        // docs/php-parity/Php/spaceship.json, "spaceship on two empty arrays". A plain
         // object and an array both model a PHP array here, so an empty one of
         // either shape holds no entries and the pair ties.
         it("ties two empty containers, whichever shape they carry", () => {
@@ -44,7 +44,7 @@ describe("Utils", () => {
             expect(Utils.compareValues([], {})).toBe(0);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on equal-length arrays
+        // docs/php-parity/Php/spaceship.json, "spaceship on equal-length arrays
         // differing in the last element", "... in the first element",
         // "spaceship on identical arrays" and "spaceship on arrays of numeric strings"
         it("compares two equal-length arrays element-wise", () => {
@@ -54,7 +54,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(["9"], ["10"])).toBe(-1);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on keyed arrays sharing their
+        // docs/php-parity/Php/spaceship.json, "spaceship on keyed arrays sharing their
         // keys", "... holding the same pairs in another order", and the stdClass
         // rows "spaceship on stdClass objects sharing a property" / "... with equal properties"
         it("compares two keyed objects by key, in whatever order they carry", () => {
@@ -64,7 +64,7 @@ describe("Utils", () => {
             expect(Utils.compareValues({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(0);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on keyed arrays with disjoint
+        // docs/php-parity/Php/spaceship.json, "spaceship on keyed arrays with disjoint
         // keys" and its reversed twin, "spaceship on a keyed array and a list of
         // the same length", "spaceship on stdClass objects with disjoint properties"
         it("answers 1 for a pair PHP calls uncomparable, from either side", () => {
@@ -73,7 +73,7 @@ describe("Utils", () => {
             expect(Utils.compareValues({ a: 1 }, [1])).toBe(1);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship walks the left operand keys in
+        // docs/php-parity/Php/spaceship.json, "spaceship walks the left operand keys in
         // their own order" - the empty-string key decides nothing here because the
         // left operand reaches "z" first.
         it("walks the left operand's own key order, not a sorted one", () => {
@@ -82,14 +82,14 @@ describe("Utils", () => {
             );
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on nested arrays differing one
+        // docs/php-parity/Php/spaceship.json, "spaceship on nested arrays differing one
         // level down" and "... differing in an inner count"
         it("recurses, so an inner count outranks an inner element", () => {
             expect(Utils.compareValues([[1], [2]], [[1], [3]])).toBe(-1);
             expect(Utils.compareValues([[1]], [[1, 2]])).toBe(-1);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on nested arrays differing one
+        // docs/php-parity/Php/spaceship.json, "spaceship on nested arrays differing one
         // level down". The same row twice on the left is the point: a pair that
         // tied must still be compared against the next right-hand operand.
         it("compares a repeated operand again for each right-hand side", () => {
@@ -100,7 +100,7 @@ describe("Utils", () => {
             );
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on two DateTime objects,
+        // docs/php-parity/Php/spaceship.json, "spaceship on two DateTime objects,
         // earlier on the left", "... later on the left", "... of the same
         // instant" - a DateTime's state is not a property table, so PHP does
         // not take the array rule for it.
@@ -125,7 +125,7 @@ describe("Utils", () => {
             ).toBe(0);
         });
 
-        // task-25-spaceship-arrays.json, "usort orders two DateTime objects
+        // docs/php-parity/Php/usort.json, "usort orders two DateTime objects
         // chronologically". Compared by identity, not by a serialised form.
         it("sorts a list of dates chronologically through the comparator", () => {
             const earlier = new Date("2020-01-01");
@@ -146,7 +146,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(/a/, /b/)).toBe(0);
         });
 
-        // Recorded divergence, not parity: task-25-spaceship-arrays.json, "spaceship on a
+        // Recorded divergence, not parity: docs/php-parity/Php/spaceship.json, "spaceship on a
         // DateTime and a stdClass", its reverse and "... and an empty array" are 1, while
         // "spaceship on an empty array and a DateTime" is -1. This port ties on entry count.
         it("leaves a date against a plain object or an array to the entry count", () => {
@@ -156,7 +156,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(new Date(0), { x: 1 })).toBe(-1);
         });
 
-        // task-25-spaceship-arrays.json, "spaceship on two self-referencing arrays"
+        // docs/php-parity/Php/spaceship.json, "spaceship on two self-referencing arrays"
         // and "... stdClass objects": PHP throws a catchable Error for both, where
         // this port ties the repeated pair so a sort over cyclic rows finishes.
         it("ties a cyclic pair instead of throwing", () => {
@@ -177,15 +177,15 @@ describe("Utils", () => {
     });
 
     describe("compareValues follows PHP 8's comparison rules", () => {
-        // task-17-second-review.json, "spaceship on two numeric strings";
-        // task-19-spaceship.json, "spaceship on two numeric strings, wider on the left"
+        // docs/php-parity/Php/spaceship.json, "spaceship on two numeric strings";
+        // docs/php-parity/Php/spaceship.json, "spaceship on two numeric strings, wider on the left"
         it("compares two numeric strings numerically", () => {
             expect(Utils.compareValues("5", "10")).toBe(-1);
             expect(Utils.compareValues("9", "10")).toBe(-1);
             expect(Utils.compareValues("10", "9")).toBe(1);
         });
 
-        // task-19-spaceship.json, "spaceship on numeric strings spelled
+        // docs/php-parity/Php/spaceship.json, "spaceship on numeric strings spelled
         // differently", "spaceship on an int and its numeric string" and
         // "spaceship on a whitespace-padded integer string"
         it("ties numeric operands that spell the same number", () => {
@@ -194,7 +194,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(" 42 ", "42")).toBe(0);
         });
 
-        // task-19-spaceship.json, "spaceship on integer strings one apart past
+        // docs/php-parity/Php/spaceship.json, "spaceship on integer strings one apart past
         // 2^53" and its ascending twin, "spaceship on negative integer strings
         // past 2^53", "spaceship on integer strings past the int64 range"
         it("compares integer strings past 2^53 exactly", () => {
@@ -215,7 +215,7 @@ describe("Utils", () => {
             ).toBe(1);
         });
 
-        // task-19-spaceship.json, "spaceship on a leading-zero integer string
+        // docs/php-parity/Php/spaceship.json, "spaceship on a leading-zero integer string
         // that is larger" and "spaceship on a leading-zero integer string that
         // is smaller"
         it("compares integer strings by value, not by digit count", () => {
@@ -223,7 +223,7 @@ describe("Utils", () => {
             expect(Utils.compareValues("00001", "99")).toBe(-1);
         });
 
-        // task-19-spaceship.json, "spaceship on exponent strings that overflow
+        // docs/php-parity/Php/spaceship.json, "spaceship on exponent strings that overflow
         // to infinity" and "spaceship on identical exponent strings that
         // overflow" - PHP's own fallback for a pair that overflows to one value
         it("orders exponent strings that overflow to infinity as strings", () => {
@@ -231,7 +231,7 @@ describe("Utils", () => {
             expect(Utils.compareValues("1e400", "1e400")).toBe(0);
         });
 
-        // task-19-spaceship.json, "spaceship on decimal strings spelled
+        // docs/php-parity/Php/spaceship.json, "spaceship on decimal strings spelled
         // differently" and "spaceship on an integer string and a decimal string"
         it("compares decimal strings as numbers", () => {
             expect(Utils.compareValues("1.5", "1.50")).toBe(0);
@@ -240,15 +240,15 @@ describe("Utils", () => {
             expect(Utils.compareValues("42", "1.5")).toBe(1);
         });
 
-        // task-17-second-review.json, "spaceship on a numeric and a non-numeric
+        // docs/php-parity/Php/spaceship.json, "spaceship on a numeric and a non-numeric
         // string". A pin, not a RED test: JS's `<` on two strings is already
         // lexical, so this holds on the pre-fix source too.
         it("compares two strings lexically when either is non-numeric", () => {
             expect(Utils.compareValues("5", "abc")).toBe(-1);
         });
 
-        // task-17-second-review.json, "spaceship on zero and empty string";
-        // task-19-spaceship.json, "spaceship on an int and a non-numeric string",
+        // docs/php-parity/Php/spaceship.json, "spaceship on zero and empty string";
+        // docs/php-parity/Php/spaceship.json, "spaceship on an int and a non-numeric string",
         // "... a non-numeric string and an int", "... a negative int and an empty string"
         it("compares a number against a non-numeric string as strings", () => {
             expect(Utils.compareValues(0, "")).toBe(1);
@@ -258,8 +258,8 @@ describe("Utils", () => {
             expect(Utils.compareValues(-1, "")).toBe(1);
         });
 
-        // task-17-second-review.json, "spaceship on null and false";
-        // task-19-spaceship.json, "spaceship on null and zero" and
+        // docs/php-parity/Php/spaceship.json, "spaceship on null and false";
+        // docs/php-parity/Php/spaceship.json, "spaceship on null and zero" and
         // "spaceship on null and an empty string"
         it("treats null as equal to the other falsy scalars", () => {
             expect(Utils.compareValues(null, false)).toBe(0);
@@ -267,7 +267,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(null, "")).toBe(0);
         });
 
-        // task-19-spaceship.json, "spaceship on null and a non-numeric string"
+        // docs/php-parity/Php/spaceship.json, "spaceship on null and a non-numeric string"
         // and "spaceship on null and the string zero"
         it("compares null against a string as the empty string", () => {
             expect(Utils.compareValues(null, "abc")).toBe(-1);
@@ -276,7 +276,7 @@ describe("Utils", () => {
             expect(Utils.compareValues("0", null)).toBe(1);
         });
 
-        // task-19-spaceship.json, "spaceship on null and a positive int",
+        // docs/php-parity/Php/spaceship.json, "spaceship on null and a positive int",
         // "spaceship on null and an empty array" and "spaceship on null and a
         // one-element array"
         it("compares null against a non-string as booleans", () => {
@@ -285,7 +285,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(null, [1])).toBe(-1);
         });
 
-        // task-19-spaceship.json, "spaceship on false and a negative int",
+        // docs/php-parity/Php/spaceship.json, "spaceship on false and a negative int",
         // "spaceship on false and a non-numeric string" and "spaceship on false
         // and an empty array"
         it("compares false against anything else as booleans", () => {
@@ -294,7 +294,7 @@ describe("Utils", () => {
             expect(Utils.compareValues(false, [])).toBe(0);
         });
 
-        // task-19-spaceship.json, "spaceship on true and a positive int",
+        // docs/php-parity/Php/spaceship.json, "spaceship on true and a positive int",
         // "spaceship on true and an empty string", "spaceship on true and the
         // string zero" and "spaceship on true and false"
         it("compares true against anything else as booleans", () => {
@@ -304,8 +304,8 @@ describe("Utils", () => {
             expect(Utils.compareValues(true, false)).toBe(1);
         });
 
-        // task-19-spaceship.json, "spaceship on null and an empty array" and "spaceship on false and an
-        // empty array"; task-25-spaceship-arrays.json, "e3 spaceship on an empty array and true"
+        // docs/php-parity/Php/spaceship.json, "spaceship on null and an empty array" and "spaceship on false and an
+        // empty array"; docs/php-parity/Php/spaceship.json, "e3 spaceship on an empty array and true"
         it("casts an empty plain object to false against null or a boolean, as PHP casts an empty array", () => {
             expect(Utils.compareValues({}, null)).toBe(0);
             expect(Utils.compareValues({}, false)).toBe(0);
@@ -321,7 +321,7 @@ describe("Utils", () => {
         });
 
         // Recorded divergence, not parity: PHP orders every array above every
-        // scalar (task-19-spaceship.json, "spaceship on an int and a
+        // scalar (docs/php-parity/Php/spaceship.json, "spaceship on an int and a
         // one-element array" is -1), where this port keeps JS coercion.
         it("leaves an array against a number to JS coercion", () => {
             expect(Utils.compareValues([1], 5)).toBe(-1);
@@ -330,7 +330,7 @@ describe("Utils", () => {
         });
 
         // The same recorded divergence, against the rows that probed for it:
-        // task-25-spaceship-arrays.json, "spaceship on an empty array and zero",
+        // docs/php-parity/Php/spaceship.json, "spaceship on an empty array and zero",
         // "... and its only element as a string", "... and a numeric string" are all 1.
         it("leaves an array against a string to JS coercion too", () => {
             expect(Utils.compareValues([], 0)).toBe(0);
@@ -391,7 +391,7 @@ describe("Utils", () => {
         });
 
         it("compares null against a string as an empty string (PHP 8)", () => {
-            // docs/php-parity/task-20-loose-equal.json
+            // docs/php-parity/Php/loose-equal.json
             expect(Utils.looseEqual(null, "")).toBe(true);
             expect(Utils.looseEqual(null, "0")).toBe(false);
             expect(Utils.looseEqual(null, "a")).toBe(false);
@@ -477,7 +477,7 @@ describe("Utils", () => {
             expect(Utils.looseEqual("abc", "ABC")).toBe(false);
         });
 
-        // task-20-loose-equal.json, "float past the int range and its integer string",
+        // docs/php-parity/Php/loose-equal.json, "float past the int range and its integer string",
         // "larger float past the int range and its integer string", its negative twin,
         // and "one and an integer string past the int range"
         it("ties a float and its integer string past PHP's int range", () => {
@@ -497,7 +497,7 @@ describe("Utils", () => {
             expect(Utils.looseEqual(1, "100000000000000000000000")).toBe(false);
         });
 
-        // task-20-loose-equal.json, "overflowing integer strings, one signed" and
+        // docs/php-parity/Php/loose-equal.json, "overflowing integer strings, one signed" and
         // "... one zero-padded", "underflowing integer strings, one zero-padded",
         // "... on opposite sides", "... of different magnitude", and the in-range
         // controls "one and signed one", "PHP_INT_MAX strings, one signed",
@@ -605,7 +605,7 @@ describe("Utils", () => {
             expect(Utils.looseEqual(true, { a: 1 })).toBe(true);
         });
 
-        // task-20-loose-equal.json, "plain object and true"/"...and false"/"...and null"
+        // docs/php-parity/Php/loose-equal.json, "plain object and true"/"...and false"/"...and null"
         // and their "stateless object" twins: an object is ALWAYS truthy in PHP, so only
         // what stands in for an array (a plain object, a Map, a Set) may be empty-and-falsy.
         it("treats a Date, a RegExp or a class instance as truthy, however empty its own keys are", () => {
@@ -643,7 +643,7 @@ describe("Utils", () => {
             expect(Utils.looseEqual(new Set([1]), false)).toBe(false);
         });
 
-        // task-20-loose-equal.json, "assoc arrays in a different order",
+        // docs/php-parity/Php/loose-equal.json, "assoc arrays in a different order",
         // "true and the string zero", "false and the string zero"
         it("ignores key order in an associative array and reads '0' as falsy", () => {
             expect(Utils.looseEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true);
@@ -747,7 +747,7 @@ describe("Utils", () => {
         });
 
         it("requires a plain object's keys in the same order, like PHP's === on arrays", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            // docs/php-parity/Collection/containsStrict.json, "containsStrict-key-order"
             expect(Utils.strictEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(
                 false,
             );
@@ -786,7 +786,7 @@ describe("Utils", () => {
 
     describe("operatorMatch", () => {
         it("compares two equal numbers with each of PHP's eleven operators", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // docs/php-parity/Collection/contains.json, "r3-operator-table",
             // "4 vs 4": the whole row, one assertion per recorded operator.
             expect(Utils.operatorMatch(4, "=", 4)).toBe(true);
             expect(Utils.operatorMatch(4, "==", 4)).toBe(true);
@@ -823,10 +823,10 @@ describe("Utils", () => {
         });
 
         it("answers PHP's spaceship truthiness, so only an equal pair is falsy", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "r4-operator-table-extras", "1 vs 2", "2 vs 1" and "1 vs 1", each row's
             // "<=>" cell; and "r3-operator-table", "NAN vs 1", "1 vs NAN" and
-            // "NAN vs NAN", the same cell. docs/php-parity/task-19-spaceship.json,
+            // "NAN vs NAN", the same cell. docs/php-parity/Php/spaceship.json,
             // "spaceship on an int and its numeric string": `1 <=> "1"` is 0.
             expect(Utils.operatorMatch(1, "<=>", 2)).toBe(true);
             expect(Utils.operatorMatch(2, "<=>", 1)).toBe(true);
@@ -849,7 +849,7 @@ describe("Utils", () => {
         });
 
         it("orders a NaN operand against a bool, which PHP casts both sides for", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "r4-nan-bool-null-table", "NAN vs true" and "true vs NAN": NAN casts to
             // true, so the pair ties and `<=`/`>=` hold while `<=>` is falsy.
             expect(Utils.operatorMatch(Number.NaN, "<=", true)).toBe(true);
@@ -903,9 +903,9 @@ describe("Utils", () => {
         });
 
         it("compares two numeric strings numerically, not lexically", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "r3-operator-table",
+            // docs/php-parity/Collection/contains.json, "r3-operator-table",
             // "\"10\" vs \"9\"", its ">" and "<" cells: the recorded `contains` calls, not
-            // just task-19's raw `"10" <=> "9"`.
+            // just the raw `"10" <=> "9"` in docs/php-parity/Php/spaceship.json.
             expect(Utils.operatorMatch("10", ">", "9")).toBe(true);
             expect(Utils.operatorMatch("10", "<", "9")).toBe(false);
         });
@@ -920,7 +920,7 @@ describe("Utils", () => {
         });
 
         it("compares two arrays under === by value, as PHP's === does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "r4-strict-operators",
+            // docs/php-parity/Collection/contains.json, "r4-strict-operators",
             // "[1,2] vs [1,2]", "[] vs []", "[[1]] vs [[1]]", "[1,2] vs [1,\"2\"]" and
             // "[1,2] vs [2,1]": same keys, same order and same types, recursing.
             expect(Utils.operatorMatch([1, 2], "===", [1, 2])).toBe(true);
@@ -975,7 +975,7 @@ describe("Utils", () => {
             expect(Utils.operatorMatch(stamp, "=", 1)).toBe(false);
             expect(Utils.operatorMatch(stamp, ">", 1)).toBe(false);
             // Two plain objects, or one against a string, fall through to the switch.
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "r4-operator-table-extras", "assoc array vs the same pairs" and
             // "assoc array vs \"x\"", each row's "'='" cell.
             expect(Utils.operatorMatch({ a: 1 }, "=", { a: 1 })).toBe(true);
@@ -983,7 +983,7 @@ describe("Utils", () => {
         });
 
         it("refuses to order a class instance against a string, as PHP's guard does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "r4-object-scalar-guard", "stdClass vs \"\"", "\"\" vs stdClass",
             // "\"abc\" vs stdClass" and "stdClass vs true": a class instance is what
             // `is_object` counts, and it carries no `__toString`, so no string casting.

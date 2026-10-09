@@ -16,7 +16,7 @@ describe("createSortSpecComparator", () => {
     it("hands a comparator descriptor back as it is, answering the bool it gives", () => {
         const greater = (a: number, b: number) => a > b;
 
-        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator": PHP reads the
+        // docs/php-parity/Arr/sort.json, "C32-G-sortBy-bool-comparator": PHP reads the
         // bool when uasort() gets it, so the descriptor's own answer passes through untouched
         expect(createSortSpecComparator(readOwnKey)(greater, false)).toBe(
             greater,
@@ -42,7 +42,7 @@ describe("createSortSpecComparator", () => {
     });
 
     it("treats true, 'asc', 'Ascending' and an omitted direction as ascending", () => {
-        // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+        // PHP-verified: docs/php-parity/Arr/sort.json,
         // "direction tuple [age,"asc"] — string form" and
         // "direction tuple [age,SortDirection::Ascending]".
         for (const spec of [
@@ -57,7 +57,7 @@ describe("createSortSpecComparator", () => {
     });
 
     it("treats every other direction as descending", () => {
-        // PHP-verified: docs/php-parity/task-10-pluck-sort.json, "direction
+        // PHP-verified: docs/php-parity/Arr/sort.json, "direction
         // tuple [age,"desc"] — string form" and "direction tuple [age,"BOGUS"]
         // — default arm is DESCENDING".
         for (const spec of [
@@ -71,7 +71,7 @@ describe("createSortSpecComparator", () => {
     });
 
     it("lets forceDescending override an explicit ascending direction", () => {
-        // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+        // PHP-verified: docs/php-parity/Arr/sortDesc.json,
         // "sortDesc overrides an explicit "asc" direction".
         expect(
             comparatorFor(["age", "asc"], true)({ age: 2 }, { age: 10 }),
@@ -87,7 +87,7 @@ describe("createSortSpecComparator", () => {
     });
 
     it("unwraps a comparator nested in a one-element descriptor", () => {
-        // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+        // PHP-verified: docs/php-parity/Collection/sortBy.json,
         // "sortBy treats [[fn]] and [fn] the same" — Arr::wrap leaves a bare
         // comparator and a one-element descriptor in the same shape.
         const byAge = (a: Row, b: Row) => a.age - b.age;
@@ -98,7 +98,7 @@ describe("createSortSpecComparator", () => {
 
 describe("phpSortComparator", () => {
     it("casts a number past PHP's int range to its low 64 bits, so 1e19 sorts backwards and 2**64 ties", () => {
-        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-past-int-range"
+        // docs/php-parity/Collection/sort.json, "C32-G-sort-comparator-past-int-range"
         expect(
             [3, 1, 2].sort(
                 phpSortComparator(
@@ -116,7 +116,7 @@ describe("phpSortComparator", () => {
     });
 
     it("sorts by a comparator answering a bool, as PHP's usort() falls back for one", () => {
-        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-bool-comparator"
+        // docs/php-parity/Collection/sort.json, "C32-G-sort-bool-comparator"
         expect(
             [3, 1, 2].sort(phpSortComparator((a: number, b: number) => a > b)),
         ).toEqual([1, 2, 3]);
@@ -134,7 +134,7 @@ describe("phpSortComparator", () => {
     });
 
     it("casts a number to an int, so a fraction below 1, NAN or an infinity ties", () => {
-        // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sort-comparator-int-cast"
+        // docs/php-parity/Collection/sort.json, "C32-G-sort-comparator-int-cast"
         expect(
             [3, 1, 2].sort(
                 phpSortComparator((a: number, b: number) => (a - b) / 10),

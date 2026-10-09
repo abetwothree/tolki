@@ -141,6 +141,20 @@ o=docs/php-parity/Number/pairs.json
 php -d display_errors=stderr scripts/php-parity/Number/pairs.php > "$o.tmp" && mv "$o.tmp" "$o"
 ```
 
+## Citing a probe
+
+A TypeScript test or source comment that relies on a recorded answer cites
+the transcript and the probe's label:
+
+```ts
+// docs/php-parity/Number/pairs.json, "pairs-upper-bound-starts-a-pair", "pairs-empty-range"
+```
+
+When the labels live in several files, give each file its own group,
+separated by `;`. `scripts/__tests__/php-parity.test.ts` checks every
+citation in `packages/*/src` and `packages/*/__tests__`: the cited file must
+exist, and a quoted label must be one the cited files record.
+
 ## Captured output is committed and reviewed
 
 Everything under `docs/php-parity/` is committed. That is deliberate:

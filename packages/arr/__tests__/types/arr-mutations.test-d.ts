@@ -62,7 +62,7 @@ describe("arr mutations type tests", () => {
         it("adds the record a dot path writes at a list index", () => {
             // The dot-path row once declared the element type unchanged, so this read as
             // `string[]` while the runtime returns `[{ x: 5 }, "b"]`.
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/set.json,
             // "set-dot-path-under-a-list-index"
             expectTypeOf(Arr.set(["a", "b"], "0.x", 5)).toEqualTypeOf<
                 (string | { x: number })[]
@@ -71,7 +71,7 @@ describe("arr mutations type tests", () => {
 
         it("rebuilds no element for a head that only looks like an index", () => {
             // Only an integer's canonical spelling is an array key, so "01" is stored as
-            // the list's own property. docs/php-parity/task-24-data-release-readiness.json,
+            // the list's own property. docs/php-parity/Arr/set.json,
             // "r2-set-noncanonical-index-head-with-rest"
             expectTypeOf(Arr.set(["a", "b"], "01.x", 5)).toEqualTypeOf<
                 string[]
@@ -97,7 +97,7 @@ describe("arr mutations type tests", () => {
         it("rebuilds a record when the rest only looks like an index", () => {
             // The same canonical-spelling rule one segment deeper: "01" seeds a record,
             // not a list, so the element gains that key. docs/php-parity/
-            // task-24-data-release-readiness.json, "e3-set-noncanonical-index-nested-scalar-element"
+            // docs/php-parity/Arr/set.json, "e3-set-noncanonical-index-nested-scalar-element"
             expectTypeOf(Arr.set(["a", "b"], "0.01", 5)).toEqualTypeOf<
                 (string | { "01": number })[]
             >();

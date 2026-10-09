@@ -132,7 +132,7 @@ describe("data mutations type tests", () => {
         // `array_replace` keeps both, so obj serves the list backing too. See the JSDoc.
 
         it("still has an arr delegate whose return cannot hold PHP's keyed answer", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "replace-list-string-key-replacer"
+            // docs/php-parity/Collection/replace.json, "replace-list-string-key-replacer"
             expectTypeOf(Arr.replace(["a", "b", "c"], { k: "x" })).toExtend<
                 unknown[]
             >();
@@ -142,7 +142,7 @@ describe("data mutations type tests", () => {
         });
 
         it("still has an arr replaceRecursive delegate whose return cannot either", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "replaceRecursive-list-string-key-replacer"
+            // docs/php-parity/Collection/replaceRecursive.json, "replaceRecursive-list-string-key-replacer"
             expectTypeOf(
                 Arr.replaceRecursive(["a", "b", "c"], { k: "x" }),
             ).toExtend<unknown[]>();

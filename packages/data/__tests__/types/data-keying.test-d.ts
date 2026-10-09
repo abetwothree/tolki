@@ -209,7 +209,7 @@ describe("data keying type tests", () => {
         });
 
         it("answers arr.undot for a scalar and for null, which wrap into a list", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "undot-noncanonical-index"
+            // docs/php-parity/Arr/undot.json, "undot-noncanonical-index"
             // is the keyed row; these two have no PHP analogue.
             // JS-only: PHP has no scalar undot; `toPositionalBacking` wraps, so the answer
             // is a list whose member type nothing narrows.

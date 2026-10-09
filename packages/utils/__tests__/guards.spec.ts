@@ -223,7 +223,7 @@ describe("Utils", () => {
 
     describe("isPhpInt", () => {
         it("answers true for an integer PHP holds as an int, and false for a float it holds, -0 included", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-debug-type-float-past-int-range"
+            // docs/php-parity/Php/get_debug_type.json, "C32-A-debug-type-float-past-int-range"
             expect(
                 [2 ** 62, -(2 ** 63), 0, 7].map((value) =>
                     Utils.isPhpInt(value),
@@ -506,7 +506,7 @@ describe("Utils", () => {
 
     describe("isPhpFalsy", () => {
         // array_filter's falsy set is narrower than isFalsy's — PHP-verified
-        // (docs/php-parity/task-04-shared.json, "Collection::filter() falsy set"): drops
+        // (docs/php-parity/Collection/filter.json, "Collection::filter() falsy set"): drops
         // "0", "", 0, [], false, null, but keeps "00" and "0.0".
         it("returns true for the exact PHP-falsy set", () => {
             expect(Utils.isPhpFalsy(false)).toBe(true);
@@ -524,7 +524,7 @@ describe("Utils", () => {
             expect(Utils.isPhpFalsy("0.0")).toBe(false);
         });
 
-        // PHP-verified (docs/php-parity/task-04-shared.json, "NAN is truthy for array_filter").
+        // PHP-verified (docs/php-parity/Php/array_filter.json, "NAN is truthy for array_filter").
         it("keeps NaN, unlike isFalsy", () => {
             expect(Utils.isPhpFalsy(NaN)).toBe(false);
             expect(Utils.isFalsy(NaN)).toBe(true);
@@ -553,7 +553,7 @@ describe("Utils", () => {
         });
 
         it("keeps a Date, a RegExp or a class instance truthy however empty, as PHP keeps every object", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-filter-keeps-empty-objects"
+            // docs/php-parity/Collection/filter.json, "C32-D-filter-keeps-empty-objects"
             // JS-only: a RegExp has no PHP class; it is an object like any other.
             class Empty {}
 
@@ -580,7 +580,7 @@ describe("Utils", () => {
     describe("isPhpNumeric", () => {
         // toCssClasses/toCssStyles used `!isNaN(Number(key))` for PHP's is_numeric,
         // which disagreed with real PHP on four of five probed edge cases. PHP-verified
-        // in docs/php-parity/task-08-arr-parity.json.
+        // in docs/php-parity/Arr/only.json.
         it("returns true for real PHP-numeric strings", () => {
             expect(Utils.isPhpNumeric("1e3")).toBe(true);
             expect(Utils.isPhpNumeric(" 42")).toBe(true);
@@ -723,7 +723,7 @@ describe("Utils", () => {
         expect(Utils.isPhpAccessible(Object.create(null))).toBe(true);
         expect(Utils.isPhpAccessible(new Map([["a", 1]]))).toBe(true);
 
-        // docs/php-parity/task-23-obj-release-readiness.json, "accessible-datetime":
+        // docs/php-parity/Arr/accessible.json, "accessible-datetime":
         // PHP's Arr::accessible rejects a DateTime, which is not ArrayAccess.
         expect(Utils.isPhpAccessible(new Date())).toBe(false);
         expect(Utils.isPhpAccessible(new Set([1]))).toBe(false);
@@ -753,7 +753,7 @@ describe("Utils", () => {
         ])(
             "matches %s against %s as PHP's string cast does",
             (a, b, expected) => {
-                // Captured: docs/php-parity/task-06-setops.json ("diff and intersect
+                // Captured: docs/php-parity/Php/array_diff.json ("diff and intersect
                 // compare by string cast"): diff_int_string, diff_null_empty,
                 // intersect_bool_one, diff_int_empty, diff_int_exponential_string.
                 expect(Utils.phpValueMatch(a, b)).toBe(expected);
@@ -775,7 +775,7 @@ describe("Utils", () => {
 
         it("still casts a high-precision float, so it diverges rather than falling back", () => {
             // PHP casts 0.1 + 0.2 to "0.3" at precision=14 and array_diff matches;
-            // String() prints every digit. Captured: docs/php-parity/task-16-final-review.json
+            // String() prints every digit. Captured: docs/php-parity/Php/array_diff.json
             // ("array_diff matches a high-precision float against its precision=14 cast").
             expect(Utils.phpValueMatch(0.1 + 0.2, "0.3")).toBe(false);
             expect(Utils.phpValueMatch(0.1 + 0.2, "0.30000000000000004")).toBe(

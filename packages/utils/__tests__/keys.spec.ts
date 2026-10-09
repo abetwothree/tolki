@@ -178,22 +178,22 @@ describe("Utils", () => {
 
     describe("phpArrayKey", () => {
         it("turns canonical decimal integer strings into numbers", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
             expect(Utils.phpArrayKey("10")).toBe(10);
             expect(Utils.phpArrayKey("-1")).toBe(-1);
             expect(Utils.phpArrayKey("0")).toBe(0);
         });
 
         it("keeps every other string as it is", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
-            // "K1 keys of numeric-looking string keys", "K2 chunkWhile callback key types"
+            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys",
+            // docs/php-parity/Collection/chunkWhile.json, "K2 chunkWhile callback key types"
             for (const key of ["01", "1.5", "1e3", " 1", "Infinity", "1e+21"]) {
                 expect(Utils.phpArrayKey(key)).toBe(key);
             }
         });
 
         it("keeps a negative-zero, alphabetic or empty string as it is too", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "phpArrayKey-extra-string-keys"
+            // docs/php-parity/Php/array_keys.json, "phpArrayKey-extra-string-keys"
             for (const key of ["-0", "abc", ""]) {
                 expect(Utils.phpArrayKey(key)).toBe(key);
             }
@@ -207,7 +207,7 @@ describe("Utils", () => {
         });
 
         it("casts a bool, null or float key the way PHP stores an array offset", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            // docs/php-parity/Arr/keyBy.json, "keyBy-scalar-key-cast"
             expect(Utils.phpArrayKey(true)).toBe(1);
             expect(Utils.phpArrayKey(false)).toBe(0);
             expect(Utils.phpArrayKey(null)).toBe("");
@@ -221,7 +221,7 @@ describe("Utils", () => {
         });
 
         it("wraps a float past PHP's int range into 64 bits, keeping digits JS can't hold as a string", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            // docs/php-parity/Arr/keyBy.json, "keyBy-scalar-key-cast"
             expect(Utils.phpArrayKey(1e20)).toBe("7766279631452241920");
         });
 
@@ -233,7 +233,7 @@ describe("Utils", () => {
 
     describe("phpComputedKey", () => {
         it("casts a bool, null or float the way PHP stores an array key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts" and
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-key-path-casts" and
             // "C32-E-pluck-key-closure-casts"
             expect(Utils.phpComputedKey(true)).toBe(1);
             expect(Utils.phpComputedKey(false)).toBe(0);
@@ -244,7 +244,7 @@ describe("Utils", () => {
         });
 
         it("casts a numeric string the way PHP stores an array key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
             expect(Utils.phpComputedKey("10")).toBe(10);
             expect(Utils.phpComputedKey("-1")).toBe(-1);
             expect(Utils.phpComputedKey("1.5")).toBe("1.5");
@@ -252,7 +252,7 @@ describe("Utils", () => {
         });
 
         it("reads an enum case as its value when the method unwraps enum cases", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-keyBy-enum-keys",
+            // docs/php-parity/Collection/keyBy.json, "C32-E-keyBy-enum-keys", docs/php-parity/Collection/countBy.json,
             // "C32-E-countBy-callback-string-enum" and "C32-E-countBy-pure-enum"
             const options = { enumCases: true };
 
@@ -277,7 +277,7 @@ describe("Utils", () => {
         });
 
         it("throws for an enum case when the method does not unwrap enum cases", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-enum-key": a case is a
             // plain object here, so the message names the array it models where PHP names the enum's class.
             expect(() =>
                 Utils.phpComputedKey({ value: 2, backed: true, name: "B" }),
@@ -287,7 +287,7 @@ describe("Utils", () => {
         });
 
         it("reads an object with its own toString as that string when the method casts Stringables", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-tostring-key" and
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-tostring-key" and
             // "C32-E-pluck-stringable-key"
             const options = { stringables: true };
 
@@ -314,7 +314,7 @@ describe("Utils", () => {
         });
 
         it("throws for an object with its own toString when the method does not cast Stringables", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-countBy-tostring-key"
+            // docs/php-parity/Collection/countBy.json, "C32-E-countBy-tostring-key"
             expect(() =>
                 Utils.phpComputedKey(
                     new (class {
@@ -337,7 +337,7 @@ describe("Utils", () => {
         });
 
         it("throws for an array or a plain object, which PHP cannot store as a key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key" and
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-array-key" and
             // "C32-E-pluck-assoc-key"
             const failure = new TypeError(
                 "Cannot access offset of type array on array",
@@ -350,7 +350,7 @@ describe("Utils", () => {
         });
 
         it("never reads a Date as a Stringable, as PHP's DateTime has no __toString", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-date-key": a JS Date
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-date-key": a JS Date
             // names its own class, where PHP's message names DateTime.
             expect(() =>
                 Utils.phpComputedKey(new Date(0), { stringables: true }),
@@ -360,7 +360,7 @@ describe("Utils", () => {
         });
 
         it("throws for a function, which PHP reads as a Closure and cannot store as a key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-closure-key"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-closure-key"
             expect(() => Utils.phpComputedKey(() => 1)).toThrow(
                 new TypeError("Cannot access offset of type Closure on array"),
             );
@@ -369,7 +369,7 @@ describe("Utils", () => {
         it("names an instance of an anonymous subclass after the class it extends", () => {
             class Parent {}
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-anonymous-subclass-key"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-anonymous-subclass-key"
             expect(() =>
                 Utils.phpComputedKey(new (class extends Parent {})()),
             ).toThrow(
@@ -391,8 +391,8 @@ describe("Utils", () => {
 
     describe("isIllegalOffset", () => {
         it("answers true for an array, an object or a function, which no PHP array can hold as a key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error" and
-            // "C32-E-pluck-closure-key"
+            // docs/php-parity/Arr/except.json, "C32-D-array-key-type-error" and
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-closure-key"
             expect(
                 [["b"], {}, new Map(), () => 1].map((key) =>
                     Utils.isIllegalOffset(key),
@@ -401,7 +401,7 @@ describe("Utils", () => {
         });
 
         it("answers false for a key PHP casts and stores", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-key-path-casts"
             expect(
                 ["b", 1, 1.5, true, null, undefined].map((key) =>
                     Utils.isIllegalOffset(key),
@@ -414,7 +414,7 @@ describe("Utils", () => {
         it("names array_key_exists's key argument, as PHP's TypeError does", () => {
             const failure = Utils.arrayKeyExistsError();
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            // docs/php-parity/Arr/except.json, "C32-D-array-key-type-error"
             expect(failure).toBeInstanceOf(TypeError);
             expect(failure.message).toBe(
                 "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
@@ -430,14 +430,14 @@ describe("Utils", () => {
                 }
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces"
+            // docs/php-parity/Collection/implode.json, "C32-H-implode-object-pieces"
             expect(Utils.hasOwnToString(new Label())).toBe(true);
         });
 
         it("answers false for a Date, whose PHP DateTime has no __toString, and for any other value", () => {
             class Bare {}
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-implode-object-pieces" and
+            // docs/php-parity/Collection/implode.json, "C32-H-implode-object-pieces" and
             // "C32-H-implode-date-items-are-plucked"
             expect(
                 [
@@ -461,7 +461,7 @@ describe("Utils", () => {
         });
 
         it("reads a Map in its own insertion order, which a plain object cannot hold", () => {
-            // docs/php-parity/task-30-map-order.json, "join-out-of-order"
+            // docs/php-parity/Arr/join.json, "join-out-of-order"
             // PHP walks [2 => 'c', 0 => 'a', 1 => 'b'] from key 2, where a record re-sorts to 0, 1, 2.
             expect(
                 Utils.keyedEntries(
@@ -492,7 +492,7 @@ describe("Utils", () => {
         });
 
         it("folds Map keys PHP stores as one into the first one's place, holding the last value", () => {
-            // docs/php-parity/task-30-map-order.json, "first-collision", "last-collision"
+            // docs/php-parity/Arr/first.json, "first-collision", docs/php-parity/Arr/last.json, "last-collision"
             // PHP's [1 => 'a', 0 => 'z', '1' => 'b'] is [1 => 'b', 0 => 'z'], so last() is 'z'.
             expect(
                 Utils.keyedEntries(
@@ -509,9 +509,9 @@ describe("Utils", () => {
         });
 
         it("casts every Map key the way PHP casts an array key", () => {
-            // docs/php-parity/task-30-map-order.json, "every-numeric-string-keys-callback-order",
+            // docs/php-parity/Arr/every.json, "every-numeric-string-keys-callback-order",
             // "every-true-key-callback-order", "every-null-key-callback-order", "every-float-key-callback-order"
-            // docs/php-parity/task-23-obj-release-readiness.json, "K1 keys of numeric-looking string keys"
+            // docs/php-parity/Php/array_map.json, "K1 keys of numeric-looking string keys"
             // PHP hands a callback 2, 1, "" and 1 for the "2", true, null and 1.5 keys; "01" stays a string.
             expect(
                 Utils.keyedEntries(
@@ -593,7 +593,7 @@ describe("Utils", () => {
 
     describe("renumberPhpIntegerKeys", () => {
         it("renumbers every key PHP stores as an integer, in order", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
+            // docs/php-parity/Collection/unshift.json,
             // "unshift-numeric-key-order"
             expect(
                 Utils.renumberPhpIntegerKeys([
@@ -609,7 +609,7 @@ describe("Utils", () => {
         });
 
         it("counts a negative key, which reindexIntegerKeys leaves alone", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
+            // docs/php-parity/Collection/unshift.json,
             // "unshift-negative-int-key"
             expect(
                 Utils.renumberPhpIntegerKeys([
@@ -632,7 +632,7 @@ describe("Utils", () => {
         });
 
         it("leaves a string key where it is", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
+            // docs/php-parity/Collection/unshift.json,
             // "unshift-mixed-key-order"
             expect(
                 Utils.renumberPhpIntegerKeys([

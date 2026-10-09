@@ -1879,7 +1879,7 @@ export function flatten<TValue>(
  *
  * One divergence from `Arr::dot`/`Obj.dot`: an empty nested container is dropped
  * here, where PHP keeps it as a leaf value.
- * @see docs/php-parity/task-23-obj-release-readiness.json, "dot-empty-leaf" and "dot-nested-empty-leaf".
+ * @see docs/php-parity/Arr/dot.json, "dot-empty-leaf" and "dot-nested-empty-leaf".
  *
  * @param data - The object to flatten.
  * @param depth - Maximum depth for dot-notation keys.
@@ -2006,7 +2006,7 @@ export function flip<TValue, TKey extends PropertyKey = PropertyKey>(
  * Throws an error if the value is not a number.
  *
  * Known divergence: PHP's `is_float()` rejects a whole-number int (`Arr::float`
- * throws on `1`, see docs/php-parity/task-17-second-review.json, "Arr::float
+ * throws on `1`, see docs/php-parity/Arr/float.json, "Arr::float
  * rejects a whole-number int"). JS has one number type, so `isNumber` accepts
  * it — narrowing to reject whole numbers would also reject `1.0`.
  *

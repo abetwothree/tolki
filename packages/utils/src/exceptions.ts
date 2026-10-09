@@ -19,8 +19,8 @@ export class InvalidArgumentException extends Error {
  *
  * Laravel's `Illuminate\Support\ItemNotFoundException` extends `RuntimeException`
  * without a constructor, so it carries no message at all — probed as
- * `docs/php-parity/task-24-data-release-readiness.json`, "sole-empty-no-callback"
- * and `task-23-obj-release-readiness.json`, "sole-none".
+ * `docs/php-parity/Arr/sole.json`, "sole-empty-no-callback"
+ * and `docs/php-parity/Arr/sole.json`, "sole-none".
  */
 export class ItemNotFoundException extends Error {
     /**
@@ -37,8 +37,8 @@ export class ItemNotFoundException extends Error {
  * Thrown when a lookup that must match exactly one item matches several.
  *
  * The message is Laravel's `"{$count} items were found."` — probed as
- * `docs/php-parity/task-24-data-release-readiness.json`, "sole-multi-no-callback"
- * and `task-23-obj-release-readiness.json`, "sole-multi-list".
+ * `docs/php-parity/Arr/sole.json`, "sole-multi-no-callback"
+ * and `docs/php-parity/Arr/sole.json`, "sole-multi-list".
  */
 export class MultipleItemsFoundException extends Error {
     /** The number of items found, as Laravel's public `$count`. */

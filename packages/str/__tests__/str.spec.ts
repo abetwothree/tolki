@@ -190,7 +190,7 @@ describe("Str tests", () => {
             expect(Str.camel("foo1_bar")).toBe("foo1Bar");
             expect(Str.camel("1 foo bar")).toBe("1FooBar");
 
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "camel-multibyte-first-space",
+            // docs/php-parity/Str/camel.json, "camel-multibyte-first-space",
             // "camel-multibyte-first-snake" and "camel-multibyte-first-kebab"
             expect(Str.camel("Über uns")).toBe("überUns");
             expect(Str.camel("émile_zola")).toBe("émileZola");
@@ -822,14 +822,14 @@ describe("Str tests", () => {
         });
 
         it("keeps the spacing in front of the phrase", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "excerpt-two-spaces-before-phrase"
+            // docs/php-parity/Str/excerpt.json, "excerpt-two-spaces-before-phrase"
             expect(Str.excerpt("This is  my name", "my")).toBe(
                 "This is  my name",
             );
             expect(Str.excerpt("This is  my name", "my", { radius: 3 })).toBe(
                 "...s  my na...",
             );
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "excerpt-space-then-tab-before-phrase"
+            // docs/php-parity/Str/excerpt.json, "excerpt-space-then-tab-before-phrase"
             expect(Str.excerpt("foo \tbar", "bar")).toBe("foo \tbar");
         });
     });
@@ -847,7 +847,7 @@ describe("Str tests", () => {
         });
 
         it("drops every trailing cap, whatever characters it holds", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-cases"
+            // docs/php-parity/Str/finish.json, "finish-cases"
             expect(Str.finish("", "/")).toBe("/");
             expect(Str.finish("///", "/")).toBe("/");
             expect(Str.finish("a.b..", ".")).toBe("a.b.");
@@ -861,7 +861,7 @@ describe("Str tests", () => {
         });
 
         it("reads a cap that overlaps itself from the end", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-cases"
+            // docs/php-parity/Str/finish.json, "finish-cases"
             expect(Str.finish("aaa", "aa")).toBe("aaa");
             expect(Str.finish("aaaa", "aa")).toBe("aa");
             expect(Str.finish("aaaaa", "aa")).toBe("aaa");
@@ -871,7 +871,7 @@ describe("Str tests", () => {
         it("stays fast over a long run of the cap inside the string", () => {
             const run = "/".repeat(100_000);
 
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-long-interior-run"
+            // docs/php-parity/Str/finish.json, "finish-long-interior-run"
             expect(Str.finish(`${run}x`, "/")).toBe(`${run}x/`);
             // JS-only: PHP's own pattern runs out of stack here and answers "/" alone
             // ("finish-long-interior-run-then-caps"); this port still caps the string it was given.
@@ -879,7 +879,7 @@ describe("Str tests", () => {
         }, 2000);
 
         it("casts a cap or a value that is no string as PHP does", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-start-non-string-arguments"
+            // docs/php-parity/Str/finish.json, "finish-start-non-string-arguments"
             const finish = (...args: unknown[]): unknown =>
                 Reflect.apply(Str.finish, undefined, args);
 
@@ -1207,7 +1207,7 @@ describe("Str tests", () => {
         it("stays fast over a long run of spaces inside the limit", () => {
             const run = " ".repeat(100_000);
 
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "limit-long-interior-run"
+            // docs/php-parity/Str/limit.json, "limit-long-interior-run"
             expect(Str.limit(`${run}x${run}x`, 200_001)).toBe(`${run}x...`);
             expect(Str.limit(`${run}x${run}x y`, 200_001, "...", true)).toBe(
                 `x${run}x...`,
@@ -1217,7 +1217,7 @@ describe("Str tests", () => {
         it("stays fast when the cut holds no whitespace to cut back to", () => {
             const word = "x".repeat(100_000);
 
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "limit-preserve-words-no-whitespace"
+            // docs/php-parity/Str/limit.json, "limit-preserve-words-no-whitespace"
             expect(Str.limit(`${word}${word}`, 100_000, "...", true)).toBe(
                 `${word}...`,
             );
@@ -2119,7 +2119,7 @@ describe("Str tests", () => {
         });
 
         it("returns exactly the requested length when it is below the pool count", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-length-below-pool-count"
+            // docs/php-parity/Str/password.json, "password-length-below-pool-count"
             expect(
                 [1, 2, 3].map((length) => Str.password(length).length),
             ).toEqual([1, 2, 3]);
@@ -2130,13 +2130,13 @@ describe("Str tests", () => {
         });
 
         it("returns an empty string for a zero or negative length", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-zero-length" and "password-negative-length"
+            // docs/php-parity/Str/password.json, "password-zero-length" and "password-negative-length"
             expect(Str.password(0)).toBe("");
             expect(Str.password(-2)).toBe("");
         });
 
         it("throws when every character pool is turned off", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-no-pools" and "password-no-pools-zero-length":
+            // docs/php-parity/Str/password.json, "password-no-pools" and "password-no-pools-zero-length":
             // PHP throws an InvalidArgumentException, which this port raises as an Error with the same message.
             expect(() =>
                 Str.password(32, false, false, false, false),
@@ -2147,7 +2147,7 @@ describe("Str tests", () => {
         });
 
         it("draws only from the pools that are turned on", () => {
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "password-numbers-only" and "password-spaces-only"
+            // docs/php-parity/Str/password.json, "password-numbers-only" and "password-spaces-only"
             expect(Str.password(5, false, true, false, false)).toMatch(
                 /^\d{5}$/,
             );
@@ -3163,7 +3163,7 @@ describe("Str tests", () => {
         });
 
         it("drops every leading prefix, whatever characters it holds", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-cases"
+            // docs/php-parity/Str/start.json, "start-cases"
             expect(Str.start("", "/")).toBe("/");
             expect(Str.start("///", "/")).toBe("/");
             expect(Str.start("..a.b", ".")).toBe(".a.b");
@@ -3175,7 +3175,7 @@ describe("Str tests", () => {
         });
 
         it("reads a prefix that overlaps itself from the start", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-cases"
+            // docs/php-parity/Str/start.json, "start-cases"
             expect(Str.start("aaa", "aa")).toBe("aaa");
             expect(Str.start("aaaa", "aa")).toBe("aa");
             expect(Str.start("aaaaa", "aa")).toBe("aaa");
@@ -3185,7 +3185,7 @@ describe("Str tests", () => {
         it("stays fast over a long run of the prefix", () => {
             const run = "/".repeat(100_000);
 
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "start-long-run"
+            // docs/php-parity/Str/start.json, "start-long-run"
             expect(Str.start(`x${run}`, "/")).toBe(`/x${run}`);
             // JS-only: PHP's own pattern runs out of stack on a run this long and answers "/" alone
             // ("start-long-leading-run"); this port still starts the string it was given.
@@ -3193,7 +3193,7 @@ describe("Str tests", () => {
         }, 2000);
 
         it("casts a prefix or a value that is no string as PHP does", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "finish-start-non-string-arguments"
+            // docs/php-parity/Str/finish.json, "finish-start-non-string-arguments"
             const start = (...args: unknown[]): unknown =>
                 Reflect.apply(Str.start, undefined, args);
 

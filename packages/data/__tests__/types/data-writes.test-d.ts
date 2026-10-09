@@ -157,7 +157,7 @@ describe("data writes type tests", () => {
         });
 
         it("matches arr.prepend for a list given a key, which makes it keyed unless the key is 0", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key". Hoisted: written inline,
+            // docs/php-parity/Arr/prepend.json, "prepend-list-with-key". Hoisted: written inline,
             // the delegate infers its value and key from toEqualTypeOf's Mismatch parameter instead.
             const keyed = Arr.prepend(["b", "c"], "a", "k");
             expectTypeOf(Data.dataPrepend(["b", "c"], "a", "k")).toEqualTypeOf(

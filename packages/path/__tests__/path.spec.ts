@@ -20,7 +20,7 @@ describe("Path Functions", () => {
         });
 
         it("rebuilds a list from consecutive integer segments starting at 0", () => {
-            // PHP-verified in docs/php-parity/task-09-paths.json: Arr::set's algorithm
+            // PHP-verified in docs/php-parity/Arr/undot.json: Arr::set's algorithm
             // over this input yields {"user":{"languages":["PHP","C#"],"name":"Taylor"}},
             // so integer segments rebuild a list rather than a keyed map.
             expect(
@@ -127,7 +127,7 @@ describe("Path Functions", () => {
         });
 
         it("keeps a non-canonical index as a string segment", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index":
+            // docs/php-parity/Arr/get.json, "get-list-non-canonical-index":
             // PHP stores these as string keys, so a list never holds them.
             expect(Path.parseSegments("0.01")).toEqual([0, "01"]);
             expect(Path.parseSegments(" 1.1e0.+1.0x1.-0")).toEqual([
@@ -216,7 +216,7 @@ describe("Path Functions", () => {
         });
 
         it("finds an integer segment among an object's own keys", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            // docs/php-parity/Arr/get.json, "get-list-int-segment-into-map"
             expect(Path.hasPath([{ 0: "x" }], "0.0")).toBe(true);
             expect(Path.hasPath([{ 1: "z" }], "0.0")).toBe(false);
         });
@@ -256,7 +256,7 @@ describe("Path Functions", () => {
         });
 
         it("does not find a non-canonical index in a list", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "has-list-non-canonical-index"
+            // docs/php-parity/Arr/has.json, "has-list-non-canonical-index"
             expect(Path.hasPath(["x", "y"], "01")).toBe(false);
             expect(Path.hasPath([["x", "y"]], "0.1e0")).toBe(false);
         });
@@ -347,7 +347,7 @@ describe("Path Functions", () => {
         });
 
         it("looks an integer segment up as an object's own key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            // docs/php-parity/Arr/get.json, "get-list-int-segment-into-map"
             expect(Path.getRaw([{ 0: "x" }], "0.0")).toEqual({
                 found: true,
                 value: "x",
@@ -370,7 +370,7 @@ describe("Path Functions", () => {
         });
 
         it("does not find a non-canonical index in a list", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+            // docs/php-parity/Arr/get.json, "get-list-non-canonical-index"
             expect(Path.getRaw(["x", "y"], "01")).toEqual({ found: false });
             expect(Path.getRaw([["x", "y"]], "0. 1")).toEqual({ found: false });
         });
@@ -421,7 +421,7 @@ describe("Path Functions", () => {
         });
 
         it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-null-key"
+            // docs/php-parity/Arr/except.json, "C32-D-arr-except-null-key"
             expect(Path.forgetKeys({ "": 1, a: 2 }, null)).toEqual({
                 "": 1,
                 a: 2,
@@ -437,7 +437,7 @@ describe("Path Functions", () => {
         });
 
         it("looks a float up by its string form, then removes its integer part, as unset casts it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-except-float-key"
+            // docs/php-parity/Collection/except.json, "C32-D-except-float-key"
             expect(
                 Path.forgetKeys({ "1.5": "a", 1: "b", c: "d" }, [1.5]),
             ).toEqual({ "1.5": "a", c: "d" });
@@ -451,7 +451,7 @@ describe("Path Functions", () => {
         });
 
         it("walks a float over a list as the path its string form names", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-float-list-path"
+            // docs/php-parity/Arr/except.json, "C32-D-arr-except-float-list-path"
             expect(
                 Path.forgetKeys([["a", "b", "c", "d", "e", "f"]], [0.5]),
             ).toEqual([["a", "b", "c", "d", "e"]]);
@@ -470,7 +470,7 @@ describe("Path Functions", () => {
                 "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
             );
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            // docs/php-parity/Arr/except.json, "C32-D-array-key-type-error"
             expect(() =>
                 Path.forgetKeys([], [["b"]] as unknown as string[]),
             ).toThrow(failure);
@@ -750,7 +750,7 @@ describe("Path Functions", () => {
 
     describe("pushWithPath", () => {
         it("throws InvalidArgumentException for a non-array at the key, as Laravel's Arr::push does through Arr::array", () => {
-            // docs/php-parity/task-16-final-review.json, "push rejects a boolean at the leaf"
+            // docs/php-parity/Arr/push.json, "push rejects a boolean at the leaf"
             expect(() => Path.pushWithPath([true], "0", "value")).toThrow(
                 InvalidArgumentException,
             );
@@ -783,7 +783,7 @@ describe("Path Functions", () => {
         });
 
         it("creates nested structure for non-accessible data", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             expect(Path.pushWithPath("not-array", "0", "value")).toEqual([
                 ["value"],
@@ -808,14 +808,14 @@ describe("Path Functions", () => {
         });
 
         it("pushes into the array already at the key", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             const data = [["a"]];
             expect(Path.pushWithPath(data, "0", "b")).toEqual([["a", "b"]]);
         });
 
         it("creates nested arrays as needed", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             expect(Path.pushWithPath([], "0.0", "deep")).toEqual([[["deep"]]]);
         });
@@ -835,7 +835,7 @@ describe("Path Functions", () => {
         });
 
         it("pushes into the empty array already at the key", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             const data = [[]];
             expect(Path.pushWithPath(data, "0", "a", "b")).toEqual([
@@ -845,7 +845,7 @@ describe("Path Functions", () => {
 
         it("handles complex nested pushing", () => {
             // The port clamps an out-of-range index to an append; PHP writes a gapped
-            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             const data: unknown[] = [];
             const result = Path.pushWithPath(data, "0.1", "nested");
             expect(result).toEqual([[["nested"]]]);
@@ -902,7 +902,7 @@ describe("Path Functions", () => {
             // Navigating to idx 5 should clamp to cursor.length (1)
             const result = Path.pushWithPath(data, "5.0", "value");
             // The port clamps an out-of-range index to an append; PHP writes a gapped
-            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             expect(result).toEqual([["existing"], [["value"]]]);
         });
 
@@ -947,13 +947,13 @@ describe("Path Functions", () => {
         describe("non-accessible data stands in for an empty array", () => {
             it("creates the whole nested structure for a clamped path", () => {
                 // The port clamps an out-of-range index to an append; PHP writes a gapped
-                // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+                // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
                 const result = Path.pushWithPath(null, "0.1.0", "value");
                 expect(result).toEqual([[[["value"]]]]);
             });
 
             it("creates the whole nested structure for a three-segment path", () => {
-                // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+                // PHP-verified in docs/php-parity/Arr/push.json ("push appends
                 // into the array AT the key, never beside it").
                 const result = Path.pushWithPath(null, "0.0.0", "value");
                 expect(result).toEqual([[[["value"]]]]);
@@ -972,7 +972,7 @@ describe("Path Functions", () => {
             });
 
             it("pushes a boolean value into the created leaf array", () => {
-                // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+                // PHP-verified in docs/php-parity/Arr/push.json ("push appends
                 // into the array AT the key, never beside it").
                 const result = Path.pushWithPath(null, "0", true);
                 expect(result).toEqual([[true]]);
@@ -986,14 +986,14 @@ describe("Path Functions", () => {
         });
 
         it("handles non-array data with valid numeric path", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             const result = Path.pushWithPath(null, "0", "value");
             expect(result).toEqual([["value"]]);
         });
 
         it("handles non-array data with nested numeric path", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             const result = Path.pushWithPath(null, "0.0", "value");
             expect(result).toEqual([[["value"]]]);
@@ -1022,7 +1022,7 @@ describe("Path Functions", () => {
             const data: unknown[] = [];
             Path.pushWithPath(data, "0.1.2", "deep-value");
             // The port clamps an out-of-range index to an append; PHP writes a gapped
-            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             expect(data[0]).toEqual([[["deep-value"]]]);
 
             // Test pushWithPath with non-array existing value
@@ -1050,7 +1050,7 @@ describe("Path Functions", () => {
 
         it("navigates through existing null elements", () => {
             const data: unknown[] = [null];
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "value");
             expect(data).toEqual([[["value"]]]);
@@ -1068,7 +1068,7 @@ describe("Path Functions", () => {
 
         it("creates nested arrays during navigation", () => {
             const data: unknown[] = [];
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "deep");
             expect(data).toEqual([[["deep"]]]);
@@ -1076,7 +1076,7 @@ describe("Path Functions", () => {
 
         it("handles pushing values when navigating creates new structure", () => {
             const data: unknown[] = [[]];
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             Path.pushWithPath(data, "0.0", "value");
             expect(data).toEqual([[["value"]]]);
@@ -1113,7 +1113,7 @@ describe("Path Functions", () => {
         });
 
         it("uses prepend string when provided", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
+            // docs/php-parity/Arr/dot.json, "dot-list-prepend-no-dot"
             expect(Path.dotFlatten(["a"], "prefix")).toEqual({ prefix0: "a" });
         });
 
@@ -1271,7 +1271,7 @@ describe("Path Functions", () => {
         });
 
         it("rejects a list's own JS keys and non-canonical numeric strings", () => {
-            // PHP-verified in docs/php-parity/task-23-obj-release-readiness.json
+            // PHP-verified in docs/php-parity/Arr/get.json
             // ("get-through-list-length", "get-through-list-leading-zero")
             const data = { products: [1, 2, 3] };
             expect(
@@ -1460,7 +1460,7 @@ describe("Path Functions", () => {
         });
 
         it("setMixed handles paths with dots that create empty segments", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "set-empty-middle-segment":
+            // docs/php-parity/Arr/set.json, "set-empty-middle-segment":
             // an empty MIDDLE segment is the "" key, so the write lands under it.
             const arr: unknown[] = [];
             const result = Path.setMixed(arr, "0..1", "value");
@@ -1509,7 +1509,7 @@ describe("Path Functions", () => {
         });
 
         it("handles empty segment in path", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/set.json,
             // "set-scalar-element-empty-trailing-segment": the trailing segment is the
             // "" key, and the scalar it replaces becomes the record holding it.
             const arr = ["a"];
@@ -1519,7 +1519,7 @@ describe("Path Functions", () => {
         });
 
         it("handles empty first segment with non-empty array", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/set.json,
             // "set-list-key-cast", row "": PHP stores the "" key beside the indices.
             const arr = ["a", "b"];
             const result = Path.setMixed(arr, "", "value");
@@ -1591,7 +1591,7 @@ describe("Path Functions", () => {
             ]);
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+        // docs/php-parity/Arr/set.json, "Arr::set writes a nested \"constructor.prototype\" path"
         it("keeps a __proto__ key as own data in a nested path", () => {
             const arr: unknown[] = [{}];
             const result = Path.setMixed(arr, "0.__proto__.polluted", true);
@@ -1605,7 +1605,7 @@ describe("Path Functions", () => {
             expect(result).toBe(arr);
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        // docs/php-parity/Arr/set.json, "Arr::set writes a \"__proto__\" key"
         it("keeps a __proto__ key as own data as the last segment", () => {
             const arr: unknown[] = [{}];
             const result = Path.setMixed(arr, "0.__proto__", { evil: true });
@@ -1878,7 +1878,7 @@ describe("Path Functions", () => {
             expect(data).toEqual([{ user: ["value"] }]);
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        // docs/php-parity/Arr/set.json, "Arr::set writes a \"__proto__\" key"
         it("keeps a __proto__ key as an own array container when pushing", () => {
             const data: unknown[] = [{}];
             const result = Path.pushMixed<unknown>(
@@ -2152,7 +2152,7 @@ describe("Path Functions", () => {
         it("resolves a literal key containing dots before traversing it as a path", () => {
             // Arr::has calls Arr::exists first (Arr.php:534) — the literal key wins
             // even though it contains dots (PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::has — literal dotted key").
+            // docs/php-parity/Arr/has.json, "Arr::has — literal dotted key").
             expect(
                 Path.hasMixed(
                     { "products.desk": { price: 100 } },
@@ -2162,7 +2162,7 @@ describe("Path Functions", () => {
         });
 
         it("finds a numeric key on a plain object, not only on arrays", () => {
-            // PHP-verified: docs/php-parity/task-09-paths.json,
+            // PHP-verified: docs/php-parity/Arr/has.json,
             // "Arr::has — numeric key".
             expect(Path.hasMixed({ 123: "x" }, 123)).toBe(true);
             expect(Path.hasMixed({ 123: "x" }, 456)).toBe(false);
@@ -2244,7 +2244,7 @@ describe("Path Functions", () => {
 
         it("resolves a literal key containing dots before traversing it as a path", () => {
             // Arr::get calls Arr::exists first (Arr.php:497), so a literal key wins even
-            // when it contains dots. PHP-verified in docs/php-parity/task-09-paths.json.
+            // when it contains dots. PHP-verified in docs/php-parity/Arr/get.json.
             expect(
                 Path.getObjectValue(
                     { "products.desk": { price: 100 } },
@@ -2314,7 +2314,7 @@ describe("Path Functions", () => {
             expect(result).toHaveProperty("a");
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"__proto__\" key"
+        // docs/php-parity/Arr/set.json, "Arr::set writes a \"__proto__\" key"
         it("keeps a __proto__ key as own data for a simple key", () => {
             const obj = { a: 1 };
             const result = Path.setObjectValue(obj, "__proto__", {
@@ -2327,7 +2327,7 @@ describe("Path Functions", () => {
             expect(({} as Record<string, unknown>)["evil"]).toBeUndefined();
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+        // docs/php-parity/Arr/set.json, "Arr::set writes a nested \"constructor.prototype\" path"
         it("keeps a __proto__ key as own data in a nested dot notation path", () => {
             const obj = { a: 1 };
             const result = Path.setObjectValue(
@@ -2343,7 +2343,7 @@ describe("Path Functions", () => {
             expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
         });
 
-        // docs/php-parity/task-17-second-review.json, "Arr::set writes a \"constructor\" key"
+        // docs/php-parity/Arr/set.json, "Arr::set writes a \"constructor\" key"
         it("keeps constructor and prototype keys as own data", () => {
             const obj = { a: 1 };
             const withConstructor = Path.setObjectValue(
@@ -2386,7 +2386,7 @@ describe("Path Functions", () => {
         it("resolves a literal key containing dots before traversing it as a path", () => {
             // Arr::exists is a literal array_key_exists check (Arr.php:497, :534) — it
             // must win over dot-path traversal (PHP-verified:
-            // docs/php-parity/task-09-paths.json, "Arr::exists — literal dotted key").
+            // docs/php-parity/Arr/exists.json, "Arr::exists — literal dotted key").
             expect(
                 Path.hasObjectKey({ "products.desk": {} }, "products.desk"),
             ).toBe(true);
@@ -2564,7 +2564,7 @@ describe("Path Functions", () => {
         });
 
         it("keeps a class instance as a leaf, as a value or inside a nested list", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            // docs/php-parity/Arr/dot.json, "dot-object-leaf"
             const point = new Point();
             const result = Path.dotFlattenObject({ p: point, l: [point] });
             expect(Object.keys(result)).toEqual(["p", "l.0"]);
@@ -2592,7 +2592,7 @@ describe("Path Functions", () => {
         });
 
         it("concatenates a prepend that ends in dots as it is", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
+            // docs/php-parity/Arr/dot.json,
             // "dot-prepend-with-dot-depth", "dot-prepend-trailing-dots"
             expect(Path.dotFlattenObject({ a: 1, b: 2 }, "prefix.")).toEqual({
                 "prefix.a": 1,
@@ -2612,7 +2612,7 @@ describe("Path Functions", () => {
         });
 
         it("handles array with prepend but no nested items", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
+            // docs/php-parity/Arr/dot.json, "dot-list-prepend-no-dot"
             const data = ["a"];
             const result = Path.dotFlattenArray(data, "prefix");
             expect(result).toEqual({ prefix0: "a" });
@@ -2627,19 +2627,19 @@ describe("Path Functions", () => {
         });
 
         it("dotFlattenArray with prepend and empty path on scalar", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
+            // docs/php-parity/Arr/dot.json, "dot-list-prepend-no-dot"
             const result = Path.dotFlattenArray([42], "data");
             expect(result).toEqual({ data0: 42 });
         });
 
         it("flattens a plain object element inside the array", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-of-assoc"
+            // docs/php-parity/Arr/dot.json, "dot-list-of-assoc"
             const result = Path.dotFlattenArray([{ a: 1 }, { b: { c: 2 } }]);
             expect(result).toEqual({ "0.a": 1, "1.b.c": 2 });
         });
 
         it("keeps a class instance inside the array as a leaf", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            // docs/php-parity/Arr/dot.json, "dot-object-leaf"
             const point = new Point();
             const result = Path.dotFlattenArray([point, { p: point }]);
             expect(Object.keys(result)).toEqual(["0", "1.p"]);
@@ -2670,7 +2670,7 @@ describe("Path Functions", () => {
         });
 
         it("threads the remaining depth into an object element inside the array", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-depth-through-list"
+            // docs/php-parity/Arr/dot.json, "dot-depth-through-list"
             expect(
                 Path.dotFlattenArray([{ a: { b: { c: 1 } } }], "", 2),
             ).toEqual({ "0.a.b": { c: 1 } });
@@ -2770,7 +2770,7 @@ describe("Path Functions", () => {
         });
 
         it("undotExpandArray rejects a leading-zero index instead of treating it as canonical", () => {
-            // PHP-verified in docs/php-parity/task-12-regression-pins.json: "01" stays a string
+            // PHP-verified in docs/php-parity/Arr/undot.json: "01" stays a string
             // key, so it must not be treated as array index 1 here either.
             const result = Path.undotExpandArray({ "01": "x" });
             expect(result).toEqual([]);
@@ -2942,7 +2942,7 @@ describe("Path Functions", () => {
     describe("PHP key semantics on the write path", () => {
         describe("setMixed", () => {
             it("keeps a non-canonical index a string key on a list", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-list-key-cast", row "01"
                 const result = Path.setMixed(["a", "b"], "01", "V");
 
@@ -2954,7 +2954,7 @@ describe("Path Functions", () => {
             });
 
             it("keeps a non-canonical index a string key on a record", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-nested-record-key-cast", row "01"
                 expect(Path.setMixed([{ x: 1 }], "0.01", "V")).toEqual([
                     { x: 1, "01": "V" },
@@ -2962,7 +2962,7 @@ describe("Path Functions", () => {
             });
 
             it("keeps a non-canonical index a string key inside a nested list", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-nested-list-key-cast", row "01"
                 const result = Path.setMixed([["a", "b"]], "0.01", "V");
                 const inner = result[0] as unknown as Record<string, string>;
@@ -2973,7 +2973,7 @@ describe("Path Functions", () => {
             });
 
             it("writes a canonical index as an index, on both backings", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-list-key-cast" / "set-nested-record-key-cast", row "1"
                 expect(Path.setMixed(["a", "b"], "1", "V")).toEqual(["a", "V"]);
                 expect(Path.setMixed([{ x: 1 }], "0.1", "V")).toEqual([
@@ -2982,7 +2982,7 @@ describe("Path Functions", () => {
             });
 
             it("writes a negative index as a key, on both backings", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-list-key-cast" / "set-nested-record-key-cast", row "-1"
                 const list = Path.setMixed(["a", "b"], "-1", "V");
 
@@ -2996,7 +2996,7 @@ describe("Path Functions", () => {
             });
 
             it("treats a dotted float as two segments, on both backings", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-list-key-cast" / "set-nested-record-key-cast", row "1.5":
                 // PHP stores key 5 of a fresh array at index 1.
                 // JS-only: a JS array cannot hold a gap, so indices 0-4 fill with undefined.
@@ -3012,7 +3012,7 @@ describe("Path Functions", () => {
             });
 
             it("writes an empty segment as the empty key, on both backings", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-list-key-cast" / "set-nested-record-key-cast", row ""
                 const list = Path.setMixed(["a", "b"], "", "V");
 
@@ -3026,7 +3026,7 @@ describe("Path Functions", () => {
             });
 
             it("reads back what it wrote under a non-canonical index", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-then-get-noncanonical-index-nested"
                 const result = Path.setMixed([{}], "0.01", 5);
 
@@ -3036,7 +3036,7 @@ describe("Path Functions", () => {
 
         describe("pushMixed", () => {
             it("does not push at index 1 for a non-canonical index", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/push.json,
                 // "push-list-key-cast", row "01": index 0 keeps ['a'] and nothing
                 // reaches index 1.
                 // JS-only: an array-only helper drops PHP's extra "01" string key.
@@ -3049,7 +3049,7 @@ describe("Path Functions", () => {
 
         describe("setImmutable", () => {
             it("does not overwrite index 1 for a non-canonical index", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/set.json,
                 // "set-list-key-cast", row "01": index 1 still holds 'b'.
                 // JS-only: an array-only helper drops PHP's extra "01" string key.
                 const result = Path.setImmutable(["a", "b"], "01", "V");
@@ -3061,7 +3061,7 @@ describe("Path Functions", () => {
 
         describe("forgetKeys", () => {
             it("removes nothing for a non-canonical index, on both backings", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/forget.json,
                 // "forget-record-key-cast" / "forget-list-key-cast", row "01"
                 expect(
                     Path.forgetKeysObject({ a: ["x", "y", "z"] }, "a.01"),
@@ -3072,7 +3072,7 @@ describe("Path Functions", () => {
             });
 
             it("removes nothing for a non-canonical index among several keys", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/forget.json,
                 // "forget-list-noncanonical-among-several-keys": only the canonical key
                 // removes an item, so '0.2' takes 'z' and '0.01' takes nothing.
                 expect(
@@ -3083,7 +3083,7 @@ describe("Path Functions", () => {
 
         describe("undotExpandArray", () => {
             it("skips a non-canonical index rather than folding it into one", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/undot.json,
                 // "undot-noncanonical-index": PHP keeps "01" a string key.
                 // JS-only: a JS list holds only indices, so `arr.undot` throws for
                 // such a key and this builder drops it; `obj.undot` keeps it.
@@ -3094,7 +3094,7 @@ describe("Path Functions", () => {
 
         describe("getMixedValue", () => {
             it("resolves the same casts the write path uses", () => {
-                // docs/php-parity/task-24-data-release-readiness.json,
+                // docs/php-parity/Arr/get.json,
                 // "get-write-path-key-cast"
                 expect(Path.getMixedValue([{ "": 1 }], "0.")).toBe(1);
                 expect(Path.getMixedValue([["a", "b"]], "0.01")).toBeNull();

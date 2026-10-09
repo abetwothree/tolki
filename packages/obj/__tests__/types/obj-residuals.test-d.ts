@@ -94,7 +94,7 @@ describe("obj residual type-soundness limits", () => {
     describe("combine prints a key the way TypeScript prints a number", () => {
         it("types a literal -0 key as 0", () => {
             // Runtime: { "-0": "a" } — PHP's (string) cast keeps the sign
-            // (task-24-data-release-readiness.json, "d6-combine-key-cast-minus-zero-and-1e19").
+            // (docs/php-parity/Collection/combine.json, "d6-combine-key-cast-minus-zero-and-1e19").
             expectTypeOf(Obj.combine([-0] as const, ["a"])).toEqualTypeOf<
                 Record<"0", string>
             >();

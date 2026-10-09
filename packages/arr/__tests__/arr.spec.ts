@@ -92,7 +92,7 @@ describe("Arr", () => {
 
     describe("add", () => {
         it("writes over a key already holding null, as Arr::add does", () => {
-            // docs/php-parity/task-29-final-behaviour.json, "add-over-null-list-value",
+            // docs/php-parity/Arr/add.json, "add-over-null-list-value",
             // "add-over-null-nested-list", "add-leaves-false-alone".
             // Arr::add asks `is_null(Arr::get(...))`, not whether the key exists.
             expect(Arr.add([null], 0, 9)).toEqual([9]);
@@ -151,7 +151,7 @@ describe("Arr", () => {
         });
 
         it("leaves the caller's nested value alone, on both backings", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/add.json,
             // "add-leaves-the-caller-value-untouched" and
             // "add-list-leaves-the-caller-value-untouched": Arr::add takes the
             // array by value, and a PHP array is a value all the way down.
@@ -169,7 +169,7 @@ describe("Arr", () => {
         });
 
         it("replaces a nested class instance instead of writing into it", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/add.json,
             // "add-nested-object-is-replaced-wholesale": Arr::set descends by is_array,
             // so the write lands on a fresh container and the instance is left whole.
             const point = new Point();
@@ -187,7 +187,7 @@ describe("Arr", () => {
         it("keeps a descended list's own non-index key", () => {
             // JS-only: PHP holds "" as a real array key, so no Arr::add call can record
             // this; the port stores it as the list's own property and the copy step used
-            // to spread it away. docs/php-parity/task-24-..., "get-write-path-key-cast"
+            // to spread it away. docs/php-parity/Arr/get.json, "get-write-path-key-cast"
             const inner = Arr.set(["a", "b"], "", "V");
             const [first] = Arr.add([inner], "0.2", "c") as unknown[];
 
@@ -239,7 +239,7 @@ describe("Arr", () => {
         });
 
         it("leaves the caller's value alone when the key already exists", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/add.json,
             // "add-existing-key-is-a-no-op"
             const record = { desk: 100 };
             const source = [record];
@@ -264,7 +264,7 @@ describe("Arr", () => {
 
     describe("arrayItem", () => {
         it("throws InvalidArgumentException, as Laravel's Arr::array does", () => {
-            // docs/php-parity/task-12-regression-pins.json, "Arr::array requires an array at the key"
+            // docs/php-parity/Arr/array.json, "Arr::array requires an array at the key"
             expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
                 InvalidArgumentException,
             );
@@ -290,7 +290,7 @@ describe("Arr", () => {
             expect(Arr.arrayItem([1, 2, 3], 10, [])).toEqual([]);
 
             // Should throw for non-arrays. PHP-verified in
-            // docs/php-parity/task-12-regression-pins.json ("Arr::array requires an
+            // docs/php-parity/Arr/array.json ("Arr::array requires an
             // array at the key" / "Arr::array through an explicit null").
             expect(() => Arr.arrayItem([1, 2, 3], 0)).toThrow(
                 "Array value for key [0] must be an array, integer found.",
@@ -303,7 +303,7 @@ describe("Arr", () => {
             expect(() => Arr.arrayItem([null, ["valid"]], 0)).toThrow(
                 "Array value for key [0] must be an array, NULL found.",
             );
-            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // PHP-verified in docs/php-parity/Arr/array.json
             // ("Arr::array through a float").
             expect(() => Arr.arrayItem([1.5], 0)).toThrow(
                 "Array value for key [0] must be an array, double found.",
@@ -313,7 +313,7 @@ describe("Arr", () => {
 
     describe("boolean", () => {
         it("throws InvalidArgumentException, as Laravel's Arr::boolean does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "boolean-list-int-key"
+            // docs/php-parity/Arr/boolean.json, "boolean-list-int-key"
             expect(() => Arr.boolean(["foo bar"], 0)).toThrow(
                 InvalidArgumentException,
             );
@@ -329,18 +329,18 @@ describe("Arr", () => {
             expect(Arr.boolean([1, 2, 3], 10, false)).toBe(false);
 
             // Should throw for non-booleans
-            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
+            // docs/php-parity/Php/gettype.json, "gettype of an integer"
             expect(() => Arr.boolean([1, 2, 3], 0)).toThrow(
                 "Array value for key [0] must be a boolean, integer found.",
             );
             expect(() => Arr.boolean([{ active: "yes" }], "0.active")).toThrow(
                 "Array value for key [0.active] must be a boolean, string found.",
             );
-            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            // docs/php-parity/Php/gettype.json, "gettype of null"
             expect(() => Arr.boolean([null, true], 0)).toThrow(
                 "Array value for key [0] must be a boolean, NULL found.",
             );
-            // docs/php-parity/task-17-second-review.json, "gettype of an array"
+            // docs/php-parity/Php/gettype.json, "gettype of an array"
             expect(() => Arr.boolean([[1], true], 0)).toThrow(
                 "Array value for key [0] must be a boolean, array found.",
             );
@@ -374,7 +374,7 @@ describe("Arr", () => {
         });
 
         it("keys each chunk by its source offset when preserveKeys is true", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "collection-chunk-last-chunk-keys"
+            // docs/php-parity/Collection/chunk.json, "collection-chunk-last-chunk-keys"
             const result = Arr.chunk([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3, true);
 
             expect(result).toEqual([
@@ -387,7 +387,7 @@ describe("Arr", () => {
     });
 
     describe("chunkWhile", () => {
-        // docs/php-parity/task-21-chunk-while-by.json — array chunks are reindexed
+        // docs/php-parity/Collection/chunkWhile.json — array chunks are reindexed
         it("chunks equal adjacent elements", () => {
             const result = Arr.chunkWhile(
                 ["A", "A", "B", "B", "C", "C", "C"],
@@ -464,7 +464,7 @@ describe("Arr", () => {
     });
 
     describe("chunkBy", () => {
-        // docs/php-parity/task-21-chunk-while-by.json
+        // docs/php-parity/Collection/chunkBy.json
         it("chunks by a callback", () => {
             expect(
                 Arr.chunkBy([1, 1, 2, 2, 3, 3, 3], (value) => value),
@@ -544,7 +544,7 @@ describe("Arr", () => {
             ]);
         });
 
-        // docs/php-parity/task-21-chunk-while-by.json, "chunkBy with a null key falls back to
+        // docs/php-parity/Collection/chunkBy.json, "chunkBy with a null key falls back to
         // identity comparison, like a callback" — PHP has no `undefined`, so that one probe
         // backs both the `null` and `undefined` cases below (valueRetriever(null) === identity).
         it("treats a null or undefined key as the identity, like a callback", () => {
@@ -559,7 +559,7 @@ describe("Arr", () => {
 
     describe("collapse", () => {
         it("skips a Date, a Map or a class instance item, as Arr::collapse skips a PHP object", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-skips-objects"
+            // docs/php-parity/Arr/collapse.json, "collapse-skips-objects"
             class Point {
                 x = 1;
                 y = 2;
@@ -609,7 +609,7 @@ describe("Arr", () => {
         });
 
         it("appends integer keys instead of letting a later one overwrite, but string keys still let later win", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-int-keys", "collapse-string-keys"
+            // docs/php-parity/Arr/collapse.json, "collapse-int-keys", "collapse-string-keys"
             expect(Arr.collapse([{ a: 1, 5: "x" }, { 5: "y" }])).toEqual({
                 a: 1,
                 0: "x",
@@ -628,7 +628,7 @@ describe("Arr", () => {
         });
 
         it("keeps list items when an object item is present, as array_merge does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-list-then-map", "collapse-map-then-list"
+            // docs/php-parity/Arr/collapse.json, "collapse-list-then-map", "collapse-map-then-list"
             expect(Arr.collapse([[1, 2], { x: 1, 0: "z" }])).toEqual({
                 0: 1,
                 1: 2,
@@ -643,7 +643,7 @@ describe("Arr", () => {
         });
 
         it("merges a Collection-like item's items and skips a scalar", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-collection-items"
+            // docs/php-parity/Arr/collapse.json, "collapse-collection-items"
             expect(
                 Arr.collapse([collectionLike([1, 2]), 5, collectionLike([3])]),
             ).toEqual([1, 2, 3]);
@@ -651,7 +651,7 @@ describe("Arr", () => {
 
         it("merges a lazy collection's items beside an array's and a collection's", () => {
             // ArrTest::testCollapse. LazyCollection is not ported: any Collection-like item stands in for it.
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "collapse-lazy-list" and "collapse-lazy-nested-kept"
+            // docs/php-parity/Arr/collapse.json, "collapse-lazy-list" and "collapse-lazy-nested-kept"
             expect(
                 Arr.collapse([
                     [1],
@@ -669,7 +669,7 @@ describe("Arr", () => {
         });
 
         it("merges a plain object item's all member as data, never unwrapping it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            // docs/php-parity/Collection/collapse.json, "C32-E-array-item-all-member-is-data"
             const all = () => [9];
             const collapsed = Arr.collapse([{ all, b: 2 }]);
 
@@ -678,7 +678,7 @@ describe("Arr", () => {
         });
 
         it("renumbers a negative integer key like any other integer key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "collapse-negative-int-keys"
+            // docs/php-parity/Arr/collapse.json, "collapse-negative-int-keys"
             expect(
                 Arr.collapse([{ "-1": "a", k: "b" }, { "-1": "c" }]),
             ).toEqual({ 0: "a", 1: "c", k: "b" });
@@ -721,7 +721,7 @@ describe("Arr", () => {
         });
 
         it("throws when the key and value counts differ", () => {
-            // PHP-verified message (docs/php-parity/task-04-shared.json,
+            // PHP-verified message (docs/php-parity/Php/array_combine.json,
             // "array_combine mismatch").
             expect(() => Arr.combine(["a", "b"], [1])).toThrow(
                 "array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements",
@@ -750,14 +750,14 @@ describe("Arr", () => {
         });
 
         it("casts null, true and false keys the way array_combine does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "D5 combine null/bool/float keys"
+            // docs/php-parity/Collection/combine.json, "D5 combine null/bool/float keys"
             expect(Arr.combine([null], [1])).toEqual({ "": 1 });
             expect(Arr.combine([true], [1])).toEqual({ 1: 1 });
             expect(Arr.combine([false], [1])).toEqual({ "": 1 });
         });
 
         it("takes the values of a keyed or Collection-like values operand, as array_combine does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "combine-list-keyed-values"
+            // docs/php-parity/Collection/combine.json, "combine-list-keyed-values"
             expect(Arr.combine([1, 2], { a: "x", b: "y" })).toEqual({
                 1: "x",
                 2: "y",
@@ -768,7 +768,7 @@ describe("Arr", () => {
         });
 
         it("keys a float by PHP's (string) cast", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "combine-float-keys"
+            // docs/php-parity/Collection/combine.json, "combine-float-keys"
             expect(
                 Object.keys(
                     Arr.combine([Infinity, -0, 1e21, 1.5e-7], [1, 2, 3, 4]),
@@ -832,7 +832,7 @@ describe("Arr", () => {
         });
 
         it("walks the values of a plain object, Map or Set argument", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            // docs/php-parity/Arr/crossJoin.json, "crossJoin-list-map-dimension"
             const rows = [
                 [1, "x"],
                 [1, "y"],
@@ -860,7 +860,7 @@ describe("Arr", () => {
         });
 
         it("returns no rows for a Date argument, where PHP's foreach visits nothing", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "crossJoin-list-map-dimension"
+            // docs/php-parity/Arr/crossJoin.json, "crossJoin-list-map-dimension"
             expect(Arr.crossJoin([1], keyed(new Date(0)))).toEqual([]);
         });
     });
@@ -924,7 +924,7 @@ describe("Arr", () => {
         });
 
         it("walks a float as the path its string form names", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-except-float-list-path"
+            // docs/php-parity/Arr/except.json, "C32-D-arr-except-float-list-path"
             expect(Arr.except([["a", "b", "c", "d", "e", "f"]], [0.5])).toEqual(
                 [["a", "b", "c", "d", "e"]],
             );
@@ -932,7 +932,7 @@ describe("Arr", () => {
         });
 
         it("throws array_key_exists()'s TypeError for an array key, even over no items", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            // docs/php-parity/Arr/except.json, "C32-D-array-key-type-error"
             expect(() =>
                 Arr.except([], [["b"]] as unknown as string[]),
             ).toThrow(
@@ -960,13 +960,13 @@ describe("Arr", () => {
         it.each(["", " ", "01", " 1", "1e0", "0x1", "-0", "1.0"])(
             "does not find the non-canonical key %j in a list",
             (key) => {
-                // docs/php-parity/task-23-obj-release-readiness.json, "exists-list-non-canonical-keys"
+                // docs/php-parity/Arr/exists.json, "exists-list-non-canonical-keys"
                 expect(Arr.exists([1, 2, 3], key)).toBe(false);
             },
         );
 
         it("casts a null key to the empty string and a float key to its string form", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "exists-list-null-and-float-keys"
+            // docs/php-parity/Arr/exists.json, "exists-list-null-and-float-keys"
             expect(Arr.exists([1, 2, 3], null)).toBe(false);
             expect(Arr.exists([1, 2, 3], 1.5)).toBe(false);
             expect(Arr.exists([1, 2, 3], 1.0)).toBe(true);
@@ -974,7 +974,7 @@ describe("Arr", () => {
         });
 
         it("looks -0 up as the key '-0', which no list holds", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "exists-float-key-cast"
+            // docs/php-parity/Arr/exists.json, "exists-float-key-cast"
             expect(Arr.exists([1], -0)).toBe(false);
             expect(Arr.exists([1], 0)).toBe(true);
         });
@@ -1310,7 +1310,7 @@ describe("Arr", () => {
         });
 
         it("keeps an object that isn't a plain object whole", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-object-leaf"
+            // docs/php-parity/Arr/flatten.json, "flatten-object-leaf"
             const point = new Point();
             const date = new Date(0);
             const map = new Map([["a", 1]]);
@@ -1324,7 +1324,7 @@ describe("Arr", () => {
         });
 
         it("flattens a Collection-like item's items", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "flatten-collection-item"
+            // docs/php-parity/Arr/flatten.json, "flatten-collection-item"
 
             expect(Arr.flatten([collectionLike([1, [2, 3]]), 4])).toEqual([
                 1, 2, 3, 4,
@@ -1343,7 +1343,7 @@ describe("Arr", () => {
 
         it("flattens lazy collections wherever they sit", () => {
             // ArrTest::testFlattenWithLazyCollections. LazyCollection is not ported: a Collection-like item stands in.
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "flatten-lazy-list", "flatten-lazy-depth-1"
+            // docs/php-parity/Arr/flatten.json, "flatten-lazy-list", "flatten-lazy-depth-1"
             // and "flatten-lazy-depth-2"
             expect(
                 Arr.flatten([
@@ -1369,7 +1369,7 @@ describe("Arr", () => {
         });
 
         it("keeps a plain object item's all member as a value, never unwrapping it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-array-item-all-member-is-data"
+            // docs/php-parity/Collection/collapse.json, "C32-E-array-item-all-member-is-data"
             const all = () => [9];
 
             expect(Arr.flatten([{ all, b: 2 }])).toEqual([all, 2]);
@@ -1507,7 +1507,7 @@ describe("Arr", () => {
             expect(Arr.forget([], ["0", "1"])).toEqual([]);
 
             // 8) A numeric string with leading zeros is a string key no list holds
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/forget.json,
             // "forget-top-level-key-cast", row "01"
             expect(Arr.forget(base, "01")).toEqual(base);
 
@@ -1551,7 +1551,7 @@ describe("Arr", () => {
 
     describe("from", () => {
         it("throws InvalidArgumentException for a scalar, as Laravel's Arr::from does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-A-arr-from-scalar-throws"
+            // docs/php-parity/Arr/from.json, "C32-A-arr-from-scalar-throws"
             expect(() => Arr.from(123)).toThrow(InvalidArgumentException);
         });
 
@@ -1716,7 +1716,7 @@ describe("Arr", () => {
         });
 
         it("traverses an object nested in a list", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "get-through-list" (the list-shaped twin)
+            // docs/php-parity/Arr/get.json, "get-through-list" (the list-shaped twin)
             expect(
                 Arr.get(
                     [{ products: [{ name: "desk" }] }],
@@ -1728,14 +1728,14 @@ describe("Arr", () => {
         it.each(["01", " 1", "1e0", "+1", "0x1", "-0", "1 "])(
             "returns the default for the non-canonical index %j, agreeing with has()",
             (key) => {
-                // docs/php-parity/task-23-obj-release-readiness.json, "get-list-non-canonical-index"
+                // docs/php-parity/Arr/get.json, "get-list-non-canonical-index"
                 expect(Arr.get(["x", "y"], key, "d")).toBe("d");
                 expect(Arr.get([["x", "y"]], `0.${key}`, "d")).toBe("d");
             },
         );
 
         it("looks an integer segment up as the own key of an object in a list, agreeing with has()", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "get-list-int-segment-into-map"
+            // docs/php-parity/Arr/get.json, "get-list-int-segment-into-map"
             expect(Arr.get([{ 0: "x" }], "0.0", "d")).toBe("x");
             expect(Arr.get([{ k: "v", 0: "x" }], "0.0", "d")).toBe("x");
             expect(Arr.get([[{ 1: "z" }]], "0.0.1", "d")).toBe("z");
@@ -2036,7 +2036,7 @@ describe("Arr", () => {
 
     describe("integer", () => {
         it("throws InvalidArgumentException, as Laravel's Arr::integer does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "integer-list-int-key"
+            // docs/php-parity/Arr/integer.json, "integer-list-int-key"
             expect(() => Arr.integer(["foo bar"], 0)).toThrow(
                 InvalidArgumentException,
             );
@@ -2054,11 +2054,11 @@ describe("Arr", () => {
         });
 
         it("reports the PHP type name, not the JS one", () => {
-            // docs/php-parity/task-17-second-review.json, "gettype of a float"
+            // docs/php-parity/Php/gettype.json, "gettype of a float"
             expect(() => Arr.integer([1.5], 0)).toThrow(
                 "Array value for key [0] must be an integer, double found.",
             );
-            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            // docs/php-parity/Php/gettype.json, "gettype of null"
             expect(() => Arr.integer([null], 0)).toThrow(
                 "Array value for key [0] must be an integer, NULL found.",
             );
@@ -2116,7 +2116,7 @@ describe("Arr", () => {
         });
 
         it("replaces a nested class instance instead of writing into it", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/set.json,
             // "r3-set-list-nested-object-is-replaced-wholesale": [new D4Point(1)] plus
             // Arr::set($src, '0.y', 2) answers [{"y": 2}], recorded type `array`.
             const point = new D4Point();
@@ -2129,7 +2129,7 @@ describe("Arr", () => {
         });
 
         it("descends into a nested list instead of replacing it", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/set.json,
             // "r4-set-nested-list-in-a-list-is-descended": [['q']] plus Arr::set($src,
             // '0.1', 'y') descends, because `is_array` holds for the nested list.
             const inner = ["q"];
@@ -2168,7 +2168,7 @@ describe("Arr", () => {
         });
 
         it("rebuilds a scalar element as a record for a dot path under its index", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/set.json,
             // "set-dot-path-under-a-list-index"
             expect(Arr.set(["a", "b"], "0.x", 5)).toEqual([{ x: 5 }, "b"]);
         });
@@ -2191,7 +2191,7 @@ describe("Arr", () => {
             // JS-only: the write stores "01" as the list's own property (path.spec.ts,
             // "keeps a non-canonical index a string key on a list") and the read misses it
             // ("resolves the same casts the write path uses"). PHP round-trips it:
-            // docs/php-parity/task-24-data-release-readiness.json, "own-key-channel-round-trip"
+            // docs/php-parity/Arr/set.json, "own-key-channel-round-trip"
             const written = Arr.set(["a", "b"], "01", "V");
 
             expect(Object.entries(written)).toEqual([
@@ -2206,7 +2206,7 @@ describe("Arr", () => {
         it("nests a record instead of storing an own key when the list is empty", () => {
             // JS-only: an EMPTY list root takes a third shape, neither PHP's nor the own-key
             // channel above — PHP answers ['01' => 'V'] either way
-            // (docs/php-parity/task-24-data-release-readiness.json, "e3-own-key-channel-empty-root").
+            // (docs/php-parity/Arr/set.json, "e3-own-key-channel-empty-root").
             const written = Arr.set([], "01", "V");
 
             expect(Object.entries(written)).toEqual([["0", { "01": "V" }]]);
@@ -2217,7 +2217,7 @@ describe("Arr", () => {
         it("answers has but not get for a stored negative index", () => {
             // JS-only: the same asymmetry is NOT uniform — "-1" is found by has() and
             // missed by get(), where "01" and "" are missed by both. PHP finds it with
-            // either (task-24-data-release-readiness.json,
+            // either (docs/php-parity/Arr/set.json,
             // "own-key-channel-negative-index-round-trip").
             const written = Arr.set(["a", "b"], "-1", "V");
 
@@ -2232,7 +2232,7 @@ describe("Arr", () => {
 
         it("drops a stored non-index key through except, add and a later set", () => {
             // JS-only: the own-property channel's limits, measured against PHP keeping the
-            // key through all three (task-24-data-release-readiness.json,
+            // key through all three (docs/php-parity/Arr/set.json,
             // "own-key-channel-survives-other-helpers"). only and forget do agree with PHP.
             const base = () => Arr.set(["a", "b"], "01", "V");
 
@@ -2274,7 +2274,7 @@ describe("Arr", () => {
                 ).toBeUndefined();
             });
 
-            // docs/php-parity/task-17-second-review.json, "Arr::set preserves a sibling \"__proto__\" key"
+            // docs/php-parity/Arr/set.json, "Arr::set preserves a sibling \"__proto__\" key"
             it("set keeps a __proto__ key through its deep copy", () => {
                 const payload = JSON.parse(
                     '[{"__proto__":{"isAdmin":true},"z":1}]',
@@ -2292,7 +2292,7 @@ describe("Arr", () => {
                 ).toBeUndefined();
             });
 
-            // docs/php-parity/task-17-second-review.json: "Arr::set writes a
+            // docs/php-parity/Arr/set.json: "Arr::set writes a
             // \"constructor\" key", "...a \"prototype\" key", "...a \"__proto__\" key"
             it.each(["constructor", "prototype", "__proto__"])(
                 "keeps a %s key as own data",
@@ -2306,7 +2306,7 @@ describe("Arr", () => {
                 },
             );
 
-            // docs/php-parity/task-17-second-review.json, "Arr::set writes a nested \"constructor.prototype\" path"
+            // docs/php-parity/Arr/set.json, "Arr::set writes a nested \"constructor.prototype\" path"
             // (`Arr::set([], "constructor.prototype.polluted", 5)`)
             it("builds a nested constructor.prototype path without polluting", () => {
                 const result = Arr.set(
@@ -2325,7 +2325,7 @@ describe("Arr", () => {
 
     describe("push", () => {
         it("throws InvalidArgumentException, as Laravel's Arr::push does through Arr::array", () => {
-            // docs/php-parity/task-12-regression-pins.json, "push requires an array at the key"
+            // docs/php-parity/Arr/push.json, "push requires an array at the key"
             expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(
                 InvalidArgumentException,
             );
@@ -2334,7 +2334,7 @@ describe("Arr", () => {
         it("push", () => {
             let data: unknown[] = [];
 
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             data = Arr.push(data, "0.0", "Desk");
             expect(data).toEqual([[["Desk"]]]);
@@ -2344,7 +2344,7 @@ describe("Arr", () => {
             expect(data).toEqual([[["Desk", "Chair", "Lamp"]]]);
 
             // The guard fires at the final segment regardless of path depth. PHP-verified
-            // in docs/php-parity/task-12-regression-pins.json ("push at a multi-segment
+            // in docs/php-parity/Arr/push.json ("push at a multi-segment
             // key still requires an array at the resolved path").
             expect(() => Arr.push([["Desk"]], "0.0", "Chair", "Lamp")).toThrow(
                 "Array value for key [0.0] must be an array, string found.",
@@ -2365,7 +2365,7 @@ describe("Arr", () => {
         });
 
         it("throws PHP's message when the key holds a non-array", () => {
-            // PHP-verified in docs/php-parity/task-12-regression-pins.json
+            // PHP-verified in docs/php-parity/Arr/push.json
             // ("push requires an array at the key").
             expect(() => Arr.push([1, 2, 3], 0, 9)).toThrow(
                 "Array value for key [0] must be an array, integer found.",
@@ -2379,7 +2379,7 @@ describe("Arr", () => {
 
         it("leaves the caller's list and its nested value alone", () => {
             // JS-only: Arr::push takes the array BY REFERENCE and does mutate it
-            // (task-24-data-release-readiness.json, "push-mutates-the-caller-by-
+            // (docs/php-parity/Arr/push.json, "push-mutates-the-caller-by-
             // reference"); this port's settled contract keeps push non-mutating.
             const inner = ["a"];
             const source = [inner];
@@ -2393,7 +2393,7 @@ describe("Arr", () => {
 
         it("leaves the caller's nested value alone for an integer key too", () => {
             // JS-only: same contract, integer key. PHP mutates through the reference
-            // (task-24-data-release-readiness.json, "push-integer-key-mutates-the-
+            // (docs/php-parity/Arr/push.json, "push-integer-key-mutates-the-
             // caller-by-reference"); the copy step used to skip a non-string key.
             const inner = ["x"];
             const result = Arr.push([inner], 0, "y");
@@ -2430,7 +2430,7 @@ describe("Arr", () => {
 
         it("leaves the caller's list alone for a missing index", () => {
             // JS-only: the same contract for the top-level form. PHP stores a gapped
-            // key 4 (task-24-data-release-readiness.json, "push-missing-index-stores-
+            // key 4 (docs/php-parity/Arr/push.json, "push-missing-index-stores-
             // an-empty-array"); the port clamps that to an append, as its docblock says.
             const source: unknown[] = [1, 2, 3];
             const result = Arr.push(source, 4);
@@ -2456,12 +2456,12 @@ describe("Arr", () => {
         });
 
         it("creates nested structure for deep paths and appends when a path segment does not exist", () => {
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push appends
+            // PHP-verified in docs/php-parity/Arr/push.json ("push appends
             // into the array AT the key, never beside it").
             expect(Arr.push([], "0.0.0", "deep")).toEqual([[[["deep"]]]]);
 
             // The port clamps an out-of-range index to an append; PHP writes a gapped
-            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             const result = Arr.push([], "2", "value");
             expect(result).toEqual([["value"]]);
         });
@@ -2479,10 +2479,10 @@ describe("Arr", () => {
             ]); // Push to root
 
             // The port clamps an out-of-range index to an append; PHP writes a gapped
-            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             expect(Arr.push([], "1.0", "item")).toEqual([[["item"]]]);
 
-            // PHP-verified in docs/php-parity/task-16-final-review.json ("push
+            // PHP-verified in docs/php-parity/Arr/push.json ("push
             // rejects a boolean at the leaf").
             expect(() => Arr.push([true], "0", "value")).toThrow(
                 "Array value for key [0] must be an array, boolean found.",
@@ -2505,7 +2505,7 @@ describe("Arr", () => {
 
         it("creates minimal nested structure for a multi-segment path", () => {
             // The port clamps an out-of-range index to an append; PHP writes a gapped
-            // integer key instead (task-16-final-review.json, "push at an out-of-range index").
+            // integer key instead (docs/php-parity/Arr/push.json, "push at an out-of-range index").
             const nested = Arr.push([], "0.1.2", "deep-value");
             expect(nested).toEqual([[[["deep-value"]]]]);
         });
@@ -2599,7 +2599,7 @@ describe("Arr", () => {
         });
 
         it("returns the default and keeps the list for a non-canonical index", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "pull-list-non-canonical-index"
+            // docs/php-parity/Arr/pull.json, "pull-list-non-canonical-index"
             const result = Arr.pull(["x", "y"], "01", "d");
             expect(result.value).toBe("d");
             expect(result.data).toEqual(["x", "y"]);
@@ -2614,7 +2614,7 @@ describe("Arr", () => {
                 }
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            // docs/php-parity/Arr/join.json, "C32-H-arr-join-pieces"
             expect(Arr.join([1, [2, 3]], ",")).toBe("1,Array");
             expect(Arr.join([true, false, null, 1.5, "x"], ",")).toBe(
                 "1,,,1.5,x",
@@ -2627,7 +2627,7 @@ describe("Arr", () => {
         });
 
         it("throws PHP's Error for an object piece without its own toString, or a closure", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces": the message
+            // docs/php-parity/Arr/join.json, "C32-H-arr-join-pieces": the message
             // names the JS class, where PHP's names stdClass
             expect(() => Arr.join([1, new Point()], ",")).toThrow(
                 new Error(
@@ -2647,14 +2647,14 @@ describe("Arr", () => {
         });
 
         it("answers a lone item as the string it casts to, where PHP hands the item back", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-arr-join-pieces"
+            // docs/php-parity/Arr/join.json, "C32-H-arr-join-pieces"
             // JS-only: join() answers a string, so a lone [1, 2] or true is the string PHP's would cast to
             expect(Arr.join([[1, 2]], ", ", " and ")).toBe("Array");
             expect(Arr.join([true], ", ", " and ")).toBe("1");
         });
 
         it("throws for a lone object without its own toString, which PHP hands back", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-H-join-lone-object-item"
+            // docs/php-parity/Collection/join.json, "C32-H-join-lone-object-item"
             // JS-only: join() answers a string, so it throws the Error the object's cast raises where PHP returns it;
             // Collection's join() hands the object back, as its answer may be an item
             expect(() => Arr.join([new Point()], ", ", " and ")).toThrow(
@@ -2686,7 +2686,7 @@ describe("Arr", () => {
                 "1.1.0": "c",
             });
 
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot"
+            // docs/php-parity/Arr/dot.json, "dot-list-prepend-no-dot"
             expect(Arr.dot(["a", ["b"]], "root")).toEqual({
                 root0: "a",
                 "root1.0": "b",
@@ -2694,7 +2694,7 @@ describe("Arr", () => {
         });
 
         it("concatenates the prepend string and flattens objects inside a list", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot", "dot-list-of-assoc"
+            // docs/php-parity/Arr/dot.json, "dot-list-prepend-no-dot", "dot-list-of-assoc"
             expect(Arr.dot(["x", ["y"]], "user")).toEqual({
                 user0: "x",
                 "user1.0": "y",
@@ -2706,7 +2706,7 @@ describe("Arr", () => {
         });
 
         it("keeps a class instance inside a list as a leaf", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-object-leaf"
+            // docs/php-parity/Arr/dot.json, "dot-object-leaf"
             const point = new Point();
             const list = Arr.dot([point]);
             const nested = Arr.dot([{ p: point }]);
@@ -2746,7 +2746,7 @@ describe("Arr", () => {
                 "1": ["b"],
             });
 
-            // docs/php-parity/task-23-obj-release-readiness.json, "dot-list-prepend-no-dot", "dot-prepend-no-dot-depth"
+            // docs/php-parity/Arr/dot.json, "dot-list-prepend-no-dot", "dot-prepend-no-dot-depth"
             expect(Arr.dot(["a", [["b"]]], "prefix", 1)).toEqual({
                 prefix0: "a",
                 "prefix1.0": ["b"],
@@ -2808,7 +2808,7 @@ describe("Arr", () => {
         it.each(["1e2", " 1", "+1", "01"])(
             "throws for the non-canonical index %s",
             (key) => {
-                // PHP-verified in docs/php-parity/task-12-regression-pins.json: PHP keeps
+                // PHP-verified in docs/php-parity/Arr/undot.json: PHP keeps
                 // these as string keys, so arr must refuse rather than build an array.
                 expect(() => Arr.undot({ [key]: "x" })).toThrow(
                     /canonical decimal integer/,
@@ -2947,7 +2947,7 @@ describe("Arr", () => {
         });
 
         it("reads a keyed or Collection-like operand by key, as PHP's + does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand"
+            // docs/php-parity/Collection/union.json, "union-list-keyed-operand"
             expect(Arr.union([1, 2], keyed({ 2: "z" }))).toEqual([1, 2, "z"]);
             expect(Arr.union([1], keyed({ 3: "d" }), [9, 8, 7, 6])).toEqual([
                 1,
@@ -2961,7 +2961,7 @@ describe("Arr", () => {
         });
 
         it("holds undefined at an index no operand fills, and has no place for a string key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "union-list-keyed-operand": PHP's "gap" and
+            // docs/php-parity/Collection/union.json, "union-list-keyed-operand": PHP's "gap" and
             // "string-key" results aren't lists; a list fills the gap with undefined, as replace does, and drops "a".
             expect(Arr.union([1], keyed({ 3: "d" }))).toEqual([
                 1,
@@ -3189,7 +3189,7 @@ describe("Arr", () => {
         });
 
         it("counts a callback match holding null when strict, as array_any does", () => {
-            // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
+            // obj's sibling fix: docs/php-parity/Collection/containsStrict.json,
             // "D2 containsStrict callback matching a null value"
             expect(
                 Arr.contains([null, 1], (value) => value === null, true),
@@ -3200,7 +3200,7 @@ describe("Arr", () => {
         });
 
         it("compares strictly by value, the way PHP's === does", () => {
-            // obj's sibling fix: docs/php-parity/task-23-obj-release-readiness.json,
+            // obj's sibling fix: docs/php-parity/Collection/containsStrict.json,
             // "D3 containsStrict NAN", "D4 containsStrict array by value"
             expect(Arr.contains([NaN], NaN, true)).toBe(false);
             expect(Arr.contains([[1]], [1], true)).toBe(true);
@@ -3208,14 +3208,14 @@ describe("Arr", () => {
         });
 
         it("misses an object with the same entries in another order when strict", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-key-order"
+            // docs/php-parity/Collection/containsStrict.json, "containsStrict-key-order"
             expect(Arr.contains([{ x: 1, y: 2 }], { y: 2, x: 1 }, true)).toBe(
                 false,
             );
         });
 
         it("compares a key path with an operator when a fourth argument follows", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "contains-three-args-operator"
+            // docs/php-parity/Collection/contains.json, "contains-three-args-operator"
             const rows = [{ v: 1 }, { v: 3 }, { v: "4" }, { v: 5 }];
 
             expect(Arr.contains(rows, "v", "=", 4)).toBe(true);
@@ -3225,7 +3225,7 @@ describe("Arr", () => {
         });
 
         it("compares a key path loosely in the three-argument form", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "contains-two-args-key-value" for the match, and "r3-list-backed-contains",
             // "key-value-no-match", for the miss the first row never recorded.
             expect(Arr.contains([{ v: 1 }, { v: 3 }, { v: 5 }], "v", 1)).toBe(
@@ -3250,7 +3250,7 @@ describe("Arr", () => {
         });
 
         it("reads the item itself for an undefined key and takes a non-string operator", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "r3-contains-boolean-value", "null-key-operator" and "non-string-operator":
             // a non-string operator misses every case arm and lands on PHP's `default:`.
             expect(Arr.contains([1, 2, 3], undefined, ">", 2)).toBe(true);
@@ -3259,7 +3259,7 @@ describe("Arr", () => {
         });
 
         it("reads a boolean third argument as strict, where PHP reads it as the value", () => {
-            // JS-only: docs/php-parity/task-24-data-release-readiness.json,
+            // JS-only: docs/php-parity/Collection/contains.json,
             // "r3-contains-boolean-value" records "key-true" as true. This port's third
             // parameter is `strict` and takes the boolean first, so PHP's call is written
             // with an explicit operator here — "key-operator-true", also true.
@@ -3277,13 +3277,13 @@ describe("Arr", () => {
 
     describe("containsStrict", () => {
         it("compares by value with PHP's ===", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "containsStrict-numeric-string"
+            // docs/php-parity/Collection/containsStrict.json, "containsStrict-numeric-string"
             expect(Arr.containsStrict([1, 3, 5, "02"], "02")).toBe(true);
             expect(Arr.containsStrict([1, 3, 5, "02"], 2)).toBe(false);
         });
 
         it("compares a key path strictly when a second argument is given", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "containsStrict-two-args-by-value"
+            // docs/php-parity/Collection/containsStrict.json, "containsStrict-two-args-by-value"
             expect(
                 Arr.containsStrict([{ tags: ["a", "b"] }], "tags", ["a", "b"]),
             ).toBe(true);
@@ -3307,13 +3307,13 @@ describe("Arr", () => {
         });
 
         it("counts a callback match holding null, as array_any does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
-            // "r3-list-backed-contains", "containsStrict-callback-null": the list-backed
-            // twin. task-23's row of that name is backed by ['a' => null, 'b' => 1].
+            // docs/php-parity/Collection/contains.json, "r3-list-backed-contains", "containsStrict-callback-null": the
+            // list-backed twin; its assoc one is docs/php-parity/Collection/containsStrict.json,
+            // "D2 containsStrict callback matching a null value", backed by ['a' => null, 'b' => 1].
             expect(
                 Arr.containsStrict([null, 1], (value) => value === null),
             ).toBe(true);
-            // docs/php-parity/task-31-laravel-13-33-sync.json,
+            // docs/php-parity/Collection/containsStrict.json,
             // "containsStrict-list-null-callback" and "containsStrict-list-zero-callback"
             expect(
                 Arr.containsStrict([1, null, 2], (value) => value === null),
@@ -3332,7 +3332,7 @@ describe("Arr", () => {
                 return value === null;
             });
 
-            // docs/php-parity/task-31-laravel-13-33-sync.json, "containsStrict-stops-at-first-match"
+            // docs/php-parity/Collection/containsStrict.json, "containsStrict-stops-at-first-match"
             expect(seen).toEqual([0, 1]);
         });
     });
@@ -3368,7 +3368,7 @@ describe("Arr", () => {
 
         // array_filter's falsy set is narrower than Boolean: it drops "0", "", 0, [],
         // false and null, but keeps "00" and "0.0". PHP-verified in
-        // docs/php-parity/task-04-shared.json.
+        // docs/php-parity/Collection/filter.json.
         it("drops PHP-falsy values including the string zero", () => {
             expect(Arr.filter(["0", "", 0, "x"])).toEqual(["x"]);
         });
@@ -3377,12 +3377,12 @@ describe("Arr", () => {
             expect(Arr.filter(["00", "0.0", "0"])).toEqual(["00", "0.0"]);
         });
 
-        // PHP-verified (docs/php-parity/task-04-shared.json, "NAN is truthy for array_filter").
+        // PHP-verified (docs/php-parity/Php/array_filter.json, "NAN is truthy for array_filter").
         it("keeps NaN, which is truthy in PHP", () => {
             expect(Arr.filter([NaN, 0, 1])).toEqual([NaN, 1]);
         });
 
-        // The full nine-value probe set from docs/php-parity/task-04-shared.json,
+        // The full nine-value probe set from docs/php-parity/Collection/filter.json,
         // pinned once: only 'x', '00' and '0.0' survive filter().
         it("matches the full probed falsy set", () => {
             expect(
@@ -3453,14 +3453,14 @@ describe("Arr", () => {
         });
 
         it("reads a scalar replacer as [scalar], as getArrayableItems() does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replace-scalar-operand"
+            // docs/php-parity/Collection/replace.json, "replace-scalar-operand"
             expect(Arr.replace(["a", "b"], "z")).toEqual(["z", "b"]);
             expect(Arr.replace(["a", "b"], 123)).toEqual([123, "b"]);
             expect(Arr.replace(["a", "b"], true)).toEqual([true, "b"]);
         });
 
         it("drops a key a list can't hold instead of reading it as an index, as union does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
+            // docs/php-parity/Collection/replace.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
             // "-1" and "1.5" as keys of a keyed result; a list holds only its integer keys, as arr.union's does.
             expect(Arr.replace(["a", "b", "c"], { 1: "x", k: "y" })).toEqual([
                 "a",
@@ -3512,7 +3512,7 @@ describe("Arr", () => {
         });
 
         it("unwraps a Collection-like replacer, the sibling of obj.replace's fix", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-collection-operand"
+            // docs/php-parity/Collection/replace.json, "replace-list-collection-operand"
 
             expect(Arr.replace([1, 2, 3], collectionLike([9]))).toEqual([
                 9, 2, 3,
@@ -3553,7 +3553,7 @@ describe("Arr", () => {
         });
 
         it("keeps a replacer list's object element whole instead of spreading it into the list", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-elements-kept-whole"
+            // docs/php-parity/Collection/replaceRecursive.json, "replaceRecursive-list-elements-kept-whole"
             expect(Arr.replaceRecursive([1, 2], [{ 1: "x" }])).toEqual([
                 { 1: "x" },
                 2,
@@ -3564,7 +3564,7 @@ describe("Arr", () => {
         });
 
         it("merges two nested arrays or plain objects by key and replaces any other object whole", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-nested-list-meets-map",
+            // docs/php-parity/Collection/replaceRecursive.json, "replaceRecursive-nested-list-meets-map",
             // "replaceRecursive-object-leaf". JS-only: a Map has no PHP analogue; it is a leaf like any object.
             const date = new Date(1);
 
@@ -3593,7 +3593,7 @@ describe("Arr", () => {
         });
 
         // Same rationale as the "replace" pins above. Values pinned by
-        // docs/php-parity/task-05-replace.json "replaceRecursive array nested" and
+        // docs/php-parity/Collection/replaceRecursive.json "replaceRecursive array nested" and
         // "replaceRecursive array (null)".
         it("does not mutate its argument, including a nested object embedded in an array", () => {
             // The nested-object shape matters here specifically: arr.replaceRecursive
@@ -3609,7 +3609,7 @@ describe("Arr", () => {
         });
 
         it("unwraps a Collection-like replacer, the sibling of obj.replaceRecursive's fix", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replaceRecursive-list-collection-operand"
+            // docs/php-parity/Collection/replaceRecursive.json, "replaceRecursive-list-collection-operand"
 
             expect(
                 Arr.replaceRecursive([{ a: 1 }], collectionLike([{ b: 2 }])),
@@ -3617,14 +3617,14 @@ describe("Arr", () => {
         });
 
         it("reads a scalar replacer as [scalar], as getArrayableItems() does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replace-scalar-operand"
+            // docs/php-parity/Collection/replace.json, "replace-scalar-operand"
             expect(Arr.replaceRecursive(["a", "b"], "z")).toEqual(["z", "b"]);
             expect(Arr.replaceRecursive(["a", "b"], 123)).toEqual([123, "b"]);
             expect(Arr.replaceRecursive(["a", "b"], true)).toEqual([true, "b"]);
         });
 
         it("applies a keyed replacer's integer keys and drops the keys a list can't hold, as union does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
+            // docs/php-parity/Collection/replace.json, "replace-list-keyed-replacer": PHP keeps "k", "01",
             // "-1" and "1.5" as keys of a keyed result; a list holds only its integer keys, as arr.union's does.
             expect(
                 Arr.replaceRecursive(["a", "b", "c"], { 1: "x", k: "y" }),
@@ -3679,14 +3679,14 @@ describe("Arr", () => {
 
     describe("pad", () => {
         it("drops a fraction from the size, as array_pad()'s int parameter does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            // docs/php-parity/Collection/pad.json, "C32-B-pad-fractional-and-non-int-sizes"
             expect(Arr.pad([1, 2, 3], 7.5, 0)).toEqual([1, 2, 3, 0, 0, 0, 0]);
             expect(Arr.pad([1, 2, 3], -7.5, 0)).toEqual([0, 0, 0, 0, 1, 2, 3]);
             expect(Arr.pad([1, 2, 3], 0.5, 0)).toEqual([1, 2, 3]);
         });
 
         it("throws array_pad()'s TypeError for a size no int holds, and its ValueError past the maximum array size", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-fractional-and-non-int-sizes"
+            // docs/php-parity/Collection/pad.json, "C32-B-pad-fractional-and-non-int-sizes"
             for (const size of [NaN, Infinity, -Infinity, 1e19, -1e19]) {
                 expect(() => Arr.pad([1, 2, 3], size, 0)).toThrow(
                     new TypeError(
@@ -3695,7 +3695,7 @@ describe("Arr", () => {
                 );
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pad-far-past-maximum-array-size"
+            // docs/php-parity/Collection/pad.json, "C32-B-pad-far-past-maximum-array-size"
             for (const size of [1e18, -1e18]) {
                 expect(() => Arr.pad([1, 2, 3], size, 0)).toThrow(
                     new Error(
@@ -3817,7 +3817,7 @@ describe("Arr", () => {
         });
 
         it("selects an item's own keys, never its prototype's", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-prototype-key-names"
+            // docs/php-parity/Collection/select.json, "C32-D-select-prototype-key-names"
             expect(
                 Arr.select([{ a: 1 }], ["toString", "constructor", "a"]),
             ).toEqual([{ a: 1 }]);
@@ -3847,7 +3847,7 @@ describe("Arr", () => {
                 ["a", "n", "p", "q", "missing"],
             );
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-rows"
+            // docs/php-parity/Collection/select.json, "C32-D-select-arrayaccess-rows"
             expect(selected).toEqual([{ a: "offset-a", n: null, p: "prop-p" }]);
             expect(Object.keys(selected[0] ?? {})).toEqual(["a", "n", "p"]);
         });
@@ -3874,7 +3874,7 @@ describe("Arr", () => {
             const selectedOne = Arr.select([one], ["a"]);
             const selectedTwo = Arr.select([two], ["a", "missing"]);
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-arrayaccess-call-counts"
+            // docs/php-parity/Arr/select.json, "C32-D-select-arrayaccess-call-counts"
             expect([selectedOne, one.calls]).toEqual([
                 [{ a: 1 }],
                 { exists: 1, gets: 1 },
@@ -3906,7 +3906,7 @@ describe("Arr", () => {
                 }
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-collection-row-fields"
+            // docs/php-parity/Arr/select.json, "C32-D-select-collection-row-fields"
             expect(Arr.select([new Rows({ a: 1 })], ["items", "a"])).toEqual([
                 { a: 1 },
             ]);
@@ -3919,7 +3919,7 @@ describe("Arr", () => {
             }
             const keys = ["a", ["b"]] as unknown as string[];
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-array-key-type-error"
+            // docs/php-parity/Arr/except.json, "C32-D-array-key-type-error"
             expect(() => Arr.select([{ a: 1, b: 2 }], keys)).toThrow(
                 new TypeError(
                     "array_key_exists(): Argument #1 ($key) must be a valid array offset type",
@@ -3933,17 +3933,17 @@ describe("Arr", () => {
         it("reads a null among the keys as the '' key, where a bare null is no keys at all", () => {
             const rows = [{ "": "e", a: 1 }];
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-null-key-cast"
+            // docs/php-parity/Arr/select.json, "C32-D-select-null-key-cast"
             expect(Arr.select(rows, [null])).toEqual([{ "": "e" }]);
             expect(Arr.select(rows, null)).toEqual([{}]);
         });
 
         it("selects a list item by index, reading a numeric string as one and length as none", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-int-key"
+            // docs/php-parity/Collection/select.json, "C32-D-select-int-key"
             expect(Arr.select([[10, 20, 30]], [0, 2])).toEqual([
                 { 0: 10, 2: 30 },
             ]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-string-index-and-length"
+            // docs/php-parity/Collection/select.json, "C32-D-select-string-index-and-length"
             expect(Arr.select([[10, 20, 30]], ["1", "length"])).toEqual([
                 { 1: 20 },
             ]);
@@ -3955,7 +3955,7 @@ describe("Arr", () => {
                 [1, "x"],
             ]);
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-integer-string-key" and
+            // docs/php-parity/Collection/select.json, "C32-D-select-integer-string-key" and
             // "C32-D-select-array-null-value": a Map stands for the PHP array
             expect(Arr.select([item], ["1", "a"])).toEqual([
                 { 1: "x", a: null },
@@ -3971,7 +3971,7 @@ describe("Arr", () => {
                 e = undefined;
             }
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-object-falsy-props", whose
+            // docs/php-parity/Collection/select.json, "C32-D-select-object-falsy-props", whose
             // object has no `e`; an undefined property stands for PHP's null, which isset() skips as it skips `a`
             expect(
                 Object.keys(
@@ -3981,7 +3981,7 @@ describe("Arr", () => {
             expect(Arr.select([new Row()], ["a", "b", "c", "d", "e"])).toEqual([
                 { b: 1, c: 0, d: "" },
             ]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-select-array-null-value"
+            // docs/php-parity/Collection/select.json, "C32-D-select-array-null-value"
             expect(Arr.select([{ a: null, b: 1 }], ["a", "b"])).toEqual([
                 { a: null, b: 1 },
             ]);
@@ -4073,7 +4073,7 @@ describe("Arr", () => {
 
         it("accepts an operand of any shape, as getArrayableItems does", () => {
             // A nullish `data` returned `other` instead of nothing, and an object `other`
-            // was treated as absent. PHP-verified: docs/php-parity/task-16-final-review.json
+            // was treated as absent. PHP-verified: docs/php-parity/Collection/diff.json
             // ("diff accepts an operand of any shape").
             expect(Arr.diff(null, [1, 2])).toEqual([]);
             expect(Arr.diff([10, 20], { x: 20 })).toEqual([10]);
@@ -4088,7 +4088,7 @@ describe("Arr", () => {
         });
 
         it("compares values with PHP's (string) cast, not strict equality", () => {
-            // Captured: docs/php-parity/task-06-setops.json ("diff and
+            // Captured: docs/php-parity/Php/array_diff.json ("diff and
             // intersect compare by string cast"): array_diff([0],["0"]) === [].
             expect(Arr.diff([0], ["0"])).toEqual([]);
             expect(Arr.diff([null], [""])).toEqual([]);
@@ -4115,13 +4115,13 @@ describe("Arr", () => {
             expect(Arr.diffAssoc([1, 2], "not array")).toEqual([1, 2]);
         });
 
-        // docs/php-parity/task-17-second-review.json, "array_diff_assoc casts values to string"
+        // docs/php-parity/Php/array_diff_assoc.json, "array_diff_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
             expect(Arr.diffAssoc([0], ["0"] as never)).toEqual([]);
         });
 
         it("unwraps a Collection-like operand, the sibling of obj.diffAssoc's fix", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-collection-operand"
+            // docs/php-parity/Collection/diffAssoc.json, "diffAssoc-list-collection-operand"
 
             expect(Arr.diffAssoc([1, 2, 3], collectionLike([1, 9, 9]))).toEqual(
                 [2, 3],
@@ -4129,7 +4129,7 @@ describe("Arr", () => {
         });
 
         it("matches a keyed operand by key, never by position", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssoc-list-keyed-operand"
+            // docs/php-parity/Collection/diffAssoc.json, "diffAssoc-list-keyed-operand"
             expect(Arr.diffAssoc([1, 2], { a: 1, b: 2 })).toEqual([1, 2]);
             expect(Arr.diffAssoc(["a", "b"], { 1: "b" })).toEqual(["a"]);
         });
@@ -4137,7 +4137,7 @@ describe("Arr", () => {
 
     describe("diffKeys", () => {
         it("keeps the items whose index no key of other carries", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-keys",
+            // docs/php-parity/Collection/diffKeys.json, "d6-diff-keys",
             // "list" ([1,2,3] against [9,9] -> [2 => 3]) and "list-keyed-operand"
             // ([1,2] against ['a' => 1, 1 => 5] -> [1]).
             expect(Arr.diffKeys([1, 2, 3], [9, 9])).toEqual([3]);
@@ -4145,7 +4145,7 @@ describe("Arr", () => {
         });
 
         it("ignores values entirely", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // docs/php-parity/Collection/diffKeys.json, "d6-list-operand-edges",
             // "diffKeys-value-ignored": [1, 2] against [999] answers [1 => 2] — index 0
             // is dropped although 999 is neither value.
             expect(Arr.diffKeys([1, 2], [999])).toEqual([2]);
@@ -4170,7 +4170,7 @@ describe("Arr", () => {
     });
 
     describe("diffUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-diff-using", "list"
+        // docs/php-parity/Collection/diffUsing.json, "d6-diff-using", "list"
         it("drops the items the callback calls equal to some value of other", () => {
             expect(
                 Arr.diffUsing(
@@ -4182,7 +4182,7 @@ describe("Arr", () => {
         });
 
         it("keeps everything for a nullish operand", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // docs/php-parity/Collection/diffKeys.json, "d6-list-operand-edges",
             // "diffUsing-nullish-operand": ['green'] against null answers ['green'].
             expect(Arr.diffUsing(["green"], null, caseless)).toEqual(["green"]);
         });
@@ -4207,7 +4207,7 @@ describe("Arr", () => {
     });
 
     describe("diffAssocUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json,
+        // docs/php-parity/Collection/diffAssocUsing.json,
         // "d6-diff-assoc-using-and-diff-keys-using-on-a-list", "diffAssocUsing-list"
         it("compares indexes with the callback and values by PHP's string cast", () => {
             expect(Arr.diffAssocUsing([1, 2, 3], [1, 9, 3], sameKey)).toEqual([
@@ -4216,7 +4216,7 @@ describe("Arr", () => {
         });
 
         it("matches a numeric-string value the way array_diff_uassoc does", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "diffAssocUsing-list-string-cast"
+            // docs/php-parity/Collection/diffAssocUsing.json, "diffAssocUsing-list-string-cast"
             expect(Arr.diffAssocUsing([1, 2], ["1", "3"], sameKey)).toEqual([
                 2,
             ]);
@@ -4231,7 +4231,7 @@ describe("Arr", () => {
     });
 
     describe("diffKeysUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json,
+        // docs/php-parity/Collection/diffAssocUsing.json,
         // "d6-diff-assoc-using-and-diff-keys-using-on-a-list", "diffKeysUsing-list"
         it("compares indexes with the callback and ignores values", () => {
             expect(Arr.diffKeysUsing([1, 2], { a: 1, 1: 5 }, sameKey)).toEqual([
@@ -4240,7 +4240,7 @@ describe("Arr", () => {
         });
 
         it("unwraps a Collection-like operand", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "diffKeysUsing-list-collection-operand"
+            // docs/php-parity/Collection/diffKeysUsing.json, "diffKeysUsing-list-collection-operand"
             expect(
                 Arr.diffKeysUsing([1, 2, 3], collectionLike([9, 9]), sameKey),
             ).toEqual([3]);
@@ -4248,7 +4248,7 @@ describe("Arr", () => {
 
         it("returns nothing for nullish data and everything for a nullish operand", () => {
             // JS-only: PHP's Collection has no null backing, so no call records the first.
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Collection/contains.json,
             // "r3-contains-boolean-value", "diffKeysUsing-nullish-operand", for the second.
             expect(Arr.diffKeysUsing(null, [1], sameKey)).toEqual([]);
             expect(Arr.diffKeysUsing([1, 2], null, sameKey)).toEqual([1, 2]);
@@ -4256,7 +4256,7 @@ describe("Arr", () => {
     });
 
     describe("intersectUsing", () => {
-        // docs/php-parity/task-24-data-release-readiness.json, "d6-intersect-using", "list"
+        // docs/php-parity/Collection/intersectUsing.json, "d6-intersect-using", "list"
         it("keeps the items the callback calls equal to some value of other", () => {
             expect(
                 Arr.intersectUsing(
@@ -4268,7 +4268,7 @@ describe("Arr", () => {
         });
 
         it("keeps nothing for a nullish operand", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "d6-list-operand-edges",
+            // docs/php-parity/Collection/diffKeys.json, "d6-list-operand-edges",
             // "intersectUsing-nullish-operand": ['green'] against null answers [].
             expect(Arr.intersectUsing(["green"], null, caseless)).toEqual([]);
         });
@@ -4295,7 +4295,7 @@ describe("Arr", () => {
     describe("intersect", () => {
         it("accepts an operand of any shape, as getArrayableItems does", () => {
             // An object `other` was rejected outright by the `accessible(other)`
-            // guard. PHP-verified in docs/php-parity/task-16-final-review.json
+            // guard. PHP-verified in docs/php-parity/Collection/intersect.json
             // ("intersect accepts an operand of any shape").
             expect(Arr.intersect([1], { x: 1 })).toEqual([1]);
             expect(Arr.intersect([10, 20, 30, 40], { a: 20, b: 40 })).toEqual([
@@ -4332,7 +4332,7 @@ describe("Arr", () => {
         });
 
         it("compares values with PHP's (string) cast, not strict equality", () => {
-            // Captured: docs/php-parity/task-06-setops.json ("diff and intersect
+            // Captured: docs/php-parity/Php/array_diff.json ("diff and intersect
             // compare by string cast"): intersect_int_string is [0], intersect_bool_one
             // is [true], intersect_int_empty (array_intersect([0],[""])) is [].
             expect(Arr.intersect([0], ["0"])).toEqual([0]);
@@ -4367,7 +4367,7 @@ describe("Arr", () => {
         });
 
         it("unwraps a Collection-like operand, the sibling of obj.intersectByKeys's fix", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-collection-operand"
+            // docs/php-parity/Collection/intersectByKeys.json, "intersectByKeys-list-collection-operand"
 
             expect(
                 Arr.intersectByKeys([1, 2, 3], collectionLike([9, 9])),
@@ -4375,7 +4375,7 @@ describe("Arr", () => {
         });
 
         it("keeps the indices that are keys of a keyed operand, never its positions", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "intersectByKeys-list-keyed-operand"
+            // docs/php-parity/Collection/intersectByKeys.json, "intersectByKeys-list-keyed-operand"
             expect(Arr.intersectByKeys([1, 2, 3], { a: "x", b: "y" })).toEqual(
                 [],
             );
@@ -4425,14 +4425,14 @@ describe("Arr", () => {
         });
 
         it("keeps the array's order and lists a repeated index once, as array_intersect_key does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-arr-only-repeated-keys" and
+            // docs/php-parity/Arr/only.json, "C32-D-arr-only-repeated-keys" and docs/php-parity/Collection/only.json,
             // "C32-D-only-list-keys", whose keys name these items; a list renumbers them, as every removal does
             expect(Arr.only(["a", "b", "c"], [2, 0, 2])).toEqual(["a", "c"]);
             expect(Arr.only(["a", "b", "c", "d"], [3, 1])).toEqual(["b", "d"]);
         });
 
         it("skips a key array_flip cannot store, such as an array", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-only-odd-later-args"
+            // docs/php-parity/Collection/only.json, "C32-D-only-odd-later-args"
             expect(
                 Arr.only(["x", "y"], [0, [1]] as unknown as number[]),
             ).toEqual(["x"]);
@@ -4464,7 +4464,7 @@ describe("Arr", () => {
         });
 
         it("returns PHP's keyed result for a list given a key, which stays a list only for key 0", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-with-key"
+            // docs/php-parity/Arr/prepend.json, "prepend-list-with-key"
             expect(Arr.prepend(["b", "c"], "a", 0)).toStrictEqual(["a", "c"]);
             expect(Arr.prepend(["b", "c"], "a", 1)).toStrictEqual({
                 1: "a",
@@ -4484,7 +4484,7 @@ describe("Arr", () => {
                 0: "b",
                 1: "c",
             });
-            // docs/php-parity/task-23-obj-release-readiness.json, "prepend-list-null-empty-key"
+            // docs/php-parity/Arr/prepend.json, "prepend-list-null-empty-key"
             expect(Arr.prepend(["one", "two"], null, "")).toStrictEqual({
                 "": null,
                 0: "one",
@@ -4623,7 +4623,7 @@ describe("Arr", () => {
         });
 
         it("keeps the whole item when the value path is null", () => {
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json,
+            // PHP-verified: docs/php-parity/Arr/pluck.json,
             // "Arr::pluck null value keeps the item".
             const data = [{ name: "Taylor", role: "dev" }];
             expect(Arr.pluck(data, null, "name")).toEqual({
@@ -4656,7 +4656,7 @@ describe("Arr", () => {
 
         it('casts a boolean key to int, not the string "true"/"false"', () => {
             // PHP casts a boolean array key to int (true -> 1, false -> 0).
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json, "Arr::pluck —
+            // PHP-verified: docs/php-parity/Arr/pluck.json, "Arr::pluck —
             // boolean key casts to int, not string".
             const data = [
                 { value: "a", key: true },
@@ -4773,7 +4773,7 @@ describe("Arr", () => {
         });
 
         it("yields null for a wildcard over a non-iterable target", () => {
-            // PHP-verified in docs/php-parity/task-10-pluck-sort.json: data_get
+            // PHP-verified in docs/php-parity/Arr/pluck.json: data_get
             // bails to its default when the target is not iterable.
             expect(Arr.pluck([{ meta: "not-iterable" }], "meta.*.v")).toEqual([
                 null,
@@ -4889,7 +4889,7 @@ describe("Arr", () => {
         });
 
         it("casts a key closure's bool or float result the way PHP stores the key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-closure-casts"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-key-closure-casts"
             expect(
                 Arr.pluck(
                     [{ v: "x" }, { v: "y" }],
@@ -4903,7 +4903,7 @@ describe("Arr", () => {
         });
 
         it("casts a key path's null, bool or float value the way PHP stores the key", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-key-path-casts"
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-key-path-casts"
             expect(
                 Arr.pluck(
                     [
@@ -4919,7 +4919,7 @@ describe("Arr", () => {
         });
 
         it("throws for a key PHP cannot store", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-array-key",
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-array-key",
             // "C32-E-pluck-assoc-key" and "C32-E-pluck-date-key": a JS Date names its own class,
             // where PHP's message names DateTime.
             const rows = [{ v: 1 }];
@@ -4936,7 +4936,7 @@ describe("Arr", () => {
         });
 
         it("throws for an enum case key, which PHP cannot store either", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-pluck-enum-key": a case is a plain
+            // docs/php-parity/Collection/pluck.json, "C32-E-pluck-enum-key": a case is a plain
             // object here, so the message names the array it models where PHP names the enum's class.
             const Status = defineEnum({
                 A: 1,
@@ -4955,7 +4955,7 @@ describe("Arr", () => {
 
     describe("pop", () => {
         it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-pop-fractional-and-non-finite-counts"
             const data = [1, 2, 3, 4];
 
             expect(Arr.pop(data, 2.5)).toEqual([4, 3]);
@@ -4970,7 +4970,7 @@ describe("Arr", () => {
         });
 
         it("pops nothing for a count below 1 and throws range()'s ValueError for one between 1 and 2", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-pop-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-pop-fractional-and-non-finite-counts"
             const data = [1, 2, 3, 4];
 
             expect(Arr.pop(data, 0.5)).toEqual([]);
@@ -5105,7 +5105,7 @@ describe("Arr", () => {
         });
 
         it("hands the callback each item's index, like obj.keyBy hands it the key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-list-callback-key"
+            // docs/php-parity/Arr/keyBy.json, "keyBy-list-callback-key"
             expect(
                 Arr.keyBy([{ id: 1 }, { id: 2 }], (_, key) => `k${key}`),
             ).toEqual({ k0: { id: 1 }, k1: { id: 2 } });
@@ -5132,7 +5132,7 @@ describe("Arr", () => {
         });
 
         it("casts a bool, null or float key the way PHP stores an array offset", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "keyBy-scalar-key-cast"
+            // docs/php-parity/Arr/keyBy.json, "keyBy-scalar-key-cast"
             const rows = [{ k: true }, { k: false }, { k: null }];
             expect(Arr.keyBy(rows, "k")).toEqual({
                 1: { k: true },
@@ -5238,7 +5238,7 @@ describe("Arr", () => {
 
     describe("float", () => {
         it("throws InvalidArgumentException, as Laravel's Arr::float does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "float-list-int-key"
+            // docs/php-parity/Arr/float.json, "float-list-int-key"
             expect(() => Arr.float(["foo bar"], 0)).toThrow(
                 InvalidArgumentException,
             );
@@ -5260,7 +5260,7 @@ describe("Arr", () => {
             expect(() => Arr.float([{ price: "free" }], "0.price")).toThrow(
                 "Array value for key [0.price] must be a float, string found.",
             );
-            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            // docs/php-parity/Php/gettype.json, "gettype of null"
             expect(() => Arr.float([null, 1.5], 0)).toThrow(
                 "Array value for key [0] must be a float, NULL found.",
             );
@@ -5269,7 +5269,7 @@ describe("Arr", () => {
 
     describe("string", () => {
         it("throws InvalidArgumentException, as Laravel's Arr::string does", () => {
-            // docs/php-parity/task-24-data-release-readiness.json, "string-list-int-key"
+            // docs/php-parity/Arr/string.json, "string-list-int-key"
             expect(() => Arr.string([1234], 0)).toThrow(
                 InvalidArgumentException,
             );
@@ -5284,14 +5284,14 @@ describe("Arr", () => {
             expect(Arr.string([1, 2, 3], 10, "default")).toBe("default");
 
             // Should throw for non-strings
-            // docs/php-parity/task-17-second-review.json, "gettype of an integer"
+            // docs/php-parity/Php/gettype.json, "gettype of an integer"
             expect(() => Arr.string([123, "hello"], 0)).toThrow(
                 "Array value for key [0] must be a string, integer found.",
             );
             expect(() => Arr.string([{ name: 123 }], "0.name")).toThrow(
                 "Array value for key [0.name] must be a string, integer found.",
             );
-            // docs/php-parity/task-17-second-review.json, "gettype of null"
+            // docs/php-parity/Php/gettype.json, "gettype of null"
             expect(() => Arr.string([null, "valid"], 0)).toThrow(
                 "Array value for key [0] must be a string, NULL found.",
             );
@@ -5313,16 +5313,16 @@ describe("Arr", () => {
             ).toBe("apple");
 
             // Should throw for empty arrays
-            // docs/php-parity/task-24-data-release-readiness.json, "sole-empty-no-callback";
-            // task-23-obj-release-readiness.json, "sole-none" - the message is empty in Laravel too.
+            // docs/php-parity/Arr/sole.json, "sole-empty-no-callback";
+            // docs/php-parity/Arr/sole.json, "sole-none" - the message is empty in Laravel too.
             expect(() => Arr.sole([])).toThrow(ItemNotFoundException);
             expect(() => Arr.sole([1, 2, 3], (value) => value > 5)).toThrow(
                 ItemNotFoundException,
             );
 
             // Should throw for multiple items
-            // docs/php-parity/task-24-data-release-readiness.json, "sole-multi-no-callback";
-            // task-23-obj-release-readiness.json, "sole-multi-list"
+            // docs/php-parity/Arr/sole.json, "sole-multi-no-callback";
+            // docs/php-parity/Arr/sole.json, "sole-multi-list"
             expect(() => Arr.sole([1, 2])).toThrow(MultipleItemsFoundException);
             expect(() => Arr.sole([1, 2])).toThrow("2 items were found.");
             expect(() => Arr.sole([1, 2, 3], (value) => value > 1)).toThrow(
@@ -5392,7 +5392,7 @@ describe("Arr", () => {
         });
 
         it("spreads a Collection-like row's items, not its own fields", () => {
-            // docs/php-parity/task-24-data-release-readiness.json,
+            // docs/php-parity/Arr/mapSpread.json,
             // "d6-map-spread-collection-row", "list"
             const rows = [collectionLike([1, "a"]), collectionLike([2, "b"])];
 
@@ -5416,7 +5416,7 @@ describe("Arr", () => {
         });
 
         it("spreads a plain object row's values, never unwrapping its all member", () => {
-            // JS-only: PHP throws on a string-keyed row (task-32-collection-release-readiness.json,
+            // JS-only: PHP throws on a string-keyed row (docs/php-parity/Collection/mapSpread.json,
             // "C32-E-mapSpread-string-keyed-row"); the lenient spread passes a plain object row's values.
             const all = () => [9];
 
@@ -5426,7 +5426,7 @@ describe("Arr", () => {
         });
 
         it("spreads the values of a plain object or a Map row, as PHP spreads the array it stands for", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-int-keyed-row", "list"
+            // docs/php-parity/Collection/mapSpread.json, "C32-E-mapSpread-int-keyed-row", "list"
             expect(
                 Arr.mapSpread([{ 5: "a", 7: "b" }, {}], (...args) => args),
             ).toEqual([["a", "b", 0], [1]]);
@@ -5445,7 +5445,7 @@ describe("Arr", () => {
         });
 
         it("spreads the values of the record a Collection-like row holds", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/mapSpread.json,
             // "C32-E-mapSpread-int-keyed-collection-row", "list"
             expect(
                 Arr.mapSpread(
@@ -5457,7 +5457,7 @@ describe("Arr", () => {
 
         it("passes any other object row whole", () => {
             // JS-only: PHP throws "Cannot use object of type DateTime as array", per
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-object-row"
+            // docs/php-parity/Collection/mapSpread.json, "C32-E-mapSpread-object-row"
             const date = new Date(0);
 
             expect(Arr.mapSpread([date], (...args) => args)).toEqual([
@@ -5466,7 +5466,7 @@ describe("Arr", () => {
         });
 
         it("hands a null row's key alone, as appending the key makes the row an array", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-E-mapSpread-null-row", "list"
+            // docs/php-parity/Collection/mapSpread.json, "C32-E-mapSpread-null-row", "list"
             expect(Arr.mapSpread([null, [1]], (...args) => args)).toEqual([
                 [0],
                 [1, 1],
@@ -5476,7 +5476,7 @@ describe("Arr", () => {
 
     describe("query", () => {
         it("percent-encodes brackets, as PHP_QUERY_RFC3986 does", () => {
-            // docs/php-parity/task-29-final-behaviour.json, "query-nested-key-brackets",
+            // docs/php-parity/Arr/query.json, "query-nested-key-brackets",
             // "query-list-value-brackets", "query-bracket-inside-a-key",
             // "query-rfc3986-sub-delimiters". Arr::query is
             // http_build_query(..., PHP_QUERY_RFC3986), which encodes [ and ] and the five
@@ -5597,7 +5597,7 @@ describe("Arr", () => {
             );
 
             // PHP's http_build_query casts true to "1" and false to "0", captured in
-            // docs/php-parity/task-08-arr-parity.json.
+            // docs/php-parity/Arr/query.json.
             expect(Arr.query(keyed({ foo: "bar", bar: true }))).toBe(
                 "foo=bar&bar=1",
             );
@@ -5705,9 +5705,9 @@ describe("Arr", () => {
         it("compares the value with PHP's ===", () => {
             const mixed: (number | string)[] = [1, 2, 3, 4];
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-strict-value"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skipUntil-strict-value"
             expect(Arr.skipUntil(mixed, "3")).toEqual([]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipUntil-list-keys", whose keys 2
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skipUntil-list-keys", whose keys 2
             // and 3 name these items; a list renumbers them, as every removal from a list does
             expect(Arr.skipUntil(mixed, 3)).toEqual([3, 4]);
         });
@@ -5719,14 +5719,14 @@ describe("Arr", () => {
                 3, 3, 4, 4,
             ]);
             expect(Arr.skipUntil(items, (value) => value >= 5)).toEqual([]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skip-take-callback-index"
             expect(
                 Arr.skipUntil(["x", "y", "z"], (_value, index) => index === 1),
             ).toEqual(["y", "z"]);
         });
 
         it("judges a callback's answer by PHP truthiness", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skip-take-callback-php-truthiness"
             expect(
                 ["0", [], new Date(0)].map((answer) =>
                     Arr.skipUntil(["a", "b"], () => answer),
@@ -5753,9 +5753,9 @@ describe("Arr", () => {
         it("compares the value with PHP's ===", () => {
             const mixed: (number | string)[] = [1, 1, 2];
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-strict-value"
+            // docs/php-parity/Collection/skipWhile.json, "C32-D-skipWhile-strict-value"
             expect(Arr.skipWhile(mixed, "1")).toEqual([1, 1, 2]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-list-keys", whose keys 2
+            // docs/php-parity/Collection/skipWhile.json, "C32-D-skipWhile-list-keys", whose keys 2
             // and 3 name these items; a list renumbers them, as every removal from a list does
             expect(Arr.skipWhile([1, 1, 2, 1], 1)).toEqual([2, 1]);
         });
@@ -5767,14 +5767,14 @@ describe("Arr", () => {
             expect(Arr.skipWhile(items, (value) => value < 3)).toEqual([
                 3, 3, 4, 4,
             ]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skipWhile-callback-key"
+            // docs/php-parity/Collection/skipWhile.json, "C32-D-skipWhile-callback-key"
             expect(
                 Arr.skipWhile(["x", "y", "z"], (_value, index) => index < 1),
             ).toEqual(["y", "z"]);
         });
 
         it("judges a callback's answer by PHP truthiness", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skip-take-callback-php-truthiness"
             expect(
                 ["0", [], new Date(0)].map((answer) =>
                     Arr.skipWhile(["a", "b"], () => answer),
@@ -5805,7 +5805,7 @@ describe("Arr", () => {
 
         // array_slice($a, -2, 5, true) and array_slice($a, -2, 2, true) both leave the
         // last two entries; a length beyond the remaining tail is not an empty result.
-        // PHP-verified in docs/php-parity/task-04-shared.json.
+        // PHP-verified in docs/php-parity/Php/array_slice.json.
         it("slices from the end for a negative offset with a length", () => {
             const data = [1, 2, 3, 4, 5, 6, 7, 8];
             expect(Arr.slice(data, -2, 5)).toEqual([7, 8]);
@@ -5829,7 +5829,7 @@ describe("Arr", () => {
         });
 
         it("returns empty when a negative length exceeds the remaining tail", () => {
-            // PHP-verified in docs/php-parity/task-12-regression-pins.json.
+            // PHP-verified in docs/php-parity/Arr/array.json.
             expect(Arr.slice([1, 2, 3], 0, -5)).toEqual([]);
             expect(Arr.slice([1, 2, 3], -5, -5)).toEqual([]);
         });
@@ -5902,22 +5902,22 @@ describe("Arr", () => {
             expect(() => Arr.random([])).toThrow(InvalidArgumentException);
             expect(() => Arr.random([], 1)).toThrow(InvalidArgumentException);
             expect(() => Arr.random([], 2)).toThrow(InvalidArgumentException);
-            // docs/php-parity/task-08-arr-parity.json, "Arr::random on empty"
+            // docs/php-parity/Arr/random.json, "Arr::random on empty"
             expect(() => Arr.random([])).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
             );
-            // docs/php-parity/task-11-cross-backing.json, "X23 random throws before the empty guard"
+            // docs/php-parity/Arr/random.json, "X23 random throws before the empty guard"
             expect(() => Arr.random([], 1)).toThrow(
                 "You requested 1 items, but there are only 0 items available.",
             );
-            // docs/php-parity/task-23-obj-release-readiness.json, "random-empty-2"
+            // docs/php-parity/Arr/random.json, "random-empty-2"
             expect(() => Arr.random([], 2)).toThrow(
                 "You requested 2 items, but there are only 0 items available.",
             );
         });
 
         it("truncates a fractional count, as Arr::random's int cast does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            // docs/php-parity/Arr/random.json, "C32-C-arr-random-fractional-count"
             expect(Arr.random([1, 2, 3], 1.2)).toHaveLength(1);
             expect(Arr.random([1, 2, 3], 2.9)).toHaveLength(2);
             expect(Object.keys(Arr.random([1, 2, 3], 1.5, true))).toHaveLength(
@@ -5926,7 +5926,7 @@ describe("Arr", () => {
         });
 
         it("checks a fractional count against the items before truncating it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-random-fractional-count"
+            // docs/php-parity/Arr/random.json, "C32-C-arr-random-fractional-count"
             expect(() => Arr.random([1, 2, 3], 3.5)).toThrow(
                 InvalidArgumentException,
             );
@@ -5941,7 +5941,7 @@ describe("Arr", () => {
         });
 
         it("names an infinite count INF, as PHP prints it, and picks nothing for -INF", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            // docs/php-parity/Collection/random.json, "C32-C-random-non-finite-count"
             expect(() => Arr.random([1, 2, 3], Infinity)).toThrow(
                 InvalidArgumentException,
             );
@@ -5952,7 +5952,7 @@ describe("Arr", () => {
         });
 
         it("compares a count that is not numeric as a string, as PHP does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            // docs/php-parity/Collection/random.json, "C32-C-random-non-numeric-string-count"
             expect(() => Arr.random([1, 2, 3], "abc")).toThrow(
                 InvalidArgumentException,
             );
@@ -5962,12 +5962,12 @@ describe("Arr", () => {
         });
 
         it("rejects a NAN count or a string that is not numeric, as pickArrayKeys' int parameter does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-finite-count"
+            // docs/php-parity/Collection/random.json, "C32-C-random-non-finite-count"
             expect(() => Arr.random([1, 2, 3], NaN)).toThrow(TypeError);
             expect(() => Arr.random([1, 2, 3], NaN)).toThrow(
                 "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, float given",
             );
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-non-numeric-string-count"
+            // docs/php-parity/Collection/random.json, "C32-C-random-non-numeric-string-count"
             expect(() => Arr.random([1, 2, 3], "1x")).toThrow(TypeError);
             expect(() => Arr.random([1, 2, 3], "1x")).toThrow(
                 "Random\\Randomizer::pickArrayKeys(): Argument #2 ($num) must be of type int, string given",
@@ -5975,13 +5975,13 @@ describe("Arr", () => {
         });
 
         it("picks nothing from an empty array at a NAN count, as Arr::random's empty guard answers first", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-random-nan-count-on-empty"
+            // docs/php-parity/Arr/random.json, "C32-C-random-nan-count-on-empty"
             expect(Arr.random([], NaN)).toEqual([]);
             expect(Arr.random([], NaN, true)).toEqual([]);
         });
 
         it("returns the picked values in the array's own order, not the order drawn", () => {
-            // docs/php-parity/task-30-map-order.json, "random-list-full-count"
+            // docs/php-parity/Arr/random.json, "random-list-full-count"
             expect(Arr.random(["a", "b", "c", "d"], 4)).toEqual([
                 "a",
                 "b",
@@ -5989,7 +5989,7 @@ describe("Arr", () => {
                 "d",
             ]);
 
-            // docs/php-parity/task-30-map-order.json, "random-list-partial-keeps-array-order"
+            // docs/php-parity/Arr/random.json, "random-list-partial-keeps-array-order"
             const order = ["a", "b", "c", "d"];
 
             for (let draw = 0; draw < 200; draw++) {
@@ -6004,7 +6004,7 @@ describe("Arr", () => {
 
     describe("shift", () => {
         it("drops a fraction from the count and takes every item for NAN, as the loop over range() does", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-shift-fractional-and-non-finite-counts"
             const data = [1, 2, 3, 4];
 
             expect(Arr.shift(data, 2.5)).toEqual([1, 2]);
@@ -6019,7 +6019,7 @@ describe("Arr", () => {
         });
 
         it("throws range()'s ValueError for a fraction below 2 and shifts nothing, unless fewer items cap it", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-shift-fractional-and-non-finite-counts"
+            // docs/php-parity/Collection/shift-and-pop-counts.json, "C32-B-shift-fractional-and-non-finite-counts"
             for (const count of [1.5, 0.5]) {
                 const data = [1, 2, 3, 4];
 
@@ -6038,7 +6038,7 @@ describe("Arr", () => {
         });
 
         it("throws InvalidArgumentException for a negative count, as Collection::shift does", () => {
-            // docs/php-parity/task-11-cross-backing.json, "X3 shift throws on a negative count"
+            // docs/php-parity/Collection/shift.json, "X3 shift throws on a negative count"
             expect(() => Arr.shift([10, 20, 30, 40], -1)).toThrow(
                 InvalidArgumentException,
             );
@@ -6063,9 +6063,9 @@ describe("Arr", () => {
             expect(Arr.shift(data)).toBeUndefined();
             expect(data).toEqual(["Otwell"]);
 
-            // docs/php-parity/task-23-obj-release-readiness.json, "D6 shift/pop on collect(null)"
+            // docs/php-parity/Collection/shift.json, "D6 shift/pop on collect(null)"
             expect(Arr.shift(null, 2)).toEqual([]);
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-null-backed-counts"
+            // docs/php-parity/Collection/shift.json, "shift-null-backed-counts"
             expect(Arr.shift(null, 0)).toEqual([]);
 
             expect(Arr.shift(null)).toBeNull();
@@ -6091,7 +6091,7 @@ describe("Arr", () => {
         });
 
         it("returns null from an empty array for a count of 1, and an empty array for any other count", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "shift-empty-counts"
+            // docs/php-parity/Collection/shift.json, "shift-empty-counts"
             expect(Arr.shift([])).toBeNull();
             expect(Arr.shift([], 1)).toBeNull();
 
@@ -6107,7 +6107,7 @@ describe("Arr", () => {
 
     describe("sort", () => {
         it("sorts by a comparator answering a bool, as uasort() falls back for one", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortBy-bool-comparator"
+            // docs/php-parity/Arr/sort.json, "C32-G-sortBy-bool-comparator"
             // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
             expect(
                 Arr.sort([3, 1, 2], [(a: number, b: number) => a > b]),
@@ -6265,13 +6265,13 @@ describe("Arr", () => {
 
         it("orders null before numbers, matching compareValues' ascending semantics", () => {
             // PHP compares null against a number as booleans, so null loses to
-            // every non-zero one (task-19-spaceship.json, "spaceship on null
+            // every non-zero one (docs/php-parity/Php/spaceship.json, "spaceship on null
             // and a positive int").
             expect(Arr.sort([null, 3, 1])).toEqual([null, 1, 3]);
         });
 
-        // task-17-second-review.json ("sort"/"rsort orders numeric strings
-        // numerically") and task-19-spaceship.json ("Arr::sort"/"Arr::sortDesc orders
+        // docs/php-parity/Php/rsort.json ("sort"/"rsort orders numeric strings
+        // numerically") and docs/php-parity/Arr/sortDesc.json ("Arr::sort"/"Arr::sortDesc orders
         // numeric strings numerically")
         it("orders numeric strings numerically, not lexically", () => {
             expect(Arr.sort(["9", "10"])).toEqual(["9", "10"]);
@@ -6288,7 +6288,7 @@ describe("Arr", () => {
             ]);
         });
 
-        // task-19-spaceship.json, "Arr::sort by key orders numeric strings
+        // docs/php-parity/Arr/sort.json, "Arr::sort by key orders numeric strings
         // numerically"
         it("orders numeric strings numerically through a key path too", () => {
             const rows = [{ n: "9" }, { n: "10" }, { n: "1" }, { n: 5 }];
@@ -6377,7 +6377,7 @@ describe("Arr", () => {
         });
 
         it("runs a comparator nested in a one-element descriptor", () => {
-            // PHP-verified: docs/php-parity/task-18-sort-comparator.json,
+            // PHP-verified: docs/php-parity/Arr/sort.json,
             // "Arr::sort runs a comparator nested in a one-element descriptor".
             const byAge = (a: { age: number }, b: { age: number }) =>
                 a.age - b.age;
@@ -6419,7 +6419,7 @@ describe("Arr", () => {
         });
 
         it("preserves insertion order for an empty spec array", () => {
-            // PHP-verified: docs/php-parity/task-10-pluck-sort.json, "Arr::sort — empty
+            // PHP-verified: docs/php-parity/Arr/sort.json, "Arr::sort — empty
             // descriptor array preserves insertion order".
             expect(Arr.sort([3, 1, 2], [])).toEqual([3, 1, 2]);
         });
@@ -6433,7 +6433,7 @@ describe("Arr", () => {
 
     describe("sortDesc", () => {
         it("sorts by a comparator answering a bool, which the descending direction never reverses", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-G-sortByDesc-bool-comparator"
+            // docs/php-parity/Arr/sortDesc.json, "C32-G-sortByDesc-bool-comparator"
             // JS-only: a list renumbers its keys, where PHP keeps 1, 2 and 0
             expect(
                 Arr.sortDesc([3, 1, 2], [(a: number, b: number) => a > b]),
@@ -6613,7 +6613,7 @@ describe("Arr", () => {
 
         it("orders null after numbers, matching compareValues' descending semantics", () => {
             // PHP compares null against a number as booleans, so null loses to
-            // every non-zero one (task-19-spaceship.json, "spaceship on null
+            // every non-zero one (docs/php-parity/Php/spaceship.json, "spaceship on null
             // and a positive int") and descending order puts it last.
             expect(Arr.sortDesc([null, 3, 1])).toEqual([3, 1, null]);
         });
@@ -6776,14 +6776,14 @@ describe("Arr", () => {
             );
 
             // false -> "" too, not "0" (implode's bool cast, not
-            // http_build_query's). Captured: docs/php-parity/task-08-arr-
-            // parity.json ("Arr::toCssClasses false value at numeric key").
+            // http_build_query's). Captured: docs/php-parity/Arr/toCssClasses.json
+            // ("Arr::toCssClasses false value at numeric key").
             expect(Arr.toCssClasses([false, "x"])).toBe(" x");
         });
 
         it("emits the value for numeric keys and the key for truthy string keys in one mixed array", () => {
             // arr was already correct here; pinned against
-            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses mixed keys")
+            // docs/php-parity/Arr/toCssClasses.json ("Arr::toCssClasses mixed keys")
             // so obj's fix can't drift from it.
             const mixed: unknown[] & { "ml-2"?: boolean; "mr-2"?: boolean } = [
                 "font-bold",
@@ -6795,7 +6795,7 @@ describe("Arr", () => {
         });
 
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
-            // Captured: docs/php-parity/task-08-arr-parity.json ("Arr::toCssClasses
+            // Captured: docs/php-parity/Arr/toCssClasses.json ("Arr::toCssClasses
             // with is_numeric edge-case keys").
             expect(Arr.toCssClasses(keyed({ "": "foo" }))).toBe("");
             expect(Arr.toCssClasses(keyed({ " ": "foo" }))).toBe(" ");
@@ -6811,13 +6811,13 @@ describe("Arr", () => {
             ["00", "foo"],
             ["0.0", "foo"],
         ])("applies PHP truthiness to the value %s", (value, expected) => {
-            // Captured: docs/php-parity/task-08-arr-parity.json
+            // Captured: docs/php-parity/Arr/toCssClasses.json
             // ("CSS helpers use PHP truthiness for the value").
             expect(Arr.toCssClasses(keyed({ foo: value }))).toBe(expected);
         });
 
         it("drops an empty container value", () => {
-            // Captured: docs/php-parity/task-08-arr-parity.json
+            // Captured: docs/php-parity/Arr/toCssClasses.json
             // ("CSS helpers use PHP truthiness for the value").
             expect(Arr.toCssClasses(keyed({ foo: [] }))).toBe("");
             expect(Arr.toCssClasses(keyed({ foo: {} }))).toBe("");
@@ -6881,7 +6881,7 @@ describe("Arr", () => {
 
         it("PHP-casts non-string values at numeric keys instead of dropping them", () => {
             // Same PHP-cast as toCssClasses, then each pushed value is finished with a
-            // semicolon. Captured: docs/php-parity/task-08-arr-parity.json
+            // semicolon. Captured: docs/php-parity/Arr/toCssStyles.json
             // ("Arr::toCssStyles non-string value at numeric key") -> "123; ; 1;".
             expect(Arr.toCssStyles([123, null, undefined, true])).toBe(
                 "123; ; ; 1;",
@@ -6890,14 +6890,14 @@ describe("Arr", () => {
                 "color: red; 123;",
             );
 
-            // false -> "" too, not "0". Captured: docs/php-parity/task-08-
-            // arr-parity.json ("Arr::toCssStyles false value at numeric key").
+            // false -> "" too, not "0". Captured: docs/php-parity/Arr/toCssStyles.json
+            // ("Arr::toCssStyles false value at numeric key").
             expect(Arr.toCssStyles([false, "x"])).toBe("; x;");
         });
 
         it("emits the value for numeric keys and the key for truthy string keys in one mixed array", () => {
             // arr was already correct here; pinned against
-            // docs/php-parity/task-08-arr-parity.json ("Arr::toCssStyles mixed keys")
+            // docs/php-parity/Arr/toCssStyles.json ("Arr::toCssStyles mixed keys")
             // so obj's fix can't drift from it.
             const mixed: unknown[] & {
                 "margin-left: 2px;"?: boolean;
@@ -6911,7 +6911,7 @@ describe("Arr", () => {
         });
 
         it("uses PHP's is_numeric for the key check, not Number()/isNaN", () => {
-            // docs/php-parity/task-08-arr-parity.json
+            // docs/php-parity/Arr/toCssStyles.json
             // ("Arr::toCssStyles with is_numeric edge-case keys").
             expect(Arr.toCssStyles(keyed({ "": "foo" }))).toBe(";");
             expect(Arr.toCssStyles(keyed({ " ": "foo" }))).toBe(" ;");
@@ -6927,13 +6927,13 @@ describe("Arr", () => {
             ["00", "foo;"],
             ["0.0", "foo;"],
         ])("applies PHP truthiness to the value %s", (value, expected) => {
-            // Captured: docs/php-parity/task-08-arr-parity.json
+            // Captured: docs/php-parity/Arr/toCssClasses.json
             // ("CSS helpers use PHP truthiness for the value").
             expect(Arr.toCssStyles(keyed({ foo: value }))).toBe(expected);
         });
 
         it("drops an empty container value", () => {
-            // Captured: docs/php-parity/task-08-arr-parity.json
+            // Captured: docs/php-parity/Arr/toCssClasses.json
             // ("CSS helpers use PHP truthiness for the value").
             expect(Arr.toCssStyles(keyed({ foo: [] }))).toBe("");
             expect(Arr.toCssStyles(keyed({ foo: {} }))).toBe("");
@@ -6942,10 +6942,10 @@ describe("Arr", () => {
 
     describe("sortRecursive", () => {
         it("sorts a zero-keyed record by value, as array_is_list does", () => {
-            // docs/php-parity/task-29-final-behaviour.json,
+            // docs/php-parity/Arr/sortRecursive.json,
             // "sortRecursive-explicit-zero-based-keys",
-            // "sortRecursiveDesc-explicit-zero-based-keys",
-            // "sortRecursive-gapped-int-keys-stay-ksorted".
+            // docs/php-parity/Arr/sortRecursiveDesc.json, "sortRecursiveDesc-explicit-zero-based-keys",
+            // docs/php-parity/Arr/sortRecursive.json, "sortRecursive-gapped-int-keys-stay-ksorted".
             // Arr::sortRecursive sorts a LIST by value; a record keyed 0..n-1 is one.
             expect(Arr.sortRecursive(keyed({ 0: 3, 1: 1, 2: 2 }))).toEqual({
                 0: 1,
@@ -6998,7 +6998,7 @@ describe("Arr", () => {
                 },
             };
 
-            // docs/php-parity/task-29-final-behaviour.json, "sortRecursive-literal-js-spelling".
+            // docs/php-parity/Arr/sortRecursive.json, "sortRecursive-literal-js-spelling".
             // ArrTest writes `30 => [2=>'a',1=>'b',0=>'c']`, which no JS object can hold: a plain
             // object enumerates integer keys ascending, so it IS a list and sorts by value.
             const complexExpected = {
@@ -7093,7 +7093,7 @@ describe("Arr", () => {
         });
 
         it("sorts nested lists numerically and nested objects by key", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "sortRecursive-numbers-lexical" (list-shaped twin)
+            // docs/php-parity/Arr/sortRecursive.json, "sortRecursive-numbers-lexical" (list-shaped twin)
             expect(Arr.sortRecursive([[10, 9, 1]])).toEqual([[1, 9, 10]]);
             expect(Arr.sortRecursive([{ b: [3, 1], a: 1 }])).toEqual([
                 { a: 1, b: [1, 3] },
@@ -7101,7 +7101,7 @@ describe("Arr", () => {
         });
 
         it("keeps an object that isn't a plain object whole, in a list or a map", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json,
+            // docs/php-parity/Arr/sortRecursive.json,
             // "sortRecursive-list-object-leaf", "sortRecursive-object-leaf"
             const date = new Date(0);
             const point = new Point();
@@ -7203,7 +7203,7 @@ describe("Arr", () => {
 
     describe("splice", () => {
         it("removes to the end for a null length, as array_splice()'s ?int length reads null", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length-to-the-end"
+            // docs/php-parity/Collection/splice.json, "C32-B-splice-null-length-to-the-end"
             const data = [1, 2, 3, 4];
 
             expect(Arr.splice(data, 1, null)).toEqual([2, 3, 4]);
@@ -7214,7 +7214,7 @@ describe("Arr", () => {
             expect(Arr.splice(fromTheEnd, -1, null)).toEqual([4]);
             expect(fromTheEnd).toEqual([1, 2, 3]);
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-B-splice-null-length"
+            // docs/php-parity/Collection/splice.json, "C32-B-splice-null-length"
             const replaced = [1, 2, 3, 4];
 
             expect(Arr.splice(replaced, 1, null, "x")).toEqual([2, 3, 4]);
@@ -7222,7 +7222,7 @@ describe("Arr", () => {
         });
 
         it("drops the fraction from an offset or a length before counting a negative one back from the end", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/splice.json,
             // "C32-B-splice-fractional-and-non-finite-offsets"
             const offsetOnly = [1, 2, 3, 4];
 
@@ -7234,7 +7234,7 @@ describe("Arr", () => {
             expect(Arr.splice(fromTheEnd, -1.5, 1)).toEqual([4]);
             expect(fromTheEnd).toEqual([1, 2, 3]);
 
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/splice.json,
             // "C32-B-splice-fractional-and-non-finite-lengths"
             const shortOfTheEnd = [1, 2, 3, 4];
 
@@ -7243,7 +7243,7 @@ describe("Arr", () => {
         });
 
         it("throws array_splice()'s TypeError for an offset or a length no int holds, and splices nothing", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json,
+            // docs/php-parity/Collection/splice.json,
             // "C32-B-splice-fractional-and-non-finite-offsets" and "C32-B-splice-fractional-and-non-finite-lengths"
             for (const value of [NaN, Infinity, 1e19]) {
                 const data = [1, 2, 3, 4];
@@ -7317,7 +7317,7 @@ describe("Arr", () => {
         });
 
         it("treats a negative length as counting back from the end, like array_splice", () => {
-            // PHP-verified (task-03-splice.json "numeric, five offset/length combinations").
+            // PHP-verified (docs/php-parity/Php/array_splice.json "numeric, five offset/length combinations").
             const cases: [number, number, number[], number[]][] = [
                 [1, -1, [2, 3, 4], [1, 5]],
                 [-3, -1, [3, 4], [1, 2, 5]],
@@ -7333,7 +7333,7 @@ describe("Arr", () => {
             }
         });
 
-        // docs/php-parity/task-17-second-review.json, "splice with an assoc replacement on a list"
+        // docs/php-parity/Collection/splice.json, "splice with an assoc replacement on a list"
         it("discards a replacement object's keys, splicing in its values", () => {
             const data = [1, 2, 3];
             expect(Arr.splice(data, 1, 1, { foo: "bar" } as never)).toEqual([
@@ -7368,7 +7368,7 @@ describe("Arr", () => {
         it("compares the value with PHP's ===", () => {
             const mixed: (number | string)[] = [1, 2, 3, 4];
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-strict-value"
+            // docs/php-parity/Collection/takeUntil.json, "C32-D-takeUntil-strict-value"
             expect(Arr.takeUntil(mixed, "3")).toEqual([1, 2, 3, 4]);
         });
 
@@ -7377,14 +7377,14 @@ describe("Arr", () => {
             expect(Arr.takeUntil(items, (item) => item >= 3)).toEqual([1, 2]);
             // CollectionTest::testTakeUntilReturnsAllItemsForUnmetValue
             expect(Arr.takeUntil(items, (item) => item >= 99)).toEqual(items);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-index"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skip-take-callback-index"
             expect(
                 Arr.takeUntil(["x", "y", "z"], (_value, index) => index === 1),
             ).toEqual(["x"]);
         });
 
         it("judges a callback's answer by PHP truthiness", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skip-take-callback-php-truthiness"
             expect(
                 ["0", [], new Date(0)].map((answer) =>
                     Arr.takeUntil(["a", "b"], () => answer),
@@ -7393,7 +7393,7 @@ describe("Arr", () => {
         });
 
         it("takes nothing from an empty array or data holding no items", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeUntil-empty"
+            // docs/php-parity/Collection/takeUntil.json, "C32-D-takeUntil-empty"
             expect(Arr.takeUntil([], 1)).toEqual([]);
             // JS-only: null holds no items, as an empty array holds none
             expect(Arr.takeUntil(null, 1)).toEqual([]);
@@ -7406,14 +7406,14 @@ describe("Arr", () => {
             expect(Arr.takeWhile([1, 1, 2, 2, 3, 3], 1)).toEqual([1, 1]);
             // CollectionTest::testTakeWhileReturnsNoItemsForUnmetValue
             expect(Arr.takeWhile([1, 2, 3, 4], 2)).toEqual([]);
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-null-value"
+            // docs/php-parity/Collection/takeWhile.json, "C32-D-takeWhile-null-value"
             expect(Arr.takeWhile([null, null, 0], null)).toEqual([null, null]);
         });
 
         it("compares the value with PHP's ===", () => {
             const mixed: (number | string)[] = [1, 1, 2];
 
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-strict-value"
+            // docs/php-parity/Collection/takeWhile.json, "C32-D-takeWhile-strict-value"
             expect(Arr.takeWhile(mixed, "1")).toEqual([]);
         });
 
@@ -7426,14 +7426,14 @@ describe("Arr", () => {
             expect(Arr.takeWhile([1, 2, 3, 4], (item) => item === 99)).toEqual(
                 [],
             );
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-takeWhile-callback-key"
+            // docs/php-parity/Collection/takeWhile.json, "C32-D-takeWhile-callback-key"
             expect(
                 Arr.takeWhile(["x", "y", "z"], (_value, index) => index < 2),
             ).toEqual(["x", "y"]);
         });
 
         it("judges a callback's answer by PHP truthiness", () => {
-            // docs/php-parity/task-32-collection-release-readiness.json, "C32-D-skip-take-callback-php-truthiness"
+            // docs/php-parity/Collection/skipUntil.json, "C32-D-skip-take-callback-php-truthiness"
             expect(
                 ["0", [], new Date(0)].map((answer) =>
                     Arr.takeWhile(["a", "b"], () => answer),
@@ -7667,13 +7667,13 @@ describe("Arr", () => {
             expect(Arr.intersectAssoc([], [1, 2])).toEqual([]);
         });
 
-        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        // docs/php-parity/Php/array_intersect_assoc.json, "array_intersect_assoc casts values to string"
         it("matches values by PHP's string cast", () => {
             expect(Arr.intersectAssoc([0], ["0"] as never)).toEqual([0]);
         });
 
         it("unwraps a Collection-like operand, the sibling of obj.intersectAssoc's fix", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-collection-operand"
+            // docs/php-parity/Collection/intersectAssoc.json, "intersectAssoc-list-collection-operand"
 
             expect(
                 Arr.intersectAssoc([1, 2, 3], collectionLike([1, 2, 9])),
@@ -7681,7 +7681,7 @@ describe("Arr", () => {
         });
 
         it("matches a keyed operand by key, never by position", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssoc-list-keyed-operand"
+            // docs/php-parity/Collection/intersectAssoc.json, "intersectAssoc-list-keyed-operand"
             expect(Arr.intersectAssoc([1, 2], { a: 1, b: 2 })).toEqual([]);
             expect(Arr.intersectAssoc(["a", "b"], { 1: "b" })).toEqual(["b"]);
         });
@@ -7729,7 +7729,7 @@ describe("Arr", () => {
             expect(Arr.intersectAssocUsing([], [1, 2], cb)).toEqual([]);
         });
 
-        // docs/php-parity/task-17-second-review.json, "array_intersect_assoc casts values to string"
+        // docs/php-parity/Php/array_intersect_assoc.json, "array_intersect_assoc casts values to string"
         it("matches values by PHP's string cast, like intersectAssoc", () => {
             expect(
                 Arr.intersectAssocUsing([0], ["0"] as never, (a, b) => a === b),
@@ -7737,7 +7737,7 @@ describe("Arr", () => {
         });
 
         it("unwraps a Collection-like operand, the sibling of obj.intersectAssocUsing's fix", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-collection-operand"
+            // docs/php-parity/Collection/intersectAssocUsing.json, "intersectAssocUsing-list-collection-operand"
 
             expect(
                 Arr.intersectAssocUsing(
@@ -7749,7 +7749,7 @@ describe("Arr", () => {
         });
 
         it("hands the callback a keyed operand's own keys, never its positions", () => {
-            // docs/php-parity/task-23-obj-release-readiness.json, "intersectAssocUsing-list-keyed-operand"
+            // docs/php-parity/Collection/intersectAssocUsing.json, "intersectAssocUsing-list-keyed-operand"
             expect(
                 Arr.intersectAssocUsing(
                     [1, 2],
@@ -7782,20 +7782,20 @@ describe("Arr", () => {
 
         it.each([
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
                 "chunkWhile",
                 (callback: () => unknown) =>
                     Arr.chunkWhile(["a", "b"], callback),
                 [[["a"], ["b"]], [["a"], ["b"]], [["a", "b"]], [["a", "b"]]],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "first",
                 (callback: () => unknown) => Arr.first(["a", "b"], callback),
                 [null, null, "a", "a"],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness",
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness",
                 // whose keyed answers a Map gives, as the array it stands for
                 "first over a Map",
                 (callback: () => unknown) =>
@@ -7809,7 +7809,7 @@ describe("Arr", () => {
                 [null, null, "a", "a"],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "last",
                 (callback: () => unknown) => Arr.last(["a", "b"], callback),
                 [null, null, "b", "b"],
@@ -7822,7 +7822,7 @@ describe("Arr", () => {
                 [null, null, "b", "b"],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "every",
                 (callback: () => unknown) => Arr.every(["a", "b"], callback),
                 [false, false, true, true],
@@ -7835,7 +7835,7 @@ describe("Arr", () => {
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "some",
                 (callback: () => unknown) => Arr.some(["a", "b"], callback),
                 [false, false, true, true],
@@ -7848,25 +7848,25 @@ describe("Arr", () => {
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "sole",
                 (callback: () => unknown) => Arr.sole(["a"], callback),
                 ["ItemNotFoundException", "ItemNotFoundException", "a", "a"],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "where",
                 (callback: () => unknown) => Arr.where(["a", "b"], callback),
                 [[], [], ["a", "b"], ["a", "b"]],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "reject",
                 (callback: () => unknown) => Arr.reject(["a", "b"], callback),
                 [["a", "b"], ["a", "b"], [], []],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-arr-callback-php-truthiness"
+                // docs/php-parity/Arr/first.json, "C32-C-arr-callback-php-truthiness"
                 "partition",
                 (callback: () => unknown) =>
                     Arr.partition(["a", "b"], callback),
@@ -7878,13 +7878,13 @@ describe("Arr", () => {
                 ],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
                 "contains",
                 (callback: () => unknown) => Arr.contains(["a", "b"], callback),
                 [false, false, true, true],
             ],
             [
-                // docs/php-parity/task-32-collection-release-readiness.json, "C32-C-collection-callback-php-truthiness"
+                // docs/php-parity/Collection/filter.json, "C32-C-collection-callback-php-truthiness"
                 "filter",
                 (callback: () => unknown) => Arr.filter(["a", "b"], callback),
                 [[], [], ["a", "b"], ["a", "b"]],

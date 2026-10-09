@@ -84,7 +84,7 @@ describe("Stringable basic delegation", () => {
     });
 
     describe("basename", () => {
-        // docs/php-parity/task-22-basename-dirname.json
+        // docs/php-parity/Stringable/basename.json
         it("Laravel tests", () => {
             expect(
                 Str.of("/framework/tests/Support").basename().toString(),
@@ -119,7 +119,7 @@ describe("Stringable basic delegation", () => {
     });
 
     describe("dirname", () => {
-        // docs/php-parity/task-22-basename-dirname.json
+        // docs/php-parity/Stringable/dirname.json
         it("Laravel tests", () => {
             expect(
                 Str.of("/framework/tests/Support").dirname().toString(),
@@ -850,7 +850,7 @@ describe("Stringable basic delegation", () => {
         });
 
         it("trims nothing for an empty charlist", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "stringable-trim-empty-charlist"
+            // docs/php-parity/Stringable/trim.json, "stringable-trim-empty-charlist"
             expect(Str.of("  hello  ").trim("").toString()).toBe("  hello  ");
         });
     });
@@ -861,7 +861,7 @@ describe("Stringable basic delegation", () => {
         });
 
         it("trims nothing for an empty charlist", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "stringable-trim-empty-charlist"
+            // docs/php-parity/Stringable/trim.json, "stringable-trim-empty-charlist"
             expect(Str.of("  hello  ").ltrim("").toString()).toBe("  hello  ");
         });
     });
@@ -872,7 +872,7 @@ describe("Stringable basic delegation", () => {
         });
 
         it("trims nothing for an empty charlist", () => {
-            // docs/php-parity/task-33-laravel-13-34-sync.json, "stringable-trim-empty-charlist"
+            // docs/php-parity/Stringable/trim.json, "stringable-trim-empty-charlist"
             expect(Str.of("  hello  ").rtrim("").toString()).toBe("  hello  ");
         });
     });
