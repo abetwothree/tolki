@@ -1,4 +1,5 @@
 import * as Num from "@tolki/num";
+import { InvalidArgumentException } from "@tolki/utils";
 import { describe, expect, it } from "vitest";
 
 describe("Number", () => {
@@ -782,8 +783,12 @@ describe("Number", () => {
             ]);
         });
 
-        it("throws when by is zero", () => {
-            expect(() => Num.pairs(100, 0)).toThrow();
+        it("throws InvalidArgumentException when by is zero, as Laravel does", () => {
+            // docs/php-parity/task-34-laravel-13-35-sync.json, "pairs-by-zero"
+            expect(() => Num.pairs(100, 0)).toThrow(InvalidArgumentException);
+            expect(() => Num.pairs(100, 0)).toThrow(
+                "The $by argument must not be zero.",
+            );
         });
 
         it("treats a negative by like a positive one", () => {

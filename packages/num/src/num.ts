@@ -1,3 +1,5 @@
+import { InvalidArgumentException } from "@tolki/utils";
+
 /**
  * The current default locale.
  */
@@ -533,6 +535,7 @@ export function clamp(value: number, min: number, max: number): number {
  * @param start - The starting value.
  * @param offset - The offset to apply to the upper bound of each pair.
  * @returns An array of [min, max] pairs.
+ * @throws InvalidArgumentException if by is zero.
  *
  * @see https://tolki.abe.dev/numbers/number-utilities-list.html#pairs
  */
@@ -543,7 +546,9 @@ export function pairs(
     offset: number = 1,
 ): [number, number][] {
     if (by === 0) {
-        throw new Error("The 'by' argument must not be zero.");
+        throw new InvalidArgumentException(
+            "The $by argument must not be zero.",
+        );
     }
 
     by = Math.abs(by);
