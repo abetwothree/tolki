@@ -5,16 +5,6 @@
     },
     "probes": [
         {
-            "label": "NAN is truthy for array_filter",
-            "php": "array_keys(array_filter([\"n\"=>NAN,\"z\"=>0.0]))",
-            "value": {
-                "bool_cast": true,
-                "kept": [
-                    "n"
-                ]
-            }
-        },
-        {
             "label": "phpArrayKey-extra-string-keys",
             "php": "array_keys(['-0' => 1, 'abc' => 2, '' => 3])",
             "value": [

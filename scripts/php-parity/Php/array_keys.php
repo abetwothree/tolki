@@ -20,9 +20,6 @@ use Illuminate\Tests\Support\TestJsonableObject;
 use Illuminate\Tests\Support\TestTraversableAndJsonSerializableObject;
 use Symfony\Component\VarDumper\VarDumper;
 
-probe('NAN is truthy for array_filter', 'array_keys(array_filter(["n"=>NAN,"z"=>0.0]))', function () {
-    return ['bool_cast' => @((bool) NAN), 'kept' => array_keys(@array_filter(['n' => NAN, 'z' => 0.0]))];
-});
 probe('phpArrayKey-extra-string-keys', "array_keys(['-0' => 1, 'abc' => 2, '' => 3])", fn () => array_keys(['-0' => 1, 'abc' => 2, '' => 3]));
 probe('C32-A-toArray-plain-item-members-are-data', "\$item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; [array_keys(\$item), \$item['b']]", function () { $item = collect([['toArray' => fn () => [9], 'b' => 2]])->toArray()[0]; return [array_keys($item), $item['b']]; });
 

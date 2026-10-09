@@ -1,0 +1,18 @@
+{
+    "meta": {
+        "php": "8.5.9",
+        "laravel": "v13.35.0-45-g01ac36d93a"
+    },
+    "probes": [
+        {
+            "label": "NAN is truthy for array_filter",
+            "php": "array_keys(array_filter([\"n\"=>NAN,\"z\"=>0.0]))",
+            "value": {
+                "bool_cast": true,
+                "kept": [
+                    "n"
+                ]
+            }
+        }
+    ]
+}
